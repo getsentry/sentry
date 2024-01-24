@@ -61,6 +61,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {isTraceTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {StyledZoomIcon} from 'sentry/views/performance/traceDetails/newTraceDetailsTransactionBar';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
@@ -167,6 +168,18 @@ export class NewTraceDetailsSpanBar extends Component<
   componentDidUpdate(prevProps: Readonly<NewTraceDetailsSpanBarProps>): void {
     if (this.props.location.query !== prevProps.location.query) {
       this.updateHighlightedState();
+    }
+
+    if (this.props.quickTrace !== prevProps.quickTrace) {
+      const relatedErrors = this.getRelatedErrors(this.props.quickTrace);
+      if (
+        this.isHighlighted &&
+        this.props.onRowClick &&
+        relatedErrors &&
+        relatedErrors.length > 0
+      ) {
+        this.props.onRowClick(this.getSpanDetailsProps());
+      }
     }
   }
 
@@ -561,7 +574,6 @@ export class NewTraceDetailsSpanBar extends Component<
   connectObservers() {
     const observer = new IntersectionObserver(([entry]) =>
       this.setState({isIntersecting: entry.isIntersecting}, () => {
-
         // Scrolls the next(invisible) bar from the virtualized list,
         // by it's height. Allows us to look for anchored span bars occuring
         // at the bottom of the span tree.
@@ -772,8 +784,17 @@ export class NewTraceDetailsSpanBar extends Component<
   }
 
   getSpanDetailsProps() {
-    const {span, organization, event, isRoot, trace, resetCellMeasureCache, quickTrace} =
-      this.props;
+    const {
+      span,
+      organization,
+      event,
+      isRoot,
+      trace,
+      resetCellMeasureCache,
+      quickTrace,
+      location,
+    } = this.props;
+    const openPanel = decodeScalar(location.query.openPanel);
     const errors = this.getRelatedErrors(quickTrace);
     const transactions = this.getChildTransactions(quickTrace);
 
@@ -782,6 +803,7 @@ export class NewTraceDetailsSpanBar extends Component<
       organization,
       event: event as EventTransaction,
       isRoot: !!isRoot,
+      openPanel,
       trace,
       childTransactions: transactions,
       relatedErrors: errors,
@@ -794,17 +816,20 @@ export class NewTraceDetailsSpanBar extends Component<
     const {span, event, location, markAnchoredSpanIsMounted} = this.props;
     const spanDetailProps = this.getSpanDetailsProps();
     if (this.props.onRowClick && !isGapSpan(span)) {
-      this.props.onRowClick(spanDetailProps);
       markAnchoredSpanIsMounted?.();
       const isTransactionEvent = event.type === EventOrGroupType.TRANSACTION;
       if (isTransactionEvent) {
         browserHistory.push({
           ...location,
-          hash: `${transactionTargetHash(
-            event.eventID
-          )}${spanTargetHash(span.span_id)}`,
+          hash: `${transactionTargetHash(event.eventID)}${spanTargetHash(span.span_id)}`,
+          query: {
+            ...location.query,
+            openPanel: 'open',
+          },
         });
+        spanDetailProps.openPanel = 'open';
       }
+      this.props.onRowClick(spanDetailProps);
     }
   }
   renderHeader({

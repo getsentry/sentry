@@ -7,13 +7,13 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Checkbox from 'sentry/components/checkbox';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {StatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
+import {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
+import {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
 import {
   InviteModalHook,
   InviteModalRenderFunc,
-  StatusMessage,
-} from 'sentry/components/modals/inviteMembersModal';
-import {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
-import {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
+} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PanelTable from 'sentry/components/panels/panelTable';
 import RoleSelectControl from 'sentry/components/roleSelectControl';

@@ -641,7 +641,7 @@ describe('ProjectAlertsCreate', function () {
 
   it('shows archived to escalating instead of ignored to unresolved', async () => {
     createWrapper({
-      organization: OrganizationFixture({features: ['escalating-issues']}),
+      organization: OrganizationFixture(),
     });
     await selectEvent.select(screen.getByText('Add optional trigger...'), [
       'The issue changes state from archived to escalating',

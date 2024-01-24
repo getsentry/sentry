@@ -1,9 +1,8 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import first from 'lodash/first';
-import uniq from 'lodash/uniq';
 
 import {ApiResult} from 'sentry/api';
 import {defined} from 'sentry/utils';
+import {uniq} from 'sentry/utils/array/uniq';
 import {ApiQueryKey, fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -81,7 +80,7 @@ export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
   const queryClient = useQueryClient();
   const cache = queryClient.getQueryCache();
 
-  const key = first(getQueryKey([]));
+  const key = getQueryKey([]).at(0);
 
   // The query keys that this instance cares about
   const prevQueryKeys = useRef<AggregatableQueryKey[]>([]);

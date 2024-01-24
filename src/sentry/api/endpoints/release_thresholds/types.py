@@ -3,6 +3,7 @@ from typing import Any, Dict, TypedDict
 
 
 class SerializedThreshold(TypedDict):
+    id: str
     date: datetime
     environment: Dict[str, Any] | None
     project: Dict[str, Any]
@@ -20,4 +21,4 @@ class EnrichedThreshold(SerializedThreshold):
     project_slug: str
     project_id: int
     start: datetime
-    metric_value: int | None
+    metric_value: int | float | None

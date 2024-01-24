@@ -72,6 +72,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
@@ -114,6 +115,7 @@ type Props = {
 
 function NewTraceDetailsTransactionBar(props: Props) {
   const hashValues = parseTraceDetailsURLHash(props.location.hash);
+  const openPanel = decodeScalar(props.location.query.openPanel);
   const eventIDInQueryParam = !!(
     isTraceTransaction(props.transaction) &&
     hashValues?.eventId &&
@@ -181,7 +183,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
       scrollIntoView();
     }
 
-    if(isIntersecting){
+    if (isIntersecting) {
       props.onBarScrolledTo();
     }
 
@@ -251,10 +253,11 @@ function NewTraceDetailsTransactionBar(props: Props) {
         props.onRowClick({
           traceFullDetailedEvent: props.transaction,
           event: embeddedChildren,
+          openPanel,
         });
       }
     }
-  }, [isHighlighted, embeddedChildren, props, props.transaction]);
+  }, [isHighlighted, embeddedChildren, props, props.transaction, openPanel]);
 
   const renderEmbeddedChildrenState = () => {
     if (showEmbeddedChildren) {
@@ -290,6 +293,10 @@ function NewTraceDetailsTransactionBar(props: Props) {
       router.replace({
         ...location,
         hash: transactionTargetHash(transaction.event_id),
+        query: {
+          ...location.query,
+          openPanel: 'open',
+        },
       });
     }
   };
@@ -418,6 +425,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
         }
         position="top"
         containerDisplayMode="block"
+        delay={400}
       >
         <StyledZoomIcon
           isZoomIn={!showEmbeddedChildren}
@@ -494,12 +502,11 @@ function NewTraceDetailsTransactionBar(props: Props) {
                                   traceInfo={traceInfo}
                                   traceViewHeaderRef={traceViewRef}
                                   traceViewRef={traceViewRef}
-                                  parentHasContinuingDepths={
-                                    props.continuingDepths.length > 0
-                                  }
+                                  parentContinuingDepths={props.continuingDepths}
                                   traceHasMultipleRoots={props.continuingDepths.some(
                                     c => c.depth === 0 && c.isOrphanDepth
                                   )}
+                                  parentIsOrphan={props.isOrphan}
                                   parentIsLast={isLast}
                                   parentGeneration={transaction.generation ?? 0}
                                   organization={organization}
@@ -946,7 +953,7 @@ const StyledRowRectangle = styled(RowRectangle)`
 
 export const StyledZoomIcon = styled(IconZoom)`
   position: absolute;
-  left: -7px;
+  left: -20px;
   top: 4px;
   height: 16px;
   width: 18px;

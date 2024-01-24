@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from typing import (
     Any,
     Callable,
@@ -35,10 +36,11 @@ from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_measurement
@@ -62,6 +64,7 @@ SnubaTransaction = TypedDict(
         "timestamp": str,
         "trace.span": str,
         "trace.parent_span": str,
+        "trace.parent_transaction": Optional[str],
         "root": str,
         "project.id": int,
         "project": str,
@@ -167,6 +170,7 @@ class TraceEvent:
         generation: Optional[int],
         light: bool = False,
         snuba_params: Optional[ParamsType] = None,
+        span_serialized: bool = False,
     ) -> None:
         self.event: SnubaTransaction = event
         self.errors: List[TraceError] = []
@@ -179,7 +183,10 @@ class TraceEvent:
 
         # Added as required because getting the nodestore_event is expensive
         self._nodestore_event: Optional[Event] = None
-        self.fetched_nodestore: bool = False
+        self.fetched_nodestore: bool = span_serialized
+        self.span_serialized = span_serialized
+        if span_serialized:
+            self.fetched_nodestore = True
         self.load_performance_issues(light, snuba_params)
 
     @property
@@ -200,35 +207,62 @@ class TraceEvent:
                 continue
 
             suspect_spans: List[str] = []
+            unique_spans: Set[str] = set()
             start: Optional[float] = None
             end: Optional[float] = None
             if light:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
+            elif "occurrence_spans" in self.event:
+                for problem in self.event["issue_occurrences"]:
+                    parent_span_ids = problem.evidence_data.get("parent_span_ids")
+                    if parent_span_ids is not None:
+                        unique_spans = unique_spans.union(parent_span_ids)
+                span = list(unique_spans)
+                for event_span in self.event["occurrence_spans"]:
+                    for problem in self.event["issue_occurrences"]:
+                        offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
+                        if event_span.get("span_id") in offender_span_ids:
+                            try:
+                                end_timestamp = float(event_span.get("timestamp"))
+                                if end is None:
+                                    end = end_timestamp
+                                else:
+                                    end = max(end, end_timestamp)
+                                if end_timestamp is not None:
+                                    start_timestamp = float(
+                                        end_timestamp - event_span.get("span.duration")
+                                    )
+                                    if start is None:
+                                        start = start_timestamp
+                                    else:
+                                        start = min(start, start_timestamp)
+                            except ValueError:
+                                pass
+                            suspect_spans.append(event_span.get("span_id"))
             else:
-                if self.nodestore_event is not None:
+                if self.nodestore_event is not None or self.span_serialized:
                     occurrence_query = QueryBuilder(
                         Dataset.IssuePlatform,
                         snuba_params,
-                        query=f"event_id:{self.nodestore_event.event_id}",
+                        query=f"event_id:{self.event['id']}",
                         selected_columns=["occurrence_id"],
                     )
                     occurrence_ids = occurrence_query.process_results(
                         occurrence_query.run_query("api.trace-view.get-occurrence-ids")
                     )["data"]
 
-                    problems = IssueOccurrence.fetch_multi(
+                    issue_occurrences = IssueOccurrence.fetch_multi(
                         [occurrence.get("occurrence_id") for occurrence in occurrence_ids],
-                        self.nodestore_event.project_id,
+                        self.event["project.id"],
                     )
-                    unique_spans: Set[str] = set()
-                    for problem in problems:
+                    for problem in issue_occurrences:
                         parent_span_ids = problem.evidence_data.get("parent_span_ids")
                         if parent_span_ids is not None:
                             unique_spans = unique_spans.union(parent_span_ids)
                     span = list(unique_spans)
                     for event_span in self.nodestore_event.data.get("spans", []):
-                        for problem in problems:
+                        for problem in issue_occurrences:
                             offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
                             if event_span.get("span_id") in offender_span_ids:
                                 try:
@@ -277,9 +311,11 @@ class TraceEvent:
             )
 
     def to_dict(self) -> LightResponse:
+        timestamp = datetime.fromisoformat(self.event["timestamp"]).timestamp()
         return {
             "event_id": self.event["id"],
             "span_id": self.event["trace.span"],
+            "timestamp": timestamp,
             "transaction": self.event["transaction"],
             "transaction.duration": self.event["transaction.duration"],
             "transaction.op": self.event["transaction.op"],
@@ -302,6 +338,12 @@ class TraceEvent:
                         self.event["transaction.status"], "unknown"
                     ),
                 }
+            )
+        if self.span_serialized:
+            result["timestamp"] = datetime.fromisoformat(self.event["timestamp"]).timestamp()
+            result["start_timestamp"] = (
+                datetime.fromisoformat(self.event["timestamp"]).timestamp()
+                - self.event["transaction.duration"]
             )
         if self.nodestore_event:
             result["timestamp"] = self.nodestore_event.data.get("timestamp")
@@ -342,9 +384,11 @@ def child_sort_key(item: TraceEvent) -> List[int]:
             item.nodestore_event.data["start_timestamp"],
             item.nodestore_event.data["timestamp"],
         ]
-    # The sorting of items without nodestore events doesn't matter cause we drop them
     else:
-        return [0]
+        return [
+            item.event["transaction"],
+            item.event["id"],
+        ]
 
 
 def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
@@ -389,8 +433,7 @@ def query_trace_data(
         Dataset.IssuePlatform,
         params,
         query=f"trace:{trace_id}",
-        selected_columns=["event_id"],
-        groupby_columns=["event_id"],
+        selected_columns=["event_id", "occurrence_id"],
         config=QueryBuilderConfig(
             functions_acl=["groupArray"],
         ),
@@ -398,7 +441,7 @@ def query_trace_data(
     occurrence_query.columns.append(
         Function("groupArray", parameters=[Column("group_id")], alias="issue.ids")
     )
-    occurrence_query.groupby = [Column("event_id")]
+    occurrence_query.groupby = [Column("event_id"), Column("occurrence_id")]
 
     error_query = QueryBuilder(
         Dataset.Events,
@@ -437,13 +480,111 @@ def query_trace_data(
     ]
 
     # Join group IDs from the occurrence dataset to transactions data
-    occurrence_dict = {row["event_id"]: row["issue.ids"] for row in transformed_results[2]}
+    occurrence_issue_ids = {row["event_id"]: row["issue.ids"] for row in transformed_results[2]}
+    occurrence_ids = {row["event_id"]: row["occurrence_id"] for row in transformed_results[2]}
     for result in transformed_results[0]:
-        result["issue.ids"] = occurrence_dict.get(result["id"], [])
+        result["issue.ids"] = occurrence_issue_ids.get(result["id"], {})
+        result["occurrence_id"] = occurrence_ids.get(result["id"])
+        result["trace.parent_transaction"] = None
 
     return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
         Sequence[SnubaError], transformed_results[1]
     )
+
+
+def augment_transactions_with_spans(
+    transactions: Sequence[SnubaTransaction],
+    errors: Sequence[SnubaError],
+    trace_id: str,
+    params: Mapping[str, str],
+) -> Sequence[SnubaTransaction]:
+    """Augment the list of transactions with parent, error and problem data"""
+    trace_parent_spans = set()  # parent span ids of segment spans
+    transaction_problem_map = {}
+    problem_project_map = {}
+    issue_occurrences = []
+    occurrence_spans = set()
+    error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
+
+    for transaction in transactions:
+        transaction["occurrence_spans"] = []
+        transaction["issue_occurrences"] = []
+
+        # Pull out occurrence data
+        transaction_problem_map[transaction["id"]] = transaction
+        project = transaction["project.id"]
+        if project not in problem_project_map:
+            problem_project_map[project] = []
+        problem_project_map[project].append(transaction["occurrence_id"])
+
+        # Need to strip the leading "0"s to match our query to the spans table
+        # This is cause spans are stored as UInt64, so a span like 0011
+        # converted to an int then converted to a hex will become 11
+        # so when we query snuba we need to remove the 00s ourselves as well
+        if not transaction["trace.parent_span"]:
+            continue
+        transaction["trace.parent_span.stripped"] = (
+            str(hex(int(transaction["trace.parent_span"], 16))).lstrip("0x")
+            if transaction["trace.parent_span"].startswith("00")
+            else transaction["trace.parent_span"]
+        )
+        # parent span ids of the segment spans
+        trace_parent_spans.add(transaction["trace.parent_span.stripped"])
+
+    for project, occurrences in problem_project_map.items():
+        if occurrences:
+            issue_occurrences.extend(
+                [
+                    occurrence
+                    for occurrence in IssueOccurrence.fetch_multi(occurrences, project)
+                    if occurrence is not None
+                ]
+            )
+
+    for problem in issue_occurrences:
+        occurrence_spans = occurrence_spans.union(set(problem.evidence_data["offender_span_ids"]))
+
+    query_spans = {*trace_parent_spans, *error_spans, *occurrence_spans}
+    if "" in query_spans:
+        query_spans.remove("")
+    # If there are no spans to query just return transactions as is
+    if len(query_spans) == 0:
+        return transactions
+
+    # Fetch parent span ids of segment spans and their corresponding
+    # transaction id so we can link parent/child transactions in
+    # a trace.
+    parents_results = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        query=f"trace:{trace_id} span_id:[{','.join(query_spans)}]",
+        selected_columns=[
+            "transaction.id",
+            "span_id",
+            "timestamp",
+        ],
+        orderby=["timestamp", "id"],
+        limit=10000,
+    ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
+
+    parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
+    for transaction in transactions:
+        # For a given transaction, if parent span id exists in the tranaction (so this is
+        # not a root span), see if the indexed spans data can tell us what the parent
+        # transaction id is.
+        if "trace.parent_span.stripped" in transaction:
+            if parent := parent_map.get(transaction["trace.parent_span.stripped"]):
+                transaction["trace.parent_transaction"] = parent["transaction.id"]
+    for problem in issue_occurrences:
+        for span_id in problem.evidence_data["offender_span_ids"]:
+            if parent := parent_map.get(span_id):
+                transaction = transaction_problem_map[problem.event_id]
+                transaction["occurrence_spans"].append(parent)
+                transaction["issue_occurrences"].append(problem)
+    for error in errors:
+        if parent := parent_map.get(error["trace.span"]):
+            error["trace.transaction"] = parent["transaction.id"]
+    return transactions
 
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
@@ -535,7 +676,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
 
+        # Detailed is deprecated now that we want to use spans instead
         detailed: bool = request.GET.get("detailed", "0") == "1"
+        use_spans: bool = request.GET.get("useSpans", "0") == "1"
+        if detailed and use_spans:
+            raise ParseError("Cannot return a detailed response while using spans")
         limit: int = (
             min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 2000)
             if trace_view_load_more_enabled
@@ -554,18 +699,24 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         )
         with handle_query_errors():
             transactions, errors = query_trace_data(trace_id, params, limit)
+            if use_spans:
+                transactions = augment_transactions_with_spans(
+                    transactions, errors, trace_id, params
+                )
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
 
         warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization.slug}
 
-        # Look for the roots
+        # Look for all root transactions in the trace (i.e., transactions
+        # that explicitly have no parent span id)
         roots: List[SnubaTransaction] = []
         for item in transactions:
             if is_root(item):
                 roots.append(item)
             else:
+                # This is okay because the query does an order by on -root
                 break
         if len(roots) > 1:
             sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
@@ -585,6 +736,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 detailed,
                 tracing_without_performance_enabled,
                 trace_view_load_more_enabled,
+                use_spans,
             )
         )
 
@@ -661,8 +813,11 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         detailed: bool = False,
         allow_orphan_errors: bool = False,
         allow_load_more: bool = False,
+        use_spans: bool = False,
     ) -> Sequence[LightResponse]:
         """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
+        if use_spans:
+            raise ParseError(detail="useSpans isn't supported on the trace-light")
         if event_id is None:
             raise ParseError(detail="An event_id is required for the light trace")
         snuba_event, nodestore_event = self.get_current_transaction(
@@ -828,12 +983,26 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         detailed: bool = False,
         allow_orphan_errors: bool = False,
         allow_load_more: bool = False,
+        use_spans: bool = False,
     ) -> Sequence[FullResponse]:
         """For the full event trace, we return the results as a graph instead of a flattened list
 
         if event_id is passed, we prune any potential branches of the trace to make as few nodestore calls as
         possible
         """
+        if use_spans:
+            results = self.serialize_with_spans(
+                limit,
+                transactions,
+                errors,
+                roots,
+                warning_extra,
+                event_id,
+                detailed,
+                allow_orphan_errors,
+                allow_load_more,
+            )
+            return results
         event_id_to_nodestore_event = (
             self.nodestore_event_map(transactions) if allow_load_more else {}
         )
@@ -976,7 +1145,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 if iteration > limit:
                     break
 
-        root_traces: List[TraceEvent] = []
+        trace_roots: List[TraceEvent] = []
         orphans: List[TraceEvent] = []
         for index, result in enumerate(results_map.values()):
             for subtrace in result:
@@ -984,9 +1153,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             if index > 0 or len(roots) == 0:
                 orphans.extend(result)
             elif len(roots) > 0:
-                root_traces = result
+                trace_roots = result
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
-        root_traces.sort(key=child_sort_key)
+        trace_roots.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
         orphan_errors = sorted(orphan_errors, key=lambda k: k["timestamp"])
 
@@ -996,16 +1165,167 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
         if allow_orphan_errors:
             return {
-                "transactions": [trace.full_dict(detailed) for trace in root_traces]
+                "transactions": [trace.full_dict(detailed) for trace in trace_roots]
                 + [orphan.full_dict(detailed) for orphan in orphans],
                 "orphan_errors": [orphan for orphan in orphan_errors],
             }
 
         return (
-            [trace.full_dict(detailed) for trace in root_traces]
+            [trace.full_dict(detailed) for trace in trace_roots]
             + [orphan.full_dict(detailed) for orphan in orphans]
             + [orphan for orphan in orphan_errors]
         )
+
+    def serialize_with_spans(
+        self,
+        limit: int,
+        transactions: Sequence[SnubaTransaction],
+        errors: Sequence[SnubaError],
+        roots: Sequence[SnubaTransaction],
+        warning_extra: Dict[str, str],
+        event_id: Optional[str],
+        detailed: bool = False,
+        allow_orphan_errors: bool = False,
+        allow_load_more: bool = False,
+    ) -> Sequence[FullResponse]:
+        root_traces: List[TraceEvent] = []
+        orphans: List[TraceEvent] = []
+        visited_transactions: Set[str] = set()
+        visited_errors: Set[str] = set()
+        if not allow_orphan_errors:
+            raise ParseError("Must allow orphan errors to useSpans")
+        if detailed:
+            raise ParseError("Cannot return a detailed response using Spans")
+
+        # A trace can have multiple roots, so we want to visit
+        # all roots in a trace and build their children.
+        # A root segment is one that doesn't have a parent span id
+        # but here is identified by the attribute "root" = 1 on
+        # a SnubaTransaction object.
+        root_traces = self.visit_transactions(
+            roots,
+            transactions,
+            errors,
+            visited_transactions,
+            visited_errors,
+        )
+
+        # At this point all the roots have their tree built. Remaining
+        # transactions are either orphan transactions or children of
+        # orphan transactions. Orphan transactions (unlike roots) have
+        # a parent_id but the parent_id wasn't found (dropped span).
+        # We get a sorted list of these transactions by start timestamp.
+        remaining_transactions = self.calculate_remaining_transactions(
+            transactions, visited_transactions
+        )
+
+        # Determine orphan transactions. `trace.parent_transaction` on a
+        # transaction is set when the indexed spans dataset has a row for
+        # the parent span id for this transaction. Since we already considered
+        # the root spans cases, the remaining spans with no parent transaction
+        # id are orphan transactions.
+        orphan_roots = [
+            orphan
+            for orphan in remaining_transactions
+            if orphan["trace.parent_transaction"] is None
+        ]
+
+        # Build the trees for all the orphan transactions.
+        orphans = self.visit_transactions(
+            orphan_roots,
+            remaining_transactions,
+            errors,
+            visited_transactions,
+            visited_errors,
+        )
+
+        # Remaining are transactions with parent transactions but those
+        # parents don't map to any of the existing transactions.
+        remaining_transactions = self.calculate_remaining_transactions(
+            transactions, visited_transactions
+        )
+        orphans.extend(
+            self.visit_transactions(
+                remaining_transactions,
+                remaining_transactions,
+                errors,
+                visited_transactions,
+                visited_errors,
+            )
+        )
+
+        # Sort the results so they're consistent
+        orphan_errors = sorted(
+            [error for error in errors if error["id"] not in visited_errors],
+            key=lambda k: k["timestamp"],
+        )
+        root_traces.sort(key=child_sort_key)
+        orphans.sort(key=child_sort_key)
+
+        return {
+            "transactions": [trace.full_dict(detailed) for trace in root_traces]
+            + [orphan.full_dict(detailed) for orphan in orphans],
+            "orphan_errors": [self.serialize_error(error) for error in orphan_errors],
+        }
+
+    def calculate_remaining_transactions(self, transactions, visited_transactions):
+        return sorted(
+            [
+                transaction
+                for transaction in transactions
+                if transaction["id"] not in visited_transactions
+            ],
+            key=lambda k: -datetime.fromisoformat(k["timestamp"]).timestamp(),
+        )
+
+    def visit_transactions(
+        self, to_visit, transactions, errors, visited_transactions, visited_errors
+    ):
+        serialized_events: List[TraceEvent] = []
+        for transaction in to_visit:
+            if transaction["id"] in visited_transactions:
+                continue
+            visited_transactions.add(transaction["id"])
+            root_event = TraceEvent(transaction, None, 0, span_serialized=True)
+            self.add_children(
+                root_event, transactions, visited_transactions, errors, visited_errors, 1
+            )
+            serialized_events.append(root_event)
+        return serialized_events
+
+    def add_children(
+        self, parent, transactions, visited_transactions, errors, visited_errors, generation
+    ):
+        for error in errors:
+            if error["id"] in visited_errors:
+                continue
+            if "trace.transaction" in error and error["trace.transaction"] == parent.event["id"]:
+                visited_errors.add(error["id"])
+                parent.errors.append(self.serialize_error(error))
+
+        # Loop through all the transactions to see if any of them are
+        # children.
+        for transaction in transactions:
+            if transaction["id"] in visited_transactions:
+                continue
+            if transaction["trace.parent_transaction"] == parent.event["id"]:
+                # If transaction is a child, establish that relationship and add it
+                # to visited_transactions.
+                visited_transactions.add(transaction["id"])
+                new_child = TraceEvent(
+                    transaction, parent.event["id"], generation, span_serialized=True
+                )
+                # Repeat adding children until there are none.
+                self.add_children(
+                    new_child,
+                    transactions,
+                    visited_transactions,
+                    errors,
+                    visited_errors,
+                    generation + 1,
+                )
+                parent.children.append(new_child)
+        parent.children.sort(key=child_sort_key)
 
 
 @region_silo_endpoint

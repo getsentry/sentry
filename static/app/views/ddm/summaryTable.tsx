@@ -5,13 +5,18 @@ import colorFn from 'color';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {formatMetricsUsingUnitAndOp, SortState} from 'sentry/utils/metrics';
+import {
+  formatMetricsUsingUnitAndOp,
+  MetricWidgetQueryParams,
+  SortState,
+} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
@@ -26,7 +31,7 @@ export const SummaryTable = memo(function SummaryTable({
   sort = DEFAULT_SORT_STATE as SortState,
   setHoveredSeries,
 }: {
-  onRowClick: (seriesName: string) => void;
+  onRowClick: (series: MetricWidgetQueryParams['focusedSeries']) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   operation?: string;
@@ -168,6 +173,7 @@ export const SummaryTable = memo(function SummaryTable({
           ({
             name,
             seriesName,
+            groupBy,
             color,
             hidden,
             unit,
@@ -183,7 +189,10 @@ export const SummaryTable = memo(function SummaryTable({
                 <CellWrapper
                   onClick={() => {
                     if (hasMultipleSeries) {
-                      onRowClick(seriesName);
+                      onRowClick({
+                        seriesName,
+                        groupBy,
+                      });
                     }
                   }}
                   onMouseEnter={() => {
@@ -203,7 +212,16 @@ export const SummaryTable = memo(function SummaryTable({
                       }}
                     />
                   </Cell>
-                  <TextOverflowCell>{name}</TextOverflowCell>
+                  <TextOverflowCell>
+                    <Tooltip
+                      title={name}
+                      showOnlyOnOverflow
+                      delay={500}
+                      overlayStyle={{maxWidth: '80vw'}}
+                    >
+                      <TextOverflow>{name}</TextOverflow>
+                    </Tooltip>
+                  </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
                   <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
                   <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
@@ -280,7 +298,6 @@ function getValues(seriesData: Series['data']) {
   if (!seriesData) {
     return {min: null, max: null, avg: null, sum: null};
   }
-
   const res = seriesData.reduce(
     (acc, {value}) => {
       if (value === null) {
@@ -290,13 +307,14 @@ function getValues(seriesData: Series['data']) {
       acc.min = Math.min(acc.min, value);
       acc.max = Math.max(acc.max, value);
       acc.sum += value;
+      acc.definedDatapoints += 1;
 
       return acc;
     },
-    {min: Infinity, max: -Infinity, sum: 0}
+    {min: Infinity, max: -Infinity, sum: 0, definedDatapoints: 0}
   );
 
-  return {...res, avg: res.sum / seriesData.length};
+  return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
 }
 
 // TODO(ddm): PanelTable component proved to be a bit too opinionated for this use case,
@@ -336,12 +354,11 @@ const Cell = styled('div')<{right?: boolean}>`
   padding: ${space(0.25)} ${space(1)};
   align-items: center;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
+  white-space: nowrap;
 `;
 
 const TextOverflowCell = styled(Cell)`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
 `;
 
 const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`

@@ -43,7 +43,7 @@ class MailAdapter:
         event: Any,
         futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
-        target_identifier: Optional[int] = None,
+        target_identifier: Optional[str] = None,
         fallthrough_choice: Optional[FallthroughChoiceType] = None,
         skip_digests: bool = False,
         notification_uuid: Optional[str] = None,
@@ -72,7 +72,7 @@ class MailAdapter:
         project = event.group.project
         extra["project_id"] = project.id
 
-        if digests.enabled(project) and not skip_digests:
+        if digests.backend.enabled(project) and not skip_digests:
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
@@ -81,7 +81,7 @@ class MailAdapter:
                 event.group.project, target_type, target_identifier, fallthrough_choice
             )
             extra["digest_key"] = digest_key
-            immediate_delivery = digests.add(
+            immediate_delivery = digests.backend.add(
                 digest_key,
                 event_to_record(event, rules, notification_uuid=notification_uuid),
                 increment_delay=get_digest_option("increment_delay"),

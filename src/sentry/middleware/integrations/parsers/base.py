@@ -130,19 +130,41 @@ class BaseRequestParser(abc.ABC):
 
         return region_to_response_map
 
-    def get_response_from_outbox_creation(self, regions: Sequence[Region]):
+    def get_response_from_outbox_creation(
+        self, regions: Sequence[Region], shard_identifier_override: Optional[int] = None
+    ):
+        """
+        DEPRECATED: use get_response_from_outbox_creation_for_integration
+
+        Used to create outboxes for provided regions to handle the webhooks asynchronously.
+        Responds to the webhook provider with a 202 Accepted status.
+        """
+        if len(regions) > 0:
+            for outbox in ControlOutbox.for_webhook_update(
+                shard_identifier=shard_identifier_override
+                if shard_identifier_override is not None
+                else self.webhook_identifier.value,
+                region_names=[region.name for region in regions],
+                request=self.request,
+            ):
+                outbox.save()
+
+        return HttpResponse(status=status.HTTP_202_ACCEPTED)
+
+    def get_response_from_outbox_creation_for_integration(
+        self, regions: Sequence[Region], integration: Integration | RpcIntegration
+    ):
         """
         Used to create outboxes for provided regions to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
         if len(regions) > 0:
             for outbox in ControlOutbox.for_webhook_update(
-                webhook_identifier=self.webhook_identifier,
-                region_names=[region.name for region in regions],
+                shard_identifier=integration.id,
                 request=self.request,
+                region_names=[region.name for region in regions],
             ):
                 outbox.save()
-
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
     def get_response_from_first_region(self):
@@ -197,10 +219,16 @@ class BaseRequestParser(abc.ABC):
             integration = self.get_integration_from_request()
         if not integration:
             logger.info("%s.no_integration", self.provider, extra={"path": self.request.path})
-            return []
+            raise Integration.DoesNotExist()
         organization_integrations = OrganizationIntegration.objects.filter(
             integration_id=integration.id
         )
+
+        if organization_integrations.count() == 0:
+            logger.info(
+                "%s.no_organization_integrations", self.provider, extra={"path": self.request.path}
+            )
+            raise OrganizationIntegration.DoesNotExist()
         organization_ids = [oi.organization_id for oi in organization_integrations]
         return organization_mapping_service.get_many(organization_ids=organization_ids)
 
@@ -212,8 +240,9 @@ class BaseRequestParser(abc.ABC):
         """
         if not organizations:
             organizations = self.get_organizations_from_integration()
-        if not organizations:
-            logger.info("%s.no_organizations", self.provider, extra={"path": self.request.path})
-            return []
 
-        return [get_region_for_organization(organization.slug) for organization in organizations]
+        regions = [get_region_for_organization(organization.slug) for organization in organizations]
+        return sorted(regions, key=lambda r: r.name)
+
+    def get_default_missing_integration_response(self) -> HttpResponse:
+        return HttpResponse(status=400)

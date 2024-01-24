@@ -86,19 +86,28 @@ export function countColumns(durationMs: number, width: number, minWidth: number
 export function getFramesByColumn(
   durationMs: number,
   frames: ReplayFrame[],
-  totalColumns: number
+  totalColumns: number,
+  startTimeOffsetMs: number = 0
 ) {
   const safeDurationMs = isNaN(durationMs) ? 1 : durationMs;
 
-  const columnFramePairs = frames.map(frame => {
-    const columnPositionCalc =
-      Math.floor((frame.offsetMs / safeDurationMs) * (totalColumns - 1)) + 1;
+  const columnFramePairs = frames
+    .filter(
+      frame =>
+        frame.offsetMs >= startTimeOffsetMs &&
+        frame.offsetMs <= startTimeOffsetMs + safeDurationMs
+    )
+    .map(frame => {
+      const columnPositionCalc =
+        Math.floor(
+          ((frame.offsetMs - startTimeOffsetMs) / safeDurationMs) * (totalColumns - 1)
+        ) + 1;
 
-    // Should start at minimum in the first column
-    const column = Math.max(1, columnPositionCalc);
+      // Should start at minimum in the first column
+      const column = Math.max(1, columnPositionCalc);
 
-    return [column, frame] as [number, ReplayFrame];
-  });
+      return [column, frame] as [number, ReplayFrame];
+    });
 
   const framesByColumn = columnFramePairs.reduce<Map<number, ReplayFrame[]>>(
     (map, [column, frame]) => {

@@ -99,14 +99,14 @@ class ControlOutboxTest(TestCase):
                 inst.save()
 
             for inst in ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.SLACK,
+                shard_identifier=WebhookProviderIdentifier.SLACK,
                 region_names=[settings.SENTRY_MONOLITH_REGION, "special-slack-region"],
                 request=request,
             ):
                 inst.save()
 
             for inst in ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                shard_identifier=WebhookProviderIdentifier.GITHUB,
                 region_names=[settings.SENTRY_MONOLITH_REGION, "special-github-region"],
                 request=request,
             ):
@@ -175,7 +175,7 @@ class ControlOutboxTest(TestCase):
 
     def test_control_outbox_for_webhooks(self):
         [outbox] = ControlOutbox.for_webhook_update(
-            webhook_identifier=WebhookProviderIdentifier.GITHUB,
+            shard_identifier=WebhookProviderIdentifier.GITHUB,
             region_names=["webhook-region"],
             request=self.webhook_request,
         )
@@ -217,7 +217,7 @@ class ControlOutboxTest(TestCase):
             )
             expected_request_count = 1 if SiloMode.get_current_mode() == SiloMode.CONTROL else 0
             [outbox] = ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                shard_identifier=WebhookProviderIdentifier.GITHUB,
                 region_names=[self.region.name],
                 request=self.webhook_request,
             )
@@ -238,7 +238,7 @@ class ControlOutboxTest(TestCase):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
             [outbox] = ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                shard_identifier=WebhookProviderIdentifier.GITHUB,
                 region_names=[self.region.name],
                 request=self.webhook_request,
             )
@@ -649,3 +649,64 @@ class TestOutboxesManager(TestCase):
 
         assert RegionOutbox.objects.count() == 0
         assert OrganizationMemberTeamReplica.objects.count() == 1
+
+
+class OutboxAggregationTest(TestCase):
+    def setUp(self):
+        shard_counts = {1: (4, "eu"), 2: (7, "us"), 3: (1, "us")}
+        with outbox_runner():
+            pass
+
+        for shard_id, (shard_count, region_name) in shard_counts.items():
+            for i in range(shard_count):
+                ControlOutbox(
+                    region_name=region_name,
+                    shard_scope=OutboxScope.WEBHOOK_SCOPE,
+                    shard_identifier=shard_id,
+                    category=OutboxCategory.WEBHOOK_PROXY,
+                    object_identifier=shard_id * 10000 + i,
+                    payload='{"foo": "bar"}',
+                ).save()
+
+    def test_calculate_sharding_depths(self):
+        shard_depths = ControlOutbox.get_shard_depths_descending()
+
+        assert shard_depths == [
+            dict(
+                shard_identifier=2,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=7,
+            ),
+            dict(
+                shard_identifier=1,
+                region_name="eu",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=4,
+            ),
+            dict(
+                shard_identifier=3,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=1,
+            ),
+        ]
+
+        # Test limiting the query to a single entry
+        shard_depths = ControlOutbox.get_shard_depths_descending(limit=1)
+        assert shard_depths == [
+            dict(
+                shard_identifier=2,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=7,
+            )
+        ]
+
+    def test_calculate_sharding_depths_empty(self):
+        ControlOutbox.objects.all().delete()
+        assert ControlOutbox.objects.count() == 0
+        assert ControlOutbox.get_shard_depths_descending() == []
+
+    def test_total_count(self):
+        assert ControlOutbox.get_total_outbox_count() == 7 + 4 + 1

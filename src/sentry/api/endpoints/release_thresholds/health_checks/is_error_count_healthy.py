@@ -8,7 +8,7 @@ from dateutil import parser
 from sentry.models.release_threshold.constants import TriggerType
 from sentry.utils import metrics
 
-logger = logging.getLogger("sentry.release_threshold_status")
+logger = logging.getLogger("sentry.release_threshold_status.is_error_count_healthy")
 
 if TYPE_CHECKING:
     from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
@@ -47,7 +47,7 @@ def is_error_count_healthy(
         total_count += i["count()"]
 
     logger.info(
-        "is_error_count_healthy",
+        "check",
         extra={
             "threshold": ethreshold,
             "total_count": total_count,

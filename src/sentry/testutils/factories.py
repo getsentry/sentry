@@ -72,8 +72,12 @@ from sentry.models.integrations.integration_feature import (
     IntegrationFeature,
     IntegrationTypes,
 )
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
 from sentry.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -113,6 +117,8 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -841,6 +847,7 @@ class Factories:
                 )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def store_event(data, project_id, assert_no_errors=True, sent_at=None):
         # Like `create_event`, but closer to how events are actually
         # ingested. Prefer to use this method over `create_event`
@@ -1077,6 +1084,22 @@ class Factories:
                 )
                 install = SentryAppInstallation.objects.get(id=install.id)
         return install
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_sentry_app_installation_for_provider(
+        sentry_app_id: int,
+        organization_id: int,
+        provider: str,
+    ) -> SentryAppInstallationForProvider:
+        installation = SentryAppInstallation.objects.get(
+            sentry_app_id=sentry_app_id, organization_id=organization_id
+        )
+        return SentryAppInstallationForProvider.objects.create(
+            organization_id=organization_id,
+            provider=provider,
+            sentry_app_installation=installation,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1522,12 +1545,69 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_identity_provider(integration: Integration, **kwargs: Any) -> IdentityProvider:
-        return IdentityProvider.objects.create(
-            type=integration.provider,
-            external_id=integration.external_id,
-            config={},
+    def create_provider_integration(**integration_params: Any) -> Integration:
+        return Integration.objects.create(**integration_params)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_provider_integration_for(
+        organization: Organization | RpcOrganization,
+        user: User | RpcUser | None,
+        **integration_params: Any,
+    ) -> tuple[Integration, OrganizationIntegration]:
+        integration = Integration.objects.create(**integration_params)
+        org_integration = integration.add_organization(organization, user)
+        assert org_integration is not None
+        return integration, org_integration
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_identity_integration(
+        user: User | RpcUser,
+        organization: Organization | RpcOrganization,
+        integration_params: Mapping[Any, Any],
+        identity_params: Mapping[Any, Any],
+    ) -> tuple[Integration, OrganizationIntegration, Identity, IdentityProvider]:
+        # Avoid common pitfalls in tests
+        assert "provider" in integration_params
+        assert "external_id" in integration_params
+        assert "external_id" in identity_params
+
+        integration = Factories.create_provider_integration(**integration_params)
+        identity_provider = Factories.create_identity_provider(integration=integration)
+        identity = Factories.create_identity(
+            user=user, identity_provider=identity_provider, **identity_params
         )
+        organization_integration = integration.add_organization(
+            organization_id=organization.id, user=user, default_auth_id=identity.id
+        )
+        return integration, organization_integration, identity, identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_organization_integration(**integration_params: Any) -> OrganizationIntegration:
+        return OrganizationIntegration.objects.create(**integration_params)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_identity_provider(
+        integration: Integration | None = None,
+        config: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> IdentityProvider:
+        if integration is not None:
+            integration_values = dict(
+                type=integration.provider,
+                external_id=integration.external_id,
+            )
+            if any((key in kwargs) for key in integration_values):
+                raise ValueError(
+                    "Values from integration should not be in kwargs: "
+                    + repr(list(integration_values.keys()))
+                )
+            kwargs.update(integration_values)
+
+        return IdentityProvider.objects.create(config=config or {}, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

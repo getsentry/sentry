@@ -171,7 +171,7 @@ describe('OrganizationMembersList', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       method: 'GET',
       body: {
         dismissed_ts: undefined,

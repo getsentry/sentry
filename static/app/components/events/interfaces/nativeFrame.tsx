@@ -12,6 +12,7 @@ import {
   hasContextRegisters,
   hasContextSource,
   hasContextVars,
+  hasStacktraceLinkInFrameFeature,
   isExpandable,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
@@ -38,6 +39,7 @@ import {
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -99,6 +101,7 @@ function NativeFrame({
    */
   isHoverPreviewed = false,
 }: Props) {
+  const user = useUser();
   const organization = useOrganization();
 
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
@@ -149,10 +152,8 @@ function NativeFrame({
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
   const hasStacktraceLink = frame.inApp && !!frame.filename && (isHovering || expanded);
-  const hasStacktraceLinkInFrameFeatureFlag =
-    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
-  const showStacktraceLinkInFrame =
-    hasStacktraceLink && hasStacktraceLinkInFrameFeatureFlag;
+  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
+  const showStacktraceLinkInFrame = hasStacktraceLink && hasInFrameFeature;
   const showSentryAppStacktraceLinkInFrame =
     showStacktraceLinkInFrame && components.length > 0;
 
@@ -407,7 +408,6 @@ function NativeFrame({
             {expandable && (
               <ToggleButton
                 size="zero"
-                title={t('Toggle Context')}
                 aria-label={t('Toggle Context')}
                 tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
                 icon={

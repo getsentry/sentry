@@ -46,6 +46,7 @@ import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
 
@@ -110,6 +111,7 @@ function useOpenOnboardingSidebar(organization?: Organization) {
 }
 
 function Sidebar({organization}: Props) {
+  const user = useUser();
   const location = useLocation();
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
@@ -278,6 +280,16 @@ function Sidebar({organization}: Props) {
                   icon={<SubitemDot collapsed />}
                 />
               </Feature>
+              <Feature features="starfish-mobile-appstart" organization={organization}>
+                <SidebarItem
+                  {...sidebarItemProps}
+                  label={t('App Startup')}
+                  to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
+                  id="performance-mobile-app-startup"
+                  icon={<SubitemDot collapsed />}
+                  isAlpha
+                />
+              </Feature>
               <Feature features="starfish-browser-resource-module-ui">
                 <SidebarItem
                   {...sidebarItemProps}
@@ -322,23 +334,9 @@ function Sidebar({organization}: Props) {
       >
         <SidebarItem
           {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('Database')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/database/`}
-          id="performance-database"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
           label={<GuideAnchor target="starfish">{t('Interactions')}</GuideAnchor>}
           to={`/organizations/${organization.slug}/performance/browser/interactions`}
           id="performance-browser-interactions"
-          icon={<SubitemDot collapsed={collapsed} />}
-        />
-        <SidebarItem
-          {...sidebarItemProps}
-          label={<GuideAnchor target="starfish">{t('App Startup')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/starfish/appStartup`}
-          id="performance-mobile-app-startup"
           icon={<SubitemDot collapsed={collapsed} />}
         />
       </SidebarAccordion>
@@ -399,7 +397,8 @@ function Sidebar({organization}: Props) {
         label={t('Crons')}
         to={`/organizations/${organization.slug}/crons/`}
         id="crons"
-        isBeta
+        // TODO(davidenwang): Remove isBeta completely after GA Jan 11th
+        isBeta={organization.features.includes('crons-disable-new-projects')}
       />
     </Feature>
   );
@@ -504,7 +503,7 @@ function Sidebar({organization}: Props) {
             orientation={orientation}
             collapsed={collapsed}
             org={organization}
-            user={config.user}
+            user={user}
             config={config}
           />
 

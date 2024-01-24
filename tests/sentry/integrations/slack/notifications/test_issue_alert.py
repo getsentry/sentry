@@ -9,7 +9,7 @@ import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationsettingoption import NotificationSettingOption
@@ -115,10 +115,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>  \n"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[4]["elements"][0]["text"]
             == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -350,10 +350,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[4]["elements"][0]["text"]
             == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -458,10 +458,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[4]["elements"][0]["text"]
             == f"{event.project.slug} | {environment.name} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -474,9 +474,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = IdentityProvider.objects.create(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -569,9 +567,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = IdentityProvider.objects.create(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -655,10 +651,11 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
         )
+        assert blocks[5]["elements"][0]["text"] == f"Suggested Assignees: #{self.team.slug}"
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[6]["elements"][0]["text"]
             == f"{event.project.slug} | <http://testserver/settings/{event.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -743,9 +740,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = IdentityProvider.objects.create(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -829,7 +824,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # add a second organization
         org = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=org.id, integration=self.integration
             )
 
@@ -838,9 +833,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = IdentityProvider.objects.create(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -912,7 +905,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         # add a second organization
         org = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=org.id, integration=self.integration
             )
 
@@ -921,9 +914,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = IdentityProvider.objects.create(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -992,10 +983,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[5]["elements"][0]["text"]
             == f"{event.project.slug} | <http://example.com/settings/{event.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -1008,9 +999,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = IdentityProvider.objects.create(
-                type="slack", external_id="TXXXXXXX2", config={}
-            )
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
             self.identity = Identity.objects.create(
                 external_id="UXXXXXXX2",
                 idp=self.idp,
@@ -1256,9 +1245,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[4]["elements"][0]["text"]
             == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )

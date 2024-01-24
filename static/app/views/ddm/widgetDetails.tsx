@@ -1,10 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric, MetricWidgetQueryParams} from 'sentry/utils/metrics';
@@ -16,6 +14,12 @@ enum Tab {
   SAMPLES = 'samples',
   CODE_LOCATIONS = 'codeLocations',
 }
+
+const constructQueryString = (queryObject: Record<string, string>) => {
+  return Object.entries(queryObject)
+    .map(([key, value]) => `${key}:"${value}"`)
+    .join(' ');
+};
 
 export function WidgetDetails() {
   const {selectedWidgetIndex, widgets, focusArea} = useDDMContext();
@@ -52,25 +56,24 @@ export function WidgetDetails() {
           </TabList.Item>
         </TabList>
         <ContentWrapper>
-          {!selectedWidget?.mri ? (
-            <CenterContent>
-              <EmptyMessage
-                style={{margin: 'auto'}}
-                icon={<IconSearch size="xxl" />}
-                title={t('Nothing to show!')}
-                description={t('Choose a metric to display data.')}
+          <TabPanels>
+            <TabPanels.Item key={Tab.SAMPLES}>
+              <SampleTable
+                mri={selectedWidget?.mri}
+                query={
+                  selectedWidget?.focusedSeries?.groupBy
+                    ? `${selectedWidget.query} ${constructQueryString(
+                        selectedWidget.focusedSeries.groupBy
+                      )}`.trim()
+                    : selectedWidget?.query
+                }
+                {...focusArea?.range}
               />
-            </CenterContent>
-          ) : (
-            <TabPanels>
-              <TabPanels.Item key={Tab.SAMPLES}>
-                <SampleTable mri={selectedWidget?.mri} {...focusArea?.range} />
-              </TabPanels.Item>
-              <TabPanels.Item key={Tab.CODE_LOCATIONS}>
-                <CodeLocations mri={selectedWidget?.mri} {...focusArea?.range} />
-              </TabPanels.Item>
-            </TabPanels>
-          )}
+            </TabPanels.Item>
+            <TabPanels.Item key={Tab.CODE_LOCATIONS}>
+              <CodeLocations mri={selectedWidget?.mri} {...focusArea?.range} />
+            </TabPanels.Item>
+          </TabPanels>
         </ContentWrapper>
       </Tabs>
     </TrayWrapper>
@@ -86,11 +89,4 @@ const TrayWrapper = styled('div')`
 const ContentWrapper = styled('div')`
   position: relative;
   padding: ${space(2)} 0;
-`;
-
-const CenterContent = styled('div')`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
 `;

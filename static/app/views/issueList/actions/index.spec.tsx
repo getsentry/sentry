@@ -3,13 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
@@ -183,75 +177,18 @@ describe('IssueListActions', function () {
           })
         );
       });
-
-      it('can ignore selected items (custom)', async function () {
-        const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-        const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/issues/',
-          method: 'PUT',
-        });
-        jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
-
-        render(<WrappedComponent {...defaultProps} />);
-
-        await userEvent.click(screen.getByRole('button', {name: 'Ignore options'}));
-        fireEvent.click(screen.getByText(/Until this affects an additional/));
-        await screen.findByTestId('until-affect-custom');
-        await userEvent.click(screen.getByTestId('until-affect-custom'));
-
-        const modal = screen.getByRole('dialog');
-
-        await userEvent.clear(
-          within(modal).getByRole('spinbutton', {name: 'Number of users'})
-        );
-        await userEvent.type(
-          within(modal).getByRole('spinbutton', {name: 'Number of users'}),
-          '300'
-        );
-
-        await userEvent.click(within(modal).getByRole('textbox'));
-        await userEvent.click(within(modal).getByText('per week'));
-
-        await userEvent.click(within(modal).getByRole('button', {name: 'Ignore'}));
-
-        expect(apiMock).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.objectContaining({
-            query: {
-              id: ['1'],
-              project: [1],
-            },
-            data: {
-              status: 'ignored',
-              statusDetails: {
-                ignoreUserCount: 300,
-                ignoreUserWindow: 10080,
-              },
-              substatus: 'archived_until_condition_met',
-            },
-          })
-        );
-
-        expect(analyticsSpy).toHaveBeenCalledWith(
-          'issues_stream.archived',
-          expect.objectContaining({
-            action_status_details: 'ignoreUserCount',
-          })
-        );
-      });
     });
   });
 
   it('can archive an issue until escalating', async () => {
     const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const org_escalating = {...organization, features: ['escalating-issues']};
     const apiMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org_escalating.slug}/issues/`,
+      url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
     jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
-    render(<WrappedComponent {...defaultProps} />, {organization: org_escalating});
+    render(<WrappedComponent {...defaultProps} />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Archive'}));
 
@@ -279,15 +216,14 @@ describe('IssueListActions', function () {
   });
 
   it('can unarchive an issue when the query contains is:archived', async () => {
-    const org_escalating = {...organization, features: ['escalating-issues']};
     const apiMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org_escalating.slug}/issues/`,
+      url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
     jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
     render(<WrappedComponent {...defaultProps} query="is:archived" />, {
-      organization: org_escalating,
+      organization,
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Unarchive'}));
@@ -398,7 +334,7 @@ describe('IssueListActions', function () {
 
       // Resolve and ignore are supported
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
-      expect(screen.getByRole('button', {name: 'Ignore'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
 
       // Merge is not supported and should be disabled
       expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();

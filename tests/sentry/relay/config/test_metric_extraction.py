@@ -1,4 +1,5 @@
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
+from unittest import mock
 
 import pytest
 
@@ -146,9 +147,7 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2
-        # The new way parenthesizes correctly the environment expression, making the original expression resolve first
-        # and then AND with the injected environment.
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {
@@ -167,27 +166,6 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
             "field": None,
             "mri": "c:transactions/on_demand@none",
             "tags": [{"key": "query_hash", "value": "ca87c609"}],
-        }
-        # The old way of generating the config has no parentheses, thus if we have lower binding in the original
-        # expression, we will prioritize our filter.
-        assert config["metrics"][1] == {
-            "category": "transaction",
-            "condition": {
-                "inner": [
-                    {
-                        "inner": [
-                            {"name": "event.environment", "op": "eq", "value": "development"},
-                            {"name": "event.tags.device.platform", "op": "eq", "value": "android"},
-                        ],
-                        "op": "and",
-                    },
-                    {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
-                ],
-                "op": "or",
-            },
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": "47bc817d"}],
         }
 
 
@@ -223,6 +201,29 @@ def test_get_metric_extraction_config_multiple_alerts(default_project: Project) 
         second_hash = config["metrics"][1]["tags"][0]["value"]
 
         assert first_hash != second_hash
+
+
+@django_db_all
+@override_options({"on_demand.max_alert_specs": 1})
+def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature(ON_DEMAND_METRICS):
+        create_alert("count()", "transaction.duration:>=1000", default_project)
+        create_alert("count()", "transaction.duration:>=2000", default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.splitlines()[0].split(": ")[1:3] == [
+            "Spec version 1",
+            "Too many (2) on demand metric alerts for project bar",
+        ]
 
 
 @django_db_all
@@ -450,6 +451,95 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
                 {"field": "event.environment", "key": "environment"},
             ],
         }
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 1})
+def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.splitlines()[0].split(": ")[1:3] == [
+            "Spec version 1",
+            "Too many (2) on demand metric widgets for project bar",
+        ]
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 1, "on_demand.extended_max_widget_specs": 0})
+def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.splitlines()[0].split(": ")[1:3] == [
+            "Spec version 1",
+            "Too many (2) on demand metric widgets for project bar",
+        ]
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 1})
+def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
+        {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+    ):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.splitlines()[0].split(": ")[1:3] == [
+            "Spec version 1",
+            "Too many (2) on demand metric widgets for project bar",
+        ]
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 2})
+def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
+        {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+    ):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
 
 
 @django_db_all
@@ -834,8 +924,146 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project: Pro
 
 
 @django_db_all
+def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
+    default_project: Project,
+) -> None:
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
+        "sentry.relay.config.metric_extraction._is_widget_query_low_cardinality"
+    ) as mock_cardinality:
+        mock_cardinality.side_effect = [True, False, True]
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget1",
+        )
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration + 1}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget2",
+        )
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration + 2}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget3",
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+
+
+@django_db_all
 @override_options({"on_demand.max_widget_cardinality.count": 1})
-def test_get_metric_extraction_config_with_low_cardinality(default_project: Project) -> None:
+def test_get_metric_extraction_config_with_extraction_enabled(default_project: Project) -> None:
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
+        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+    ) as mock_can_use_stateful, mock.patch(
+        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+    ) as mock_extraction_enabled:
+        mock_can_use_stateful.return_value = True
+        mock_extraction_enabled.return_value = True
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+
+
+@django_db_all
+@override_options(
+    {
+        "on_demand.max_widget_cardinality.count": -1,
+        "on_demand_metrics.widgets.use_stateful_extraction": True,
+    }
+)
+def test_stateful_get_metric_extraction_config_with_extraction_disabled(
+    default_project: Project,
+) -> None:
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
+        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+    ) as mock_can_use_stateful, mock.patch(
+        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+    ) as mock_extraction_enabled:
+        mock_can_use_stateful.return_value = True
+        mock_extraction_enabled.return_value = False
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert not config
+
+
+@django_db_all
+@override_options({"on_demand_metrics.widgets.use_stateful_extraction": True})
+def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_partially_disabled(
+    default_project: Project,
+) -> None:
+    duration = 1000
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), mock.patch(
+        "sentry.relay.config.metric_extraction._can_widget_query_use_stateful_extraction"
+    ) as mock_can_use_stateful, mock.patch(
+        "sentry.relay.config.metric_extraction._widget_query_stateful_extraction_enabled"
+    ) as mock_extraction_enabled:
+        mock_can_use_stateful.return_value = True
+        mock_extraction_enabled.side_effect = [True, False, True]
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget1",
+        )
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration + 1}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget2",
+        )
+        create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration + 2}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+            title="Widget3",
+        )
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+
+
+@django_db_all
+@override_options(
+    {
+        "on_demand.max_widget_cardinality.count": 1,
+        "on_demand_metrics.widgets.use_stateful_extraction": True,
+    }
+)
+def test_stateful_get_metric_extraction_config_with_low_cardinality(
+    default_project: Project,
+) -> None:
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -848,6 +1076,41 @@ def test_get_metric_extraction_config_with_low_cardinality(default_project: Proj
         config = get_metric_extraction_config(default_project)
 
         assert config
+
+
+@django_db_all
+def test_get_metric_extraction_config_with_unicode_character(default_project: Project) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        # This will cause the Unicode bug to be raised for the current version
+        create_widget(["count()"], "user.name:Armén", default_project)
+        create_widget(["count()"], "user.name:Kevan", default_project, title="Dashboard Foo")
+        config = get_metric_extraction_config(default_project)
+        assert config
+        assert config == {
+            "metrics": [
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Armén"},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {"key": "query_hash", "value": "d3e07bdf"},
+                        {"field": "event.environment", "key": "environment"},
+                    ],
+                },
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Kevan"},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {"key": "query_hash", "value": "5142a1f7"},
+                        {"field": "event.environment", "key": "environment"},
+                    ],
+                },
+            ],
+            "version": 2,
+        }
 
 
 @django_db_all

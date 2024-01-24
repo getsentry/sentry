@@ -135,6 +135,29 @@ describe('Issues Similar View', function () {
     );
   });
 
+  it('correctly shows merge count', async function () {
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: '1000000'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext}
+    );
+    renderGlobalModal();
+
+    await selectNthSimilarItem(0);
+    expect(screen.getByText('Merge (1)')).toBeInTheDocument();
+
+    // Correctly show "Merge (0)" when the item is un-clicked
+    await selectNthSimilarItem(0);
+    expect(screen.getByText('Merge (0)')).toBeInTheDocument();
+  });
+
   it('renders all filtered issues with issues-similarity-embeddings flag', async function () {
     const features = ['issues-similarity-embeddings'];
 
@@ -150,7 +173,7 @@ describe('Issues Similar View', function () {
       />,
       {context: routerContext, organization: OrganizationFixture({features})}
     );
-
+    
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());

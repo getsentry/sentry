@@ -5,7 +5,6 @@ import responses
 
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -36,17 +35,15 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration, org_integration = self.create_provider_integration_for(
+                self.organization,
+                self.user,
                 provider="pagerduty",
                 name="Example",
                 external_id=EXTERNAL_ID,
                 metadata={"services": SERVICES},
             )
-            self.integration.add_organization(self.organization, self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            org_integration = OrganizationIntegration.objects.get(
-                integration_id=self.integration.id, organization_id=self.organization.id
-            )
             self.service = add_service(
                 org_integration,
                 service_name=SERVICES[0]["service_name"],
@@ -236,7 +233,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "service_name": "Informational",
         }
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_provider_integration(
                 provider="pagerduty",
                 name="Example 3",
                 external_id="example-3",
@@ -284,7 +281,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             "service_name": "Informational",
         }
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_provider_integration(
                 provider="pagerduty",
                 name="Example 2",
                 external_id="example-2",

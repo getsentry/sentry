@@ -9,12 +9,13 @@ from typing import Any, Sequence
 
 import msgpack
 import sentry_sdk
+import zstandard
 from django.core.cache import cache
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 
-from sentry import projectoptions
+from sentry import options, projectoptions
 from sentry.grouping.component import GroupingComponent
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics
@@ -112,12 +113,12 @@ class StacktraceState:
 
 
 class Enhancements:
-
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
     # See ``_get_project_enhancements_config`` in src/sentry/grouping/api.py.
 
+    @sentry_sdk.tracing.trace
     def __init__(self, rules, version=None, bases=None, id=None):
         self.id = id
         self.rules = rules
@@ -165,7 +166,7 @@ class Enhancements:
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
             for rule in self._modifier_rules:
                 for idx, action in rule.get_matching_frame_actions(
-                    match_frames, platform, exception_data, in_memory_cache
+                    match_frames, exception_data, in_memory_cache
                 ):
                     # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
@@ -181,9 +182,8 @@ class Enhancements:
         stacktrace_state = StacktraceState()
         # Apply direct frame actions and update the stack state alongside
         for rule in self._updater_rules:
-
             for idx, action in rule.get_matching_frame_actions(
-                match_frames, platform, exception_data, in_memory_cache
+                match_frames, exception_data, in_memory_cache
             ):
                 action.update_frame_components_contributions(components, frames, idx, rule=rule)
                 action.modify_stacktrace_state(stacktrace_state, rule)
@@ -256,6 +256,13 @@ class Enhancements:
             rv["rules"] = [x.as_dict() for x in self.rules]
         return rv
 
+    def iter_rules(self):
+        for base in self.bases:
+            base = ENHANCEMENT_BASES.get(base)
+            if base:
+                yield from base.iter_rules()
+        yield from self.rules
+
     def _to_config_structure(self):
         return [
             self.version,
@@ -263,19 +270,22 @@ class Enhancements:
             [x._to_config_structure(self.version) for x in self.rules],
         ]
 
+    @sentry_sdk.tracing.trace
     def dumps(self):
-        return (
-            base64.urlsafe_b64encode(zlib.compress(msgpack.dumps(self._to_config_structure())))
-            .decode("ascii")
-            .strip("=")
-        )
+        encoded = msgpack.dumps(self._to_config_structure())
 
-    def iter_rules(self):
-        for base in self.bases:
-            base = ENHANCEMENT_BASES.get(base)
-            if base:
-                yield from base.iter_rules()
-        yield from self.rules
+        try:
+            # I don’t want to put DB access into all of the tests ;-)
+            use_zstd = options.get("enhancers.use-zstd")
+        except Exception:
+            use_zstd = False
+
+        if use_zstd:
+            compressed = zstandard.compress(encoded)
+        else:
+            compressed = zlib.compress(encoded)
+
+        return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
 
     @classmethod
     def _from_config_structure(cls, data):
@@ -289,21 +299,29 @@ class Enhancements:
         )
 
     @classmethod
+    @sentry_sdk.tracing.trace
     def loads(cls, data):
         if isinstance(data, str):
             data = data.encode("ascii", "ignore")
         padded = data + b"=" * (4 - (len(data) % 4))
         try:
-            return cls._from_config_structure(
-                msgpack.loads(zlib.decompress(base64.urlsafe_b64decode(padded)), raw=False)
-            )
+            compressed = base64.urlsafe_b64decode(padded)
+
+            if compressed.startswith(b"\x28\xb5\x2f\xfd"):
+                encoded = zstandard.decompress(compressed)
+            else:
+                encoded = zlib.decompress(compressed)
+
+            return cls._from_config_structure(msgpack.loads(encoded, raw=False))
         except (LookupError, AttributeError, TypeError, ValueError) as e:
             raise ValueError("invalid stack trace rule config: %s" % e)
 
     @classmethod
+    @sentry_sdk.tracing.trace
     def from_config_string(self, s, bases=None, id=None):
         try:
             tree = enhancements_grammar.parse(s)
+            rules = EnhancementsVisitor().visit(tree)
         except ParseError as e:
             context = e.text[e.pos : e.pos + 33]
             if len(context) == 33:
@@ -311,7 +329,12 @@ class Enhancements:
             raise InvalidEnhancerConfig(
                 f'Invalid syntax near "{context}" (line {e.line()}, column {e.column()})'
             )
-        return EnhancementsVisitor(bases, id).visit(tree)
+
+        return Enhancements(
+            rules,
+            bases=bases,
+            id=id,
+        )
 
 
 class Rule:
@@ -360,7 +383,6 @@ class Rule:
     def get_matching_frame_actions(
         self,
         match_frames: Sequence[dict[str, Any]],
-        platform: str,
         exception_data: dict[str, Any],
         in_memory_cache: dict[str, str],
     ) -> list[tuple[int, Action]]:
@@ -372,7 +394,7 @@ class Rule:
 
         # 1 - Check if exception matchers match
         for m in self._exception_matchers:
-            if not m.matches_frame(match_frames, None, platform, exception_data, in_memory_cache):
+            if not m.matches_frame(match_frames, None, exception_data, in_memory_cache):
                 return []
 
         rv = []
@@ -380,7 +402,7 @@ class Rule:
         # 2 - Check if frame matchers match
         for idx, _ in enumerate(match_frames):
             if all(
-                m.matches_frame(match_frames, idx, platform, exception_data, in_memory_cache)
+                m.matches_frame(match_frames, idx, exception_data, in_memory_cache)
                 for m in self._other_matchers
             ):
                 for action in self.actions:
@@ -406,21 +428,13 @@ class EnhancementsVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
     unwrapped_exceptions = (InvalidEnhancerConfig,)
 
-    def __init__(self, bases, id=None):
-        self.bases = bases
-        self.id = id
-
-    def visit_enhancements(self, node, children):
+    def visit_enhancements(self, node, children) -> list[Rule]:
         rules = []
         for child in children:
             if not isinstance(child, str) and child is not None:
                 rules.append(child)
 
-        return Enhancements(
-            rules,
-            bases=self.bases,
-            id=self.id,
-        )
+        return rules
 
     def visit_line(self, node, children):
         _, line, _ = children
