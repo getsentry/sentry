@@ -124,6 +124,13 @@ function isOverflown(el: Element): boolean {
   return el.scrollWidth > el.clientWidth || Array.from(el.children).some(isOverflown);
 }
 
+function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
+  if (typeof ref.current === 'number') {
+    window.clearTimeout(ref.current);
+    ref.current = undefined;
+  }
+}
+
 /**
  * A hook used to trigger a positioned overlay on hover.
  */
@@ -148,7 +155,6 @@ function useHoverOverlay(
   const describeById = useMemo(() => domId(`${overlayType}-`), [overlayType]);
 
   const [isOpen, setIsOpen] = useState(forceVisible ?? false);
-
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
   const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
@@ -171,12 +177,8 @@ function useHoverOverlay(
   // No need to reset value of refs to undefined since they will be garbage collected anyways
   useEffect(() => {
     return () => {
-      if (typeof delayHideTimeoutRef.current === 'number') {
-        window.clearTimeout(delayHideTimeoutRef.current);
-      }
-      if (typeof delayOpenTimeoutRef.current === 'number') {
-        window.clearTimeout(delayOpenTimeoutRef.current);
-      }
+      maybeClearRefTimeout(delayHideTimeoutRef);
+      maybeClearRefTimeout(delayOpenTimeoutRef);
     };
   }, []);
 
@@ -186,14 +188,8 @@ function useHoverOverlay(
       return;
     }
 
-    if (typeof delayHideTimeoutRef.current === 'number') {
-      window.clearTimeout(delayHideTimeoutRef.current);
-      delayHideTimeoutRef.current = undefined;
-    }
-    if (typeof delayOpenTimeoutRef.current === 'number') {
-      window.clearTimeout(delayOpenTimeoutRef.current);
-      delayOpenTimeoutRef.current = undefined;
-    }
+    maybeClearRefTimeout(delayHideTimeoutRef);
+    maybeClearRefTimeout(delayOpenTimeoutRef);
 
     if (delay === 0) {
       setIsOpen(true);
@@ -207,22 +203,16 @@ function useHoverOverlay(
   }, [delay, showOnlyOnOverflow, triggerElement]);
 
   const handleMouseLeave = useCallback(() => {
-    if (typeof delayHideTimeoutRef.current === 'number') {
-      window.clearTimeout(delayHideTimeoutRef.current);
-      delayHideTimeoutRef.current = undefined;
-    }
-    if (typeof delayOpenTimeoutRef.current === 'number') {
-      window.clearTimeout(delayOpenTimeoutRef.current);
-      delayOpenTimeoutRef.current = undefined;
-    }
+    maybeClearRefTimeout(delayHideTimeoutRef);
+    maybeClearRefTimeout(delayOpenTimeoutRef);
 
     if (!isHoverable && !displayTimeout) {
-      setIsOpen(() => false);
+      setIsOpen(false);
       return;
     }
 
     delayHideTimeoutRef.current = window.setTimeout(() => {
-      setIsOpen(() => false);
+      setIsOpen(false);
     }, displayTimeout ?? CLOSE_DELAY);
   }, [isHoverable, displayTimeout]);
 
@@ -300,17 +290,10 @@ function useHoverOverlay(
   );
 
   const reset = useCallback(() => {
-    setIsOpen(() => false);
-
-    if (typeof delayHideTimeoutRef.current === 'number') {
-      window.clearTimeout(delayHideTimeoutRef.current);
-      delayHideTimeoutRef.current = undefined;
-    }
-    if (typeof delayOpenTimeoutRef.current === 'number') {
-      window.clearTimeout(delayOpenTimeoutRef.current);
-      delayOpenTimeoutRef.current = undefined;
-    }
-  }, [delayOpenTimeoutRef, delayHideTimeoutRef]);
+    setIsOpen(false);
+    maybeClearRefTimeout(delayHideTimeoutRef);
+    maybeClearRefTimeout(delayOpenTimeoutRef);
+  }, []);
 
   const overlayProps = useMemo(() => {
     return {
@@ -339,7 +322,7 @@ function useHoverOverlay(
 
   return {
     wrapTrigger,
-    isOpen,
+    isOpen: forceVisible ?? isOpen,
     overlayProps,
     arrowProps,
     placement: state?.placement,
