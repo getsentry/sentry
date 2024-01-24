@@ -16,6 +16,8 @@ class BaseEventTest(APITestCase):
         self.response_url = (
             "https://hooks.slack.com/actions/T47563693/6204672533/x7ZLaiVMoECAW50Gw1ZYAXEM"
         )
+        self.project = self.create_project()
+        self.rule = self.create_project_rule(project=self.project)
 
     @patch(
         "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
@@ -37,7 +39,7 @@ class BaseEventTest(APITestCase):
             slack_user = {"id": self.external_id, "domain": "example"}
 
         if callback_id is None:
-            callback_id = json.dumps({"issue": self.group.id})
+            callback_id = json.dumps({"issue": self.group.id, "rule": self.rule.id})
 
         if original_message is None:
             original_message = {}

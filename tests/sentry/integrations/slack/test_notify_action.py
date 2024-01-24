@@ -76,7 +76,7 @@ class SlackNotifyActionTest(RuleTestCase):
             == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] in notification"
         )
 
-    @with_feature("organizations:slack-formatting-update")
+    @with_feature("organizations:slack-block-kit")
     def test_render_label_with_mentions(self):
         rule = self.get_rule(
             data={
