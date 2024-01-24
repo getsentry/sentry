@@ -1184,6 +1184,9 @@ class OnDemandMetricSpec:
             # For compatibility with existing deployed metrics, leave existing hash untouched unless conditions are now
             # included in the spec.
             return f"{str_to_hash};{self._groupbys_for_hash()}"
+        # XXX: We need to control this behaviour with a new spec version
+        if self.spec_type == MetricSpecType.DYNAMIC_QUERY:
+            str_to_hash += f';{self._tag_for_field("environment")}'
         return str_to_hash
 
     @cached_property

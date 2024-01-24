@@ -1167,6 +1167,37 @@ def test_get_metrics_extraction_config_features_combinations(
             assert len(config["metrics"]) == number_of_metrics
 
 
+def _metric_spec(tags: list[dict[str, str]]) -> dict[str, Any]:
+    return {
+        "category": "transaction",
+        "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
+        "field": None,
+        "mri": "c:transactions/on_demand@none",
+        "tags": tags,
+    }
+
+
+@django_db_all
+def test_include_environment_for_widgets(default_project: Project) -> None:
+    env_tag = {"field": "event.environment", "key": "environment"}
+    query = "transaction.duration:>=10"
+    create_alert("count()", query, default_project)
+    # This is a simple query, thus, it should not be dynamic
+    create_widget(["count()"], query, default_project)
+    # Including the column makes it a dynamic query
+    create_widget(["count()"], query, default_project, title="Foo", columns=["environment"])
+
+    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
+        config = get_metric_extraction_config(default_project)
+        assert config
+        # XXX: Fix duplicate env tag
+        assert config["metrics"] == [
+            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
+            _metric_spec([{"key": "query_hash", "value": "ab3344f4"}, env_tag]),
+            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag, env_tag]),
+        ]
+
+
 @django_db_all
 def test_get_metric_extraction_config_with_transactions_dataset(default_project: Project) -> None:
     create_alert(
