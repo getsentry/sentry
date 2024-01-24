@@ -77,20 +77,20 @@ class SlackNotifyActionTest(RuleTestCase):
         )
 
     @with_feature("organizations:slack-block-kit")
-    def test_render_label_with_mentions(self):
+    def test_render_label_with_notes(self):
         rule = self.get_rule(
             data={
                 "workspace": self.integration.id,
                 "channel": "#my-channel",
                 "channel_id": "",
                 "tags": "one, two",
-                "mentions": "fix this @colleen",
+                "notes": "fix this @colleen",
             }
         )
 
         assert (
             rule.render_label()
-            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] and mentions fix this @colleen in notification"
+            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] and notes fix this @colleen in notification"
         )
 
     def test_render_label_without_integration(self):
