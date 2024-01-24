@@ -130,8 +130,20 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
     subtitle: string;
     title: string;
   }) {
+    const organization = useOrganization();
     return (
-      <StyledLinkButton icon={<IconOpen />} borderless external href={link}>
+      <StyledLinkButton
+        icon={<IconOpen />}
+        borderless
+        external
+        href={link}
+        onClick={() => {
+          trackAnalytics('replay.details-resource-docs-clicked', {
+            organization,
+            title,
+          });
+        }}
+      >
         <ButtonContent>
           <ButtonTitle>{title}</ButtonTitle>
           <ButtonSubtitle>{subtitle}</ButtonSubtitle>

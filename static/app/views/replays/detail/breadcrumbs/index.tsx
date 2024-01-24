@@ -17,6 +17,7 @@ import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -152,7 +153,14 @@ function Breadcrumbs() {
         >
           {tct('Learn how to unmask text (****) and unblock media [link:here].', {
             link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/privacy/" />
+              <ExternalLink
+                href="https://docs.sentry.io/platforms/javascript/session-replay/privacy/"
+                onClick={() => {
+                  trackAnalytics('replay.details-mask-banner-link-clicked', {
+                    organization,
+                  });
+                }}
+              />
             ),
           })}
         </StyledAlert>
