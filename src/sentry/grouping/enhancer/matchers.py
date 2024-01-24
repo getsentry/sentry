@@ -26,7 +26,7 @@ SHORT_MATCH_KEYS = {v: k for k, v in MATCH_KEYS.items()}
 
 assert len(SHORT_MATCH_KEYS) == len(MATCH_KEYS)  # assert short key names are not reused
 
-FAMILIES = {"native": "N", "javascript": "J", "all": "a"}
+FAMILIES = {"native": "N", "javascript": "J", "other": "O", "all": "a"}
 REVERSE_FAMILIES = {v: k for k, v in FAMILIES.items()}
 
 
