@@ -450,7 +450,7 @@ class SlackActionEndpoint(Endpoint):
                 identity=identity,
                 actions=[action],
                 tags=original_tags_from_request,
-                rules=[rule],
+                rules=[rule] if rule else None,
                 skip_fallback=True,
             ).build()
             body = self.construct_reply(
@@ -486,7 +486,7 @@ class SlackActionEndpoint(Endpoint):
                 identity=identity,
                 actions=[action],
                 tags=original_tags_from_request,
-                rules=[rule],
+                rules=[rule] if rule else None,
             ).build()
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
@@ -542,7 +542,7 @@ class SlackActionEndpoint(Endpoint):
                 identity=identity,
                 actions=action_list,
                 tags=original_tags_from_request,
-                rules=[rule],
+                rules=[rule] if rule else None,
             ).build()
             # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
             # response so the unfurling endpoint understands the payload
@@ -569,7 +569,7 @@ class SlackActionEndpoint(Endpoint):
             identity=identity,
             actions=action_list,
             tags=original_tags_from_request,
-            rules=[rule],
+            rules=[rule] if rule else None,
         ).build()
         body = self.construct_reply(attachment, is_message=_is_message(slack_request.data))
 

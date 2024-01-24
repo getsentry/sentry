@@ -433,6 +433,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             text = f"```{text.lstrip(' ')}```"
             if self.actions:
                 text += "\n" + action_text
+        if not text:
+            text = action_text
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>  \n{text}"
 
         if self.group.issue_category == GroupCategory.ERROR:
