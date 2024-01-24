@@ -143,7 +143,7 @@ def get_tags(
 
     # XXX(CEO): context is passing tags as a list of tuples from self.event.tags
     # we should standardize but it might break other notifications
-    if tags and type(tags) is list:
+    if tags and isinstance(tags, list):
         tags = set(tags[0])
 
     tags = tags | {"level", "release"}
