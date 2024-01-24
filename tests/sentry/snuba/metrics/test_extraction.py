@@ -99,7 +99,7 @@ def test_equality_of_specs(default_project) -> None:
     ],
 )
 def test_should_use_on_demand(agg, query, result) -> None:
-    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
+    assert should_use_on_demand_metrics(agg, query) is result
 
 
 @pytest.mark.parametrize(
@@ -130,7 +130,7 @@ def test_should_use_on_demand(agg, query, result) -> None:
     ],
 )
 def test_should_use_on_demand_with_mri(agg, query, result) -> None:
-    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
+    assert should_use_on_demand_metrics(agg, query) is result
 
 
 def create_spec_if_needed(dataset, agg, query) -> OnDemandMetricSpec | None:
