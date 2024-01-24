@@ -26,8 +26,8 @@ export function MetricScratchpad() {
     addFocusArea,
     removeFocusArea,
     showQuerySymbols,
-    setHighlightedSample,
-    highlightedSample,
+    setHighlightedSampleId,
+    highlightedSampleId,
   } = useDDMContext();
   const {selection} = usePageFilters();
 
@@ -47,18 +47,18 @@ export function MetricScratchpad() {
     [updateWidget]
   );
 
-  const debounced = debounce((sample: Sample) => {
-    setHighlightedSample(sample ? sample.transactionId : null);
+  const debouncedsetHighlightedSampleId = debounce((sample?: Sample) => {
+    setHighlightedSampleId(sample?.transactionId);
   }, 1);
 
   const handleSampleMouseOver = useCallback(
-    (sample: Sample) => debounced(sample),
-    [debounced]
+    (sample: Sample) => debouncedsetHighlightedSampleId(sample),
+    [debouncedsetHighlightedSampleId]
   );
 
   const handleSampleMouseOut = useCallback(() => {
-    debounced(null);
-  }, [debounced]);
+    debouncedsetHighlightedSampleId();
+  }, [debouncedsetHighlightedSampleId]);
 
   const handleSampleClick = useCallback(
     (sample: Sample) => {
@@ -80,8 +80,6 @@ export function MetricScratchpad() {
     },
     [router, organization.slug, projects]
   );
-
-  // const handleSampleClick = useCallback(() => {}, []);
 
   const Wrapper =
     widgets.length === 1 ? StyledSingleWidgetWrapper : StyledMetricDashboard;
@@ -107,7 +105,7 @@ export function MetricScratchpad() {
           onSampleMouseOver={handleSampleMouseOver}
           onSampleMouseOut={handleSampleMouseOut}
           onSampleClick={handleSampleClick}
-          highlightedSample={highlightedSample}
+          highlightedSampleId={highlightedSampleId}
         />
       ))}
     </Wrapper>

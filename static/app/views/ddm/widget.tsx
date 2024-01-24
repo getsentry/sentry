@@ -47,7 +47,7 @@ type MetricWidgetProps = {
   addFocusArea?: (area: FocusArea) => void;
   focusArea?: FocusArea | null;
   hasSiblings?: boolean;
-  highlightedSample?: string | null;
+  highlightedSampleId?: string;
   index?: number;
   isSelected?: boolean;
   onSampleClick?: (sample: Sample) => void;
@@ -82,7 +82,7 @@ export const MetricWidget = memo(
     onSampleClick,
     onSampleMouseOut,
     onSampleMouseOver,
-    highlightedSample,
+    highlightedSampleId,
   }: MetricWidgetProps) => {
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
@@ -175,7 +175,7 @@ export const MetricWidget = memo(
                 onSampleMouseOut={onSampleMouseOut}
                 onSampleClick={onSampleClick}
                 chartHeight={300}
-                highlightedSample={highlightedSample}
+                highlightedSampleId={highlightedSampleId}
                 {...widget}
               />
             ) : (
@@ -199,7 +199,7 @@ interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   widgetIndex: number;
   addFocusArea?: (area: FocusArea) => void;
   chartHeight?: number;
-  highlightedSample?: string | null;
+  highlightedSampleId?: string;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   onSampleClick?: (sample: Sample) => void;
   onSampleMouseOut?: (sample: Sample) => void;
@@ -212,7 +212,7 @@ export const MetricWidgetBody = memo(
     onChange,
     displayType,
     focusedSeries,
-    highlightedSample,
+    highlightedSampleId,
     sort,
     widgetIndex,
     addFocusArea,
@@ -281,16 +281,15 @@ export const MetricWidgetBody = memo(
     }, [timeseriesData, displayType, focusedSeries, metricsQuery.groupBy, mri]);
 
     const chartSampleSeries = useMemo(() => {
-      return samplesData
-        ? getChartSampleSeries(
-            samplesData?.metrics
+      return (
+        samplesData
+          ? samplesData.metrics
               .map(m => m.metricSpans)
               .flat()
-              .filter(Boolean) as MetricCorrelation[],
-            {unit: chartSeries[0]?.unit, highlightedSample}
-          )
-        : [];
-    }, [samplesData, chartSeries, highlightedSample]);
+              .filter(correlation => !!correlation)
+          : []
+      ) as MetricCorrelation[];
+    }, [samplesData]);
 
     const handleSortChange = useCallback(
       newSort => {
@@ -337,6 +336,7 @@ export const MetricWidgetBody = memo(
           focusArea={focusArea}
           removeFocusArea={removeFocusArea}
           height={chartHeight}
+          highlightedSampleId={highlightedSampleId}
           sampleSeries={chartSampleSeries}
           onSampleMouseOver={onSampleMouseOver}
           onSampleMouseOut={onSampleMouseOut}
@@ -393,7 +393,9 @@ export function getChartTimeseries(
     seriesName: item.name,
     groupBy: item.groupBy,
     unit,
-    color: colorFn(colors[i % colors.length]).string(),
+    color: colorFn(colors[i % colors.length])
+      .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
+      .string(),
     hidden: focusedSeries && focusedSeries !== item.name,
     data: item.values.map((value, index) => ({
       name: moment(data.intervals[index]).valueOf(),
@@ -405,47 +407,6 @@ export function getChartTimeseries(
       focus: 'series',
     } as LineSeriesOption['emphasis'],
   })) as Series[];
-}
-
-export function getChartSampleSeries(
-  data: MetricCorrelation[],
-  {unit, highlightedSample}
-): ScatterSeries[] {
-  return (
-    data
-      // TODO: Simplify this
-      .flatMap(correlation => [
-        ...correlation.metricSummaries.map(summaries => ({...summaries, ...correlation})),
-      ])
-      .map(span => {
-        const isHighlighted = highlightedSample === span.transactionId;
-
-        return {
-          seriesName: span.transactionId.slice(0, 8),
-          unit,
-          symbolSize: isHighlighted ? 20 : 10,
-          animation: false,
-          symbol: 'circle',
-          color: theme.purple400,
-          // TODO: for now we just pass these ids through, but we should probably index
-          // samples by an id and then just pass that reference
-          transactionId: span.transactionId,
-          spanId: span.spanId,
-          projectId: span.projectId,
-          itemStyle: {
-            color: theme.purple400,
-            opacity: isHighlighted ? 0.75 : 0.5,
-          },
-          data: [
-            {
-              name: moment(span.timestamp).valueOf(),
-              value: (span.min + span.max) / 2,
-            },
-          ],
-          z: 10,
-        };
-      })
-  );
 }
 
 function sortSeries(

@@ -31,7 +31,6 @@ interface DDMContextValue {
   addWidget: () => void;
   duplicateWidget: (index: number) => void;
   focusArea: FocusArea | null;
-  highlightedSample: string | null;
   isDefaultQuery: boolean;
   isLoading: boolean;
   metricsMeta: ReturnType<typeof useMetricsMeta>['data'];
@@ -39,11 +38,12 @@ interface DDMContextValue {
   removeWidget: (index: number) => void;
   selectedWidgetIndex: number;
   setDefaultQuery: (query: Record<string, any> | null) => void;
-  setHighlightedSample: (sample: string | null) => void;
+  setHighlightedSampleId: (sample?: string) => void;
   setSelectedWidgetIndex: (index: number) => void;
   showQuerySymbols: boolean;
   updateWidget: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   widgets: MetricWidgetQueryParams[];
+  highlightedSampleId?: string;
 }
 
 export const DDMContext = createContext<DDMContextValue>({
@@ -62,8 +62,8 @@ export const DDMContext = createContext<DDMContextValue>({
   showQuerySymbols: false,
   updateWidget: () => {},
   widgets: [],
-  highlightedSample: null,
-  setHighlightedSample: () => {},
+  highlightedSampleId: undefined,
+  setHighlightedSampleId: () => {},
 });
 
 export function useDDMContext() {
@@ -208,7 +208,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     useMetricWidgets();
   const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
 
-  const [highlightedSample, setHighlightedSample] = useState<string | null>(null);
+  const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
   const pageFilters = usePageFilters().selection;
   const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
@@ -295,8 +295,8 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       setDefaultQuery,
       isDefaultQuery,
       showQuerySymbols: widgets.length > 1,
-      highlightedSample,
-      setHighlightedSample,
+      highlightedSampleId,
+      setHighlightedSampleId,
     }),
     [
       handleAddWidget,
@@ -312,8 +312,8 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       handleRemoveFocusArea,
       setDefaultQuery,
       isDefaultQuery,
-      highlightedSample,
-      setHighlightedSample,
+      highlightedSampleId,
+      setHighlightedSampleId,
     ]
   );
 

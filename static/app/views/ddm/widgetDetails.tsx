@@ -26,8 +26,8 @@ export function WidgetDetails() {
     selectedWidgetIndex,
     widgets,
     focusArea,
-    highlightedSample,
-    setHighlightedSample,
+    highlightedSampleId,
+    setHighlightedSampleId,
   } = useDDMContext();
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
   // the tray is minimized when the main content is maximized
@@ -41,8 +41,8 @@ export function WidgetDetails() {
     setSelectedTab(Tab.SAMPLES);
   }
 
-  const handleSampleRowHover = (sample: string | null) => {
-    setHighlightedSample(sample);
+  const handleSampleRowHover = (sampleId?: string) => {
+    setHighlightedSampleId(sampleId);
   };
 
   return (
@@ -78,7 +78,7 @@ export function WidgetDetails() {
                     : selectedWidget?.query
                 }
                 {...focusArea?.range}
-                highlightedRow={highlightedSample}
+                highlightedRow={highlightedSampleId}
                 onRowHover={handleSampleRowHover}
               />
             </TabPanels.Item>

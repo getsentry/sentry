@@ -16,6 +16,7 @@ import mergeRefs from 'sentry/utils/mergeRefs';
 import {
   formatMetricsUsingUnitAndOp,
   isCumulativeOp,
+  MetricCorrelation,
   MetricDisplayType,
 } from 'sentry/utils/metrics';
 import useRouter from 'sentry/utils/useRouter';
@@ -24,7 +25,7 @@ import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
-import {useSampleHandlers} from './useSampleHandlers';
+import {useMetricSamples} from './useMetricSamples';
 import {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget';
 
 type ChartProps = {
@@ -34,15 +35,14 @@ type ChartProps = {
   widgetIndex: number;
   addFocusArea?: (area: FocusArea) => void;
   height?: number;
-  onSampleClick?: SampleCallback;
-  onSampleMouseOut?: (sample?: Sample) => void;
-  onSampleMouseOver?: SampleCallback;
+  highlightedSampleId?: string;
+  onSampleClick?: (sample: Sample) => void;
+  onSampleMouseOut?: (sample: Sample) => void;
+  onSampleMouseOver?: (sample: Sample) => void;
   operation?: string;
   removeFocusArea?: () => void;
-  sampleSeries?: ScatterSeriesType[];
+  sampleSeries?: MetricCorrelation[];
 };
-
-type SampleCallback = (sample: Sample) => void;
 
 // We need to enable canvas renderer for echarts before we use it here.
 // Once we use it in more places, this should probably move to a more global place
@@ -64,6 +64,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       onSampleClick,
       onSampleMouseOut,
       onSampleMouseOver,
+      highlightedSampleId,
     },
     forwardedRef
   ) => {
@@ -106,17 +107,20 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         .map(s => ({...s, silent: displayType === MetricDisplayType.BAR}));
     }, [series, displayType]);
 
-    const {
-      handleSampleClick,
-      handleSampleMouseOut,
-      handleSampleMouseOver,
-      handleSampleHighlight,
-    } = useSampleHandlers({
+    const valueFormatter = useCallback(
+      (value: number) => formatMetricsUsingUnitAndOp(value, unit, operation),
+      [unit, operation]
+    );
+
+    const samples = useMetricSamples({
+      chartRef,
       numOfTimeseries: seriesToShow.length,
       sampleSeries,
       onClick: onSampleClick,
       onMouseOut: onSampleMouseOut,
       onMouseOver: onSampleMouseOver,
+      highlightedSampleId,
+      valueFormatter,
     });
 
     // TODO(ddm): This assumes that all series have the same bucket size
@@ -126,17 +130,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const displayFogOfWar = isCumulativeOp(operation);
 
     const chartProps = useMemo(() => {
-      const sampleFormatters = {
-        isGroupedByDate: true,
-        addSecondsToTimeFormat: isSubMinuteBucket,
-        limit: 1,
-        valueFormatter: (value: number) =>
-          formatMetricsUsingUnitAndOp(value, unit, operation),
-      };
-
       const timeseriesFormatters = {
-        valueFormatter: (value: number) =>
-          formatMetricsUsingUnitAndOp(value, unit, operation),
+        valueFormatter,
         isGroupedByDate: true,
         bucketSize,
         showTimeInTooltip: true,
@@ -156,10 +151,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 5, bottom: 0, left: 0, right: 0},
-        onMouseOver: handleSampleMouseOver,
-        onMouseOut: handleSampleMouseOut,
-        onClick: handleSampleClick,
-        // onHighlight: handleSampleHighlight,
+        onMouseOver: samples.handleMouseOver,
+        onMouseOut: samples.handleMouseOut,
+        onClick: samples.handleClick,
 
         tooltip: {
           formatter: (params, asyncTicket) => {
@@ -173,7 +167,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             });
 
             if (params.seriesType === 'scatter') {
-              return getFormatter(sampleFormatters)(params, asyncTicket);
+              return getFormatter(samples.formatters)(params, asyncTicket);
             }
             if (hoveredEchartElement === chartRef?.current?.ele) {
               return getFormatter(timeseriesFormatters)(params, asyncTicket);
@@ -181,22 +175,28 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             return '';
           },
         },
-        yAxis: {
-          // used to find and convert datapoint to pixel position
-          id: 'yAxis',
-          axisLabel: {
-            formatter: (value: number) => {
-              return formatMetricsUsingUnitAndOp(value, unit, operation);
+        yAxes: [
+          {
+            // used to find and convert datapoint to pixel position
+            id: 'yAxis',
+            axisLabel: {
+              formatter: (value: number) => {
+                return formatMetricsUsingUnitAndOp(value, unit, operation);
+              },
             },
           },
-        },
-        xAxis: {
-          // used to find and convert datapoint to pixel position
-          id: 'xAxis',
-          axisPointer: {
-            snap: true,
+          samples.yAxis,
+        ],
+        xAxes: [
+          {
+            // used to find and convert datapoint to pixel position
+            id: 'xAxis',
+            axisPointer: {
+              snap: true,
+            },
           },
-        },
+          samples.xAxis,
+        ],
       };
     }, [
       bucketSize,
@@ -208,9 +208,13 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       seriesToShow,
       unit,
       height,
-      handleSampleClick,
-      handleSampleMouseOut,
-      handleSampleMouseOver,
+      samples.handleClick,
+      samples.handleMouseOut,
+      samples.handleMouseOver,
+      samples.xAxis,
+      samples.yAxis,
+      samples.formatters,
+      valueFormatter,
     ]);
 
     return (
@@ -219,7 +223,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         <CombinedChart
           {...chartProps}
           displayType={displayType}
-          scatterSeries={sampleSeries}
+          scatterSeries={samples.series}
         />
         {displayFogOfWar && (
           <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
