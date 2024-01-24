@@ -42,10 +42,9 @@ class ExternalTeamTest(APITestCase):
             "provider": "github",
             "integrationId": self.integration.id,
         }
-        with self.feature({"organizations:integrations-codeowners": False}):
-            response = self.get_error_response(
-                self.organization.slug, self.team.slug, status_code=403, **data
-            )
+        response = self.get_error_response(
+            self.organization.slug, self.team.slug, status_code=403, **data
+        )
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_missing_provider(self):

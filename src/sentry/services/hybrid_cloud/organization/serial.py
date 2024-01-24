@@ -58,7 +58,7 @@ def serialize_member(member: OrganizationMember) -> RpcOrganizationMember:
 
     omts = OrganizationMemberTeam.objects.filter(
         organizationmember=member, is_active=True, team__status=TeamStatus.ACTIVE
-    )
+    ).select_related("team")
 
     all_project_ids: Set[int] = set()
     project_ids_by_team_id: MutableMapping[int, List[int]] = defaultdict(list)

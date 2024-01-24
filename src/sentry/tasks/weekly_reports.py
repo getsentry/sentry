@@ -608,6 +608,9 @@ group_status_to_color = {
     GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "#FAD473",
     GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
     GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET: "#FAD473",
+    GroupHistoryStatus.PRIORITY_LOW: "#FAD473",
+    GroupHistoryStatus.PRIORITY_MEDIUM: "#FAD473",
+    GroupHistoryStatus.PRIORITY_HIGH: "#FAD473",
 }
 
 
