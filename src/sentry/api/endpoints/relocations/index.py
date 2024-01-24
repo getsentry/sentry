@@ -28,6 +28,7 @@ from sentry.options import get
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.signals import relocation_link_promo_code
 from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.tasks.relocation import uploading_complete
 from sentry.utils.db import atomic_transaction
@@ -82,6 +83,7 @@ class RelocationsPostSerializer(serializers.Serializer):
     owner = serializers.CharField(
         max_length=MAX_USERNAME_LENGTH, required=True, allow_blank=False, allow_null=False
     )
+    promo_code = serializers.CharField(max_length=40, required=False)
 
 
 def validate_new_relocation_request(
@@ -234,6 +236,7 @@ class RelocationIndexEndpoint(Endpoint):
         fileobj = validated.get("file")
         file_size = fileobj.size
         owner_username = validated.get("owner")
+        promo_code = validated.get("promo_code")
         org_slugs = [org.strip() for org in validated.get("orgs").split(",")]
         err = validate_new_relocation_request(request, owner_username, org_slugs, file_size)
         if err is not None:
@@ -269,7 +272,9 @@ class RelocationIndexEndpoint(Endpoint):
                 file=file,
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
             )
-
+        relocation_link_promo_code.send_robust(
+            relocation_uuid=relocation.uuid, promo_code=promo_code, sender=self.__class__
+        )
         uploading_complete.delay(relocation.uuid)
         analytics.record(
             "relocation.created",

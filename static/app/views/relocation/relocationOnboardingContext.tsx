@@ -6,6 +6,7 @@ type Data = {
   orgSlugs: string;
   regionUrl: string;
   file?: File;
+  promoCode?: string;
 };
 
 export type RelocationOnboardingContextProps = {
@@ -19,6 +20,7 @@ export const RelocationOnboardingContext =
       orgSlugs: '',
       regionUrl: '',
       file: undefined,
+      promoCode: '',
     },
     setData: () => {},
   });
@@ -34,6 +36,7 @@ export function RelocationOnboardingContextProvider({children, value}: ProviderP
     {
       orgSlugs: value?.orgSlugs || '',
       regionUrl: value?.regionUrl || '',
+      promoCode: value?.promoCode || '',
       file: value?.file || undefined,
     }
   );
