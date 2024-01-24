@@ -439,7 +439,7 @@ class GroupManager(BaseManager["Group"]):
         )
 
         should_update_priority = (
-            from_substatus == GroupSubStatus.ESCALATING.value
+            from_substatus == GroupSubStatus.ESCALATING
             and activity_type == ActivityType.AUTO_SET_ONGOING
         )
 

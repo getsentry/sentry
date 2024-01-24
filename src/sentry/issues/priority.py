@@ -49,7 +49,7 @@ def update_priority(
     Update the priority of a group and record the change in the activity and group history.
     """
     if group.priority_locked_at is not None:
-        return
+        return None
 
     group.update(priority=priority)
     Activity.objects.create_group_activity(
@@ -79,12 +79,12 @@ def get_priority_for_escalating_group(group: Group) -> PriorityLevel | None:
         group.id,
         group.priority,
     )
-    return
+    return None
 
 
 def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
     if not features.has("projects:issue-priority", group.project, actor=None):
-        return
+        return None
 
     previous_priority_history = (
         GroupHistory.objects.filter(
@@ -96,7 +96,7 @@ def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
 
     if previous_priority_history is None:
         logger.error("No previous priority history for group %s", group.id)
-        return
+        return None
 
     new_priority = [
         priority
@@ -109,7 +109,7 @@ def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
             group.id,
             previous_priority_history.status,
         )
-        return
+        return None
 
     return new_priority[0]
 
@@ -119,7 +119,7 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
     Update the priority of a group due to state changes.
     """
     if not features.has("projects:issue-priority", group.project, actor=None):
-        return
+        return None
 
     new_priority = None
     if reason == PriorityChangeReason.ESCALATING:
