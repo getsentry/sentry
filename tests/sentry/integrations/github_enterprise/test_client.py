@@ -141,4 +141,7 @@ class GitHubAppsClientTest(TestCase):
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
+        assert (
+            responses.calls[1].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+        )
         assert result == GITHUB_CODEOWNERS
