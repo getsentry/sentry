@@ -58,6 +58,7 @@ def test_user_get_avatar():
 
     rpc_avatar = user_service.get_user_avatar(user_id=user.id)
 
+    assert rpc_avatar
     assert rpc_avatar.ident == avatar.ident
     assert rpc_avatar.file_id == avatar.file_id
     assert rpc_avatar.id == avatar.id
