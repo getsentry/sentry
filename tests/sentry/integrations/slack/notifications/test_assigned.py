@@ -149,10 +149,10 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>  \n"
+            == f":exclamation: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>  \n"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
