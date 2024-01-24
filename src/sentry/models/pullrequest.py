@@ -106,7 +106,7 @@ class PullRequestComment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     external_id = BoundedBigIntegerField()
-    pull_request = FlexibleForeignKey("sentry.PullRequest")
+    pull_request = FlexibleForeignKey("sentry.PullRequest", db_constraint=False)
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
     group_ids = DjangoArrayField(BoundedBigIntegerField())
@@ -118,4 +118,4 @@ class PullRequestComment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pullrequest_comment"
-        unique_together = ("pull_request", "comment_type")
+        unique_together = (("pull_request", "comment_type"),)
