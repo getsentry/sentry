@@ -23,6 +23,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
         self.images = get_proguard_images(self.data)
         self.available = len(self.images) > 0
+        self.mapping_views = []
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")
@@ -36,7 +37,6 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             dif_paths = ProjectDebugFile.difcache.fetch_difs(
                 self.project, self.images, features=["mapping"]
             )
-            self.mapping_views = []
 
         for debug_id in self.images:
             error_type = None
@@ -71,6 +71,9 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         return True
 
     def process_exception(self, exception):
+        if not self.available:
+            return False
+
         ty = exception.get("type")
         mod = exception.get("module")
         if not ty or not mod:
