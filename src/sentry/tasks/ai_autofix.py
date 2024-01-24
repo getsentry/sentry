@@ -5,12 +5,12 @@ from sentry.tasks.base import instrumented_task
 
 
 @instrumented_task(
-    name="sentry.tasks.seer_autofix",
+    name="sentry.tasks.ai_autofix_check_for_timeout",
     queue="cleanup",
     default_retry_delay=60,
     max_retries=3,
 )
-def check_for_timeout(group_id: int, created_at: str):
+def ai_autofix_check_for_timeout(group_id: int, created_at: str):
     group: Group = Group.objects.get(id=group_id)
     metadata = group.data.get("metadata", {})
     autofix_data = metadata.get("autofix", {})

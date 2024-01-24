@@ -16,7 +16,7 @@ from sentry.models.group import Group
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
-from sentry.tasks.ai_autofix import check_for_timeout
+from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 
@@ -134,7 +134,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             )
 
             # Mark the task as completed after TIMEOUT_SECONDS
-            check_for_timeout.apply_async(
+            ai_autofix_check_for_timeout.apply_async(
                 kwargs={
                     "group_id": group.id,
                     "created_at": created_at,
