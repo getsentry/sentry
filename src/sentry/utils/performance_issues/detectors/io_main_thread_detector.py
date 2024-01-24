@@ -5,7 +5,6 @@ import os
 from collections import defaultdict
 
 import sentry_sdk
-from symbolic.proguard import ProguardMapper
 
 from sentry import features, options
 from sentry.issues.grouptype import (
@@ -13,6 +12,7 @@ from sentry.issues.grouptype import (
     PerformanceFileIOMainThreadGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
+from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -139,8 +139,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
                         if debug_file_path is None:
                             return
 
-                    with sentry_sdk.start_span(op="proguard.open"):
-                        mapper = ProguardMapper.open(debug_file_path)
+                    mapper = open_proguard_mapper(debug_file_path)
                     if not mapper.has_line_info:
                         return
                     self.mapper = mapper
