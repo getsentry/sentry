@@ -37,7 +37,6 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         parameters=[
             GlobalParams.ORG_SLUG,
             MonitorParams.MONITOR_SLUG,
-            MonitorParams.CHECKIN_ID,
         ],
         responses={
             200: inline_sentry_response_serializer(

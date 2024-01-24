@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import copy
 import ipaddress
 import logging
 import re
-import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -65,8 +63,11 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
 )
 from sentry.grouping.ingest import (
-    calculate_event_grouping,
+    calculate_primary_hash,
+    calculate_secondary_hash,
+    find_existing_grouphash,
     run_background_grouping,
+    should_run_secondary_grouping,
     update_grouping_config_if_needed,
 )
 from sentry.grouping.result import CalculatedHashes
@@ -525,12 +526,10 @@ class EventManager:
         secondary_hashes = None
         migrate_off_hierarchical = False
 
-        if _should_run_secondary_grouping(project):
+        if should_run_secondary_grouping(project):
             with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
                 secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
-                secondary_hashes = _calculate_secondary_hash(
-                    project, job, secondary_grouping_config
-                )
+                secondary_hashes = calculate_secondary_hash(project, job, secondary_grouping_config)
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -552,7 +551,7 @@ class EventManager:
             op="event_manager",
             description="event_manager.save.calculate_event_grouping",
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-            hashes = _calculate_primary_hash(project, job, grouping_config)
+            hashes = calculate_primary_hash(project, job, grouping_config)
 
         if secondary_hashes:
             tags = {
@@ -748,53 +747,6 @@ class EventManager:
         update_grouping_config_if_needed(project)
 
         return job["event"]
-
-
-def _should_run_secondary_grouping(project: Project) -> bool:
-    result = False
-    # These two values are basically always set
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-    if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-        result = True
-    return result
-
-
-def _calculate_primary_hash(
-    project: Project, job: Job, grouping_config: GroupingConfig
-) -> CalculatedHashes:
-    """
-    Get the primary hash for the event.
-
-    This is pulled out into a separate function mostly in order to make testing easier.
-    """
-    return calculate_event_grouping(project, job["event"], grouping_config)
-
-
-def _calculate_secondary_hash(
-    project: Project, job: Job, secondary_grouping_config: GroupingConfig
-) -> None | CalculatedHashes:
-    """Calculate secondary hash for event using a fallback grouping config for a period of time.
-    This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
-    when the customer changes the grouping config.
-    This causes extra load in save_event processing.
-    """
-    secondary_hashes = None
-    try:
-        with sentry_sdk.start_span(
-            op="event_manager",
-            description="event_manager.save.secondary_calculate_event_grouping",
-        ):
-            # create a copy since `calculate_event_grouping` modifies the event to add all sorts
-            # of grouping info and we don't want the backup grouping data in there
-            event_copy = copy.deepcopy(job["event"])
-            secondary_hashes = calculate_event_grouping(
-                project, event_copy, secondary_grouping_config
-            )
-    except Exception:
-        sentry_sdk.capture_exception()
-
-    return secondary_hashes
 
 
 @metrics.wraps("save_event.pull_out_data")
@@ -1513,7 +1465,7 @@ def _save_aggregate(
     # this for select_for_update mostly provides sufficient synchronization
     # when groups are created and also relieves contention by locking a more
     # specific hash than `hierarchical_hashes[0]`.
-    existing_grouphash, root_hierarchical_hash = _find_existing_grouphash(
+    existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
         project, flat_grouphashes, hashes.hierarchical_hashes
     )
 
@@ -1573,7 +1525,7 @@ def _save_aggregate(
 
             flat_grouphashes = [gh for gh in all_hashes if gh.hash in hashes.hashes]
 
-            existing_grouphash, root_hierarchical_hash = _find_existing_grouphash(
+            existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
 
@@ -1705,86 +1657,6 @@ def _save_aggregate(
     )
 
     return GroupInfo(group, is_new, is_regression)
-
-
-def _find_existing_grouphash(
-    project: Project,
-    flat_grouphashes: Sequence[GroupHash],
-    hierarchical_hashes: Optional[Sequence[str]],
-) -> tuple[Optional[GroupHash], Optional[str]]:
-    all_grouphashes = []
-    root_hierarchical_hash = None
-
-    found_split = False
-
-    if hierarchical_hashes:
-        hierarchical_grouphashes = {
-            h.hash: h
-            for h in GroupHash.objects.filter(project=project, hash__in=hierarchical_hashes)
-        }
-
-        # Look for splits:
-        # 1. If we find a hash with SPLIT state at `n`, we want to use
-        #    `n + 1` as the root hash.
-        # 2. If we find a hash associated to a group that is more specific
-        #    than the primary hash, we want to use that hash as root hash.
-        for hash in reversed(hierarchical_hashes):
-            group_hash = hierarchical_grouphashes.get(hash)
-
-            if group_hash is not None and group_hash.state == GroupHash.State.SPLIT:
-                found_split = True
-                break
-
-            root_hierarchical_hash = hash
-
-            if group_hash is not None:
-                all_grouphashes.append(group_hash)
-
-                if group_hash.group_id is not None:
-                    # Even if we did not find a hash with SPLIT state, we want to use
-                    # the most specific hierarchical hash as root hash if it was already
-                    # associated to a group.
-                    # See `move_all_events` test case
-                    break
-
-        if root_hierarchical_hash is None:
-            # All hashes were split, so we group by most specific hash. This is
-            # a legitimate usecase when there are events whose stacktraces are
-            # suffixes of other event's stacktraces.
-            root_hierarchical_hash = hierarchical_hashes[-1]
-            group_hash = hierarchical_grouphashes.get(root_hierarchical_hash)
-
-            if group_hash is not None:
-                all_grouphashes.append(group_hash)
-
-    if not found_split:
-        # In case of a split we want to avoid accidentally finding the split-up
-        # group again via flat hashes, which are very likely associated with
-        # whichever group is attached to the split hash. This distinction will
-        # become irrelevant once we start moving existing events into child
-        # groups and delete the parent group.
-        all_grouphashes.extend(flat_grouphashes)
-
-    for group_hash in all_grouphashes:
-        if group_hash.group_id is not None:
-            return group_hash, root_hierarchical_hash
-
-        # When refactoring for hierarchical grouping, we noticed that a
-        # tombstone may get ignored entirely if there is another hash *before*
-        # that happens to have a group_id. This bug may not have been noticed
-        # for a long time because most events only ever have 1-2 hashes. It
-        # will definitely get more noticeable with hierarchical grouping and
-        # it's not clear what good behavior would look like. Do people want to
-        # be able to tombstone `hierarchical_hashes[4]` while still having a
-        # group attached to `hierarchical_hashes[0]`? Maybe.
-        if group_hash.group_tombstone_id is not None:
-            raise HashDiscarded(
-                "Matches group tombstone %s" % group_hash.group_tombstone_id,
-                reason="discard",
-                tombstone_id=group_hash.group_tombstone_id,
-            )
-
-    return None, root_hierarchical_hash
 
 
 def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
@@ -2157,9 +2029,9 @@ def _get_severity_score(event: Event) -> Tuple[float, str]:
 
     logger_data["payload"] = payload
 
-    with metrics.timer(op):
-        with sentry_sdk.start_span(op=op):
-            try:
+    with sentry_sdk.start_span(op=op):
+        try:
+            with metrics.timer(op):
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
@@ -2168,29 +2040,29 @@ def _get_severity_score(event: Event) -> Tuple[float, str]:
                 )
                 severity = json.loads(response.data).get("severity")
                 reason = "ml"
-            except MaxRetryError as e:
-                logger.warning(
-                    "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                    SEVERITY_DETECTION_RETRIES,
-                    "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
-                    repr(e.reason),
-                    extra=logger_data,
-                )
-                reason = "microservice_max_retry"
-            except Exception as e:
-                logger.warning(
-                    "Unable to get severity score from microservice. Got: %s.",
-                    repr(e),
-                    extra=logger_data,
-                )
-                reason = "microservice_error"
-            else:
-                logger.info(
-                    "Got severity score of %s for event %s",
-                    severity,
-                    event.data["event_id"],
-                    extra=logger_data,
-                )
+        except MaxRetryError as e:
+            logger.warning(
+                "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+                SEVERITY_DETECTION_RETRIES,
+                "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                repr(e.reason),
+                extra=logger_data,
+            )
+            reason = "microservice_max_retry"
+        except Exception as e:
+            logger.warning(
+                "Unable to get severity score from microservice. Got: %s.",
+                repr(e),
+                extra=logger_data,
+            )
+            reason = "microservice_error"
+        else:
+            logger.info(
+                "Got severity score of %s for event %s",
+                severity,
+                event.data["event_id"],
+                extra=logger_data,
+            )
 
     return severity, reason
 

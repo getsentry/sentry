@@ -39,7 +39,7 @@ cssutils==2.4.0
 datadog==0.44.0
 distlib==0.3.4
 distro==1.8.0
-django==3.2.23
+django==4.2.8
 django-crispy-forms==1.14.0
 django-csp==3.7
 django-pg-zero-downtime-migrations==0.13
@@ -173,7 +173,7 @@ rpds-py==0.15.2
 rsa==4.8
 s3transfer==0.10.0
 selenium==4.16.0
-sentry-arroyo==2.15.3
+sentry-arroyo==2.16.0
 sentry-cli==2.16.0
 sentry-devenv==1.2.1
 sentry-forked-django-stubs==4.2.7.post1
