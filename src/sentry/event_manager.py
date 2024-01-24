@@ -2109,9 +2109,9 @@ def _get_severity_score(event: Event) -> Tuple[float, str]:
 
     logger_data["payload"] = payload
 
-    with metrics.timer(op):
-        with sentry_sdk.start_span(op=op):
-            try:
+    with sentry_sdk.start_span(op=op):
+        try:
+            with metrics.timer(op):
                 response = severity_connection_pool.urlopen(
                     "POST",
                     "/v0/issues/severity-score",
@@ -2120,29 +2120,29 @@ def _get_severity_score(event: Event) -> Tuple[float, str]:
                 )
                 severity = json.loads(response.data).get("severity")
                 reason = "ml"
-            except MaxRetryError as e:
-                logger.warning(
-                    "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
-                    SEVERITY_DETECTION_RETRIES,
-                    "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
-                    repr(e.reason),
-                    extra=logger_data,
-                )
-                reason = "microservice_max_retry"
-            except Exception as e:
-                logger.warning(
-                    "Unable to get severity score from microservice. Got: %s.",
-                    repr(e),
-                    extra=logger_data,
-                )
-                reason = "microservice_error"
-            else:
-                logger.info(
-                    "Got severity score of %s for event %s",
-                    severity,
-                    event.data["event_id"],
-                    extra=logger_data,
-                )
+        except MaxRetryError as e:
+            logger.warning(
+                "Unable to get severity score from microservice after %s retr%s. Got MaxRetryError caused by: %s.",
+                SEVERITY_DETECTION_RETRIES,
+                "ies" if SEVERITY_DETECTION_RETRIES > 1 else "y",
+                repr(e.reason),
+                extra=logger_data,
+            )
+            reason = "microservice_max_retry"
+        except Exception as e:
+            logger.warning(
+                "Unable to get severity score from microservice. Got: %s.",
+                repr(e),
+                extra=logger_data,
+            )
+            reason = "microservice_error"
+        else:
+            logger.info(
+                "Got severity score of %s for event %s",
+                severity,
+                event.data["event_id"],
+                extra=logger_data,
+            )
 
     return severity, reason
 
