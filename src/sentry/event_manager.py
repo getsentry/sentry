@@ -574,16 +574,6 @@ class EventManager:
         # count to get an average number of calculations per event
         metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
 
-        # Because this logic is not complex enough we want to special case the situation where we
-        # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
-        # `_save_aggregate` needs special logic to not create orphaned hashes in migration cases
-        # but it wants a different logic to implement splitting of hierarchical hashes.
-        migrate_off_hierarchical = bool(
-            secondary_hashes
-            and secondary_hashes.hierarchical_hashes
-            and not primary_hashes.hierarchical_hashes
-        )
-
         all_hashes = CalculatedHashes(
             hashes=list(primary_hashes.hashes)
             + list(secondary_hashes and secondary_hashes.hashes or []),
@@ -600,6 +590,16 @@ class EventManager:
 
         if all_hashes.tree_labels:
             job["finest_tree_label"] = all_hashes.finest_tree_label
+
+        # Because this logic is not complex enough we want to special case the situation where we
+        # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
+        # `_save_aggregate` needs special logic to not create orphaned hashes in migration cases
+        # but it wants a different logic to implement splitting of hierarchical hashes.
+        migrate_off_hierarchical = bool(
+            secondary_hashes
+            and secondary_hashes.hierarchical_hashes
+            and not primary_hashes.hierarchical_hashes
+        )
 
         _materialize_metadata_many(jobs)
 
