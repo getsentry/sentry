@@ -209,7 +209,7 @@ def calculate_secondary_hash(
     return secondary_hashes
 
 
-def calculate_primary_hash(
+def _calculate_primary_hash(
     project: Project, job: Job, grouping_config: GroupingConfig
 ) -> CalculatedHashes:
     """
@@ -337,7 +337,7 @@ def get_hash_values(
         op="event_manager",
         description="event_manager.save.calculate_event_grouping",
     ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-        primary_hashes = calculate_primary_hash(project, job, grouping_config)
+        primary_hashes = _calculate_primary_hash(project, job, grouping_config)
 
     if secondary_hashes:
         tags = {

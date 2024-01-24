@@ -195,7 +195,7 @@ class EventManagerGroupingMetricsTest(TestCase):
 
         for primary_hashes, secondary_hashes, expected_tag in cases:
             with mock.patch(
-                "sentry.grouping.ingest.calculate_primary_hash",
+                "sentry.grouping.ingest._calculate_primary_hash",
                 return_value=CalculatedHashes(
                     hashes=primary_hashes, hierarchical_hashes=[], tree_labels=[]
                 ),
