@@ -245,7 +245,7 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         event_data = load_data("transaction", metrics_summary=metrics_summary)
         event = self.store_event(data=event_data, project_id=self.project.id)
         result = serialize(event)
-        assert result["_metricsSummary"] == metrics_summary
+        assert result["_metrics_summary"] == metrics_summary
 
     def test_transaction_event_empty_spans(self):
         event_data = load_data("transaction")
