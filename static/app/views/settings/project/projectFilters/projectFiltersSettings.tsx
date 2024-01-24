@@ -294,7 +294,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                 if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
                   return true;
                 }
-                return [...this.state.subfilters].includes(key);
+                return this.state.subfilters.has(key);
               }
               return LEGACY_BROWSER_SUBFILTERS[key].legacy;
             })
@@ -309,7 +309,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                   </div>
                   <Switch
                     aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                    isActive={[...this.state.subfilters].some(sf => sf === key)}
+                    isActive={this.state.subfilters.has(key)}
                     isDisabled={disabled}
                     css={{flexShrink: 0, marginLeft: 6}}
                     toggle={this.handleToggleSubfilters.bind(this, key)}
