@@ -31,6 +31,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.priority import PriorityChangeReason, auto_update_priority
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -508,6 +509,7 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ESCALATING)
+            auto_update_priority(group, PriorityChangeReason.ESCALATING)
 
             has_forecast = (
                 True if data and activity_data and "forecast" in activity_data.keys() else False

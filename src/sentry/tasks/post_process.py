@@ -1391,6 +1391,7 @@ def detect_new_escalation(job: PostProcessJob):
     job.
     """
     from sentry.issues.issue_velocity import get_latest_threshold
+    from sentry.issues.priority import PriorityChangeReason, auto_update_priority
     from sentry.models.activity import Activity
     from sentry.models.group import GroupStatus
     from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -1440,6 +1441,7 @@ def detect_new_escalation(job: PostProcessJob):
                 # TODO(snigdha): reuse manage_issue_states when we allow escalating from other statuses
                 add_group_to_inbox(group, GroupInboxReason.ESCALATING)
                 record_group_history(group, GroupHistoryStatus.ESCALATING)
+                auto_update_priority(group, PriorityChangeReason.ESCALATING)
                 Activity.objects.create_group_activity(
                     group=group,
                     type=ActivityType.SET_ESCALATING,
