@@ -259,6 +259,7 @@ class BaseTestCase(Fixtures):
         auth=None,
         method=None,
         is_superuser=False,
+        is_staff=False,
         path="/",
         secure_scheme=False,
         subdomain=None,
@@ -292,6 +293,9 @@ class BaseTestCase(Fixtures):
             # XXX: this is gross, but it's a one-off and apis change only once in a great while
             request.superuser.set_logged_in(user)
         request.is_superuser = lambda: request.superuser.is_active
+
+        if is_staff:
+            request.staff.set_logged_in(user)
         request.successful_authenticator = None
         return request
 
