@@ -65,7 +65,19 @@ class OrganizationIntegrationSetupTest(TestCase):
             "organizations:integrations-stacktrace-link": False,
         }
     )
-    def test_disallow_integration_with_feature_disabled(self):
+    def test_allow_integration_with_all_features_disabled_but_one_unregistered(self):
+        # `example`` integration also has "organizations:integrations-commits" feature
+        # but it is not registered in the SENTRY_FEATURES so we allow the integration.
+        self.test_basic_flow()
+
+    @with_feature(
+        {
+            "organizations:integrations-alert-rule": False,
+            "organizations:integrations-chat-unfurl": False,
+        }
+    )
+    def test_disallow_integration_with_all_features_disabled(self):
+        self.path = f"/organizations/{self.organization.slug}/integrations/slack/setup/"
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert (

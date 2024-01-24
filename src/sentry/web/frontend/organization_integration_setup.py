@@ -42,6 +42,7 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
             is_feature_enabled = {}
             for feature in pipeline.provider.features:
                 feature_flag_name = "organizations:integrations-%s" % feature.value
+                is_feature_enabled[feature_flag_name] = True
                 if feature_flag_name in settings.SENTRY_FEATURES:
                     is_feature_enabled[feature_flag_name] = features.has(
                         feature_flag_name, organization
