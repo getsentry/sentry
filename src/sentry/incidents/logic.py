@@ -1668,7 +1668,9 @@ def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Pro
 
     alert_snuba_query = alert_rule.snuba_query
     should_use_on_demand = should_use_on_demand_metrics(
-        alert_snuba_query.aggregate, alert_snuba_query.query
+        alert_snuba_query.dataset,
+        alert_snuba_query.aggregate,
+        alert_snuba_query.query,
     )
     if should_use_on_demand:
         for project in projects:

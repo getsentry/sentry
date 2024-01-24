@@ -307,6 +307,7 @@ def _convert_snuba_query_to_metrics(
     environment = snuba_query.environment.name if snuba_query.environment is not None else None
     return _convert_aggregate_and_query_to_metrics(
         project,
+        snuba_query.dataset,
         snuba_query.aggregate,
         snuba_query.query,
         environment,
@@ -333,6 +334,9 @@ def convert_widget_query_to_metric(
         metrics.incr("on_demand_metrics.before_widget_spec_generation")
         if results := _convert_aggregate_and_query_to_metrics(
             project,
+            # there is an internal check to make sure we extract metrics only for performance dataset
+            # however widgets do not have a dataset field, so we need to pass it explicitly
+            Dataset.PerformanceMetrics.value,
             aggregate,
             widget_query.conditions,
             None,
@@ -546,6 +550,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
 def _convert_aggregate_and_query_to_metrics(
     project: Project,
+    dataset: str,
     aggregate: str,
     query: str,
     environment: Optional[str],
@@ -562,11 +567,12 @@ def _convert_aggregate_and_query_to_metrics(
     # We can avoid injection of the environment in the query, since it's supported by standard, thus it won't change
     # the supported state of a query, since if it's standard, and we added environment it will still be standard
     # and if it's on demand, it will always be on demand irrespectively of what we add.
-    if not should_use_on_demand_metrics(aggregate, query, groupbys):
+    if not should_use_on_demand_metrics(dataset, aggregate, query, groupbys):
         return None
 
     metric_specs_and_hashes = []
     extra = {
+        "dataset": dataset,
         "aggregate": aggregate,
         "query": query,
         "groupbys": groupbys,
