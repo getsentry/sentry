@@ -76,9 +76,12 @@ SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuse
 
 def get_superuser_scopes(auth_state: RpcAuthState, member: Any | OrganizationMember | None):
     superuser_scopes = SUPERUSER_SCOPES
-    if not is_self_hosted() and features.has("auth:enterprise-superuser-read-write", member):
-        if "superuser.write" not in auth_state.permissions:
-            superuser_scopes = SUPERUSER_READONLY_SCOPES
+    if (
+        not is_self_hosted()
+        and features.has("auth:enterprise-superuser-read-write", member)
+        and "superuser.write" not in auth_state.permissions
+    ):
+        superuser_scopes = SUPERUSER_READONLY_SCOPES
 
     return superuser_scopes
 
