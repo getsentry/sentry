@@ -32,12 +32,12 @@ class BaseQuerySet(QuerySet, abc.ABC):
         """
         Copied and modified from `Queryset.update()` to support `RETURNING <returned_fields>`
         """
-        self._not_support_combined_queries("update")
+        self._not_support_combined_queries("update")  # type: ignore[attr-defined]
         if self.query.is_sliced:
             raise TypeError("Cannot update a query once a slice has been taken.")
         self._for_write = True
         query = self.query.chain(sql.UpdateQuery)
-        query.add_update_values(kwargs)
+        query.add_update_values(kwargs)  # type: ignore[attr-defined]
 
         # Inline annotations in order_by(), if possible.
         new_order_by = []
@@ -65,7 +65,7 @@ class BaseQuerySet(QuerySet, abc.ABC):
         self._result_cache = None
         return result_ids
 
-    update_with_returning.alters_data = True
+    update_with_returning.alters_data = True  # type: ignore[attr-defined]
 
     def update(self, **kwargs: Any) -> int:
         if self._with_post_update_signal:
