@@ -154,7 +154,9 @@ function useHoverOverlay(
   const theme = useTheme();
   const describeById = useMemo(() => domId(`${overlayType}-`), [overlayType]);
 
-  const [isOpen, setIsOpen] = useState(forceVisible ?? false);
+  const [isVisible, setIsVisible] = useState(forceVisible ?? false);
+  const isOpen = forceVisible ?? isVisible;
+
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
   const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
@@ -192,12 +194,12 @@ function useHoverOverlay(
     maybeClearRefTimeout(delayOpenTimeoutRef);
 
     if (delay === 0) {
-      setIsOpen(true);
+      setIsVisible(true);
       return;
     }
 
     delayOpenTimeoutRef.current = window.setTimeout(
-      () => setIsOpen(true),
+      () => setIsVisible(true),
       delay ?? OPEN_DELAY
     );
   }, [delay, showOnlyOnOverflow, triggerElement]);
@@ -207,12 +209,12 @@ function useHoverOverlay(
     maybeClearRefTimeout(delayOpenTimeoutRef);
 
     if (!isHoverable && !displayTimeout) {
-      setIsOpen(false);
+      setIsVisible(false);
       return;
     }
 
     delayHideTimeoutRef.current = window.setTimeout(() => {
-      setIsOpen(false);
+      setIsVisible(false);
     }, displayTimeout ?? CLOSE_DELAY);
   }, [isHoverable, displayTimeout]);
 
@@ -290,7 +292,7 @@ function useHoverOverlay(
   );
 
   const reset = useCallback(() => {
-    setIsOpen(false);
+    setIsVisible(false);
     maybeClearRefTimeout(delayHideTimeoutRef);
     maybeClearRefTimeout(delayOpenTimeoutRef);
   }, []);
@@ -322,7 +324,7 @@ function useHoverOverlay(
 
   return {
     wrapTrigger,
-    isOpen: forceVisible ?? isOpen,
+    isOpen,
     overlayProps,
     arrowProps,
     placement: state?.placement,
