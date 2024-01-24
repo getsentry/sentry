@@ -161,6 +161,12 @@ class GroupStatus:
     MUTED = IGNORED
 
 
+class PriorityLevel:
+    LOW = 25
+    MEDIUM = 50
+    HIGH = 75
+
+
 # Statuses that can be queried/searched for
 STATUS_QUERY_CHOICES: Mapping[str, int] = {
     "resolved": GroupStatus.RESOLVED,
@@ -543,7 +549,14 @@ class Group(Model):
     data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
-    priority = models.PositiveSmallIntegerField(null=True)
+    priority = models.PositiveSmallIntegerField(
+        null=True,
+        choices=(
+            (PriorityLevel.HIGH, _("High")),
+            (PriorityLevel.MEDIUM, _("Medium")),
+            (PriorityLevel.LOW, _("Low")),
+        ),
+    )
     priority_locked_at = models.DateTimeField(null=True)
 
     objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
