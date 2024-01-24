@@ -505,14 +505,17 @@ def augment_transactions_with_spans(
     issue_occurrences = []
     occurrence_spans = set()
     error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
+    projects = set()
 
     for transaction in transactions:
         transaction["occurrence_spans"] = []
         transaction["issue_occurrences"] = []
 
+        project = transaction["project.id"]
+        projects.add(project)
+
         # Pull out occurrence data
         transaction_problem_map[transaction["id"]] = transaction
-        project = transaction["project.id"]
         if project not in problem_project_map:
             problem_project_map[project] = []
         problem_project_map[project].append(transaction["occurrence_id"])
@@ -554,9 +557,13 @@ def augment_transactions_with_spans(
     # Fetch parent span ids of segment spans and their corresponding
     # transaction id so we can link parent/child transactions in
     # a trace.
+    spans_params = params.copy()
+    spans_params["project_objects"] = [p for p in params["project_objects"] if p.id in projects]
+    spans_params["project_id"] = list(projects)
+
     parents_results = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
-        params,
+        spans_params,
         query=f"trace:{trace_id} span_id:[{','.join(query_spans)}]",
         selected_columns=[
             "transaction.id",
