@@ -18,6 +18,11 @@ from sentry.sentry_metrics.querying.errors import (
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
+from sentry.sentry_metrics.visibility import (
+    BlockedMetric,
+    MalformedBlockedMetricsPayloadError,
+    block_metric,
+)
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_all_tags,
@@ -50,6 +55,45 @@ def get_use_case_id(request: Request) -> UseCaseID:
 
 @region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL, "POST": ApiPublishStatus.EXPERIMENTAL}
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    def get(self, request: Request, organization) -> Response:
+        projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams("You must supply at least one projects to see its metrics")
+
+        metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
+
+        return Response(metrics, status=200)
+
+    def post(self, request: Request, organization) -> Response:
+        projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams(
+                "You must supply at least one projects of which metrics will be blocked"
+            )
+
+        metrics = request.data.get("metrics", [])
+        if not metrics:
+            raise InvalidParams("You must supply at least one metric to block")
+
+        for metric in metrics:
+            try:
+                blocked_metric = BlockedMetric(metric_mri=metric, tags=request.GET.getlist("tag"))
+                block_metric(blocked_metric, projects)
+            except MalformedBlockedMetricsPayloadError:
+                # In case one metric fails to be inserted, we abort the entire insertion since the project options are
+                # likely to be corrupted.
+                return Response(
+                    {"detail": "The blocked metrics settings are corrupted, try again"}, status=500
+                )
+
+        return Response(status=200)
+
+
+@region_silo_endpoint
+class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -58,9 +102,10 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
     def get(self, request: Request, organization) -> Response:
+        # TODO: fade out endpoint since the new metrics endpoint will be used.
         projects = self.get_projects(request, organization)
 
-        metrics = get_metrics_meta(projects, use_case_id=get_use_case_id(request))
+        metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
 
         return Response(metrics, status=200)
 
@@ -76,14 +121,15 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
+
         try:
             metric = get_single_metric_info(
                 projects,
                 metric_name,
                 use_case_id=get_use_case_id(request),
             )
-        except InvalidParams as e:
-            raise ResourceDoesNotExist(e)
+        except InvalidParams as exc:
+            raise ResourceDoesNotExist(detail=str(exc))
         except (InvalidField, DerivedMetricParseException) as exc:
             raise ParseError(detail=str(exc))
 

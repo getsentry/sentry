@@ -1503,6 +1503,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Enables import of metric dashboards
+    "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enable inbound filters to be turned on by default for new Javascript Projects
@@ -1649,6 +1651,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-extraction": False,
     # Enables the usage of the new metrics layer in the metrics API.
     "organizations:metrics-api-new-metrics-layer": False,
+    # Enables the ability to block metrics.
+    "organizations:metrics-blocking": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Adds the ttid & ttfd vitals to the frontend
@@ -4000,7 +4004,7 @@ ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host and SILO_MODE != "REGION":
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.region-api-url-template"] = ""
-    CSRF_TRUSTED_ORIGINS = [f".{ngrok_host}"]
+    CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
 
     SESSION_COOKIE_DOMAIN: str = f".{ngrok_host}"
