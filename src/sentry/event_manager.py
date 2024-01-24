@@ -65,6 +65,7 @@ from sentry.grouping.api import (
 from sentry.grouping.ingest import (
     calculate_primary_hash,
     calculate_secondary_hash,
+    find_existing_grouphash,
     run_background_grouping,
     should_run_secondary_grouping,
     update_grouping_config_if_needed,
@@ -1464,7 +1465,7 @@ def _save_aggregate(
     # this for select_for_update mostly provides sufficient synchronization
     # when groups are created and also relieves contention by locking a more
     # specific hash than `hierarchical_hashes[0]`.
-    existing_grouphash, root_hierarchical_hash = _find_existing_grouphash(
+    existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
         project, flat_grouphashes, hashes.hierarchical_hashes
     )
 
@@ -1524,7 +1525,7 @@ def _save_aggregate(
 
             flat_grouphashes = [gh for gh in all_hashes if gh.hash in hashes.hashes]
 
-            existing_grouphash, root_hierarchical_hash = _find_existing_grouphash(
+            existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
 
@@ -1656,86 +1657,6 @@ def _save_aggregate(
     )
 
     return GroupInfo(group, is_new, is_regression)
-
-
-def _find_existing_grouphash(
-    project: Project,
-    flat_grouphashes: Sequence[GroupHash],
-    hierarchical_hashes: Optional[Sequence[str]],
-) -> tuple[Optional[GroupHash], Optional[str]]:
-    all_grouphashes = []
-    root_hierarchical_hash = None
-
-    found_split = False
-
-    if hierarchical_hashes:
-        hierarchical_grouphashes = {
-            h.hash: h
-            for h in GroupHash.objects.filter(project=project, hash__in=hierarchical_hashes)
-        }
-
-        # Look for splits:
-        # 1. If we find a hash with SPLIT state at `n`, we want to use
-        #    `n + 1` as the root hash.
-        # 2. If we find a hash associated to a group that is more specific
-        #    than the primary hash, we want to use that hash as root hash.
-        for hash in reversed(hierarchical_hashes):
-            group_hash = hierarchical_grouphashes.get(hash)
-
-            if group_hash is not None and group_hash.state == GroupHash.State.SPLIT:
-                found_split = True
-                break
-
-            root_hierarchical_hash = hash
-
-            if group_hash is not None:
-                all_grouphashes.append(group_hash)
-
-                if group_hash.group_id is not None:
-                    # Even if we did not find a hash with SPLIT state, we want to use
-                    # the most specific hierarchical hash as root hash if it was already
-                    # associated to a group.
-                    # See `move_all_events` test case
-                    break
-
-        if root_hierarchical_hash is None:
-            # All hashes were split, so we group by most specific hash. This is
-            # a legitimate usecase when there are events whose stacktraces are
-            # suffixes of other event's stacktraces.
-            root_hierarchical_hash = hierarchical_hashes[-1]
-            group_hash = hierarchical_grouphashes.get(root_hierarchical_hash)
-
-            if group_hash is not None:
-                all_grouphashes.append(group_hash)
-
-    if not found_split:
-        # In case of a split we want to avoid accidentally finding the split-up
-        # group again via flat hashes, which are very likely associated with
-        # whichever group is attached to the split hash. This distinction will
-        # become irrelevant once we start moving existing events into child
-        # groups and delete the parent group.
-        all_grouphashes.extend(flat_grouphashes)
-
-    for group_hash in all_grouphashes:
-        if group_hash.group_id is not None:
-            return group_hash, root_hierarchical_hash
-
-        # When refactoring for hierarchical grouping, we noticed that a
-        # tombstone may get ignored entirely if there is another hash *before*
-        # that happens to have a group_id. This bug may not have been noticed
-        # for a long time because most events only ever have 1-2 hashes. It
-        # will definitely get more noticeable with hierarchical grouping and
-        # it's not clear what good behavior would look like. Do people want to
-        # be able to tombstone `hierarchical_hashes[4]` while still having a
-        # group attached to `hierarchical_hashes[0]`? Maybe.
-        if group_hash.group_tombstone_id is not None:
-            raise HashDiscarded(
-                "Matches group tombstone %s" % group_hash.group_tombstone_id,
-                reason="discard",
-                tombstone_id=group_hash.group_tombstone_id,
-            )
-
-    return None, root_hierarchical_hash
 
 
 def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
