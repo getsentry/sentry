@@ -1,7 +1,6 @@
 import {useCallback, useLayoutEffect} from 'react';
 import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
-import debounce from 'lodash/debounce';
 
 import {space} from 'sentry/styles/space';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -26,7 +25,6 @@ export function MetricScratchpad() {
     addFocusArea,
     removeFocusArea,
     showQuerySymbols,
-    setHighlightedSampleId,
     highlightedSampleId,
   } = useDDMContext();
   const {selection} = usePageFilters();
@@ -46,19 +44,6 @@ export function MetricScratchpad() {
     },
     [updateWidget]
   );
-
-  const debouncedsetHighlightedSampleId = debounce((sample?: Sample) => {
-    setHighlightedSampleId(sample?.transactionId);
-  }, 1);
-
-  const handleSampleMouseOver = useCallback(
-    (sample: Sample) => debouncedsetHighlightedSampleId(sample),
-    [debouncedsetHighlightedSampleId]
-  );
-
-  const handleSampleMouseOut = useCallback(() => {
-    debouncedsetHighlightedSampleId();
-  }, [debouncedsetHighlightedSampleId]);
 
   const handleSampleClick = useCallback(
     (sample: Sample) => {
@@ -102,8 +87,6 @@ export function MetricScratchpad() {
           removeFocusArea={removeFocusArea}
           showQuerySymbols={showQuerySymbols}
           focusArea={focusArea}
-          onSampleMouseOver={handleSampleMouseOver}
-          onSampleMouseOut={handleSampleMouseOut}
           onSampleClick={handleSampleClick}
           highlightedSampleId={highlightedSampleId}
         />

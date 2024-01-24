@@ -51,8 +51,6 @@ type MetricWidgetProps = {
   index?: number;
   isSelected?: boolean;
   onSampleClick?: (sample: Sample) => void;
-  onSampleMouseOut?: (sample: Sample) => void;
-  onSampleMouseOver?: (sample: Sample) => void;
   onSelect?: (index: number) => void;
   removeFocusArea?: () => void;
   showQuerySymbols?: boolean;
@@ -80,8 +78,6 @@ export const MetricWidget = memo(
     showQuerySymbols,
     focusArea = null,
     onSampleClick,
-    onSampleMouseOut,
-    onSampleMouseOver,
     highlightedSampleId,
   }: MetricWidgetProps) => {
     const handleChange = useCallback(
@@ -171,8 +167,6 @@ export const MetricWidget = memo(
                 addFocusArea={addFocusArea}
                 focusArea={focusArea}
                 removeFocusArea={removeFocusArea}
-                onSampleMouseOver={onSampleMouseOver}
-                onSampleMouseOut={onSampleMouseOut}
                 onSampleClick={onSampleClick}
                 chartHeight={300}
                 highlightedSampleId={highlightedSampleId}
@@ -202,8 +196,6 @@ interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   highlightedSampleId?: string;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   onSampleClick?: (sample: Sample) => void;
-  onSampleMouseOut?: (sample: Sample) => void;
-  onSampleMouseOver?: (sample: Sample) => void;
   removeFocusArea?: () => void;
 }
 
@@ -220,8 +212,6 @@ export const MetricWidgetBody = memo(
     removeFocusArea,
     chartHeight,
     onSampleClick,
-    onSampleMouseOut,
-    onSampleMouseOver,
     ...metricsQuery
   }: MetricWidgetBodyProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
@@ -280,7 +270,7 @@ export const MetricWidgetBody = memo(
         : [];
     }, [timeseriesData, displayType, focusedSeries, metricsQuery.groupBy, mri]);
 
-    const chartSampleSeries = useMemo(() => {
+    const correlations = useMemo(() => {
       return (
         samplesData
           ? samplesData.metrics
@@ -337,9 +327,7 @@ export const MetricWidgetBody = memo(
           removeFocusArea={removeFocusArea}
           height={chartHeight}
           highlightedSampleId={highlightedSampleId}
-          sampleSeries={chartSampleSeries}
-          onSampleMouseOver={onSampleMouseOver}
-          onSampleMouseOut={onSampleMouseOut}
+          correlations={correlations}
           onSampleClick={onSampleClick}
         />
         {metricsQuery.showSummaryTable && (

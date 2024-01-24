@@ -19,6 +19,7 @@ import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {MetricRange} from 'sentry/utils/metrics';
+import {isInRect} from 'sentry/views/ddm/rect';
 
 import {DateTimeObject} from '../../components/charts/utils';
 
@@ -41,14 +42,6 @@ interface UseFocusAreaOptions {
 }
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
-
-function isInRect(x: number, y: number, rect: DOMRect | undefined) {
-  if (!rect) {
-    return false;
-  }
-
-  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-}
 
 export function useFocusArea(
   chartRef: RefObject<ReactEchartsRef>,

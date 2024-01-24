@@ -166,7 +166,6 @@ export function useMetricWidgets() {
     widgets,
     updateWidget,
     addWidget,
-
     removeWidget,
     duplicateWidget,
   };

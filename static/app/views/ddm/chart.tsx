@@ -11,6 +11,7 @@ import BaseChart, {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import {MetricsOperation} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {
@@ -34,14 +35,12 @@ type ChartProps = {
   series: Series[];
   widgetIndex: number;
   addFocusArea?: (area: FocusArea) => void;
+  correlations?: MetricCorrelation[];
   height?: number;
   highlightedSampleId?: string;
   onSampleClick?: (sample: Sample) => void;
-  onSampleMouseOut?: (sample: Sample) => void;
-  onSampleMouseOver?: (sample: Sample) => void;
-  operation?: string;
+  operation?: MetricsOperation;
   removeFocusArea?: () => void;
-  sampleSeries?: MetricCorrelation[];
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
@@ -60,10 +59,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       focusArea,
       removeFocusArea,
       height,
-      sampleSeries,
+      correlations,
       onSampleClick,
-      onSampleMouseOut,
-      onSampleMouseOver,
       highlightedSampleId,
     },
     forwardedRef
@@ -108,19 +105,19 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     }, [series, displayType]);
 
     const valueFormatter = useCallback(
-      (value: number) => formatMetricsUsingUnitAndOp(value, unit, operation),
+      (value: number) => {
+        return formatMetricsUsingUnitAndOp(value, unit, operation);
+      },
       [unit, operation]
     );
 
     const samples = useMetricSamples({
       chartRef,
-      numOfTimeseries: seriesToShow.length,
-      sampleSeries,
+      correlations,
       onClick: onSampleClick,
-      onMouseOut: onSampleMouseOut,
-      onMouseOver: onSampleMouseOver,
       highlightedSampleId,
-      valueFormatter,
+      operation,
+      timeseries: series,
     });
 
     // TODO(ddm): This assumes that all series have the same bucket size
@@ -137,6 +134,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         showTimeInTooltip: true,
         addSecondsToTimeFormat: isSubMinuteBucket,
         limit: 10,
+        filter: (_, {axisId}) => {
+          return axisId === 'xAxis';
+        },
       };
 
       const heightOptions = height ? {height} : {autoHeightResize: true};
@@ -151,11 +151,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 5, bottom: 0, left: 0, right: 0},
-        // onMouseOver: samples.handleMouseOver,
-        // onMouseOut: samples.handleMouseOut,
-        // onHighlight: samples.handleHighlight,
         onClick: samples.handleClick,
-
         tooltip: {
           formatter: (params, asyncTicket) => {
             if (focusAreaBrush.isDrawingRef.current) {
@@ -166,11 +162,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             ).find(element => {
               return element.classList.contains('echarts-for-react');
             });
-
             if (params.seriesType === 'scatter') {
               return getFormatter(samples.formatters)(params, asyncTicket);
             }
             if (hoveredEchartElement === chartRef?.current?.ele) {
+              // @ts-expect-error this is a valid formatter type
               return getFormatter(timeseriesFormatters)(params, asyncTicket);
             }
             return '';
@@ -208,9 +204,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       seriesToShow,
       height,
       samples.handleClick,
-      // samples.handleMouseOut,
-      // samples.handleMouseOver,
-      // samples.handleHighlight,
       samples.xAxis,
       samples.yAxis,
       samples.formatters,

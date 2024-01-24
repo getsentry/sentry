@@ -24,6 +24,7 @@ import {
   MetricsApiRequestQuery,
   MetricsApiRequestQueryOptions,
   MetricsGroup,
+  MetricsOperation,
   MetricType,
   MRI,
   UseCase,
@@ -144,7 +145,7 @@ export type MetricsQuery = {
   mri: MRI;
   projects: PageFilters['projects'];
   groupBy?: string[];
-  op?: string;
+  op?: MetricsOperation;
   query?: string;
   title?: string;
 };
