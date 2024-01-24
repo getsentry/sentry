@@ -567,18 +567,12 @@ class SupportedBy:
 
 
 def should_use_on_demand_metrics(
-    dataset: Optional[Union[str, Dataset]],
     aggregate: str,
     query: Optional[str],
     groupbys: Optional[Sequence[str]] = None,
 ) -> bool:
     """On-demand metrics are used if the aggregate and query are supported by on-demand metrics but not standard"""
     groupbys = groupbys or []
-    supported_datasets = [Dataset.PerformanceMetrics]
-    supported_datasets.append(Dataset.Transactions)
-
-    if not dataset or Dataset(dataset) not in supported_datasets:
-        return False
 
     components = _extract_aggregate_components(aggregate)
     if components is None:

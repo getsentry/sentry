@@ -1098,38 +1098,6 @@ def test_get_metrics_extraction_config_features_combinations(
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_transactions_dataset(default_project: Project) -> None:
-    create_alert(
-        "count()", "transaction.duration:>=10", default_project, dataset=Dataset.PerformanceMetrics
-    )
-    create_alert(
-        "count()", "transaction.duration:>=20", default_project, dataset=Dataset.Transactions
-    )
-
-    with Feature({ON_DEMAND_METRICS: True}):
-        config = get_metric_extraction_config(default_project)
-
-        assert config
-        assert len(config["metrics"]) == 2
-        assert config["metrics"] == [
-            {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [{"key": "query_hash", "value": "f1353b0f"}],
-            },
-            {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": 20.0},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [{"key": "query_hash", "value": "a547e4d9"}],
-            },
-        ]
-
-
-@django_db_all
 def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> None:
     create_alert(
         "apdex(300)",
