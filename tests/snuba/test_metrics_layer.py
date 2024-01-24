@@ -34,7 +34,7 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         return int(dt.timestamp())
 
     def setUp(self) -> None:
-        super().setUp()  # type: ignore
+        super().setUp()
 
         self.generic_metrics: Mapping[str, Literal["counter", "set", "distribution", "gauge"]] = {
             TransactionMRI.DURATION.value: "distribution",
