@@ -2,13 +2,13 @@ import {useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import ContinueButton from 'sentry/views/relocation/components/continueButton';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
@@ -55,25 +55,33 @@ function GetStarted(props: StepProps) {
             minLength={3}
             placeholder="org-slug-1, org-slug-2, ..."
           />
-          <Label>{t('Choose a datacenter region')}</Label>
+          <Label>{t('Choose a datacenter location')}</Label>
           <RegionSelect
             value={regionUrl}
             name="region"
             aria-label="region"
-            placeholder="Select Region"
+            placeholder="Select Location"
             options={regions.map(r => ({label: r.name, value: r.url}))}
             onChange={opt => setRegionUrl(opt.value)}
           />
-          {regionUrl && (
-            <p>{t('This is an important decision and cannot be changed.')}</p>
-          )}
+          <p>
+            {t(
+              "Choose where to store your organization's data. Please note, you won't be able to change locations once your relocation has been initiated. "
+            )}
+            <a
+              href="https://docs.sentry.io/product/accounts/choose-your-data-center"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Learn more
+            </a>
+            .
+          </p>
           <ContinueButton
             disabled={!orgSlugs || !regionUrl}
             priority="primary"
             type="submit"
-          >
-            {t('Continue')}
-          </ContinueButton>
+          />
         </Form>
       </motion.div>
     </Wrapper>
@@ -120,10 +128,6 @@ const Wrapper = styled('div')`
   h2 {
     color: ${p => p.theme.gray500};
   }
-`;
-
-const ContinueButton = styled(Button)`
-  margin-top: ${space(4)};
 `;
 
 const Form = styled('form')`
