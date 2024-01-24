@@ -60,7 +60,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
-    "sentry.tasks.process_buffer.process_incr": settings.SENTRY_PROCESS_INCR_SAMPLE_RATE,
+    "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
     "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
