@@ -7,7 +7,9 @@ import pytest
 import responses
 
 from sentry.integrations.vsts import VstsIntegrationProvider
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class VstsIntegrationTestCase(IntegrationTestCase):
@@ -186,6 +188,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         assert response.status_code == 200
         assert f'<option value="{account_id}"'.encode() in response.content
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_installation(self):
         # Initial request to the installation URL for VSTS
         resp = self.make_init_request()
