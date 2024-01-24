@@ -29,7 +29,7 @@ function ReplayCurrentUrl() {
 
   if (!replay || !url) {
     return (
-      <TextCopyInput size="sm" disabled>
+      <TextCopyInput aria-label="Current URL" size="sm" disabled>
         {''}
       </TextCopyInput>
     );
@@ -57,12 +57,18 @@ function ReplayCurrentUrl() {
         )}
         isHoverable
       >
-        <TextCopyInput size="sm">{url}</TextCopyInput>
+        <TextCopyInput aria-label="Current URL" size="sm">
+          {url}
+        </TextCopyInput>
       </Tooltip>
     );
   }
 
-  return <TextCopyInput size="sm">{url}</TextCopyInput>;
+  return (
+    <TextCopyInput aria-label="Current URL" size="sm">
+      {url}
+    </TextCopyInput>
+  );
 }
 
 export default ReplayCurrentUrl;
