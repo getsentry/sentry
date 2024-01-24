@@ -103,12 +103,9 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # override docs which are typically synchronized from an upstream server
     # to ensure tests are consistent
-    os.environ.setdefault(
-        "INTEGRATION_DOC_FOLDER", os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
-    )
     from sentry.utils import integrationdocs
 
-    integrationdocs.DOC_FOLDER = os.environ["INTEGRATION_DOC_FOLDER"]
+    integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
     configure_split_db()
 
