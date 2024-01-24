@@ -176,7 +176,7 @@ def _calculate_background_grouping(
         return _calculate_event_grouping(project, event, config)
 
 
-def should_run_secondary_grouping(project: Project) -> bool:
+def _should_run_secondary_grouping(project: Project) -> bool:
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
 
@@ -312,7 +312,7 @@ def get_hash_values(
 
     secondary_hashes = None
 
-    if should_run_secondary_grouping(project):
+    if _should_run_secondary_grouping(project):
         with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
             secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
             secondary_hashes = calculate_secondary_hash(project, job, secondary_grouping_config)
