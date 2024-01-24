@@ -2,13 +2,20 @@ from __future__ import annotations
 
 # to avoid a circular import
 import logging
+from typing import Mapping, Optional
 from urllib.parse import urlencode
+
+from rest_framework import status
+from rest_framework.response import Response
+from sentry_sdk.tracing import Span
 
 from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.discord")
+
 
 DISCORD_BASE_URL = "https://discord.com/api/v10"
 
@@ -101,6 +108,56 @@ class DiscordClient(ApiClient):
         return self.get(
             CHANNEL_URL.format(channel_id=channel_id), headers=self.prepare_auth_header()
         )
+
+    def track_response_data(
+        self,
+        code: str | int,
+        span: Span | None = None,
+        error: Exception | None = None,
+        resp: Response | None = None,
+        extra: Optional[Mapping[str, str]] = None,
+    ) -> None:
+        # if no span was passed, create a dummy to which to add data to avoid having to wrap every
+        # span call in `if span`
+        span = span or Span()
+
+        is_ok = code in {
+            status.HTTP_200_OK,
+            status.HTTP_201_CREATED,
+            status.HTTP_202_ACCEPTED,
+            status.HTTP_204_NO_CONTENT,
+        }
+        include_in_slo = code not in {
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            status.HTTP_403_FORBIDDEN,  # Is user error
+        }
+
+        metrics.incr(
+            f"{self.metrics_prefix}.http_response",
+            sample_rate=1.0,
+            tags={
+                str(self.integration_type): self.name,
+                "status": code,
+                "is_ok": is_ok,
+                "include_in_slo": include_in_slo,
+            },
+        )
+
+        try:
+            span.set_http_status(int(code))
+        except ValueError:
+            span.set_status(str(code))
+
+        log_params = {
+            **(extra or {}),
+            "status_string": str(code),
+            "error": str(error)[:256] if error else None,
+        }
+        if self.integration_type:
+            log_params[self.integration_type] = self.name
+
+        log_params.update(getattr(self, "logging_context", None) or {})
+        self.logger.info("%s.http_response", self.integration_type, extra=log_params)
 
     def send_message(
         self, channel_id: str, message: DiscordMessageBuilder, notification_uuid: str | None = None
