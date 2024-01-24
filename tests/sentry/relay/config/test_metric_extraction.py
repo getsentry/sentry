@@ -18,7 +18,6 @@ from sentry.relay.config.metric_extraction import get_metric_extraction_config
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.tasks.on_demand_metrics import process_widget_specs
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -475,6 +474,72 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
             "Spec version 1",
             "Too many (2) on demand metric widgets for project bar",
         ]
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 1, "on_demand.extended_max_widget_specs": 0})
+def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.splitlines()[0].split(": ")[1:3] == [
+            "Spec version 1",
+            "Too many (2) on demand metric widgets for project bar",
+        ]
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 1})
+def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
+        {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+    ):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.splitlines()[0].split(": ")[1:3] == [
+            "Spec version 1",
+            "Too many (2) on demand metric widgets for project bar",
+        ]
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 2})
+def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
+        {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+    ):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
 
 
 @django_db_all
@@ -1011,45 +1076,6 @@ def test_stateful_get_metric_extraction_config_with_low_cardinality(
         config = get_metric_extraction_config(default_project)
 
         assert config
-
-
-@django_db_all
-@override_options(
-    {
-        "on_demand_metrics.widgets.use_stateful_extraction": True,
-        "on_demand_metrics.check_widgets.enable": True,
-    }
-)
-def test_stateful_check_spec_hashes_relative_time(
-    default_project: Project,
-) -> None:
-    # TODO: This test should be removed once relative time is fixed or stateful extraction is mainlined whichever happens first.
-    with Feature(
-        {
-            ON_DEMAND_METRICS_WIDGETS: True,
-            "organizations:on-demand-metrics-extraction-widgets": True,
-        }
-    ):
-        widget_query = create_widget(
-            ["epm()"],
-            "timestamp.to_day:-7d",
-            default_project,
-            columns=["user.id", "release", "count()"],
-        )
-
-        assert widget_query.widget.id
-        widget_query_ids = [widget_query.id]
-        # This should set a stateful metric extraction state.
-        process_widget_specs(widget_query_ids)
-
-        on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
-        assert (
-            len(on_demand_entries) == 1
-        )  # Make sure test is isolated and on-demand successfully added a row.
-
-        with mock.patch("sentry_sdk.capture_message") as capture_message:
-            get_metric_extraction_config(default_project)
-            assert capture_message.called
 
 
 @django_db_all

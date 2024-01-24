@@ -23,6 +23,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/policies/[^/]+/revisions/$'),
   new RegExp('^api/0/policies/[^/]+/revisions/[^/]+/$'),
   new RegExp('^api/0/promocodes/$'),
+  new RegExp('^api/0/promocodes-external/[^/]+/$'),
   new RegExp('^api/0/promocodes/[^/]+/$'),
   new RegExp('^api/0/promocodes/[^/]+/claimants/$'),
   new RegExp('^api/0/gdpr_request/$'),

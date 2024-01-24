@@ -374,14 +374,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 attrs[item].update({"pluginIssues": plugin_issue_list})
 
         if self._expand("integrationIssues"):
-            external_issues = ExternalIssue.objects.filter(
-                id__in=GroupLink.objects.filter(group_id__in=[item.id]).values_list(
-                    "linked_id", flat=True
-                ),
-            )
             for item in item_list:
+                external_issues = ExternalIssue.objects.filter(
+                    id__in=GroupLink.objects.filter(group_id__in=[item.id]).values_list(
+                        "linked_id", flat=True
+                    ),
+                )
                 integration_issues = serialize(
-                    external_issues, request, serializer=ExternalIssueSerializer()
+                    list(external_issues), request, serializer=ExternalIssueSerializer()
                 )
                 attrs[item].update({"integrationIssues": integration_issues})
 
