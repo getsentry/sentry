@@ -1543,6 +1543,29 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_identity_integration(
+        user: User | RpcUser,
+        organization: Organization | RpcOrganization,
+        integration_params: Mapping[Any, Any],
+        identity_params: Mapping[Any, Any],
+    ) -> tuple[Integration, OrganizationIntegration, Identity, IdentityProvider]:
+        # Avoid common pitfalls in tests
+        assert "provider" in integration_params
+        assert "external_id" in integration_params
+        assert "external_id" in identity_params
+
+        integration = Factories.create_provider_integration(**integration_params)
+        identity_provider = Factories.create_identity_provider(integration=integration)
+        identity = Factories.create_identity(
+            user=user, identity_provider=identity_provider, **identity_params
+        )
+        organization_integration = integration.add_organization(
+            organization_id=organization.id, user=user, default_auth_id=identity.id
+        )
+        return integration, organization_integration, identity, identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_organization_integration(**integration_params: Any) -> OrganizationIntegration:
         return OrganizationIntegration.objects.create(**integration_params)
 

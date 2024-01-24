@@ -11,7 +11,7 @@ from sentry.incidents.models import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.identity import IdentityProvider
+from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
@@ -468,6 +468,17 @@ class Fixtures:
     ) -> tuple[Integration, OrganizationIntegration]:
         """Create an integration tied to a provider, then add an organization."""
         return Factories.create_provider_integration_for(organization, user, **integration_params)
+
+    def create_identity_integration(
+        self,
+        user: User | RpcUser,
+        organization: Organization | RpcOrganization,
+        integration_params: Mapping[Any, Any],
+        identity_params: Mapping[Any, Any],
+    ) -> tuple[Integration, OrganizationIntegration, Identity, IdentityProvider]:
+        return Factories.create_identity_integration(
+            user, organization, integration_params, identity_params
+        )
 
     def create_organization_integration(self, **integration_params: Any) -> OrganizationIntegration:
         """Create an OrganizationIntegration entity."""
