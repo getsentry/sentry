@@ -143,10 +143,12 @@ def _calculate_event_grouping(
         return hashes
 
 
-def run_background_grouping(project: Project, job: Job) -> None:
-    """Optionally run a fraction of events with a third grouping config
-    This can be helpful to measure its performance impact.
-    This does not affect actual grouping.
+def maybe_run_background_grouping(project: Project, job: Job) -> None:
+    """
+    Optionally run a fraction of events with an experimental grouping config.
+
+    This does not affect actual grouping, but can be helpful to measure the new config's performance
+    impact.
     """
     try:
         sample_rate = options.get("store.background-grouping-sample-rate")
@@ -172,12 +174,10 @@ def _calculate_background_grouping(
 
 
 def should_run_secondary_grouping(project: Project) -> bool:
-    result = False
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-    if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-        result = True
-    return result
+
+    return secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time()
 
 
 def calculate_secondary_hash(
