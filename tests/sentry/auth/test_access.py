@@ -6,8 +6,9 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry.auth import access
-from sentry.auth.access import SUPERUSER_SCOPES, Access, NoAccess
+from sentry.auth.access import Access, NoAccess
 from sentry.auth.providers.dummy import DummyProvider
+from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
@@ -539,11 +540,27 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.has_permission("test.permission")
 
     @patch("sentry.auth.access.is_active_superuser", return_value=True)
-    def test_superuser_active_scopes(self, mock_is_active_superuser):
+    def test_superuser_in_organization_scopes(self, mock_is_active_superuser):
         request = self.make_request(user=self.superuser, is_superuser=True)
 
-        result = self.from_request(request)
+        # needs org in request in order to assign any scopes
+        result = self.from_request(request, self.org)
         assert result.scopes == SUPERUSER_SCOPES
+
+    @with_feature("auth:enterprise-superuser-read-write")
+    @patch("sentry.auth.access.is_active_superuser", return_value=True)
+    def test_superuser_in_organization_readonly_scopes(self, mock_is_active_superuser):
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            request = self.make_request(user=self.superuser, is_superuser=True)
+
+            # needs org in request in order to assign any scopes
+            result = self.from_request(request, self.org)
+            assert result.scopes == SUPERUSER_READONLY_SCOPES
+
+            UserPermission.objects.create(user=self.superuser, permission="superuser.write")
+
+            result = self.from_request(request, self.org)
+            assert result.scopes == SUPERUSER_SCOPES
 
     def test_superuser_in_organization(self):
         self.create_member(
