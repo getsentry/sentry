@@ -1,9 +1,6 @@
-import logging
 import re
 
 from sentry.utils.safe import get_path
-
-logger = logging.getLogger(__name__)
 
 
 def deobfuscate_exception_value(data):
