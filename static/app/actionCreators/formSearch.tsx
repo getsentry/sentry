@@ -1,5 +1,3 @@
-import flatten from 'lodash/flatten';
-
 import {Field, JsonFormObject} from 'sentry/components/forms/types';
 import FormSearchStore, {FormSearchField} from 'sentry/stores/formSearchStore';
 
@@ -43,32 +41,28 @@ export function loadSearchMap() {
   const context = require.context('../data/forms', true, /\.tsx?$/);
 
   // Get a list of all form fields defined in `../data/forms`
-  const allFormFields = flatten(
-    context
-      .keys()
-      .map(key => {
-        const mod = context(key);
+  const allFormFields: FormSearchField[] = context.keys().flatMap(key => {
+    const mod = context(key);
 
-        // Since we're dynamically importing an entire directly, there could be malformed modules defined?
-        if (!mod) {
-          return null;
-        }
-        // Only look for module that have `route` exported
-        if (!mod.route) {
-          return null;
-        }
+    // Since we're dynamically importing an entire directly, there could be malformed modules defined?
+    // Only look for module that have `route` exported
+    if (!mod?.route) {
+      return [];
+    }
 
-        return createSearchMap({
-          // `formGroups` can be a default export or a named export :<
-          formGroups: mod.default || mod.formGroups,
-          fields: mod.fields,
-          route: mod.route,
-        });
-      })
-      .filter(function (i): i is FormSearchField[] {
-        return i !== null;
-      })
-  );
+    const searchMap = createSearchMap({
+      // `formGroups` can be a default export or a named export :<
+      formGroups: mod.default || mod.formGroups,
+      fields: mod.fields,
+      route: mod.route,
+    });
+
+    if (searchMap !== null) {
+      return searchMap;
+    }
+
+    return [];
+  });
 
   FormSearchStore.loadSearchMap(allFormFields);
 }

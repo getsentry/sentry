@@ -4,7 +4,6 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
-import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'sentry/api';
@@ -105,10 +104,13 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   const filteredTeams = teams.filter(team => selectedTeams.includes(team.id));
 
   const filteredTeamProjects = uniqBy(
-    flatten((filteredTeams ?? teams).map(team => team.projects)),
+    (filteredTeams ?? teams).flatMap(team => team.projects),
     'id'
   );
-  const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
+  const projects = uniqBy(
+    teams.flatMap(teamObj => teamObj.projects),
+    'id'
+  );
   setGroupedEntityTag('projects.total', 1000, projects.length);
 
   const currentProjects = selectedTeams.length === 0 ? projects : filteredTeamProjects;

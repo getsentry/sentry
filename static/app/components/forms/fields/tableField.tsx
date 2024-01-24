@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import flatten from 'lodash/flatten';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -65,9 +64,11 @@ export default class TableField extends Component<InputFieldProps> {
       onChange?.(nextValue, []);
 
       // nextValue is an array of ObservableObjectAdministration objects
-      const validValues = !flatten(Object.values(nextValue).map(Object.entries)).some(
-        ([key, val]) => key !== 'id' && !val // don't allow empty values except if it's the ID field
-      );
+      const validValues = !Object.values(nextValue)
+        .flatMap(Object.entries)
+        .some(
+          ([key, val]) => key !== 'id' && !val // don't allow empty values except if it's the ID field
+        );
 
       if (allowEmpty || validValues) {
         // TOOD: add debouncing or use a form save button
