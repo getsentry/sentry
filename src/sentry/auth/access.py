@@ -40,8 +40,10 @@ from sentry.services.hybrid_cloud.organization import RpcTeamMember, RpcUserOrga
 from sentry.services.hybrid_cloud.organization.serial import summarize_member
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils import metrics
+from sentry.utils.settings import is_self_hosted
 
 SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
+SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuser"})
 
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
@@ -936,6 +938,7 @@ def from_request_org_and_scopes(
     scopes: Iterable[str] | None = None,
 ) -> Access:
     is_superuser = is_active_superuser(request)
+    breakpoint()
 
     if not rpc_user_org_context:
         return from_user_and_rpc_user_org_context(
@@ -957,10 +960,15 @@ def from_request_org_and_scopes(
             org_member=member,
         )
 
+        superuser_scopes = SUPERUSER_SCOPES
+        if not is_self_hosted() and features.has("auth:superuser-read-write", member):
+            if "superuser.write" not in auth_state.permissions:
+                superuser_scopes = SUPERUSER_READONLY_SCOPES
+
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
             auth_state=auth_state,
-            scopes=scopes if scopes is not None else SUPERUSER_SCOPES,
+            scopes=scopes if scopes is not None else superuser_scopes,
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
@@ -1020,6 +1028,7 @@ def from_request(
     request: Any, organization: Optional[Organization] = None, scopes: Iterable[str] | None = None
 ) -> Access:
     is_superuser = is_active_superuser(request)
+    breakpoint()
 
     if not organization:
         return from_user(
@@ -1044,10 +1053,15 @@ def from_request(
             org_member=(summarize_member(member) if member is not None else None),
         ).sso_state
 
+        superuser_scopes = SUPERUSER_SCOPES
+        if not is_self_hosted() and features.has("auth:superuser-read-write", member):
+            if "superuser.write" not in sso_state.permissions:
+                superuser_scopes = SUPERUSER_READONLY_SCOPES
+
         return OrganizationGlobalAccess(
             organization=organization,
             _member=member,
-            scopes=scopes if scopes is not None else SUPERUSER_SCOPES,
+            scopes=scopes if scopes is not None else superuser_scopes,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
             permissions=access_service.get_permissions_for_user(request.user.id),
