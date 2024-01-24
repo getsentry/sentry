@@ -95,7 +95,7 @@ describe('Relocation', function () {
       expect(
         await screen.findByText('Organization slugs being relocated')
       ).toBeInTheDocument();
-      expect(await screen.findByText('Choose a datacenter region')).toBeInTheDocument();
+      expect(await screen.findByText('Choose a datacenter location')).toBeInTheDocument();
     });
 
     it('redirects to `in-progress` page if user already has active relocation', async function () {

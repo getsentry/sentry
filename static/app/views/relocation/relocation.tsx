@@ -108,8 +108,7 @@ function RelocationOnboarding(props: Props) {
         const response = responses.flat(1);
         response.sort((a, b) => {
           return (
-            new Date(a.dateAdded || 0).getMilliseconds() -
-            new Date(b.dateAdded || 0).getMilliseconds()
+            new Date(a.dateAdded || 0).getTime() - new Date(b.dateAdded || 0).getTime()
           );
         });
         const existingRelocationUUID =
