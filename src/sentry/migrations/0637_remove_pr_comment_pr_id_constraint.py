@@ -28,6 +28,7 @@ class Migration(CheckedMigration):
                 migrations.RunSQL(
                     hints={"tables": ["sentry_pullrequest_comment"]},
                     sql="ALTER TABLE IF EXISTS sentry_pullrequest_comment DROP CONSTRAINT IF EXISTS sentry_pullrequest_comment_pull_request_id_key",
+                    reverse_sql="",
                 ),
             ]
         ),
