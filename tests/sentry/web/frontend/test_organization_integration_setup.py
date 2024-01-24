@@ -41,17 +41,34 @@ class OrganizationIntegrationSetupTest(TestCase):
         # through the dialog's window.postMessage.
         assert b"morty" in resp.content
 
-    @with_feature("organizations:integrations-issue-basic")
-    def test_allow_integration_with_feature_enabled(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        assert b"This is an example integration configuration page." in resp.content
+    @with_feature(
+        {
+            "organizations:integrations-issue-basic": True,
+            "organizations:integrations-stacktrace-link": True,
+        }
+    )
+    def test_allow_integration_with_all_features_enabled(self):
+        self.test_basic_flow()
 
-    @with_feature({"organizations:integrations-issue-basic": False})
+    @with_feature(
+        {
+            "organizations:integrations-issue-basic": True,
+            "organizations:integrations-stacktrace-link": False,
+        }
+    )
+    def test_allow_integration_with_one_feature_enabled(self):
+        self.test_basic_flow()
+
+    @with_feature(
+        {
+            "organizations:integrations-issue-basic": False,
+            "organizations:integrations-stacktrace-link": False,
+        }
+    )
     def test_disallow_integration_with_feature_disabled(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         assert (
-            b"Feature &#x27;organizations:integrations-issue-basic&#x27; is not enabled for the organization."
+            b"At least one feature from this list has to be enabled in order to setup the integration"
             in resp.content
         )
