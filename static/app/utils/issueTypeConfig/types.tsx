@@ -109,4 +109,5 @@ export const enum ErrorHelpType {
   HYDRATION_ERROR = 'hydration_error',
   LOAD_FAILED = 'load_failed',
   SOCKET_HANG_UP = 'socket_hang_up',
+  FAILED_TO_FETCH = 'failed_to_fetch',
 }

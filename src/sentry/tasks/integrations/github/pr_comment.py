@@ -16,7 +16,7 @@ from sentry.models.groupowner import GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.pullrequest import CommentType, PullRequestComment
+from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -130,13 +130,6 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
     ]
 
 
-def get_pr_comment(pr_id: int, comment_type: int) -> PullRequestComment | None:
-    pr_comment_query = PullRequestComment.objects.filter(
-        pull_request__id=pr_id, comment_type=comment_type
-    )
-    return pr_comment_query[0] if pr_comment_query.exists() else None
-
-
 @instrumented_task(
     name="sentry.tasks.integrations.github_comment_workflow", silo_mode=SiloMode.REGION
 )
@@ -161,8 +154,6 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         logger.info("github.pr_comment.option_missing", extra={"organization_id": org_id})
         return
 
-    pr_comment = get_pr_comment(pr_id=pullrequest_id, comment_type=CommentType.MERGED_PR)
-
     try:
         project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
@@ -173,6 +164,15 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     top_5_issues = get_top_5_issues_by_count(issue_list, project)
     top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+    logger.info(
+        "github.pr_comment.top_5_issues",
+        extra={
+            "top_5_issue_ids": top_5_issue_ids,
+            "issue_list": issue_list,
+            "pr_id": pullrequest_id,
+        },
+    )
+
     issue_comment_contents = get_comment_contents(top_5_issue_ids)
 
     try:
@@ -205,7 +205,6 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     try:
         create_or_update_comment(
-            pr_comment=pr_comment,
             client=client,
             repo=repo,
             pr_key=pr_key,
