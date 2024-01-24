@@ -53,7 +53,7 @@ from sentry.auth.staff import COOKIE_NAME as STAFF_COOKIE_NAME
 from sentry.auth.staff import COOKIE_PATH as STAFF_COOKIE_PATH
 from sentry.auth.staff import COOKIE_SALT as STAFF_COOKIE_SALT
 from sentry.auth.staff import COOKIE_SECURE as STAFF_COOKIE_SECURE
-from sentry.auth.staff import Staff
+from sentry.auth.staff import STAFF_ORG_ID, Staff
 from sentry.auth.superuser import COOKIE_DOMAIN as SU_COOKIE_DOMAIN
 from sentry.auth.superuser import COOKIE_NAME as SU_COOKIE_NAME
 from sentry.auth.superuser import COOKIE_PATH as SU_COOKIE_PATH
@@ -309,7 +309,8 @@ class BaseTestCase(Fixtures):
         organization_ids=None,
         superuser=False,
         staff=False,
-        superuser_staff_sso=True,
+        staff_sso=True,
+        superuser_sso=True,
     ):
         if isinstance(user, OrganizationMember):
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -326,8 +327,11 @@ class BaseTestCase(Fixtures):
             organization_ids = set()
         else:
             organization_ids = set(organization_ids)
-        if (superuser or staff) and superuser_staff_sso is not False:
+        if superuser and superuser_sso is not False:
             if SU_ORG_ID:
+                organization_ids.add(SU_ORG_ID)
+        if staff and staff_sso is not False:
+            if STAFF_ORG_ID:
                 organization_ids.add(SU_ORG_ID)
         if organization_id:
             organization_ids.add(organization_id)
