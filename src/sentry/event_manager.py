@@ -522,7 +522,6 @@ class EventManager:
         maybe_run_background_grouping(project, job)
 
         secondary_hashes = None
-        migrate_off_hierarchical = False
 
         if should_run_secondary_grouping(project):
             with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
@@ -549,14 +548,14 @@ class EventManager:
             op="event_manager",
             description="event_manager.save.calculate_event_grouping",
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-            hashes = calculate_primary_hash(project, job, grouping_config)
+            primary_hashes = calculate_primary_hash(project, job, grouping_config)
 
         if secondary_hashes:
             tags = {
                 "primary_config": grouping_config["id"],
                 "secondary_config": secondary_grouping_config["id"],
             }
-            current_values = hashes.hashes
+            current_values = primary_hashes.hashes
             secondary_values = secondary_hashes.hashes
             hashes_match = current_values == secondary_values
 
@@ -575,6 +574,23 @@ class EventManager:
         # count to get an average number of calculations per event
         metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
 
+        all_hashes = CalculatedHashes(
+            hashes=list(primary_hashes.hashes)
+            + list(secondary_hashes and secondary_hashes.hashes or []),
+            hierarchical_hashes=(
+                list(primary_hashes.hierarchical_hashes)
+                + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
+            ),
+            tree_labels=(
+                primary_hashes.tree_labels
+                or (secondary_hashes and secondary_hashes.tree_labels)
+                or []
+            ),
+        )
+
+        if all_hashes.tree_labels:
+            job["finest_tree_label"] = all_hashes.finest_tree_label
+
         # Because this logic is not complex enough we want to special case the situation where we
         # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
         # `_save_aggregate` needs special logic to not create orphaned hashes in migration cases
@@ -582,22 +598,8 @@ class EventManager:
         migrate_off_hierarchical = bool(
             secondary_hashes
             and secondary_hashes.hierarchical_hashes
-            and not hashes.hierarchical_hashes
+            and not primary_hashes.hierarchical_hashes
         )
-
-        hashes = CalculatedHashes(
-            hashes=list(hashes.hashes) + list(secondary_hashes and secondary_hashes.hashes or []),
-            hierarchical_hashes=(
-                list(hashes.hierarchical_hashes)
-                + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
-            ),
-            tree_labels=(
-                hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
-            ),
-        )
-
-        if hashes.tree_labels:
-            job["finest_tree_label"] = hashes.finest_tree_label
 
         _materialize_metadata_many(jobs)
 
@@ -617,7 +619,7 @@ class EventManager:
             with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
                 group_info = _save_aggregate(
                     event=job["event"],
-                    hashes=hashes,
+                    hashes=all_hashes,
                     release=job["release"],
                     metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
@@ -1512,13 +1514,15 @@ def _save_aggregate(
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
 
-            all_hash_ids = [h.id for h in flat_grouphashes]
+            all_grouphash_ids = [h.id for h in flat_grouphashes]
             if root_hierarchical_grouphash is not None:
-                all_hash_ids.append(root_hierarchical_grouphash.id)
+                all_grouphash_ids.append(root_hierarchical_grouphash.id)
 
-            all_hashes = list(GroupHash.objects.filter(id__in=all_hash_ids).select_for_update())
+            all_grouphashes = list(
+                GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
+            )
 
-            flat_grouphashes = [gh for gh in all_hashes if gh.hash in hashes.hashes]
+            flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes

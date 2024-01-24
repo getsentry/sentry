@@ -174,12 +174,10 @@ def _calculate_background_grouping(
 
 
 def should_run_secondary_grouping(project: Project) -> bool:
-    result = False
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-    if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-        result = True
-    return result
+
+    return secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time()
 
 
 def calculate_secondary_hash(
