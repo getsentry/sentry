@@ -150,12 +150,12 @@ def build_test_message_blocks(
         blocks.append(suggested_assignees_section)
 
     if notes:
-        description_text = f"notes: {notes}"
-        description_section = {
+        notes_text = f"notes: {notes}"
+        notes_section = {
             "type": "section",
-            "text": {"type": "mrkdwn", "text": description_text},
+            "text": {"type": "mrkdwn", "text": notes_text},
         }
-        blocks.append(description_section)
+        blocks.append(notes_section)
 
     context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}"
     context = {

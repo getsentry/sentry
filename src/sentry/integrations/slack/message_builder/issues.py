@@ -573,8 +573,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # add notes
         if self.notes:
-            mentions_text = f"notes: {self.notes}"
-            blocks.append(self.get_markdown_block(mentions_text))
+            notes_text = f"notes: {self.notes}"
+            blocks.append(self.get_markdown_block(notes_text))
 
         # build footer block
         timestamp = None
