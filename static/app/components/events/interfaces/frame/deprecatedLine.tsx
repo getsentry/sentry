@@ -391,7 +391,7 @@ export class DeprecatedLine extends Component<Props, State> {
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
-            {showStacktraceLinkInFrame && (
+            {showStacktraceLinkInFrame && !shouldShowSourceMapDebuggerButton && (
               <ErrorBoundary>
                 <StacktraceLink
                   frame={data}

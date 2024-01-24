@@ -1567,7 +1567,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable integration functionality to work with alert rules (specifically chat integrations)
     "organizations:integrations-chat-unfurl": True,
     # Enable the API to importing CODEOWNERS for a project
-    "organizations:integrations-codeowners": True,
+    "organizations:integrations-codeowners": False,
     # Enable integration functionality to work deployment integrations like Vercel
     "organizations:integrations-deployment": True,
     # Enable integration functionality to work with enterprise alert rules
@@ -1866,8 +1866,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable rendering of the `replay.hydrate-error` replay breadcrumb
-    "organizations:session-replay-show-hydration-errors": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
     # Enable the Replay Details > Performance tab
@@ -1977,6 +1975,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:first-event-severity-new-escalation": False,
     # Enable severity alerts for new issues based on severity and escalation
     "projects:high-priority-alerts": False,
+    # Enable setting priority for issues
+    "projects:issue-priority": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -2421,6 +2421,15 @@ SENTRY_SCOPES = {
     "openid",
     "profile",
     "email",
+}
+
+SENTRY_READONLY_SCOPES = {
+    "org:read",
+    "member:read",
+    "team:read",
+    "project:read",
+    "event:read",
+    "alerts:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -3675,6 +3684,8 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
 SAMPLED_DEFAULT_RATE = 1.0
+
+SENTRY_PROCESS_INCR_SAMPLE_RATE = 0.01
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
