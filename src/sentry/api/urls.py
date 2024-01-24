@@ -243,6 +243,7 @@ from .endpoints.integrations import (
     OrganizationPluginsEndpoint,
 )
 from .endpoints.integrations.sentry_apps import (
+    NewSentryInternalAppTokenDetailsEndpoint,
     OrganizationSentryAppComponentsEndpoint,
     OrganizationSentryAppsEndpoint,
     SentryAppAuthorizationsEndpoint,
@@ -378,6 +379,7 @@ from .endpoints.organization_member_unreleased_commits import (
 from .endpoints.organization_metrics import (
     OrganizationMetricDetailsEndpoint,
     OrganizationMetricsDataEndpoint,
+    OrganizationMetricsDetailsEndpoint,
     OrganizationMetricsEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
@@ -1951,9 +1953,14 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-ddm-meta",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/metrics/meta/$",
+        r"^(?P<organization_slug>[^/]+)/metrics/$",
         OrganizationMetricsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-index",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/metrics/meta/$",
+        OrganizationMetricsDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/meta/(?P<metric_name>[^/]+)/$",
@@ -2741,8 +2748,15 @@ SENTRY_APP_URLS = [
         SentryInternalAppTokensEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-tokens",
     ),
+    # The order of the next 2 urls matters. We want to let the numeric id handler try to match the regex first,
+    # before moving to alphanumeric which is a catch-all.
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>[^\/]+)/$",
+        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>\d+)/$",
+        NewSentryInternalAppTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-sentry-internal-app-token-details",
+    ),
+    re_path(
+        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>\w+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
     ),

@@ -35,17 +35,15 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_provider_integration(
+            self.integration, org_integration = self.create_provider_integration_for(
+                self.organization,
+                self.user,
                 provider="pagerduty",
                 name="Example",
                 external_id=EXTERNAL_ID,
                 metadata={"services": SERVICES},
             )
-            self.integration.add_organization(self.organization, self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            org_integration = OrganizationIntegration.objects.get(
-                integration_id=self.integration.id, organization_id=self.organization.id
-            )
             self.service = add_service(
                 org_integration,
                 service_name=SERVICES[0]["service_name"],

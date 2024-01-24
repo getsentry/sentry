@@ -59,6 +59,10 @@ class GroupHistoryStatus:
     # `GroupHistoryStatus`
     NEW = 20
 
+    PRIORITY_HIGH = 21
+    PRIORITY_MEDIUM = 22
+    PRIORITY_LOW = 23
+
 
 STRING_TO_STATUS_LOOKUP = {
     "unresolved": GroupHistoryStatus.UNRESOLVED,

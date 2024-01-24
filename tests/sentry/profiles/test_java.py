@@ -1,6 +1,6 @@
 import pytest
-from symbolic.proguard import ProguardMapper
 
+from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.profiles.java import deobfuscate_signature, format_signature
 
 PROGUARD_SOURCE = b"""\
@@ -23,7 +23,7 @@ def mapper(tmp_path):
     mapping_file_path = str(tmp_path.joinpath("mapping_file"))
     with open(mapping_file_path, "wb") as f:
         f.write(PROGUARD_SOURCE)
-    mapper = ProguardMapper.open(mapping_file_path)
+    mapper = open_proguard_mapper(mapping_file_path)
     assert mapper.has_line_info
     return mapper
 

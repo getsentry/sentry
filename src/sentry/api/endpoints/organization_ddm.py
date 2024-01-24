@@ -16,6 +16,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.metadata.code_locations import (
     MetricCodeLocations,
     get_metric_code_locations,
@@ -113,10 +114,17 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
         for meta_type in self._extract_metric_meta_types(request):
             data: Any = {}
 
-            if meta_type == MetricMetaType.CODE_LOCATIONS:
-                data = self._get_metric_code_locations(request, organization, projects, start, end)
-            elif meta_type == MetricMetaType.CORRELATIONS:
-                data = self._get_metric_correlations(request, organization, projects, start, end)
+            try:
+                if meta_type == MetricMetaType.CODE_LOCATIONS:
+                    data = self._get_metric_code_locations(
+                        request, organization, projects, start, end
+                    )
+                elif meta_type == MetricMetaType.CORRELATIONS:
+                    data = self._get_metric_correlations(
+                        request, organization, projects, start, end
+                    )
+            except LatestReleaseNotFoundError as e:
+                return Response(status=404, data={"detail": str(e)})
 
             response[meta_type.value] = serialize(
                 data, request.user, METRIC_META_TYPE_SERIALIZER[meta_type.value]

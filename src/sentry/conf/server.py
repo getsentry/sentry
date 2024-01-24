@@ -1503,6 +1503,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Enables import of metric dashboards
+    "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enable inbound filters to be turned on by default for new Javascript Projects
@@ -1588,6 +1590,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:integrations-issue-sync": True,
     # Enable comments of related issues on open PRs
     "organizations:integrations-open-pr-comment": False,
+    # Enable comments of related issues on open PRs for Javascript
+    "organizations:integrations-open-pr-comment-js": False,
     # Enable Opsgenie integration
     "organizations:integrations-opsgenie": True,
     # Enable one-click migration from Opsgenie plugin
@@ -1617,10 +1621,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-tag-improvements": False,
     # Enable issue platform
     "organizations:issue-platform": False,
-    # Enable issue platform status change API for crons and SD issues
-    "organizations:issue-platform-api-crons-sd": True,
-    # Enable issue platform feature changes for crons and SD issues
-    "organizations:issue-platform-crons-sd": True,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
@@ -1651,6 +1651,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-extraction": False,
     # Enables the usage of the new metrics layer in the metrics API.
     "organizations:metrics-api-new-metrics-layer": False,
+    # Enables the ability to block metrics.
+    "organizations:metrics-blocking": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1866,8 +1868,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable rendering of the `replay.hydrate-error` replay breadcrumb
-    "organizations:session-replay-show-hydration-errors": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
     # Enable the Replay Details > Performance tab
@@ -1977,6 +1977,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:first-event-severity-new-escalation": False,
     # Enable severity alerts for new issues based on severity and escalation
     "projects:high-priority-alerts": False,
+    # Enable setting priority for issues
+    "projects:issue-priority": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -2421,6 +2423,15 @@ SENTRY_SCOPES = {
     "openid",
     "profile",
     "email",
+}
+
+SENTRY_READONLY_SCOPES = {
+    "org:read",
+    "member:read",
+    "team:read",
+    "project:read",
+    "event:read",
+    "alerts:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -3676,6 +3687,8 @@ SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
 SAMPLED_DEFAULT_RATE = 1.0
 
+SENTRY_PROCESS_INCR_SAMPLE_RATE = 0.01
+
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
 
@@ -3991,7 +4004,7 @@ ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host and SILO_MODE != "REGION":
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.region-api-url-template"] = ""
-    CSRF_TRUSTED_ORIGINS = [f".{ngrok_host}"]
+    CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
 
     SESSION_COOKIE_DOMAIN: str = f".{ngrok_host}"

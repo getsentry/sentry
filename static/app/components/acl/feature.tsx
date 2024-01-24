@@ -44,6 +44,7 @@ type Props = {
    * function.
    */
   hookName?: keyof FeatureDisabledHooks;
+  organizationAllowNull?: undefined | true;
   project?: Project;
   /**
    * Custom renderer function for when the feature is not enabled.

@@ -1736,6 +1736,57 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "pluginActions" not in response.data[0]
         assert "pluginIssues" not in response.data[0]
 
+    def test_expand_integration_issues(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["integrationIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["integrationIssues"] is not None
+
+        # Test with no expand
+        response = self.get_response(sort_by="date", limit=10, query=query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "integrationIssues" not in response.data[0]
+
+        integration_jira = self.create_integration(
+            organization=event.group.organization,
+            provider="jira",
+            external_id="jira_external_id",
+            name="Jira",
+            metadata={"base_url": "https://example.com", "domain_name": "test/"},
+        )
+        external_issue_1 = self.create_integration_external_issue(
+            group=event.group,
+            integration=integration_jira,
+            key="APP-123-JIRA",
+            title="jira issue 1",
+            description="this is an example description",
+        )
+        external_issue_2 = self.create_integration_external_issue(
+            group=event.group,
+            integration=integration_jira,
+            key="APP-456-JIRA",
+            title="jira issue 2",
+            description="this is an example description",
+        )
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["integrationIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data[0]["integrationIssues"]) == 2
+        assert response.data[0]["integrationIssues"][0]["title"] == external_issue_1.title
+        assert response.data[0]["integrationIssues"][1]["title"] == external_issue_2.title
+
     def test_expand_owners(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},

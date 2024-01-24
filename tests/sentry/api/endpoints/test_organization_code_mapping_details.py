@@ -3,9 +3,8 @@ from django.urls import reverse
 from sentry.api.serializers import serialize
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
-from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
@@ -30,11 +29,9 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             teams=[self.team2],
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = self.create_provider_integration(
-                provider="github", name="Example", external_id="abcd"
-            )
-            self.org_integration = self.integration.add_organization(self.org, self.user)
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            self.org, self.user, provider="github", name="Example", external_id="abcd"
+        )
         self.repo = Repository.objects.create(
             name="example", organization_id=self.org.id, integration_id=self.integration.id
         )

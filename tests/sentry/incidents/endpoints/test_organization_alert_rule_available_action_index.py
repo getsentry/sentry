@@ -263,9 +263,10 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert build_action_response(self.email) in response.data
 
     def test_org_integration_disabled(self):
+        integration, org_integration = self.create_provider_integration_for(
+            self.organization, user=None, external_id="1", provider="slack"
+        )
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_provider_integration(external_id="1", provider="slack")
-            org_integration = integration.add_organization(self.organization)
             org_integration.update(status=ObjectStatus.DISABLED)
 
         with self.feature("organizations:incidents"):
