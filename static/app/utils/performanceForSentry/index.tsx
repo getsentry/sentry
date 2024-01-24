@@ -578,6 +578,7 @@ export const addUIElementTag = (transaction: TransactionEvent) => {
 
 function supportsINP() {
   return (
+    'PerformanceObserver' in window &&
     'PerformanceEventTiming' in window &&
     'interactionId' in PerformanceEventTiming.prototype
   );
