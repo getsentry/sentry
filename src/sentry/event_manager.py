@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import copy
 import ipaddress
 import logging
 import re
-import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -66,7 +64,9 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.ingest import (
     calculate_event_grouping,
+    calculate_secondary_hash,
     run_background_grouping,
+    should_run_secondary_grouping,
     update_grouping_config_if_needed,
 )
 from sentry.grouping.result import CalculatedHashes
@@ -525,12 +525,10 @@ class EventManager:
         secondary_hashes = None
         migrate_off_hierarchical = False
 
-        if _should_run_secondary_grouping(project):
+        if should_run_secondary_grouping(project):
             with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
                 secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
-                secondary_hashes = _calculate_secondary_hash(
-                    project, job, secondary_grouping_config
-                )
+                secondary_hashes = calculate_secondary_hash(project, job, secondary_grouping_config)
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -750,16 +748,6 @@ class EventManager:
         return job["event"]
 
 
-def _should_run_secondary_grouping(project: Project) -> bool:
-    result = False
-    # These two values are basically always set
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-    if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-        result = True
-    return result
-
-
 def _calculate_primary_hash(
     project: Project, job: Job, grouping_config: GroupingConfig
 ) -> CalculatedHashes:
@@ -769,32 +757,6 @@ def _calculate_primary_hash(
     This is pulled out into a separate function mostly in order to make testing easier.
     """
     return calculate_event_grouping(project, job["event"], grouping_config)
-
-
-def _calculate_secondary_hash(
-    project: Project, job: Job, secondary_grouping_config: GroupingConfig
-) -> None | CalculatedHashes:
-    """Calculate secondary hash for event using a fallback grouping config for a period of time.
-    This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
-    when the customer changes the grouping config.
-    This causes extra load in save_event processing.
-    """
-    secondary_hashes = None
-    try:
-        with sentry_sdk.start_span(
-            op="event_manager",
-            description="event_manager.save.secondary_calculate_event_grouping",
-        ):
-            # create a copy since `calculate_event_grouping` modifies the event to add all sorts
-            # of grouping info and we don't want the backup grouping data in there
-            event_copy = copy.deepcopy(job["event"])
-            secondary_hashes = calculate_event_grouping(
-                project, event_copy, secondary_grouping_config
-            )
-    except Exception:
-        sentry_sdk.capture_exception()
-
-    return secondary_hashes
 
 
 @metrics.wraps("save_event.pull_out_data")
