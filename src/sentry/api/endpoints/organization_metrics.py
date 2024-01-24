@@ -22,7 +22,13 @@ from sentry.sentry_metrics.querying.errors import (
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
-from sentry.sentry_metrics.visibility import MalformedBlockedMetricsPayloadError
+from sentry.sentry_metrics.visibility import (
+    MalformedBlockedMetricsPayloadError,
+    block_metric,
+    block_tags_of_metric,
+    unblock_metric,
+    unblock_tags_of_metric,
+)
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_all_tags,
@@ -31,6 +37,7 @@ from sentry.snuba.metrics import (
     get_single_metric_info,
     get_tag_values,
 )
+from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
@@ -84,7 +91,20 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     def _handle_by_operation_type(
         self, request: Request, project: Project, metric_operation_type: MetricOperationType
     ):
-        pass
+        metric_mri = request.data.get("metric_mri")
+        if not is_mri(metric_mri):
+            raise InvalidParams("You must supply a valid metric mri")
+
+        if metric_operation_type == MetricOperationType.BLOCK_METRIC:
+            block_metric(metric_mri, [project])
+        elif metric_operation_type == MetricOperationType.UNBLOCK_METRIC:
+            unblock_metric(metric_mri, [project])
+        elif metric_operation_type == MetricOperationType.BLOCK_TAGS:
+            tags = request.data.get("tags") or []
+            block_tags_of_metric(metric_mri, set(tags), [project])
+        elif metric_operation_type == MetricOperationType.UNBLOCK_TAGS:
+            tags = request.data.get("tags") or []
+            unblock_tags_of_metric(metric_mri, set(tags), [project])
 
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)

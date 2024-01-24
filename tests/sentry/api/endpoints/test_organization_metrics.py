@@ -173,10 +173,61 @@ class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
         ]
 
     def test_block_metric(self):
-        metrics = ["s:custom/user@none", "c:custom/clicks@none"]
+        response = self.get_success_response(
+            self.organization.slug,
+            method="PUT",
+            project=[self.project.id],
+            operationType="blockMetric",
+            metric_mri="s:custom/user@none",
+        )
+
+        assert response.status_code == 200
+        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 1
 
         response = self.get_success_response(
-            self.organization.slug, method="POST", project=[self.project.id], metrics=metrics
+            self.organization.slug,
+            method="PUT",
+            project=[self.project.id],
+            operationType="unblockMetric",
+            metric_mri="s:custom/user@none",
         )
+
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 2
+        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 0
+
+    def test_block_metric_tag(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            method="PUT",
+            project=[self.project.id],
+            operationType="blockTags",
+            metric_mri="s:custom/user@none",
+            tags=["release", "transaction"],
+        )
+
+        assert response.status_code == 200
+        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 1
+
+        response = self.get_success_response(
+            self.organization.slug,
+            method="PUT",
+            project=[self.project.id],
+            operationType="unblockTags",
+            metric_mri="s:custom/user@none",
+            tags=["transaction"],
+        )
+
+        assert response.status_code == 200
+        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 1
+
+        response = self.get_success_response(
+            self.organization.slug,
+            method="PUT",
+            project=[self.project.id],
+            operationType="unblockTags",
+            metric_mri="s:custom/user@none",
+            tags=["release"],
+        )
+
+        assert response.status_code == 200
+        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 0
