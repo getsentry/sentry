@@ -355,7 +355,7 @@ def parse_user_value(value: str, user: User | RpcUser) -> RpcUser:
     except IndexError:
         # XXX(dcramer): hacky way to avoid showing any results when
         # an invalid user is entered
-        return serialize_rpc_user(User(id=0))
+        return RpcUser(id=0)
 
 
 class LatestReleaseOrders(Enum):
