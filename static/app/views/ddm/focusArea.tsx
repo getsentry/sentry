@@ -64,10 +64,10 @@ export function useFocusArea({
   chartRef,
   focusArea,
   opts: {widgetIndex, isDisabled, useFullYAxis},
-  onAdd = () => {},
-  onDraw = () => {},
-  onRemove = () => {},
-  onZoom = () => {},
+  onAdd,
+  onDraw,
+  onRemove,
+  onZoom,
 }: UseFocusAreaProps) {
   const hasFocusArea = useMemo(
     () => focusArea && focusArea.widgetIndex === widgetIndex,
@@ -81,7 +81,7 @@ export function useFocusArea({
     if (hasFocusArea || isDisabled) {
       return;
     }
-    onDraw();
+    onDraw?.();
 
     chartRef.current?.getEchartsInstance().dispatchAction({
       type: 'takeGlobalCursor',
@@ -119,7 +119,7 @@ export function useFocusArea({
         return;
       }
 
-      onAdd({
+      onAdd?.({
         widgetIndex,
         range: getMetricRange(brushEnd, !!useFullYAxis),
       });
@@ -138,11 +138,11 @@ export function useFocusArea({
   );
 
   const handleRemove = useCallback(() => {
-    onRemove();
+    onRemove?.();
   }, [onRemove]);
 
   const handleZoomIn = useCallback(() => {
-    onZoom({
+    onZoom?.({
       period: null,
       ...focusArea?.range,
     });
