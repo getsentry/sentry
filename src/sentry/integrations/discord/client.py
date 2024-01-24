@@ -126,6 +126,9 @@ class DiscordClient(ApiClient):
             status.HTTP_201_CREATED,
             status.HTTP_202_ACCEPTED,
             status.HTTP_204_NO_CONTENT,
+        }
+        include_in_slo = code not in {
+            status.HTTP_429_TOO_MANY_REQUESTS,
             status.HTTP_403_FORBIDDEN,  # Is user error
         }
 
@@ -136,6 +139,7 @@ class DiscordClient(ApiClient):
                 str(self.integration_type): self.name,
                 "status": code,
                 "is_ok": is_ok,
+                "include_in_slo": include_in_slo,
             },
         )
 
