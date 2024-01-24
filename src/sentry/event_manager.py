@@ -522,7 +522,6 @@ class EventManager:
         maybe_run_background_grouping(project, job)
 
         secondary_hashes = None
-        migrate_off_hierarchical = False
 
         if should_run_secondary_grouping(project):
             with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
