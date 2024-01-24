@@ -18,13 +18,14 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     def setUp(self):
         super().setUp()
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="jira_server",
             name="Jira Server",
             metadata={"base_url": "https://jira.example.com", "verify_ssl": True},
         )
 
-        self.integration.add_organization(self.organization, self.user)
         self.installation = self.integration.get_installation(self.organization.id)
 
         self.login_as(user=self.user)

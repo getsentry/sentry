@@ -323,7 +323,7 @@ describe('TeamMembers', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('renders team-level roles without flag', async function () {
+  it('renders team-level roles without flag', function () {
     const owner = MemberFixture({
       id: '123',
       email: 'foo@example.com',
@@ -336,7 +336,7 @@ describe('TeamMembers', function () {
       body: [...members, owner],
     });
 
-    await render(
+    render(
       <TeamMembers
         {...routerProps}
         params={{teamId: team.slug}}
@@ -351,7 +351,7 @@ describe('TeamMembers', function () {
     expect(contributors).toHaveLength(2);
   });
 
-  it('renders team-level roles with flag', async function () {
+  it('renders team-level roles with flag', function () {
     const manager = MemberFixture({
       id: '123',
       email: 'foo@example.com',
@@ -366,7 +366,7 @@ describe('TeamMembers', function () {
 
     const orgWithTeamRoles = OrganizationFixture({features: ['team-roles']});
 
-    await render(
+    render(
       <TeamMembers
         {...routerProps}
         params={{teamId: team.slug}}

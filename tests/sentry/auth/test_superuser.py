@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 from unittest.mock import Mock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -49,7 +49,7 @@ IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 class SuperuserTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        self.current_datetime = timezone.now()
+        self.current_datetime = django_timezone.now()
         self.default_token = "abcdefghjiklmnog"
 
     def build_request(

@@ -15,6 +15,7 @@ from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_H
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -31,6 +32,7 @@ SERVICES = [
 ]
 
 
+@control_silo_test
 class PagerDutyProxyClientTest(APITestCase):
     provider = "pagerduty"
 
@@ -41,13 +43,14 @@ class PagerDutyProxyClientTest(APITestCase):
 
     def setUp(self):
         self.login_as(self.user)
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider=self.provider,
             name="Example PagerDuty",
             external_id=EXTERNAL_ID,
             metadata={"services": SERVICES},
         )
-        self.integration.add_organization(self.organization, self.user)
         self.service = add_service(
             self.integration.organizationintegration_set.first(),
             service_name=SERVICES[0]["service_name"],

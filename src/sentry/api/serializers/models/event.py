@@ -292,12 +292,18 @@ class EventSerializer(Serializer):
         """
         Add attributes that are only present on transaction events.
         """
-        return {
+        transaction_attrs = {
             "startTimestamp": obj.data.get("start_timestamp"),
             "endTimestamp": obj.data.get("timestamp"),
             "measurements": obj.data.get("measurements"),
             "breakdowns": obj.data.get("breakdowns"),
         }
+
+        # The _ reflects the temporary nature of this field.
+        if (transaction_metrics_summary := obj.data.get("_metrics_summary")) is not None:
+            transaction_attrs["_metrics_summary"] = transaction_metrics_summary
+
+        return transaction_attrs
 
     def __serialize_error_attrs(self, attrs, obj):
         """

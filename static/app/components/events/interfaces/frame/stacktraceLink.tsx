@@ -134,6 +134,9 @@ function shouldShowCodecovFeatures(
   );
 }
 
+/**
+ * TODO(scttcper): Should be removed w/ GA issue-details-stacktrace-link-in-frame
+ */
 function shouldShowCodecovPrompt(
   organization: Organization,
   match: StacktraceLinkResult
@@ -516,7 +519,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             ));
           }}
         >
-          {t('Tell us where your source code is')}
+          {t('Set up Code Mapping')}
         </FixMappingButton>
       </StacktraceLinkWrapper>
     );

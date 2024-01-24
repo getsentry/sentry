@@ -2,7 +2,6 @@ import {PureComponent} from 'react';
 import color from 'color';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
-import flatten from 'lodash/flatten';
 
 import {extrapolatedAreaStyle} from 'sentry/components/alerts/onDemandMetricAlert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -430,12 +429,10 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         grid={CHART_GRID}
         {...chartOptions}
         graphic={Graphic({
-          elements: flatten(
-            triggers.map((trigger: Trigger) => [
-              ...this.getThresholdLine(trigger, 'alertThreshold', false),
-              ...this.getThresholdLine(trigger, 'resolveThreshold', true),
-            ])
-          ),
+          elements: triggers.flatMap((trigger: Trigger) => [
+            ...this.getThresholdLine(trigger, 'alertThreshold', false),
+            ...this.getThresholdLine(trigger, 'resolveThreshold', true),
+          ]),
         })}
         colors={CHART_PALETTE[0]}
         series={[...dataWithoutRecentBucket, ...comparisonMarkLines]}
