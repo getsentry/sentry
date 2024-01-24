@@ -5,8 +5,8 @@ import logging
 from typing import Mapping, Optional
 from urllib.parse import urlencode
 
-from requests import Response
 from rest_framework import status
+from rest_framework.response import Response
 from sentry_sdk.tracing import Span
 
 from sentry import options
@@ -114,7 +114,7 @@ class DiscordClient(ApiClient):
         code: str | int,
         span: Span | None = None,
         error: Exception | None = None,
-        resp: Optional[Response] = None,
+        resp: Response | None = None,
         extra: Optional[Mapping[str, str]] = None,
     ) -> None:
         # if no span was passed, create a dummy to which to add data to avoid having to wrap every
