@@ -1181,20 +1181,24 @@ def _metric_spec(tags: list[dict[str, str]]) -> dict[str, Any]:
 def test_include_environment_for_widgets(default_project: Project) -> None:
     env_tag = {"field": "event.environment", "key": "environment"}
     query = "transaction.duration:>=10"
-    create_alert("count()", query, default_project)
-    # This is a simple query, thus, it should not be dynamic
-    create_widget(["count()"], query, default_project)
-    # Including the column makes it a dynamic query
-    create_widget(["count()"], query, default_project, title="Foo", columns=["environment"])
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
+        create_widget(["count()"], query, default_project)
         config = get_metric_extraction_config(default_project)
-        assert config
-        # XXX: Fix duplicate env tag
-        assert config["metrics"] == [
-            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
+        # Because we have two specs we will have two metrics.
+        # The second spec includes the environment tag as part of the query hash.
+        assert config and config["metrics"] == [
+            # _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
+            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}, env_tag]),
             _metric_spec([{"key": "query_hash", "value": "ab3344f4"}, env_tag]),
-            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag, env_tag]),
+        ]
+
+        create_alert("count()", query, default_project)
+        config = get_metric_extraction_config(default_project)
+        # The deduplication code picks up the alert spec, thus, the env tag is not included
+        assert config and config["metrics"] == [
+            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
+            _metric_spec([{"key": "query_hash", "value": "ab3344f4"}]),
         ]
 
 
