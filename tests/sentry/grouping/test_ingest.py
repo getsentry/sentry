@@ -134,7 +134,7 @@ class SecondaryGroupingTest(TestCase):
         assert event3.group_id == event2.group_id
 
     @patch("sentry_sdk.capture_exception")
-    @patch("sentry.event_manager.calculate_secondary_hash", wraps=calculate_secondary_hash)
+    @patch("sentry.grouping.ingest.calculate_secondary_hash", wraps=calculate_secondary_hash)
     def test_handles_errors_with_secondary_grouping(
         self,
         mock_calculate_secondary_hash: MagicMock,

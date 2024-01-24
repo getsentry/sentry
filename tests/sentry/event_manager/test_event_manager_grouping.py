@@ -178,7 +178,7 @@ class EventManagerGroupingMetricsTest(TestCase):
         assert hashes_calculated_calls[1].kwargs["amount"] == 2
 
     @mock.patch("sentry.event_manager.metrics.incr")
-    @mock.patch("sentry.event_manager.should_run_secondary_grouping", return_value=True)
+    @mock.patch("sentry.grouping.ingest.should_run_secondary_grouping", return_value=True)
     def test_records_hash_comparison(self, _, mock_metrics_incr: MagicMock):
         project = self.project
         project.update_option("sentry:grouping_config", "newstyle:2023-01-11")
@@ -195,13 +195,13 @@ class EventManagerGroupingMetricsTest(TestCase):
 
         for primary_hashes, secondary_hashes, expected_tag in cases:
             with mock.patch(
-                "sentry.event_manager.calculate_primary_hash",
+                "sentry.grouping.ingest.calculate_primary_hash",
                 return_value=CalculatedHashes(
                     hashes=primary_hashes, hierarchical_hashes=[], tree_labels=[]
                 ),
             ):
                 with mock.patch(
-                    "sentry.event_manager.calculate_secondary_hash",
+                    "sentry.grouping.ingest.calculate_secondary_hash",
                     return_value=CalculatedHashes(
                         hashes=secondary_hashes, hierarchical_hashes=[], tree_labels=[]
                     ),
