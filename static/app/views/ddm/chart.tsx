@@ -151,8 +151,9 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 5, bottom: 0, left: 0, right: 0},
-        onMouseOver: samples.handleMouseOver,
-        onMouseOut: samples.handleMouseOut,
+        // onMouseOver: samples.handleMouseOver,
+        // onMouseOut: samples.handleMouseOut,
+        // onHighlight: samples.handleHighlight,
         onClick: samples.handleClick,
 
         tooltip: {
@@ -181,7 +182,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             id: 'yAxis',
             axisLabel: {
               formatter: (value: number) => {
-                return formatMetricsUsingUnitAndOp(value, unit, operation);
+                return valueFormatter(value);
               },
             },
           },
@@ -204,13 +205,12 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       focusAreaBrush.isDrawingRef,
       forwardedRef,
       isSubMinuteBucket,
-      operation,
       seriesToShow,
-      unit,
       height,
       samples.handleClick,
-      samples.handleMouseOut,
-      samples.handleMouseOver,
+      // samples.handleMouseOut,
+      // samples.handleMouseOver,
+      // samples.handleHighlight,
       samples.xAxis,
       samples.yAxis,
       samples.formatters,

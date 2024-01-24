@@ -143,6 +143,26 @@ export function useMetricSamples({
     [getSample, onMouseOut]
   );
 
+  const handleHighlight = useCallback(
+    event => {
+      if (!onMouseOver || !onMouseOut || !event.batch?.[0]) {
+        return;
+      }
+
+      const sample = getSample(event.batch[0]);
+      if (!sample) {
+        // const debouncedMouseOut = debounce(onMouseOut, 100);
+        // debouncedMouseOut(sample);
+        onMouseOut();
+      } else {
+        // const debouncedMouseOver = debounce(onMouseOver, 100);
+        // debouncedMouseOver(sample);
+        onMouseOver(sample);
+      }
+    },
+    [getSample, onMouseOver, onMouseOut]
+  );
+
   const handleClick = useCallback(
     event => {
       if (!onClick) {
@@ -186,7 +206,7 @@ export function useMetricSamples({
           projectId: span.projectId,
           itemStyle: {
             color: theme.purple400,
-            opacity: isHighlighted ? 0.75 : 0.5,
+            opacity: isHighlighted ? 0.9 : 0.75,
           },
           yAxisIndex: 1,
           xAxisIndex: 1,
@@ -222,6 +242,7 @@ export function useMetricSamples({
     handleMouseOver,
     handleMouseOut,
     handleClick,
+    handleHighlight,
     series,
     xAxis,
     yAxis,
