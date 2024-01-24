@@ -127,7 +127,6 @@ class DiscordClient(ApiClient):
             status.HTTP_202_ACCEPTED,
             status.HTTP_204_NO_CONTENT,
             status.HTTP_403_FORBIDDEN,  # Is user error
-            status.HTTP_429_TOO_MANY_REQUESTS,
         }
 
         metrics.incr(
