@@ -22,6 +22,7 @@ type Props = {
   groupId: Group['id'];
   issue: Group;
   orgId: Organization['id'];
+  organization: Organization;
   project: Project;
   aggregate?: {
     exception: number;
@@ -94,9 +95,12 @@ class Item extends Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue} = this.props;
+    const {aggregate, scoresByInterface, issue, organization} = this.props;
     const {visible, busy} = this.state;
     const similarInterfaces = ['exception', 'message'];
+    const hasSimilarityEmbeddingsFeature = organization?.features?.includes(
+      'issues-similarity-embeddings'
+    );
 
     if (!visible) {
       return null;
@@ -134,7 +138,6 @@ class Item extends Component<Props, State> {
 
         <Columns>
           <StyledCount value={issue.count} />
-
           {similarInterfaces.map(interfaceName => {
             const avgScore = aggregate?.[interfaceName];
             const scoreList = scoresByInterface?.[interfaceName] || [];
@@ -144,11 +147,14 @@ class Item extends Component<Props, State> {
 
             return (
               <Column key={interfaceName}>
-                <Hovercard
-                  body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}
-                >
-                  <ScoreBar vertical score={Math.round(scoreValue * 5)} />
-                </Hovercard>
+                {!hasSimilarityEmbeddingsFeature && (
+                  <Hovercard
+                    body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}
+                  >
+                    <ScoreBar vertical score={Math.round(scoreValue * 5)} />
+                  </Hovercard>
+                )}
+                {hasSimilarityEmbeddingsFeature && <div>{scoreValue.toFixed(4)}</div>}
               </Column>
             );
           })}

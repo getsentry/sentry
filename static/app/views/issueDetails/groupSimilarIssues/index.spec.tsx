@@ -1,4 +1,5 @@
 import {GroupsFixture} from 'sentry-fixture/groups';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -59,6 +60,16 @@ describe('Issues Similar View', function () {
     jest.clearAllMocks();
   });
 
+  const selectNthSimilarItem = async (index: number) => {
+    const items = await screen.findAllByTestId('similar-item-row');
+
+    const item = items.at(index);
+
+    expect(item).toBeDefined();
+
+    await userEvent.click(item!);
+  };
+
   it('renders with mocked data', async function () {
     render(
       <GroupSimilarIssues
@@ -76,6 +87,8 @@ describe('Issues Similar View', function () {
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
+
+    expect(screen.getByText('Show 3 issues below threshold')).toBeInTheDocument();
   });
 
   it('can merge and redirect to new parent', async function () {
@@ -101,7 +114,7 @@ describe('Issues Similar View', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(await screen.findByTestId('similar-item-row'));
+    await selectNthSimilarItem(0);
     await userEvent.click(await screen.findByRole('button', {name: 'Merge (1)'}));
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
@@ -140,5 +153,27 @@ describe('Issues Similar View', function () {
     // Correctly show "Merge (0)" when the item is un-clicked
     await userEvent.click(await screen.findByTestId('similar-item-row'));
     expect(screen.getByText('Merge (0)')).toBeInTheDocument();
+  });
+
+  it('renders all filtered issues with issues-similarity-embeddings flag', async function () {
+    const features = ['issues-similarity-embeddings'];
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext, organization: OrganizationFixture({features})}
+    );
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+
+    await waitFor(() => expect(mock).toHaveBeenCalled());
+
+    expect(screen.queryByText('Show 3 issues below threshold')).not.toBeInTheDocument();
   });
 });

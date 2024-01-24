@@ -24,6 +24,7 @@ type Props = {
   items: Array<SimilarItem>;
   onMerge: () => void;
   orgId: Organization['id'];
+  organization: Organization;
   pageLinks: string | null;
   project: Project;
 } & DefaultProps;
@@ -44,6 +45,7 @@ function List({
   orgId,
   groupId,
   project,
+  organization,
   items,
   filteredItems = [],
   pageLinks,
@@ -54,6 +56,9 @@ function List({
   const hasHiddenItems = !!filteredItems.length;
   const hasResults = items.length > 0 || hasHiddenItems;
   const itemsWithFiltered = items.concat(showAllItems ? filteredItems : []);
+  const hasSimilarityEmbeddingsFeature = organization?.features?.includes(
+    'issues-similarity-embeddings'
+  );
 
   if (!hasResults) {
     return <Empty />;
@@ -61,10 +66,11 @@ function List({
 
   return (
     <Fragment>
-      <Header>
-        <SimilarSpectrum />
-      </Header>
-
+      {!hasSimilarityEmbeddingsFeature && (
+        <Header>
+          <SimilarSpectrum />
+        </Header>
+      )}
       <Panel>
         <Toolbar onMerge={onMerge} />
 
@@ -75,11 +81,12 @@ function List({
               orgId={orgId}
               groupId={groupId}
               project={project}
+              organization={organization}
               {...item}
             />
           ))}
 
-          {hasHiddenItems && !showAllItems && (
+          {hasHiddenItems && !showAllItems && !hasSimilarityEmbeddingsFeature && (
             <Footer>
               <Button onClick={() => setShowAllItems(true)}>
                 {t('Show %s issues below threshold', filteredItems.length)}
