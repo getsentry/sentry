@@ -93,8 +93,9 @@ class BlockedMetrics:
         blocked_metrics: Dict[str, BlockedMetric] = {}
         for blocked_metric_payload in blocked_metrics_payload:
             blocked_metric = BlockedMetric.from_dict(blocked_metric_payload)
-            # When reading we deduplicate by taking the last version of a blocking.
-            blocked_metrics[blocked_metric.metric_mri] = blocked_metric
+            if blocked_metric is not None:
+                # When reading we deduplicate by taking the last version of a blocking.
+                blocked_metrics[blocked_metric.metric_mri] = blocked_metric
 
         return BlockedMetrics(metrics=blocked_metrics)
 
