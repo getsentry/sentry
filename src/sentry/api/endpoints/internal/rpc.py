@@ -17,7 +17,7 @@ from sentry.utils.env import in_test_environment
 
 
 @all_silo_endpoint
-class RpcServiceEndpoint(Endpoint):
+class InternalRpcServiceEndpoint(Endpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

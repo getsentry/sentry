@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
-from sentry.api.endpoints.rpc import RpcServiceEndpoint
+from sentry.api.endpoints.internal.rpc import InternalRpcServiceEndpoint
 from sentry.models.apitoken import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.silo.base import SiloMode
@@ -105,7 +105,7 @@ urlpatterns = [
     # Need to retain RPC endpoint for cross-silo calls
     re_path(
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
-        RpcServiceEndpoint.as_view(),
+        InternalRpcServiceEndpoint.as_view(),
         name="sentry-api-0-rpc-service",
     ),
 ]
@@ -160,7 +160,6 @@ class LogCaptureAPITestCase(APITestCase):
 @all_silo_test
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogRateLimited(LogCaptureAPITestCase):
-
     endpoint = "ratelimit-endpoint"
 
     def test_access_log_rate_limited(self):
@@ -177,7 +176,6 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
 @all_silo_test
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
-
     endpoint = "concurrent-ratelimit-endpoint"
 
     def test_concurrent_request_finishes(self):
@@ -202,7 +200,6 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
 
 @all_silo_test
 class TestAccessLogSuccess(LogCaptureAPITestCase):
-
     endpoint = "dummy-endpoint"
 
     def test_access_log_success(self):
@@ -219,7 +216,6 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
 @all_silo_test
 @override_settings(LOG_API_ACCESS=False)
 class TestAccessLogSuccessNotLoggedInDev(LogCaptureAPITestCase):
-
     endpoint = "dummy-endpoint"
 
     def test_access_log_success(self):

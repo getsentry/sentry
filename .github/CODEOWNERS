@@ -148,7 +148,8 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
 /src/sentry/middleware/integration/                      @getsentry/hybrid-cloud
-/src/sentry/api/endpoints/rpc.py                         @getsentry/hybrid-cloud
+/src/sentry/api/endpoints/internal/integration_proxy.py  @getsentry/hybrid-cloud
+/src/sentry/api/endpoints/internal/rpc.py                @getsentry/hybrid-cloud
 /src/sentry/models/outbox.py                             @getsentry/hybrid-cloud
 /src/sentry/tasks/deliver_from_outbox.py                 @getsentry/hybrid-cloud
 /src/sentry/tasks/deletion/hybrid_cloud.py               @getsentry/hybrid-cloud
