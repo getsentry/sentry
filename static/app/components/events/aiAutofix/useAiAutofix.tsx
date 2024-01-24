@@ -9,16 +9,16 @@ const POLL_INTERVAL = 5000;
 export const useAiAutofix = (group: GroupWithAutofix) => {
   const api = useApi();
   const {
-    data: apiAutofixData,
+    data: apiData,
     isError,
     refetch: dataRefetch,
     error,
-  } = useApiQuery<AutofixData | null>([`/issues/${group.id}/ai-autofix/`], {
+  } = useApiQuery<{autofix: AutofixData | null}>([`/issues/${group.id}/ai-autofix/`], {
     staleTime: Infinity,
     retry: false,
     enabled: !group.metadata?.autofix, // Enabled only when no autofix data present
     refetchInterval: data => {
-      if (data?.[0]?.status === 'PROCESSING') {
+      if (data?.[0]?.autofix?.status === 'PROCESSING') {
         return POLL_INTERVAL;
       }
       return false;
@@ -27,7 +27,7 @@ export const useAiAutofix = (group: GroupWithAutofix) => {
 
   const [additionalContext, setAdditionalContext] = useState<string>('');
 
-  const autofixData = apiAutofixData ?? group.metadata?.autofix ?? null;
+  const autofixData = apiData?.autofix ?? group.metadata?.autofix ?? null;
   const isPolling = autofixData?.status === 'PROCESSING';
 
   const triggerAutofix = useCallback(async () => {
