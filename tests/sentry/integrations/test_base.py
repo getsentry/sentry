@@ -1,39 +1,37 @@
 from sentry.integrations import IntegrationInstallation
-from sentry.models.identity import Identity
 from sentry.services.hybrid_cloud.identity.serial import serialize_identity
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
+@all_silo_test
 class IntegrationTestCase(TestCase):
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization()
         self.project = self.create_project()
-        self.identity = Identity.objects.create(
-            idp=self.create_identity_provider(type="base"),
+        (
+            self.model,
+            self.org_integration,
+            self.identity,
+            identity_provider,
+        ) = self.create_identity_integration(
             user=self.user,
-            external_id="base_id",
-            data={"access_token": "11234567"},
-        )
-        self.model = self.create_integration(
             organization=self.organization,
-            provider="integrations:base",
-            external_id="base_external_id",
-            name="base_name",
-            oi_params={"default_auth_id": self.identity.id},
-        )
-
-        self.org_integration = integration_service.get_organization_integration(
-            integration_id=self.model.id,
-            organization_id=self.organization.id,
+            integration_params={
+                "provider": "integrations:base",
+                "external_id": "base_external_id",
+                "name": "base_name",
+            },
+            identity_params={"external_id": "base_id", "data": {"access_token": "11234567"}},
         )
 
     def test_with_context(self):
         integration = IntegrationInstallation(self.model, self.organization.id)
-
-        assert integration.model == self.model
-        assert integration.org_integration == self.org_integration
+        assert integration.model.id == self.model.id
+        assert integration.org_integration is not None
+        assert integration.org_integration.id == self.org_integration.id
         assert integration.get_default_identity() == serialize_identity(self.identity)
 
     def test_model_default_fields(self):
@@ -44,8 +42,8 @@ class IntegrationTestCase(TestCase):
         assert self.model.date_updated
 
         initial_value = self.model.date_updated
-        self.model.name = "cooler_name"
-        self.model.save()
-
-        self.model.refresh_from_db()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.model.name = "cooler_name"
+            self.model.save()
+            self.model.refresh_from_db()
         assert initial_value < self.model.date_updated
