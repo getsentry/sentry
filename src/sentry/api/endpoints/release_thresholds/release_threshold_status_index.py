@@ -309,6 +309,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             project_id_list = [proj_id for proj_id in filter_list["project_ids"]]
             release_value_list = [release_version for release_version in filter_list["releases"]]
             category_thresholds: List[EnrichedThreshold] = filter_list["thresholds"]
+            query_window = query_windows_by_type[threshold_type]
             if threshold_type == ReleaseThresholdType.TOTAL_ERROR_COUNT:
                 metrics.incr("release.threshold_health_status.check.error_count")
                 """
@@ -321,7 +322,6 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
                 TODO: If too many results, then throw an error and request user to narrow their search window
                 """
-                query_window = query_windows_by_type[threshold_type]
                 error_counts = get_errors_counts_timeseries_by_project_and_release(
                     end=query_window["end"],
                     environments_list=environments_list,
