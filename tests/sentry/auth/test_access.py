@@ -3,6 +3,7 @@ from typing import Optional
 from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
+from django.test import override_settings
 from django.utils import timezone
 
 from sentry.auth import access
@@ -548,20 +549,27 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.scopes == SUPERUSER_SCOPES
 
     @with_feature("auth:enterprise-superuser-read-write")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.auth.access.is_active_superuser", return_value=True)
     def test_superuser_in_organization_readonly_scopes(self, mock_is_active_superuser):
-        with self.settings(SENTRY_SELF_HOSTED=False):
-            request = self.make_request(user=self.superuser, is_superuser=True)
+        request = self.make_request(user=self.superuser, is_superuser=True)
 
-            # needs org in request in order to assign any scopes
-            result = self.from_request(request, self.org)
-            assert result.scopes == SUPERUSER_READONLY_SCOPES
+        # needs org in request in order to assign any scopes
+        result = self.from_request(request, self.org)
+        assert result.scopes == SUPERUSER_READONLY_SCOPES
 
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                UserPermission.objects.create(user=self.superuser, permission="superuser.write")
+    @with_feature("auth:enterprise-superuser-read-write")
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @patch("sentry.auth.access.is_active_superuser", return_value=True)
+    def test_superuser_in_organization_write_scopes(self, mock_is_active_superuser):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserPermission.objects.create(user=self.superuser, permission="superuser.write")
 
-            result = self.from_request(request, self.org)
-            assert result.scopes == SUPERUSER_SCOPES
+        request = self.make_request(user=self.superuser, is_superuser=True)
+
+        # needs org in request in order to assign any scopes
+        result = self.from_request(request, self.org)
+        assert result.scopes == SUPERUSER_SCOPES
 
     def test_superuser_in_organization(self):
         self.create_member(
