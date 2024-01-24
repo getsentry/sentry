@@ -55,9 +55,13 @@ def build_test_message_blocks(
     event: Event | None = None,
     link_to_event: bool = False,
     tags: dict[str, str] | None = None,
+<<<<<<< HEAD
     suggested_assignees: str | None = None,
     mentions: str | None = None,
     initial_assignee: Team | User | None = None,
+=======
+    description: str | None = None,
+>>>>>>> 94287fdb742 (ref(slack): Rename mentions to description)
 ) -> dict[str, Any]:
     project = group.project
 
@@ -141,6 +145,7 @@ def build_test_message_blocks(
             }
     blocks.append(actions)
 
+<<<<<<< HEAD
     if suggested_assignees:
         suggested_assignees_text = f"Suggested Assignees: {suggested_assignees}"
         suggested_assignees_section = {
@@ -152,10 +157,15 @@ def build_test_message_blocks(
     if mentions:
         mentions_text = f"Mentions: {mentions}"
         mentions_section = {
+=======
+    if description:
+        description_text = f"Description: {description}"
+        description_section = {
+>>>>>>> 94287fdb742 (ref(slack): Rename mentions to description)
             "type": "section",
-            "text": {"type": "mrkdwn", "text": mentions_text},
+            "text": {"type": "mrkdwn", "text": description_text},
         }
-        blocks.append(mentions_section)
+        blocks.append(description_section)
 
     context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}"
     context = {
@@ -309,7 +319,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
         tags = {"foo": "bar"}
-        mentions = "hey @colleen fix it"
+        description = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
             teams={self.team},
@@ -328,25 +338,25 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
         )
 
-        # add mentions to message
+        # add description to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), mentions=mentions
+            group, event.for_group(group), description=description
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
-            mentions=mentions,
+            description=description,
             event=event,
         )
-        # add extra tag and mentions to message
+        # add extra tag and description to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}, mentions=mentions
+            group, event.for_group(group), tags={"foo"}, description=description
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
             tags=tags,
-            mentions=mentions,
+            description=description,
             event=event,
         )
 

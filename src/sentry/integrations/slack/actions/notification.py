@@ -31,7 +31,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         # XXX(CEO): when removing the feature flag, put `label` back up as a class var
         self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"  # type: ignore
         if features.has("organizations:slack-block-kit", self.project.organization):
-            self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and mentions {mentions} in notification"  # type: ignore
+            self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and description {description} in notification"  # type: ignore
         self.form_fields = {
             "workspace": {
                 "type": "choice",
@@ -42,7 +42,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
         }
         if features.has("organizations:slack-block-kit", self.project.organization):
-            self.form_fields["mentions"] = {
+            self.form_fields["description"] = {
                 "type": "string",
                 "placeholder": "e.g. @jane, @on-call-team",
             }
@@ -73,7 +73,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     tags=tags,
                     rules=rules,
                     notification_uuid=notification_uuid,
-                    mentions=self.get_option("mentions", ""),
+                    description=self.get_option("description", ""),
                 )
                 if additional_attachment:
                     for block in additional_attachment:
@@ -142,7 +142,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 channel=self.get_option("channel"),
                 channel_id=self.get_option("channel_id"),
                 tags="[{}]".format(", ".join(tags)),
-                mentions=self.get_option("mentions", ""),
+                description=self.get_option("description", ""),
             )
 
         return self.label.format(

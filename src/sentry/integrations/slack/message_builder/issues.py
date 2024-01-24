@@ -398,7 +398,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         recipient: RpcActor | None = None,
         is_unfurl: bool = False,
         skip_fallback: bool = False,
-        mentions: str | None = None,
+        description: str | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -413,7 +413,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.recipient = recipient
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
-        self.mentions = mentions
+        self.description = description
 
     @property
     def escape_text(self) -> bool:
@@ -571,9 +571,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 self.get_context_block(suggested_assignee_text[:-2])
             )  # get rid of comma at the end
 
-        # add mentions
-        if self.mentions:
-            mentions_text = f"Mentions: {self.mentions}"
+        # add description
+        if self.description:
+            mentions_text = f"description: {self.description}"
             blocks.append(self.get_markdown_block(mentions_text))
 
         # build footer block
@@ -614,7 +614,7 @@ def build_group_attachment(
     issue_details: bool = False,
     is_unfurl: bool = False,
     notification_uuid: str | None = None,
-    mentions: str | None = None,
+    description: str | None = None,
 ) -> Union[SlackBlock, SlackAttachment]:
 
     return SlackIssuesMessageBuilder(
@@ -627,5 +627,5 @@ def build_group_attachment(
         link_to_event,
         issue_details,
         is_unfurl=is_unfurl,
-        mentions=mentions,
+        description=description,
     ).build(notification_uuid=notification_uuid)
