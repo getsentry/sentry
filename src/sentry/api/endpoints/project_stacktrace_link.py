@@ -183,6 +183,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 filepath=filepath,
                 status=error or "success",
                 link_fetch_iterations=result["iteration_count"],
+                platform=ctx["platform"],
             )
             return Response(
                 {
