@@ -143,10 +143,12 @@ def _calculate_event_grouping(
         return hashes
 
 
-def run_background_grouping(project: Project, job: Job) -> None:
-    """Optionally run a fraction of events with a third grouping config
-    This can be helpful to measure its performance impact.
-    This does not affect actual grouping.
+def maybe_run_background_grouping(project: Project, job: Job) -> None:
+    """
+    Optionally run a fraction of events with an experimental grouping config.
+
+    This does not affect actual grouping, but can be helpful to measure the new config's performance
+    impact.
     """
     try:
         sample_rate = options.get("store.background-grouping-sample-rate")
