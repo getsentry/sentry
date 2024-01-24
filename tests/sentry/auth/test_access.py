@@ -542,7 +542,7 @@ class FromRequestTest(AccessFactoryTestCase):
 
     @patch("sentry.auth.access.is_active_superuser", return_value=True)
     def test_superuser_in_organization_scopes(self, mock_is_active_superuser):
-        request = self.make_request(user=self.superuser, is_superuser=True)
+        request = self.make_request(user=self.superuser)
 
         # needs org in request in order to assign any scopes
         result = self.from_request(request, self.org)
@@ -552,7 +552,7 @@ class FromRequestTest(AccessFactoryTestCase):
     @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.auth.access.is_active_superuser", return_value=True)
     def test_superuser_in_organization_readonly_scopes(self, mock_is_active_superuser):
-        request = self.make_request(user=self.superuser, is_superuser=True)
+        request = self.make_request(user=self.superuser)
 
         # needs org in request in order to assign any scopes
         result = self.from_request(request, self.org)
@@ -565,7 +565,7 @@ class FromRequestTest(AccessFactoryTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserPermission.objects.create(user=self.superuser, permission="superuser.write")
 
-        request = self.make_request(user=self.superuser, is_superuser=True)
+        request = self.make_request(user=self.superuser)
 
         # needs org in request in order to assign any scopes
         result = self.from_request(request, self.org)
