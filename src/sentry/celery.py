@@ -1,3 +1,4 @@
+import gc
 from datetime import datetime
 from itertools import chain
 
@@ -19,7 +20,6 @@ LEGACY_PICKLE_TASKS = frozenset(
         # basic tasks that can already deal with primary keys passed
         "sentry.tasks.update_code_owners_schema",
         # integration tasks that must be passed models still
-        "sentry.integrations.slack.post_message",
         "sentry.integrations.slack.link_users_identities",
     ]
 )
@@ -71,6 +71,17 @@ def good_use_of_pickle_or_bad_use_of_pickle(task, args, kwargs):
             )
 
 
+@signals.worker_before_create_process.connect
+def celery_prefork_freeze_gc(**kwargs: object) -> None:
+    # prefork: move all current objects to "permanent" gc generation (usually
+    # modules / functions / etc.) preventing them from being paged in during
+    # garbage collection (which writes to objects)
+    #
+    # docs suggest disabling gc up until this point (to reduce holes in
+    # allocated blocks).  that can be a future improvement if this helps
+    gc.freeze()
+
+
 class SentryTask(Task):
     Request = "sentry.celery:SentryRequest"
 
@@ -103,7 +114,7 @@ class SentryCelery(Celery):
 
 @signals.worker_process_init.connect
 def record_worker_init(*args, **kwargs):
-    metrics.incr("sentry.jobs.process.start")
+    metrics.incr("jobs.process.start")
 
 
 app = SentryCelery("sentry")

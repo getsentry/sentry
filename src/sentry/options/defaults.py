@@ -265,6 +265,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 
+# API Tokens
+register(
+    "apitoken.auto-add-last-chars",
+    default=True,
+    type=Bool,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "api.rate-limit.org-create",
@@ -311,7 +318,7 @@ register(
 )
 register(
     "symbolicator.options",
-    default={"url": "http://localhost:3021"},
+    default={"url": "http://127.0.0.1:3021"},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -333,7 +340,7 @@ register(
 )
 register(
     "chart-rendering.chartcuterie",
-    default={"url": "http://localhost:7901"},
+    default={"url": "http://127.0.0.1:7901"},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Leaving these empty will use the same storage driver configured for
@@ -751,6 +758,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "issues.priority.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # ## sentry.killswitches
 #
@@ -826,6 +840,9 @@ register(
 
 # Whether to use `zstd` instead of `zlib` for the attachment cache.
 register("attachment-cache.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Whether to use `zstd` instead of `zlib` for encoded grouping enhancers.
+register("enhancers.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Set of projects that will always store `EventAttachment` blobs directly.
 register("eventattachments.store-blobs.projects", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1242,6 +1259,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "sentry-metrics.synchronize-kafka-rebalances",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.synchronized-rebalance-delay",
+    default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Performance issue option for *all* performance issues detection
 register("performance.issues.all.problem-detection", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1582,6 +1611,7 @@ register(
     "crons.check-accept-monitor-checkin-slug-overrides",
     type=Sequence,
     default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Turns on and off the running for dynamic sampling collect_orgs.
@@ -1655,6 +1685,10 @@ register(
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Some organizations can have more widget specs on a case-by-case basis. Widgets using this limit
+# are listed in 'extended_widget_spec_orgs' option.
+register("on_demand.extended_max_widget_specs", default=750, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("on_demand.extended_widget_spec_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "on_demand.max_widget_cardinality.count",
     default=10000,
@@ -1754,6 +1788,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# The allowlist of org IDs that the react-native crash detection is enabled for.
+register(
+    "issues.sdk_crash_detection.react-native.organization_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "issues.sdk_crash_detection.react-native.sample_rate",
     default=0.0,
@@ -1832,11 +1874,24 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Relocation: whether or not the self-serve API for the feature is enabled.
+# Relocation: whether or not the self-serve API for the feature is enabled. When set on a region
+# silo, this flag controls whether or not that region's API will serve relocation requests to
+# non-superuser clients. When set on the control silo, it can be used to regulate whether or not
+# certain global UI (ex: the relocation creation form at `/relocation/`) is visible to users.
 register(
     "relocation.enabled",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: populates the target region drop down in the control silo. Note: this option has NO
+# EFFECT in region silos. However, the control silos `relocation.selectable-regions` array should be
+# a complete list of all regions where `relocation.enabled`. If a region is enabled/disabled, it
+# should also be added to/removed from this array in the control silo at the same time.
+register(
+    "relocation.selectable-regions",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval
@@ -1867,4 +1922,77 @@ register(
     "relocation.daily-limit.large",
     default=0,
     flags=FLAG_SCALAR | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# max number of profiles to use for computing
+# the aggregated flamegraph.
+register(
+    "profiling.flamegraph.profile-set.size",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# org IDs for which we'll allow using profiles dropped due to DS for function metrics.
+# This is only intended to be be used initially to limit the feature to sentry org.
+# Once we start to gradually rollout to other orgs this option can be deprecated
+register(
+    "profiling.profile_metrics.unsampled_profiles.allowed_org_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# org IDs for which we want to avoid using the unsampled profiles for function metrics.
+# This will let us selectively disable the behaviour for entire orgs that may have an
+# extremely high volume increase
+register(
+    "profiling.profile_metrics.unsampled_profiles.excluded_org_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# project IDs for which we'll allow using profiles dropped due to DS for function metrics.
+# This is only intended to be be used initially to limit the feature to specific projects of
+# the sentry org. Once we start to gradually rollout to other orgs this option can be deprecated
+register(
+    "profiling.profile_metrics.unsampled_profiles.allowed_project_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# project IDs for which we want to avoid using the unsampled profiles for function metrics.
+# This will let us selectively disable the behaviour for project that may have an extremely
+# high volume increase
+register(
+    "profiling.profile_metrics.unsampled_profiles.excluded_project_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# list of platform names for which we allow using unsampled profiles for the purpose
+# of improving profile (function) metrics
+register(
+    "profiling.profile_metrics.unsampled_profiles.platforms",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# sample rate for tuning the amount of unsampled profiles that we "let through"
+register(
+    "profiling.profile_metrics.unsampled_profiles.sample_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# killswitch for profile metrics
+register(
+    "profiling.profile_metrics.unsampled_profiles.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

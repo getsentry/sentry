@@ -6,11 +6,11 @@ import responses
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -76,6 +76,23 @@ class SlackNotifyActionTest(RuleTestCase):
             == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] in notification"
         )
 
+    @with_feature("organizations:slack-block-kit")
+    def test_render_label_with_mentions(self):
+        rule = self.get_rule(
+            data={
+                "workspace": self.integration.id,
+                "channel": "#my-channel",
+                "channel_id": "",
+                "tags": "one, two",
+                "mentions": "fix this @colleen",
+            }
+        )
+
+        assert (
+            rule.render_label()
+            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] and mentions fix this @colleen in notification"
+        )
+
     def test_render_label_without_integration(self):
         self.integration.delete()
 
@@ -96,7 +113,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_valid_bot_channel_selected(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX2",
@@ -340,7 +357,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def test_disabled_org_integration(self):
         org = self.create_organization(owner=self.user)
-        OrganizationIntegration.objects.create(organization_id=org.id, integration=self.integration)
+        self.create_organization_integration(organization_id=org.id, integration=self.integration)
         OrganizationIntegration.objects.get(
             integration=self.integration, organization_id=self.event.project.organization.id
         ).update(status=ObjectStatus.DISABLED)
@@ -416,7 +433,7 @@ class SlackNotifyActionTest(RuleTestCase):
     @responses.activate
     def test_multiple_integrations(self):
         org = self.create_organization(owner=self.user)
-        OrganizationIntegration.objects.create(organization_id=org.id, integration=self.integration)
+        self.create_organization_integration(organization_id=org.id, integration=self.integration)
 
         event = self.get_event()
 

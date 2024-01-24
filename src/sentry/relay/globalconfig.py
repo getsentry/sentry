@@ -5,7 +5,11 @@ from sentry.relay.config.measurements import MeasurementsConfig, get_measurement
 from sentry.utils import metrics
 
 # List of options to include in the global config.
-RELAY_OPTIONS: List[str] = []
+RELAY_OPTIONS: List[str] = [
+    "profiling.profile_metrics.unsampled_profiles.platforms",
+    "profiling.profile_metrics.unsampled_profiles.sample_rate",
+    "profiling.profile_metrics.unsampled_profiles.enabled",
+]
 
 
 class GlobalConfig(TypedDict, total=False):

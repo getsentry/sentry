@@ -12,12 +12,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relocations import ERR_FEATURE_DISABLED
-from sentry.api.exceptions import SuperuserRequired
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
@@ -29,6 +28,7 @@ from sentry.options import get
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.signals import relocation_link_promo_code
 from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.tasks.relocation import uploading_complete
 from sentry.utils.db import atomic_transaction
@@ -83,16 +83,14 @@ class RelocationsPostSerializer(serializers.Serializer):
     owner = serializers.CharField(
         max_length=MAX_USERNAME_LENGTH, required=True, allow_blank=False, allow_null=False
     )
+    promo_code = serializers.CharField(max_length=40, required=False)
 
 
 def validate_new_relocation_request(
     request: Request, owner_username: str, org_slugs: list[str], file_size: int
 ) -> Response | None:
     # We only honor the `relocation.enabled` flag for non-superusers.
-    try:
-        is_superuser = SuperuserPermission().has_permission(request, None)
-    except SuperuserRequired:
-        is_superuser = False
+    is_superuser = SuperuserPermission().has_permission(request, None)
     if not options.get("relocation.enabled") and not is_superuser:
         return Response({"detail": ERR_FEATURE_DISABLED}, status=status.HTTP_403_FORBIDDEN)
 
@@ -166,10 +164,16 @@ class RelocationIndexEndpoint(Endpoint):
 
         logger.info("relocations.index.get.start", extra={"caller": request.user.id})
 
-        if not SuperuserPermission().has_permission(request, None):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-
+        # Non-superusers can only see their own relocations.
         queryset = Relocation.objects.all()
+        is_superuser = False
+        try:
+            is_superuser = SuperuserPermission().has_permission(request, None)
+        except Exception:
+            pass
+        if not is_superuser:
+            queryset = queryset.filter(owner_id=request.user.id)
+
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
@@ -232,6 +236,7 @@ class RelocationIndexEndpoint(Endpoint):
         fileobj = validated.get("file")
         file_size = fileobj.size
         owner_username = validated.get("owner")
+        promo_code = validated.get("promo_code")
         org_slugs = [org.strip() for org in validated.get("orgs").split(",")]
         err = validate_new_relocation_request(request, owner_username, org_slugs, file_size)
         if err is not None:
@@ -267,6 +272,14 @@ class RelocationIndexEndpoint(Endpoint):
                 file=file,
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
             )
-
+        relocation_link_promo_code.send_robust(
+            relocation_uuid=relocation.uuid, promo_code=promo_code, sender=self.__class__
+        )
         uploading_complete.delay(relocation.uuid)
+        analytics.record(
+            "relocation.created",
+            creator_id=request.user.id,
+            owner_id=owner.id,
+            uuid=str(relocation.uuid),
+        )
         return Response(serialize(relocation), status=status.HTTP_201_CREATED)

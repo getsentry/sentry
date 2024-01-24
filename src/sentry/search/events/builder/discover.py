@@ -170,7 +170,8 @@ class BaseQueryBuilder:
             else:
                 environments = []
 
-        user = user_service.get_user(user_id=params["user_id"]) if "user_id" in params else None
+        user_id = params.get("user_id")
+        user = user_service.get_user(user_id=user_id) if user_id is not None else None
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
@@ -1807,6 +1808,14 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     )
                 else:
                     projects = list({event["project.id"] for event in top_events})
+
+                if other:
+                    projects = list(set(self.params.project_ids) - set(projects))
+
+                    # if there are no more projects, we search on project id 0 to guarantee no results
+                    if not projects:
+                        projects = [0]
+
                 self.where.append(Condition(self.column("project_id"), Op.IN, projects))
                 continue
 

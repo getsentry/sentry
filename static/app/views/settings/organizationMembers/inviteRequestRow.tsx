@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {
+  InviteModalHook,
+  InviteModalRenderFunc,
+} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import Tag from 'sentry/components/tag';
@@ -24,14 +27,6 @@ type Props = {
   organization: Organization;
 };
 
-const InviteModalHook = HookOrDefault({
-  hookName: 'member-invite-modal:customization',
-  defaultComponent: ({onSendInvites, children}) =>
-    children({sendInvites: onSendInvites, canSend: true}),
-});
-
-type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
-
 function InviteRequestRow({
   inviteRequest,
   inviteRequestBusy,
@@ -46,7 +41,6 @@ function InviteRequestRow({
   const {access} = organization;
   const canApprove = access.includes('member:admin');
 
-  // eslint-disable-next-line react/prop-types
   const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
     <StyledPanelItem>
       <div>

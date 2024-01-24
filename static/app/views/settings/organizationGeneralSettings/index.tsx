@@ -19,24 +19,22 @@ import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 
 type Props = {
-  organization: Organization;
   projects: Project[];
 } & RouteComponentProps<{}, {}>;
 
-function OrganizationGeneralSettings(props: Props) {
+function OrganizationGeneralSettings({projects}: Props) {
   const api = useApi();
-
-  const {organization, projects} = props;
-  const access = new Set(organization.access);
+  const organization = useOrganization();
 
   const removeConfirmMessage = (
     <Fragment>
@@ -103,16 +101,23 @@ function OrganizationGeneralSettings(props: Props) {
     });
   };
 
+  const organizationRegionInfo = OrganizationRegionAction({
+    organization,
+  });
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
-        <SettingsPageHeader title={t('Organization Settings')} />
+        <SettingsPageHeader
+          title={t('Organization Settings')}
+          action={organizationRegionInfo}
+        />
         <PermissionAlert />
 
         <OrganizationSettingsForm initialData={organization} onSave={handleSaveForm} />
 
-        {access.has('org:admin') && !organization.isDefault && (
+        {organization.access.includes('org:admin') && !organization.isDefault && (
           <Panel>
             <PanelHeader>{t('Remove Organization')}</PanelHeader>
             <FieldGroup
@@ -139,4 +144,4 @@ function OrganizationGeneralSettings(props: Props) {
   );
 }
 
-export default withProjects(withOrganization(OrganizationGeneralSettings));
+export default withProjects(OrganizationGeneralSettings);

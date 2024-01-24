@@ -49,7 +49,12 @@ def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
     for k, v in kwargs.items():
         setattr(instance, k, _handle_value(instance, v))
     if affected == 1:
-        post_save.send(sender=instance.__class__, instance=instance, created=False)
+        post_save.send(
+            sender=instance.__class__,
+            instance=instance,
+            created=False,
+            update_fields=list(kwargs.keys()),
+        )
         return affected
     elif affected == 0:
         return affected

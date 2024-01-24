@@ -132,9 +132,31 @@ describe('Issues Similar View', function () {
     );
   });
 
+  it('correctly shows merge count', async function () {
+      render(
+        <GroupSimilarIssues
+          project={project}
+          params={{orgId: 'org-slug', groupId: 'group-id'}}
+          location={router.location}
+          router={router}
+          routeParams={router.params}
+          routes={router.routes}
+          route={{}}
+        />,
+        {context: routerContext}
+      );
+      renderGlobalModal();
+
+      await userEvent.click(await screen.findByTestId('similar-item-row'));
+      expect(screen.getByText('Merge (1)')).toBeInTheDocument();
+
+      // Correctly show "Merge (0)" when the item is un-clicked
+      await userEvent.click(await screen.findByTestId('similar-item-row'));
+      expect(screen.getByText('Merge (0)')).toBeInTheDocument();
+    });
+
   it('renders all filtered issues with issues-similarity-embeddings flag', async function () {
     const features = ['issues-similarity-embeddings'];
-
     render(
       <GroupSimilarIssues
         project={project}

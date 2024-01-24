@@ -488,15 +488,19 @@ def _run_sessions_query(query):
     # We only get the time series for groups which also have a total:
     if query.query_groupby:
         # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
-        groups = {tuple(row[column] for column in query.query_groupby) for row in result_totals}
+        extra_conditions = []
+        if len(query.query_groupby) > 1:
+            groups = {tuple(row[column] for column in query.query_groupby) for row in result_totals}
 
-        extra_conditions = [
-            Condition(
-                Function("tuple", [Column(col) for col in query.query_groupby]),
-                Op.IN,
-                Function("tuple", list(groups)),
-            )
-        ] + [
+            extra_conditions = [
+                Condition(
+                    Function("tuple", [Column(col) for col in query.query_groupby]),
+                    Op.IN,
+                    Function("tuple", list(groups)),
+                )
+            ]
+
+        extra_conditions += [
             Condition(
                 Column(column),
                 Op.IN,

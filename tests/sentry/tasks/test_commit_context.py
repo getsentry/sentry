@@ -15,8 +15,13 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequest, PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
-from sentry.tasks.commit_context import PR_COMMENT_WINDOW, process_commit_context
+from sentry.tasks.commit_context import (
+    PR_COMMENT_WINDOW,
+    process_commit_context,
+    queue_comment_task_if_needed,
+)
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -453,7 +458,6 @@ class TestCommitContext(TestCommitContextMixin):
     def test_multiple_matching_code_mappings_but_only_1_repository_has_the_commit_in_db(
         self, mock_get_commit_context
     ):
-
         self.integration_2 = self.create_integration(
             organization=self.organization,
             provider="github",
@@ -467,7 +471,7 @@ class TestCommitContext(TestCommitContextMixin):
             integration_id=self.integration_2.id,
         )
         self.code_mapping_2 = self.create_code_mapping(
-            repo=self.repo_2, project=self.project, stack_root="src", source_root="src"
+            repo=self.repo_2, project=self.project, stack_root="sentry", source_root="sentry"
         )
 
         self.commit_author_2 = self.create_commit_author(
@@ -1532,21 +1536,30 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     def test_gh_comment_debounces(self, get_jwt, mock_comment_workflow):
         self.add_responses()
 
+        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+
+        groupowner = GroupOwner.objects.create(
+            group_id=self.event.group_id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id="1",
+            project_id=self.event.project_id,
+            organization_id=self.project.organization_id,
+            context={"commitId": self.commit.id},
+            date_added=timezone.now(),
+        )
+
+        integration = integration_service.get_integration(
+            organization_id=self.code_mapping.organization_id
+        )
+        assert integration
+
+        install = integration.get_installation(organization_id=self.code_mapping.organization_id)
+
         with self.tasks():
-            assert not GroupOwner.objects.filter(group=self.event.group).exists()
-            event_frames = get_frame_paths(self.event)
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
+            queue_comment_task_if_needed(
+                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
             )
-            process_commit_context(
-                event_id=self.event.event_id,
-                event_platform=self.event.platform,
-                event_frames=event_frames,
-                group_id=self.event.group_id,
-                project_id=self.event.project_id,
+            queue_comment_task_if_needed(
+                commit=self.commit, group_owner=groupowner, repo=self.repo, installation=install
             )
             assert mock_comment_workflow.call_count == 1

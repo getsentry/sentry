@@ -25,10 +25,10 @@ SYSTEM_OPTIONS_ALLOWLIST = (
 @all_silo_endpoint
 class SystemOptionsEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.DATA
+    owner = ApiOwner.OPEN_SOURCE
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
@@ -76,6 +76,8 @@ class SystemOptionsEndpoint(Endpoint):
         )
 
     def has_permission(self, request: Request):
+        if settings.SENTRY_SELF_HOSTED and request.user.is_superuser:
+            return True
         if not request.access.has_permission("options.admin"):
             # We ignore options.admin permission is all keys in the update match the allowlist.
             if all([k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()]):

@@ -200,18 +200,21 @@ def post_save_log_group_attributes_changed(instance, sender, created, *args, **k
             _log_group_attributes_changed(Operation.CREATED, "group", None)
             send_snapshot_values(None, instance, False)
         else:
-            if "update_fields" in kwargs:
-                update_fields = kwargs["update_fields"]
+            update_fields = kwargs.get("update_fields", set())
+            if not update_fields:
                 # we have no guarantees update_fields is used everywhere save() is called
                 # we'll need to assume any of the attributes are updated in that case
+                attributes_updated = {"all"}
+            else:
                 attributes_updated = {"status", "substatus", "num_comments"}.intersection(
                     update_fields or ()
                 )
-                if attributes_updated:
-                    _log_group_attributes_changed(
-                        Operation.UPDATED, "group", "-".join(sorted(attributes_updated))
-                    )
-                    send_snapshot_values(None, instance, False)
+            if attributes_updated:
+                _log_group_attributes_changed(
+                    Operation.UPDATED, "group", "-".join(sorted(attributes_updated))
+                )
+                send_snapshot_values(None, instance, False)
+
     except Exception:
         logger.exception("failed to log group attributes after group post_save")
 

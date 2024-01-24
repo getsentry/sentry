@@ -11,9 +11,16 @@ import App from 'sentry/views/app';
 
 describe('Docs Search Modal', function () {
   beforeEach(function () {
+    const organization = OrganizationFixture();
+
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [OrganizationFixture({slug: 'billy-org', name: 'billy org'})],
+      body: [organization],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: organization,
     });
 
     MockApiClient.addMockResponse({
@@ -39,13 +46,6 @@ describe('Docs Search Modal', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
       body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
     });
 
     MockApiClient.addMockResponse({

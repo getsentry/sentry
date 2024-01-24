@@ -1,12 +1,12 @@
 import {css, Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import uniq from 'lodash/uniq';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
+import {uniq} from 'sentry/utils/array/uniq';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -18,6 +18,7 @@ const NODE_SIZES = [8, 12, 16];
 interface Props {
   durationMs: number;
   frames: ReplayFrame[];
+  startTimeOffsetMs: number;
   startTimestampMs: number;
   width: number;
   className?: string;
@@ -28,12 +29,18 @@ function ReplayTimelineEvents({
   durationMs,
   frames,
   startTimestampMs,
+  startTimeOffsetMs,
   width,
 }: Props) {
   const markerWidth = frames.length < 200 ? 4 : frames.length < 500 ? 6 : 10;
 
   const totalColumns = Math.floor(width / markerWidth);
-  const framesByCol = getFramesByColumn(durationMs, frames, totalColumns);
+  const framesByCol = getFramesByColumn(
+    durationMs,
+    frames,
+    totalColumns,
+    startTimeOffsetMs
+  );
 
   return (
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>

@@ -48,16 +48,12 @@ class SentryHTTPServer(Service):
         port: int | None = None,
         debug: bool = False,
         workers: int | None = None,
-        validate: bool = True,
         extra_options: dict[str, Any] | None = None,
     ) -> None:
         from django.conf import settings
 
         from sentry import options as sentry_options
         from sentry.logging import LoggingFormat
-
-        if validate:
-            self.validate_settings()
 
         host = host or settings.SENTRY_WEB_HOST
         port = port or settings.SENTRY_WEB_PORT
@@ -146,13 +142,6 @@ class SentryHTTPServer(Service):
         self.options = options
         self.debug = debug
 
-    def validate_settings(self) -> None:
-        from django.conf import settings as django_settings
-
-        from sentry.utils.settings import validate_settings
-
-        validate_settings(django_settings)
-
     def prepare_environment(self, env: MutableMapping[str, str] | None = None) -> None:
         from django.conf import settings
 
@@ -168,16 +157,6 @@ class SentryHTTPServer(Service):
 
         # This has already been validated inside __init__
         env["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
-
-        # Look up the bin directory where `sentry` exists, which should be
-        # sys.argv[0], then inject that to the front of our PATH so we can reliably
-        # find the `uwsgi` that's installed when inside virtualenv.
-        # This is so the virtualenv doesn't need to be sourced in, which effectively
-        # does exactly this.
-        virtualenv_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-        current_path = env.get("PATH", "")
-        if virtualenv_path not in current_path:
-            env["PATH"] = f"{virtualenv_path}:{current_path}"
 
     def run(self) -> NoReturn:
         self.prepare_environment()

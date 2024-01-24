@@ -33,7 +33,6 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.options.user_option import UserOption
 from sentry.models.release import Release
@@ -49,7 +48,7 @@ from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -1665,7 +1664,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
-    @with_feature("organizations:escalating-issues")
     def test_inbox_fields_issue_states(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1737,6 +1735,57 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert int(response.data[0]["id"]) == event.group.id
         assert "pluginActions" not in response.data[0]
         assert "pluginIssues" not in response.data[0]
+
+    def test_expand_integration_issues(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["integrationIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["integrationIssues"] is not None
+
+        # Test with no expand
+        response = self.get_response(sort_by="date", limit=10, query=query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "integrationIssues" not in response.data[0]
+
+        integration_jira = self.create_integration(
+            organization=event.group.organization,
+            provider="jira",
+            external_id="jira_external_id",
+            name="Jira",
+            metadata={"base_url": "https://example.com", "domain_name": "test/"},
+        )
+        external_issue_1 = self.create_integration_external_issue(
+            group=event.group,
+            integration=integration_jira,
+            key="APP-123-JIRA",
+            title="jira issue 1",
+            description="this is an example description",
+        )
+        external_issue_2 = self.create_integration_external_issue(
+            group=event.group,
+            integration=integration_jira,
+            key="APP-456-JIRA",
+            title="jira issue 2",
+            description="this is an example description",
+        )
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["integrationIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data[0]["integrationIssues"]) == 2
+        assert response.data[0]["integrationIssues"][0]["title"] == external_issue_1.title
+        assert response.data[0]["integrationIssues"][1]["title"] == external_issue_2.title
 
     def test_expand_owners(self):
         event = self.store_event(
@@ -2085,25 +2134,22 @@ class GroupListTest(APITestCase, SnubaTestCase):
             query="is:unresolved",
         )
 
-        with Feature("organizations:escalating-issues"):
-            response1 = get_query_response(
-                query="is:ongoing"
-            )  # (status=unresolved, substatus=(ongoing))
-            response2 = get_query_response(
-                query="is:unresolved"
-            )  # (status=unresolved, substatus=*)
-            response3 = get_query_response(
-                query="is:unresolved is:ongoing !is:regressed"
-            )  # (status=unresolved, substatus=(ongoing, !regressed))
-            response4 = get_query_response(
-                query="is:unresolved is:ongoing !is:ignored"
-            )  # (status=unresolved, substatus=(ongoing, !ignored))
-            response5 = get_query_response(
-                query="!is:regressed is:unresolved"
-            )  # (status=unresolved, substatus=(!regressed))
-            response6 = get_query_response(
-                query="!is:until_escalating"
-            )  # (status=(!unresolved), substatus=(!until_escalating))
+        response1 = get_query_response(
+            query="is:ongoing"
+        )  # (status=unresolved, substatus=(ongoing))
+        response2 = get_query_response(query="is:unresolved")  # (status=unresolved, substatus=*)
+        response3 = get_query_response(
+            query="is:unresolved is:ongoing !is:regressed"
+        )  # (status=unresolved, substatus=(ongoing, !regressed))
+        response4 = get_query_response(
+            query="is:unresolved is:ongoing !is:ignored"
+        )  # (status=unresolved, substatus=(ongoing, !ignored))
+        response5 = get_query_response(
+            query="!is:regressed is:unresolved"
+        )  # (status=unresolved, substatus=(!regressed))
+        response6 = get_query_response(
+            query="!is:until_escalating"
+        )  # (status=(!unresolved), substatus=(!until_escalating))
 
         assert (
             response0.status_code
@@ -2138,17 +2184,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
             self.get_response, sort_by="date", limit=10, expand="inbox", collapse="stats"
         )
 
-        with Feature("organizations:escalating-issues"):
-            response1 = get_query_response(query="is:escalating")
-            response2 = get_query_response(query="is:new")
-            response3 = get_query_response(query="is:regressed")
-            response4 = get_query_response(query="is:forever")
-            response5 = get_query_response(query="is:until_condition_met")
-            response6 = get_query_response(query="is:until_escalating")
-            response7 = get_query_response(query="is:resolved")
-            response8 = get_query_response(query="is:ignored")
-            response9 = get_query_response(query="is:muted")
-            response10 = get_query_response(query="!is:unresolved")
+        response1 = get_query_response(query="is:escalating")
+        response2 = get_query_response(query="is:new")
+        response3 = get_query_response(query="is:regressed")
+        response4 = get_query_response(query="is:forever")
+        response5 = get_query_response(query="is:until_condition_met")
+        response6 = get_query_response(query="is:until_escalating")
+        response7 = get_query_response(query="is:resolved")
+        response8 = get_query_response(query="is:ignored")
+        response9 = get_query_response(query="is:muted")
+        response10 = get_query_response(query="!is:unresolved")
 
         assert (
             response1.status_code
@@ -2313,7 +2358,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         org = self.organization
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
         event = self.store_event(
             data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
@@ -2369,7 +2414,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.RESOLVED)
         with assume_test_silo_mode(SiloMode.CONTROL):
             org = self.organization
-            integration = Integration.objects.create(provider="example", name="Example")
+            integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
             OrganizationIntegration.objects.filter(
                 integration_id=integration.id, organization_id=group.organization.id

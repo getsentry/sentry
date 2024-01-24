@@ -4,6 +4,7 @@ import hashlib
 import importlib.metadata
 import inspect
 import os.path
+import random
 import re
 import time
 from contextlib import contextmanager
@@ -176,7 +177,7 @@ __all__ = (
     "SCIMAzureTestCase",
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
-    "OrganizationMetricMetaIntegrationTestCase",
+    "OrganizationMetricsIntegrationTestCase",
     "ProfilesSnubaTestCase",
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
@@ -1321,6 +1322,15 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
+    def store_metric_summary(self, metric_summary):
+        assert (
+            requests.post(
+                settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
+                data=json.dumps([metric_summary]),
+            ).status_code
+            == 200
+        )
+
     def to_snuba_time_format(self, datetime_value):
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
@@ -1391,34 +1401,39 @@ class SnubaTestCase(BaseTestCase):
 
 
 class BaseSpansTestCase(SnubaTestCase):
-    def store_span(
+    def _random_span_id(self):
+        random_number = random.randint(0, 100000000)
+        return hex(random_number)[2:]
+
+    def store_segment(
         self,
         project_id: int,
-        span_id: str = "98230207e6e4a6ad",
-        trace_id: str = "b2565c0d-f13c-4c00-a654-d2209e06e4bd",
-        transaction_id: Optional[str] = None,
+        trace_id: str,
+        transaction_id: str,
+        span_id: Optional[str] = None,
         profile_id: Optional[str] = None,
-        metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
-        timestamp: Optional[datetime] = None,
-        tags: Optional[Mapping[str, Any]] = None,
-        store_only_summary: bool = False,
-        is_segment: bool = False,
-        duration_ms: int = 10,
         transaction: Optional[str] = None,
+        duration: int = 10,
+        tags: Optional[Mapping[str, Any]] = None,
+        measurements: Optional[Mapping[str, Union[int, float]]] = None,
+        timestamp: Optional[datetime] = None,
     ):
+        if span_id is None:
+            span_id = self._random_span_id()
         if timestamp is None:
             timestamp = datetime.now(tz=timezone.utc)
 
         payload = {
-            "duration_ms": duration_ms,
-            "exclusive_time_ms": 5,
-            "is_segment": is_segment,
             "project_id": project_id,
-            "retention_days": 90,
-            "sentry_tags": {"transaction": transaction or "/hello"},
             "span_id": span_id,
-            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "trace_id": trace_id,
+            "duration_ms": int(duration),
+            "exclusive_time_ms": 5,
+            "is_segment": True,
+            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "sentry_tags": {"transaction": transaction or "/hello"},
+            "retention_days": 90,
         }
 
         if tags:
@@ -1427,22 +1442,62 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["event_id"] = transaction_id
         if profile_id:
             payload["profile_id"] = profile_id
-        if metrics_summary:
-            payload["_metrics_summary"] = metrics_summary
+        if measurements:
+            payload["measurements"] = {
+                measurement: {"value": value} for measurement, value in measurements.items()
+            }
+
+        self.store_span(payload)
+
+    def store_indexed_span(
+        self,
+        project_id: int,
+        trace_id: str,
+        transaction_id: str,
+        span_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+        transaction: Optional[str] = None,
+        op: Optional[str] = None,
+        duration: int = 10,
+        tags: Optional[Mapping[str, Any]] = None,
+        timestamp: Optional[datetime] = None,
+        store_only_summary: bool = False,
+        store_metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
+    ):
+        if span_id is None:
+            span_id = self._random_span_id()
+        if timestamp is None:
+            timestamp = datetime.now(tz=timezone.utc)
+
+        payload = {
+            "project_id": project_id,
+            "span_id": span_id,
+            "trace_id": trace_id,
+            "duration_ms": int(duration),
+            "exclusive_time_ms": 5,
+            "is_segment": False,
+            "received": datetime.now(tz=timezone.utc).timestamp(),
+            "start_timestamp_ms": int(timestamp.timestamp() * 1000),
+            "sentry_tags": {"transaction": transaction or "/hello", "op": op or "http"},
+            "retention_days": 90,
+        }
+
+        if tags:
+            payload["tags"] = tags
+        if transaction_id:
+            payload["event_id"] = transaction_id
+        if profile_id:
+            payload["profile_id"] = profile_id
+        if store_metrics_summary:
+            payload["_metrics_summary"] = store_metrics_summary
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
-            self._snuba_insert(payload, "spans")
+            self.store_span(payload)
 
         if "_metrics_summary" in payload:
-            self._snuba_insert(payload, "metrics_summaries")
-
-    def _snuba_insert(self, payload, entity):
-        response = requests.post(
-            settings.SENTRY_SNUBA + f"/tests/entities/{entity}/insert", data=json.dumps([payload])
-        )
-        assert response.status_code == 200
+            self.store_metric_summary(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2172,26 +2227,28 @@ class ProfilesSnubaTestCase(
             profile_context["profile_id"] = uuid4().hex
         profile_id = profile_context.get("profile_id")
 
-        timestamp = transaction["timestamp"]
-
         self.store_event(transaction, project_id=project.id)
 
+        timestamp = transaction["timestamp"]
         functions = [
-            {**function, "fingerprint": self.function_fingerprint(function)}
+            {
+                **function,
+                "self_times_ns": list(map(int, function["self_times_ns"])),
+                "fingerprint": self.function_fingerprint(function),
+            }
             for function in functions
         ]
-
         functions_payload = {
-            "project_id": project.id,
-            "profile_id": profile_id,
-            "transaction_name": transaction["transaction"],
+            "functions": functions,
             # the transaction platform doesn't quite match the
             # profile platform, but should be fine for tests
             "platform": transaction["platform"],
-            "functions": functions,
-            "timestamp": timestamp,
-            # TODO: should reflect the org
+            "profile_id": profile_id,
+            "project_id": project.id,
+            "received": int(datetime.now(tz=timezone.utc).timestamp()),
             "retention_days": 90,
+            "timestamp": int(timestamp),
+            "transaction_name": transaction["transaction"],
         }
 
         if extras is not None:
@@ -2736,10 +2793,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
             issue_link += issue_link_extra_params
         assert (
             blocks[1]["text"]["text"]
-            == f"<{issue_link}|*N+1 Query*>  \ndb - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            == f":chart_with_downwards_trend: <{issue_link}|*N+1 Query*>  \n```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[4]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -2770,10 +2827,10 @@ class SlackActivityNotificationTest(ActivityTestCase):
             issue_link += issue_link_extra_params
         assert (
             blocks[1]["text"]["text"]
-            == f"<{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>  \n{TEST_ISSUE_OCCURRENCE.evidence_display[0].value}"
+            == f":exclamation: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>  \n```{TEST_ISSUE_OCCURRENCE.evidence_display[0].value}```"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[4]["elements"][0]["text"]
             == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -2815,9 +2872,7 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             name="Personal Installation",
             provider="msteams",
         )
-        self.idp = self.create_identity_provider(
-            integration=self.integration, type="msteams", external_id=self.tenant_id, config={}
-        )
+        self.idp = self.create_identity_provider(integration=self.integration)
         self.user_id_1 = "29:1XJKJMvc5GBtc2JwZq0oj8tHZmzrQgFmB39ATiQWA85gQtHieVkKilBZ9XHoq9j7Zaqt7CZ-NJWi7me2kHTL3Bw"
         self.user_1 = self.user
         self.identity_1 = self.create_identity(
@@ -2849,7 +2904,7 @@ class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
         self.store_session(self.build_session(**kwargs))
 
 
-class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
+class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
     def __indexer_record(self, org_id: int, value: str) -> int:
         return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=value)
 

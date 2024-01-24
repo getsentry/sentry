@@ -9,7 +9,6 @@ from responses.matchers import header_matcher, query_string_matcher
 
 from sentry.integrations.jira.client import JiraCloudClient
 from sentry.integrations.utils.atlassian_connect import get_query_hash
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
@@ -35,7 +34,9 @@ def mock_authorize_request(prepared_request: PreparedRequest):
 @control_silo_test
 class JiraClientTest(TestCase):
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -45,7 +46,6 @@ class JiraClientTest(TestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
         install = self.integration.get_installation(self.organization.id)
         self.jira_client = install.get_client()
 

@@ -5,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {EntryType} from 'sentry/types';
 
 describe('Actionable Items', () => {
@@ -112,6 +113,88 @@ describe('Actionable Items', () => {
     expect(
       await screen.findByText('Discarded unknown attribute (1)')
     ).toBeInTheDocument();
+    expect(await screen.findByText('Expand')).toBeInTheDocument();
+  });
+
+  it('does not render hidden flutter web errors', async () => {
+    const eventErrors = [
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source: 'my_app/main.dart',
+        },
+      },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source:
+            'http://localhost:64053/Documents/flutter/packages/flutter/lib/src/material/ink_well.dart',
+        },
+      },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source:
+            'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/async_patch.dart',
+        },
+      },
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        data: {
+          source:
+            'org-dartlang-sdk:///dart-sdk/lib/_internal/js_runtime/lib/js_helper.dart',
+        },
+      },
+    ];
+
+    MockApiClient.addMockResponse({
+      url,
+      body: {
+        errors: eventErrors,
+      },
+      method: 'GET',
+    });
+
+    const eventWithErrors = EventFixture({
+      errors: eventErrors,
+      sdk: {
+        name: 'sentry.dart.flutter',
+      },
+    });
+
+    render(<ActionableItems {...defaultProps} event={eventWithErrors} />);
+
+    expect(await screen.findByText('Missing Sources Context (1)')).toBeInTheDocument();
+    expect(await screen.findByText('Expand')).toBeInTheDocument();
+  });
+
+  it('handles unknown flutter source', async () => {
+    const eventErrors = [
+      {
+        type: JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT,
+        // Missing Source key
+        data: {},
+      },
+    ];
+
+    MockApiClient.addMockResponse({
+      url,
+      body: {
+        errors: eventErrors,
+      },
+      method: 'GET',
+    });
+
+    const eventWithErrors = EventFixture({
+      errors: eventErrors,
+      sdk: {
+        name: 'sentry.dart.flutter',
+      },
+    });
+
+    render(<ActionableItems {...defaultProps} event={eventWithErrors} />);
+
+    expect(await screen.findByText('Missing Sources Context (1)')).toBeInTheDocument();
     expect(await screen.findByText('Expand')).toBeInTheDocument();
   });
 

@@ -16,7 +16,6 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.utils import is_response_error, is_response_success
 from sentry.models.organization import Organization
 from sentry.net.http import SafeSession
@@ -53,6 +52,10 @@ class BaseApiClient(TrackResponseMixin):
     page_number_limit = 10
 
     integration_name: str
+
+    # Timeout for both the connect and the read timeouts.
+    # See: https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
+    timeout: int = 30
 
     def __init__(
         self,
@@ -190,7 +193,7 @@ class BaseApiClient(TrackResponseMixin):
             allow_redirects = method.upper() == "GET"
 
         if timeout is None:
-            timeout = 30
+            timeout = self.timeout
 
         full_url = self.build_url(path)
 
@@ -325,7 +328,7 @@ class BaseApiClient(TrackResponseMixin):
 
             self.track_response_data(resp.status_code, span, None, resp, extra=extra)
 
-            self.record_response(resp)
+            self.record_response_for_disabling_integration(resp)
 
             if resp.status_code == 204:
                 return {}
@@ -411,7 +414,7 @@ class BaseApiClient(TrackResponseMixin):
                 return output
         return output
 
-    def record_response(self, response: Response):
+    def record_response_for_disabling_integration(self, response: Response):
         redis_key = self._get_redis_key()
         if not len(redis_key):
             return
@@ -440,40 +443,39 @@ class BaseApiClient(TrackResponseMixin):
             self.disable_integration(buffer)
 
     def disable_integration(self, buffer) -> None:
-        rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
+        rpc_integration, rpc_org_integrations = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
-        if (
-            integration_service.get_integration(integration_id=rpc_integration.id).status
-            == ObjectStatus.DISABLED
-        ):
+        if rpc_integration and rpc_integration.status == ObjectStatus.DISABLED:
             return
-        oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
-        org = Organization.objects.get(id=oi.organization_id)
+
+        org = None
+        if len(rpc_org_integrations) > 0:
+            org = Organization.objects.filter(id=rpc_org_integrations[0].organization_id).first()
 
         extra = {
             "integration_id": self.integration_id,
             "buffer_record": buffer._get_all_from_buffer(),
         }
-        if len(rpc_org_integration) == 0 and rpc_integration is None:
+        if len(rpc_org_integrations) == 0 and rpc_integration is None:
             extra["provider"] = "unknown"
             extra["organization_id"] = "unknown"
-        elif len(rpc_org_integration) == 0:
+        elif len(rpc_org_integrations) == 0:
             extra["provider"] = rpc_integration.provider
             extra["organization_id"] = "unknown"
         elif rpc_integration is None:
             extra["provider"] = "unknown"
-            extra["organization_id"] = rpc_org_integration[0].organization_id
+            extra["organization_id"] = rpc_org_integrations[0].organization_id
         else:
             extra["provider"] = rpc_integration.provider
-            extra["organization_id"] = rpc_org_integration[0].organization_id
+            extra["organization_id"] = rpc_org_integrations[0].organization_id
 
         self.logger.info(
             "integration.disabled",
             extra=extra,
         )
 
-        if (
+        if org and (
             (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
             or (rpc_integration.provider == "github")
             or (
@@ -481,7 +483,6 @@ class BaseApiClient(TrackResponseMixin):
                 and rpc_integration.provider == "gitlab"
             )
         ):
-
             integration_service.update_integration(
                 integration_id=rpc_integration.id, status=ObjectStatus.DISABLED
             )

@@ -10,6 +10,7 @@ from typing import (
     Dict,
     List,
     Literal,
+    NamedTuple,
     Optional,
     Sequence,
     Tuple,
@@ -37,6 +38,7 @@ from sentry.api.event_search import (
 from sentry.constants import APDEX_THRESHOLD_DEFAULT, DataCategory
 from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
@@ -48,6 +50,53 @@ from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.utils.snuba import is_measurement, is_span_op_breakdown, resolve_column
 
 logger = logging.getLogger(__name__)
+
+
+# This helps us control the different spec versions
+# in order to migrate customers from invalid specs
+class SpecVersion(NamedTuple):
+    version: int
+    flags: set[str] = set()
+
+
+class OnDemandMetricSpecVersioning:
+    """
+    This class helps iterate over all spec versions we support with get_spec_versions.
+
+    If spec_versions only has one item that means we only have one metric spec being collected.
+
+    In order to add a new spec version update spec_versions with the flags which you will use
+    within OnDemandMetricSpec. You also need to adjust get_query_spec_version to return the spec
+    version you want for a specific feature flag.
+
+    Once we're ready to abandon a version:
+    - coalesce the spec_versions
+    - clear the feature/flags mapping in get_query_spec_version
+    - remove any associated customizations to OnDemandMetricSpec
+
+    When there's a single version we should not have any flags and get_query_spec_version
+    should return the default spec version.
+    """
+
+    spec_versions = [
+        SpecVersion(1),
+    ]
+
+    @classmethod
+    def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
+        """Return spec version based on feature flag enabled for an organization."""
+        _ = Organization.objects.get_from_cache(id=organization_id)
+        return cls.spec_versions[0]
+
+    @classmethod
+    def get_spec_versions(cls: Any) -> Sequence[SpecVersion]:
+        """Get all spec versions."""
+        return cls.spec_versions
+
+    @classmethod
+    def get_default_spec_version(cls: Any) -> SpecVersion:
+        return cls.spec_versions[0]
+
 
 # Name component of MRIs used for custom alert metrics.
 CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
@@ -245,8 +294,13 @@ _STANDARD_METRIC_FIELDS = [
     "geo.country_code",
 ]
 
-# Query fields that we do not consider for the extraction since they are not needed.
-_BLACKLISTED_METRIC_FIELDS = ["event.type", "project"]
+# Query fields that are not considered
+_IGNORED_METRIC_FIELDS = [
+    "event.type",  # on-demand extraction is enabled only for event.type:"transaction"
+    "project",  # on-demand extraction specs are emitted per project
+    "timestamp.to_day",  # relative time windows are not supported
+    "timestamp.to_hour",  # relative time windows are not supported
+]
 
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
@@ -742,8 +796,7 @@ def _is_standard_metrics_search_term(field: str) -> bool:
 
 
 def _is_on_demand_supported_field(field: str) -> bool:
-    # If it's a black listed field, we consider it as compatible with on demand.
-    if field in _BLACKLISTED_METRIC_FIELDS:
+    if field in _IGNORED_METRIC_FIELDS:
         return True
 
     try:
@@ -827,7 +880,7 @@ def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence
     ret_val: List[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
-            if token.key.name not in _BLACKLISTED_METRIC_FIELDS:
+            if token.key.name not in _IGNORED_METRIC_FIELDS:
                 ret_val.append(token)
         elif isinstance(token, ParenExpression):
             ret_val.append(ParenExpression(_remove_blacklisted_search_filters(token.children)))
@@ -853,6 +906,33 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
         return {key: _deep_sorted(value) for key, value in sorted(value.items())}
     else:
         return value
+
+
+def are_specs_equal(spec_1: MetricSpec, spec_2: MetricSpec) -> bool:
+    equal = True
+    if spec_1.keys() != spec_2.keys():
+        equal = False
+
+    if equal:
+        for key, value in spec_1.items():
+            if key == "tags":
+                return _compare_lists(spec_1["tags"], spec_2["tags"])
+
+            elif spec_2.get(key) != value:
+                equal = False
+
+    return equal
+
+
+def _compare_lists(list_1: Sequence[Any], list_2: Sequence[Any]) -> bool:
+    if len(list_1) != len(list_2):
+        return False
+
+    for _, value in enumerate(list_1):
+        if value not in list_2:
+            return False
+
+    return True
 
 
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
@@ -1027,6 +1107,7 @@ class OnDemandMetricSpec:
     query: str
     groupbys: Sequence[str]
     spec_type: MetricSpecType
+    spec_version: SpecVersion
 
     # Public fields.
     op: MetricOperationType
@@ -1042,12 +1123,16 @@ class OnDemandMetricSpec:
         environment: Optional[str] = None,
         groupbys: Optional[Sequence[str]] = None,
         spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
-        use_updated_env_logic: bool = True,
+        spec_version: Optional[SpecVersion] = None,
     ):
         self.field = field
         self.query = query
         self.spec_type = spec_type
-        self.use_updated_env_logic = use_updated_env_logic
+        self.spec_version = (
+            spec_version
+            if spec_version
+            else OnDemandMetricSpecVersioning.get_default_spec_version()
+        )
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
@@ -1104,7 +1189,7 @@ class OnDemandMetricSpec:
     @cached_property
     def query_hash(self) -> str:
         str_to_hash = self._query_str_for_hash
-        hash = hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+        hash = hashlib.shake_128(bytes(str_to_hash, encoding="utf-8")).hexdigest(4)
         with sentry_sdk.start_span(op="OnDemandMetricSpec.query_hash", description=hash) as span:
             span.set_tag("str_to_hash", str_to_hash)
         return hash
@@ -1259,17 +1344,9 @@ class OnDemandMetricSpec:
 
         extended_conditions = conditions
         if new_conditions:
-            if self.use_updated_env_logic:
-                conditions = [ParenExpression(children=conditions)] if conditions else []
-                # This transformation is equivalent to (new_conditions) AND (conditions).
-                extended_conditions = [ParenExpression(children=new_conditions)] + conditions
-            else:
-                # This transformation is not behaving correctly since it can violate precedence rules. Since we use
-                # an AND condition for the environment, it will bind with higher priority than an OR specified in the
-                # user query, effectively resulting in the wrong condition (e.g., (X AND Y) OR Z != X AND (Y OR Z)).
-                #
-                # This transformation is equivalent to new_conditions and conditions.
-                extended_conditions = new_conditions + conditions
+            conditions = [ParenExpression(children=conditions)] if conditions else []
+            # This transformation is equivalent to (new_conditions) AND (conditions).
+            extended_conditions = [ParenExpression(children=new_conditions)] + conditions
 
         return QueryParsingResult(conditions=extended_conditions)
 

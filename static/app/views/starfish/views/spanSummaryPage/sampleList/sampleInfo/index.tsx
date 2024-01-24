@@ -1,7 +1,7 @@
 import {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -103,7 +103,7 @@ function SampleInfo(props: Props) {
             <ThroughputCell
               containerProps={{style}}
               rate={spanMetrics?.['spm()']}
-              unit={RateUnits.PER_MINUTE}
+              unit={RateUnit.PER_MINUTE}
             />
           </Block>
         );

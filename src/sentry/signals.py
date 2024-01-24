@@ -178,7 +178,7 @@ comment_created = BetterSignal()  # ["project", "user", "group", "activity_data"
 comment_updated = BetterSignal()  # ["project", "user", "group", "activity_data"]
 comment_deleted = BetterSignal()  # ["project", "user", "group", "activity_data"]
 
-terms_accepted = BetterSignal()  # ["organization", "organization_id", "user", "ip_address"]
+terms_accepted = BetterSignal()  # ["organization_id", "user", "ip_address"]
 team_created = (
     BetterSignal()
 )  # ["organization", "user", "team", "team_id", "organization_id", "user_id"]
@@ -195,6 +195,8 @@ user_signup = BetterSignal()  # ["user", "source"]
 
 # relocation
 relocated = BetterSignal()  # ["relocation_uuid"]
+relocation_link_promo_code = BetterSignal()  # ["relocation_uuid", "promo_code"]
+relocation_redeem_promo_code = BetterSignal()  # ["user_id", "relocation_uuid", "orgs"]
 
 # After `sentry upgrade` has completed.  Better than post_migrate because it won't run in tests.
 post_upgrade = BetterSignal()  # []

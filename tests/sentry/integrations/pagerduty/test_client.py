@@ -10,12 +10,12 @@ from responses import matchers
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.client import PagerDutyProxyClient
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.integrations.integration import Integration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -32,6 +32,7 @@ SERVICES = [
 ]
 
 
+@control_silo_test
 class PagerDutyProxyClientTest(APITestCase):
     provider = "pagerduty"
 
@@ -42,13 +43,14 @@ class PagerDutyProxyClientTest(APITestCase):
 
     def setUp(self):
         self.login_as(self.user)
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider=self.provider,
             name="Example PagerDuty",
             external_id=EXTERNAL_ID,
             metadata={"services": SERVICES},
         )
-        self.integration.add_organization(self.organization, self.user)
         self.service = add_service(
             self.integration.organizationintegration_set.first(),
             service_name=SERVICES[0]["service_name"],
@@ -144,7 +146,7 @@ def assert_proxy_request(request, is_proxy=True):
 class PagerDutyProxyApiClientTest(APITestCase):
     def setUp(self):
         self.login_as(self.user)
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="pagerduty",
             name="Example PagerDuty",
             external_id=EXTERNAL_ID,
@@ -200,10 +202,13 @@ class PagerDutyProxyApiClientTest(APITestCase):
             project_id=self.project.id,
         )
 
+        assert self.installation.org_integration is not None
+        org_integration_id = self.installation.org_integration.id
+
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = PagerDutyProxyApiTestClient(
-                org_integration_id=self.installation.org_integration.id,
+                org_integration_id=org_integration_id,
                 integration_key=self.service["integration_key"],
                 keyid=str(self.service["id"]),
             )
@@ -218,7 +223,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             client = PagerDutyProxyApiTestClient(
-                org_integration_id=self.installation.org_integration.id,
+                org_integration_id=org_integration_id,
                 integration_key=self.service["integration_key"],
                 keyid=str(self.service["id"]),
             )
@@ -233,7 +238,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.REGION):
             client = PagerDutyProxyApiTestClient(
-                org_integration_id=self.installation.org_integration.id,
+                org_integration_id=org_integration_id,
                 integration_key=self.service["integration_key"],
                 keyid=str(self.service["id"]),
             )

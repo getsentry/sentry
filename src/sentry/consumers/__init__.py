@@ -63,7 +63,7 @@ def ingest_replay_recordings_buffered_options() -> List[click.Option]:
     """Return a list of ingest-replay-recordings-buffered options."""
     options = [
         click.Option(
-            ["--max-buffer-row-count", "max_buffer_row_count"],
+            ["--max-buffer-message-count", "max_buffer_message_count"],
             type=int,
             default=100,
         ),
@@ -296,11 +296,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-commit-log",
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
-    },
-    "ingest-spans": {
-        "click_options": _INGEST_SPANS_OPTIONS,
-        "topic": settings.KAFKA_INGEST_SPANS,
-        "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

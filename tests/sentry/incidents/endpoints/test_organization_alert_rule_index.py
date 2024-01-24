@@ -16,7 +16,6 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
 )
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
@@ -585,14 +584,14 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
-                provider="slack",
-                name="Team A",
-                external_id="TXXXXXXX1",
-                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-            )
-            self.integration.add_organization(self.organization, self.user)
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
         valid_alert_rule = {
             **self.alert_rule_dict,
             "triggers": [
@@ -633,7 +632,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         mock_uuid4.return_value = self.get_mock_uuid()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",
@@ -998,14 +997,14 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
-                provider="slack",
-                name="Team A",
-                external_id="TXXXXXXX1",
-                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-            )
-            self.integration.add_organization(self.organization, self.user)
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
         self.valid_alert_rule["triggers"] = [
             {
                 "label": "critical",

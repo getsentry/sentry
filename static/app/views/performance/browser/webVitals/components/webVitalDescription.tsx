@@ -26,9 +26,9 @@ import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils
 import PerformanceScoreRingWithTooltips from './performanceScoreRingWithTooltips';
 
 type Props = {
-  score: number;
-  value: string;
   webVital: WebVitals;
+  score?: number;
+  value?: string;
 };
 
 const WEB_VITAL_FULL_NAME_MAP = {
@@ -68,7 +68,7 @@ export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
   const colors = theme.charts.getColorPalette(3);
   const dotColor = colors[['lcp', 'fcp', 'fid', 'cls', 'ttfb'].indexOf(webVital)];
-  const status = scoreToStatus(score);
+  const status = score !== undefined ? scoreToStatus(score) : undefined;
 
   return (
     <Header>
@@ -76,13 +76,15 @@ export function WebVitalDetailHeader({score, value, webVital}: Props) {
         <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
         <Value>
           <Dot color={dotColor} />
-          {value}
+          {value ?? ' \u2014 '}
         </Value>
       </span>
-      <ScoreBadge status={status}>
-        <StatusText>{STATUS_TEXT[status]}</StatusText>
-        <StatusScore>{score}</StatusScore>
-      </ScoreBadge>
+      {status && score && (
+        <ScoreBadge status={status}>
+          <StatusText>{STATUS_TEXT[status]}</StatusText>
+          <StatusScore>{score}</StatusScore>
+        </ScoreBadge>
+      )}
     </Header>
   );
 }

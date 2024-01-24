@@ -98,14 +98,19 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             <TimeSince date={feedbackItem.firstSeen} style={{gridArea: 'time'}} />
 
             {feedbackItem.hasSeen ? null : (
-              <Row style={{gridArea: 'unread'}}>
+              <DotRow style={{gridArea: 'unread'}}>
                 <IconCircleFill size="xs" color={isOpen ? 'white' : 'purple400'} />
-              </Row>
+              </DotRow>
             )}
 
-            <Row align="flex-start" justify="flex-start" style={{gridArea: 'message'}}>
-              <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
-            </Row>
+            <PreviewRow
+              align="flex-start"
+              justify="flex-start"
+              style={{gridArea: 'message'}}
+              isOpen={isOpen}
+            >
+              <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
+            </PreviewRow>
 
             <BottomGrid style={{gridArea: 'bottom'}}>
               <Row justify="flex-start" gap={space(0.75)}>
@@ -128,7 +133,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
                 {hasReplayId && (
                   <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
-                    {<IconPlay size="xs" />}
+                    <IconPlay size="xs" />
                   </Tooltip>
                 )}
 
@@ -197,4 +202,23 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
   }
 `;
 
+const PreviewRow = styled(Row)<{isOpen: boolean}>`
+  height: 2.8em;
+  align-items: flex-start;
+  color: ${p => (p.isOpen ? p.theme.white : p.theme.gray300)};
+`;
+
+const DotRow = styled(Row)`
+  height: 2.2em;
+  align-items: flex-start;
+`;
+
+const StyledTextOverflow = styled(TextOverflow)`
+  white-space: initial;
+  height: 2.8em;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  line-height: ${p => p.theme.text.lineHeightBody};
+`;
 export default FeedbackListItem;

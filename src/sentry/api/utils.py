@@ -4,6 +4,7 @@ import datetime
 import logging
 import re
 import sys
+import time
 import traceback
 from contextlib import contextmanager
 from datetime import timedelta
@@ -11,6 +12,7 @@ from typing import Any, Generator, List, Literal, Mapping, Tuple, overload
 from urllib.parse import urlparse
 
 import sentry_sdk
+from django.conf import settings
 from django.http import HttpResponseNotAllowed
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -281,6 +283,13 @@ def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
     if region_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
         region_name = get_local_region().name
+    # TODO(hybridcloud) Remove this once the silo split is complete.
+    if (
+        region_name is None
+        and SiloMode.get_current_mode() == SiloMode.MONOLITH
+        and settings.SENTRY_REGION
+    ):
+        region_name = settings.SENTRY_REGION
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
@@ -431,3 +440,22 @@ def handle_query_errors() -> Generator[None, None, None]:
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
+
+
+class Timer:
+    def __enter__(self):
+        self._start = time.time()
+        self._duration = None
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._end = time.time()
+        self._duration = self._end - self._start
+
+    @property
+    def duration(self):
+        # If _duration is set, return it; otherwise, calculate ongoing duration
+        if self._duration is not None:
+            return self._duration
+        else:
+            return time.time() - self._start
