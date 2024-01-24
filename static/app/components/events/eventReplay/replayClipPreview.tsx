@@ -44,6 +44,9 @@ type Props = {
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
 
+const CLIP_DURATION_BEFORE_EVENT = 10_000;
+const CLIP_DURATION_AFTER_EVENT = 5_000;
+
 function getReplayAnalyticsStatus({
   fetchError,
   replayRecord,
@@ -167,18 +170,28 @@ function ReplayClipPreview({
   });
 
   const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
+  const endTimestampMs = replayRecord?.finished_at?.getTime() ?? 0;
   const eventTimeOffsetMs = Math.abs(eventTimestampMs - startTimestampMs);
+  const endTimeOffsetMs = Math.abs(endTimestampMs - startTimestampMs);
 
   useRouteAnalyticsParams({
     event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
   });
 
+  const clipStartTimeOffsetMs = Math.max(
+    eventTimeOffsetMs - CLIP_DURATION_BEFORE_EVENT,
+    0
+  );
+  const clipDurationMs =
+    Math.min(eventTimeOffsetMs + CLIP_DURATION_AFTER_EVENT, endTimeOffsetMs) -
+    clipStartTimeOffsetMs;
+
   const clipWindow = useMemo(
     () => ({
-      startTimeOffsetMs: Math.max(eventTimeOffsetMs - 10e3, 0),
-      durationMs: 15e3,
+      startTimeOffsetMs: clipStartTimeOffsetMs,
+      durationMs: clipDurationMs,
     }),
-    [eventTimeOffsetMs]
+    [clipDurationMs, clipStartTimeOffsetMs]
   );
   const offset = useMemo(
     () => ({offsetMs: clipWindow.startTimeOffsetMs}),
