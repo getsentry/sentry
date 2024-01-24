@@ -5,51 +5,38 @@ from sentry.api.permissions import (
     SuperuserOrStaffFeatureFlaggedPermission,
     SuperuserPermission,
 )
-from sentry.auth.staff import Staff
-from sentry.auth.superuser import Superuser
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 
 
 class PermissionsTest(TestCase):
     def setUp(self):
-        # self.user is superuser and staff user by default
-        self.request: Request = self.make_request(user=self.user)  # type: ignore
-        self.request.superuser = Superuser(self.request)
-        self.request.staff = Staff(self.request)  # type: ignore[attr-defined]
-        self.login_as(self.user)
-
-    def _activate_superuser(self):
-        self.request.superuser.uid = str(self.user.id)
-        self.request.superuser._is_active = True
-
-    def _activate_staff(self):
-        self.request.staff.uid = str(self.user.id)
-        self.request.staff._is_active = True
+        self.superuser_request: Request = self.make_request(user=self.user, is_superuser=True)  # type: ignore
+        self.staff_request: Request = self.make_request(user=self.user, is_staff=True)  # type: ignore
 
     def test_superuser_permission(self):
-        self._activate_superuser()
-        assert SuperuserPermission().has_permission(self.request, None)
+        assert SuperuserPermission().has_permission(self.superuser_request, None)
 
     def test_staff_permission(self):
-        self._activate_staff()
-        assert StaffPermission().has_permission(self.request, None)
+        assert StaffPermission().has_permission(self.staff_request, None)
 
     @with_feature("auth:enterprise-staff-cookie")
     def test_superuser_or_staff_feature_flagged_permission_active_flag(self):
         # With active superuser
-        self._activate_superuser()
-        assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
+        assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(
+            self.superuser_request, None
+        )
 
         # With active staff
-        self._activate_staff()
-        assert SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
+        assert SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.staff_request, None)
 
     def test_superuser_or_staff_feature_flagged_permission_inactive_flag(self):
         # With active staff
-        self._activate_staff()
-        assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
+        assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(
+            self.staff_request, None
+        )
 
         # With active superuser
-        self._activate_superuser()
-        assert SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
+        assert SuperuserOrStaffFeatureFlaggedPermission().has_permission(
+            self.superuser_request, None
+        )
