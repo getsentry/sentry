@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import copy
 import ipaddress
 import logging
 import re
-import time
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -65,8 +63,10 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
 )
 from sentry.grouping.ingest import (
-    calculate_event_grouping,
+    calculate_primary_hash,
+    calculate_secondary_hash,
     run_background_grouping,
+    should_run_secondary_grouping,
     update_grouping_config_if_needed,
 )
 from sentry.grouping.result import CalculatedHashes
@@ -115,7 +115,7 @@ from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -141,6 +141,8 @@ SECURITY_REPORT_INTERFACES = ("csp", "hpkp", "expectct", "expectstaple", "nel")
 CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 NON_TITLE_EVENT_TITLES = ["<untitled>", "<unknown>", "<unlabeled event>", "Error"]
+
+HIGH_SEVERITY_THRESHOLD = 0.1
 
 
 @dataclass
@@ -523,12 +525,10 @@ class EventManager:
         secondary_hashes = None
         migrate_off_hierarchical = False
 
-        if _should_run_secondary_grouping(project):
+        if should_run_secondary_grouping(project):
             with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
                 secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
-                secondary_hashes = _calculate_secondary_hash(
-                    project, job, secondary_grouping_config
-                )
+                secondary_hashes = calculate_secondary_hash(project, job, secondary_grouping_config)
 
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
@@ -550,7 +550,7 @@ class EventManager:
             op="event_manager",
             description="event_manager.save.calculate_event_grouping",
         ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-            hashes = _calculate_primary_hash(project, job, grouping_config)
+            hashes = calculate_primary_hash(project, job, grouping_config)
 
         if secondary_hashes:
             tags = {
@@ -746,53 +746,6 @@ class EventManager:
         update_grouping_config_if_needed(project)
 
         return job["event"]
-
-
-def _should_run_secondary_grouping(project: Project) -> bool:
-    result = False
-    # These two values are basically always set
-    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
-    secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-    if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-        result = True
-    return result
-
-
-def _calculate_primary_hash(
-    project: Project, job: Job, grouping_config: GroupingConfig
-) -> CalculatedHashes:
-    """
-    Get the primary hash for the event.
-
-    This is pulled out into a separate function mostly in order to make testing easier.
-    """
-    return calculate_event_grouping(project, job["event"], grouping_config)
-
-
-def _calculate_secondary_hash(
-    project: Project, job: Job, secondary_grouping_config: GroupingConfig
-) -> None | CalculatedHashes:
-    """Calculate secondary hash for event using a fallback grouping config for a period of time.
-    This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
-    when the customer changes the grouping config.
-    This causes extra load in save_event processing.
-    """
-    secondary_hashes = None
-    try:
-        with sentry_sdk.start_span(
-            op="event_manager",
-            description="event_manager.save.secondary_calculate_event_grouping",
-        ):
-            # create a copy since `calculate_event_grouping` modifies the event to add all sorts
-            # of grouping info and we don't want the backup grouping data in there
-            event_copy = copy.deepcopy(job["event"])
-            secondary_hashes = calculate_event_grouping(
-                project, event_copy, secondary_grouping_config
-            )
-    except Exception:
-        sentry_sdk.capture_exception()
-
-    return secondary_hashes
 
 
 @metrics.wraps("save_event.pull_out_data")
@@ -1811,7 +1764,13 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
     # add severity to metadata for alert filtering
-    group_data["metadata"].update(_get_severity_metadata_for_group(event))
+    severity = _get_severity_metadata_for_group(event)
+    group_data["metadata"].update(severity)
+
+    if features.has("projects:issue-priority", project, actor=None):
+        priority = _get_priority_for_group(severity, kwargs)
+        kwargs["priority"] = priority
+        group_data["metadata"]["initial_priority"] = priority
 
     return Group.objects.create(
         project=project,
@@ -2047,6 +2006,46 @@ def _get_severity_metadata_for_group(event: Event) -> Mapping[str, Any]:
             return {}
 
     return {}
+
+
+def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, Any]) -> int:
+    """
+    Returns priority for an event based on severity score and log level.
+    """
+    try:
+        level = kwargs.get("level", None)
+        severity_score = severity.get("severity", None)
+
+        if level in [logging.INFO, logging.DEBUG]:
+            return PriorityLevel.LOW
+
+        elif level == logging.FATAL:
+            return PriorityLevel.HIGH
+
+        elif level == logging.WARNING:
+            if severity_score is None or severity_score < HIGH_SEVERITY_THRESHOLD:
+                return PriorityLevel.MEDIUM
+
+            return PriorityLevel.HIGH  # severity_score >= HIGH_SEVERITY_THRESHOLD
+        elif level == logging.ERROR:
+            if severity_score is None or severity_score >= HIGH_SEVERITY_THRESHOLD:
+                return PriorityLevel.HIGH
+
+            return PriorityLevel.MEDIUM  # severity_score < HIGH_SEVERITY_THRESHOLD
+
+        logger.warning("Unknown log level %s or severity score %s", level, severity_score)
+        return PriorityLevel.MEDIUM
+    except Exception as e:
+        logger.exception(
+            "Failed to calculate priority for group",
+            repr(e),
+            extra={
+                "severity": severity,
+                "kwargs": kwargs,
+            },
+        )
+
+        return PriorityLevel.MEDIUM
 
 
 def _get_severity_score(event: Event) -> Tuple[float, str]:
