@@ -565,11 +565,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             )
         if len(suggested_assignees) > 0:
             suggested_assignee_text = "Suggested Assignees: "
-            for idx, assignee in enumerate(suggested_assignees):
-                if idx != 0:
-                    suggested_assignee_text += ", "
-                suggested_assignee_text += assignee
-            blocks.append(self.get_context_block(suggested_assignee_text))
+            for assignee in suggested_assignees:
+                suggested_assignee_text += assignee + ", "
+            blocks.append(
+                self.get_context_block(suggested_assignee_text[:-2])
+            )  # get rid of comma at the end
 
         # add mentions
         if self.mentions:

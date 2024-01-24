@@ -57,6 +57,7 @@ def build_test_message_blocks(
     tags: dict[str, str] | None = None,
     suggested_assignees: str | None = None,
     mentions: str | None = None,
+    initial_assignee: Team | User | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -127,6 +128,17 @@ def build_test_message_blocks(
             },
         ],
     }
+    if initial_assignee:
+        if isinstance(initial_assignee, User):
+            actions["elements"][2]["initial_option"] = {
+                "text": {"type": "plain_text", "text": f"{initial_assignee.email}"},
+                "value": f"user:{initial_assignee.id}",
+            }
+        else:
+            actions["elements"][2]["initial_option"] = {
+                "text": {"type": "plain_text", "text": f"#{initial_assignee.slug}"},
+                "value": f"team:{initial_assignee.id}",
+            }
     blocks.append(actions)
 
     if suggested_assignees:
@@ -499,11 +511,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             suggested_assignees=f"#{self.team.slug}, <mailto:{user2.email}|{user2.email}>",  # auto-assignee is not included in suggested
+            initial_assignee=self.user,
         )
-        expected_blocks["blocks"][3]["elements"][2]["initial_option"] = {
-            "text": {"type": "plain_text", "text": f"{self.user.email}"},
-            "value": f"user:{self.user.id}",
-        }
         assert (
             SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
             == expected_blocks
