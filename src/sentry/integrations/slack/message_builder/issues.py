@@ -257,6 +257,8 @@ def get_suggested_assignees(
             if assignee.actor_type == ActorType.USER and not (
                 isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
             ):
+                # for user assignees, we first try to get their Slack identity; if it's not linked,
+                # we use their display name linked with their email
                 assignee_identity = None
                 assignee_identities = identity_service.get_user_identities_by_provider_type(
                     user_id=assignee.id, provider_type=ExternalProviderEnum.SLACK.value

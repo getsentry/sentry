@@ -439,6 +439,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert event.group
         group = event.group
+
         # create codeowner; user with no slack identity linked
         self.code_mapping = self.create_code_mapping(project=self.project)
         g_rule1 = Rule(Matcher("path", "*"), [Owner("team", self.team.slug)])
@@ -489,7 +490,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             context={"commitId": commit.id},
         )
 
-        # auto assign group; should assign to suspect commit
+        # auto assign group
         ProjectOwnership.handle_auto_assignment(self.project.id, event)
 
         expected_blocks = build_test_message_blocks(
