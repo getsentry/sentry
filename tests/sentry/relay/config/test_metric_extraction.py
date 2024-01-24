@@ -504,6 +504,72 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
 
 
 @django_db_all
+@override_options({"on_demand.max_widget_specs": 1, "on_demand.extended_max_widget_specs": 0})
+def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.splitlines()[0].split(": ")[1:3] == [
+            "Spec version 1",
+            "Too many (2) on demand metric widgets for project bar",
+        ]
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 1})
+def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
+        {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+    ):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
+
+        out, _ = capfd.readouterr()
+        assert out.splitlines()[0].split(": ")[1:3] == [
+            "Spec version 1",
+            "Too many (2) on demand metric widgets for project bar",
+        ]
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 2})
+def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
+    capfd: Any,
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
+        {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
+    ):
+        create_widget(["count()"], "transaction.duration:>=1100", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+
+
+@django_db_all
 def test_get_metric_extraction_config_alerts_and_widgets_off(default_project: Project) -> None:
     # widgets should be skipped if the feature is off
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: False}):
