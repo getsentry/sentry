@@ -74,43 +74,27 @@ function EventReplayContent({
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
+  const replayComponent = hasReplayClipFeature ? replayClipPreview : replayPreview;
+
   return (
     <ReplaySectionMinHeight>
       <ErrorBoundary mini>
         <ReactLazyLoad debounce={50} height={448} offset={0} once>
-          {!hasReplayClipFeature ? (
-            <LazyLoad
-              component={replayPreview}
-              replaySlug={replayId}
-              orgSlug={organization.slug}
-              eventTimestampMs={eventTimestampMs}
-              buttonProps={{
-                analyticsEventKey: 'issue_details.open_replay_details_clicked',
-                analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-                analyticsParams: {
-                  ...getAnalyticsDataForEvent(event),
-                  ...getAnalyticsDataForGroup(group),
-                  organization,
-                },
-              }}
-            />
-          ) : (
-            <LazyLoad
-              component={replayClipPreview}
-              replaySlug={replayId}
-              orgSlug={organization.slug}
-              eventTimestampMs={eventTimestampMs}
-              fullReplayButtonProps={{
-                analyticsEventKey: 'issue_details.open_replay_details_clicked',
-                analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-                analyticsParams: {
-                  ...getAnalyticsDataForEvent(event),
-                  ...getAnalyticsDataForGroup(group),
-                  organization,
-                },
-              }}
-            />
-          )}
+          <LazyLoad
+            component={replayComponent}
+            replaySlug={replayId}
+            orgSlug={organization.slug}
+            eventTimestampMs={eventTimestampMs}
+            buttonProps={{
+              analyticsEventKey: 'issue_details.open_replay_details_clicked',
+              analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+              analyticsParams: {
+                ...getAnalyticsDataForEvent(event),
+                ...getAnalyticsDataForGroup(group),
+                organization,
+              },
+            }}
+          />
         </ReactLazyLoad>
       </ErrorBoundary>
     </ReplaySectionMinHeight>
