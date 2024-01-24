@@ -557,7 +557,8 @@ class FromRequestTest(AccessFactoryTestCase):
             result = self.from_request(request, self.org)
             assert result.scopes == SUPERUSER_READONLY_SCOPES
 
-            UserPermission.objects.create(user=self.superuser, permission="superuser.write")
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                UserPermission.objects.create(user=self.superuser, permission="superuser.write")
 
             result = self.from_request(request, self.org)
             assert result.scopes == SUPERUSER_SCOPES
