@@ -69,7 +69,8 @@ class BaseQuerySet(QuerySet, abc.ABC):
 
     def update(self, **kwargs: Any) -> int:
         if self._with_post_update_signal:
-            ids = [result[0] for result in self.update_with_returning(["id"], **kwargs)]
+            pk = self.model._meta.pk.name
+            ids = [result[0] for result in self.update_with_returning([pk], **kwargs)]
             updated_fields = list(kwargs.keys())
             post_update.send(sender=self.model, updated_fields=updated_fields, model_ids=ids)
             return len(ids)
