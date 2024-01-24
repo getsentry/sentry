@@ -9,11 +9,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Tag from 'sentry/components/tag';
 import {
   IconCheckmark,
-  IconChevron,
   IconClose,
-  IconEdit,
-  IconInfo,
-  IconInput,
   IconLightning,
   IconReleases,
   IconSliders,
