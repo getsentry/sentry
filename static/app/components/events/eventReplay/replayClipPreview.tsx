@@ -81,11 +81,7 @@ function ReplayPreviewPlayer({
   const routes = useRoutes();
   const organization = useOrganization();
   const isFullscreen = useIsFullscreen();
-  const {
-    currentTime,
-    startTimeOffsetMs: startTime,
-    durationMs: duration,
-  } = useReplayContext();
+  const {currentTime, startTimeOffsetMs, durationMs} = useReplayContext();
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
   // it. https://caniuse.com/fullscreen
@@ -114,7 +110,7 @@ function ReplayPreviewPlayer({
           <Container>
             <TimeAndScrubberGrid>
               <Time style={{gridArea: 'currentTime'}}>
-                {formatTime(currentTime - startTime)}
+                {formatTime(currentTime - startTimeOffsetMs)}
               </Time>
               <div style={{gridArea: 'timeline'}}>
                 <ReplayTimeline />
@@ -127,7 +123,7 @@ function ReplayPreviewPlayer({
                 <PlayerScrubber showZoomIndicators />
               </StyledScrubber>
               <Time style={{gridArea: 'duration'}}>
-                {duration ? formatTime(duration) : '--:--'}
+                {durationMs ? formatTime(durationMs) : '--:--'}
               </Time>
             </TimeAndScrubberGrid>
           </Container>
