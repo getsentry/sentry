@@ -308,8 +308,8 @@ class BaseTestCase(Fixtures):
         organization_id=None,
         organization_ids=None,
         superuser=False,
-        superuser_sso=True,
         staff=False,
+        superuser_staff_sso=True,
     ):
         if isinstance(user, OrganizationMember):
             with assume_test_silo_mode(SiloMode.CONTROL):
@@ -326,7 +326,7 @@ class BaseTestCase(Fixtures):
             organization_ids = set()
         else:
             organization_ids = set(organization_ids)
-        if superuser and superuser_sso is not False:
+        if (superuser or staff) and superuser_staff_sso is not False:
             if SU_ORG_ID:
                 organization_ids.add(SU_ORG_ID)
         if organization_id:
