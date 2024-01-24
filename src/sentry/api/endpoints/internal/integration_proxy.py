@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from typing import Dict
 from urllib.parse import urljoin
 
@@ -30,9 +31,7 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class InternalIntegrationProxyEndpoint(Endpoint):
-    publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
-    }
+    publish_status = defaultdict(lambda: ApiPublishStatus.PRIVATE)
     owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = ()
     permission_classes = ()
