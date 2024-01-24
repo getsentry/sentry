@@ -303,7 +303,7 @@ class GroupManager(BaseManager["Group"]):
         return (
             super()
             .get_queryset()
-            .enable_post_update_signal(options.get("groups.enable-post-update-signal"))
+            .with_post_update_signal(options.get("groups.enable-post-update-signal"))
         )
 
     def by_qualified_short_id(self, organization_id: int, short_id: str):

@@ -49,7 +49,7 @@ def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
         instance.__class__.objects.using(using)
         .filter(pk=instance.pk)
         # Disable the post update query signal since we're going to send a more specific `post_save` signal here.
-        .enable_post_update_signal(False)
+        .with_post_update_signal(False)
         .update(**kwargs)
     )
     for k, v in kwargs.items():

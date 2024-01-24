@@ -1,6 +1,7 @@
 import abc
 from typing import Any, List
 
+from django.core import exceptions
 from django.db import connections, router, transaction
 from django.db.models import QuerySet, sql
 
@@ -10,32 +11,47 @@ from sentry.signals import post_update
 class BaseQuerySet(QuerySet, abc.ABC):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._send_post_update_signal = False
+        self._with_post_update_signal = False
 
-    def enable_post_update_signal(self, enable: bool) -> "BaseQuerySet":
+    def with_post_update_signal(self, enable: bool) -> "BaseQuerySet":
         """
         Enables sending a `post_update` signal after this queryset runs an update command. Note that this is less
         efficient than just running the update. To get the list of group ids affected, we first run the query to
         fetch the rows we want to update, then run the update using those ids.
         """
         qs = self.all()
-        qs._send_post_update_signal = enable
+        qs._with_post_update_signal = enable
         return qs
 
     def _clone(self) -> "BaseQuerySet":
         qs = super()._clone()  # type: ignore[misc]
-        qs._send_post_update_signal = self._send_post_update_signal
+        qs._with_post_update_signal = self._with_post_update_signal
         return qs
 
     def update_with_returning(self, returned_fields: List[str], **kwargs):
         """
         Copied and modified from `Queryset.update()` to support `RETURNING <returned_fields>`
         """
-        self._not_support_combined_queries("update")  # type: ignore[attr-defined]
-        assert not self.query.is_sliced, "Cannot update a query once a slice has been taken."
+        self._not_support_combined_queries("update")
+        if self.query.is_sliced:
+            raise TypeError("Cannot update a query once a slice has been taken.")
         self._for_write = True
         query = self.query.chain(sql.UpdateQuery)
-        query.add_update_values(kwargs)  # type: ignore[attr-defined]
+        query.add_update_values(kwargs)
+
+        # Inline annotations in order_by(), if possible.
+        new_order_by = []
+        for col in query.order_by:
+            if annotation := query.annotations.get(col):
+                if getattr(annotation, "contains_aggregate", False):
+                    raise exceptions.FieldError(
+                        f"Cannot update when ordering by an aggregate: {annotation}"
+                    )
+                new_order_by.append(annotation)
+            else:
+                new_order_by.append(col)
+        query.order_by = tuple(new_order_by)
+
         # Clear any annotations so that they won't be present in subqueries.
         query.annotations = {}
         with transaction.mark_for_rollback_on_error(using=self.db):
@@ -49,8 +65,10 @@ class BaseQuerySet(QuerySet, abc.ABC):
         self._result_cache = None
         return result_ids
 
+    update_with_returning.alters_data = True
+
     def update(self, **kwargs: Any) -> int:
-        if self._send_post_update_signal:
+        if self._with_post_update_signal:
             ids = [result[0] for result in self.update_with_returning(["id"], **kwargs)]
             updated_fields = list(kwargs.keys())
             post_update.send(sender=self.model, updated_fields=updated_fields, model_ids=ids)

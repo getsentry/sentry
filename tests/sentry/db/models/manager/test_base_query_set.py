@@ -62,7 +62,7 @@ class TestSendPostUpdateSignal(TestCase):
         ):
             assert (
                 Group.objects.filter(id=self.group.id)
-                .enable_post_update_signal(False)
+                .with_post_update_signal(False)
                 .update(message="hi")
                 == 1
             )
@@ -71,11 +71,11 @@ class TestSendPostUpdateSignal(TestCase):
 
     def test_enable(self):
         qs = Group.objects.all()
-        assert not qs._send_post_update_signal
-        new_qs = qs.enable_post_update_signal(True)
+        assert not qs._with_post_update_signal
+        new_qs = qs.with_post_update_signal(True)
         # Make sure we don't modify the previous queryset
-        assert not qs._send_post_update_signal
-        assert new_qs._send_post_update_signal
+        assert not qs._with_post_update_signal
+        assert new_qs._with_post_update_signal
 
     def test_triggered(self):
         message = "hi"
