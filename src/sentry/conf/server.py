@@ -3685,8 +3685,6 @@ SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
 SAMPLED_DEFAULT_RATE = 1.0
 
-SENTRY_PROCESS_INCR_SAMPLE_RATE = 0.01
-
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
 
