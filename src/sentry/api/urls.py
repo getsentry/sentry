@@ -739,7 +739,7 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
         re_path(
             r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
             GroupAiAutofixEndpoint.as_view(),
-            name="sentry-api-0-group-ai-autofix",
+            name=f"{name_prefix}-group-ai-autofix",
         ),
         # Load plugin group urls
         re_path(
