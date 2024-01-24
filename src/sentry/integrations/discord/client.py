@@ -17,7 +17,6 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.integrations.discord")
 
 
-DISCORD_DATADOG_METRIC = "integrations.discord.http_response"
 DISCORD_BASE_URL = "https://discord.com/api/v10"
 
 # https://discord.com/developers/docs/resources/guild#get-guild
@@ -120,25 +119,36 @@ class DiscordClient(ApiClient):
     ) -> None:
         if code == status.HTTP_403_FORBIDDEN:
             metrics.incr(
-                DISCORD_DATADOG_METRIC,
+                f"{self.metrics_prefix}.http_response",
                 sample_rate=1.0,
-                tags={"status": code, "is_user_error": True},
+                tags={str(self.integration_type): self.name, "status": code, "is_user_error": True},
             )
         else:
             metrics.incr(
-                DISCORD_DATADOG_METRIC,
+                f"{self.metrics_prefix}.http_response",
                 sample_rate=1.0,
-                tags={"status": code, "is_user_error": False},
+                tags={
+                    str(self.integration_type): self.name,
+                    "status": code,
+                    "is_user_error": False,
+                },
             )
 
-        extra = {
+        try:
+            span.set_http_status(int(code))
+        except ValueError:
+            span.set_status(str(code))
+
+        log_params = {
             **(extra or {}),
-            self.integration_type: self.name,
             "status_string": str(code),
             "error": str(error)[:256] if error else None,
         }
-        extra.update(getattr(self, "logging_context", None) or {})
-        self.logger.info("%s.http_response", self.integration_type, extra=extra)
+        if self.integration_type:
+            log_params[self.integration_type] = self.name
+
+        log_params.update(getattr(self, "logging_context", None) or {})
+        self.logger.info("%s.http_response", self.integration_type, extra=log_params)
 
     def send_message(
         self, channel_id: str, message: DiscordMessageBuilder, notification_uuid: str | None = None
