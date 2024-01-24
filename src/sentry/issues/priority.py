@@ -77,7 +77,7 @@ def get_priority_for_escalating_group(group: Group) -> PriorityLevel | None:
         group.id,
         group.priority,
     )
-    return
+    return None
 
 
 def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
