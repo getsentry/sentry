@@ -7,6 +7,8 @@ from urllib.parse import urljoin
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -28,6 +30,10 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class InternalIntegrationProxyEndpoint(Endpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.PRIVATE,
+    }
+    owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = ()
     permission_classes = ()
     log_extra: Dict[str, str | int] = {}
