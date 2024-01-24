@@ -29,8 +29,8 @@ class IntegrationTestCase(TestCase):
 
     def test_with_context(self):
         integration = IntegrationInstallation(self.model, self.organization.id)
-
         assert integration.model.id == self.model.id
+        assert integration.org_integration is not None
         assert integration.org_integration.id == self.org_integration.id
         assert integration.get_default_identity() == serialize_identity(self.identity)
 
