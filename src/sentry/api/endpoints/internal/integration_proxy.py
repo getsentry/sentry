@@ -31,6 +31,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
     log_extra: Dict[str, str | int] = {}
+    enforce_rate_limit = False
     """
     This endpoint is used to proxy requests from region silos to the third-party
     integration on behalf of credentials stored in the control silo.
