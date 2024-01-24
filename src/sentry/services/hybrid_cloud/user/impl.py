@@ -16,6 +16,7 @@ from sentry.api.serializers import (
 from sentry.api.serializers.base import Serializer, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models.authidentity import AuthIdentity
+from sentry.models.avatars import UserAvatar
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -29,13 +30,14 @@ from sentry.services.hybrid_cloud.filter_query import (
 from sentry.services.hybrid_cloud.organization_mapping.model import RpcOrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user import (
+    RpcAvatar,
     RpcUser,
     UserFilterArgs,
     UserSerializeType,
     UserUpdateArgs,
 )
 from sentry.services.hybrid_cloud.user.model import RpcVerifyUserEmail, UserIdEmailArgs
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user, serialize_user_avatar
 from sentry.services.hybrid_cloud.user.service import UserService
 from sentry.signals import user_signup
 
@@ -251,6 +253,14 @@ class DatabaseBackedUserService(UserService):
             exists = UserEmail.objects.filter(user_id=user_id, email__iexact=email).exists()
             results[user_id] = RpcVerifyUserEmail(email=email, exists=exists)
         return results
+
+    def get_user_avatar(self, *, user_id: int) -> RpcAvatar | None:
+        possible_avatar = UserAvatar.objects.filter(user_id=user_id).first()
+
+        if not possible_avatar:
+            return None
+
+        return serialize_user_avatar(avatar=possible_avatar)
 
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],
