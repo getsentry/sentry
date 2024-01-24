@@ -114,9 +114,13 @@ class DiscordClient(ApiClient):
         code: str | int,
         span: Span | None = None,
         error: Exception | None = None,
-        resp: Response | None = None,
+        resp: Optional[Response] = None,
         extra: Optional[Mapping[str, str]] = None,
     ) -> None:
+        # if no span was passed, create a dummy to which to add data to avoid having to wrap every
+        # span call in `if span`
+        span = span or Span()
+
         if code == status.HTTP_403_FORBIDDEN:
             metrics.incr(
                 f"{self.metrics_prefix}.http_response",
