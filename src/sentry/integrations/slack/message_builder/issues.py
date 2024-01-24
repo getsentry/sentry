@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Sequence, Union
 
@@ -33,20 +34,29 @@ from sentry.integrations.slack.message_builder.base.block import BlockSlackMessa
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.actor import ActorTuple
+from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.participants import (
+    dedupe_suggested_assignees,
+    get_suspect_commit_users,
+)
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+logger = logging.getLogger(__name__)
 
 
 def time_since(value: datetime):
@@ -216,6 +226,59 @@ def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
             option_groups.append({"label": member.email, "value": f"user:{member.id}"})
 
     return option_groups
+
+
+def get_suggested_assignees(
+    project: Project, event: GroupEvent, current_assignee: RpcUser | Team | None
+) -> list[str]:
+    """Get suggested assignees as a list of formatted strings"""
+    suggested_assignees = []
+    issue_owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+    if (
+        issue_owners != ProjectOwnership.Everyone
+    ):  # we don't want every user in the project to be a suggested assignee
+        resolved_owners = ActorTuple.resolve_many(issue_owners)
+        suggested_assignees = RpcActor.many_from_object(resolved_owners)
+    if features.has("organizations:streamline-targeting-context", project.organization):
+        try:
+            suspect_commit_users = RpcActor.many_from_object(
+                get_suspect_commit_users(project, event)
+            )
+            suggested_assignees.extend(suspect_commit_users)
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            logger.info("Skipping suspect committers because release does not exist.")
+        except Exception:
+            logger.exception("Could not get suspect committers. Continuing execution.")
+    if suggested_assignees:
+        suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
+        assignee_texts = []
+        for assignee in suggested_assignees:
+            # skip over any suggested assignees that are the current assignee of the issue, if there is any
+            if assignee.actor_type == ActorType.USER and not (
+                isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
+            ):
+                # for user assignees, we first try to get their Slack identity; if it's not linked,
+                # we use their display name linked with their email
+                assignee_identity = None
+                assignee_identities = identity_service.get_user_identities_by_provider_type(
+                    user_id=assignee.id, provider_type=ExternalProviderEnum.SLACK.value
+                )
+                if len(assignee_identities) > 0:
+                    assignee_identity = assignee_identities[0]
+                if assignee_identity is None:
+                    assignee_as_user = assignee.resolve()
+                    assignee_text = (
+                        f"<mailto:{assignee_as_user.email}|{assignee_as_user.get_display_name()}>"
+                    )
+                else:
+                    assignee_text = f"<@{assignee_identity.external_id}>"
+                assignee_texts.append(assignee_text)
+            elif assignee.actor_type == ActorType.TEAM and not (
+                isinstance(current_assignee, Team) and assignee.id == current_assignee.id
+            ):
+                assignee_texts.append(f"#{assignee.slug}")
+        return assignee_texts
+    return []
 
 
 def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
@@ -471,6 +534,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # build actions
         actions = []
+        assignee = self.group.get_assignee()
         for action in payload_actions:
             if action.label in (
                 "Archive",
@@ -483,7 +547,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             ):
                 actions.append(self.get_button_action(action))
             elif action.name == "assign":
-                assignee = self.group.get_assignee()
                 actions.append(
                     self.get_external_select_action(
                         action, format_actor_option(assignee, True) if assignee else None
@@ -493,6 +556,20 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if actions:
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
+
+        # suggested assignees
+        suggested_assignees = []
+        if event_for_tags:
+            suggested_assignees = get_suggested_assignees(
+                self.group.project, event_for_tags, assignee
+            )
+        if len(suggested_assignees) > 0:
+            suggested_assignee_text = "Suggested Assignees: "
+            for assignee in suggested_assignees:
+                suggested_assignee_text += assignee + ", "
+            blocks.append(
+                self.get_context_block(suggested_assignee_text[:-2])
+            )  # get rid of comma at the end
 
         # add mentions
         if self.mentions:
