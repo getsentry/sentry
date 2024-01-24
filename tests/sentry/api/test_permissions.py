@@ -13,9 +13,10 @@ from sentry.testutils.cases import TestCase
 class PermissionsTest(TestCase):
     def setUp(self):
         # self.user is superuser and staff user by default
-        self.request = Request(self.make_request(user=self.user))
+        self.request: Request = self.make_request(user=self.user)  # type: ignore
         self.request.superuser = Superuser(self.request)
         self.request.staff = Staff(self.request)  # type: ignore[attr-defined]
+        self.login_as(self.user)
 
     def _activate_superuser(self):
         self.request.superuser.uid = str(self.user.id)
@@ -36,13 +37,28 @@ class PermissionsTest(TestCase):
     def test_superuser_or_staff_feature_flagged_permission(self):
         # Feature flag enabled
         with self.feature("auth:enterprise-staff-cookie"):
+            # With active superuser
+            self._activate_superuser()
             assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
 
+            # Without active superuser
+            self.request.superuser = Superuser(self.request)
+            assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
+
+            # With active staff
             self._activate_staff()
             assert SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
 
         # Feature flag disabled
+
+        # With active staff
+        self._activate_staff()
         assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
 
+        # Without active staff
+        self.request.staff = Staff(self.request)  # type: ignore[attr-defined]
+        assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
+
+        # With active superuser
         self._activate_superuser()
         assert SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
