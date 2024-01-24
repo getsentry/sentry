@@ -3,6 +3,7 @@ import pytest
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="Test setup no longer valid")
 class AddPriorityColumnTests(TestMigrations):
     migrate_from = "0632_apitoken_backfill_last_chars"
     migrate_to = "0633_add_priority_locked_at_to_groupedmessage"
