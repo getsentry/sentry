@@ -649,3 +649,64 @@ class TestOutboxesManager(TestCase):
 
         assert RegionOutbox.objects.count() == 0
         assert OrganizationMemberTeamReplica.objects.count() == 1
+
+
+class OutboxAggregationTest(TestCase):
+    def setUp(self):
+        shard_counts = {1: (4, "eu"), 2: (7, "us"), 3: (1, "us")}
+        with outbox_runner():
+            pass
+
+        for shard_id, (shard_count, region_name) in shard_counts.items():
+            for i in range(shard_count):
+                ControlOutbox(
+                    region_name=region_name,
+                    shard_scope=OutboxScope.WEBHOOK_SCOPE,
+                    shard_identifier=shard_id,
+                    category=OutboxCategory.WEBHOOK_PROXY,
+                    object_identifier=shard_id * 10000 + i,
+                    payload='{"foo": "bar"}',
+                ).save()
+
+    def test_calculate_sharding_depths(self):
+        shard_depths = ControlOutbox.get_shard_depths_descending()
+
+        assert shard_depths == [
+            dict(
+                shard_identifier=2,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=7,
+            ),
+            dict(
+                shard_identifier=1,
+                region_name="eu",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=4,
+            ),
+            dict(
+                shard_identifier=3,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=1,
+            ),
+        ]
+
+        # Test limiting the query to a single entry
+        shard_depths = ControlOutbox.get_shard_depths_descending(limit=1)
+        assert shard_depths == [
+            dict(
+                shard_identifier=2,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=7,
+            )
+        ]
+
+    def test_calculate_sharding_depths_empty(self):
+        ControlOutbox.objects.all().delete()
+        assert ControlOutbox.objects.count() == 0
+        assert ControlOutbox.get_shard_depths_descending() == []
+
+    def test_total_count(self):
+        assert ControlOutbox.get_total_outbox_count() == 7 + 4 + 1
