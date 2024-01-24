@@ -177,7 +177,7 @@ __all__ = (
     "SCIMAzureTestCase",
     "MetricsEnhancedPerformanceTestCase",
     "MetricsAPIBaseTestCase",
-    "OrganizationMetricMetaIntegrationTestCase",
+    "OrganizationMetricsIntegrationTestCase",
     "ProfilesSnubaTestCase",
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
@@ -2904,7 +2904,7 @@ class MetricsAPIBaseTestCase(BaseMetricsLayerTestCase, APITestCase):
         self.store_session(self.build_session(**kwargs))
 
 
-class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
+class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
     def __indexer_record(self, org_id: int, value: str) -> int:
         return indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=value)
 

@@ -9,7 +9,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
-from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
+from sentry.testutils.cases import OrganizationMetricsIntegrationTestCase
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
@@ -24,7 +24,7 @@ def mocked_bulk_reverse_resolve(use_case_id, org_id: int, ids: Collection[int]):
 
 
 @region_silo_test
-class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
+class OrganizationMetricsTagsIntegrationTest(OrganizationMetricsIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tags"
 
