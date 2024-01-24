@@ -183,7 +183,7 @@ def _should_run_secondary_grouping(project: Project) -> bool:
     return secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time()
 
 
-def calculate_secondary_hash(
+def _calculate_secondary_hash(
     project: Project, job: Job, secondary_grouping_config: GroupingConfig
 ) -> None | CalculatedHashes:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
@@ -315,7 +315,7 @@ def get_hash_values(
     if _should_run_secondary_grouping(project):
         with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
             secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
-            secondary_hashes = calculate_secondary_hash(project, job, secondary_grouping_config)
+            secondary_hashes = _calculate_secondary_hash(project, job, secondary_grouping_config)
 
     with metrics.timer("event_manager.load_grouping_config"):
         # At this point we want to normalize the in_app values in case the
