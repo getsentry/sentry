@@ -519,9 +519,7 @@ class EventManager:
         # Background grouping is a way for us to get performance metrics for a new
         # config without having it actually affect on how events are grouped. It runs
         # either before or after the main grouping logic, depending on the option value.
-        do_background_grouping_before = options.get("store.background-grouping-before")
-        if do_background_grouping_before:
-            run_background_grouping(project, job)
+        run_background_grouping(project, job)
 
         secondary_hashes = None
         migrate_off_hierarchical = False
@@ -597,9 +595,6 @@ class EventManager:
                 hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
             ),
         )
-
-        if not do_background_grouping_before:
-            run_background_grouping(project, job)
 
         if hashes.tree_labels:
             job["finest_tree_label"] = hashes.finest_tree_label
