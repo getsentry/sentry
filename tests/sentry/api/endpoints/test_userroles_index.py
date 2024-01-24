@@ -3,6 +3,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class UserRolesTest(APITestCase):
     endpoint = "sentry-api-0-userroles"
 
@@ -31,7 +32,6 @@ class UserRolesTest(APITestCase):
         assert resp.status_code == 403
 
 
-@control_silo_test
 class UserRolesGetTest(UserRolesTest):
     def test_simple(self):
         UserRole.objects.create(name="test-role")
@@ -41,7 +41,6 @@ class UserRolesGetTest(UserRolesTest):
         assert "test-role" in [r["name"] for r in resp.data]
 
 
-@control_silo_test
 class UserRolesPostTest(UserRolesTest):
     method = "POST"
 

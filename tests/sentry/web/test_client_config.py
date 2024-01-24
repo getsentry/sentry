@@ -23,7 +23,7 @@ from sentry.testutils.requests import (
     make_user_request_from_org,
     request_factory,
 )
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_regions, no_silo_test
 from sentry.types import region
 from sentry.web.client_config import get_client_config
 
@@ -58,6 +58,7 @@ def clear_env_request():
     env.clear()
 
 
+@no_silo_test
 @pytest.mark.parametrize(
     "request_factory",
     [
@@ -85,19 +86,13 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
     base_line["links"].pop("regionUrl")
     cache.clear()
 
-    with override_settings(SILO_MODE=SiloMode.REGION):
-        result = get_client_config(request)
-        result.pop("regions")
-        result["links"].pop("regionUrl")
-        assert result == base_line
-        cache.clear()
-
-    with override_settings(SILO_MODE=SiloMode.CONTROL):
-        result = get_client_config(request)
-        result.pop("regions")
-        result["links"].pop("regionUrl")
-        assert result == base_line
-        cache.clear()
+    for silo_mode in SiloMode:
+        with override_settings(SILO_MODE=silo_mode):
+            result = get_client_config(request)
+            result.pop("regions")
+            result["links"].pop("regionUrl")
+            assert result == base_line
+            cache.clear()
 
 
 @django_db_all(transaction=True)

@@ -168,6 +168,7 @@ class TestOrgAuthTokenAuthentication(TestCase):
             self.auth.authenticate(request)
 
 
+@control_silo_test
 class TestTokenAuthentication(TestCase):
     def setUp(self):
         super().setUp()
