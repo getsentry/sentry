@@ -211,6 +211,29 @@ export const getIntegrationIcon = (
   }
 };
 
+export const getIntegrationDisplayName = (integrationType?: string) => {
+  switch (integrationType) {
+    case 'asana':
+      return t('Asana');
+    case 'bitbucket':
+      return t('Bitbucket');
+    case 'gitlab':
+      return t('GitLab');
+    case 'github':
+    case 'github_enterprise':
+      return t('GitHub');
+    case 'jira':
+    case 'jira_server':
+      return t('Jira');
+    case 'vsts':
+      return t('VSTS');
+    case 'codecov':
+      return t('Codeov');
+    default:
+      return '';
+  }
+};
+
 export const getIntegrationSourceUrl = (
   integrationType: string,
   sourceUrl: string,

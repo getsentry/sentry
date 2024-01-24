@@ -9,7 +9,10 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Event, Group} from 'sentry/types';
-import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {
+  getIntegrationDisplayName,
+  getIntegrationIcon,
+} from 'sentry/utils/integrationUtil';
 
 interface Props {
   group: Group;
@@ -27,7 +30,7 @@ function getIntegrationNames(integrationIssue: IntegrationComponent) {
     ? integrationIssue.props.externalIssue.integrationKey
     : '';
   const name = integrationIssue.props.externalIssue
-    ? integrationIssue.props.externalIssue.integrationName
+    ? getIntegrationDisplayName(integrationIssue.props.externalIssue.integrationKey)
     : '';
 
   return {
