@@ -173,7 +173,7 @@ describe('Issues Similar View', function () {
       />,
       {context: routerContext, organization: OrganizationFixture({features})}
     );
-    
+
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     await waitFor(() => expect(mock).toHaveBeenCalled());
