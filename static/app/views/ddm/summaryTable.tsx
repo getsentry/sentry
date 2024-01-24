@@ -298,7 +298,6 @@ function getValues(seriesData: Series['data']) {
   if (!seriesData) {
     return {min: null, max: null, avg: null, sum: null};
   }
-
   const res = seriesData.reduce(
     (acc, {value}) => {
       if (value === null) {
@@ -308,13 +307,14 @@ function getValues(seriesData: Series['data']) {
       acc.min = Math.min(acc.min, value);
       acc.max = Math.max(acc.max, value);
       acc.sum += value;
+      acc.definedDatapoints += 1;
 
       return acc;
     },
-    {min: Infinity, max: -Infinity, sum: 0}
+    {min: Infinity, max: -Infinity, sum: 0, definedDatapoints: 0}
   );
 
-  return {...res, avg: res.sum / seriesData.length};
+  return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
 }
 
 // TODO(ddm): PanelTable component proved to be a bit too opinionated for this use case,
