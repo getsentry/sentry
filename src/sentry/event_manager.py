@@ -516,9 +516,9 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
-        # Background grouping is a way for us to get performance metrics for a new
-        # config without having it actually affect on how events are grouped. It runs
-        # either before or after the main grouping logic, depending on the option value.
+        # Background grouping is a way for us to get performance metrics for a new config without
+        # having it actually affect how events are grouped. So as to not slow down overall
+        # ingestion too much, it only runs on a fraction of events.
         maybe_run_background_grouping(project, job)
 
         secondary_hashes = None
