@@ -102,7 +102,7 @@ def build_test_message_blocks(
     }
     blocks.append(counts_section)
 
-    actions = {
+    actions: dict[str, Any] = {
         "type": "actions",
         "elements": [
             {
