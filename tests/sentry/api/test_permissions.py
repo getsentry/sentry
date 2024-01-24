@@ -8,6 +8,7 @@ from sentry.api.permissions import (
 from sentry.auth.staff import Staff
 from sentry.auth.superuser import Superuser
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 
 
 class PermissionsTest(TestCase):
@@ -34,29 +35,19 @@ class PermissionsTest(TestCase):
         self._activate_staff()
         assert StaffPermission().has_permission(self.request, None)
 
-    def test_superuser_or_staff_feature_flagged_permission(self):
-        # Feature flag enabled
-        with self.feature("auth:enterprise-staff-cookie"):
-            # With active superuser
-            self._activate_superuser()
-            assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
-
-            # Without active superuser
-            self.request.superuser = Superuser(self.request)
-            assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
-
-            # With active staff
-            self._activate_staff()
-            assert SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
-
-        # Feature flag disabled
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_superuser_or_staff_feature_flagged_permission_active_flag(self):
+        # With active superuser
+        self._activate_superuser()
+        assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
 
         # With active staff
         self._activate_staff()
-        assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
+        assert SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
 
-        # Without active staff
-        self.request.staff = Staff(self.request)  # type: ignore[attr-defined]
+    def test_superuser_or_staff_feature_flagged_permission_inactive_flag(self):
+        # With active staff
+        self._activate_staff()
         assert not SuperuserOrStaffFeatureFlaggedPermission().has_permission(self.request, None)
 
         # With active superuser
