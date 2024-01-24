@@ -66,7 +66,7 @@ from sentry.grouping.ingest import (
     calculate_primary_hash,
     calculate_secondary_hash,
     find_existing_grouphash,
-    run_background_grouping,
+    maybe_run_background_grouping,
     should_run_secondary_grouping,
     update_grouping_config_if_needed,
 )
@@ -519,7 +519,7 @@ class EventManager:
         # Background grouping is a way for us to get performance metrics for a new
         # config without having it actually affect on how events are grouped. It runs
         # either before or after the main grouping logic, depending on the option value.
-        run_background_grouping(project, job)
+        maybe_run_background_grouping(project, job)
 
         secondary_hashes = None
         migrate_off_hierarchical = False

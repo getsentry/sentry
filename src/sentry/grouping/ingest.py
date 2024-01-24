@@ -143,7 +143,7 @@ def _calculate_event_grouping(
         return hashes
 
 
-def run_background_grouping(project: Project, job: Job) -> None:
+def maybe_run_background_grouping(project: Project, job: Job) -> None:
     """Optionally run a fraction of events with a third grouping config
     This can be helpful to measure its performance impact.
     This does not affect actual grouping.
