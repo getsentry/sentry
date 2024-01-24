@@ -303,6 +303,9 @@ class Fixtures:
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
 
+    def create_sentry_app_installation_for_provider(self, *args, **kwargs):
+        return Factories.create_sentry_app_installation_for_provider(*args, **kwargs)
+
     def create_stacktrace_link_schema(self, *args, **kwargs):
         return Factories.create_stacktrace_link_schema(*args, **kwargs)
 

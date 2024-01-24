@@ -75,6 +75,9 @@ from sentry.models.integrations.integration_feature import (
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
 from sentry.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -1081,6 +1084,22 @@ class Factories:
                 )
                 install = SentryAppInstallation.objects.get(id=install.id)
         return install
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_sentry_app_installation_for_provider(
+        sentry_app_id: int,
+        organization_id: int,
+        provider: str,
+    ) -> SentryAppInstallationForProvider:
+        installation = SentryAppInstallation.objects.get(
+            sentry_app_id=sentry_app_id, organization_id=organization_id
+        )
+        return SentryAppInstallationForProvider.objects.create(
+            organization_id=organization_id,
+            provider=provider,
+            sentry_app_installation=installation,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
