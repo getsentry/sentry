@@ -74,21 +74,6 @@ def time_since(value: datetime):
     return f"{diff} ago"
 
 
-def time_since(value: datetime):
-    """
-    Display the relative time
-    """
-    now = timezone.now()
-    if value < (now - timedelta(days=5)):
-        return value.date()
-    diff = timesince(value, now)
-    if diff == timesince(now, now):
-        return "Just now"
-    if diff == "1 day":
-        return _("Yesterday")
-    return f"{diff} ago"
-
-
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     actor = ActorTuple.from_actor_identifier(assignee)
 
