@@ -14,7 +14,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from datetime import datetime, timedelta
-from typing import Tuple
+from typing import Any, Tuple
 
 from django.conf import settings
 from django.core.signing import BadSignature
@@ -22,9 +22,12 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
 
+from sentry import features
 from sentry.api.exceptions import SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
+from sentry.models.organizationmember import OrganizationMember
+from sentry.services.hybrid_cloud.auth.model import RpcAuthState
 from sentry.utils import json, metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted
@@ -65,6 +68,22 @@ SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", [
 UNSET = object()
 
 ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
+
+SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
+
+SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuser"})
+
+
+def get_superuser_scopes(auth_state: RpcAuthState, member: Any | OrganizationMember | None):
+    superuser_scopes = SUPERUSER_SCOPES
+    if (
+        not is_self_hosted()
+        and features.has("auth:enterprise-superuser-read-write", member)
+        and "superuser.write" not in auth_state.permissions
+    ):
+        superuser_scopes = SUPERUSER_READONLY_SCOPES
+
+    return superuser_scopes
 
 
 def is_active_superuser(request):
