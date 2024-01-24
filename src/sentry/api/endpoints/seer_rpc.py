@@ -19,7 +19,7 @@ from sentry_sdk import capture_exception, configure_scope
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
-from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.models.group import Group
 from sentry.services.hybrid_cloud.rpc import RpcAuthenticationSetupException, RpcResolutionException
@@ -79,12 +79,12 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         with configure_scope() as scope:
-            scope.set_tag("rpc_auth", True)
+            scope.set_tag("seer_rpc_auth", True)
 
         return (AnonymousUser(), token)
 
 
-@all_silo_endpoint
+@region_silo_endpoint
 class SeerRpcServiceEndpoint(Endpoint):
     """
     RPC endpoint for seer microservice to call. Authenticated with a shared secret.

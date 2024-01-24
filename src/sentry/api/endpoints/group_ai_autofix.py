@@ -5,13 +5,12 @@ from datetime import datetime
 
 import requests
 from django.conf import settings
-from django.http import HttpResponse
+from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.release import Release
@@ -46,11 +45,16 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         }
     }
 
-    def post(self, request: Request, group: Group) -> HttpResponse:
+    def post(self, request: Request, group: Group) -> Response:
         data = json.loads(request.body)
         latest_event = group.get_latest_event()
         if not latest_event:
-            raise ResourceDoesNotExist
+            return Response(
+                {
+                    "detail": "No event found.",
+                },
+                status=400,
+            )
 
         created_at = datetime.now().isoformat()
         metadata = group.data.get("metadata", {})
@@ -62,18 +66,22 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         event_stacktrace = {"entries": latest_event.data.get("exception", {}).get("values", [])}
         release_version = group.get_last_release()
         if not release_version:
+            reason = "Event has no release."
             metadata["autofix"] = {
                 **metadata["autofix"],
                 "completedAt": datetime.now().isoformat(),
                 "status": "ERROR",
                 "fix": None,
-                "errorMessage": "Event has no release.",
+                "errorMessage": reason,
             }
 
             group.data["metadata"] = metadata
             group.save()
 
-            return HttpResponse(
+            return Response(
+                {
+                    "detail": reason,
+                },
                 status=400,
             )
 
@@ -91,18 +99,22 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 break
 
         if not base_commit:
+            reason = "No valid base commit found for release; only getsentry/sentry repo is supported right now."
             metadata["autofix"] = {
                 **metadata["autofix"],
                 "completedAt": datetime.now().isoformat(),
                 "status": "ERROR",
                 "fix": None,
                 # Hardcoded to only accept getsentry/sentry repo for now
-                "errorMessage": "No valid base commit found for release; only getsentry/sentry repo is supported right now.",
+                "errorMessage": reason,
             }
             group.data["metadata"] = metadata
             group.save()
 
-            return HttpResponse(
+            return Response(
+                {
+                    "detail": reason,
+                },
                 status=400,
             )
 
@@ -112,7 +124,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 json={
                     "base_commit_sha": base_commit.key,
                     "issue": {
-                        "id": str(group.id),
+                        "id": group.id,
                         "title": group.title,
                         "events": [event_stacktrace],
                     },
@@ -148,19 +160,14 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             )
 
         group.data["metadata"] = metadata
-
         group.save()
 
-        return HttpResponse(
+        return Response(
             status=202,
         )
 
-    def get(self, request: Request, group: Group) -> HttpResponse:
+    def get(self, request: Request, group: Group) -> Response:
         metadata = group.data.get("metadata", {})
         autofix_data = metadata.get("autofix", None)
 
-        return HttpResponse(
-            status=200,
-            content_type="application/json",
-            content=json.dumps(autofix_data) if autofix_data else None,
-        )
+        return Response({"autofix": autofix_data})
