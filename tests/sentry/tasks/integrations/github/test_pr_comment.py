@@ -1,9 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
 import responses
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.commit import Commit
@@ -381,8 +381,8 @@ class TestCommentWorkflow(GithubCommentTestCase):
         pull_request_comment = PullRequestComment.objects.create(
             external_id=1,
             pull_request_id=self.pr.id,
-            created_at=timezone.now() - timedelta(hours=1),
-            updated_at=timezone.now() - timedelta(hours=1),
+            created_at=django_timezone.now() - timedelta(hours=1),
+            updated_at=django_timezone.now() - timedelta(hours=1),
             group_ids=[1, 2, 3, 4],
         )
 
@@ -390,8 +390,8 @@ class TestCommentWorkflow(GithubCommentTestCase):
         PullRequestComment.objects.create(
             external_id=2,
             pull_request_id=self.pr.id,
-            created_at=timezone.now() - timedelta(hours=1),
-            updated_at=timezone.now() - timedelta(hours=1),
+            created_at=django_timezone.now() - timedelta(hours=1),
+            updated_at=django_timezone.now() - timedelta(hours=1),
             group_ids=[],
             comment_type=CommentType.OPEN_PR,
         )
@@ -411,7 +411,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         )
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
-        assert pull_request_comment.updated_at == timezone.now()
+        assert pull_request_comment.updated_at == django_timezone.now()
         mock_metrics.incr.assert_called_with("github_pr_comment.comment_updated")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
@@ -585,12 +585,12 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         self.comment = PullRequestComment.objects.create(
             external_id="2",
             pull_request=self.pr,
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
+            created_at=django_timezone.now(),
+            updated_at=django_timezone.now(),
             group_ids=[4, 5],
         )
         self.expired_pr = self.create_pr_issues()
-        self.expired_pr.date_added = timezone.now() - timedelta(days=35)
+        self.expired_pr.date_added = django_timezone.now() - timedelta(days=35)
         self.expired_pr.save()
         self.comment_reactions = {
             "reactions": {
@@ -607,8 +607,8 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         old_comment = PullRequestComment.objects.create(
             external_id="1",
             pull_request=self.expired_pr,
-            created_at=timezone.now() - timedelta(days=35),
-            updated_at=timezone.now() - timedelta(days=35),
+            created_at=django_timezone.now() - timedelta(days=35),
+            updated_at=django_timezone.now() - timedelta(days=35),
             group_ids=[1, 2, 3],
         )
 
@@ -683,8 +683,8 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         no_error_comment = PullRequestComment.objects.create(
             external_id="3",
             pull_request=self.create_pr_issues(gh_repo=gh_repo),
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
+            created_at=django_timezone.now(),
+            updated_at=django_timezone.now(),
             group_ids=[7, 8],
         )
 
