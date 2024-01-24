@@ -64,12 +64,10 @@ class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         enforce_staff_permission = features.has("auth:enterprise-staff-cookie", actor=request.user)
 
-        active_superuser = not enforce_staff_permission and SuperuserPermission().has_permission(
-            request, view
-        )
-        active_staff = enforce_staff_permission and StaffPermission().has_permission(request, view)
+        if enforce_staff_permission:
+            return StaffPermission().has_permission(request, view)
 
-        return active_superuser or active_staff
+        return SuperuserPermission().has_permission(request, view)
 
 
 class ScopedPermission(BasePermission):

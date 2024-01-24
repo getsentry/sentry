@@ -2,6 +2,10 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Tuple
 
+from rest_framework.request import Request
+
+from sentry import features
+
 
 class InactiveReason(str, Enum):
     INVALID_IP = "invalid-ip"
@@ -45,3 +49,21 @@ class ElevatedMode(ABC):
     @abstractmethod
     def on_response(cls, response) -> None:
         pass
+
+
+# TODO(schew2381): Delete this method after the feature flag is removed
+def has_elevated_mode(request: Request) -> bool:
+    """
+    This is a temporary helper method that checks if the user on the request has
+    the staff feature flag enabled. If so, it checks is_active_staff and
+    otherwise defaults to checking is_active_superuser.
+    """
+    from sentry.auth.staff import is_active_staff
+    from sentry.auth.superuser import is_active_superuser
+
+    enforce_staff_permission = features.has("auth:enterprise-staff-cookie", actor=request.user)
+
+    if enforce_staff_permission:
+        return is_active_staff(request)
+
+    return is_active_superuser(request)
