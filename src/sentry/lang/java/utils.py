@@ -4,10 +4,10 @@ import os
 from typing import Any
 
 import sentry_sdk
-from symbolic.proguard import ProguardMapper
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
+from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
 from sentry.utils import json
@@ -61,8 +61,7 @@ def get_proguard_mapper(uuid: str, project: Project):
             sentry_sdk.capture_exception(exc)
             return
 
-    with sentry_sdk.start_span(op="proguard.open"):
-        mapper = ProguardMapper.open(debug_file_path)
+    mapper = open_proguard_mapper(debug_file_path)
 
     if not mapper.has_line_info:
         return
