@@ -121,14 +121,14 @@ class DiscordClient(ApiClient):
         # span call in `if span`
         span = span or Span()
 
-        is_user_error = code in {status.HTTP_403_FORBIDDEN}
-        is_status_ok = code in {
+        is_ok = code in {
             status.HTTP_200_OK,
             status.HTTP_201_CREATED,
             status.HTTP_202_ACCEPTED,
             status.HTTP_204_NO_CONTENT,
+            status.HTTP_403_FORBIDDEN,  # Is user error
+            status.HTTP_429_TOO_MANY_REQUESTS,
         }
-        is_rate_limited = code in {status.HTTP_429_TOO_MANY_REQUESTS}
 
         metrics.incr(
             f"{self.metrics_prefix}.http_response",
@@ -136,9 +136,7 @@ class DiscordClient(ApiClient):
             tags={
                 str(self.integration_type): self.name,
                 "status": code,
-                "is_user_error": is_user_error,
-                "is_status_ok": is_status_ok,
-                "is_rate_limited": is_rate_limited,
+                "is_ok": is_ok,
             },
         )
 
