@@ -45,7 +45,13 @@ def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
         if getattr(field, "auto_now", False) and field.name not in kwargs:
             kwargs[field.name] = field.pre_save(instance, False)
 
-    affected = instance.__class__._base_manager.using(using).filter(pk=instance.pk).update(**kwargs)
+    affected = (
+        instance.__class__.objects.using(using)
+        .filter(pk=instance.pk)
+        # Disable the post update query signal since we're going to send a more specific `post_save` signal here.
+        .with_post_update_signal(False)
+        .update(**kwargs)
+    )
     for k, v in kwargs.items():
         setattr(instance, k, _handle_value(instance, v))
     if affected == 1:
