@@ -630,6 +630,10 @@ export function makeIssuesINPObserver(): PerformanceObserver | undefined {
       }
 
       if (entry.duration) {
+        // < 16 ms wont cause frame drops so just ignore this for now
+        if (entry.duration < 16) {
+          return;
+        }
         Sentry.metrics.distribution('issues-stream.inp', entry.duration, {
           unit: 'millisecond',
           tags: {
