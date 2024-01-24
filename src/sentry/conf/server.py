@@ -1892,8 +1892,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:spike-protection-decay-heuristic": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": False,
-    # Enable new Slack message formatting
-    "organizations:slack-formatting-update": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -3686,8 +3684,6 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
 SAMPLED_DEFAULT_RATE = 1.0
-
-SENTRY_PROCESS_INCR_SAMPLE_RATE = 0.01
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}

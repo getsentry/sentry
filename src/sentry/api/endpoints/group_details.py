@@ -47,6 +47,11 @@ from sentry.utils import metrics
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
+def get_group_global_count(group: Group) -> str:
+    fetch_buffered_group_stats(group)
+    return str(group.times_seen_with_pending)
+
+
 @region_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
@@ -118,11 +123,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )[group.id]
 
         return hourly_stats, daily_stats
-
-    @staticmethod
-    def __get_group_global_count(group: Group) -> str:
-        fetch_buffered_group_stats(group)
-        return str(group.times_seen_with_pending)
 
     def get(self, request: Request, group) -> Response:
         """
@@ -235,7 +235,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
-                    "count": self.__get_group_global_count(group),
+                    "count": get_group_global_count(group),
                 }
             )
 

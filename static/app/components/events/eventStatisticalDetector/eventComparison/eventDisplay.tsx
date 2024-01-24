@@ -26,8 +26,9 @@ import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -220,10 +221,10 @@ function EventDisplay({
             <LinkButton
               title={t('Full Event Details')}
               size={BUTTON_SIZE}
-              to={eventDetailsRoute({
-                eventSlug: generateEventSlug({project: project.slug, id: eventData.id}),
-                orgSlug: organization.slug,
-              })}
+              to={getTransactionDetailsUrl(
+                organization.slug,
+                generateEventSlug({project: project.slug, id: eventData.id})
+              )}
               aria-label={t('Full Event Details')}
               icon={<IconOpen />}
             />
@@ -255,10 +256,10 @@ function EventDisplay({
         </StyledControlBar>
         <ComparisonContentWrapper>
           <Link
-            to={eventDetailsRoute({
-              eventSlug: generateEventSlug({project: project.slug, id: selectedEventId}),
-              orgSlug: organization.slug,
-            })}
+            to={getTransactionDetailsUrl(
+              organization.slug,
+              generateEventSlug({project: project.slug, id: selectedEventId})
+            )}
           >
             <MinimapContainer>
               <MinimapPositioningContainer>
