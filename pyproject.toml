@@ -32,6 +32,9 @@ filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
 
+    # TODO: need to handle src/sentry/models/release.py
+    "ignore:'index_together' is deprecated. Use 'Meta.indexes' in.*",
+
     # a bunch of google packages use legacy namespace packages
     "ignore:pkg_resources is deprecated as an API",
     "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
