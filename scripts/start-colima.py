@@ -33,14 +33,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     ]
     if APPLE_ARM64:
         args = [*args, "--vm-type=vz", "--vz-rosetta", "--mount-type=virtiofs"]
-    return subprocess.call(
+    HOME = os.path.expanduser("~")
+    rc = subprocess.call(
         (
-            "colima",
+            f"{HOME}/.local/share/sentry-devenv/bin/colima",
             "start",
-            f"--mount=/var/folders:w,/private/tmp/colima:w,{os.path.expanduser('~')}:r",
+            f"--mount=/var/folders:w,/private/tmp/colima:w,{HOME}:r",
             *args,
         )
     )
+    if rc != 0:
+        return rc
+    return subprocess.call(("docker", "context", "use", "colima"))
 
 
 if __name__ == "__main__":
