@@ -62,6 +62,10 @@ export function MetricWidgetCard({
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
     useState<MetricWidgetQueryParams>(convertFromWidget(widget));
 
+  const [title, setTitle] = useState<string>(
+    widget.title ?? stringifyMetricWidget(metricWidgetQueryParams)
+  );
+
   const handleChange = useCallback(
     (data: Partial<MetricWidgetQueryParams>) => {
       setMetricWidgetQueryParams(curr => ({
@@ -78,8 +82,6 @@ export function MetricWidgetCard({
       toMetricDisplayType(metricWidgetQueryParams.displayType)
     );
 
-    const title = stringifyMetricWidget(metricWidgetQueryParams);
-
     const updatedWidget = {
       ...widget,
       title,
@@ -88,7 +90,7 @@ export function MetricWidgetCard({
     };
 
     onUpdate?.(updatedWidget);
-  }, [metricWidgetQueryParams, onUpdate, widget, selection]);
+  }, [title, metricWidgetQueryParams, onUpdate, widget, selection]);
 
   const handleCancel = useCallback(() => {
     onUpdate?.(null);
@@ -101,9 +103,6 @@ export function MetricWidgetCard({
       </ErrorPanel>
     );
   }
-
-  const stringifiedMetricWidget =
-    widget.title ?? stringifyMetricWidget(metricWidgetQueryParams);
 
   return (
     <DashboardsMEPContext.Provider
@@ -124,12 +123,14 @@ export function MetricWidgetCard({
               onChange={handleChange}
               onSubmit={handleSubmit}
               onCancel={handleCancel}
+              onTitleChange={setTitle}
+              title={title}
             />
           ) : (
             <WidgetHeaderDescription>
               <WidgetTitleRow>
                 <WidgetTitle>
-                  <TextOverflow>{stringifiedMetricWidget}</TextOverflow>
+                  <TextOverflow>{title}</TextOverflow>
                 </WidgetTitle>
               </WidgetTitleRow>
             </WidgetHeaderDescription>

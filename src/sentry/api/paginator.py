@@ -30,7 +30,7 @@ def count_hits(queryset, max_hits):
     # clear out any select fields (include select_related) and pull just the id
     hits_query.clear_select_clause()
     hits_query.add_fields(["id"])
-    hits_query.clear_ordering(force_empty=True)
+    hits_query.clear_ordering(force=True, clear_default=True)
     try:
         h_sql, h_params = hits_query.sql_with_params()
     except EmptyResultSet:
