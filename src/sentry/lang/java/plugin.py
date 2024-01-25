@@ -1,7 +1,7 @@
 import sentry_sdk
-from symbolic.proguard import ProguardMapper
 
 from sentry.lang.java.processing import deobfuscate_exception_value
+from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.java.utils import (
     deobfuscate_view_hierarchy,
     get_jvm_images,
@@ -45,12 +45,11 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if dif_path is None:
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
-                with sentry_sdk.start_span(op="proguard.open"):
-                    view = ProguardMapper.open(dif_path)
-                    if not view.has_line_info:
-                        error_type = EventError.PROGUARD_MISSING_LINENO
-                    else:
-                        self.mapping_views.append(view)
+                view = open_proguard_mapper(dif_path)
+                if not view.has_line_info:
+                    error_type = EventError.PROGUARD_MISSING_LINENO
+                else:
+                    self.mapping_views.append(view)
 
             if error_type is None:
                 continue
@@ -92,6 +91,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
         raw_frame = dict(frame)
+        release = super().get_release()
 
         # first, try to remap complete frames
         for view in self.mapping_views:
@@ -113,6 +113,12 @@ class JavaStacktraceProcessor(StacktraceProcessor):
                         frame.pop("filename", None)
                         frame.pop("abs_path", None)
 
+                    # mark the frame as in_app after deobfuscation based on the release package name
+                    # only if it's not present
+                    if release and release.package and frame.get("in_app") is None:
+                        if frame["module"].startswith(release.package):
+                            frame["in_app"] = True
+
                     new_frames.append(frame)
 
                 return new_frames, [raw_frame], []
@@ -124,6 +130,13 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if mapped_class:
                 frame = dict(raw_frame)
                 frame["module"] = mapped_class
+
+                # mark the frame as in_app after deobfuscation based on the release package name
+                # only if it's not present
+                if release and release.package and frame.get("in_app") is None:
+                    if frame["module"].startswith(release.package):
+                        frame["in_app"] = True
+
                 return [frame], [raw_frame], []
 
         return

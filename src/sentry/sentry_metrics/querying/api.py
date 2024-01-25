@@ -32,6 +32,8 @@ from sentry.sentry_metrics.querying.types import (
 from sentry.sentry_metrics.querying.utils import remove_if_match
 from sentry.sentry_metrics.querying.visitors import (
     EnvironmentsInjectionVisitor,
+    FiltersCompositeVisitor,
+    LatestReleaseTransformationVisitor,
     QueryExpressionVisitor,
     ValidationVisitor,
 )
@@ -427,10 +429,12 @@ class QueryParser:
 
     def __init__(
         self,
+        projects: Sequence[Project],
         fields: Sequence[str],
         query: Optional[str],
         group_bys: Optional[Sequence[str]],
     ):
+        self._projects = projects
         self._fields = fields
         self._query = query
         self._group_bys = group_bys
@@ -526,9 +530,15 @@ class QueryParser:
             mql_query = self._build_mql_query(field, mql_filters, mql_group_bys)
             yield (
                 field,
-                self._parse_mql(mql_query).add_visitor(ValidationVisitor())
-                # We purposefully want to inject environments after the final query expression tree is expanded.
-                .add_visitor(EnvironmentsInjectionVisitor(environments)).get(),
+                self._parse_mql(mql_query)
+                # We validate the query.
+                .add_visitor(ValidationVisitor())
+                # We inject the environment filter in each timeseries.
+                .add_visitor(EnvironmentsInjectionVisitor(environments))
+                # We transform all `release:latest` filters into the actual latest releases.
+                .add_visitor(
+                    FiltersCompositeVisitor(LatestReleaseTransformationVisitor(self._projects))
+                ).get(),
             )
 
 
@@ -998,7 +1008,7 @@ def run_metrics_query(
     executor = QueryExecutor(organization=organization, referrer=referrer)
 
     # Parsing the input and iterating over each timeseries.
-    parser = QueryParser(fields=fields, query=query, group_bys=group_bys)
+    parser = QueryParser(projects=projects, fields=fields, query=query, group_bys=group_bys)
 
     applied_order_by = False
     for field, timeseries in parser.generate_queries(environments=environments):
