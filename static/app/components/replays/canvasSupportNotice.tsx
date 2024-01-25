@@ -56,7 +56,7 @@ export function CanvasSupportNotice() {
       {tct(
         'This replay contains a [code:canvas] element. Support for recording [code:canvas] data was added in SDK version 7.98.0. [link:Learn more].',
         {
-          canvas: <code />,
+          code: <code />,
           link: (
             <ExternalLink
               onClick={() => {
