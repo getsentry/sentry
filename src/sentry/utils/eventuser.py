@@ -55,7 +55,6 @@ KEYWORD_MAP = BidirectionalMapping(
     }
 )
 
-SNUBA_COLUMN_COALASCE = {"ip_address_v4": "IPv4StringToNum", "ip_address_v6": "IPv6StringToNum"}
 MAX_QUERY_TRIES = 5
 OVERFETCH_FACTOR = 10
 MAX_FETCH_SIZE = 10_000
@@ -123,18 +122,7 @@ class EventUser:
                     keyword_where_conditions.append(
                         BooleanCondition(
                             BooleanOp.OR,
-                            [
-                                Condition(
-                                    Column(column),
-                                    Op.IN,
-                                    value
-                                    if SNUBA_COLUMN_COALASCE.get(column, None) is None
-                                    else Function(
-                                        SNUBA_COLUMN_COALASCE.get(column), parameters=[filter_value]
-                                    ),
-                                )
-                                for column in snuba_column
-                            ],
+                            [Condition(Column(column), Op.IN, value) for column in snuba_column],
                         )
                     )
             else:
