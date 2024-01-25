@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, Sequence
+from typing import Optional, Sequence, cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -55,6 +55,7 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
         if not is_mri(metric_mri):
             raise InvalidParams("You must supply a valid metric mri")
 
+        metric_mri = cast(str, metric_mri)
         if metric_operation_type == MetricOperationType.BLOCK_METRIC:
             block_metric(metric_mri, [project])
         elif metric_operation_type == MetricOperationType.UNBLOCK_METRIC:
@@ -66,7 +67,7 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
             tags = request.data.get("tags") or []
             unblock_tags_of_metric(metric_mri, set(tags), [project])
 
-    def put(self, request: Request, project) -> Response:
+    def put(self, request: Request, project: Project) -> Response:
         metric_operation_type = MetricOperationType.from_request(request)
         if not metric_operation_type:
             raise InvalidParams(
