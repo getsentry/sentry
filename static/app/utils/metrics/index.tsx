@@ -24,6 +24,7 @@ import {
   MetricsApiRequestQuery,
   MetricsApiRequestQueryOptions,
   MetricsGroup,
+  MetricsOperation,
   MetricType,
   MRI,
   UseCase,
@@ -332,6 +333,20 @@ const metricTypeToReadable: Record<MetricType, string> = {
   s: t('set'),
   e: t('derived'),
 };
+
+export function getDefaultMetricOp(mri: MRI): MetricsOperation {
+  const parsedMRI = parseMRI(mri);
+  switch (parsedMRI?.type) {
+    case 'd':
+    case 'g':
+      return 'avg';
+    case 's':
+      return 'count_unique';
+    case 'c':
+    default:
+      return 'sum';
+  }
+}
 
 // Converts from "c" to "counter"
 export function getReadableMetricType(type?: string) {
