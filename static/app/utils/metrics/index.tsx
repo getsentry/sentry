@@ -187,7 +187,6 @@ export type MetricCorrelation = {
   profileId: string;
   projectId: number;
   segmentName: string;
-  spanId: string;
   spansDetails: {
     spanDuration: number;
     spanId: string;
