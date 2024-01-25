@@ -650,3 +650,27 @@ class BuiltInFingerprintingTest(TestCase):
         event = self.store_event(data=self.hydration_error_trace, project_id=self.project)
         assert event.data.data["fingerprint"] == ["my-route", "{{ default }}"]
         assert event.data.data.get("_fingerprint_info") is None
+
+    @with_feature("organizations:grouping-built-in-fingerprint-rules")
+    def test_doesnt_blow_up_without_fingerprinting_rules(self):
+        mgr = EventManager(data=self.chunkload_error_trace, project=self.project)
+        mgr.normalize()
+        data = mgr.get_data()
+        data.setdefault("fingerprint", ["{{ default }}"])
+        grouping_config = get_grouping_config_dict_for_event_data(data.data, self.project)
+        del grouping_config[
+            "fingerprinting"
+        ]  # emulating legacy serialized config w/o fingerprinting
+        apply_server_fingerprinting(data, grouping_config=grouping_config)
+        event_type = get_event_type(data)
+        event_metadata = event_type.get_metadata(data)
+        data.update(materialize_metadata(data, event_type, event_metadata))
+        event = eventstore.backend.create_event(data=data)
+
+        # with no fingerprinting rules in serialized config, falls back to the global default,
+        # which does not evaluate flags, thus doesn't apply built-in rules regagles of flag state
+
+        # TODO: change this once we are GA and global default has built-in rules
+
+        assert event.data.data["fingerprint"] == ["my-route", "{{ default }}"]
+        assert event.data.data.get("_fingerprint_info") is None

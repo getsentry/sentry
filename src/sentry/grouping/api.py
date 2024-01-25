@@ -33,6 +33,7 @@ from sentry.grouping.variants import (
     FallbackVariant,
     SaltedComponentVariant,
 )
+from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
@@ -70,7 +71,9 @@ class GroupingConfigNotFound(LookupError):
 class GroupingConfig(TypedDict):
     id: str
     enhancements: Enhancements
-    fingerprinting: NotRequired[FingerprintingRules]
+    fingerprinting: NotRequired[
+        FingerprintingRules
+    ]  # TODO: remove NotRequired when we determine legacy configs w/o fingerprinting are not a problem
 
 
 class GroupingConfigLoader:
@@ -259,7 +262,13 @@ def apply_server_fingerprinting(
     # TODO: determine if we can pass around FingerprintingRules instance instead of serializing and deserializing it back and forth
     allow_custom_title: bool = True,
 ) -> None:
-    config = FingerprintingRules.from_json(grouping_config["fingerprinting"])
+    try:
+        config = FingerprintingRules.from_json(grouping_config["fingerprinting"])
+    except KeyError:
+        # handle the case we're getting a legacy config serialized without fingerprinting rules
+        # TODO: determine if this ever actually gets hit
+        metrics.incr("grouping.apply_server_fingerprinting.config_without_fingerprinting")
+        config = FingerprintingRules.from_json(get_default_fingerprinting(grouping_config["id"]))
     client_fingerprint = event_data.get("fingerprint")
     rv = config.get_fingerprint_values_for_event(event_data)
     if rv is not None:
