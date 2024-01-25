@@ -553,6 +553,74 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
 
+    def test_resolving_does_not_fail_when_no_module_or_function(self):
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 67,
+                                },
+                                {
+                                    "function": "a",
+                                    "abs_path": None,
+                                    "module": "org.a.b.g$a",
+                                    "filename": None,
+                                    "lineno": 69,
+                                },
+                                {
+                                    "function": "__start_thread",
+                                    "package": "/apex/com.android.art/lib64/libart.so",
+                                    "lineno": 196,
+                                    "in_app": False,
+                                },
+                                {
+                                    "package": "/apex/com.android.art/lib64/libart.so",
+                                    "lineno": 214,
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                        "module": "org.a.b",
+                        "type": "g$a",
+                        "value": "Attempt to invoke virtual method 'org.a.b.g$a.a' on a null object reference",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
+
+        metrics = event.data["_metrics"]
+        assert not metrics.get("flag.processing.error")
+
     def test_sets_inapp_after_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -721,6 +789,105 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[3].lineno == 54
         assert frames[3].filename == "MainActivity.java"
         assert frames[3].module == "io.sentry.sample.MainActivity"
+
+    def test_resolving_inline_with_native_frames(self):
+        self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
+
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {"images": [{"type": "proguard", "uuid": PROGUARD_INLINE_UUID}]},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "onClick",
+                                    "abs_path": None,
+                                    "module": "e.a.c.a",
+                                    "filename": None,
+                                    "lineno": 2,
+                                },
+                                {
+                                    "function": "t",
+                                    "abs_path": None,
+                                    "module": "io.sentry.sample.MainActivity",
+                                    "filename": "MainActivity.java",
+                                    "lineno": 1,
+                                },
+                                {
+                                    "abs_path": "Thread.java",
+                                    "filename": "Thread.java",
+                                    "function": "sleep",
+                                    "lineno": 450,
+                                    "lock": {
+                                        "address": "0x0ddc1f22",
+                                        "class_name": "Object",
+                                        "package_name": "java.lang",
+                                        "type:": 1,
+                                    },
+                                    "module": "java.lang.Thread",
+                                },
+                                {
+                                    "function": "__start_thread",
+                                    "package": "/apex/com.android.art/lib64/libart.so",
+                                    "lineno": 196,
+                                    "in_app": False,
+                                },
+                            ]
+                        },
+                        "module": "org.a.b",
+                        "type": "g$a",
+                        "value": "Oh no",
+                    }
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
+
+        event = self.post_and_retrieve_event(event_data)
+        if not self.use_relay():
+            # We measure the number of queries after an initial post,
+            # because there are many queries polluting the array
+            # before the actual "processing" happens (like, auth_user)
+            with self.assertWriteQueries(
+                {
+                    "nodestore_node": 2,
+                    "sentry_eventuser": 1,
+                    "sentry_groupedmessage": 1,
+                    "sentry_userreport": 1,
+                }
+            ):
+                self.post_and_retrieve_event(event_data)
+
+        exc = event.interfaces["exception"].values[0]
+        bt = exc.stacktrace
+        frames = bt.frames
+
+        assert len(frames) == 6
+
+        assert frames[0].function == "onClick"
+        assert frames[0].module == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
+
+        assert frames[1].filename == "MainActivity.java"
+        assert frames[1].module == "io.sentry.sample.MainActivity"
+        assert frames[1].function == "onClickHandler"
+        assert frames[1].lineno == 40
+        assert frames[2].function == "foo"
+        assert frames[2].lineno == 44
+        assert frames[3].function == "bar"
+        assert frames[3].lineno == 54
+        assert frames[3].filename == "MainActivity.java"
+        assert frames[3].module == "io.sentry.sample.MainActivity"
+        assert frames[4].function == "sleep"
+        assert frames[4].lineno == 450
+        assert frames[4].filename == "Thread.java"
+        assert frames[4].module == "java.lang.Thread"
+        assert frames[5].function == "__start_thread"
+        assert frames[5].package == "/apex/com.android.art/lib64/libart.so"
 
     def test_error_on_resolving(self):
         url = reverse(
