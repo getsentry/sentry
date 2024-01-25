@@ -6,7 +6,7 @@ import logging
 import time
 import traceback
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from random import Random
 from typing import Any, Generator
@@ -17,7 +17,7 @@ import pytz
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
@@ -709,7 +709,7 @@ def recover_account(request):
             ),
             "domain": get_server_hostname(),
             "ip_address": request.META["REMOTE_ADDR"],
-            "datetime": timezone.now(),
+            "datetime": django_timezone.now(),
         },
     ).render(request)
 
@@ -730,7 +730,7 @@ def relocate_account(request):
             ),
             "domain": get_server_hostname(),
             "ip_address": request.META["REMOTE_ADDR"],
-            "datetime": timezone.now(),
+            "datetime": django_timezone.now(),
             "orgs": ["testsentry", "testgetsentry"],
         },
     ).render(request)
@@ -743,7 +743,7 @@ def relocation_failed(request):
         text_template="sentry/emails/relocation_failed.txt",
         context={
             "domain": get_server_hostname(),
-            "datetime": timezone.now(),
+            "datetime": django_timezone.now(),
             "uuid": str(uuid.uuid4().hex),
             "reason": "This is a sample failure reason",
         },
@@ -757,7 +757,7 @@ def relocation_started(request):
         text_template="sentry/emails/relocation_started.txt",
         context={
             "domain": get_server_hostname(),
-            "datetime": timezone.now(),
+            "datetime": django_timezone.now(),
             "uuid": str(uuid.uuid4().hex),
             "orgs": ["testsentry", "testgetsentry"],
         },
@@ -771,7 +771,7 @@ def relocation_succeeded(request):
         text_template="sentry/emails/relocation_succeeded.txt",
         context={
             "domain": get_server_hostname(),
-            "datetime": timezone.now(),
+            "datetime": django_timezone.now(),
             "uuid": str(uuid.uuid4().hex),
             "orgs": ["testsentry", "testgetsentry"],
         },
@@ -793,7 +793,7 @@ def org_delete_confirm(request):
         context={
             "organization": org,
             "audit_log_entry": entry,
-            "eta": timezone.now() + timedelta(days=1),
+            "eta": django_timezone.now() + timedelta(days=1),
             "url": org.absolute_url(reverse("sentry-restore-organization", args=[org.slug])),
         },
     ).render(request)

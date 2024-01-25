@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
@@ -29,7 +29,7 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.create_project(organization=self.org, teams=[self.team], name="Bengal 3")
         self.login_as(self.user)
         self.path = f"/organizations/{self.org.slug}/releases/"
-        self.project.update(first_event=timezone.now())
+        self.project.update(first_event=django_timezone.now())
 
     @patch("sentry.api.serializers.models.organization.get_organization_volume", return_value=None)
     def test_list(self, _):
