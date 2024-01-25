@@ -62,6 +62,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
+import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -461,6 +462,9 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       )}
       <EventExtraData event={detail.event} />
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
+      {detail.event._metrics_summary ? (
+        <CustomMetricsEventData metricsSummary={detail.event._metrics_summary} />
+      ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
       {projectSlug && <EventAttachments event={detail.event} projectSlug={projectSlug} />}
       {project && <EventViewHierarchy event={detail.event} project={project} />}
