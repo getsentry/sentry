@@ -56,16 +56,14 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     @with_feature("projects:issue-priority")
     def test_priority_high(self):
         outside_user = self.create_user()
-        group = self.create_group()
-        group.priority = PriorityLevel.HIGH
+        group = self.create_group(priority=PriorityLevel.HIGH)
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["priority"] == "high"
 
     @with_feature("projects:issue-priority")
     def test_priority_medium(self):
         outside_user = self.create_user()
-        group = self.create_group()
-        group.priority = PriorityLevel.MEDIUM
+        group = self.create_group(priority=PriorityLevel.MEDIUM)
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["priority"] == "medium"
 
