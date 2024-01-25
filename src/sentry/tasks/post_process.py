@@ -1441,12 +1441,12 @@ def detect_new_escalation(job: PostProcessJob):
                 # TODO(snigdha): reuse manage_issue_states when we allow escalating from other statuses
                 add_group_to_inbox(group, GroupInboxReason.ESCALATING)
                 record_group_history(group, GroupHistoryStatus.ESCALATING)
-                auto_update_priority(group, PriorityChangeReason.ESCALATING)
                 Activity.objects.create_group_activity(
                     group=group,
                     type=ActivityType.SET_ESCALATING,
                     data={"event_id": job["event"].event_id},
                 )
+                auto_update_priority(group, PriorityChangeReason.ESCALATING)
             logger.info(
                 "tasks.post_process.detect_new_escalation",
                 extra={
