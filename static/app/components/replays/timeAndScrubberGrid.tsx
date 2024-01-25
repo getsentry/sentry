@@ -78,7 +78,7 @@ function TimeAndScrubberGrid({
   );
 }
 
-export const Grid = styled('div')<{isCompact: boolean}>`
+const Grid = styled('div')<{isCompact: boolean}>`
   width: 100%;
   display: grid;
   grid-template-areas:

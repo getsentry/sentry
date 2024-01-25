@@ -13,8 +13,8 @@ import {
   Provider as ReplayContextProvider,
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
-import {ReplayPlayPauseBar} from 'sentry/components/replays/replayController';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconContract, IconDelete, IconExpand} from 'sentry/icons';
@@ -100,7 +100,7 @@ function ReplayPreviewPlayer({
       </StaticPanel>
       <ErrorBoundary mini>
         <ButtonGrid>
-          <ReplayPlayPauseBar />
+          <ReplayPlayPauseButton />
           <Container>
             <TimeAndScrubberGrid />
           </Container>
@@ -236,6 +236,7 @@ const StyledPlaceholder = styled(Placeholder)`
 
 const ButtonGrid = styled('div')`
   display: flex;
+  align-items: center;
   gap: 0 ${space(2)};
   flex-direction: row;
   justify-content: space-between;

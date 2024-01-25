@@ -7,14 +7,12 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {
   IconContract,
   IconExpand,
   IconNext,
-  IconPause,
-  IconPlay,
-  IconPrevious,
   IconRewind10,
   IconSettings,
 } from 'sentry/icons';
@@ -35,16 +33,8 @@ interface Props {
   speedOptions?: number[];
 }
 
-export function ReplayPlayPauseBar() {
-  const {
-    currentTime,
-    isFinished,
-    isPlaying,
-    replay,
-    restart,
-    setCurrentTime,
-    togglePlayPause,
-  } = useReplayContext();
+function ReplayPlayPauseBar() {
+  const {currentTime, replay, setCurrentTime} = useReplayContext();
 
   return (
     <ButtonBar gap={1}>
@@ -55,23 +45,7 @@ export function ReplayPlayPauseBar() {
         onClick={() => setCurrentTime(currentTime - 10 * SECOND)}
         aria-label={t('Rewind 10 seconds')}
       />
-      {isFinished ? (
-        <Button
-          title={t('Restart Replay')}
-          icon={<IconPrevious size="md" />}
-          onClick={restart}
-          aria-label={t('Restart Replay')}
-          priority="primary"
-        />
-      ) : (
-        <Button
-          title={isPlaying ? t('Pause') : t('Play')}
-          icon={isPlaying ? <IconPause size="md" /> : <IconPlay size="md" />}
-          onClick={() => togglePlayPause(!isPlaying)}
-          aria-label={isPlaying ? t('Pause') : t('Play')}
-          priority="primary"
-        />
-      )}
+      <ReplayPlayPauseButton />
       <Button
         size="sm"
         title={t('Next breadcrumb')}
