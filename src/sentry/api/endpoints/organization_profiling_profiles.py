@@ -1,5 +1,6 @@
 from typing import Any, Dict
 
+import sentry_sdk
 from django.http import HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -68,6 +69,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
 
         span_group = request.query_params.get("spans.group", None)
         if span_group is not None:
+            sentry_sdk.set_tag("dataset", "spans")
             profile_ids = get_profile_ids_with_spans(
                 organization.id,
                 project_ids[0],
@@ -75,6 +77,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
                 span_group,
             )
         elif request.query_params.get("fingerprint"):
+            sentry_sdk.set_tag("dataset", "functions")
             function_fingerprint = int(request.query_params["fingerprint"])
             profile_ids = get_profiles_with_function(
                 organization.id,
@@ -84,6 +87,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
                 request.GET.get("query", ""),
             )
         else:
+            sentry_sdk.set_tag("dataset", "profiles")
             profile_ids = get_profile_ids(params, request.query_params.get("query", None))
 
         kwargs: Dict[str, Any] = {
