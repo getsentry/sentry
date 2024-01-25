@@ -37,10 +37,61 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "dataset": "spansIndexed",
             }
         )
+
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 2
         assert data[0]["description"] == "bar"
         assert data[1]["description"] == "foo"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_sentry_tags_vs_tags(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction.method": "foo"}}, start_ts=self.ten_mins_ago
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["transaction.method", "count()"],
+                "query": "",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["transaction.method"] == "foo"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_sentry_tags_syntax(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction.method": "foo"}}, start_ts=self.ten_mins_ago
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["sentry_tags[transaction.method]", "count()"],
+                "query": "",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sentry_tags[transaction.method]"] == "foo"
         assert meta["dataset"] == "spansIndexed"

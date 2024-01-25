@@ -129,6 +129,12 @@ SPAN_COLUMN_MAP = {
     "transaction.op": "transaction_op",
     "user": "user",
     "profile_id": "profile_id",
+    "transaction.method": "sentry_tags[transaction.method]",
+    "system": "sentry_tags[system]",
+    "release": "sentry_tags[release]",
+    "environment": "sentry_tags[environment]",
+    "device.class": "sentry_tags[device.class]",
+    "category": "sentry_tags[category]",
 }
 
 SPAN_COLUMN_MAP.update(
@@ -1198,6 +1204,12 @@ def resolve_column(dataset) -> Callable[[str], str]:
         if dataset == Dataset.Discover:
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
+        elif (
+            dataset == Dataset.SpansIndexed
+            and isinstance(col, str)
+            and col.startswith("sentry_tags[")
+        ):
+            return col
         else:
             if (
                 col in DATASET_FIELDS[dataset]
