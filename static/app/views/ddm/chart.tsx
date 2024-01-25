@@ -23,7 +23,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';
 
-import {FormatterOptions, getFormatter} from '../../components/charts/components/tooltip';
+import {getFormatter} from '../../components/charts/components/tooltip';
 
 import {useMetricSamples} from './useMetricSamples';
 import {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget';
