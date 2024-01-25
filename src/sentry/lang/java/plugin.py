@@ -23,7 +23,6 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
         self.images = get_proguard_images(self.data)
         self.available = len(self.images) > 0
-        self.mapping_views = []
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")
@@ -37,6 +36,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             dif_paths = ProjectDebugFile.difcache.fetch_difs(
                 self.project, self.images, features=["mapping"]
             )
+            self.mapping_views = []
 
         for debug_id in self.images:
             error_type = None
@@ -71,9 +71,6 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         return True
 
     def process_exception(self, exception):
-        if not self.available:
-            return False
-
         ty = exception.get("type")
         mod = exception.get("module")
         if not ty or not mod:
@@ -152,8 +149,8 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         self.proguard_processor = JavaStacktraceProcessor(*args, **kwargs)
-        self._proguard_processor_handles_frame = {}
-        self._handles_frame = {}
+        self._proguard_processor_handles_frame = None
+        self._handles_frame = None
         self.images = get_jvm_images(self.data)
         self._archives = []
         self.available = len(self.images) > 0
@@ -163,17 +160,20 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
             archive.close()
 
     def handles_frame(self, frame, stacktrace_info):
-        key = frozenset(frame.items())
-        self._proguard_processor_handles_frame[key] = self.proguard_processor.handles_frame(
+        self._proguard_processor_handles_frame = self.proguard_processor.handles_frame(
             frame, stacktrace_info
         )
 
         platform = frame.get("platform") or self.data.get("platform")
-        self._handles_frame[key] = platform == "java" and self.available and "module" in frame
-        return self._proguard_processor_handles_frame[key] or self._handles_frame[key]
+        self._handles_frame = platform == "java" and self.available and "module" in frame
+        return self._proguard_processor_handles_frame or self._handles_frame
 
     def preprocess_step(self, processing_task):
-        proguard_processor_preprocess_rv = self.proguard_processor.preprocess_step(processing_task)
+        proguard_processor_preprocess_rv = False
+        if self._proguard_processor_handles_frame:
+            proguard_processor_preprocess_rv = self.proguard_processor.preprocess_step(
+                processing_task
+            )
 
         if not self.available:
             return proguard_processor_preprocess_rv
@@ -189,7 +189,9 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         return proguard_processor_preprocess_rv or self.available
 
     def process_exception(self, exception):
-        return self.proguard_processor.process_exception(exception)
+        if self._proguard_processor_handles_frame:
+            return self.proguard_processor.process_exception(exception)
+        return False
 
     # if path contains a '$' sign or doesn't contain a '.' it has most likely been obfuscated
     def _is_valid_path(self, abs_path):
@@ -231,10 +233,8 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         new_frames = None
         raw_frames = None
         processing_errors = None
-        bare_frame = processable_frame.frame
-        key = frozenset(bare_frame.items())
 
-        if self._proguard_processor_handles_frame[key]:
+        if self._proguard_processor_handles_frame:
             proguard_result = self.proguard_processor.process_frame(
                 processable_frame, processing_task
             )
@@ -242,11 +242,11 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
             if proguard_result:
                 new_frames, raw_frames, processing_errors = proguard_result
 
-        if not self._handles_frame[key]:
+        if not self._handles_frame:
             return new_frames, raw_frames, processing_errors
 
         if not new_frames:
-            new_frames = [dict(bare_frame)]
+            new_frames = [dict(processable_frame.frame)]
 
         for new_frame in new_frames:
             lineno = new_frame.get("lineno")
