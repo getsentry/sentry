@@ -10,10 +10,7 @@ import {t} from 'sentry/locale';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import {Sort} from 'sentry/utils/discover/fields';
 import {formatSpanOperation} from 'sentry/utils/formatters';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
@@ -106,7 +103,7 @@ function SpanSummaryPage({params, location}: Props) {
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <Layout.Page>
         <StarfishPageFiltersContainer>
-          <PageErrorProvider>
+          <PageAlertProvider>
             <Layout.Header>
               <Layout.HeaderContent>
                 {!isSpanMetricsLoading && <Breadcrumbs crumbs={crumbs} />}
@@ -119,7 +116,7 @@ function SpanSummaryPage({params, location}: Props) {
             </Layout.Header>
             <Layout.Body>
               <Layout.Main fullWidth>
-                <PageErrorAlert />
+                <PageAlert />
 
                 <SpanSummaryView groupId={groupId} />
 
@@ -139,7 +136,7 @@ function SpanSummaryPage({params, location}: Props) {
                 />
               </Layout.Main>
             </Layout.Body>
-          </PageErrorProvider>
+          </PageAlertProvider>
         </StarfishPageFiltersContainer>
       </Layout.Page>
     </SentryDocumentTitle>
