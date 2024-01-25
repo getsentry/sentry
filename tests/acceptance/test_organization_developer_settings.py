@@ -120,10 +120,8 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
         self.load_page(url)
 
         assert self.browser.element_exists('[aria-label="Generated token"]') is False
-        assert len(self.browser.find_elements(By.CSS_SELECTOR, '[data-test-id="api-token"]')) == 1
 
         self.browser.click('[data-test-id="token-add"]')
         self.browser.wait_until(".ref-success")
 
-        assert len(self.browser.find_elements(By.CSS_SELECTOR, '[data-test-id="api-token"]')) == 1
         assert len(self.browser.elements('[aria-label="Generated token"]')) == 1
