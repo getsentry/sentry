@@ -5,7 +5,7 @@ import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, List, Literal, Mapping, Optional
 
 import msgpack
 import sentry_sdk
@@ -871,12 +871,13 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
 
     def __init__(
         self,
-        parallel=None,
-        max_batch_size=None,
-        max_batch_time=None,
+        mode: Literal["parallel", "serial"] | None = None,
+        max_batch_size: int | None = None,
+        max_batch_time: int | None = None,
     ) -> None:
-        if parallel is not None:
-            self.parallel = parallel
+        if mode == "parallel":
+            self.parallel = True
+
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size
         if max_batch_time is not None:
