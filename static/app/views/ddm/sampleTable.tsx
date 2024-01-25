@@ -5,6 +5,7 @@ import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/button';
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -67,6 +68,7 @@ const columnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
   {key: 'spansSummary', width: COL_WIDTH_UNDEFINED, name: 'Spans Summary'},
   {key: 'duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
   {key: 'traceId', width: COL_WIDTH_UNDEFINED, name: 'Trace ID'},
+  {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: 'Timestamp'},
   {key: 'profileId', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
 ];
 
@@ -130,8 +132,8 @@ export function SampleTable({
               organization.slug,
               eventSlug,
               undefined,
-              {referrer: 'metrics'},
-              row.spanId
+              {referrer: 'metrics', openPanel: 'open'},
+              row.spansDetails[0]?.spanId
             )}
             target="_blank"
           >
@@ -238,6 +240,17 @@ export function SampleTable({
             };
           })}
         />
+      );
+    }
+    if (key === 'timestamp') {
+      return (
+        <BodyCell
+          rowId={row.transactionId}
+          onHover={onRowHover}
+          highlighted={highlighted}
+        >
+          <DateTime date={row.timestamp} />
+        </BodyCell>
       );
     }
     if (key === 'profileId') {
