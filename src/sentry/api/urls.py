@@ -484,6 +484,7 @@ from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
+from .endpoints.project_metrics import ProjectMetricsVisibilityEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -2269,6 +2270,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/members/$",
         ProjectMemberIndexEndpoint.as_view(),
         name="sentry-api-0-project-member-index",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/visibility/$",
+        ProjectMetricsVisibilityEndpoint.as_view(),
+        name="sentry-api-0-project-metrics-visibility",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$",
