@@ -443,7 +443,7 @@ class GroupManager(BaseManager["Group"]):
             and activity_type == ActivityType.AUTO_SET_ONGOING
         )
 
-        updated_priority = set()
+        updated_priority = {}
         for group in selected_groups:
             group.status = status
             group.substatus = substatus
@@ -451,7 +451,7 @@ class GroupManager(BaseManager["Group"]):
                 priority = get_priority_for_ongoing_group(group)
                 if priority:
                     group.priority = priority
-                    updated_priority.add(group.id)
+                    updated_priority[group.id] = priority
 
             modified_groups_list.append(group)
 
@@ -467,15 +467,16 @@ class GroupManager(BaseManager["Group"]):
             record_group_history_from_activity_type(group, activity_type.value)
 
             if group.id in updated_priority:
+                new_priority = updated_priority[group.id]
                 Activity.objects.create_group_activity(
                     group=group,
                     type=ActivityType.SET_PRIORITY,
                     data={
-                        "priority": PRIORITY_LEVEL_TO_STR[group.priority],
+                        "priority": PRIORITY_LEVEL_TO_STR[new_priority],
                         "reason": PriorityChangeReason.ONGOING,
                     },
                 )
-                record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[group.priority])
+                record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
