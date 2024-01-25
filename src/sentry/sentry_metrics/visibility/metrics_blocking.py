@@ -10,8 +10,14 @@ from sentry.utils import json
 BLOCKED_METRICS_PROJECT_OPTION_KEY = "sentry:blocked_metrics"
 
 
+class DeniedTag(TypedDict):
+    name: Sequence[str]
+    tag: Sequence[str]
+
+
 class BlockedMetricsRelayConfig(TypedDict):
     deniedNames: Sequence[str]
+    deniedTags: Sequence[DeniedTag]
 
 
 @dataclass(frozen=True)
@@ -183,14 +189,18 @@ def get_blocked_metrics_for_relay_config(project: Project) -> BlockedMetricsRela
         sentry_sdk.capture_exception(e)
         # In case of a malformed configuration, we will notify Sentry and return no metrics, since it's an unrecoverable
         # situation, unless we want to force overwrite the config.
-        return BlockedMetricsRelayConfig(deniedNames=[])
+        return BlockedMetricsRelayConfig(deniedNames=[], deniedTags=[])
+
+    denied_names = []
+    denied_tags = []
+    for blocked_metric in blocked_metrics.metrics.values():
+        if blocked_metric.is_blocked:
+            denied_names.append(blocked_metric.metric_mri)
+        elif blocked_metric.blocked_tags:
+            denied_tags.append(
+                DeniedTag(name=[blocked_metric.metric_mri], tag=list(blocked_metric.blocked_tags))
+            )
 
     # For now, we just return the metric mris of the blocked metrics. Once tags are supported in Relay, we will return
     # also the blocked tags for the metric.
-    return BlockedMetricsRelayConfig(
-        deniedNames=[
-            blocked_metric.metric_mri
-            for blocked_metric in blocked_metrics.metrics.values()
-            if blocked_metric.is_blocked
-        ]
-    )
+    return BlockedMetricsRelayConfig(deniedNames=denied_names, deniedTags=denied_tags)

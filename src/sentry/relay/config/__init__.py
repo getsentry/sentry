@@ -49,6 +49,7 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
+from ...sentry_metrics.visibility import get_blocked_metrics_for_relay_config
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config
@@ -241,6 +242,10 @@ def get_metrics_config(project: Project) -> Optional[Mapping[str, Any]]:
                 }
             )
         metrics_config["cardinalityLimits"] = cardinality_limits
+
+    if features.has("organizations:metrics-blocking", project.organization):
+        blocked_metrics = get_blocked_metrics_for_relay_config(project)
+        metrics_config.update(**blocked_metrics)
 
     return metrics_config or None
 
