@@ -44,7 +44,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         for tag in tags:
             title = tag["title"]
             value = tag["value"]
-            text += f"`{title}: {value}`  "
+            text += f"{title}: `{value}`  "
         return {
             "type": "section",
             "text": {"type": "mrkdwn", "text": text},

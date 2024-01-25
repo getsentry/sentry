@@ -14,6 +14,7 @@ from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMe
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
     build_actions,
+    format_release_tag,
     get_option_groups,
     get_option_groups_block_kit,
     time_since,
@@ -83,11 +84,11 @@ def build_test_message_blocks(
 
     tags_text = ""
     if not tags:
-        tags = {}
-    tags["level"] = "error"
-
+        tags = {"level": "error"}
     for k, v in tags.items():
-        tags_text += f"`{k}: {v}`  "
+        if k == "release":
+            v = format_release_tag(v, group)
+        tags_text += f"{k}: `{v}`  "
 
     tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
     blocks.append(tags_section)
@@ -296,6 +297,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @with_feature("organizations:slack-block-kit")
     def test_build_group_block(self):
+
+        release = self.create_release(project=self.project)
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -303,6 +306,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 "timestamp": iso_format(before_now(minutes=1)),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
+                "release": release.version,
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -311,15 +315,16 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        tags = {"foo": "bar"}
+        base_tags = {"level": "error", "release": release.version}
+        more_tags = {"foo": "bar", **base_tags}
         notes = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
+            tags=base_tags,
         )
-
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
             group, event.for_group(group), tags={"foo"}
@@ -327,7 +332,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             teams={self.team},
             users={self.user},
             group=group,
-            tags=tags,
+            tags=more_tags,
             event=event,
         )
 
@@ -340,6 +345,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             notes=notes,
             event=event,
+            tags=base_tags,
         )
         # add extra tag and notes to message
         assert SlackIssuesMessageBuilder(
@@ -348,7 +354,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             teams={self.team},
             users={self.user},
             group=group,
-            tags=tags,
+            tags=more_tags,
             notes=notes,
             event=event,
         )
@@ -360,6 +366,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             event=event,
+            tags=base_tags,
         )
 
         assert SlackIssuesMessageBuilder(
@@ -370,12 +377,14 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             link_to_event=True,
+            tags=base_tags,
         )
 
         test_message = build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
+            tags=base_tags,
         )
 
         for section in test_message["blocks"]:
@@ -507,7 +516,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         # auto assign group
         ProjectOwnership.handle_auto_assignment(self.project.id, event)
-
         expected_blocks = build_test_message_blocks(
             teams={self.team},
             users={self.user},
