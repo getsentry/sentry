@@ -123,7 +123,7 @@ def _get_alert_metric_specs(project: Project, enabled_features: Set[str]) -> lis
         .filter(
             organization=project.organization,
             status=AlertRuleStatus.PENDING.value,
-            snuba_query__dataset__in=[Dataset.PerformanceMetrics.value],
+            snuba_query__dataset=Dataset.PerformanceMetrics.value,
         )
         .select_related("snuba_query")
     )
