@@ -9,9 +9,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
-import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {
   Provider as ReplayContextProvider,
   useReplayContext,
@@ -19,7 +16,7 @@ import {
 import {ReplayPlayPauseBar} from 'sentry/components/replays/replayController';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
-import {formatTime} from 'sentry/components/replays/utils';
+import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconContract, IconDelete, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -81,14 +78,11 @@ function ReplayPreviewPlayer({
   const routes = useRoutes();
   const organization = useOrganization();
   const isFullscreen = useIsFullscreen();
-  const {currentTime, startTimeOffsetMs, durationMs} = useReplayContext();
+  const {currentTime} = useReplayContext();
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
   // it. https://caniuse.com/fullscreen
   const showFullscreenButton = screenfull.isEnabled;
-
-  const elem = useRef<HTMLDivElement>(null);
-  const mouseTrackingProps = useScrubberMouseTracking({elem});
 
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
@@ -108,24 +102,7 @@ function ReplayPreviewPlayer({
         <ButtonGrid>
           <ReplayPlayPauseBar />
           <Container>
-            <TimeAndScrubberGrid>
-              <Time style={{gridArea: 'currentTime'}}>
-                {formatTime(currentTime - startTimeOffsetMs)}
-              </Time>
-              <div style={{gridArea: 'timeline'}}>
-                <ReplayTimeline />
-              </div>
-              <StyledScrubber
-                style={{gridArea: 'scrubber'}}
-                ref={elem}
-                {...mouseTrackingProps}
-              >
-                <PlayerScrubber showZoomIndicators />
-              </StyledScrubber>
-              <Time style={{gridArea: 'duration'}}>
-                {durationMs ? formatTime(durationMs) : '--:--'}
-              </Time>
-            </TimeAndScrubberGrid>
+            <TimeAndScrubberGrid />
           </Container>
           <ButtonBar gap={1}>
             <LinkButton size="sm" to={fullReplayUrl}>
@@ -269,28 +246,6 @@ const Container = styled('div')`
   flex-direction: column;
   flex: 1 1;
   justify-content: center;
-`;
-
-const TimeAndScrubberGrid = styled('div')`
-  width: 100%;
-  display: grid;
-  grid-template-areas:
-    '. timeline .'
-    'currentTime scrubber duration';
-  grid-column-gap: ${space(1)};
-  grid-template-columns: max-content auto max-content;
-  align-items: center;
-`;
-
-const Time = styled('span')`
-  font-variant-numeric: tabular-nums;
-  padding: 0 ${space(1.5)};
-`;
-
-const StyledScrubber = styled('div')`
-  height: 32px;
-  display: flex;
-  align-items: center;
 `;
 
 export default ReplayClipPreview;
