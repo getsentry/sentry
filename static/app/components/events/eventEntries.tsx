@@ -11,6 +11,7 @@ import {
   Entry,
   EntryType,
   Event,
+  EventOrGroupType,
   Group,
   Organization,
   Project,
@@ -18,6 +19,7 @@ import {
 } from 'sentry/types';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {objectIsEmpty} from 'sentry/utils';
+import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
@@ -118,6 +120,12 @@ function EventEntries({
       {!isShare && <EventViewHierarchy event={event} project={project} />}
       {!isShare && <EventAttachments event={event} projectSlug={projectSlug} />}
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      {event.type === EventOrGroupType.TRANSACTION && event._metrics_summary && (
+        <CustomMetricsEventData
+          metricsSummary={event._metrics_summary}
+          startTimestamp={event.startTimestamp}
+        />
+      )}
       {!isShare && event.groupID && (
         <EventGroupingInfo
           projectSlug={projectSlug}
