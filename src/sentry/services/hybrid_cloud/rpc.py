@@ -529,6 +529,7 @@ class _RemoteSiloCall:
         with sentry_sdk.configure_scope() as scope:
             scope.set_tag("rpc_service", self.service_name)
             scope.set_tag("rpc_method", self.method_name)
+            scope.set_tag("rpc_status_code", response.status_code)
 
         if in_test_environment():
             if response.status_code == 500:
