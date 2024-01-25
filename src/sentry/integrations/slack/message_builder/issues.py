@@ -7,6 +7,7 @@ from typing import Any, Mapping, Sequence, Union
 from django.utils import timezone
 from django.utils.timesince import timesince
 from django.utils.translation import gettext as _
+from sentry_relay.processing import parse_release
 
 from sentry import features, tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
@@ -143,6 +144,14 @@ def build_tag_fields(
     return fields
 
 
+def format_release_tag(value: str, event: GroupEvent | Group):
+    """Format the release tag using the short version and make it a link"""
+    path = f"/releases/{value}/"
+    url = event.project.organization.absolute_url(path)
+    release_description = parse_release(value).get("description")
+    return f"<{url}|{release_description}>"
+
+
 def get_tags(
     event_for_tags: Any,
     tags: set[str] | None = None,
@@ -164,8 +173,9 @@ def get_tags(
             std_key = tagstore.backend.get_standardized_key(key)
             if std_key not in tags:
                 continue
-
             labeled_value = tagstore.backend.get_tag_value_label(key, value)
+            if std_key == "release":
+                labeled_value = format_release_tag(labeled_value, event_for_tags)
             fields.append(
                 {
                     "title": std_key,
@@ -582,7 +592,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         for k, v in context.items():
             if k and v:
                 context_text += f"{k}: *{v}*   "
-        blocks.append(self.get_markdown_block(context_text[:-3]))
+        blocks.append(self.get_context_block(context_text[:-3]))
 
         # build actions
         actions = []

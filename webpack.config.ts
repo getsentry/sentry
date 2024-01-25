@@ -675,6 +675,7 @@ if (IS_UI_DEV_ONLY) {
         headers: {
           Referer: 'https://sentry.io/',
           'Document-Policy': 'js-profiling',
+          origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
         router: ({hostname}) => {
@@ -696,6 +697,7 @@ if (IS_UI_DEV_ONLY) {
         headers: {
           Referer: 'https://sentry.io/',
           'Document-Policy': 'js-profiling',
+          origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
         pathRewrite: {
