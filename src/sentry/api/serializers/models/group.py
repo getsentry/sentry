@@ -327,7 +327,6 @@ class GroupSerializerBase(Serializer, ABC):
         self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
     ) -> BaseGroupSerializerResponse:
         status_details, status_label = self._get_status(attrs, obj)
-        priority_label = self._get_priority(obj)
         permalink = self._get_permalink(attrs, obj)
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
@@ -345,7 +344,6 @@ class GroupSerializerBase(Serializer, ABC):
             "substatus": SUBSTATUS_TO_STR[obj.substatus] if obj.substatus else None,
             "isPublic": share_id is not None,
             "platform": obj.platform,
-            "priority": priority_label,
             "project": {
                 "id": str(obj.project.id),
                 "name": obj.project.name,
@@ -364,6 +362,10 @@ class GroupSerializerBase(Serializer, ABC):
             "issueType": obj.issue_type.slug,
             "issueCategory": obj.issue_category.name.lower(),
         }
+
+        if features.has("projects:issue-priority", obj.project, actor=None):
+            priority_label = self._get_priority(obj) if obj.priority is not None else None
+            group_dict["priority"] = priority_label
 
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
@@ -399,10 +401,10 @@ class GroupSerializerBase(Serializer, ABC):
         priority = obj.priority
         if priority == PriorityLevel.HIGH:
             priority_label = "high"
-        elif priority == PriorityLevel.MEDIUM:
-            priority_label = "medium"
-        else:
+        elif priority == PriorityLevel.LOW:
             priority_label = "low"
+        else:
+            priority_label = "medium"
         return priority_label
 
     def _get_status(self, attrs: MutableMapping[str, Any], obj: Group):
