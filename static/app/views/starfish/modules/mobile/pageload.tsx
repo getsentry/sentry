@@ -12,10 +12,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -42,7 +39,7 @@ export default function PageloadModule() {
   return (
     <SentryDocumentTitle title={t('Mobile')} orgSlug={organization.slug}>
       <Layout.Page>
-        <PageErrorProvider>
+        <PageAlertProvider>
           <Layout.Header>
             <Layout.HeaderContent>
               <HeaderWrapper>
@@ -59,7 +56,7 @@ export default function PageloadModule() {
           <Layout.Body>
             <FloatingFeedbackWidget />
             <Layout.Main fullWidth>
-              <PageErrorAlert />
+              <PageAlert />
               <PageFiltersContainer>
                 <Container>
                   <PageFilterBar condensed>
@@ -89,7 +86,7 @@ export default function PageloadModule() {
               </PageFiltersContainer>
             </Layout.Main>
           </Layout.Body>
-        </PageErrorProvider>
+        </PageAlertProvider>
       </Layout.Page>
     </SentryDocumentTitle>
   );

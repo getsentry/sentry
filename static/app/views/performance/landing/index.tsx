@@ -26,10 +26,7 @@ import {
   MEPSettingProvider,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useTeams} from 'sentry/utils/useTeams';
 
@@ -149,7 +146,7 @@ export function PerformanceLanding(props: Props) {
 
   return (
     <Layout.Page data-test-id="performance-landing-v3">
-      <PageErrorProvider>
+      <PageAlertProvider>
         <Tabs
           value={landingDisplay.field}
           onChange={field =>
@@ -218,7 +215,7 @@ export function PerformanceLanding(props: Props) {
                               router={props.router}
                               {...metricsDataSide}
                             />
-                            <PageErrorAlert />
+                            <PageAlert />
                             {showOnboarding ? (
                               <Fragment>
                                 {pageFilters}
@@ -276,7 +273,7 @@ export function PerformanceLanding(props: Props) {
             </Layout.Main>
           </Layout.Body>
         </Tabs>
-      </PageErrorProvider>
+      </PageAlertProvider>
     </Layout.Page>
   );
 }
