@@ -69,7 +69,8 @@ class ApiInviteHelperTest(TestCase):
         assert invite_context is not None
 
         helper = ApiInviteHelper(self.request, invite_context, None)
-        helper.accept_invite()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            helper.accept_invite()
         invite_context = organization_service.get_invite_by_id(
             organization_member_id=om.id, organization_id=om.organization_id
         )
@@ -80,7 +81,8 @@ class ApiInviteHelperTest(TestCase):
         # Without this member_id, don't delete the organization member
         invite_context.invite_organization_member_id = None
         helper = ApiInviteHelper(self.request, invite_context, None)
-        helper.accept_invite()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            helper.accept_invite()
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
         assert om.user_id == self.user.id
@@ -88,7 +90,8 @@ class ApiInviteHelperTest(TestCase):
         # With the member_id, ensure it's deleted
         invite_context.invite_organization_member_id = member_id
         helper = ApiInviteHelper(self.request, invite_context, None)
-        helper.accept_invite()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            helper.accept_invite()
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(id=self.member.id)
 
