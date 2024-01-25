@@ -62,16 +62,18 @@ def update_priority(
 
 def get_priority_for_escalating_group(group: Group) -> PriorityLevel | None:
     """
-    Get the priority for a group that is escalating.
+    Get the priority for a group that is escalating by incrementing it one level.
     """
 
     if not group.priority or group.priority == PriorityLevel.HIGH:
+        # HIGH priority issues can not be incremented further
+        return PriorityLevel.HIGH
+    elif group.priority == PriorityLevel.MEDIUM:
         return PriorityLevel.HIGH
     elif group.priority == PriorityLevel.LOW:
         return PriorityLevel.MEDIUM
-    elif group.priority == PriorityLevel.MEDIUM:
-        return PriorityLevel.HIGH
 
+    # This should never happen
     logger.error(
         "Unable to determine escalation priority for group %s with priority %s",
         group.id,
