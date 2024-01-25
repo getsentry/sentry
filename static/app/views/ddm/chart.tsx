@@ -30,6 +30,7 @@ type ChartProps = {
   series: Series[];
   widgetIndex: number;
   addFocusArea?: (area: FocusArea) => void;
+  drawFocusArea?: () => void;
   height?: number;
   operation?: string;
   removeFocusArea?: () => void;
@@ -47,6 +48,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       displayType,
       operation,
       widgetIndex,
+      drawFocusArea,
       addFocusArea,
       focusArea,
       removeFocusArea,
@@ -64,19 +66,19 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       },
       [router]
     );
-
-    const focusAreaBrush = useFocusArea(
+    const focusAreaBrush = useFocusArea({
       chartRef,
       focusArea,
-      {
+      opts: {
         widgetIndex,
         isDisabled: !addFocusArea || !removeFocusArea || !handleZoom,
         useFullYAxis: isCumulativeOp(operation),
       },
-      addFocusArea,
-      removeFocusArea,
-      handleZoom
-    );
+      onDraw: drawFocusArea,
+      onAdd: addFocusArea,
+      onRemove: removeFocusArea,
+      onZoom: handleZoom,
+    });
 
     useEffect(() => {
       const echartsInstance = chartRef?.current?.getEchartsInstance();
