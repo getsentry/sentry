@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import ipaddress
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Tuple
 
 from django.conf import settings
 from django.core.signing import BadSignature
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework.request import Request
 
@@ -160,7 +160,7 @@ class Staff(ElevatedMode):
             return
 
         if current_datetime is None:
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
 
         try:
             data["idl"] = datetime.utcfromtimestamp(float(data["idl"])).replace(tzinfo=timezone.utc)
@@ -199,7 +199,7 @@ class Staff(ElevatedMode):
         return data
 
     def _populate(self) -> None:
-        current_datetime = timezone.now()
+        current_datetime = django_timezone.now()
 
         request = self.request
         user = getattr(request, "user", None)
@@ -240,7 +240,7 @@ class Staff(ElevatedMode):
         # the staff check happens right here)
         assert user.is_staff
         if current_datetime is None:
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
         self.token = token
         self.uid = str(user.id)
         # the absolute maximum age of this session
@@ -272,7 +272,7 @@ class Staff(ElevatedMode):
         """
         request = self.request
         if current_datetime is None:
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
 
         self._set_logged_in(
             expires=current_datetime + MAX_AGE,
