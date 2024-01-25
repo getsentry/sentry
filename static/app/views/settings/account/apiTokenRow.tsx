@@ -31,6 +31,7 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
         </TokenPreview>
         <ButtonWrapper>
           <Button
+            data-test-id="token-delete"
             onClick={() => onRemove(token)}
             icon={<IconSubtract isCircled size="xs" />}
           >

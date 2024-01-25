@@ -119,7 +119,11 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.load_page(url)
 
+        assert len(self.browser.elements('[data-test-id="new-api-token"]')) == 0
+        assert len(self.browser.elements('[data-test-id="api-token"]')) == 1
+
         self.browser.click('[data-test-id="token-add"]')
         self.browser.wait_until(".ref-success")
 
-        assert len(self.browser.elements('[data-test-id="token-delete"]')) == 2
+        assert len(self.browser.elements('[data-test-id="new-api-token"]')) == 1
+        assert len(self.browser.elements('[data-test-id="api-token"]')) == 1

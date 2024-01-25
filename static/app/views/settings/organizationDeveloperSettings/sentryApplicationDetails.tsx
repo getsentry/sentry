@@ -281,11 +281,17 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
       return <EmptyMessage description={t('No tokens created yet.')} />;
     }
     const tokens_to_display = tokens.map(token => (
-      <ApiTokenRow key={token.id} token={token} onRemove={this.onRemoveToken} />
+      <ApiTokenRow
+        data-test-id="api-token"
+        key={token.id}
+        token={token}
+        onRemove={this.onRemoveToken}
+      />
     ));
     tokens_to_display.push(
       ...newTokens.map(newToken => (
         <NewTokenHandler
+          data-test-id="new-api-token"
           key={newToken.id}
           token={getDynamicText({value: newToken.token, fixed: 'ORG_AUTH_TOKEN'})}
           handleGoBack={() => this.handleFinishNewToken(newToken)}
