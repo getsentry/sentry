@@ -3441,7 +3441,6 @@ KAFKA_GROUP_ATTRIBUTES = "group-attributes"
 KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 
 # spans
-KAFKA_INGEST_SPANS = "ingest-spans"
 KAFKA_SNUBA_SPANS = "snuba-spans"
 
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
@@ -3492,7 +3491,6 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
     KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
-    KAFKA_INGEST_SPANS: {"cluster": "default"},
     KAFKA_SNUBA_SPANS: {"cluster": "default"},
     KAFKA_SHARED_RESOURCES_USAGE: {"cluster": "default"},
 }
