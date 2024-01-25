@@ -115,7 +115,7 @@ export function useMetricSamples({
 
       const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
 
-      const symbol = yPosition === yValue ? 'circle' : 'triangle';
+      const symbol = yPosition === yValue ? 'circle' : 'arrow';
       const symbolRotate = yPosition > yValue ? 180 : 0;
 
       return {
