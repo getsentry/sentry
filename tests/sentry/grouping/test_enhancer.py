@@ -93,7 +93,7 @@ def test_flipflop_inapp():
     """
     )
 
-    frames = [{}]
+    frames: list[dict[str, Any]] = [{}]
     enhancement.apply_modifications_to_frame(frames, "javascript", {})
 
     assert frames[0]["data"]["orig_in_app"] == -1  # == None
