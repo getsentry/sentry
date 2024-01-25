@@ -3719,7 +3719,7 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # constraints instead of setting the column to not null.
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
-ANOMALY_DETECTION_URL = "127.0.0.1:9091"
+ANOMALY_DETECTION_URL = "http://127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
 
 # TODO: Once this moves to its own service, this URL will need to be updated
