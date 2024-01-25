@@ -30,9 +30,6 @@ from sentry.integrations.slack.message_builder import (
     SlackAttachment,
     SlackBlock,
 )
-from sentry.utils.committers import get_serialized_event_file_committers
-
-from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackAttachment, SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
@@ -57,6 +54,7 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils import json
+from sentry.utils.committers import get_serialized_event_file_committers
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 logger = logging.getLogger(__name__)
@@ -282,6 +280,57 @@ def get_suggested_assignees(
                 assignee_texts.append(f"#{assignee.slug}")
         return assignee_texts
     return []
+
+
+def get_suspect_commit_block(project: Project, event: GroupEvent):
+    """Build up the suspect commit info for the given event"""
+    author = None
+    commit_id = None
+    commit_link = None
+    pr_link = None
+    pr_date = None
+    committers = None
+    repo_base = None
+
+    try:
+        committers = get_serialized_event_file_committers(project, event)
+    except (Release.DoesNotExist, Commit.DoesNotExist):
+        logger.info("Skipping suspect committers because release does not exist.")
+    except Exception:
+        logger.exception("Could not get suspect committers. Continuing execution.")
+    if not committers:
+        return None
+
+    if committers:
+        committer = committers[0]
+        # TODO show the user's Slack name if their identity is linked
+        author = committer.get("author", {}).get("email")
+        commits = committer.get("commits")
+        if commits:
+            commit_id = commits[0].get("id")
+            pull_request = commits[0].get("pullRequest")
+            if pull_request:
+                pr_title = pull_request.get("title")
+                pr_link = pull_request.get("externalUrl")
+                repo_base = pull_request.get("repository", {}).get("url")
+                pr_date = pull_request.get("dateCreated")
+                pr_id = pull_request.get("id")
+                if pr_date:
+                    pr_date = time_since(pr_date)
+
+    if author and commit_id:
+        suspect_commit_text = "Suspect Commit: "
+        if repo_base:
+            commit_link = f"<{repo_base}/commits/{commit_id}|{commit_id[0:6]}>"
+            suspect_commit_text += f"{commit_link} by {author}"
+        else:
+            suspect_commit_text += f"{commit_id} by {author}"
+        if pull_request:
+            suspect_commit_text += (
+                f" {pr_date} \n{pr_title} ({pr_id}) <{pr_link}|View Pull Request>"
+            )
+        return suspect_commit_text
+    return None
 
 
 def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
@@ -574,6 +623,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 self.get_context_block(suggested_assignee_text[:-2])
             )  # get rid of comma at the end
 
+        # add suspect commit info
+        if self.event:
+            suspect_commit_text = get_suspect_commit_block(project, self.event)
+            if suspect_commit_text:
+                blocks.append(self.get_context_block(suspect_commit_text))
+
         # add notes
         if self.notes:
             notes_text = f"notes: {self.notes}"
@@ -597,39 +652,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         block_id = {"issue": self.group.id}
         if rule_id:
             block_id["rule"] = rule_id
-
-        # add suspect commit info
-        if self.event:
-            author = None
-            commit_id = None
-            commit_link = None
-            pr_link = None
-            committers = get_serialized_event_file_committers(project, self.event)
-            if committers:
-                committer = committers[0]
-                # TODO show the user's Slack name if their identity is linked
-                author = committer.get("author", {}).get("email")
-                commits = committer.get("commits")
-                if commits:
-                    commit_id = commits[0].get("id")
-                    pull_request = commits.get("pullRequest")["externalUrl"]
-                    if pull_request:
-                        pr_link = pull_request.get("externalUrl")
-                        repo_base = pull_request.get("repository", {}).get("url")
-
-            if author and commit_id:
-                sc_text = ":eyes: *Suspect Commit*\n "
-                if repo_base:
-                    commit_link = f"<{repo_base}/commits/{commit_id}|{commit_id[0:6]}>"
-                sc_text += f"{author} committed {commit_id}"
-                if commit_link:
-                    sc_text += f"{author} committed {commit_link}"
-                if pr_link:
-                    view_pr_button = MessageAction(name="View Pull Request", style="primary", url=pr_link)
-                    suspect_commit_block = self.get_link_button(view_pr_button, sc_text)
-                    blocks.append(suspect_commit_block)
-                else:
-                    suspect_commit_block = self.get_markdown_block(sc_text)
 
         return self._build_blocks(
             *blocks,
