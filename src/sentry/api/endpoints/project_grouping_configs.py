@@ -22,7 +22,7 @@ class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project) -> Response:
         configs = [
-            config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: x.id)
+            config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: str(x.id))
         ]
 
         return Response(serialize(configs))
