@@ -42,7 +42,7 @@ export default function FeedbackListHeader({
   const {setParamValue: setMailbox} = useUrlParams('mailbox');
 
   const {listPrefetchQueryKey, resetListHeadTime} = useFeedbackQueryKeys();
-  const hasNewItems = useFeedbackHasNewItems({listPrefetchQueryKey}) || true;
+  const hasNewItems = useFeedbackHasNewItems({listPrefetchQueryKey});
   const {invalidateListCache} = useFeedbackCache();
 
   return (
