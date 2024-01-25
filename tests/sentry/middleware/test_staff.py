@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import no_silo_test
 
 
 class APITestEndpoint(Endpoint):
@@ -25,6 +26,7 @@ urlpatterns = [
 ]
 
 
+@no_silo_test
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,

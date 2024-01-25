@@ -11,9 +11,10 @@ from sentry.ratelimits import get_rate_limit_config, get_rate_limit_key
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 
 
+@region_silo_test
 class GetRateLimitKeyTest(TestCase):
     def setUp(self) -> None:
         self.view = OrganizationGroupIndexEndpoint.as_view()
@@ -90,7 +91,8 @@ class GetRateLimitKeyTest(TestCase):
         )
 
     def test_api_token(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+        with assume_test_silo_mode_of(ApiToken):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         self.request.auth = token
         self.request.user = self.user
         assert (
@@ -104,8 +106,9 @@ class GetRateLimitKeyTest(TestCase):
         # Ensure AuthenticatedToken kinds are registered
         import sentry.services.hybrid_cloud.auth.impl  # noqa: F401
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
-        self.request.auth = AuthenticatedToken.from_token(token)
+        with assume_test_silo_mode_of(ApiToken):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+            self.request.auth = AuthenticatedToken.from_token(token)
         self.request.user = self.user
         assert (
             get_rate_limit_key(

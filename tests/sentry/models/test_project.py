@@ -26,7 +26,7 @@ from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -437,6 +437,7 @@ class CopyProjectSettingsTest(TestCase):
         self.assert_other_project_settings_not_changed()
 
 
+@control_silo_test
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
         recipients = get_notification_recipients(

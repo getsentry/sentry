@@ -8,7 +8,12 @@ from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    control_silo_test,
+    no_silo_test,
+    region_silo_test,
+)
 from sentry.utils import mockdata
 
 
@@ -47,6 +52,7 @@ def test_create_member() -> None:
     assert "member" == member.role
 
 
+@no_silo_test  # mockdata.main works only in monolith mode
 class TestMockData(SnubaTestCase, TestCase):
     def test_main_skip_default_setup(self) -> None:
         self.create_user(is_superuser=True)

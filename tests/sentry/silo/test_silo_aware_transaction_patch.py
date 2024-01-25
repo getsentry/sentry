@@ -11,8 +11,10 @@ from sentry.silo.patches.silo_aware_transaction_patch import (
     siloed_atomic,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test
 class TestSiloAwareTransactionPatchInSingleDbMode(TestCase):
     def test_correctly_accepts_using_for_atomic(self):
         transaction_in_test = siloed_atomic(using="foobar")
@@ -23,16 +25,19 @@ class TestSiloAwareTransactionPatchInSingleDbMode(TestCase):
         siloed_atomic(using=router.db_for_write(OrganizationMapping))
 
 
+@no_silo_test  # use inline override_settings to test individual silo modes
 class TestSiloAwareTransactionPatchInSplitDbMode(TestCase):
     def test_fails_if_silo_mismatch_with_using_in_region_silo(self):
-        with override_settings(SILO_MODE=SiloMode.REGION), pytest.raises(
-            MismatchedSiloTransactionError
+        with (
+            override_settings(SILO_MODE=SiloMode.REGION),
+            pytest.raises(MismatchedSiloTransactionError),
         ):
             siloed_atomic(using=router.db_for_write(OrganizationMapping))
 
     def test_fails_if_silo_mismatch_with_using_in_control_silo(self):
-        with override_settings(SILO_MODE=SiloMode.CONTROL), pytest.raises(
-            MismatchedSiloTransactionError
+        with (
+            override_settings(SILO_MODE=SiloMode.CONTROL),
+            pytest.raises(MismatchedSiloTransactionError),
         ):
             siloed_atomic(using=router.db_for_write(Organization))
 
