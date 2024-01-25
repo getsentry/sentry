@@ -1,15 +1,10 @@
+import {TitledPlugin} from 'sentry/components/group/pluginActions';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
-import type {
-  Commit,
-  ExternalIssue,
-  Plugin,
-  PullRequest,
-  Repository,
-} from './integrations';
+import type {Commit, ExternalIssue, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
 import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
@@ -721,9 +716,9 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: Plugin[];
+  pluginActions: TitledPlugin[];
   pluginContexts: any[]; // TODO(ts)
-  pluginIssues: Plugin[];
+  pluginIssues: TitledPlugin[];
   project: Project;
   seenBy: User[];
   shareId: string;
