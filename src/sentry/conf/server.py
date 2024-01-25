@@ -1567,7 +1567,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable integration functionality to work with alert rules (specifically chat integrations)
     "organizations:integrations-chat-unfurl": True,
     # Enable the API to importing CODEOWNERS for a project
-    "organizations:integrations-codeowners": False,
+    "organizations:integrations-codeowners": True,
     # Enable integration functionality to work deployment integrations like Vercel
     "organizations:integrations-deployment": True,
     # Enable integration functionality to work with enterprise alert rules
@@ -1681,8 +1681,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-extraction-experimental": False,
     # Extract on demand metrics (widget extraction)
     "organizations:on-demand-metrics-extraction-widgets": False,
-    # Signals that the organization supports the on demand metrics prefill.
-    "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
     # Enable the SDK selection feature in the onboarding
@@ -3980,6 +3978,7 @@ REGION_PINNED_URL_NAMES = {
     # Backwards compatibility for US customers.
     # New usage of these is region scoped.
     "sentry-error-page-embed",
+    "sentry-js-sdk-loader",
     "sentry-release-hook",
     "sentry-api-0-organizations",
     "sentry-api-0-projects",

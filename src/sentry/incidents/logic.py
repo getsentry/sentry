@@ -1662,11 +1662,8 @@ def get_filtered_actions(
 
 def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Project]):
     enabled_features = on_demand_metrics_feature_flags(alert_rule.organization)
-    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
 
-    if not projects or not (
-        "organizations:on-demand-metrics-extraction" in enabled_features or prefilling
-    ):
+    if not projects or not ("organizations:on-demand-metrics-extraction" in enabled_features):
         return
 
     alert_snuba_query = alert_rule.snuba_query
@@ -1674,8 +1671,6 @@ def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Pro
         alert_snuba_query.dataset,
         alert_snuba_query.aggregate,
         alert_snuba_query.query,
-        None,
-        prefilling,
     )
     if should_use_on_demand:
         for project in projects:
