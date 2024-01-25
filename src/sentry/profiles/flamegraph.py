@@ -139,6 +139,7 @@ def get_profiles_with_function(
         query=" ".join(cond for cond in conditions if cond),
         params=params,
         limit=100,
+        orderby=["-timestamp"],
         referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
         auto_aggregations=True,
         use_aggregate_conditions=True,
