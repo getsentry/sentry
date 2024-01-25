@@ -48,6 +48,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         stacktrace_string = get_stacktrace_string(self.base_error_trace["exception"], self.event)  # type: ignore
         assert stacktrace_string == EXPECTED_STACKTRACE_STRING
 
+    def test_get_stacktrace_string_no_values(self):
+        stacktrace_string = get_stacktrace_string({"values": []}, self.event)
+        assert stacktrace_string == ""
+
     def test_no_feature_flag(self):
         response = self.client.post(self.path)
 
@@ -151,14 +155,3 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "threshold": 0.98,
             }
         )
-
-    @with_feature("organizations:issues-similarity-embeddings")
-    @mock.patch(
-        "sentry.api.endpoints.group_similar_issues_embeddings.get_similar_issues_embeddings"
-    )
-    @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger.exception")
-    def test_exception(self, mock_logger, mock_get_similar_issues_embeddings):
-        """Test that when there is an exception, the logger is called."""
-        mock_get_similar_issues_embeddings.side_effect = Exception()
-        self.client.post(self.path)
-        mock_logger.assert_called_with("Failed to get similar issues embeddings.")

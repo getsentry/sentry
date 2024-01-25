@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import List, Optional, TypedDict
 
 from django.conf import settings
 from urllib3 import HTTPResponse, Retry
@@ -46,7 +46,6 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     return json.loads(response.data)
 
 
-# TODO: change these to NotRequired fields once Python version is 3.11
 class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
     k: int
     threshold: int
@@ -66,7 +65,7 @@ class SimilarIssuesEmbeddingsData(TypedDict):
 
 
 class SimilarIssuesEmbeddingsReponse(TypedDict):
-    responses: List[SimilarIssuesEmbeddingsData]
+    responses: List[Optional[SimilarIssuesEmbeddingsData]]
 
 
 def get_similar_issues_embeddings(
@@ -82,5 +81,6 @@ def get_similar_issues_embeddings(
 
     try:
         return json.loads(response.data.decode("utf-8"))
-    except Exception:
-        return response
+    except AttributeError:
+        empty_response: SimilarIssuesEmbeddingsReponse = {"responses": []}
+        return empty_response
