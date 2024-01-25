@@ -129,7 +129,7 @@ class Commits extends DeprecatedAsyncView<Props, State> {
   }
 
   renderBody() {
-    const {location, router, activeReleaseRepo, releaseRepos} = this.props;
+    const {activeReleaseRepo, releaseRepos} = this.props;
 
     return (
       <Fragment>
@@ -137,8 +137,6 @@ class Commits extends DeprecatedAsyncView<Props, State> {
           <RepositorySwitcher
             repositories={releaseRepos}
             activeRepository={activeReleaseRepo}
-            location={location}
-            router={router}
           />
         )}
         {this.renderContent()}
