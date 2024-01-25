@@ -593,9 +593,13 @@ class OutboxBase(Model):
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
             assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
-            deleted_count, _ = (
-                self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
-            )
+            deleted_count = 0
+
+            # Use a fetch and delete loop as doing cleanup in a single query
+            # causes timeouts with large datasets
+            for item in self.select_coalesced_messages().filter(id__lte=coalesced.id):
+                item.delete()
+                deleted_count += 1
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
