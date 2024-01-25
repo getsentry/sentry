@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release, ReleaseProject
@@ -453,7 +453,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["tags"]["sentry:user"] == "xxxxxx:example"
 
     def test_user_lookup_with_dot_query(self):
-        self.project.date_added = timezone.now() - timedelta(minutes=10)
+        self.project.date_added = django_timezone.now() - timedelta(minutes=10)
         self.project.save()
 
         self.store_event(
@@ -476,7 +476,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
         assert result["tags"]["sentry:user"] == "email:fake@example.com"
 
     def test_user_lookup_legacy_syntax(self):
-        self.project.date_added = timezone.now() - timedelta(minutes=10)
+        self.project.date_added = django_timezone.now() - timedelta(minutes=10)
         self.project.save()
 
         self.store_event(
@@ -516,29 +516,29 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
 
     def test_age_from(self):
         result = self.parse_query("age:-24h")
-        assert result["age_from"] > timezone.now() - timedelta(hours=25)
-        assert result["age_from"] < timezone.now() - timedelta(hours=23)
+        assert result["age_from"] > django_timezone.now() - timedelta(hours=25)
+        assert result["age_from"] < django_timezone.now() - timedelta(hours=23)
         assert not result.get("age_to")
 
     def test_age_to(self):
         result = self.parse_query("age:+24h")
-        assert result["age_to"] > timezone.now() - timedelta(hours=25)
-        assert result["age_to"] < timezone.now() - timedelta(hours=23)
+        assert result["age_to"] > django_timezone.now() - timedelta(hours=25)
+        assert result["age_to"] < django_timezone.now() - timedelta(hours=23)
         assert not result.get("age_from")
 
     def test_age_range(self):
         result = self.parse_query("age:-24h age:+12h")
-        assert result["age_from"] > timezone.now() - timedelta(hours=25)
-        assert result["age_from"] < timezone.now() - timedelta(hours=23)
-        assert result["age_to"] > timezone.now() - timedelta(hours=13)
-        assert result["age_to"] < timezone.now() - timedelta(hours=11)
+        assert result["age_from"] > django_timezone.now() - timedelta(hours=25)
+        assert result["age_from"] < django_timezone.now() - timedelta(hours=23)
+        assert result["age_to"] > django_timezone.now() - timedelta(hours=13)
+        assert result["age_to"] < django_timezone.now() - timedelta(hours=11)
 
     def test_first_seen_range(self):
         result = self.parse_query("firstSeen:-24h firstSeen:+12h")
-        assert result["age_from"] > timezone.now() - timedelta(hours=25)
-        assert result["age_from"] < timezone.now() - timedelta(hours=23)
-        assert result["age_to"] > timezone.now() - timedelta(hours=13)
-        assert result["age_to"] < timezone.now() - timedelta(hours=11)
+        assert result["age_from"] > django_timezone.now() - timedelta(hours=25)
+        assert result["age_from"] < django_timezone.now() - timedelta(hours=23)
+        assert result["age_to"] > django_timezone.now() - timedelta(hours=13)
+        assert result["age_to"] < django_timezone.now() - timedelta(hours=11)
 
     def test_date_range(self):
         result = self.parse_query("event.timestamp:>2016-01-01 event.timestamp:<2016-01-02")
@@ -598,10 +598,10 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
 
     def test_last_seen_range(self):
         result = self.parse_query("lastSeen:-24h lastSeen:+12h")
-        assert result["last_seen_from"] > timezone.now() - timedelta(hours=25)
-        assert result["last_seen_from"] < timezone.now() - timedelta(hours=23)
-        assert result["last_seen_to"] > timezone.now() - timedelta(hours=13)
-        assert result["last_seen_to"] < timezone.now() - timedelta(hours=11)
+        assert result["last_seen_from"] > django_timezone.now() - timedelta(hours=25)
+        assert result["last_seen_from"] < django_timezone.now() - timedelta(hours=23)
+        assert result["last_seen_to"] > django_timezone.now() - timedelta(hours=13)
+        assert result["last_seen_to"] < django_timezone.now() - timedelta(hours=11)
 
     def test_has_tag(self):
         result = self.parse_query("has:foo")

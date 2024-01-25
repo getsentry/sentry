@@ -9,7 +9,13 @@ def deobfuscate_exception_value(data):
     exception = get_path(data, "exception", "values", -1)
     frame = get_path(exception, "stacktrace", "frames", -1)
     raw_frame = get_path(exception, "raw_stacktrace", "frames", -1)
-    if frame and raw_frame and exception.get("value"):
+    if (
+        frame
+        and raw_frame
+        and frame.get("module")
+        and frame.get("function")
+        and exception.get("value")
+    ):
         deobfuscated_method_name = f"{frame['module']}.{frame['function']}"
         raw_method_name = f"{raw_frame['module']}.{raw_frame['function']}"
         exception["value"] = re.sub(

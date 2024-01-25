@@ -75,7 +75,7 @@ class SDKCrashDetection:
         organization_allowlist = sdk_crash_detector.config.organization_allowlist
 
         if (
-            organization_allowlist is not None
+            len(organization_allowlist) > 0
             and event.project.organization_id not in organization_allowlist
         ):
             return None
