@@ -596,10 +596,15 @@ class OutboxBase(Model):
             deleted_count = 0
 
             # Use a fetch and delete loop as doing cleanup in a single query
-            # causes timeouts with large datasets
-            for item in self.select_coalesced_messages().filter(id__lte=coalesced.id):
-                item.delete()
-                deleted_count += 1
+            # causes timeouts with large datasets. Apply the ID condition in
+            # python as filtering rows in postgres leads to timeouts
+            delete_ids = []
+            for item in self.select_coalesced_messages()[:100]:
+                if item.id <= coalesced.id:
+                    delete_ids.append(item.id)
+
+            self.objects.filter(id__in=delete_ids).delete()
+            deleted_count = len(delete_ids)
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
