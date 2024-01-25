@@ -7,6 +7,7 @@ from unittest import mock
 
 import pytest
 
+import sentry.grouping.api
 from sentry import eventstore
 from sentry.attachments import attachment_cache
 from sentry.event_manager import EventManager
@@ -505,8 +506,10 @@ def test_apply_new_fingerprinting_rules(
     """
     )
 
-    with mock.patch(
-        "sentry.grouping.ingest.get_fingerprinting_config_for_project", return_value=new_rules
+    with mock.patch.object(
+        sentry.grouping.api.GroupingConfigLoader,
+        "_get_fingerprinting",
+        return_value=new_rules.to_json(),
     ):
         # Reprocess
         with burst_task_runner() as burst_reprocess:
