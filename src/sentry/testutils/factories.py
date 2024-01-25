@@ -67,6 +67,7 @@ from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.models.integrations.integration_feature import (
     Feature,
     IntegrationFeature,
@@ -1340,6 +1341,18 @@ class Factories:
         )
 
         return external_issue
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_integration_external_project(
+        organization_id: int, integration_id: int, *args: Any, **kwargs: Any
+    ) -> IntegrationExternalProject:
+        oi = OrganizationIntegration.objects.filter(
+            organization_id=organization_id, integration_id=integration_id
+        ).first()
+        return IntegrationExternalProject.objects.create(
+            organization_integration_id=oi.id, *args, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
