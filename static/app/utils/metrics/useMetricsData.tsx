@@ -7,7 +7,7 @@ import {
   mapToMRIFields,
   MetricsQuery,
 } from 'sentry/utils/metrics';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {MetricsApiRequestQueryOptions} from '../../types/metrics';
@@ -30,7 +30,8 @@ function getRefetchInterval(
 
 export function useMetricsData(
   {mri, op, datetime, projects, environments, query, groupBy}: MetricsQuery,
-  overrides: Partial<MetricsApiRequestQueryOptions> = {}
+  overrides: Partial<MetricsApiRequestQueryOptions> = {},
+  options: Partial<UseApiQueryOptions<MetricsApiResponse>> = {}
 ) {
   const organization = useOrganization();
 
@@ -53,11 +54,17 @@ export function useMetricsData(
   const metricsApiRepsonse = useApiQuery<MetricsApiResponse>(
     [`/organizations/${organization.slug}/metrics/data/`, {query: queryToSend}],
     {
+      ...options,
       retry: 0,
       staleTime: 0,
       refetchOnReconnect: true,
       refetchOnWindowFocus: true,
-      refetchInterval: data => getRefetchInterval(data, queryToSend.interval),
+      refetchInterval: data => {
+        if (options.refetchInterval === false) {
+          return false;
+        }
+        return getRefetchInterval(data, queryToSend.interval);
+      },
     }
   );
   mapToMRIFields(metricsApiRepsonse.data, [field]);
@@ -69,11 +76,17 @@ export function useMetricsData(
 // 1. return data is undefined only during the initial load
 // 2. provides a callback to trim the data to a specific time range when chart zoom is used
 export function useMetricsDataZoom(
-  props: MetricsQuery,
-  overrides: Partial<MetricsApiRequestQueryOptions> = {}
+  metricsQuery: MetricsQuery,
+  overrides: Partial<MetricsApiRequestQueryOptions> = {},
+  options: Partial<UseApiQueryOptions<MetricsApiResponse>> = {}
 ) {
   const [metricsData, setMetricsData] = useState<MetricsApiResponse | undefined>();
-  const {data: rawData, isLoading, isError, error} = useMetricsData(props, overrides);
+  const {
+    data: rawData,
+    isLoading,
+    isError,
+    error,
+  } = useMetricsData(metricsQuery, overrides, options);
 
   useEffect(() => {
     if (rawData) {
