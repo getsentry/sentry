@@ -364,7 +364,7 @@ class GroupSerializerBase(Serializer, ABC):
         }
 
         if features.has("projects:issue-priority", obj.project, actor=None):
-            priority_label = self._get_priority(obj) if obj.priority is not None else None
+            priority_label = self._get_priority(obj.priority) if obj.priority is not None else None
             group_dict["priority"] = priority_label
 
         # This attribute is currently feature gated
@@ -397,8 +397,7 @@ class GroupSerializerBase(Serializer, ABC):
             return False
         return key in self.collapse
 
-    def _get_priority(self, obj: Group) -> str:
-        priority = obj.priority
+    def _get_priority(self, priority: int) -> str:
         if priority == PriorityLevel.HIGH:
             priority_label = "high"
         elif priority == PriorityLevel.LOW:
