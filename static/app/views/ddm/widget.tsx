@@ -1,4 +1,4 @@
-import {memo, useCallback, useMemo, useRef} from 'react';
+import {memo, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -197,6 +197,7 @@ export const MetricWidgetBody = memo(
     ...metricsQuery
   }: MetricWidgetBodyProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
+    const [allowDataUpdates, setAllowDataUpdates] = useState(true);
 
     const {data, isLoading, isError, error} = useMetricsDataZoom(
       {
@@ -208,7 +209,8 @@ export const MetricWidgetBody = memo(
         environments,
         datetime,
       },
-      {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
+      {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'},
+      {refetchInterval: allowDataUpdates ? undefined : false}
     );
 
     const chartRef = useRef<ReactEchartsRef>(null);
@@ -254,6 +256,15 @@ export const MetricWidgetBody = memo(
       [onChange]
     );
 
+    const handleDrawFocusArea = useCallback(() => {
+      setAllowDataUpdates(false);
+    }, []);
+
+    const handleRemoveFocusArea = useCallback(() => {
+      setAllowDataUpdates(true);
+      removeFocusArea?.();
+    }, [removeFocusArea]);
+
     if (!chartSeries || !data || isError) {
       return (
         <StyledMetricWidgetBody>
@@ -290,8 +301,9 @@ export const MetricWidgetBody = memo(
           widgetIndex={widgetIndex}
           addFocusArea={addFocusArea}
           focusArea={focusArea}
-          removeFocusArea={removeFocusArea}
+          removeFocusArea={handleRemoveFocusArea}
           height={chartHeight}
+          drawFocusArea={handleDrawFocusArea}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable
