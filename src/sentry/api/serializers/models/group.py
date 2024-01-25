@@ -66,7 +66,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.group import SUBSTATUS_TO_STR, PriorityLevel
+from sentry.types.group import PRIORITY_LEVEL_TO_STR, SUBSTATUS_TO_STR
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -364,7 +364,7 @@ class GroupSerializerBase(Serializer, ABC):
         }
 
         if features.has("projects:issue-priority", obj.project, actor=None):
-            priority_label = self._get_priority(obj.priority) if obj.priority is not None else None
+            priority_label = PRIORITY_LEVEL_TO_STR[obj.priority] if obj.priority else None
             group_dict["priority"] = priority_label
 
         # This attribute is currently feature gated
@@ -396,15 +396,6 @@ class GroupSerializerBase(Serializer, ABC):
         if self.collapse is None:
             return False
         return key in self.collapse
-
-    def _get_priority(self, priority: int) -> str:
-        if priority == PriorityLevel.HIGH:
-            priority_label = "high"
-        elif priority == PriorityLevel.LOW:
-            priority_label = "low"
-        else:
-            priority_label = "medium"
-        return priority_label
 
     def _get_status(self, attrs: MutableMapping[str, Any], obj: Group):
         status = obj.status
