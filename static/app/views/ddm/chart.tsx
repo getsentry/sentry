@@ -23,7 +23,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';
 
-import {getFormatter} from '../../components/charts/components/tooltip';
+import {FormatterOptions, getFormatter} from '../../components/charts/components/tooltip';
 
 import {useMetricSamples} from './useMetricSamples';
 import {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget';
@@ -140,8 +140,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         showTimeInTooltip: true,
         addSecondsToTimeFormat: isSubMinuteBucket,
         limit: 10,
-        filter: (_, {axisId}) => {
-          return axisId === 'xAxis';
+        filter: (_, seriesParam) => {
+          return seriesParam?.axisId === 'xAxis';
         },
       };
 
@@ -172,7 +172,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
               return getFormatter(samples.formatters)(params, asyncTicket);
             }
             if (hoveredEchartElement === chartRef?.current?.ele) {
-              // @ts-expect-error this is a valid formatter type
               return getFormatter(timeseriesFormatters)(params, asyncTicket);
             }
             return '';
