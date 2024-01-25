@@ -13,9 +13,10 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test, region_silo_test
 
 
-class DiscordIntegrationTest(IntegrationTestCase):
+class DiscordSetupTestCase(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 
     def setUp(self):
@@ -178,6 +179,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
 
+
+@control_silo_test
+class DiscordSetupIntegrationTest(DiscordSetupTestCase):
     @responses.activate
     def test_bot_flow(self):
         with self.tasks():
@@ -231,6 +235,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert integrations[1].external_id == "1234567890"
         assert integrations[1].name == "Cool server"
 
+
+@region_silo_test
+class DiscordIntegrationTest(DiscordSetupTestCase):
     @responses.activate
     def test_get_guild_name(self):
         provider = self.provider()
