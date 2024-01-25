@@ -17,7 +17,6 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.team import TeamStatus
 from sentry.models.user import User
-from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole
 from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.organization import organization_service
@@ -456,8 +455,7 @@ class FromUserTest(AccessFactoryTestCase):
 
     def test_superuser_permissions(self):
         user = self.create_user(is_superuser=True)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            UserPermission.objects.create(user=user, permission="test.permission")
+        self.add_user_permission(user, "test.permission")
 
         result = self.from_user(user)
         assert not result.has_permission("test.permission")
@@ -517,8 +515,7 @@ class FromUserTest(AccessFactoryTestCase):
 class FromRequestTest(AccessFactoryTestCase):
     def setUp(self) -> None:
         self.superuser = self.create_user(is_superuser=True)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            UserPermission.objects.create(user=self.superuser, permission="test.permission")
+        self.add_user_permission(self.superuser, "test.permission")
 
         self.org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -573,8 +570,7 @@ class FromRequestTest(AccessFactoryTestCase):
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_write_scopes(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            UserPermission.objects.create(user=self.superuser, permission="superuser.write")
+        self.add_user_permission(self.superuser, "superuser.write")
 
         # superuser not in organization
         request = self.make_request(user=self.superuser, is_superuser=True)
@@ -591,8 +587,7 @@ class FromRequestTest(AccessFactoryTestCase):
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_in_organization_write_scopes(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            UserPermission.objects.create(user=self.superuser, permission="superuser.write")
+        self.add_user_permission(self.superuser, "superuser.write")
 
         request = self.make_request(user=self.superuser, is_superuser=True)
 
@@ -901,7 +896,7 @@ class GetPermissionsForUserTest(TestCase):
     def test_combines_roles_and_perms(self):
         user = self.user
 
-        UserPermission.objects.create(user=user, permission="test.permission")
+        self.add_user_permission(user, "test.permission")
         role = UserRole.objects.create(name="test.role", permissions=["test.permission-role"])
         role.users.add(user)
 
