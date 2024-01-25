@@ -299,7 +299,7 @@ function RuleListRow({
   };
 
   const avatarElement = assigneeTeamActor ? (
-    <ActorAvatar
+    <PaddedActorAvatar
       actor={assigneeTeamActor}
       className="avatar"
       size={24}
@@ -517,6 +517,10 @@ const MenuItemWrapper = styled('div')`
 
 const Label = styled(TextOverflow)`
   margin-left: 6px;
+`;
+
+const PaddedActorAvatar = styled(ActorAvatar)`
+  margin-bottom: 3px;
 `;
 
 export default RuleListRow;
