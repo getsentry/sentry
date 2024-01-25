@@ -18,7 +18,7 @@ from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.db import router, transaction
 from sentry_sdk.tracing import Span, Transaction
 
-from sentry import features, quotas, ratelimits
+from sentry import quotas, ratelimits
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
@@ -86,12 +86,6 @@ def _ensure_monitor_with_config(
 
     validated_config = validator.validated_data
     created = False
-
-    if (
-        features.has("organizations:crons-disable-new-projects", project.organization)
-        and not project.flags.has_cron_monitors
-    ):
-        return monitor
 
     # Create monitor
     if not monitor:
