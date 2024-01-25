@@ -147,10 +147,6 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
       const heightOptions = height ? {height} : {autoHeightResize: true};
 
-      const onClick = focusAreaBrush.isDrawingRef.current
-        ? undefined
-        : samples.handleClick;
-
       return {
         ...heightOptions,
         ...focusAreaBrush.options,
@@ -161,7 +157,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 5, bottom: 0, left: 0, right: 0},
-        onClick,
+        onClick: samples.handleClick,
         tooltip: {
           formatter: (params, asyncTicket) => {
             if (focusAreaBrush.isDrawingRef.current) {
