@@ -5,7 +5,9 @@ from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.text import CharField
@@ -71,7 +73,7 @@ class SavedSearch(Model):
 
     # Creator of the saved search. When visibility is
     # Visibility.{OWNER,OWNER_PINNED} this field is used to constrain who the
-    # search is visibile to.
+    # search is visible to.
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True)
 
     # Defines who can see the saved search
@@ -103,3 +105,13 @@ class SavedSearch(Model):
         return self.visibility == Visibility.OWNER_PINNED
 
     __repr__ = sane_repr("project_id", "name")
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # Ignore `is_global` searches from importing users, unless this is the `Global` import
+        # scope.
+        if scope != ImportScope.Global and self.is_global:
+            return None
+
+        return super().normalize_before_relocation_import(pk_map, scope, flags)

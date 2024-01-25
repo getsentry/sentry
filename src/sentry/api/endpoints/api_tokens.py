@@ -17,7 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import outbox_context
-from sentry.security import capture_security_activity
+from sentry.security.utils import capture_security_activity
 
 
 class ApiTokenSerializer(serializers.Serializer):
@@ -28,9 +28,9 @@ class ApiTokenSerializer(serializers.Serializer):
 class ApiTokensEndpoint(Endpoint):
     owner = ApiOwner.SECURITY
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
@@ -46,7 +46,11 @@ class ApiTokensEndpoint(Endpoint):
                 "application"
             )
         )
-        # TODO: when the delete endpoint no longer requires the full token value, update this to stop including token
+        """
+        TODO:
+        - when the delete endpoint no longer requires the full token value, update this to stop including token
+        - update the endpoint to use pagination instead of unbounded return
+        """
         return Response(serialize(token_list, request.user))
 
     @method_decorator(never_cache)
@@ -83,15 +87,23 @@ class ApiTokensEndpoint(Endpoint):
         if is_active_superuser(request):
             user_id = request.data.get("userId", user_id)
         # TODO: we should not be requiring full token value in the delete endpoint, and should instead be using the id
-        token = request.data.get("token")
-        if not token:
-            return Response({"token": ""}, status=400)
+        token = request.data.get("token", None)
+        token_id = request.data.get("tokenId", None)
+        # Account for token_id being 0, which can be considered valid
+        if not token and token_id is None:
+            return Response({"token": token, "tokenId": token_id}, status=400)
 
         with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
-            for token in ApiToken.objects.filter(
-                user_id=user_id, token=token, application__isnull=True
-            ):
-                token.delete()
+            if token:
+                for token in ApiToken.objects.filter(
+                    user_id=user_id, token=token, application__isnull=True
+                ):
+                    token.delete()
+            else:
+                token_to_delete = ApiToken.objects.get(
+                    id=token_id, application__isnull=True, user_id=user_id
+                )
+                token_to_delete.delete()
 
         analytics.record("api_token.deleted", user_id=request.user.id)
 

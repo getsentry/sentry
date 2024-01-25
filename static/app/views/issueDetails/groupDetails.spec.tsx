@@ -1,11 +1,11 @@
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -26,7 +26,7 @@ const SAMPLE_EVENT_ALERT_TEXT =
 describe('groupDetails', () => {
   const group = GroupFixture({issueCategory: IssueCategory.ERROR});
   const event = EventFixture();
-  const project = ProjectFixture({teams: [Team()]});
+  const project = ProjectFixture({teams: [TeamFixture()]});
 
   const routes = [
     {path: '/', childRoutes: []},
@@ -56,21 +56,21 @@ describe('groupDetails', () => {
     router: initRouter,
   });
 
-  const recommendedUser = User({
+  const recommendedUser = UserFixture({
     options: {
-      ...User().options,
+      ...UserFixture().options,
       defaultIssueEvent: 'recommended',
     },
   });
-  const latestUser = User({
+  const latestUser = UserFixture({
     options: {
-      ...User().options,
+      ...UserFixture().options,
       defaultIssueEvent: 'latest',
     },
   });
-  const oldestUser = User({
+  const oldestUser = UserFixture({
     options: {
-      ...User().options,
+      ...UserFixture().options,
       defaultIssueEvent: 'oldest',
     },
   });
@@ -252,22 +252,6 @@ describe('groupDetails', () => {
     expect(await screen.findByText('eventError')).toBeInTheDocument();
   });
 
-  it('renders for review reason', async function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
-      body: {
-        ...group,
-        inbox: {
-          date_added: '2020-11-24T13:17:42.248751Z',
-          reason: 0,
-          reason_details: null,
-        },
-      },
-    });
-    createWrapper();
-    expect(await screen.findByText('New Issue')).toBeInTheDocument();
-  });
-
   it('renders substatus badge', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
@@ -280,7 +264,7 @@ describe('groupDetails', () => {
     });
     createWrapper({
       ...defaultInit,
-      organization: {...defaultInit.organization, features: ['escalating-issues']},
+      organization: {...defaultInit.organization},
     });
     expect(await screen.findByText('Ongoing')).toBeInTheDocument();
   });

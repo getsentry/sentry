@@ -1,5 +1,5 @@
 import {ReactNode} from 'react';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -9,6 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {MetricsProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -21,7 +22,7 @@ function Wrapper({children}: {children?: ReactNode}) {
 }
 
 describe('useSpanMetricsSeries', () => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -67,7 +68,7 @@ describe('useSpanMetricsSeries', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(
-      ({filters, yAxis}) => useSpanMetricsSeries(filters, yAxis),
+      ({filters, yAxis}) => useSpanMetricsSeries({filters, yAxis}),
       {
         wrapper: Wrapper,
         initialProps: {
@@ -77,7 +78,7 @@ describe('useSpanMetricsSeries', () => {
             release: '0.0.1',
             'resource.render_blocking_status': 'blocking' as const,
           },
-          yAxis: ['spm()'],
+          yAxis: ['spm()'] as MetricsProperty[],
         },
       }
     );
@@ -121,11 +122,11 @@ describe('useSpanMetricsSeries', () => {
     });
 
     const {rerender, waitForNextUpdate} = reactHooks.renderHook(
-      ({yAxis}) => useSpanMetricsSeries({}, yAxis),
+      ({yAxis}) => useSpanMetricsSeries({yAxis}),
       {
         wrapper: Wrapper,
         initialProps: {
-          yAxis: ['avg(span.self_time)', 'spm()'],
+          yAxis: ['avg(span.self_time)', 'spm()'] as MetricsProperty[],
         },
       }
     );
@@ -136,13 +137,13 @@ describe('useSpanMetricsSeries', () => {
         method: 'GET',
         query: expect.objectContaining({
           interval: '30m',
-          yAxis: ['avg(span.self_time)', 'spm()'],
+          yAxis: ['avg(span.self_time)', 'spm()'] as MetricsProperty[],
         }),
       })
     );
 
     rerender({
-      yAxis: ['p95(span.self_time)', 'spm()'],
+      yAxis: ['p95(span.self_time)', 'spm()'] as MetricsProperty[],
     });
 
     expect(eventsRequest).toHaveBeenLastCalledWith(
@@ -151,7 +152,7 @@ describe('useSpanMetricsSeries', () => {
         method: 'GET',
         query: expect.objectContaining({
           interval: '1h',
-          yAxis: ['p95(span.self_time)', 'spm()'],
+          yAxis: ['p95(span.self_time)', 'spm()'] as MetricsProperty[],
         }),
       })
     );

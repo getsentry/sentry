@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -9,7 +9,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -30,7 +30,7 @@ import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domain
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
-export const RESOURCE_THROUGHPUT_UNIT = RateUnits.PER_MINUTE;
+export const RESOURCE_THROUGHPUT_UNIT = RateUnit.PER_MINUTE;
 
 function ResourcesLandingPage() {
   const organization = useOrganization();

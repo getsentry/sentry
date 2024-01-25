@@ -38,7 +38,7 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
 import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
-import {MetricSearchBar} from 'sentry/views/ddm/queryBuilder';
+import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 import {getProjectOptions} from '../utils';
 

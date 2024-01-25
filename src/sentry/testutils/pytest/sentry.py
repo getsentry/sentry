@@ -17,6 +17,7 @@ from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.testutils.region import TestEnvRegionDirectory
+from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
@@ -70,6 +71,8 @@ def _configure_test_env_regions() -> None:
     settings.SENTRY_SUBNET_SECRET = "secret"
     settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"
 
+    monkey_patch_single_process_silo_mode_state()
+
 
 def pytest_configure(config: pytest.Config) -> None:
     import warnings
@@ -100,30 +103,9 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # override docs which are typically synchronized from an upstream server
     # to ensure tests are consistent
-    os.environ.setdefault(
-        "INTEGRATION_DOC_FOLDER", os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
-    )
     from sentry.utils import integrationdocs
 
-    integrationdocs.DOC_FOLDER = os.environ["INTEGRATION_DOC_FOLDER"]
-
-    if not settings.configured:
-        # only configure the db if its not already done
-        test_db = os.environ.get("DB", "postgres")
-        if test_db == "postgres":
-            settings.DATABASES["default"].update(
-                {
-                    "ENGINE": "sentry.db.postgres",
-                    "USER": "postgres",
-                    "NAME": "sentry",
-                    "HOST": "127.0.0.1",
-                }
-            )
-            # postgres requires running full migration all the time
-            # since it has to install stored functions which come from
-            # an actual migration.
-        else:
-            raise RuntimeError("oops, wrong database: %r" % test_db)
+    integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
     configure_split_db()
 

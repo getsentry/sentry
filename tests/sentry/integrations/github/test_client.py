@@ -1,4 +1,3 @@
-import base64
 import re
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
@@ -218,12 +217,15 @@ class GitHubAppsClientTest(TestCase):
         responses.add(
             method=responses.GET,
             url=f"https://api.github.com/repos/{self.repo.name}/contents/CODEOWNERS?ref=master",
-            json={"content": base64.b64encode(GITHUB_CODEOWNERS["raw"].encode()).decode("ascii")},
+            body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
-
+        assert (
+            responses.calls[1].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+        )
+        assert responses.calls[1].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITHUB_CODEOWNERS
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -1689,3 +1691,33 @@ class GitHubClientFileBlameRateLimitTest(GitHubClientFileBlameBase):
                 "organization_integration_id": self.github_client.org_integration_id,
             },
         )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_no_rate_limiting(self, get_jwt):
+        """
+        Tests that no error is thrown when GitHub isn't enforcing rate limits
+        """
+        responses.reset()
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/1/access_tokens",
+            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
+            status=200,
+            content_type="application/json",
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/rate_limit",
+            status=404,
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/graphql",
+            json={
+                "data": {},
+            },
+            content_type="application/json",
+        )
+
+        assert self.github_client.get_blame_for_files([self.file], extra={}) == []

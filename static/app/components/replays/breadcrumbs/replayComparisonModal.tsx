@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
@@ -27,6 +28,8 @@ interface Props extends ModalRenderProps {
   rightTimestamp: number;
 }
 
+const MAX_CLAMP_TO_START = 2000;
+
 export default function ReplayComparisonModal({
   Body,
   Header,
@@ -41,6 +44,12 @@ export default function ReplayComparisonModal({
 
   const [leftBody, setLeftBody] = useState(null);
   const [rightBody, setRightBody] = useState(null);
+  let startOffset = leftTimestamp - 1;
+  // If the error occurs close to the start of the replay, clamp the start offset to 1
+  // to help compare with the html provided by the server, This helps with some errors on localhost.
+  if (startOffset < MAX_CLAMP_TO_START) {
+    startOffset = 1;
+  }
 
   return (
     <OrganizationContext.Provider value={organization}>
@@ -70,6 +79,13 @@ export default function ReplayComparisonModal({
             }
           )}
         </StyledParagraph>
+        {leftBody && rightBody && leftBody === rightBody && (
+          <Alert type="warning" showIcon>
+            {t(
+              "Sentry wasn't able to identify the correct event to display a diff for this hydration error."
+            )}
+          </Alert>
+        )}
         <Flex gap={space(1)} column>
           <TabList
             selectedKey={activeTab}
@@ -89,12 +105,12 @@ export default function ReplayComparisonModal({
             <ReplayContextProvider
               isFetching={fetching}
               replay={replay}
-              initialTimeOffsetMs={{offsetMs: leftTimestamp - 1}}
+              initialTimeOffsetMs={{offsetMs: startOffset}}
             >
               <ComparisonSideWrapper id="leftSide">
                 <ReplaySide
                   selector="#leftSide iframe"
-                  expectedTime={leftTimestamp - 1}
+                  expectedTime={startOffset}
                   onLoad={setLeftBody}
                 />
               </ComparisonSideWrapper>

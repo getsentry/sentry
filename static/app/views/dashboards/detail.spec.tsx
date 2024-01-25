@@ -1,10 +1,11 @@
 import {browserHistory} from 'react-router';
-import {Dashboard as DashboardFixture} from 'sentry-fixture/dashboard';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -24,7 +25,7 @@ import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Dashboards > Detail', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
   const projects = [ProjectFixture()];
@@ -71,7 +72,7 @@ describe('Dashboards > Detail', function () {
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
+        url: '/organizations/org-slug/prompts-activity/',
         body: {},
       });
       MockApiClient.addMockResponse({
@@ -107,42 +108,40 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/default-overview/',
         body: DashboardFixture(
           [
-            TestStubs.Widget(
-              [
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '-count()',
                 },
               ],
-              {
-                title: 'Default Widget 1',
-                interval: '1d',
-              }
-            ),
-            TestStubs.Widget(
-              [
+              title: 'Default Widget 1',
+              interval: '1d',
+            }),
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:transaction',
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '-count()',
                 },
               ],
-              {
-                title: 'Default Widget 2',
-                interval: '1d',
-              }
-            ),
+              title: 'Default Widget 2',
+              interval: '1d',
+            }),
           ],
           {id: 'default-overview', title: 'Default'}
         ),
       });
       initialData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: ['global-views', 'dashboards-basic', 'discover-query'],
           projects: [ProjectFixture()],
         }),
@@ -201,7 +200,7 @@ describe('Dashboards > Detail', function () {
                 },
               ],
               title: 'Events',
-              widgetType: 'discover',
+              widgetType: types.WidgetType.DISCOVER,
             }),
             onClose: expect.anything(),
           })
@@ -222,56 +221,53 @@ describe('Dashboards > Detail', function () {
         },
       });
       widgets = [
-        TestStubs.Widget(
-          [
+        WidgetFixture({
+          queries: [
             {
               name: '',
               conditions: 'event.type:error',
               fields: ['count()'],
               columns: [],
               aggregates: ['count()'],
+              orderby: '-count()',
             },
           ],
-          {
-            title: 'Errors',
-            interval: '1d',
-            widgetType: 'discover',
-            id: '1',
-          }
-        ),
-        TestStubs.Widget(
-          [
+          title: 'Errors',
+          interval: '1d',
+          widgetType: types.WidgetType.DISCOVER,
+          id: '1',
+        }),
+        WidgetFixture({
+          queries: [
             {
               name: '',
               conditions: 'event.type:transaction',
               fields: ['count()'],
               columns: [],
               aggregates: ['count()'],
+              orderby: '-count()',
             },
           ],
-          {
-            title: 'Transactions',
-            interval: '1d',
-            widgetType: 'discover',
-            id: '2',
-          }
-        ),
-        TestStubs.Widget(
-          [
+          title: 'Transactions',
+          interval: '1d',
+          widgetType: types.WidgetType.DISCOVER,
+          id: '2',
+        }),
+        WidgetFixture({
+          queries: [
             {
               name: '',
               conditions: 'event.type:transaction transaction:/api/cats',
               fields: ['p50()'],
               columns: [],
               aggregates: ['p50()'],
+              orderby: '-p50()',
             },
           ],
-          {
-            title: 'p50 of /api/cats',
-            interval: '1d',
-            id: '3',
-          }
-        ),
+          title: 'p50 of /api/cats',
+          interval: '1d',
+          id: '3',
+        }),
       ];
       mockVisit = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
@@ -357,7 +353,7 @@ describe('Dashboards > Detail', function () {
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
+        url: '/organizations/org-slug/prompts-activity/',
         body: {},
       });
     });
@@ -484,7 +480,7 @@ describe('Dashboards > Detail', function () {
       });
 
       initialData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -543,39 +539,37 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            TestStubs.Widget(
-              [
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '-count()',
                 },
               ],
-              {
-                title: 'First Widget',
-                interval: '1d',
-                id: '1',
-                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
-              }
-            ),
-            TestStubs.Widget(
-              [
+              title: 'First Widget',
+              interval: '1d',
+              id: '1',
+              layout: {x: 0, y: 0, w: 2, h: 6, minH: 0},
+            }),
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '-count()',
                 },
               ],
-              {
-                title: 'Second Widget',
-                interval: '1d',
-                id: '2',
-              }
-            ),
+              title: 'Second Widget',
+              interval: '1d',
+              id: '2',
+            }),
           ],
           {id: '1', title: 'Custom Errors'}
         ),
@@ -603,23 +597,22 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            TestStubs.Widget(
-              [
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '-count()',
                 },
               ],
-              {
-                title: 'First Widget',
-                interval: '1d',
-                id: '1',
-                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
-              }
-            ),
+              title: 'First Widget',
+              interval: '1d',
+              id: '1',
+              layout: {x: 0, y: 0, w: 2, h: 6, minH: 0},
+            }),
           ],
           {id: '1', title: 'Custom Errors'}
         ),
@@ -650,23 +643,22 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            TestStubs.Widget(
-              [
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '-count()',
                 },
               ],
-              {
-                title: 'First Widget',
-                interval: '1d',
-                id: '1',
-                layout: {i: 'grid-item-1', x: 0, y: 0, w: 2, h: 6},
-              }
-            ),
+              title: 'First Widget',
+              interval: '1d',
+              id: '1',
+              layout: {x: 0, y: 0, w: 2, h: 6, minH: 0},
+            }),
           ],
           {id: '1', title: 'Custom Errors'}
         ),
@@ -699,23 +691,22 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture(
           [
-            TestStubs.Widget(
-              [
+            WidgetFixture({
+              queries: [
                 {
                   name: '',
                   conditions: 'event.type:error',
                   fields: ['count()'],
                   aggregates: ['count()'],
                   columns: [],
+                  orderby: '-count()',
                 },
               ],
-              {
-                title: 'First Widget',
-                interval: '1d',
-                id: '1',
-                layout: null,
-              }
-            ),
+              title: 'First Widget',
+              interval: '1d',
+              id: '1',
+              layout: null,
+            }),
           ],
           {id: '1', title: 'Custom Errors'}
         ),
@@ -742,8 +733,8 @@ describe('Dashboards > Detail', function () {
 
     it('opens the widget viewer modal using the widget id specified in the url', async () => {
       const openWidgetViewerModal = jest.spyOn(modals, 'openWidgetViewerModal');
-      const widget = TestStubs.Widget(
-        [
+      const widget = WidgetFixture({
+        queries: [
           {
             name: '',
             conditions: 'event.type:error',
@@ -753,13 +744,11 @@ describe('Dashboards > Detail', function () {
             orderby: '',
           },
         ],
-        {
-          title: 'First Widget',
-          interval: '1d',
-          id: '1',
-          layout: null,
-        }
-      );
+        title: 'First Widget',
+        interval: '1d',
+        id: '1',
+        layout: null,
+      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         body: DashboardFixture([widget], {id: '1', title: 'Custom Errors'}),
@@ -1016,7 +1005,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1080,7 +1069,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1127,7 +1116,7 @@ describe('Dashboards > Detail', function () {
 
     it('can save absolute time range in existing dashboard', async () => {
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1184,7 +1173,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1245,7 +1234,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1304,7 +1293,7 @@ describe('Dashboards > Detail', function () {
       });
 
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1352,7 +1341,7 @@ describe('Dashboards > Detail', function () {
 
     it('uses releases from the URL query params', async function () {
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1399,7 +1388,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1458,7 +1447,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1520,7 +1509,7 @@ describe('Dashboards > Detail', function () {
         match: [MockApiClient.matchData({query: 's'})],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',

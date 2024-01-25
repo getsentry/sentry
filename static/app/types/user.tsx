@@ -46,6 +46,7 @@ export interface User extends Omit<AvatarUser, 'options'> {
     avatarType: Avatar['avatarType'];
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
+    issueDetailsNewExperienceQ42023: boolean;
     language: string;
     stacktraceOrder: number;
     theme: 'system' | 'light' | 'dark';
@@ -80,7 +81,7 @@ export interface InternalAppApiToken extends BaseApiToken {
   application: null;
   refreshToken: string;
   token: string;
-  tokenLastCharacters?: string;
+  tokenLastCharacters: string;
 }
 
 export type ApiApplication = {

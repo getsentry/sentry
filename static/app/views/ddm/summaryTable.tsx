@@ -1,46 +1,47 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import colorFn from 'color';
 
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {formatMetricsUsingUnitAndOp, SortState} from 'sentry/utils/metrics';
+import {
+  formatMetricsUsingUnitAndOp,
+  MetricWidgetQueryParams,
+  SortState,
+} from 'sentry/utils/metrics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
 import {Series} from 'sentry/views/ddm/widget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-export function SummaryTable({
+export const SummaryTable = memo(function SummaryTable({
   series,
   operation,
   onRowClick,
   onSortChange,
   sort = DEFAULT_SORT_STATE as SortState,
-  setHoveredLegend,
+  setHoveredSeries,
 }: {
-  onRowClick: (seriesName: string) => void;
+  onRowClick: (series: MetricWidgetQueryParams['focusedSeries']) => void;
   onSortChange: (sortState: SortState) => void;
   series: Series[];
-  setHoveredLegend: React.Dispatch<React.SetStateAction<string>> | undefined;
   operation?: string;
+  setHoveredSeries?: (seriesName: string) => void;
   sort?: SortState;
 }) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
   const hasActions = series.some(s => s.release || s.transaction);
-
-  const router = useRouter();
-  const {start, end, statsPeriod, project, environment} = router.location.query;
-
   const hasMultipleSeries = series.length > 1;
 
   const changeSort = useCallback(
@@ -49,6 +50,12 @@ export function SummaryTable({
         organization,
         by: name ?? '(none)',
         order: sort.order,
+      });
+      Sentry.metrics.increment('ddm.widget.sort', 1, {
+        tags: {
+          by: name ?? '(none)',
+          order: sort.order,
+        },
       });
       if (sort.name === name) {
         if (sort.order === 'desc') {
@@ -80,11 +87,11 @@ export function SummaryTable({
         release
       )}/`,
       query: {
-        pageStart: start,
-        pageEnd: end,
-        pageStatsPeriod: statsPeriod,
-        project,
-        environment,
+        pageStart: selection.datetime.start,
+        pageEnd: selection.datetime.end,
+        pageStatsPeriod: selection.datetime.period,
+        project: selection.projects,
+        environment: selection.environments,
       },
     };
   };
@@ -155,82 +162,105 @@ export function SummaryTable({
           {t('Actions')}
         </HeaderCell>
       )}
+      <TableBodyWrapper
+        onMouseLeave={() => {
+          if (hasMultipleSeries) {
+            setHoveredSeries?.('');
+          }
+        }}
+      >
+        {rows.map(
+          ({
+            name,
+            seriesName,
+            groupBy,
+            color,
+            hidden,
+            unit,
+            transaction,
+            release,
+            avg,
+            min,
+            max,
+            sum,
+          }) => {
+            return (
+              <Fragment key={seriesName}>
+                <CellWrapper
+                  onClick={() => {
+                    if (hasMultipleSeries) {
+                      onRowClick({
+                        seriesName,
+                        groupBy,
+                      });
+                    }
+                  }}
+                  onMouseEnter={() => {
+                    if (hasMultipleSeries) {
+                      setHoveredSeries?.(seriesName);
+                    }
+                  }}
+                >
+                  <Cell>
+                    <ColorDot
+                      color={color}
+                      isHidden={!!hidden}
+                      style={{
+                        backgroundColor: hidden
+                          ? 'transparent'
+                          : colorFn(color).alpha(1).string(),
+                      }}
+                    />
+                  </Cell>
+                  <TextOverflowCell>
+                    <Tooltip
+                      title={name}
+                      showOnlyOnOverflow
+                      delay={500}
+                      overlayStyle={{maxWidth: '80vw'}}
+                    >
+                      <TextOverflow>{name}</TextOverflow>
+                    </Tooltip>
+                  </TextOverflowCell>
+                  {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
+                  <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
+                  <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
+                  <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
+                  <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
+                </CellWrapper>
+                {hasActions && (
+                  <Cell right>
+                    <ButtonBar gap={0.5}>
+                      {transaction && (
+                        <div>
+                          <Tooltip title={t('Open Transaction Summary')}>
+                            <LinkButton to={transactionTo(transaction)} size="xs">
+                              <IconLightning size="xs" />
+                            </LinkButton>
+                          </Tooltip>
+                        </div>
+                      )}
 
-      {rows.map(
-        ({
-          name,
-          seriesName,
-          color,
-          hidden,
-          unit,
-          transaction,
-          release,
-          avg,
-          min,
-          max,
-          sum,
-        }) => {
-          return (
-            <Fragment key={seriesName}>
-              <CellWrapper
-                onClick={() => {
-                  if (hasMultipleSeries) {
-                    onRowClick(seriesName);
-                  }
-                }}
-                onMouseEnter={() => {
-                  if (hasMultipleSeries) {
-                    setHoveredLegend?.(seriesName);
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (hasMultipleSeries) {
-                    setHoveredLegend?.('');
-                  }
-                }}
-              >
-                <Cell>
-                  <ColorDot color={color} isHidden={!!hidden} />
-                </Cell>
-                <TextOverflowCell>{name}</TextOverflowCell>
-                {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
-                <Cell right>{formatMetricsUsingUnitAndOp(avg, unit, operation)}</Cell>
-                <Cell right>{formatMetricsUsingUnitAndOp(min, unit, operation)}</Cell>
-                <Cell right>{formatMetricsUsingUnitAndOp(max, unit, operation)}</Cell>
-                <Cell right>{formatMetricsUsingUnitAndOp(sum, unit, operation)}</Cell>
-              </CellWrapper>
-              {hasActions && (
-                <Cell right>
-                  <ButtonBar gap={0.5}>
-                    {transaction && (
-                      <div>
-                        <Tooltip title={t('Open Transaction Summary')}>
-                          <LinkButton to={transactionTo(transaction)} size="xs">
-                            <IconLightning size="xs" />
-                          </LinkButton>
-                        </Tooltip>
-                      </div>
-                    )}
-
-                    {release && (
-                      <div>
-                        <Tooltip title={t('Open Release Details')}>
-                          <LinkButton to={releaseTo(release)} size="xs">
-                            <IconReleases size="xs" />
-                          </LinkButton>
-                        </Tooltip>
-                      </div>
-                    )}
-                  </ButtonBar>
-                </Cell>
-              )}
-            </Fragment>
-          );
-        }
-      )}
+                      {release && (
+                        <div>
+                          <Tooltip title={t('Open Release Details')}>
+                            <LinkButton to={releaseTo(release)} size="xs">
+                              <IconReleases size="xs" />
+                            </LinkButton>
+                          </Tooltip>
+                        </div>
+                      )}
+                    </ButtonBar>
+                  </Cell>
+                )}
+              </Fragment>
+            );
+          }
+        )}
+      </TableBodyWrapper>
     </SummaryTableWrapper>
   );
-}
+});
 
 function SortableHeaderCell({
   sortState,
@@ -268,7 +298,6 @@ function getValues(seriesData: Series['data']) {
   if (!seriesData) {
     return {min: null, max: null, avg: null, sum: null};
   }
-
   const res = seriesData.reduce(
     (acc, {value}) => {
       if (value === null) {
@@ -278,13 +307,14 @@ function getValues(seriesData: Series['data']) {
       acc.min = Math.min(acc.min, value);
       acc.max = Math.max(acc.max, value);
       acc.sum += value;
+      acc.definedDatapoints += 1;
 
       return acc;
     },
-    {min: Infinity, max: -Infinity, sum: 0}
+    {min: Infinity, max: -Infinity, sum: 0, definedDatapoints: 0}
   );
 
-  return {...res, avg: res.sum / seriesData.length};
+  return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
 }
 
 // TODO(ddm): PanelTable component proved to be a bit too opinionated for this use case,
@@ -324,21 +354,22 @@ const Cell = styled('div')<{right?: boolean}>`
   padding: ${space(0.25)} ${space(1)};
   align-items: center;
   justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
-`;
-
-const TextOverflowCell = styled(Cell)`
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
+const TextOverflowCell = styled(Cell)`
+  min-width: 0;
+`;
+
 const ColorDot = styled(`div`)<{color: string; isHidden: boolean}>`
-  background-color: ${p =>
-    p.isHidden ? 'transparent' : colorFn(p.color).alpha(1).string()};
   border: 1px solid ${p => p.color};
   border-radius: 50%;
   width: ${space(1)};
   height: ${space(1)};
+`;
+
+const TableBodyWrapper = styled('div')`
+  display: contents;
 `;
 
 const CellWrapper = styled('div')`

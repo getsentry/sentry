@@ -25,7 +25,7 @@ from typing import (
 import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
-from django.db.models import Max, Min
+from django.db.models import Count, Max, Min
 from django.db.transaction import Atomic
 from django.dispatch import Signal
 from django.http import HttpRequest
@@ -54,7 +54,7 @@ from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
 
-THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.timezone.utc)
 
 _T = TypeVar("_T")
 
@@ -408,6 +408,7 @@ class WebhookProviderIdentifier(IntEnum):
     GETSENTRY = 11
     DISCORD = 12
     VERCEL = 13
+    GOOGLE = 14
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -565,7 +566,7 @@ class OutboxBase(Model):
                     # If a non task flush process is running already, allow it to proceed without contention.
                     next_shard_row = None
                 else:
-                    raise e
+                    raise
 
             yield next_shard_row
 
@@ -674,6 +675,41 @@ class OutboxBase(Model):
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
+    @classmethod
+    def get_shard_depths_descending(cls, limit: Optional[int] = 10) -> list[dict[str, int | str]]:
+        """
+        Queries all outbox shards for their total depth, aggregated by their
+        sharding columns as specified by the outbox class implementation.
+
+        :param limit: Limits the query to the top N rows with the greatest shard
+        depth. If limit is None, the entire set of rows will be returned.
+        :return: A list of dictionaries, containing shard depths and shard
+        relevant column values.
+        """
+        if limit is not None:
+            assert limit > 0, "Limit must be a positive integer if specified"
+
+        base_depth_query = (
+            cls.objects.values(*cls.sharding_columns).annotate(depth=Count("*")).order_by("-depth")
+        )
+
+        if limit is not None:
+            base_depth_query = base_depth_query[0:limit]
+
+        aggregated_shard_information = list()
+        for shard_row in base_depth_query:
+            shard_information = {
+                shard_column: shard_row[shard_column] for shard_column in cls.sharding_columns
+            }
+            shard_information["depth"] = shard_row["depth"]
+            aggregated_shard_information.append(shard_information)
+
+        return aggregated_shard_information
+
+    @classmethod
+    def get_total_outbox_count(cls) -> int:
+        return cls.objects.count()
+
 
 # Outboxes bound from region silo -> control silo
 class RegionOutboxBase(OutboxBase):
@@ -769,14 +805,14 @@ class ControlOutboxBase(OutboxBase):
     def for_webhook_update(
         cls,
         *,
-        webhook_identifier: WebhookProviderIdentifier,
+        shard_identifier: int,
         region_names: List[str],
         request: HttpRequest,
     ) -> Iterable[Self]:
         for region_name in region_names:
             result = cls()
             result.shard_scope = OutboxScope.WEBHOOK_SCOPE
-            result.shard_identifier = webhook_identifier.value
+            result.shard_identifier = shard_identifier
             result.object_identifier = cls.next_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name

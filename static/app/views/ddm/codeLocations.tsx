@@ -11,20 +11,37 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Frame} from 'sentry/types';
+import {Frame, MRI} from 'sentry/types';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 
-import {MetricCodeLocationFrame} from '../../utils/metrics/index';
+import {MetricCodeLocationFrame, MetricRange} from '../../utils/metrics/index';
 
-export function CodeLocations({mri}: {mri: string}) {
-  const {data, isLoading, isError, refetch} = useMetricsCodeLocations(mri);
+export type CodeLocationsProps = MetricRange & {
+  mri?: MRI;
+};
 
-  if (isLoading) {
+export function CodeLocations({mri, ...rangeOpts}: CodeLocationsProps) {
+  const {data, isFetching, isError, refetch} = useMetricsCodeLocations(mri, rangeOpts);
+
+  if (isFetching) {
     return <LoadingIndicator />;
   }
 
   if (isError) {
     return <LoadingError onRetry={refetch} />;
+  }
+
+  if (!mri) {
+    return (
+      <CenterContent>
+        <EmptyMessage
+          style={{margin: 'auto'}}
+          icon={<IconSearch size="xxl" />}
+          title={t('Nothing to show!')}
+          description={t('Choose a metric to display data.')}
+        />
+      </CenterContent>
+    );
   }
 
   if (!Array.isArray(data?.metrics) || data?.metrics.length === 0) {
@@ -166,11 +183,11 @@ function CodeLocationContext({codeLocation, isLast}: CodeLocationContextProps) {
   return (
     <SourceContextWrapper isLast={isLast}>
       {preContextLines.map(line => (
-        <ContextLine key={`pre-${line[1]}`} line={line} isActive={false} />
+        <ContextLine key={`pre-${line[0]}-${line[1]}`} line={line} isActive={false} />
       ))}
       <ContextLine line={[lineNo, codeLocation.contextLine ?? '']} isActive />
       {postContextLines.map(line => (
-        <ContextLine key={`post-${line[1]}`} line={line} isActive={false} />
+        <ContextLine key={`post-${line[0]}-${line[1]}`} line={line} isActive={false} />
       ))}
     </SourceContextWrapper>
   );

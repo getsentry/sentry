@@ -22,13 +22,16 @@ from sentry.utils import json, metrics
 class SlackNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
     form_cls = SlackNotifyServiceForm
-    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        # XXX(CEO): when removing the feature flag, put `label` back up as a class var
+        self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"  # type: ignore
+        if features.has("organizations:slack-block-kit", self.project.organization):
+            self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"  # type: ignore
         self.form_fields = {
             "workspace": {
                 "type": "choice",
@@ -38,6 +41,11 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
         }
+        if features.has("organizations:slack-block-kit", self.project.organization):
+            self.form_fields["notes"] = {
+                "type": "string",
+                "placeholder": "e.g. @jane, @on-call-team",
+            }
 
     def after(
         self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
@@ -65,6 +73,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     tags=tags,
                     rules=rules,
                     notification_uuid=notification_uuid,
+                    notes=self.get_option("notes", ""),
                 )
                 if additional_attachment:
                     for block in additional_attachment:
@@ -102,14 +111,19 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             try:
                 client.post("/chat.postMessage", data=payload, timeout=5)
             except ApiError as e:
+                log_params = {
+                    "error": str(e),
+                    "project_id": event.project_id,
+                    "event_id": event.event_id,
+                    "channel_name": self.get_option("channel"),
+                }
+                if features.has("organizations:slack-block-kit", event.group.project.organization):
+                    # temporarily log the payload so we can debug message failures
+                    log_params["payload"] = json.dumps(payload)
+
                 self.logger.info(
                     "rule.fail.slack_post",
-                    extra={
-                        "error": str(e),
-                        "project_id": event.project_id,
-                        "event_id": event.event_id,
-                        "channel_name": self.get_option("channel"),
-                    },
+                    extra=log_params,
                 )
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel, rule, notification_uuid)
@@ -121,6 +135,15 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
     def render_label(self) -> str:
         tags = self.get_tags_list()
+
+        if features.has("organizations:slack-block-kit", self.project.organization):
+            return self.label.format(
+                workspace=self.get_integration_name(),
+                channel=self.get_option("channel"),
+                channel_id=self.get_option("channel_id"),
+                tags="[{}]".format(", ".join(tags)),
+                notes=self.get_option("notes", ""),
+            )
 
         return self.label.format(
             workspace=self.get_integration_name(),

@@ -1,13 +1,12 @@
-import {Fragment, memo} from 'react';
+import {Fragment, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
@@ -18,16 +17,30 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {METRICS_DOCS_URL} from 'sentry/utils/metrics';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
+import {PageHeaderActions} from 'sentry/views/ddm/pageHeaderActions';
+import {Queries} from 'sentry/views/ddm/queries';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
-import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
 import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
 export const DDMLayout = memo(() => {
-  const {metricsMeta, hasCustomMetrics, isLoading} = useDDMContext();
+  const {metricsMeta, isLoading} = useDDMContext();
   const hasMetrics = !isLoading && metricsMeta.length > 0;
   const {activateSidebar} = useMetricsOnboardingSidebar();
+
+  const addCustomMetric = useCallback(
+    (referrer: string) => {
+      Sentry.metrics.increment('ddm.add_custom_metric', 1, {
+        tags: {
+          referrer,
+        },
+      });
+      activateSidebar();
+    },
+    [activateSidebar]
+  );
 
   return (
     <Fragment>
@@ -36,25 +49,17 @@ export const DDMLayout = memo(() => {
           <Layout.Title>
             {t('Metrics')}
             <PageHeadingQuestionTooltip
-              docsUrl="https://develop.sentry.dev/delightful-developer-metrics/"
+              docsUrl={METRICS_DOCS_URL}
               title={t('Delightful Developer Metrics.')}
             />
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            {hasMetrics && !hasCustomMetrics && (
-              <Button priority="primary" onClick={activateSidebar} size="sm">
-                {t('Add Custom Metric')}
-              </Button>
-            )}
-            <GithubFeedbackButton
-              href="https://github.com/getsentry/sentry/discussions/58584"
-              label={t('Discussion')}
-              title={null}
-            />
-          </ButtonBar>
+          <PageHeaderActions
+            showCustomMetricButton={hasMetrics}
+            addCustomMetric={addCustomMetric}
+          />
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
@@ -66,12 +71,12 @@ export const DDMLayout = memo(() => {
               <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
-            <ScratchpadSelector />
           </PaddedContainer>
           {isLoading ? (
             <LoadingIndicator />
           ) : hasMetrics ? (
             <Fragment>
+              <Queries />
               <MetricScratchpad />
               <WidgetDetails />
             </Fragment>
@@ -83,7 +88,10 @@ export const DDMLayout = memo(() => {
                   "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
                 )}
               </p>
-              <Button priority="primary" onClick={activateSidebar}>
+              <Button
+                priority="primary"
+                onClick={() => addCustomMetric('onboarding_panel')}
+              >
                 {t('Add Custom Metric')}
               </Button>
             </OnboardingPanel>

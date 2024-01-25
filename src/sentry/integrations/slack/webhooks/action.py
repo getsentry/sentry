@@ -29,6 +29,7 @@ from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.rule import Rule
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -104,6 +105,14 @@ def update_group(
         user=user,
         data=data,
     )
+
+
+def get_rule(slack_request: SlackActionRequest) -> Group | None:
+    """Get the rule that fired"""
+    rule_id = slack_request.callback_data.get("rule")
+    if not rule_id:
+        return None
+    return Rule.objects.get(id=rule_id)
 
 
 def get_group(slack_request: SlackActionRequest) -> Group | None:
@@ -292,7 +301,7 @@ class SlackActionEndpoint(Endpoint):
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Resolve in"},
+                    "text": {"type": "mrkdwn", "text": "Resolve"},
                     "accessory": {
                         "type": "static_select",
                         "initial_option": {
@@ -328,7 +337,7 @@ class SlackActionEndpoint(Endpoint):
         }
         if use_block_kit and slack_request.data.get("channel"):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
-
+            callback_id["rule"] = slack_request.callback_data.get("rule")
         callback_id = json.dumps(callback_id)
 
         dialog = {
@@ -389,6 +398,11 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        rule = None
+        if use_block_kit:
+            rule = get_rule(slack_request)
+
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
         identity_user = slack_request.get_identity_user()
@@ -404,7 +418,6 @@ class SlackActionEndpoint(Endpoint):
 
         original_tags_from_request = slack_request.get_tags()
 
-        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
         if use_block_kit and slack_request.type == "view_submission":
             # TODO: if we use modals for something other than resolve, this will need to be more specific
 
@@ -437,6 +450,7 @@ class SlackActionEndpoint(Endpoint):
                 identity=identity,
                 actions=[action],
                 tags=original_tags_from_request,
+                rules=[rule] if rule else None,
                 skip_fallback=True,
             ).build()
             body = self.construct_reply(
@@ -468,7 +482,11 @@ class SlackActionEndpoint(Endpoint):
                 return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
             attachment = SlackIssuesMessageBuilder(
-                group, identity=identity, actions=[action], tags=original_tags_from_request
+                group,
+                identity=identity,
+                actions=[action],
+                tags=original_tags_from_request,
+                rules=[rule] if rule else None,
             ).build()
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
@@ -495,7 +513,9 @@ class SlackActionEndpoint(Endpoint):
         for action in action_list:
             try:
                 if action.name == "status" or (
-                    use_block_kit and action.name in ("ignored:forever", "ignored:until_escalating")
+                    use_block_kit
+                    and action.name
+                    in ("ignored:forever", "ignored:until_escalating", "unresolved:ongoing")
                 ):
                     self.on_status(request, identity_user, group, action)
                 elif action.name == "assign":
@@ -518,8 +538,20 @@ class SlackActionEndpoint(Endpoint):
 
         if use_block_kit:
             response = SlackIssuesMessageBuilder(
-                group, identity=identity, actions=action_list, tags=original_tags_from_request
+                group,
+                identity=identity,
+                actions=action_list,
+                tags=original_tags_from_request,
+                rules=[rule] if rule else None,
             ).build()
+            # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
+            # response so the unfurling endpoint understands the payload
+            if (
+                slack_request.data.get("container")
+                and slack_request.data["container"].get("is_app_unfurl")
+                and "text" in response
+            ):
+                del response["text"]
             slack_client = SlackClient(integration_id=slack_request.integration.id)
 
             if not slack_request.data.get("response_url"):
@@ -533,7 +565,11 @@ class SlackActionEndpoint(Endpoint):
             return self.respond(response)
 
         attachment = SlackIssuesMessageBuilder(
-            group, identity=identity, actions=action_list, tags=original_tags_from_request
+            group,
+            identity=identity,
+            actions=action_list,
+            tags=original_tags_from_request,
+            rules=[rule] if rule else None,
         ).build()
         body = self.construct_reply(attachment, is_message=_is_message(slack_request.data))
 
@@ -579,7 +615,7 @@ class SlackActionEndpoint(Endpoint):
             if action_data[0].get("action_id"):
                 action_list = []
                 for action_data in action_data:
-                    if action_data.get("type") == "static_select":
+                    if action_data.get("type") in ("static_select", "external_select"):
                         action = BlockKitMessageAction(
                             name=action_data["action_id"],
                             label=action_data["selected_option"]["text"]["text"],
@@ -628,7 +664,13 @@ class SlackActionEndpoint(Endpoint):
         action_option = self.get_action_option(slack_request=slack_request)
 
         # If a user is just clicking a button link we return a 200
-        if action_option in ("sentry_docs_link_clicked", "grace_period_warning"):
+        if action_option in (
+            "sentry_docs_link_clicked",
+            "grace_period_warning",
+            "integration_disabled_slack",
+            "trial_end_warning",
+            "link_clicked",
+        ):
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:

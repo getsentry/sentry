@@ -1,7 +1,5 @@
-from sentry.models.integrations.integration import Integration
-from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
@@ -14,12 +12,10 @@ class ExternalUserTest(APITestCase):
         self.login_as(self.user)
 
         self.org_slug = self.organization.slug  # force creation
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
-                provider="github", name="GitHub", external_id="github:1"
-            )
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="github", name="GitHub", external_id="github:1"
+        )
 
-            self.integration.add_organization(self.organization, self.user)
         self.data = {
             "externalName": "@NisanthanNanthakumar",
             "provider": "github",

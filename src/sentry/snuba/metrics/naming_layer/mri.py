@@ -49,9 +49,9 @@ from sentry.snuba.metrics.utils import (
 
 NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans|escalating_issues)"
 ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
-# This regex allows for a string of words composed of small letters alphabet characters with
+# This regex allows for a string of words composed of small letters alphanumeric characters with
 # allowed the underscore character, optionally separated by a single dot
-MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
+MRI_NAME_REGEX = r"([a-z0-9_]+(?:\.[a-z0-9_]+)*)"
 # ToDo(ahmed): Add a better regex for unit portion for MRI
 MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
@@ -289,6 +289,15 @@ def is_custom_metric(parsed_mri: ParsedMRI) -> bool:
     A custom mri is a mri which uses the custom namespace, and it's different from a custom measurement.
     """
     return parsed_mri.namespace == "custom"
+
+
+def is_measurement(parsed_mri: ParsedMRI) -> bool:
+    """
+    A measurement won't use the custom namespace, but will be under the transaction namespace.
+
+    This checks the namespace, and name to match what we consider to be a standard + custom measurement.
+    """
+    return parsed_mri.namespace == "transactions" and parsed_mri.name.startswith("measurements.")
 
 
 def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:

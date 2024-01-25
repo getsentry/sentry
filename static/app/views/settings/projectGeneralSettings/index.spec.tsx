@@ -1,14 +1,13 @@
 import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
-import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
-  act,
   fireEvent,
   render,
   renderGlobalModal,
@@ -31,7 +30,7 @@ function getField(role, name) {
 }
 
 describe('projectGeneralSettings', function () {
-  const org = Organization();
+  const org = OrganizationFixture();
   const project = ProjectFixture({
     subjectPrefix: '[my-org]',
     resolveAge: 48,
@@ -41,7 +40,7 @@ describe('projectGeneralSettings', function () {
     securityTokenHeader: 'x-security-header',
     verifySSL: true,
   });
-  const groupingConfigs = GroupingConfigs();
+  const groupingConfigs = GroupingConfigsFixture();
   let routerContext;
   let putMock;
 
@@ -229,7 +228,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables the form for users without write permissions', function () {
-    const readOnlyOrg = Organization({access: ['org:read']});
+    const readOnlyOrg = OrganizationFixture({access: ['org:read']});
     routerContext.context.organization = readOnlyOrg;
 
     render(
@@ -386,17 +385,18 @@ describe('projectGeneralSettings', function () {
 
       // Click "Save"
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
-      await act(tick);
 
       // API endpoint should have been called
-      expect(putMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            resolveAge: 12,
-          },
-        })
-      );
+      await waitFor(() => {
+        expect(putMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {
+              resolveAge: 12,
+            },
+          })
+        );
+      });
 
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
     });

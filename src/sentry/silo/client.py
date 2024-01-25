@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from typing import FrozenSet
 
 REQUEST_ATTEMPTS_LIMIT = 10
-CACHE_TIMEOUT = 600  # 10 minutes = 600 seconds
+CACHE_TIMEOUT = 43200  # 12 hours = 60 * 60 * 12 seconds
 
 
 class SiloClientError(Exception):
@@ -246,8 +246,8 @@ class RegionSiloClient(BaseSiloClient):
                 json=json,
                 raw_response=raw_response,
             )
-        except Exception as error:
+        except Exception:
             self.check_request_attempts(hash=hash, method=method, path=path)
-            raise error
+            raise
         self.cleanup_request_attempts(hash=hash)
         return response

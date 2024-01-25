@@ -1,7 +1,7 @@
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 
 describe('Feature', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['org-foo', 'org-bar', 'bar'],
   });
   const project = ProjectFixture({
@@ -98,7 +98,7 @@ describe('Feature', function () {
     });
 
     it('can specify org from props', function () {
-      const customOrg = Organization({features: ['org-bazar']});
+      const customOrg = OrganizationFixture({features: ['org-bazar']});
       render(
         <Feature organization={customOrg} features="org-bazar">
           {childrenMock}

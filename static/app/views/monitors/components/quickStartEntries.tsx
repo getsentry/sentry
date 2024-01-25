@@ -150,33 +150,26 @@ export function PHPCronQuickStart(props: QuickStartProps) {
   const {slug} = withDefaultProps(props);
 
   const checkInSuccessCode = `// 🟡 Notify Sentry your job is running:
-$event = Event::createCheckIn();
-$checkIn = new CheckIn(
-    monitorSlug: '${slug}',
-    status: CheckInStatus::inProgress(),
+$checkInId = \Sentry\captureCheckIn(
+    slug: '${slug}',
+    status: CheckInStatus::inProgress()
 );
-$event->setCheckIn($checkIn);
-SentrySdk::getCurrentHub()->captureEvent($event);
 
 // Execute your scheduled task here...
 
 // 🟢 Notify Sentry your job has completed successfully:
-$event = Event::createCheckIn();
-$event->setCheckIn(new CheckIn(
-    id: $checkIn->getId(),
-    monitorSlug: '${slug}',
+\Sentry\captureCheckIn(
+    slug: '${slug}',
     status: CheckInStatus::ok(),
-));
-SentrySdk::getCurrentHub()->captureEvent($event);`;
+    checkInId: $checkInId,
+);`;
 
   const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
-$event = Event::createCheckIn();
-$event->setCheckIn(new CheckIn(
-    id: $checkIn->getId(),
-    monitorSlug: '${slug}',
-    status: CheckInStatus::error(),
-));
-SentrySdk::getCurrentHub()->captureEvent($event);`;
+\Sentry\captureCheckIn(
+    slug: '${slug}',
+    status: CheckInStatus::error()
+    checkInId: $checkInId,
+);`;
 
   return (
     <Fragment>

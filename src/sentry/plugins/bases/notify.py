@@ -82,7 +82,7 @@ class NotificationPlugin(Plugin):
                 },
             )
             if raise_exception:
-                raise err
+                raise
             return False
 
     def rule_notify(self, event, futures):
@@ -173,7 +173,7 @@ class NotificationPlugin(Plugin):
         # perform rate limit checks to support backwards compatibility with
         # older plugins.
         if not (
-            hasattr(self, "notify_digest") and digests.enabled(project)
+            hasattr(self, "notify_digest") and digests.backend.enabled(project)
         ) and self.__is_rate_limited(group, event):
             logger = logging.getLogger(f"sentry.plugins.{self.get_conf_key()}")
             logger.info("notification.rate_limited", extra={"project_id": project.id})

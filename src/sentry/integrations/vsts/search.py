@@ -14,7 +14,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 @control_silo_endpoint
 class VstsSearchEndpoint(IntegrationEndpoint):
-    owner = ApiOwner.OWNERS_SNUBA
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

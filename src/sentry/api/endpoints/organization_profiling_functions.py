@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
@@ -129,7 +130,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     # It's possible to override the columns via
                     # the `yAxis` qs. So we explicitly ignore the
                     # columns, and hard code in the columns we want.
-                    timeseries_columns=[data["function"], "worst()"],
+                    timeseries_columns=[data["function"], "examples()"],
                     config=QueryBuilderConfig(
                         skip_tag_resolution=True,
                     ),
@@ -191,7 +192,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             get_event_stats,
             top_events=FUNCTIONS_PER_QUERY,
             query_column=data["function"],
-            additional_query_column="worst()",
+            additional_query_column="examples()",
             params=params,
             query=data.get("query"),
         )
@@ -240,8 +241,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_result = {
                     "stats": stats_data[key][data["function"]],
                     "worst": [
-                        (ts, data[0]["count"])
-                        for (ts, data) in stats_data[key]["worst()"]["data"]
+                        (ts, data[0]["count"][0])
+                        for ts, data in stats_data[key]["examples()"]["data"]
                         if data[0]["count"]  # filter out entries without an example
                     ],
                 }
@@ -270,7 +271,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_results.append(formatted_result)
             return formatted_results
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             return self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=paginate_trending_events),

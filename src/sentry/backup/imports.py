@@ -8,6 +8,7 @@ from django.core import serializers
 from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
 
+from sentry.backup.crypto import Decryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
     ImportKind,
     ModelRelations,
@@ -17,7 +18,7 @@ from sentry.backup.dependencies import (
     get_model_name,
     reversed_dependencies,
 )
-from sentry.backup.helpers import Decryptor, Filter, ImportFlags, Printer, decrypt_encrypted_tarball
+from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.models.importchunk import ControlImportChunkReplica
@@ -356,9 +357,9 @@ def _import(
 
                 try:
                     _clear_model_tables_before_import()
-                except DatabaseError as e:
+                except DatabaseError:
                     printer.echo("Database could not be reset before importing")
-                    raise e
+                    raise
             do_writes(pk_map)
     else:
         do_writes(pk_map)

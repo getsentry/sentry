@@ -8,6 +8,7 @@ import pytest
 from django.db.models import F
 from django.urls import reverse
 
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.replays.endpoints.organization_replay_count import project_in_org_has_sent_replay
 from sentry.replays.testutils import mock_replay
@@ -103,7 +104,7 @@ class OrganizationReplayCountEndpointTest(
             project_id=self.project.id,
         )
 
-        query = {"query": f"issue.id:[{event_a.group.id}, {event_c.group.id}]"}
+        query = {"query": f"(issue.id:[{event_a.group.id}, {event_c.group.id}] or abc)"}
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
 
@@ -460,7 +461,6 @@ class OrganizationReplayCountEndpointTest(
             assert response.data["detail"] == "Too many values provided"
 
     def test_invalid_params_only_one_of_issue_and_transaction(self):
-
         query = {"query": "issue.id:[1] transaction:[2]"}
 
         with self.feature(self.features):
@@ -542,3 +542,64 @@ class OrganizationReplayCountEndpointTest(
         project.update(flags=F("flags").bitor(Project.flags.has_replays))
 
         assert project_in_org_has_sent_replay(org) is True
+
+    def test_cross_organization_lookups(self):
+        event_id_a = "a" * 32
+        event_id_b = "b" * 32
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+
+        # Mock data for the user's organization.
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        event_a = self.store_event(
+            data={
+                "event_id": event_id_a,
+                "timestamp": iso_format(self.min_ago),
+                "tags": {"replayId": replay1_id},
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+
+        # Mock data for an organization the user does not have access to.
+        #
+        # There's a project-id mismatch between the replay and the event. This
+        # is intentional. If the replay has a project-id outside the user's
+        # organization then the endpoint is protected and will not return results
+        # for that issue-id. We pass an invalid database state to assert only
+        # issues belonging to the user will ever be fetched.
+        org = Organization.objects.create(slug="other-org")
+        project = Project.objects.create(organization=org, slug="other-project")
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay2_id,
+            )
+        )
+        event_b = self.store_event(
+            data={
+                "event_id": event_id_b,
+                "timestamp": iso_format(self.min_ago),
+                "tags": {"replayId": replay2_id},
+                "fingerprint": ["group-2"],
+            },
+            project_id=project.id,
+        )
+
+        # IDs from both orgs are passed to the endpoint.
+        query = {"query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]"}
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        # Assert the request succeeds but the event from another organization
+        # is not returned.
+        assert response.status_code == 200, response.content
+        assert response.data == {event_a.group.id: 1}

@@ -397,7 +397,7 @@ def _render_trees(group: Group, user):
         .set_orderby([OrderBy(Column("latest_event_timestamp"), Direction.DESC)])
     )
 
-    rv = []
+    rv: list[dict[str, Any]] = []
     request = SnubaRequest(
         dataset="events",
         app_id="grouping",

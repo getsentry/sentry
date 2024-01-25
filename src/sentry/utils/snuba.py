@@ -50,6 +50,10 @@ from sentry.utils.dates import outside_retention_with_modified_start, to_timesta
 
 logger = logging.getLogger(__name__)
 
+# Sentinels
+ROUND_UP = object()
+ROUND_DOWN = object()
+
 # We limit the number of fields an user can ask for
 # in a single query to lessen the load on snuba
 MAX_FIELDS = 20
@@ -113,7 +117,6 @@ SPAN_COLUMN_MAP = {
     "span.domain": "domain",
     "span.duration": "duration",
     "span.group": "group",
-    "span.group_raw": "group_raw",
     "span.module": "module",
     "span.op": "op",
     "span.self_time": "exclusive_time",
@@ -122,6 +125,7 @@ SPAN_COLUMN_MAP = {
     "trace": "trace_id",
     "transaction": "segment_name",
     "transaction.id": "transaction_id",
+    "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
     "profile_id": "profile_id",
@@ -956,7 +960,8 @@ def _bulk_snuba_query(
             ]
 
     results = []
-    for response, _, reverse in query_results:
+    for index, item in enumerate(query_results):
+        response, _, reverse = item
         try:
             body = json.loads(response.data)
             if SNUBA_INFO:
@@ -978,6 +983,12 @@ def _bulk_snuba_query(
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
+            if use_mql:
+                error_request = snuba_param_list[index][0]
+                error_request = (
+                    error_request.serialize_mql()
+                )  # never used, only for sentry visibility
+
             if body.get("error"):
                 error = body["error"]
                 if response.status == 429:
@@ -1067,12 +1078,13 @@ def _raw_mql_query(
     # Enter hub such that http spans are properly nested
     with thread_hub, timer("mql_query"):
         referrer = headers.get("referer", "unknown")
+        # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
+        serialized_req = request.serialize_mql()
         with thread_hub.start_span(op="snuba_mql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
-            # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
-            body = request.serialize_mql()
+            body = serialized_req
 
-        with thread_hub.start_span(op="snuba_mql.run", description=str(request)) as span:
+        with thread_hub.start_span(op="snuba_mql.run", description=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/mql", body=body, headers=headers
@@ -1085,11 +1097,12 @@ def _raw_snql_query(
     # Enter hub such that http spans are properly nested
     with thread_hub, timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
+        serialized_req = request.serialize()
         with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
-            body = request.serialize()
+            body = serialized_req
 
-        with thread_hub.start_span(op="snuba_snql.run", description=str(request)) as span:
+        with thread_hub.start_span(op="snuba_snql.run", description=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/snql", body=body, headers=headers
@@ -1589,7 +1602,7 @@ def naiveify_datetime(dt):
     return dt if not dt.tzinfo else dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
-def quantize_time(time, key_hash, duration=300):
+def quantize_time(time, key_hash, duration=300, rounding=ROUND_DOWN):
     """Adds jitter based on the key_hash around start/end times for caching snuba queries
 
     Given a time and a key_hash this should result in a timestamp that remains the same for a duration
@@ -1613,6 +1626,10 @@ def quantize_time(time, key_hash, duration=300):
     # Otherwise we're in the previous time window, subtract duration to give us the previous timewindows start
     else:
         seconds_past_hour = time_window_start - duration
+
+    if rounding == ROUND_UP:
+        seconds_past_hour += duration
+
     return (
         # Since we're adding seconds past the hour, we want time but without minutes or seconds
         time.replace(minute=0, second=0, microsecond=0)

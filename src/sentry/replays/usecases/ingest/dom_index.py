@@ -5,10 +5,14 @@ import random
 import time
 import uuid
 from hashlib import md5
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
 
 from django.conf import settings
 
+from sentry import features
+from sentry.models.project import Project
+from sentry.replays.usecases.ingest.events import SentryEvent
+from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -64,8 +68,12 @@ def parse_and_emit_replay_actions(
     with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
         message = parse_replay_actions(project_id, replay_id, retention_days, segment_data)
         if message is not None:
-            publisher = _initialize_publisher()
-            publisher.publish("ingest-replay-events", json.dumps(message))
+            emit_replay_actions(message)
+
+
+def emit_replay_actions(action: ReplayActionsEvent) -> None:
+    publisher = _initialize_publisher()
+    publisher.publish("ingest-replay-events", json.dumps(action))
 
 
 def parse_replay_actions(
@@ -108,6 +116,30 @@ def create_replay_actions_payload(
         "replay_id": replay_id,
         "clicks": clicks,
     }
+
+
+def log_canvas_size(
+    org_id: int,
+    project_id: int,
+    replay_id: str,
+    events: list[dict[str, Any]],
+) -> None:
+    for event in events:
+        if event.get("type") == 3 and event.get("data", {}).get("source") == 9:
+            logger.info(
+                # Logging to the sentry.replays.slow_click namespace because
+                # its the only one configured to use BigQuery at the moment.
+                #
+                # NOTE: Needs an ops request to create a new dataset.
+                "sentry.replays.slow_click",
+                extra={
+                    "event_type": "canvas_size",
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "replay_id": replay_id,
+                    "size": len(json.dumps(event)),
+                },
+            )
 
 
 def get_user_actions(
@@ -159,6 +191,16 @@ def get_user_actions(
                     click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
                     if click is not None:
                         result.append(click)
+
+                        if is_rage:
+                            metrics.incr("replay.rage_click_detected")
+                            if features.has(
+                                "organizations:session-replay-rage-click-issue-creation",
+                                Project.objects.get(id=project_id).organization,
+                            ):
+                                report_rage_click_issue(
+                                    project_id, replay_id, cast(SentryEvent, event)
+                                )
 
                 # Log the event for tracking.
                 log = event["data"].get("payload", {}).copy()

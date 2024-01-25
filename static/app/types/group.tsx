@@ -311,6 +311,7 @@ export enum GroupActivityType {
   MARK_REVIEWED = 'mark_reviewed',
   AUTO_SET_ONGOING = 'auto_set_ongoing',
   SET_ESCALATING = 'set_escalating',
+  SET_PRIORITY = 'set_priority',
 }
 
 interface GroupActivityBase {
@@ -322,7 +323,7 @@ interface GroupActivityBase {
   user?: null | User;
 }
 
-interface GroupActivityNote extends GroupActivityBase {
+export interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
   };
@@ -330,12 +331,55 @@ interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, any>;
+  data: Record<string, unknown>;
+  type: GroupActivityType.SET_RESOLVED;
+}
+
+/**
+ * An integration marks an issue as resolved
+ */
+interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
+  data: {
+    integration_id: number;
+    /**
+     * Human readable name of the integration
+     */
+    provider: string;
+    /**
+     * The key of the integration
+     */
+    provider_key: string;
+  };
   type: GroupActivityType.SET_RESOLVED;
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, any>;
+  data: Record<string, unknown>;
+  type: GroupActivityType.SET_UNRESOLVED;
+}
+
+interface GroupActivitySetUnresolvedForecast extends GroupActivityBase {
+  data: {
+    forecast: number;
+  };
+  type: GroupActivityType.SET_UNRESOLVED;
+}
+
+/**
+ * An integration marks an issue as unresolved
+ */
+interface GroupActivitySetUnresolvedIntegration extends GroupActivityBase {
+  data: {
+    integration_id: number;
+    /**
+     * Human readable name of the integration
+     */
+    provider: string;
+    /**
+     * The key of the integration
+     */
+    provider_key: string;
+  };
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
@@ -488,6 +532,14 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
   type: GroupActivityType.SET_ESCALATING;
 }
 
+export interface GroupActivitySetPriority extends GroupActivityBase {
+  data: {
+    priority: PriorityLevel;
+    reason: string;
+  };
+  type: GroupActivityType.SET_PRIORITY;
+}
+
 export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
@@ -516,7 +568,10 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
+  | GroupActivitySetResolvedIntegration
   | GroupActivitySetUnresolved
+  | GroupActivitySetUnresolvedForecast
+  | GroupActivitySetUnresolvedIntegration
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
@@ -536,7 +591,8 @@ export type GroupActivity =
   | GroupActivityAssigned
   | GroupActivityCreateIssue
   | GroupActivityAutoSetOngoing
-  | GroupActivitySetEscalating;
+  | GroupActivitySetEscalating
+  | GroupActivitySetPriority;
 
 export type Activity = GroupActivity;
 
@@ -629,6 +685,12 @@ export const enum GroupSubstatus {
   ONGOING = 'ongoing',
   REGRESSED = 'regressed',
   NEW = 'new',
+}
+
+export const enum PriorityLevel {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
 }
 
 // TODO(ts): incomplete

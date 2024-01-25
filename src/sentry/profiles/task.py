@@ -9,10 +9,10 @@ from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 import msgpack
 import sentry_sdk
 from django.conf import settings
-from symbolic.proguard import ProguardMapper
 
 from sentry import options, quotas
 from sentry.constants import DataCategory
+from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
@@ -56,8 +56,12 @@ class VroomTimeout(Exception):
 def process_profile_task(
     profile: Optional[Profile] = None,
     payload: Any = None,
+    sampled: bool = True,
     **kwargs: Any,
 ) -> None:
+    if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
+        return
+
     if payload:
         message_dict = msgpack.unpackb(payload, use_list=False)
         profile = json.loads(message_dict["payload"], use_rapid_json=True)
@@ -69,6 +73,7 @@ def process_profile_task(
                 "organization_id": message_dict["organization_id"],
                 "project_id": message_dict["project_id"],
                 "received": message_dict["received"],
+                "sampled": sampled,
             }
         )
 
@@ -524,7 +529,6 @@ def _process_symbolicator_results(
 def _process_symbolicator_results_for_sample(
     profile: Profile, stacktraces: List[Any], frames_sent: set[int], platform: str
 ) -> None:
-
     if platform == "rust":
 
         def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
@@ -719,10 +723,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
         if debug_file_path is None:
             return
 
-    with sentry_sdk.start_span(op="proguard.open"):
-        mapper = ProguardMapper.open(debug_file_path)
-        if not mapper.has_line_info:
-            return
+    mapper = open_proguard_mapper(debug_file_path)
+    if not mapper.has_line_info:
+        return
 
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
@@ -801,10 +804,9 @@ def _deobfuscate_v2(profile: Profile, project: Project) -> None:
         if debug_file_path is None:
             return
 
-    with sentry_sdk.start_span(op="proguard.open"):
-        mapper = ProguardMapper.open(debug_file_path, initialize_param_mapping=True)
-        if not mapper.has_line_info:
-            return
+    mapper = open_proguard_mapper(debug_file_path, initialize_param_mapping=True)
+    if not mapper.has_line_info:
+        return
 
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:

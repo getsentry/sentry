@@ -1,17 +1,17 @@
-import {Event} from 'sentry-fixture/event';
-import {EventAttachment} from 'sentry-fixture/eventAttachment';
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 
 describe('JsonViewer', () => {
-  const organization = Organization();
-  const project = Project({organization});
-  const event = Event({project});
-  const attachment = EventAttachment({event_id: event.id});
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({organization});
+  const event = EventFixture({project});
+  const attachment = EventAttachmentFixture({event_id: event.id});
 
   it('Renders error if fetch is not successful', async () => {
     MockApiClient.addMockResponse({

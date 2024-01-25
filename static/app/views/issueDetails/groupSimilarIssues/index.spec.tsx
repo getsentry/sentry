@@ -1,8 +1,8 @@
-import {Groups} from 'sentry-fixture/groups';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
+import {GroupsFixture} from 'sentry-fixture/groups';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -43,7 +43,7 @@ describe('Issues Similar View', function () {
   ];
 
   const mockData = {
-    similar: Groups().map((issue, i) => [issue, scores[i]]),
+    similar: GroupsFixture().map((issue, i) => [issue, scores[i]]),
   };
 
   const router = RouterFixture();
@@ -89,6 +89,7 @@ describe('Issues Similar View', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(screen.getByText('Show 3 issues below threshold')).toBeInTheDocument();
+  
     expect(screen.queryByText('Would Group')).not.toBeInTheDocument();
   });
 
@@ -133,6 +134,29 @@ describe('Issues Similar View', function () {
     );
   });
 
+  it('correctly shows merge count', async function () {
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext}
+    );
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByTestId('similar-item-row'));
+    expect(screen.getByText('Merge (1)')).toBeInTheDocument();
+
+    // Correctly show "Merge (0)" when the item is un-clicked
+    await userEvent.click(await screen.findByTestId('similar-item-row'));
+    expect(screen.getByText('Merge (0)')).toBeInTheDocument();
+  });
+
   it('renders all filtered issues and would group in table', async function () {
     // Check that filtered issues and "Would Group" column are rendered when the
     // issues-similarity-embeddings flag is on
@@ -148,7 +172,7 @@ describe('Issues Similar View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext, organization: Organization({features})}
+      {context: routerContext, organization: OrganizationFixture({features})}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -156,6 +180,7 @@ describe('Issues Similar View', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(screen.queryByText('Show 3 issues below threshold')).not.toBeInTheDocument();
+
     expect(screen.queryByText('Would Group')).toBeInTheDocument();
   });
 });

@@ -12,6 +12,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
+import {ObjectStatus} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
 import {Monitor, MonitorStatus} from 'sentry/views/monitors/types';
@@ -25,9 +26,9 @@ import {MonitorBucket} from './types';
 interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
   monitor: Monitor;
   bucketedData?: MonitorBucket[];
-  onDeleteEnvironment?: (env: string) => void;
-  onToggleMuteEnvironment?: (env: string, isMuted: boolean) => void;
-  onToggleStatus?: (monitor: Monitor) => void;
+  onDeleteEnvironment?: (env: string) => Promise<void>;
+  onToggleMuteEnvironment?: (env: string, isMuted: boolean) => Promise<void>;
+  onToggleStatus?: (monitor: Monitor, status: ObjectStatus) => Promise<void>;
   /**
    * Whether only one monitor is being rendered in a larger view with this component
    * turns off things like zebra striping, hover effect, and showing monitor name
@@ -72,7 +73,7 @@ export function TimelineTableRow({
           <StatusToggleButton
             monitor={monitor}
             size="xs"
-            onClick={() => onToggleStatus(monitor)}
+            onToggleStatus={status => onToggleStatus(monitor, status)}
           />
         )}
       </DetailsActions>

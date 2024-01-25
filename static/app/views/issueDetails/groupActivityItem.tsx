@@ -98,14 +98,13 @@ function GroupActivityItem({
   author,
 }: GroupActivityItemProps) {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
-    const ignoredOrArchived = hasEscalatingIssuesUi ? t('archived') : t('ignored');
+    const archived = t('archived');
     if (data.ignoreDuration) {
       return tct('[author] [action] this issue for [duration]', {
         author,
-        action: ignoredOrArchived,
+        action: archived,
         duration: <Duration seconds={data.ignoreDuration * 60} />,
       });
     }
@@ -115,7 +114,7 @@ function GroupActivityItem({
         '[author] [action] this issue until it happens [count] time(s) in [duration]',
         {
           author,
-          action: ignoredOrArchived,
+          action: archived,
           count: data.ignoreCount,
           duration: <Duration seconds={data.ignoreWindow * 60} />,
         }
@@ -125,7 +124,7 @@ function GroupActivityItem({
     if (data.ignoreCount) {
       return tct('[author] [action] this issue until it happens [count] time(s)', {
         author,
-        action: ignoredOrArchived,
+        action: archived,
         count: data.ignoreCount,
       });
     }
@@ -135,7 +134,7 @@ function GroupActivityItem({
         '[author] [action] this issue until it affects [count] user(s) in [duration]',
         {
           author,
-          action: ignoredOrArchived,
+          action: archived,
           count: data.ignoreUserCount,
           duration: <Duration seconds={data.ignoreUserWindow * 60} />,
         }
@@ -145,7 +144,7 @@ function GroupActivityItem({
     if (data.ignoreUserCount) {
       return tct('[author] [action] this issue until it affects [count] user(s)', {
         author,
-        action: ignoredOrArchived,
+        action: archived,
         count: data.ignoreUserCount,
       });
     }
@@ -153,11 +152,11 @@ function GroupActivityItem({
     if (data.ignoreUntil) {
       return tct('[author] [action] this issue until [date]', {
         author,
-        action: ignoredOrArchived,
+        action: archived,
         date: <DateTime date={data.ignoreUntil} />,
       });
     }
-    if (hasEscalatingIssuesUi && data.ignoreUntilEscalating) {
+    if (data.ignoreUntilEscalating) {
       return tct('[author] archived this issue until it escalates', {
         author,
       });
@@ -165,7 +164,7 @@ function GroupActivityItem({
 
     return tct('[author] [action] this issue forever', {
       author,
-      action: ignoredOrArchived,
+      action: archived,
     });
   }
 
@@ -244,6 +243,18 @@ function GroupActivityItem({
       case GroupActivityType.NOTE:
         return tct('[author] left a comment', {author});
       case GroupActivityType.SET_RESOLVED:
+        if ('integration_id' in activity.data && activity.data.integration_id) {
+          return tct('[author] marked this issue as resolved via [integration]', {
+            integration: (
+              <Link
+                to={`/settings/${organization.slug}/integrations/${activity.data.provider_key}/${activity.data.integration_id}/`}
+              >
+                {activity.data.provider}
+              </Link>
+            ),
+            author,
+          });
+        }
         return tct('[author] marked this issue as resolved', {author});
       case GroupActivityType.SET_RESOLVED_BY_AGE:
         return tct('[author] marked this issue as resolved due to inactivity', {
@@ -366,7 +377,7 @@ function GroupActivityItem({
       case GroupActivityType.SET_UNRESOLVED: {
         // TODO(nisanthan): Remove after migrating records to SET_ESCALATING
         const {data} = activity;
-        if (data.forecast) {
+        if ('forecast' in data && data.forecast) {
           return tct(
             '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
             {
@@ -375,6 +386,18 @@ function GroupActivityItem({
               event: data.forecast === 1 ? 'event' : 'events',
             }
           );
+        }
+        if ('integration_id' in data && data.integration_id) {
+          return tct('[author] marked this issue as unresolved via [integration]', {
+            integration: (
+              <Link
+                to={`/settings/${organization.slug}/integrations/${data.provider_key}/${data.integration_id}/`}
+              >
+                {data.provider}
+              </Link>
+            ),
+            author,
+          });
         }
         return tct('[author] marked this issue as unresolved', {author});
       }
@@ -528,7 +551,26 @@ function GroupActivityItem({
       case GroupActivityType.SET_ESCALATING: {
         return getEscalatingMessage(activity.data);
       }
-
+      case GroupActivityType.SET_PRIORITY: {
+        const {data} = activity;
+        switch (data.reason) {
+          case 'escalating':
+            return tct(
+              '[author] updated the priority value of this issue to be [priority] after it escalated',
+              {author, priority: data.priority}
+            );
+          case 'ongoing':
+            return tct(
+              '[author] updated the priority value of this issue to be [priority] after it was marked as ongoing',
+              {author, priority: data.priority}
+            );
+          default:
+            return tct(
+              '[author] updated the priority value of this issue to be [priority]',
+              {author, priority: data.priority}
+            );
+        }
+      }
       default:
         return ''; // should never hit (?)
     }

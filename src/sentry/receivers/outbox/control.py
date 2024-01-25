@@ -96,7 +96,6 @@ def process_async_webhooks(
         with metrics.timer(
             "integration_proxy.control.process_async_webhooks",
             tags={"destination_region": region.name},
-            sample_rate=1.0,
         ):
             response = client.request(
                 method=webhook_payload.method,
@@ -118,8 +117,16 @@ def process_async_webhooks(
             },
         )
     except SiloClientError as e:
+        metrics.incr(
+            "integration_proxy.control.process_async_webhook.failure",
+            tags={"reason": "silo_client_error", "destination_region": region.name},
+        )
         sentry_sdk.capture_exception(e)
     except ApiHostError as err:
+        metrics.incr(
+            "integration_proxy.control.process_async_webhook.failure",
+            tags={"reason": "host_error", "destination_region": region.name},
+        )
         with sentry_sdk.push_scope() as scope:
             scope.set_context(
                 "region",
@@ -139,6 +146,10 @@ def process_async_webhooks(
             sentry_sdk.capture_exception(err)
         return
     except ApiConflictError as e:
+        metrics.incr(
+            "integration_proxy.control.process_async_webhook.failure",
+            tags={"reason": "conflict", "destination_region": region.name},
+        )
         logger.warning(
             "webhook_proxy.conflict_occurred",
             extra={
@@ -147,10 +158,12 @@ def process_async_webhooks(
                 "conflict_text": e.text,
             },
         )
-    except ApiTimeoutError as err:
-        raise err
-    except ApiConnectionResetError as err:
-        raise err
+    except (ApiTimeoutError, ApiConnectionResetError):
+        metrics.incr(
+            "integration_proxy.control.process_async_webhook.failure",
+            tags={"reason": "timeout_reset", "destination_region": region.name},
+        )
+        raise
     except ApiError as api_err:
         err_cause = api_err.__cause__
         if err_cause is not None and isinstance(err_cause, HTTPError):
@@ -160,13 +173,18 @@ def process_async_webhooks(
                 and status.HTTP_500_INTERNAL_SERVER_ERROR <= orig_response.status_code < 600
             ):
                 # Retry on 5xx errors
-                raise api_err
+                raise
         # For some integrations, we make use of outboxes to handle asynchronous webhook requests.
         # There is an edge case where webhook requests eventually become invalid and
         # the 3rd-party destination (integration provider) will reject them.
         # JWT expirations is one example of causing this issue. Issues like these are no longer salvageable, and we must
         # discard these associated webhook outbox messages. If we do not discard them, then these outbox messages
         # will be re-processed causing a backlog on the ControlOutbox table.
+        metrics.incr(
+            "integration_proxy.control.process_async_webhook.failure",
+            tags={"reason": "discard", "destination_region": region.name},
+        )
+
         return
 
 

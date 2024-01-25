@@ -1,7 +1,7 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {RRWebInitFrameEvents} from 'sentry-fixture/replay/rrweb';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -20,14 +20,11 @@ jest.mock('sentry/utils/replays/hooks/useReplayReader');
 jest.mock('sentry/utils/useProjects');
 
 const now = new Date();
-const mockReplay = ReplayReader.factory(
-  {
-    replayRecord: ReplayRecordFixture({started_at: now}),
-    errors: [],
-    attachments: RRWebInitFrameEvents({timestamp: now}),
-  },
-  {}
-);
+const mockReplay = ReplayReader.factory({
+  replayRecord: ReplayRecordFixture({started_at: now}),
+  errors: [],
+  attachments: RRWebInitFrameEventsFixture({timestamp: now}),
+});
 
 jest.mocked(useReplayReader).mockImplementation(() => {
   return {
@@ -43,6 +40,15 @@ jest.mocked(useReplayReader).mockImplementation(() => {
   };
 });
 
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
+
 describe('EventReplay', function () {
   const MockUseReplayOnboardingSidebarPanel = jest.mocked(
     useReplayOnboardingSidebarPanel
@@ -52,7 +58,7 @@ describe('EventReplay', function () {
     useHasOrganizationSentAnyReplayEvents
   );
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['session-replay'],
   });
 

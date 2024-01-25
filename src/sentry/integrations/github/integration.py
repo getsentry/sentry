@@ -33,7 +33,7 @@ from sentry.services.hybrid_cloud.repository import RpcRepository, repository_se
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
-from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
+from sentry.tasks.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
@@ -254,15 +254,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         lineno = event_frame.get("lineno", 0)
         if not lineno:
             return None
-        try:
-            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
-                repo, filepath, ref, lineno
-            )
+        blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+            repo, filepath, ref, lineno
+        )
 
-            if blame_range is None:
-                return None
-        except ApiError as e:
-            raise e
+        if blame_range is None:
+            return None
 
         try:
             commit: Mapping[str, Any] = max(
@@ -362,7 +359,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         except ApiError as api_error:
             if api_error.code == 404:
                 raise IntegrationError("The GitHub installation could not be found.")
-            raise api_error
+            raise
 
         integration = {
             "name": installation["account"]["login"],

@@ -1,9 +1,9 @@
 import merge from 'lodash/merge';
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Repository} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
@@ -14,11 +14,11 @@ import {EventOrGroupType} from 'sentry/types';
 import {EntryType, Event} from 'sentry/types/event';
 
 describe('Threads', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const project = ProjectFixture({});
   const integration = GitHubIntegrationFixture();
-  const repo = Repository({integrationId: integration.id});
-  const config = RepositoryProjectPathConfig({project, repo, integration});
+  const repo = RepositoryFixture({integrationId: integration.id});
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -27,7 +27,7 @@ describe('Threads', function () {
       snoozed_ts: undefined,
     };
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
     });
     MockApiClient.addMockResponse({

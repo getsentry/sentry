@@ -8,7 +8,6 @@ from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
 
-from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import TIMEOUT
@@ -21,6 +20,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorIngestTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
@@ -546,3 +546,57 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert checkin.status == CheckInStatus.OK
             # Monitor config will not be saved because it is missing margin and max runtime
             assert not checkin.monitor_config
+
+    def test_monitor_upsert_via_checkin_disabled_new_monitors(self):
+        for i, path_func in enumerate(self._get_path_functions()):
+            slug = f"my-new-monitor-{i}"
+            path = path_func(slug)
+
+            with self.feature("organizations:crons-disable-new-projects"):
+                resp = self.client.post(
+                    path,
+                    {
+                        "status": "ok",
+                        "monitor_config": {
+                            "schedule_type": "crontab",
+                            "schedule": "5 * * * *",
+                            "checkin_margin": 5,
+                        },
+                    },
+                    **self.dsn_auth_headers,
+                )
+
+            assert resp.status_code == 400
+            assert (
+                resp.data
+                == "Creating monitors in projects without pre-existing monitors is temporarily disabled"
+            )
+
+    def test_monitor_upsert_via_checkin_disabled_existing_monitors(self):
+        for i, path_func in enumerate(self._get_path_functions()):
+            slug = f"my-new-monitor-{i}"
+            path = path_func(slug)
+            self.project.flags.has_cron_monitors = True
+            self.project.save()
+
+            with self.feature("organizations:crons-disable-new-projects"):
+                resp = self.client.post(
+                    path,
+                    {
+                        "status": "ok",
+                        "monitor_config": {
+                            "schedule_type": "crontab",
+                            "schedule": "5 * * * *",
+                            "checkin_margin": 5,
+                        },
+                    },
+                    **self.dsn_auth_headers,
+                )
+
+            assert resp.status_code == 201, resp.content
+            monitor = Monitor.objects.get(slug=slug)
+            assert monitor.config["schedule"] == "5 * * * *"
+            assert monitor.config["checkin_margin"] == 5
+
+            checkins = MonitorCheckIn.objects.filter(monitor=monitor)
+            assert len(checkins) == 1

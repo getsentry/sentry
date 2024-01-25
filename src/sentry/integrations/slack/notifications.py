@@ -18,7 +18,8 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.integrations.slack import post_message
+from sentry.silo import SiloMode
+from sentry.tasks.integrations.slack import post_message, post_message_control
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, metrics
 
@@ -86,6 +87,10 @@ def _notify_recipient(
             if attachment_blocks:
                 for attachment in attachment_blocks:
                     blocks.append(attachment)
+            if len(blocks) >= 2 and blocks[1].get("block_id"):
+                # block id needs to be in the first block
+                blocks[0]["block_id"] = blocks[1]["block_id"]
+                del blocks[1]["block_id"]
             additional_attachment = get_additional_attachment(
                 integration, notification.organization
             )
@@ -129,12 +134,16 @@ def _notify_recipient(
                 "attachments": json.dumps(local_attachments),
             }
 
+        post_message_task = post_message
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            post_message_task = post_message_control
+
         log_params = {
-            "notification": notification,
+            "notification": str(notification),
             "recipient": recipient.id,
             "channel_id": channel,
         }
-        post_message.apply_async(
+        post_message_task.apply_async(
             kwargs={
                 "integration_id": integration.id,
                 "payload": payload,

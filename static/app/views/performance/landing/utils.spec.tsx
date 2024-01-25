@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -8,7 +8,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getCurrentLandingDisplay} from 'sentry/views/performance/landing/utils';
 
 function initializeData(projects, query = {}) {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: [],
     projects,
   });

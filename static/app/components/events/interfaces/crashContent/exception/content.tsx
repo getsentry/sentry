@@ -2,10 +2,13 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebuggerData,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
+import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -156,12 +159,18 @@ export function Content({
         event
       )
     );
+    const exceptionValue = exc.value
+      ? renderLinksInText({exceptionText: exc.value})
+      : null;
 
     if (exc.mechanism?.parent_id && collapsedExceptions[exc.mechanism.parent_id]) {
       return null;
     }
 
     const platform = getStacktracePlatform(event, exc.stacktrace);
+
+    // The banners should appear on the top exception only
+    const isTopException = newestFirst ? excIdx === values.length - 1 : excIdx === 0;
 
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">
@@ -176,7 +185,7 @@ export function Content({
           {meta?.[excIdx]?.value?.[''] && !exc.value ? (
             <AnnotatedText value={exc.value} meta={meta?.[excIdx]?.value?.['']} />
           ) : (
-            exc.value
+            exceptionValue
           )}
         </StyledPre>
         <ToggleExceptionButton
@@ -191,6 +200,11 @@ export function Content({
           newestFirst={newestFirst}
           onExceptionClick={expandException}
         />
+        {exc.stacktrace && isTopException && (
+          <ErrorBoundary customComponent={null}>
+            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
+          </ErrorBoundary>
+        )}
         <StackTrace
           data={
             type === StackType.ORIGINAL

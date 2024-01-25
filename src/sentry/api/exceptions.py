@@ -95,6 +95,12 @@ class SuperuserRequired(SentryAPIException):
     message = "You need to re-authenticate for superuser."
 
 
+class StaffRequired(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "staff-required"
+    message = "You need to re-authenticate for staff."
+
+
 class DataSecrecyError(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "data-secrecy"

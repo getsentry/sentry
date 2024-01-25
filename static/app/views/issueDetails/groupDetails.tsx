@@ -59,6 +59,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {useUser} from 'sentry/utils/useUser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {ERROR_TYPES} from './constants';
@@ -593,10 +594,12 @@ function useTrackView({
   tab: Tab;
   project?: Project;
 }) {
+  const organization = useOrganization();
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
   const groupEventType = useLoadedEventType();
+  const user = useUser();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -613,6 +616,10 @@ function useTrackView({
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
     group_event_type: groupEventType,
+    has_hierarchical_grouping:
+      !!organization.features?.includes('grouping-stacktrace-ui') &&
+      !!(event?.metadata?.current_tree_label || event?.metadata?.finest_tree_label),
+    new_issue_experience: user?.options?.issueDetailsNewExperienceQ42023 ?? false,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
