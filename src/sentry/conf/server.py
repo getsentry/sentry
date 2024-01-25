@@ -3982,6 +3982,7 @@ REGION_PINNED_URL_NAMES = {
     # Backwards compatibility for US customers.
     # New usage of these is region scoped.
     "sentry-error-page-embed",
+    "sentry-js-sdk-loader",
     "sentry-release-hook",
     "sentry-api-0-organizations",
     "sentry-api-0-projects",
