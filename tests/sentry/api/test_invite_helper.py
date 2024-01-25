@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 from django.http import HttpRequest
 
@@ -26,17 +24,16 @@ class ApiInviteHelperTest(TestCase):
             organization=self.org,
             teams=[self.team],
         )
-        self.auth_provider = self.create_auth_provider(
+        self.auth_provider_inst = self.create_auth_provider(
             organization_id=self.organization.id,
             provider="Friendly IdP",
         )
 
         self.request = HttpRequest()
+        self.request.META["REMOTE_ADDR"] = "127.0.0.1"
         self.request.user = self.user
 
-    @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
-    def test_accept_invite(self, get_audit, create_audit):
+    def test_accept_invite(self):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
@@ -53,13 +50,11 @@ class ApiInviteHelperTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             helper.accept_invite()
 
-        om = OrganizationMember.objects.get(id=self.member.id)
+        om.refresh_from_db()
         assert om.email is None
         assert om.user_id == self.user.id
 
-    @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
-    def test_accept_invite_already_exists(self, get_audit, create_audit):
+    def test_accept_invite_already_exists(self):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
@@ -95,13 +90,7 @@ class ApiInviteHelperTest(TestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(id=self.member.id)
 
-    @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
-    @patch("sentry.api.invite_helper.AuthProvider.objects")
-    def test_accept_invite_with_SSO(self, mock_provider, get_audit, create_audit):
-        self.auth_provider.flags.allow_unlinked = True
-        mock_provider.get.return_value = self.auth_provider
-
+    def test_accept_invite_with_SSO(self):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
@@ -116,20 +105,16 @@ class ApiInviteHelperTest(TestCase):
             None,
         )
 
-        with receivers_raise_on_send(), outbox_runner():
+        with assume_test_silo_mode(SiloMode.CONTROL), receivers_raise_on_send(), outbox_runner():
+            self.auth_provider_inst.flags.allow_unlinked = True
+            self.auth_provider_inst.save()
             helper.accept_invite()
 
-        om = OrganizationMember.objects.get(id=self.member.id)
+        om.refresh_from_db()
         assert om.email is None
         assert om.user_id == self.user.id
 
-    @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
-    @patch("sentry.api.invite_helper.AuthProvider.objects")
-    def test_accept_invite_with_required_SSO(self, mock_provider, get_audit, create_audit):
-        self.auth_provider.flags.allow_unlinked = False
-        mock_provider.get.return_value = self.auth_provider
-
+    def test_accept_invite_with_required_SSO(self):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
@@ -144,24 +129,16 @@ class ApiInviteHelperTest(TestCase):
             None,
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
+            self.auth_provider_inst.flags.allow_unlinked = False
+            self.auth_provider_inst.save()
             helper.accept_invite()
 
         # Invite cannot be accepted without AuthIdentity if SSO is required
-        om = OrganizationMember.objects.get(id=self.member.id)
+        om.refresh_from_db()
         assert om.email is not None
         assert om.user_id is None
 
-    @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
-    @patch("sentry.api.invite_helper.AuthProvider.objects")
-    @patch("sentry.api.invite_helper.AuthIdentity.objects")
-    def test_accept_invite_with_required_SSO_with_identity(
-        self, mock_identity, mock_provider, get_audit, create_audit
-    ):
-        self.auth_provider.flags.allow_unlinked = False
-        mock_provider.get.return_value = self.auth_provider
-        mock_identity.exists.return_value = True
-
+    def test_accept_invite_with_required_SSO_with_identity(self):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
@@ -175,8 +152,11 @@ class ApiInviteHelperTest(TestCase):
             invite_context,
             None,
         )
-        helper.accept_invite()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.auth_provider_inst.flags.allow_unlinked = False
+            self.auth_provider_inst.save()
+            helper.accept_invite()
 
-        om = OrganizationMember.objects.get(id=self.member.id)
+        om.refresh_from_db()
         assert om.email is None
         assert om.user_id == self.user.id
