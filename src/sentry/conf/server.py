@@ -3719,7 +3719,7 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # constraints instead of setting the column to not null.
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
-ANOMALY_DETECTION_URL = "127.0.0.1:9091"
+ANOMALY_DETECTION_URL = "http://127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
 
 # TODO: Once this moves to its own service, this URL will need to be updated
@@ -3727,7 +3727,7 @@ SEVERITY_DETECTION_URL = ANOMALY_DETECTION_URL
 SEVERITY_DETECTION_TIMEOUT = 0.3  # 300 milliseconds
 SEVERITY_DETECTION_RETRIES = 1
 
-AI_AUTOFIX_URL = SEVERITY_DETECTION_URL
+SEER_AUTOFIX_URL = ANOMALY_DETECTION_URL  # In local development this is the same as ANOMALY_DETECTION_URL, for prod check getsentry.
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
