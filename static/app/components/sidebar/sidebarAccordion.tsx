@@ -24,7 +24,10 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const contentId = `sidebar-accordion-${id}-content`;
 
   const isActive = isItemActive(itemProps);
-  const hasActiveChildren = Children.toArray(children).some(child => {
+
+  const childSidebarItems = findChildElementsInTree(children, 'SidebarItem');
+
+  const hasActiveChildren = Children.toArray(childSidebarItems).some(child => {
     if (isValidElement(child)) {
       return isItemActive(child.props);
     }
@@ -77,6 +80,35 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 }
 
 export {SidebarAccordion};
+
+function findChildElementsInTree(
+  children: React.ReactNode,
+  componentName: string,
+  found: Array<React.ReactNode> = []
+): React.ReactNode {
+  Children.toArray(children).forEach(child => {
+    if (!isValidElement(child)) {
+      return;
+    }
+
+    const currentComponentName: string =
+      typeof child.type === 'string' ? child.type : child.type.name;
+
+    if (currentComponentName === componentName) {
+      found.push(child);
+      return;
+    }
+
+    if (child?.props?.children) {
+      findChildElementsInTree(child.props.children, componentName, found);
+      return;
+    }
+
+    return;
+  });
+
+  return found;
+}
 
 const SidebarAccordionWrapper = styled('div')`
   display: flex;

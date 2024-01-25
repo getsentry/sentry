@@ -822,7 +822,9 @@ register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMAT
 register("store.background-grouping-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # True if background grouping should run before secondary and primary grouping
-register("store.background-grouping-before", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "store.background-grouping-before", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+)  # TODO: remove, no longer used
 
 # Store release files bundled as zip files
 register(
@@ -1995,4 +1997,11 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable sending a post update signal after we update groups using a queryset update
+register(
+    "groups.enable-post-update-signal",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

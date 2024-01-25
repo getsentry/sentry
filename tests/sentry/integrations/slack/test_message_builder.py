@@ -14,6 +14,7 @@ from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMe
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
     build_actions,
+    format_release_tag,
     get_option_groups,
     get_option_groups_block_kit,
     time_since,
@@ -26,14 +27,20 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.identity import Identity, IdentityStatus
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.utils.actions import MessageAction
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -49,7 +56,9 @@ def build_test_message_blocks(
     event: Event | None = None,
     link_to_event: bool = False,
     tags: dict[str, str] | None = None,
-    mentions: str | None = None,
+    suggested_assignees: str | None = None,
+    initial_assignee: Team | User | None = None,
+    notes: str | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -75,26 +84,29 @@ def build_test_message_blocks(
 
     tags_text = ""
     if not tags:
-        tags = {}
-    tags["level"] = "error"
-
+        tags = {"level": "error"}
     for k, v in tags.items():
-        tags_text += f"`{k}: {v}`  "
+        if k == "release":
+            v = format_release_tag(v, group)
+        tags_text += f"{k}: `{v}`  "
 
     tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
     blocks.append(tags_section)
 
     # add event and user count, state, first seen
     counts_section = {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": f"Events: *1*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
-        },
+        "type": "context",
+        "elements": [
+            {
+                "type": "mrkdwn",
+                "text": f"Events: *1*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
+            }
+        ],
     }
+
     blocks.append(counts_section)
 
-    actions = {
+    actions: dict[str, Any] = {
         "type": "actions",
         "elements": [
             {
@@ -120,15 +132,34 @@ def build_test_message_blocks(
             },
         ],
     }
+    if initial_assignee:
+        if isinstance(initial_assignee, User):
+            actions["elements"][2]["initial_option"] = {
+                "text": {"type": "plain_text", "text": f"{initial_assignee.email}"},
+                "value": f"user:{initial_assignee.id}",
+            }
+        else:
+            actions["elements"][2]["initial_option"] = {
+                "text": {"type": "plain_text", "text": f"#{initial_assignee.slug}"},
+                "value": f"team:{initial_assignee.id}",
+            }
     blocks.append(actions)
 
-    if mentions:
-        mentions_text = f"Mentions: {mentions}"
-        mentions_section = {
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": mentions_text},
+    if suggested_assignees:
+        suggested_assignees_text = f"Suggested Assignees: {suggested_assignees}"
+        suggested_assignees_section = {
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": suggested_assignees_text}],
         }
-        blocks.append(mentions_section)
+        blocks.append(suggested_assignees_section)
+
+    if notes:
+        notes_text = f"notes: {notes}"
+        notes_section = {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": notes_text},
+        }
+        blocks.append(notes_section)
 
     context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}"
     context = {
@@ -266,6 +297,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @with_feature("organizations:slack-block-kit")
     def test_build_group_block(self):
+
+        release = self.create_release(project=self.project)
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -273,6 +306,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 "timestamp": iso_format(before_now(minutes=1)),
                 "logentry": {"formatted": "bar"},
                 "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
+                "release": release.version,
             },
             project_id=self.project.id,
             assert_no_errors=False,
@@ -281,15 +315,16 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert group
         self.project.flags.has_releases = True
         self.project.save(update_fields=["flags"])
-        tags = {"foo": "bar"}
-        mentions = "hey @colleen fix it"
+        base_tags = {"level": "error", "release": release.version}
+        more_tags = {"foo": "bar", **base_tags}
+        notes = "hey @colleen fix it"
 
         assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
+            tags=base_tags,
         )
-
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
             group, event.for_group(group), tags={"foo"}
@@ -297,29 +332,30 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             teams={self.team},
             users={self.user},
             group=group,
-            tags=tags,
+            tags=more_tags,
             event=event,
         )
 
-        # add mentions to message
+        # add notes to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), mentions=mentions
+            group, event.for_group(group), notes=notes
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
-            mentions=mentions,
+            notes=notes,
             event=event,
+            tags=base_tags,
         )
-        # add extra tag and mentions to message
+        # add extra tag and notes to message
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group), tags={"foo"}, mentions=mentions
+            group, event.for_group(group), tags={"foo"}, notes=notes
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
-            tags=tags,
-            mentions=mentions,
+            tags=more_tags,
+            notes=notes,
             event=event,
         )
 
@@ -330,6 +366,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             event=event,
+            tags=base_tags,
         )
 
         assert SlackIssuesMessageBuilder(
@@ -340,12 +377,14 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             link_to_event=True,
+            tags=base_tags,
         )
 
         test_message = build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
+            tags=base_tags,
         )
 
         for section in test_message["blocks"]:
@@ -408,6 +447,117 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert isinstance(ret, dict)
         for section in ret["blocks"]:
             assert section["type"] != "actions"
+
+    @with_feature("organizations:slack-block-kit")
+    @with_feature("organizations:streamline-targeting-context")
+    def test_issue_alert_with_suggested_assignees(self):
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "stacktrace": {"frames": [{"filename": "foo.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+
+        # create codeowner; user with no slack identity linked
+        self.code_mapping = self.create_code_mapping(project=self.project)
+        g_rule1 = Rule(Matcher("path", "*"), [Owner("team", self.team.slug)])
+        self.create_codeowners(self.project, self.code_mapping, schema=dump_schema([g_rule1]))
+        GroupOwner.objects.create(
+            group=group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.organization,
+            context={"rule": str(g_rule1)},
+        )
+
+        # create ownership rule
+        g_rule2 = Rule(Matcher("level", "error"), [Owner("user", self.user.email)])
+        GroupOwner.objects.create(
+            group=group,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user_id=self.user.id,
+            team_id=None,
+            project=self.project,
+            organization=self.organization,
+            context={"rule": str(g_rule2)},
+        )
+
+        # create suspect commit
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="home-repo",
+            integration_id=self.integration.id,
+        )
+        user2 = self.create_user()
+        self.create_member(teams=[self.team], user=user2, organization=self.organization)
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+            author=self.create_commit_author(project=self.project, user=user2),
+            key="qwertyuiopiuytrewq",
+            message="This is a suspect commit!",
+        )
+        GroupOwner.objects.create(
+            group=group,
+            user_id=user2.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+
+        # auto assign group
+        ProjectOwnership.handle_auto_assignment(self.project.id, event)
+        expected_blocks = build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            suggested_assignees=f"#{self.team.slug}, <mailto:{user2.email}|{user2.email}>",  # auto-assignee is not included in suggested
+            initial_assignee=self.user,
+        )
+        assert (
+            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
+            == expected_blocks
+        )
+
+        # suggested user without slack identity linked, with display name
+        user2.name = "Scooby Doo"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user2.save()
+        expected_blocks["blocks"][4]["elements"][0][
+            "text"
+        ] = f"Suggested Assignees: #{self.team.slug}, <mailto:{user2.email}|{user2.name}>"
+        assert (
+            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
+            == expected_blocks
+        )
+
+        # suggested user with slack identity linked
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
+            self.identity = Identity.objects.create(
+                external_id="UXXXXXXX2",
+                idp=self.idp,
+                user=user2,
+                status=IdentityStatus.VALID,
+                scopes=[],
+            )
+        expected_blocks["blocks"][4]["elements"][0][
+            "text"
+        ] = f"Suggested Assignees: #{self.team.slug}, <@{self.identity.external_id}>"
+        assert (
+            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
+            == expected_blocks
+        )
 
     def test_team_recipient(self):
         issue_alert_group = self.create_group(project=self.project)

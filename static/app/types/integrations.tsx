@@ -420,6 +420,16 @@ export type PlatformExternalIssue = {
   webUrl: string;
 };
 
+export type ExternalIssue = {
+  description: string;
+  displayName: string;
+  id: string;
+  integrationKey: string;
+  integrationName: string;
+  key: string;
+  title: string;
+};
+
 /**
  * The issue config form fields we get are basically the form fields we use in
  * the UI but with some extra information. Some fields marked optional in the

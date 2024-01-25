@@ -1,4 +1,6 @@
 ---
+created: '2024-01-24T14:07:55.778589Z'
+creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -99,43 +101,6 @@ config:
   groupingConfig:
     enhancements: eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeEEAHJMCAM
     id: newstyle:2023-01-11
-  metrics:
-    cardinalityLimits:
-    - id: unsupported
-      limit: 10000
-      namespace: unsupported
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: transactions
-      limit: 10000
-      namespace: transactions
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: sessions
-      limit: 10000
-      namespace: sessions
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: spans
-      limit: 10000
-      namespace: spans
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
-    - id: custom
-      limit: 10000
-      namespace: custom
-      scope: organization
-      window:
-        granularitySeconds: 600
-        windowSeconds: 3600
   piiConfig:
     applications:
       $string:
