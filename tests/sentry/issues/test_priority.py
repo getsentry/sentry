@@ -72,7 +72,7 @@ class TestUpdatesPriority(TestCase):
 
         assert Activity.objects.filter(group=self.group).count() == 0
         assert GroupHistory.objects.filter(group=self.group).count() == 0
-        
+
     def test_updates_priority_ongoing(self) -> None:
         self.group = self.create_group(
             status=GroupStatus.RESOLVED,
