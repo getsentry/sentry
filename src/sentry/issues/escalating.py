@@ -553,7 +553,6 @@ def manage_issue_states(
             )
             add_group_to_inbox(group, GroupInboxReason.ONGOING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ONGOING)
-            auto_update_priority(group, PriorityChangeReason.ONGOING)
 
             Activity.objects.create_group_activity(
                 group=group, type=ActivityType.SET_UNRESOLVED, data=data, send_notification=False
