@@ -143,7 +143,7 @@ def build_tag_fields(
     return fields
 
 
-def format_release_tag(value: str, event: GroupEvent):
+def format_release_tag(value: str, event: GroupEvent | Group):
     """Format the release tag using the short version and make it a link"""
     path = f"/releases/{value}/"
     url = event.project.organization.absolute_url(path)
