@@ -557,10 +557,9 @@ class FromRequestTest(AccessFactoryTestCase):
 
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @patch("sentry.auth.access.is_active_superuser", return_value=True)
-    def test_superuser_readonly_scopes(self, mock_is_active_superuser):
+    def test_superuser_readonly_scopes(self):
         # superuser not in organization
-        request = self.make_request(user=self.superuser)
+        request = self.make_request(user=self.superuser, is_superuser=True)
 
         result = self.from_request(request, self.org)
         assert result.scopes == SUPERUSER_READONLY_SCOPES
@@ -573,13 +572,12 @@ class FromRequestTest(AccessFactoryTestCase):
 
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @patch("sentry.auth.access.is_active_superuser", return_value=True)
-    def test_superuser_write_scopes(self, mock_is_active_superuser):
+    def test_superuser_write_scopes(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserPermission.objects.create(user=self.superuser, permission="superuser.write")
 
         # superuser not in organization
-        request = self.make_request(user=self.superuser)
+        request = self.make_request(user=self.superuser, is_superuser=True)
 
         result = self.from_request(request, self.org)
         assert result.scopes == SUPERUSER_SCOPES
@@ -592,12 +590,11 @@ class FromRequestTest(AccessFactoryTestCase):
 
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @patch("sentry.auth.access.is_active_superuser", return_value=True)
-    def test_superuser_in_organization_write_scopes(self, mock_is_active_superuser):
+    def test_superuser_in_organization_write_scopes(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserPermission.objects.create(user=self.superuser, permission="superuser.write")
 
-        request = self.make_request(user=self.superuser)
+        request = self.make_request(user=self.superuser, is_superuser=True)
 
         result = self.from_request(request, self.org)
         assert result.scopes == SUPERUSER_SCOPES
