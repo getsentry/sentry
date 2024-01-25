@@ -1692,6 +1692,13 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 # Ensure the project id fields stay as numbers, clickhouse 20 can't handle it, but 21 can
                 if field in {"project_id", "project.id"}:
                     value = int(value)
+                if field == constants.PROJECT_ALIAS:
+                    # These will be strings so lets turn them back to ints
+                    project_map = {project.slug: project.id for project in self.params.projects}
+                    if isinstance(value, list):
+                        value = {project_map.get(val) for val in value}
+                    else:
+                        value = project_map.get(value)
                 # TODO: Handle potential None case
                 elif value is not None:
                     value = self.resolve_tag_value(str(value))
@@ -1700,9 +1707,12 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
             values_list = list(values)
 
             if values_list:
-                conditions.append(
-                    Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)
+                lhs = (
+                    resolved_field.exp
+                    if isinstance(resolved_field, AliasedExpression)
+                    else resolved_field
                 )
+                conditions.append(Condition(lhs, Op.IN if not other else Op.NOT_IN, values_list))
 
         if len(conditions) > 1:
             final_function = And if not other else Or
