@@ -11,8 +11,8 @@ BLOCKED_METRICS_PROJECT_OPTION_KEY = "sentry:blocked_metrics"
 
 
 class DeniedTag(TypedDict):
-    name: Sequence[str]
-    tag: Sequence[str]
+    name: str
+    tags: Sequence[str]
 
 
 class BlockedMetricsRelayConfig(TypedDict):
@@ -198,7 +198,7 @@ def get_blocked_metrics_for_relay_config(project: Project) -> BlockedMetricsRela
             denied_names.append(blocked_metric.metric_mri)
         elif blocked_metric.blocked_tags:
             denied_tags.append(
-                DeniedTag(name=[blocked_metric.metric_mri], tag=list(blocked_metric.blocked_tags))
+                DeniedTag(name=blocked_metric.metric_mri, tags=list(blocked_metric.blocked_tags))
             )
 
     # For now, we just return the metric mris of the blocked metrics. Once tags are supported in Relay, we will return
