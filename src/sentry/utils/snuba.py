@@ -31,7 +31,7 @@ from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
 from sentry_sdk import Hub
-from snuba_sdk import Request
+from snuba_sdk import MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.models.environment import Environment
@@ -823,7 +823,6 @@ def bulk_snuba_queries(
     requests: List[Request],
     referrer: Optional[str] = None,
     use_cache: bool = False,
-    use_mql: bool = False,
 ) -> ResultSet:
     """
     The main entrypoint to running queries in Snuba. This function accepts
@@ -841,9 +840,7 @@ def bulk_snuba_queries(
             request.tenant_ids["referrer"] = referrer
 
     params: SnubaQuery = [(request, lambda x: x, lambda x: x) for request in requests]
-    return _apply_cache_and_build_results(
-        params, referrer=referrer, use_cache=use_cache, use_mql=use_mql
-    )
+    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
 # TODO: This is the endpoint that accepts legacy (non-SnQL/MQL queries)
@@ -875,7 +872,6 @@ def _apply_cache_and_build_results(
     snuba_param_list: Sequence[SnubaQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    use_mql: bool = False,
 ) -> ResultSet:
     headers = {}
     validate_referrer(referrer)
@@ -903,7 +899,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query([item[1] for item in to_query], headers, use_mql=use_mql)
+        query_results = _bulk_snuba_query([item[1] for item in to_query], headers)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -918,7 +914,6 @@ def _apply_cache_and_build_results(
 def _bulk_snuba_query(
     snuba_param_list: Sequence[SnubaQueryBody],
     headers: Mapping[str, str],
-    use_mql: bool = False,
 ) -> ResultSet:
     query_referrer = headers.get("referer", "<unknown>")
 
@@ -948,16 +943,14 @@ def _bulk_snuba_query(
                 _query_thread_pool.map(
                     query_fn,
                     [
-                        (params, Hub(Hub.current), headers, parent_api, use_mql)
+                        (params, Hub(Hub.current), headers, parent_api)
                         for params in snuba_param_list
                     ],
                 )
             )
         else:
             # No need to submit to the thread pool if we're just performing a single query
-            query_results = [
-                query_fn((snuba_param_list[0], Hub(Hub.current), headers, parent_api, use_mql))
-            ]
+            query_results = [query_fn((snuba_param_list[0], Hub(Hub.current), headers, parent_api))]
 
     results = []
     for index, item in enumerate(query_results):
@@ -983,11 +976,8 @@ def _bulk_snuba_query(
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
-            if use_mql:
-                error_request = snuba_param_list[index][0]
-                error_request = (
-                    error_request.serialize_mql()
-                )  # never used, only for sentry visibility
+            error_request = snuba_param_list[index][0]
+            error_request = error_request.serialize()  # never used, only for sentry visibility
 
             if body.get("error"):
                 error = body["error"]
@@ -1020,7 +1010,7 @@ def _snql_query(
     ]
 ) -> RawResult:
     # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
-    return _snuba_query(tuple([*params, False]))
+    return _snuba_query(params)
 
 
 def _snuba_query(
@@ -1029,12 +1019,11 @@ def _snuba_query(
         Hub,
         Mapping[str, str],
         str,
-        bool,
     ],
 ) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function.
-    query_data, thread_hub, headers, parent_api, use_mql = params
+    query_data, thread_hub, headers, parent_api = params
     request, forward, reverse = query_data
     request.parent_api = parent_api
     assert isinstance(request, Request)
@@ -1044,11 +1033,11 @@ def _snuba_query(
             import pprint
 
             print(  # NOQA: only prints when an env variable is set
-                f"{referrer}.body:\n {pprint.pformat(request.to_dict(mql=use_mql))}"
+                f"{referrer}.body:\n {pprint.pformat(request.to_dict())}"
             )
             request.flags.debug = True
 
-        if use_mql:
+        if isinstance(request.query, MetricsQuery):
             return _raw_mql_query(request, thread_hub, headers), forward, reverse
 
         return _raw_snql_query(request, thread_hub, headers), forward, reverse
@@ -1079,7 +1068,7 @@ def _raw_mql_query(
     with thread_hub, timer("mql_query"):
         referrer = headers.get("referer", "unknown")
         # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
-        serialized_req = request.serialize_mql()
+        serialized_req = request.serialize()
         with thread_hub.start_span(op="snuba_mql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
