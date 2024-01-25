@@ -120,7 +120,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         try:
             requests.post(
-                f"{settings.AI_AUTOFIX_URL}/v0/automation/autofix",
+                f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
                 json={
                     "base_commit_sha": base_commit.key,
                     "issue": {
