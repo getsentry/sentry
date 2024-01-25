@@ -250,7 +250,7 @@ def _get_widget_on_demand_specs(
     if not project_for_query:
         return []
 
-    widget_specs = convert_widget_query_to_metric(project_for_query, widget_query)
+    widget_specs = convert_widget_query_to_metric(project_for_query, widget_query, True)
 
     unique_specs = []
     hashes = set()
