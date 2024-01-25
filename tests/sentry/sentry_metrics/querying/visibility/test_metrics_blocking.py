@@ -94,6 +94,10 @@ def test_get_blocked_metrics(default_project):
     mri_1 = "c:custom/page_click@none"
     mri_2 = "g:custom/page_load@millisecond"
 
+    # We test loading with no data stored in the options.
+    blocked_metrics = get_blocked_metrics([default_project])[default_project.id]
+    assert len(blocked_metrics.metrics) == 0
+
     block_metric(mri_1, [default_project])
     block_tags_of_metric(mri_2, {"release", "environment", "transaction"}, [default_project])
 
