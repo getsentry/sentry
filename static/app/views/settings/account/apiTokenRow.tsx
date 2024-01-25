@@ -11,8 +11,8 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 type Props = {
-  onRemove: (token: UserAppApiToken) => void;
-  token: UserAppApiToken;
+  onRemove: (token: InternalAppApiToken) => void;
+  token: InternalAppApiToken;
   tokenPrefix?: string;
 };
 
