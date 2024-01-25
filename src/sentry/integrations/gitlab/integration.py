@@ -165,46 +165,6 @@ class GitlabIntegration(
         if "error" in data:
             return data["error"]
 
-    def get_commit_context(
-        self, repo: Repository, filepath: str, ref: str, event_frame: Mapping[str, Any]
-    ) -> Mapping[str, Any] | None:
-        """
-        Returns the latest commit that altered the line from the event frame if it exists.
-        """
-        lineno = event_frame.get("lineno", 0)
-        if not lineno:
-            return None
-        blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
-            repo, filepath, ref, lineno
-        )
-        if blame_range is None:
-            return None
-
-        try:
-            commit = max(
-                (blame for blame in blame_range if blame.get("commit", {}).get("committed_date")),
-                key=lambda blame: parse_datetime(blame.get("commit", {}).get("committed_date")),
-            )
-        except (ValueError, IndexError):
-            return None
-
-        commitInfo = commit.get("commit")
-        if not commitInfo:
-            return None
-        else:
-            # TODO(nisanthan): Use dateutil.parser.isoparse once on python 3.11
-            committed_date = parse_datetime(commitInfo.get("committed_date")).astimezone(
-                timezone.utc
-            )
-
-            return {
-                "commitId": commitInfo.get("id"),
-                "committedDate": committed_date,
-                "commitMessage": commitInfo.get("message"),
-                "commitAuthorName": commitInfo.get("committer_name"),
-                "commitAuthorEmail": commitInfo.get("committer_email"),
-            }
-
 
 class InstallationForm(forms.Form):
     url = forms.CharField(

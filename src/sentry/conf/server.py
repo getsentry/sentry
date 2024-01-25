@@ -1902,8 +1902,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:starfish-wsv-chart-dropdown": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
-    # Enable the new suspect commits calculation that uses all frames in the stack trace
-    "organizations:suspect-commits-all-frames": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Enable team insights page
