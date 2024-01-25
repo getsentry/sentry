@@ -1,4 +1,5 @@
 import type {
+  ExternalIssue,
   Group,
   GroupIntegration,
   Organization,
@@ -40,6 +41,7 @@ export interface IntegrationComponent extends BaseIssueComponent {
     configurations: GroupIntegration[];
     group: Group;
     onChange: () => void;
+    externalIssue?: ExternalIssue;
   };
   type: 'integration-issue';
 }

@@ -715,9 +715,12 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: any[]; // TODO(ts)
-  pluginContexts: any[]; // TODO(ts)
-  pluginIssues: any[]; // TODO(ts)
+  pluginActions: any[];
+  // TODO(ts)
+  pluginContexts: any[];
+  // TODO(ts)
+  pluginIssues: any[];
+  // TODO(ts)
   project: Project;
   seenBy: User[];
   shareId: string;
@@ -729,6 +732,7 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  integrationIssues?: any[];
   latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
   substatus?: GroupSubstatus | null;
