@@ -75,7 +75,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             response = self.client.post(url, data={"additional_context": "Yes"}, format="json")
             mock_post.assert_called_once()
             mock_post.assert_called_with(
-                "127.0.0.1:9091/v0/automation/autofix",
+                "http://127.0.0.1:9091/v0/automation/autofix",
                 json={
                     "additional_context": "Yes",
                     "base_commit_sha": "1234",
