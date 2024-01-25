@@ -76,6 +76,9 @@ class GroupingConfig(TypedDict):
 class GroupingConfigLoader:
     """Load a grouping config based on global or project options"""
 
+    # TODO: determine if we can pass around Enhancements and FingerprintingRules instances
+    #       instead of serializing and deserializing it back and forth
+
     cache_prefix: str  # Set in subclasses
 
     def get_config_dict(self, project: Project) -> GroupingConfig:
@@ -253,6 +256,7 @@ def load_default_grouping_config():
 def apply_server_fingerprinting(
     event_data: CanonicalKeyDict,
     grouping_config: GroupingConfig,
+    # TODO: determine if we can pass around FingerprintingRules instance instead of serializing and deserializing it back and forth
     allow_custom_title: bool = True,
 ) -> None:
     config = FingerprintingRules.from_json(grouping_config["fingerprinting"])
