@@ -1525,6 +1525,28 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
 
         assert response.status_code == 400, response.content
 
+    @mock.patch("sentry.api.endpoints.organization_events_trace.SpansIndexedQueryBuilder")
+    def test_indexed_spans_only_query_required_projects(self, mock_query_builder):
+        # Add a few more projects to the org
+        self.create_project(organization=self.organization)
+        self.create_project(organization=self.organization)
+
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1},
+            )
+
+        assert sorted(
+            [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
+        ) == sorted(mock_query_builder.mock_calls[0].args[1]["project_id"])
+
+        assert sorted(
+            [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
+        ) == sorted([p.id for p in mock_query_builder.mock_calls[0].args[1]["project_objects"]])
+
+        assert response.status_code == 200, response.content
+
 
 @region_silo_test
 class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBase):
