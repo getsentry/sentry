@@ -2,7 +2,6 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment';
 
-import {MetricsOperation} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import {isCumulativeOp, MetricCorrelation} from 'sentry/utils/metrics';
@@ -17,8 +16,18 @@ type UseMetricSamplesProps = {
   onClick?: (sample: Sample) => void;
   onMouseOut?: (sample: Sample) => void;
   onMouseOver?: (sample: Sample) => void;
-  operation?: MetricsOperation;
+  operation?: string;
 };
+
+function getDateRange(timeseries: Series[]) {
+  if (!timeseries?.length) {
+    return {min: -Infinity, max: Infinity};
+  }
+  const min = timeseries[0].data[0].name as number;
+  const max = timeseries[0].data[timeseries[0].data.length - 1].name as number;
+
+  return {min, max};
+}
 
 export function useMetricSamples({
   correlations,
@@ -50,19 +59,21 @@ export function useMetricSamples({
   }, [chartRef, timeseries]);
 
   const xAxis = useMemo(() => {
+    const {min, max} = getDateRange(timeseries);
+
     return {
       id: 'xAxisScatter',
-      scale: true,
+      scale: false,
       show: false,
       axisLabel: {
         formatter: () => {
           return '';
         },
       },
-      min: valueRect.xMin,
-      max: valueRect.xMax,
+      min: Math.max(valueRect.xMin, min),
+      max: Math.min(valueRect.xMax, max),
     };
-  }, [valueRect.xMin, valueRect.xMax]);
+  }, [valueRect.xMin, valueRect.xMax, timeseries]);
 
   const yAxis = useMemo(() => {
     return {
@@ -103,7 +114,7 @@ export function useMetricSamples({
   const series = useMemo(() => {
     if (isCumulativeOp(operation)) {
       // TODO: for now we do not show samples for cumulative operations,
-      // we will implement then as marklines
+      // we will implement them as marklines
       return [];
     }
 

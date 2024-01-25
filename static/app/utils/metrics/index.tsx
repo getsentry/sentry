@@ -24,7 +24,6 @@ import {
   MetricsApiRequestQuery,
   MetricsApiRequestQueryOptions,
   MetricsGroup,
-  MetricsOperation,
   MetricType,
   MRI,
   UseCase,
@@ -145,7 +144,7 @@ export type MetricsQuery = {
   mri: MRI;
   projects: PageFilters['projects'];
   groupBy?: string[];
-  op?: MetricsOperation;
+  op?: string;
   query?: string;
   title?: string;
 };
@@ -178,11 +177,11 @@ export type MetricMetaCodeLocation = {
 export type MetricCorrelation = {
   duration: number;
   metricSummaries: {
-    count: number;
-    max: number;
-    min: number;
     spanId: string;
-    sum: number;
+    count?: number;
+    max?: number;
+    min?: number;
+    sum?: number;
   }[];
   profileId: string;
   projectId: number;

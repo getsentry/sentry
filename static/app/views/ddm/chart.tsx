@@ -11,7 +11,6 @@ import BaseChart, {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import {MetricsOperation} from 'sentry/types';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {
@@ -40,7 +39,7 @@ type ChartProps = {
   height?: number;
   highlightedSampleId?: string;
   onSampleClick?: (sample: Sample) => void;
-  operation?: MetricsOperation;
+  operation?: string;
   removeFocusArea?: () => void;
 };
 
@@ -100,11 +99,16 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
     const unit = series[0]?.unit;
 
-    const seriesToShow = useMemo(() => {
-      return series
-        .filter(s => !s.hidden)
-        .map(s => ({...s, silent: displayType === MetricDisplayType.BAR}));
-    }, [series, displayType]);
+    const seriesToShow = useMemo(
+      () =>
+        series
+          .filter(s => !s.hidden)
+          .map(s => ({
+            ...s,
+            silent: true,
+          })),
+      [series]
+    );
 
     const valueFormatter = useCallback(
       (value: number) => {

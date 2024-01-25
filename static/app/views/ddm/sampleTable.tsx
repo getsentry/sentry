@@ -52,9 +52,9 @@ function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: nu
 }
 
 export type SamplesTableProps = MetricRange & {
-  onRowHover: (sampleId?: string) => void;
   highlightedRow?: string | null;
   mri?: MRI;
+  onRowHover?: (sampleId?: string) => void;
   query?: string;
 };
 
