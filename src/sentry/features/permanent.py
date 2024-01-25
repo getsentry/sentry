@@ -48,6 +48,7 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:sso-saml2",
         "organizations:team-insights",
         "organizations:team-roles",
+        "organizations:on-demand-metrics-prefill",
         "organizations:custom-metrics",
         "organizations:customer-domains",
         "organizations:frontend-domainsplit",

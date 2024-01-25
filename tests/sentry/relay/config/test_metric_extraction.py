@@ -24,6 +24,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
 ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-widgets"
+ON_DEMAND_METRICS_PREFILL = "organizations:on-demand-metrics-prefill"
 
 
 def create_alert(
@@ -1142,8 +1143,11 @@ def test_get_metric_extraction_config_with_no_tag_spec(
     "enabled_features, number_of_metrics",
     [
         ([ON_DEMAND_METRICS], 1),  # Alerts.
+        ([ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
+        ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widgets.
         ([ON_DEMAND_METRICS_WIDGETS], 1),  # Widgets.
+        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widget.
         ([], 0),  # Nothing.
     ],
 )
@@ -1161,6 +1165,51 @@ def test_get_metrics_extraction_config_features_combinations(
         else:
             assert config is not None
             assert len(config["metrics"]) == number_of_metrics
+
+
+@django_db_all
+def test_get_metric_extraction_config_with_transactions_dataset(default_project: Project) -> None:
+    create_alert(
+        "count()", "transaction.duration:>=10", default_project, dataset=Dataset.PerformanceMetrics
+    )
+    create_alert(
+        "count()", "transaction.duration:>=20", default_project, dataset=Dataset.Transactions
+    )
+
+    # We test with prefilling, and we expect that both alerts are fetched since we support both datasets.
+    with Feature({ON_DEMAND_METRICS_PREFILL: True}):
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 2
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": "f1353b0f"}],
+        }
+        assert config["metrics"][1] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 20.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": "a547e4d9"}],
+        }
+
+    # We test without prefilling, and we expect that only alerts for performance metrics are fetched.
+    with Feature({ON_DEMAND_METRICS: True}):
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
+        assert config["metrics"][0] == {
+            "category": "transaction",
+            "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
+            "field": None,
+            "mri": "c:transactions/on_demand@none",
+            "tags": [{"key": "query_hash", "value": "f1353b0f"}],
+        }
 
 
 @django_db_all
