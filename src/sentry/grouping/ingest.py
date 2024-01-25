@@ -18,7 +18,6 @@ from sentry.grouping.api import (
     SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
     detect_synthetic_exception,
-    get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
     load_grouping_config,

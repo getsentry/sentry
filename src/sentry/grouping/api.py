@@ -3,6 +3,9 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Sequence, TypedDict
 
+# TODO: import from typing once we're at Py>=3.11
+from typing_extensions import NotRequired
+
 from sentry import features, options
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
@@ -66,7 +69,7 @@ class GroupingConfigNotFound(LookupError):
 class GroupingConfig(TypedDict):
     id: str
     enhancements: Enhancements
-    fingerprinting: FingerprintingRules
+    fingerprinting: NotRequired[FingerprintingRules]
 
 
 class GroupingConfigLoader:
@@ -117,12 +120,14 @@ class GroupingConfigLoader:
         from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
         if features.has("organizations:grouping-built-in-fingerprint-rules", project.organization):
+            include_builtin = True
             bases = CONFIGURATIONS[config_id].fingerprinting_bases
         else:
+            include_builtin = False
             bases = []
         rules = project.get_option("sentry:fingerprinting_rules")
         if not rules:
-            return FingerprintingRules([], bases=bases)
+            return FingerprintingRules([], bases=bases).to_json(include_builtin=include_builtin)
 
         from sentry.utils.cache import cache
         from sentry.utils.hashlib import md5_text
@@ -136,8 +141,8 @@ class GroupingConfigLoader:
             rv = FingerprintingRules.from_config_string(rules, bases=bases)
         except InvalidFingerprintingConfig:
             rv = FingerprintingRules([], bases=bases)
-        cache.set(cache_key, rv.to_json())
-        return rv
+        cache.set(cache_key, rv.to_json(include_builtin=False))
+        return rv.to_json(include_builtin=include_builtin)
 
     def _get_config_id(self, project):
         raise NotImplementedError
@@ -207,7 +212,8 @@ def get_default_fingerprinting(config_id: str | None = None) -> FingerprintingRu
     if config_id is not None:
         bases = CONFIGURATIONS[config_id].fingerprinting_bases
 
-    return FingerprintingRules([], bases=bases).as_dict()
+    # TODO: include_builtin ought to depend of a feature flag, but this is generic function that doesn't depend on project
+    return FingerprintingRules([], bases=bases).to_json(include_builtin=False)
 
 
 def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingConfig:
@@ -243,7 +249,7 @@ def load_default_grouping_config():
 def apply_server_fingerprinting(
     event: Event, grouping_config: GroupingConfig, allow_custom_title: bool = True
 ) -> None:
-    config = grouping_config["fingerprinting"]
+    config = FingerprintingRules.from_json(grouping_config["fingerprinting"])
     client_fingerprint = event.get("fingerprint")
     rv = config.get_fingerprint_values_for_event(event)
     if rv is not None:

@@ -6,7 +6,11 @@ from django.utils.functional import cached_property
 
 from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.grouping.api import apply_server_fingerprinting, load_grouping_config
+from sentry.grouping.api import (
+    apply_server_fingerprinting,
+    get_default_grouping_config_dict,
+    load_grouping_config,
+)
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
@@ -75,11 +79,15 @@ class FingerprintInput:
     def create_event(self, grouping_config=None):
         input = dict(self.data)
 
-        grouping_config = copy(grouping_config)
+        if grouping_config is None:
+            grouping_config = dict(get_default_grouping_config_dict())
+        else:
+            grouping_config = copy(grouping_config)
 
-        grouping_config["fingerprinting"] = FingerprintingRules.from_json(
+        fingerprint_config = FingerprintingRules.from_json(
             {"rules": input.pop("_fingerprinting_rules"), "version": 1}
         )
+        grouping_config["fingerprinting"] = fingerprint_config.to_json()
 
         mgr = EventManager(data=input, grouping_config=grouping_config)
         mgr.normalize()
@@ -92,7 +100,7 @@ class FingerprintInput:
         data.update(materialize_metadata(data, event_type, event_metadata))
 
         evt = eventstore.backend.create_event(data=data)
-        return grouping_config["fingerprinting"], evt
+        return fingerprint_config, evt
 
 
 fingerprint_input = list(

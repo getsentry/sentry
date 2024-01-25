@@ -4,7 +4,11 @@ import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.grouping.api import apply_server_fingerprinting, get_default_grouping_config_dict
+from sentry.grouping.api import (
+    apply_server_fingerprinting,
+    get_default_grouping_config_dict,
+    get_grouping_config_dict_for_event_data,
+)
 from sentry.grouping.fingerprinting import (
     FINGERPRINTING_BASES,
     BuiltInFingerprintingRules,
@@ -474,11 +478,12 @@ class BuiltInFingerprintingTest(TestCase):
         }
 
     def _get_event_for_trace(self, stacktrace):
-        mgr = EventManager(data=stacktrace, grouping_config=GROUPING_CONFIG)
+        mgr = EventManager(data=stacktrace, project=self.project)
         mgr.normalize()
         data = mgr.get_data()
         data.setdefault("fingerprint", ["{{ default }}"])
-        apply_server_fingerprinting(data, grouping_config=GROUPING_CONFIG)
+        grouping_config = get_grouping_config_dict_for_event_data(data.data, self.project)
+        apply_server_fingerprinting(data, grouping_config=grouping_config)
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
