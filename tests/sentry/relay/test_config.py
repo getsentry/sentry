@@ -1,7 +1,7 @@
 import time
 from datetime import datetime, timedelta, timezone
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import patch
 
 import pytest
 from sentry_relay.processing import validate_project_config
@@ -148,7 +148,9 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     # "dynamicSampling", so we also test for that:
     subconfig = cfg.to_dict()["config"]
     assert "dynamicSampling" not in subconfig and "sampling" not in subconfig
-    assert mock_logger.exception.call_args == mock.call(ANY)
+    assert mock_logger.exception.call_args == mock.call(
+        "Exception while building Relay project config field"
+    )
 
 
 @django_db_all
@@ -732,18 +734,22 @@ def test_alert_metric_extraction_rules(default_project, factories):
     with Feature(features):
         config = get_project_config(default_project).to_dict()["config"]
         validate_project_config(json.dumps(config), strict=False)
-        assert config["metricExtraction"] == {
-            "version": 2,
-            "metrics": [
-                {
-                    "category": "transaction",
-                    "mri": "c:transactions/on_demand@none",
-                    "field": None,
-                    "condition": {"name": "event.duration", "op": "lt", "value": 600000.0},
-                    "tags": [{"key": "query_hash", "value": ANY}],
-                }
-            ],
-        }
+        assert config["metricExtraction"]["metrics"] == [
+            {
+                "category": "transaction",
+                "mri": "c:transactions/on_demand@none",
+                "field": None,
+                "condition": {"name": "event.duration", "op": "lt", "value": 600000.0},
+                "tags": [{"key": "query_hash", "value": "4b7db594"}],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "lt", "value": 600000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [{"key": "query_hash", "value": "5077b237"}],
+            },
+        ]
 
 
 @django_db_all
