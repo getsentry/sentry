@@ -116,7 +116,7 @@ def get_ingest_config(
                 db_backend=IndexerStorage.EXPERIMENRAL,
                 db_backend_options={},
                 input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-                output_topic=settings.KAFKA_SNUBA_GENERIC_METRICS,  # TODO: this needs to change
+                output_topic="snuba-generic-metrics-experimental",
                 use_case_id=UseCaseKey.EXPERIMENTAL,
                 internal_metrics_tag="rebalance-exp",
                 writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
