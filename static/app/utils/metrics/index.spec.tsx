@@ -1,4 +1,4 @@
-import {PageFilters} from 'sentry/types';
+import {MetricsOperation, PageFilters} from 'sentry/types';
 import {
   formatMetricsUsingUnitAndOp,
   formatMetricUsingFixedUnit,
@@ -307,7 +307,7 @@ describe('stringifyMetricWidget', () => {
 
   it('defaults to an empty string', () => {
     const result = stringifyMetricWidget({
-      op: '',
+      op: '' as MetricsOperation,
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: [],
       query: '',

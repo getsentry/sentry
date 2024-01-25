@@ -39,7 +39,7 @@ import {
   TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
-import {getChartSeries} from 'sentry/views/ddm/widget';
+import {getChartTimeseries} from 'sentry/views/ddm/widget';
 
 interface FormState {
   environment: string | null;
@@ -151,7 +151,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
   const chartSeries = useMemo(
     () =>
       data &&
-      getChartSeries(data, {
+      getChartTimeseries(data, {
         mri: metricsQuery.mri,
         displayType: MetricDisplayType.AREA,
         focusedSeries: undefined,

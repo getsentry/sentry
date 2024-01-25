@@ -122,6 +122,7 @@ export interface MetricWidgetQueryParams extends MetricsQuerySubject {
     seriesName: string;
     groupBy?: Record<string, string>;
   };
+  highlightedSample?: string | null;
   powerUserMode?: boolean;
   showSummaryTable?: boolean;
   sort?: SortState;
@@ -175,10 +176,22 @@ export type MetricMetaCodeLocation = {
 
 export type MetricCorrelation = {
   duration: number;
+  metricSummaries: {
+    spanId: string;
+    count?: number;
+    max?: number;
+    min?: number;
+    sum?: number;
+  }[];
   profileId: string;
   projectId: number;
   segmentName: string;
   spanId: string;
+  spansDetails: {
+    spanDuration: number;
+    spanId: string;
+    spanTimestamp: string;
+  }[];
   spansNumber: number;
   timestamp: string;
   traceId: string;
