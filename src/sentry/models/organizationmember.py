@@ -633,8 +633,6 @@ class OrganizationMember(ReplicatedRegionModel):
         if self.invite_status == InviteStatus.APPROVED.value:
             return
 
-        self.delete()
-
         create_audit_entry_from_user(
             user_to_approve,
             api_key,
@@ -644,6 +642,8 @@ class OrganizationMember(ReplicatedRegionModel):
             data=self.get_audit_log_data(),
             event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
+
+        self.delete()
 
     def get_allowed_org_roles_to_invite(self):
         """
