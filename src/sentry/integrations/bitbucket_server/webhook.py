@@ -16,7 +16,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationError
+from sentry.shared_integrations.exceptions import ApiHostError, ApiUnauthorized, IntegrationError
 from sentry.utils import json
 from sentry.web.frontend.base import region_silo_view
 
@@ -74,6 +74,8 @@ class PushEventWebhook(Webhook):
                 commits = client.get_commits(
                     project_name, repo_name, from_hash, change.get("toHash")
                 )
+            except ApiHostError:
+                return HttpResponse(status=409)
             except ApiUnauthorized:
                 return HttpResponse(status=400)
             except Exception as e:

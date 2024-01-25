@@ -4,6 +4,10 @@ from typing import Set
 
 
 class PathReplacer(ABC):
+    """
+    Replaces SDK frame paths with a new path. Runs only for SDK frames.
+    """
+
     @abstractmethod
     def replace_path(self, path: str) -> str:
         pass

@@ -25,9 +25,9 @@ class ApiKeySerializer(serializers.ModelSerializer):
 class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAdminPermission,)
 

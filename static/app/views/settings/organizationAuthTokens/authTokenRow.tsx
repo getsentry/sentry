@@ -106,7 +106,8 @@ export function OrganizationAuthTokensAuthTokenRow({
               getDynamicText({
                 value: token.tokenLastCharacters,
                 fixed: 'ABCD',
-              })
+              }),
+              'sntrys_'
             )}
           </TokenPreview>
         )}

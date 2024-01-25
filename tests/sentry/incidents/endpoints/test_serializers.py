@@ -46,14 +46,14 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 
 class TestAlertRuleSerializerBase(TestCase):
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def setUp(self):
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             external_id="1",
             provider="slack",
             metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        self.integration.add_organization(self.organization, self.user)
 
 
 @region_silo_test

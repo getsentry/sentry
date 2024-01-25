@@ -25,8 +25,9 @@ def get_frames(filename: str) -> Sequence[MutableMapping[str, str]]:
         },
         {
             "function": "ReactNativeClient#nativeCrash",
+            "module": filename.replace("node_modules/", "").replace(".js", ""),
             "filename": filename,
-            "abs_path": "/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js",
+            "abs_path": f"app:///{filename}",
         },
     ]
     return frames
