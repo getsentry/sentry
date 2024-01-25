@@ -21,6 +21,7 @@ from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaT
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -44,6 +45,19 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["permalink"] is None
+
+    def test_priority_high(self):
+        outside_user = self.create_user()
+        group = self.create_group()
+        group.priority = PriorityLevel.HIGH
+        result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
+        assert result["priority"] == "high"
+
+    def test_priority_default(self):
+        outside_user = self.create_user()
+        group = self.create_group()
+        result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
+        assert result["priority"] == "low"
 
     def test_is_ignored_with_expired_snooze(self):
         now = django_timezone.now()
