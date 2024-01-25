@@ -539,7 +539,7 @@ class FromRequestTest(AccessFactoryTestCase):
 
     def test_superuser_scopes(self):
         # superuser not in organization
-        request = self.make_request(user=self.superuser)
+        request = self.make_request(user=self.superuser, is_superuser=True)
 
         # needs org in request in order to assign any scopes
         result = self.from_request(request, self.org)
