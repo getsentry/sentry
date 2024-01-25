@@ -45,4 +45,4 @@ class TestSimilarIssuesEmbeddingsUtils(TestCase):
             "message": "message",
         }
         response = get_similar_issues_embeddings(params)
-        assert response == mock_seer_request.return_value
+        assert response == {"responses": []}
