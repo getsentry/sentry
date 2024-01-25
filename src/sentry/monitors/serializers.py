@@ -53,6 +53,11 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     environments: MonitorEnvironmentSerializerResponse
 
 
+class MonitorBulkEditResponse:
+    updated: List[MonitorSerializerResponse]
+    errored: List[MonitorSerializerResponse]
+
+
 @register(Monitor)
 class MonitorSerializer(Serializer):
     def __init__(self, environments=None, expand=None):

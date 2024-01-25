@@ -1,5 +1,6 @@
 from typing import List
 
+from django.db import router, transaction
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 
@@ -30,7 +31,11 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
+from sentry.monitors.serializers import (
+    MonitorBulkEditResponse,
+    MonitorSerializer,
+    MonitorSerializerResponse,
+)
 from sentry.monitors.utils import create_alert_rule, signal_monitor_created
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
@@ -273,7 +278,9 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         parameters=[GlobalParams.ORG_SLUG],
         request=MonitorBulkEditValidator,
         responses={
-            200: inline_sentry_response_serializer("MonitorList", List[MonitorSerializerResponse]),
+            200: inline_sentry_response_serializer(
+                "MonitorBulkEditResponse", MonitorBulkEditResponse
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -284,12 +291,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         """
         Bulk edit the muted and disabled status of a list of monitors determined by slug
         """
-        monitor_slugs = request.data.get("slugs")
-
-        if not monitor_slugs:
-            return self.respond("Please specify a list of monitor slugs to modify", status=400)
-
-        validator = MonitorValidator(
+        validator = MonitorBulkEditValidator(
             data=request.data,
             partial=True,
             context={
@@ -301,28 +303,37 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             return self.respond(validator.errors, status=400)
 
         result = dict(validator.validated_data)
+        monitor_slugs = result.pop("slugs")
         status = result.get("status")
 
-        monitors = Monitor.objects.filter(slug__in=monitor_slugs)
+        monitors = Monitor.objects.filter(slug__in=monitor_slugs, organization_id=organization.id)
         # If enabling monitors, ensure we can assign all before moving forward
         if status == ObjectStatus.ACTIVE:
             assign_result = quotas.backend.check_assign_monitor_seats(monitors)
             if not assign_result.assignable:
                 return self.respond(assign_result.reason, status=400)
 
+        updated = []
+        errored = []
         for monitor in monitors:
-            # Attempt to assign a monitor seat
-            if status == ObjectStatus.ACTIVE:
-                outcome = quotas.backend.assign_monitor_seat(monitor)
-                if outcome != Outcome.ACCEPTED:
-                    raise self.respond(
-                        "Failed to enable all monitors, please try again", status=400
-                    )
+            with transaction.atomic(router.db_for_write(Monitor)):
+                # Attempt to assign a monitor seat
+                if status == ObjectStatus.ACTIVE:
+                    outcome = quotas.backend.assign_monitor_seat(monitor)
+                    if outcome != Outcome.ACCEPTED:
+                        errored.append(monitor)
+                        continue
 
-            # Attempt to unassign the monitor seat
-            if status == ObjectStatus.DISABLED:
-                quotas.backend.disable_monitor_seat(monitor)
+                # Attempt to unassign the monitor seat
+                if status == ObjectStatus.DISABLED:
+                    quotas.backend.disable_monitor_seat(monitor)
 
-            monitor.update(**result)
+                monitor.update(**result)
+                updated.append(monitor)
 
-        return self.respond(serialize(list(monitors), request.user))
+        return self.respond(
+            {
+                "updated": serialize(list(updated), request.user),
+                "errored": serialize(list(errored), request.user),
+            },
+        )

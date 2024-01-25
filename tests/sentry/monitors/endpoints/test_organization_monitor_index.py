@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.test.utils import override_settings
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
@@ -387,6 +388,22 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+
+    def test_valid_slugs(self):
+        self._create_monitor(slug="monitor_one")
+        self._create_monitor(slug="monitor_two")
+
+        data = {
+            "slugs": ["monitor_three", "monitor_two"],
+            "isMuted": True,
+        }
+        response = self.get_error_response(self.organization.slug, **data)
+        assert response.status_code == 400
+        assert response.data == {
+            "slugs": [
+                ErrorDetail(string="Not all slugs are valid for this organization.", code="invalid")
+            ]
+        }
 
     def test_bulk_mute_unmute(self):
         monitor_one = self._create_monitor(slug="monitor_one")
