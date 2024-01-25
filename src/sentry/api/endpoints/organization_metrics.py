@@ -1,3 +1,6 @@
+from enum import Enum
+from typing import Optional, Sequence
+
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,6 +13,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
+from sentry.models.project import Project
 from sentry.sentry_metrics.querying.api import run_metrics_query
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
@@ -19,9 +23,11 @@ from sentry.sentry_metrics.querying.errors import (
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.sentry_metrics.visibility import (
-    BlockedMetric,
     MalformedBlockedMetricsPayloadError,
     block_metric,
+    block_tags_of_metric,
+    unblock_metric,
+    unblock_tags_of_metric,
 )
 from sentry.snuba.metrics import (
     QueryDefinition,
@@ -31,6 +37,7 @@ from sentry.snuba.metrics import (
     get_single_metric_info,
     get_tag_values,
 )
+from sentry.snuba.metrics.naming_layer.mri import is_mri
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
@@ -53,10 +60,51 @@ def get_use_case_id(request: Request) -> UseCaseID:
         )
 
 
+class MetricOperationType(Enum):
+    BLOCK_METRIC = "blockMetric"
+    BLOCK_TAGS = "blockTags"
+    UNBLOCK_METRIC = "unblockMetric"
+    UNBLOCK_TAGS = "unblockTags"
+
+    @classmethod
+    def from_request(cls, request: Request) -> Optional["MetricOperationType"]:
+        operation_type = request.data.get("operationType")
+        if not operation_type:
+            return None
+
+        for operation in cls:
+            if operation.value == operation_type:
+                return operation
+
+        return None
+
+    @classmethod
+    def available_ops(cls) -> Sequence[str]:
+        return [operation.value for operation in cls]
+
+
 @region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL, "POST": ApiPublishStatus.EXPERIMENTAL}
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL, "PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    def _handle_by_operation_type(
+        self, request: Request, project: Project, metric_operation_type: MetricOperationType
+    ):
+        metric_mri = request.data.get("metric_mri")
+        if not is_mri(metric_mri):
+            raise InvalidParams("You must supply a valid metric mri")
+
+        if metric_operation_type == MetricOperationType.BLOCK_METRIC:
+            block_metric(metric_mri, [project])
+        elif metric_operation_type == MetricOperationType.UNBLOCK_METRIC:
+            unblock_metric(metric_mri, [project])
+        elif metric_operation_type == MetricOperationType.BLOCK_TAGS:
+            tags = request.data.get("tags") or []
+            block_tags_of_metric(metric_mri, set(tags), [project])
+        elif metric_operation_type == MetricOperationType.UNBLOCK_TAGS:
+            tags = request.data.get("tags") or []
+            unblock_tags_of_metric(metric_mri, set(tags), [project])
 
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
@@ -67,27 +115,25 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
 
         return Response(metrics, status=200)
 
-    def post(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
-        if not projects:
+        if len(projects) != 1:
+            raise InvalidParams("You can only apply an operation on a metric on a single project")
+
+        metric_operation_type = MetricOperationType.from_request(request)
+        if not metric_operation_type:
             raise InvalidParams(
-                "You must supply at least one projects of which metrics will be blocked"
+                f"You must supply a valid operation, which must be one of {MetricOperationType.available_ops()}"
             )
 
-        metrics = request.data.get("metrics", [])
-        if not metrics:
-            raise InvalidParams("You must supply at least one metric to block")
-
-        for metric in metrics:
-            try:
-                blocked_metric = BlockedMetric(metric_mri=metric, tags=request.GET.getlist("tag"))
-                block_metric(blocked_metric, projects)
-            except MalformedBlockedMetricsPayloadError:
-                # In case one metric fails to be inserted, we abort the entire insertion since the project options are
-                # likely to be corrupted.
-                return Response(
-                    {"detail": "The blocked metrics settings are corrupted, try again"}, status=500
-                )
+        try:
+            self._handle_by_operation_type(request, projects[0], metric_operation_type)
+        except MalformedBlockedMetricsPayloadError:
+            # In case one metric fails to be inserted, we abort the entire insertion since the project options are
+            # likely to be corrupted.
+            return Response(
+                {"detail": "The blocked metrics settings are corrupted, try again"}, status=500
+            )
 
         return Response(status=200)
 

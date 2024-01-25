@@ -174,6 +174,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert resp.status_code == 200, resp.content
             assert self.group.get_status() == GroupStatus.IGNORED
             assert self.group.substatus == GroupSubStatus.FOREVER
+            expect_status = f"```Identity not found.```\n*Issue archived by <@{self.external_id}>*"
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_ignore_issue_block_kit(self):
@@ -196,7 +197,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert resp.status_code == 200, resp.content
             assert self.group.get_status() == GroupStatus.IGNORED
             assert self.group.substatus == GroupSubStatus.FOREVER
-            expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
+            expect_status = f"```Identity not found.```\n*Issue archived by <@{self.external_id}>*"
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_ignore_issue_block_kit_through_unfurl(self):
@@ -218,7 +219,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert resp.status_code == 200, resp.content
             assert self.group.get_status() == GroupStatus.IGNORED
             assert self.group.substatus == GroupSubStatus.FOREVER
-            expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
+            expect_status = f"```Identity not found.```\n*Issue archived by <@{self.external_id}>*"
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_archive_issue(self):
@@ -256,6 +257,8 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert resp.status_code == 200, resp.content
             assert self.group.get_status() == GroupStatus.IGNORED
             assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
+            # XXX(CEO): it's kind of odd to code format this but would be tricky to avoid
+            expect_status = f"```Identity not found.```\n*Issue archived by <@{self.external_id}>*"
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_archive_issue_block_kit(self):
@@ -277,7 +280,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
+        expect_status = f"```Identity not found.```\n*Issue archived by <@{self.external_id}>*"
         assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_archive_issue_block_kit_through_unfurl(self):
@@ -300,7 +303,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
+        expect_status = f"```Identity not found.```\n*Issue archived by <@{self.external_id}>*"
         assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_ignore_issue_with_additional_user_auth(self):
@@ -446,7 +449,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 "assigneeType": "user",
                 "integration": ActivityIntegration.SLACK.value,
             }
-
+            expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
             assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue_block_kit(self):
