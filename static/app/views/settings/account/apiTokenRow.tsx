@@ -16,7 +16,7 @@ type Props = {
   tokenPrefix?: string;
 };
 
-function ApiTokenRow({token, onRemove, tokenPrefix}: Props) {
+function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
