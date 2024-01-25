@@ -259,12 +259,11 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
 
     def test_enforce_rate_limit_is_false(self):
         request = self.factory.get("/")
-        with freeze_time("2000-01-01"):
-            self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
-            assert request.will_be_rate_limited is False
-            assert request.rate_limit_category is None
-            assert hasattr(request, "rate_limit_key") is False
-            assert hasattr(request, "rate_limit_metadata") is False
+        self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+        assert request.will_be_rate_limited is False
+        assert request.rate_limit_category is None
+        assert hasattr(request, "rate_limit_key") is False
+        assert hasattr(request, "rate_limit_metadata") is False
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
