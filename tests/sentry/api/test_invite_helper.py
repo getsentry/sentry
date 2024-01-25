@@ -4,10 +4,8 @@ from django.http import HttpRequest
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.signals import receivers_raise_on_send
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
@@ -24,37 +22,17 @@ class ApiInviteHelperTest(TestCase):
             organization=self.org,
             teams=[self.team],
         )
-        self.auth_provider_inst = self.create_auth_provider(
-            organization_id=self.organization.id,
-            provider="Friendly IdP",
-        )
-
         self.request = HttpRequest()
+        # Needed for audit logs
         self.request.META["REMOTE_ADDR"] = "127.0.0.1"
         self.request.user = self.user
 
-    def test_accept_invite(self):
-        om = OrganizationMember.objects.get(id=self.member.id)
-        assert om.email == self.member.email
-
-        invite_context = organization_service.get_invite_by_id(
-            organization_member_id=om.id, organization_id=om.organization_id
-        )
-        assert invite_context is not None
-
-        helper = ApiInviteHelper(
-            self.request,
-            invite_context,
-            None,
-        )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            helper.accept_invite()
-
-        om.refresh_from_db()
-        assert om.email is None
-        assert om.user_id == self.user.id
-
-    def test_accept_invite_already_exists(self):
+    def _get_om_from_accepting_invite(self) -> OrganizationMember:
+        """
+        Returns a refreshed organization member (id=self.member.id) after having accepted
+        the invite from the ApiInviteHelper. Assert on the resulting OM depending on the context for
+        the organization (e.g. SSO, duplicate invite)
+        """
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
@@ -66,6 +44,19 @@ class ApiInviteHelperTest(TestCase):
         helper = ApiInviteHelper(self.request, invite_context, None)
         with assume_test_silo_mode(SiloMode.CONTROL):
             helper.accept_invite()
+
+        om.refresh_from_db()
+        return om
+
+    def test_accept_invite_without_SSO(self):
+        om = self._get_om_from_accepting_invite()
+
+        assert om.email is None
+        assert om.user_id == self.user.id
+
+    def test_invite_already_accepted_without_SSO(self):
+        om = self._get_om_from_accepting_invite()
+
         invite_context = organization_service.get_invite_by_id(
             organization_member_id=om.id, organization_id=om.organization_id
         )
@@ -78,7 +69,7 @@ class ApiInviteHelperTest(TestCase):
         helper = ApiInviteHelper(self.request, invite_context, None)
         with assume_test_silo_mode(SiloMode.CONTROL):
             helper.accept_invite()
-        om = OrganizationMember.objects.get(id=self.member.id)
+        om.refresh_from_db()
         assert om.email is None
         assert om.user_id == self.user.id
 
@@ -90,73 +81,48 @@ class ApiInviteHelperTest(TestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(id=self.member.id)
 
-    def test_accept_invite_with_SSO(self):
-        om = OrganizationMember.objects.get(id=self.member.id)
-        assert om.email == self.member.email
+    def test_accept_invite_with_optional_SSO(self):
+        ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            ap.flags.allow_unlinked = True
+            ap.save()
 
-        invite_context = organization_service.get_invite_by_id(
-            organization_member_id=om.id, organization_id=om.organization_id
-        )
-        assert invite_context is not None
+        om = self._get_om_from_accepting_invite()
 
-        helper = ApiInviteHelper(
-            self.request,
-            invite_context,
-            None,
-        )
-
-        with assume_test_silo_mode(SiloMode.CONTROL), receivers_raise_on_send(), outbox_runner():
-            self.auth_provider_inst.flags.allow_unlinked = True
-            self.auth_provider_inst.save()
-            helper.accept_invite()
-
-        om.refresh_from_db()
         assert om.email is None
         assert om.user_id == self.user.id
 
-    def test_accept_invite_with_required_SSO(self):
-        om = OrganizationMember.objects.get(id=self.member.id)
-        assert om.email == self.member.email
-
-        invite_context = organization_service.get_invite_by_id(
-            organization_member_id=om.id, organization_id=om.organization_id
-        )
-        assert invite_context is not None
-
-        helper = ApiInviteHelper(
-            self.request,
-            invite_context,
-            None,
-        )
+    def test_invite_already_accepted_with_optional_SSO(self):
+        ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.auth_provider_inst.flags.allow_unlinked = False
-            self.auth_provider_inst.save()
-            helper.accept_invite()
+            ap.flags.allow_unlinked = True
+            ap.save()
+
+        self.test_invite_already_accepted_without_SSO()
+
+    def test_accept_invite_with_required_SSO(self):
+        ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
+        assert not ap.flags.allow_unlinked  # SSO is required
+
+        om = self._get_om_from_accepting_invite()
 
         # Invite cannot be accepted without AuthIdentity if SSO is required
-        om.refresh_from_db()
         assert om.email is not None
         assert om.user_id is None
 
     def test_accept_invite_with_required_SSO_with_identity(self):
-        om = OrganizationMember.objects.get(id=self.member.id)
-        assert om.email == self.member.email
+        ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
+        assert not ap.flags.allow_unlinked  # SSO is required
+        self.create_auth_identity(auth_provider=ap, user=self.user)
 
-        invite_context = organization_service.get_invite_by_id(
-            organization_member_id=om.id, organization_id=om.organization_id
-        )
-        assert invite_context is not None
+        om = self._get_om_from_accepting_invite()
 
-        helper = ApiInviteHelper(
-            self.request,
-            invite_context,
-            None,
-        )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.auth_provider_inst.flags.allow_unlinked = False
-            self.auth_provider_inst.save()
-            helper.accept_invite()
-
-        om.refresh_from_db()
         assert om.email is None
         assert om.user_id == self.user.id
+
+    def test_invite_already_accepted_with_required_SSO(self):
+        ap = self.create_auth_provider(organization_id=self.org.id, provider="Friendly IdP")
+        assert not ap.flags.allow_unlinked  # SSO is required
+        self.create_auth_identity(auth_provider=ap, user=self.user)
+
+        self.test_invite_already_accepted_without_SSO()
