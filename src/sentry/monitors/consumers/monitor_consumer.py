@@ -865,8 +865,28 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     Does the consumer process unrelated check-ins in parallel?
     """
 
-    def __init__(self, parallel=False) -> None:
-        self.parallel = parallel
+    max_batch_size = 500
+    """
+    How many messages will be batched at once when in parallel mode.
+    """
+
+    max_batch_time = 10
+    """
+    The maximum time in seconds to accumulate a bach of check-ins.
+    """
+
+    def __init__(
+        self,
+        parallel=None,
+        max_batch_size=None,
+        max_batch_time=None,
+    ) -> None:
+        if parallel is not None:
+            self.parallel = parallel
+        if max_batch_size is not None:
+            self.max_batch_size = max_batch_size
+        if max_batch_time is not None:
+            self.max_batch_time = max_batch_time
 
     def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         batch_processor = RunTask(
@@ -874,8 +894,8 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
             next_step=CommitOffsets(commit),
         )
         return BatchStep(
-            max_batch_size=500,
-            max_batch_time=10,
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
             next_step=batch_processor,
         )
 
