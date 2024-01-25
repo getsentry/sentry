@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from sentry.eventstore.models import Event
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
+    from sentry.utils.canonical import CanonicalKeyDict
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 
@@ -141,6 +142,9 @@ class GroupingConfigLoader:
             rv = FingerprintingRules.from_config_string(rules, bases=bases)
         except InvalidFingerprintingConfig:
             rv = FingerprintingRules([], bases=bases)
+        # TODO: for now for backwards compatibility storing only the custom rules,
+        #       while the built-in rules are being added via bases passed to the constructor
+        #       With built-in rules going GA we can simplify this and store the whole config
         cache.set(cache_key, rv.to_json(include_builtin=False))
         return rv.to_json(include_builtin=include_builtin)
 
@@ -247,29 +251,31 @@ def load_default_grouping_config():
 
 
 def apply_server_fingerprinting(
-    event: Event, grouping_config: GroupingConfig, allow_custom_title: bool = True
+    event_data: CanonicalKeyDict,
+    grouping_config: GroupingConfig,
+    allow_custom_title: bool = True,
 ) -> None:
     config = FingerprintingRules.from_json(grouping_config["fingerprinting"])
-    client_fingerprint = event.get("fingerprint")
-    rv = config.get_fingerprint_values_for_event(event)
+    client_fingerprint = event_data.get("fingerprint")
+    rv = config.get_fingerprint_values_for_event(event_data)
     if rv is not None:
         rule, new_fingerprint, attributes = rv
 
         # A custom title attribute is stored in the event to override the
         # default title.
         if "title" in attributes and allow_custom_title:
-            event["title"] = expand_title_template(attributes["title"], event)
-        event["fingerprint"] = new_fingerprint
+            event_data["title"] = expand_title_template(attributes["title"], event_data)
+        event_data["fingerprint"] = new_fingerprint
 
         # Persist the rule that matched with the fingerprint in the event
         # dictionary for later debugging.
-        event["_fingerprint_info"] = {
+        event_data["_fingerprint_info"] = {
             "client_fingerprint": client_fingerprint,
             "matched_rule": rule.to_json(),
         }
 
         if rule.is_builtin:
-            event["_fingerprint_info"]["is_builtin"] = True
+            event_data["_fingerprint_info"]["is_builtin"] = True
 
 
 def _get_calculated_grouping_variants_for_event(event, context):
