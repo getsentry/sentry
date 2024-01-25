@@ -2739,6 +2739,11 @@
     "@jest/create-cache-key-function" "^29.7.0"
     jsonc-parser "^3.2.0"
 
+"@swc/plugin-emotion@^2.5.115":
+  version "2.5.115"
+  resolved "https://registry.yarnpkg.com/@swc/plugin-emotion/-/plugin-emotion-2.5.115.tgz#27666e9ab318f8aefe3a0d81732ea10bcfb99dcc"
+  integrity sha512-3SuO6RbJESgVdmey0hwB5HR+ZU9sgLINTGdhRI+Uhr/KAhbZVvLxjf+g9/8g9RngECqljmd/xc0lZyNols8DVw==
+
 "@swc/types@^0.1.5":
   version "0.1.5"
   resolved "https://registry.yarnpkg.com/@swc/types/-/types-0.1.5.tgz#043b731d4f56a79b4897a3de1af35e75d56bc63a"
