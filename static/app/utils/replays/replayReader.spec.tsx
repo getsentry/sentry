@@ -1,4 +1,4 @@
-import {EventType} from '@sentry-internal/rrweb';
+import {EventType, IncrementalSource} from '@sentry-internal/rrweb';
 import {
   ReplayClickEventFixture,
   ReplayConsoleEventFixture,
@@ -14,7 +14,10 @@ import {
   ReplaySpanFrameEventFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
 import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
-import {RRWebFullSnapshotFrameEventFixture} from 'sentry-fixture/replay/rrweb';
+import {
+  RRWebDOMFrameFixture,
+  RRWebFullSnapshotFrameEventFixture,
+} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -296,5 +299,66 @@ describe('ReplayReader', () => {
 
       expect(replay?.isNetworkDetailsSetup()).toBe(expected);
     });
+  });
+
+  it('detects canvas element from full snapshot', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    const firstDiv = RRWebFullSnapshotFrameEventFixture({
+      timestamp,
+      childNodes: [
+        RRWebDOMFrameFixture({
+          tagName: 'div',
+          childNodes: [
+            RRWebDOMFrameFixture({
+              tagName: 'canvas',
+            }),
+          ],
+        }),
+      ],
+    });
+    const attachments = [firstDiv];
+
+    const replay = ReplayReader.factory({
+      attachments,
+      errors: [],
+      replayRecord,
+    });
+
+    expect(replay?.hasCanvasElementInReplay()).toBe(true);
+  });
+
+  it('detects canvas element from dom mutations', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    const snapshot = RRWebFullSnapshotFrameEventFixture({timestamp});
+    const attachments = [
+      snapshot,
+      {
+        type: EventType.IncrementalSnapshot,
+        timestamp,
+        data: {
+          source: IncrementalSource.Mutation,
+          adds: [
+            {
+              node: RRWebDOMFrameFixture({
+                tagName: 'canvas',
+              }),
+            },
+          ],
+          removes: [],
+          texts: [],
+          attributes: [],
+        },
+      },
+    ];
+
+    const replay = ReplayReader.factory({
+      attachments,
+      errors: [],
+      replayRecord,
+    });
+
+    expect(replay?.hasCanvasElementInReplay()).toBe(true);
   });
 });

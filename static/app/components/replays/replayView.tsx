@@ -15,6 +15,8 @@ import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
+import {CanvasSupportNotice} from './canvasSupportNotice';
+
 type Props = {
   toggleFullscreen: () => void;
 };
@@ -44,9 +46,12 @@ function ReplayView({toggleFullscreen}: Props) {
           {!isFetching && replay?.hasProcessingErrors() ? (
             <ReplayProcessingError processingErrors={replay.processingErrors()} />
           ) : (
-            <Panel>
-              <ReplayPlayer />
-            </Panel>
+            <FluidHeight>
+              <CanvasSupportNotice />
+              <Panel>
+                <ReplayPlayer />
+              </Panel>
+            </FluidHeight>
           )}
         </PlayerContainer>
         {isFullscreen && isSidebarOpen ? (
