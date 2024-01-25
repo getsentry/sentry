@@ -46,7 +46,10 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {
+  makeIssuesINPObserver,
+  VisuallyCompleteWithData,
+} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
@@ -174,6 +177,7 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   componentDidMount() {
+    this._performanceObserver = makeIssuesINPObserver();
     this._poller = new CursorPoller({
       linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous?.href,
       success: this.onRealtimePoll,
@@ -297,6 +301,10 @@ class IssueListOverview extends Component<Props, State> {
         pageLinks: this.state.pageLinks,
       });
     }
+
+    if (this._performanceObserver) {
+      this._performanceObserver.disconnect();
+    }
     this._poller.disable();
     SelectedGroupStore.reset();
     GroupStore.reset();
@@ -304,6 +312,7 @@ class IssueListOverview extends Component<Props, State> {
     this.listener?.();
   }
 
+  private _performanceObserver: PerformanceObserver | undefined;
   private _poller: any;
   private _lastRequest: any;
   private _lastStatsRequest: any;

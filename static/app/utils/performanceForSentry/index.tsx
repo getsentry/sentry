@@ -575,3 +575,78 @@ export const addUIElementTag = (transaction: TransactionEvent) => {
 
   transaction.tags.interactionElement = interactionSpan?.description;
 };
+
+function supportsINP() {
+  return (
+    'PerformanceObserver' in window &&
+    'PerformanceEventTiming' in window &&
+    'interactionId' in PerformanceEventTiming.prototype
+  );
+}
+
+interface INPPerformanceEntry extends PerformanceEntry {
+  cancellable: boolean;
+  duration: number;
+  entryType: 'first-input';
+  name: string;
+  processingEnd: number;
+  processingStart: number;
+  startTime: number;
+  target: HTMLElement | undefined;
+}
+
+function isINPEntity(entry: PerformanceEntry): entry is INPPerformanceEntry {
+  return entry.entryType === 'first-input';
+}
+
+function getNearestElementName(node: HTMLElement | undefined): string | undefined {
+  if (!node) {
+    return 'unknown';
+  }
+
+  let current: HTMLElement | null = node;
+  while (current && current !== document.body) {
+    const elementName =
+      current.dataset?.testId ?? current.dataset?.component ?? current.dataset?.element;
+
+    if (elementName !== undefined) {
+      return elementName;
+    }
+
+    current = current.parentElement;
+  }
+
+  return 'unknown';
+}
+
+export function makeIssuesINPObserver(): PerformanceObserver | undefined {
+  if (!supportsINP()) {
+    return undefined;
+  }
+
+  const observer = new PerformanceObserver(entryList => {
+    entryList.getEntries().forEach(entry => {
+      if (!isINPEntity(entry)) {
+        return;
+      }
+
+      if (entry.duration) {
+        // < 16 ms wont cause frame drops so just ignore this for now
+        if (entry.duration < 16) {
+          return;
+        }
+        Sentry.metrics.distribution('issues-stream.inp', entry.duration, {
+          unit: 'millisecond',
+          tags: {
+            element: getNearestElementName(entry.target),
+            entryType: entry.entryType,
+            interaction: entry.name,
+          },
+        });
+      }
+    });
+  });
+
+  observer.observe({type: 'first-input', buffered: true});
+  return observer;
+}
