@@ -283,8 +283,9 @@ class TagValue(TypedDict):
 
 
 class BlockedMetric(TypedDict):
-    projectId: int
+    isBlocked: bool
     blockedTags: Sequence[str]
+    projectId: int
 
 
 class MetricMeta(TypedDict):
