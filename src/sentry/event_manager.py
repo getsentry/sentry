@@ -56,18 +56,10 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import (
-    GroupingConfig,
-    SecondaryGroupingConfigLoader,
-    get_grouping_config_dict_for_event_data,
-    get_grouping_config_dict_for_project,
-)
+from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
 from sentry.grouping.ingest import (
-    calculate_primary_hash,
-    calculate_secondary_hash,
     find_existing_grouphash,
-    run_background_grouping,
-    should_run_secondary_grouping,
+    get_hash_values,
     update_grouping_config_if_needed,
 )
 from sentry.grouping.result import CalculatedHashes
@@ -516,66 +508,7 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
-        # Background grouping is a way for us to get performance metrics for a new
-        # config without having it actually affect on how events are grouped. It runs
-        # either before or after the main grouping logic, depending on the option value.
-        do_background_grouping_before = options.get("store.background-grouping-before")
-        if do_background_grouping_before:
-            run_background_grouping(project, job)
-
-        secondary_hashes = None
-        migrate_off_hierarchical = False
-
-        if should_run_secondary_grouping(project):
-            with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
-                secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
-                secondary_hashes = calculate_secondary_hash(project, job, secondary_grouping_config)
-
-        with metrics.timer("event_manager.load_grouping_config"):
-            # At this point we want to normalize the in_app values in case the
-            # clients did not set this appropriately so far.
-            if is_reprocessed:
-                # The customer might have changed grouping enhancements since
-                # the event was ingested -> make sure we get the fresh one for reprocessing.
-                grouping_config = get_grouping_config_dict_for_project(project)
-                # Write back grouping config because it might have changed since the
-                # event was ingested.
-                # NOTE: We could do this unconditionally (regardless of `is_processed`).
-                job["data"]["grouping_config"] = grouping_config
-            else:
-                grouping_config = get_grouping_config_dict_for_event_data(
-                    job["event"].data.data, project
-                )
-
-        with sentry_sdk.start_span(
-            op="event_manager",
-            description="event_manager.save.calculate_event_grouping",
-        ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-            hashes = calculate_primary_hash(project, job, grouping_config)
-
-        if secondary_hashes:
-            tags = {
-                "primary_config": grouping_config["id"],
-                "secondary_config": secondary_grouping_config["id"],
-            }
-            current_values = hashes.hashes
-            secondary_values = secondary_hashes.hashes
-            hashes_match = current_values == secondary_values
-
-            if hashes_match:
-                tags["result"] = "no change"
-            else:
-                shared_hashes = set(current_values) & set(secondary_values)
-                if len(shared_hashes) > 0:
-                    tags["result"] = "partial change"
-                else:
-                    tags["result"] = "full change"
-
-            metrics.incr("grouping.hash_comparison", tags=tags)
-
-        # Track the total number of grouping calculations done overall, so we can divide by the
-        # count to get an average number of calculations per event
-        metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
+        primary_hashes, secondary_hashes, all_hashes = get_hash_values(project, job, metric_tags)
 
         # Because this logic is not complex enough we want to special case the situation where we
         # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
@@ -584,25 +517,8 @@ class EventManager:
         migrate_off_hierarchical = bool(
             secondary_hashes
             and secondary_hashes.hierarchical_hashes
-            and not hashes.hierarchical_hashes
+            and not primary_hashes.hierarchical_hashes
         )
-
-        hashes = CalculatedHashes(
-            hashes=list(hashes.hashes) + list(secondary_hashes and secondary_hashes.hashes or []),
-            hierarchical_hashes=(
-                list(hashes.hierarchical_hashes)
-                + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
-            ),
-            tree_labels=(
-                hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
-            ),
-        )
-
-        if not do_background_grouping_before:
-            run_background_grouping(project, job)
-
-        if hashes.tree_labels:
-            job["finest_tree_label"] = hashes.finest_tree_label
 
         _materialize_metadata_many(jobs)
 
@@ -622,7 +538,7 @@ class EventManager:
             with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
                 group_info = _save_aggregate(
                     event=job["event"],
-                    hashes=hashes,
+                    hashes=all_hashes,
                     release=job["release"],
                     metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
@@ -1517,13 +1433,15 @@ def _save_aggregate(
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
 
-            all_hash_ids = [h.id for h in flat_grouphashes]
+            all_grouphash_ids = [h.id for h in flat_grouphashes]
             if root_hierarchical_grouphash is not None:
-                all_hash_ids.append(root_hierarchical_grouphash.id)
+                all_grouphash_ids.append(root_hierarchical_grouphash.id)
 
-            all_hashes = list(GroupHash.objects.filter(id__in=all_hash_ids).select_for_update())
+            all_grouphashes = list(
+                GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
+            )
 
-            flat_grouphashes = [gh for gh in all_hashes if gh.hash in hashes.hashes]
+            flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes

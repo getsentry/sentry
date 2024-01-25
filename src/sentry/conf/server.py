@@ -1567,7 +1567,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable integration functionality to work with alert rules (specifically chat integrations)
     "organizations:integrations-chat-unfurl": True,
     # Enable the API to importing CODEOWNERS for a project
-    "organizations:integrations-codeowners": False,
+    "organizations:integrations-codeowners": True,
     # Enable integration functionality to work deployment integrations like Vercel
     "organizations:integrations-deployment": True,
     # Enable integration functionality to work with enterprise alert rules
@@ -3443,7 +3443,6 @@ KAFKA_GROUP_ATTRIBUTES = "group-attributes"
 KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 
 # spans
-KAFKA_INGEST_SPANS = "ingest-spans"
 KAFKA_SNUBA_SPANS = "snuba-spans"
 
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
@@ -3494,7 +3493,6 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
     KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
-    KAFKA_INGEST_SPANS: {"cluster": "default"},
     KAFKA_SNUBA_SPANS: {"cluster": "default"},
     KAFKA_SHARED_RESOURCES_USAGE: {"cluster": "default"},
 }
@@ -3684,8 +3682,6 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
 SAMPLED_DEFAULT_RATE = 1.0
-
-SENTRY_PROCESS_INCR_SAMPLE_RATE = 0.01
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
@@ -3984,6 +3980,7 @@ REGION_PINNED_URL_NAMES = {
     # Backwards compatibility for US customers.
     # New usage of these is region scoped.
     "sentry-error-page-embed",
+    "sentry-js-sdk-loader",
     "sentry-release-hook",
     "sentry-api-0-organizations",
     "sentry-api-0-projects",

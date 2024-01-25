@@ -15,9 +15,11 @@ from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
     GroupingConfig,
     GroupingConfigNotFound,
+    SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
     detect_synthetic_exception,
     get_fingerprinting_config_for_project,
+    get_grouping_config_dict_for_event_data,
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
@@ -26,6 +28,7 @@ from sentry.locks import locks
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
+from sentry.reprocessing2 import is_reprocessed_event
 from sentry.utils import metrics
 from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
@@ -143,10 +146,12 @@ def _calculate_event_grouping(
         return hashes
 
 
-def run_background_grouping(project: Project, job: Job) -> None:
-    """Optionally run a fraction of events with a third grouping config
-    This can be helpful to measure its performance impact.
-    This does not affect actual grouping.
+def _maybe_run_background_grouping(project: Project, job: Job) -> None:
+    """
+    Optionally run a fraction of events with an experimental grouping config.
+
+    This does not affect actual grouping, but can be helpful to measure the new config's performance
+    impact.
     """
     try:
         sample_rate = options.get("store.background-grouping-sample-rate")
@@ -171,16 +176,14 @@ def _calculate_background_grouping(
         return _calculate_event_grouping(project, event, config)
 
 
-def should_run_secondary_grouping(project: Project) -> bool:
-    result = False
+def _should_run_secondary_grouping(project: Project) -> bool:
     secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
     secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
-    if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-        result = True
-    return result
+
+    return secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time()
 
 
-def calculate_secondary_hash(
+def _calculate_secondary_hash(
     project: Project, job: Job, secondary_grouping_config: GroupingConfig
 ) -> None | CalculatedHashes:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
@@ -206,7 +209,7 @@ def calculate_secondary_hash(
     return secondary_hashes
 
 
-def calculate_primary_hash(
+def _calculate_primary_hash(
     project: Project, job: Job, grouping_config: GroupingConfig
 ) -> CalculatedHashes:
     """
@@ -295,3 +298,84 @@ def find_existing_grouphash(
             )
 
     return None, root_hierarchical_hash
+
+
+def get_hash_values(
+    project: Project,
+    job: Job,
+    metric_tags: MutableTags,
+) -> tuple[CalculatedHashes, CalculatedHashes | None, CalculatedHashes]:
+    # Background grouping is a way for us to get performance metrics for a new
+    # config without having it actually affect on how events are grouped. It runs
+    # either before or after the main grouping logic, depending on the option value.
+    _maybe_run_background_grouping(project, job)
+
+    secondary_hashes = None
+
+    if _should_run_secondary_grouping(project):
+        with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
+            secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
+            secondary_hashes = _calculate_secondary_hash(project, job, secondary_grouping_config)
+
+    with metrics.timer("event_manager.load_grouping_config"):
+        # At this point we want to normalize the in_app values in case the
+        # clients did not set this appropriately so far.
+        if is_reprocessed_event(job["data"]):
+            # The customer might have changed grouping enhancements since
+            # the event was ingested -> make sure we get the fresh one for reprocessing.
+            grouping_config = get_grouping_config_dict_for_project(project)
+            # Write back grouping config because it might have changed since the
+            # event was ingested.
+            # NOTE: We could do this unconditionally (regardless of `is_processed`).
+            job["data"]["grouping_config"] = grouping_config
+        else:
+            grouping_config = get_grouping_config_dict_for_event_data(
+                job["event"].data.data, project
+            )
+
+    with sentry_sdk.start_span(
+        op="event_manager",
+        description="event_manager.save.calculate_event_grouping",
+    ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
+        primary_hashes = _calculate_primary_hash(project, job, grouping_config)
+
+    if secondary_hashes:
+        tags = {
+            "primary_config": grouping_config["id"],
+            "secondary_config": secondary_grouping_config["id"],
+        }
+        current_values = primary_hashes.hashes
+        secondary_values = secondary_hashes.hashes
+        hashes_match = current_values == secondary_values
+
+        if hashes_match:
+            tags["result"] = "no change"
+        else:
+            shared_hashes = set(current_values) & set(secondary_values)
+            if len(shared_hashes) > 0:
+                tags["result"] = "partial change"
+            else:
+                tags["result"] = "full change"
+
+        metrics.incr("grouping.hash_comparison", tags=tags)
+
+    # Track the total number of grouping calculations done overall, so we can divide by the
+    # count to get an average number of calculations per event
+    metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
+
+    all_hashes = CalculatedHashes(
+        hashes=list(primary_hashes.hashes)
+        + list(secondary_hashes and secondary_hashes.hashes or []),
+        hierarchical_hashes=(
+            list(primary_hashes.hierarchical_hashes)
+            + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
+        ),
+        tree_labels=(
+            primary_hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
+        ),
+    )
+
+    if all_hashes.tree_labels:
+        job["finest_tree_label"] = all_hashes.finest_tree_label
+
+    return (primary_hashes, secondary_hashes, all_hashes)
