@@ -214,21 +214,21 @@ export const getIntegrationIcon = (
 export const getIntegrationDisplayName = (integrationType?: string) => {
   switch (integrationType) {
     case 'asana':
-      return t('Asana');
+      return 'Asana';
     case 'bitbucket':
-      return t('Bitbucket');
+      return 'Bitbucket';
     case 'gitlab':
-      return t('GitLab');
+      return 'GitLab';
     case 'github':
     case 'github_enterprise':
-      return t('GitHub');
+      return 'GitHub';
     case 'jira':
     case 'jira_server':
-      return t('Jira');
+      return 'Jira';
     case 'vsts':
-      return t('VSTS');
+      return 'VSTS';
     case 'codecov':
-      return t('Codeov');
+      return 'Codeov';
     default:
       return '';
   }

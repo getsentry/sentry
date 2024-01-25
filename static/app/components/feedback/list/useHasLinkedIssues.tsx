@@ -115,9 +115,16 @@ export default function useExternalIssueData({group, event, project}: Props) {
       'issue' in a.props.plugin
   );
 
-  const nonPlugins = linkedIssues.filter(
-    a => a.hasLinkedIssue && !(a.type === 'plugin-issue' || a.type === 'plugin-action')
+  // Sentry app issues: read from `hasLinkedIssue` property
+  const sentryAppIssues = linkedIssues.filter(
+    a =>
+      a.hasLinkedIssue &&
+      a.type === 'sentry-app-issue' &&
+      a.props.externalIssue?.issueId === group.id
   );
 
-  return {linkedIssues: plugins.concat(nonPlugins)};
+  // Integration issues
+  const integrationIssues = linkedIssues.filter(a => a.type === 'integration-issue');
+
+  return {linkedIssues: plugins.concat(integrationIssues).concat(sentryAppIssues)};
 }
