@@ -3284,3 +3284,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_timestamp_groupby(self):
         super().test_timestamp_groupby()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_on_demand_with_mep(self):
+        super().test_on_demand_with_mep()
