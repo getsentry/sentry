@@ -1137,6 +1137,13 @@ class OnDemandMetricSpec:
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
+        # In the previous version we were not including the environment tag in the hash.
+        # Including it in the groupsby will include it in the query hash
+        if self.spec_type == MetricSpecType.DYNAMIC_QUERY and self.spec_version.flags == {
+            "include_environment_tag"
+        }:
+            # XXX: Should this always be included?
+            self.groupbys.append("environment")
         # For now, we just support the environment as extra, but in the future we might need more complex ways to
         # combine extra values that are outside the query string.
         self.environment = environment
@@ -1177,29 +1184,15 @@ class OnDemandMetricSpec:
         """The unique identifier of the on-demand metric."""
         return f"{self._metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
 
-    # I feel like this should actually be in self.groupbys for the new version, so that in the long term the logic is less
-    # complicated once we delete the old version.
-
-    #  self.groupsbys should be a computed param based on the passed groupbys param
-    #  to the spec, and optionally add env as a group-by. The new spec version can just have environment automatically added in
-    # the groupbys, which also means we can remove the condition in to_metric_spec.
-
-    # Additionally we might want to add a check to avoid the case when you build a widget that already has environment tag
-    # (since someone is explicitly grouping by env) in addition to the dynamic tag that's added, a group by doesn't need to be added twice.
     @cached_property
     def _query_str_for_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
         str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()}"
 
-        print(self.groupbys)
-        print(self.spec_type)
         if self.groupbys:
             # For compatibility with existing deployed metrics, leave existing hash untouched unless conditions are now
             # included in the spec.
-            str_to_hash += f";{self._groupbys_for_hash()}"
-
-            if self.spec_version.flags == {"include_environment_tag"}:
-                str_to_hash += f";{self._tag_for_field('environment')}"
+            return f"{str_to_hash};{self._groupbys_for_hash()}"
 
         return str_to_hash
 
@@ -1285,8 +1278,11 @@ class OnDemandMetricSpec:
         tag_from_groupbys = self.tags_groupbys(self.groupbys)
         extended_tags_conditions.extend(tag_from_groupbys)
 
+        # Once we switch to the next spec we can remove these two lines
+        # since the environment will be added to the groupbys, thus, being included in the query hash
         if (
             self.spec_type == MetricSpecType.DYNAMIC_QUERY
+            and self.spec_version.flags == {}
             and self._tag_for_field("environment") not in extended_tags_conditions
         ):
             extended_tags_conditions.append(self._tag_for_field("environment"))
