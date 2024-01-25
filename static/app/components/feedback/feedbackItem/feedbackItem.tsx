@@ -49,11 +49,13 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </Blockquote>
         </Section>
 
-        <Section icon={<IconLink size="xs" />} title={t('URL')}>
-          <TextCopyInput size="sm">
-            {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
-          </TextCopyInput>
-        </Section>
+        {!crashReportId || (crashReportId && url) ? (
+          <Section icon={<IconLink size="xs" />} title={t('URL')}>
+            <TextCopyInput size="sm">
+              {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
+            </TextCopyInput>
+          </Section>
+        ) : null}
 
         {crashReportId && (
           <Section icon={<IconFire size="xs" />} title={t('Linked Error')}>
