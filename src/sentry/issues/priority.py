@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.activity import ActivityType
 
 if TYPE_CHECKING:
@@ -44,6 +46,7 @@ def update_priority(
     group: Group,
     priority: PriorityLevel,
     reason: PriorityChangeReason | None = None,
+    actor: User | RpcUser | None = None,
 ) -> None:
     """
     Update the priority of a group and record the change in the activity and group history.
@@ -55,25 +58,28 @@ def update_priority(
     Activity.objects.create_group_activity(
         group=group,
         type=ActivityType.SET_PRIORITY,
+        user=actor,
         data={
             "priority": PRIORITY_LEVEL_TO_STR[priority],
             "reason": reason,
         },
     )
-    record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[priority])
+    record_group_history(group, status=PRIORITY_TO_GROUP_HISTORY_STATUS[priority], actor=actor)
 
 
 def get_priority_for_escalating_group(group: Group) -> PriorityLevel | None:
     """
-    Get the priority for a group that is escalating.
+    Get the priority for a group that is escalating by incrementing it one level.
     """
     if not group.priority or group.priority == PriorityLevel.HIGH:
+        # HIGH priority issues can not be incremented further
+        return PriorityLevel.HIGH
+    elif group.priority == PriorityLevel.MEDIUM:
         return PriorityLevel.HIGH
     elif group.priority == PriorityLevel.LOW:
         return PriorityLevel.MEDIUM
-    elif group.priority == PriorityLevel.MEDIUM:
-        return PriorityLevel.HIGH
 
+    # This should never happen
     logger.error(
         "Unable to determine escalation priority for group %s with priority %s",
         group.id,
