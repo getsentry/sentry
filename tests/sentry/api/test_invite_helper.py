@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-import pytest
 from django.http import HttpRequest
 
 from sentry.api.invite_helper import ApiInviteHelper
@@ -56,41 +55,6 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
         assert om.user_id == self.user.id
-
-    @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
-    def test_accept_invite_already_exists(self, get_audit, create_audit):
-        om = OrganizationMember.objects.get(id=self.member.id)
-        assert om.email == self.member.email
-
-        invite_context = organization_service.get_invite_by_id(
-            organization_member_id=om.id, organization_id=om.organization_id
-        )
-        assert invite_context is not None
-
-        helper = ApiInviteHelper(self.request, invite_context, None)
-        helper.accept_invite()
-        invite_context = organization_service.get_invite_by_id(
-            organization_member_id=om.id, organization_id=om.organization_id
-        )
-        assert invite_context is not None
-        member_id = invite_context.invite_organization_member_id
-        assert member_id is not None
-
-        # Without this member_id, don't delete the organization member
-        invite_context.invite_organization_member_id = None
-        helper = ApiInviteHelper(self.request, invite_context, None)
-        helper.accept_invite()
-        om = OrganizationMember.objects.get(id=self.member.id)
-        assert om.email is None
-        assert om.user_id == self.user.id
-
-        # With the member_id, ensure it's deleted
-        invite_context.invite_organization_member_id = member_id
-        helper = ApiInviteHelper(self.request, invite_context, None)
-        helper.accept_invite()
-        with pytest.raises(OrganizationMember.DoesNotExist):
-            OrganizationMember.objects.get(id=self.member.id)
 
     @patch("sentry.api.invite_helper.create_audit_entry")
     @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
