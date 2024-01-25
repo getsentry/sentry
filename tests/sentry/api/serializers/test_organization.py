@@ -77,6 +77,7 @@ class OrganizationSerializerTest(TestCase):
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
+            "integrations-codeowners",
             "integrations-deployment",
             "dashboard-widget-indicators",
             "integrations-enterprise-alert-rule",
