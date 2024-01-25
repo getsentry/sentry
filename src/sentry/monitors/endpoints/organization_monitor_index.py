@@ -4,7 +4,7 @@ from django.db import router, transaction
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 
-from sentry import audit_log, features, quotas
+from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -223,15 +223,6 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             return self.respond(validator.errors, status=400)
 
         result = validator.validated_data
-
-        if (
-            features.has("organizations:crons-disable-new-projects", organization)
-            and not result["project"].flags.has_cron_monitors
-        ):
-            return self.respond(
-                "Creating monitors in projects without pre-existing monitors is temporarily disabled",
-                status=400,
-            )
 
         try:
             monitor = Monitor.objects.create(

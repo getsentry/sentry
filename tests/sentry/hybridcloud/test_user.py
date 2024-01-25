@@ -1,7 +1,9 @@
 from sentry.models.avatars.user_avatar import UserAvatar
+from sentry.models.files import ControlFile
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 
 @django_db_all(transaction=True)
@@ -15,7 +17,8 @@ def test_user_serialize_avatar_none():
 @django_db_all(transaction=True)
 def test_user_serialize_avatar():
     user = Factories.create_user()
-    avatar = UserAvatar.objects.create(user_id=user.id, avatar_type=2, ident="abc123")
+    with assume_test_silo_mode_of(UserAvatar):
+        avatar = UserAvatar.objects.create(user_id=user.id, avatar_type=2, ident="abc123")
 
     rpc_user = user_service.get_user(user_id=user.id)
     assert rpc_user
@@ -41,3 +44,22 @@ def test_user_serialize_multiple_emails():
     assert len(rpc_user.useremails) == 3
     expected = {user.email, email.email, unverified_email.email}
     assert expected == {e.email for e in rpc_user.useremails}
+
+
+@django_db_all(transaction=True)
+def test_user_get_avatar():
+    user = Factories.create_user()
+
+    # Assert a query without an avatar returns none by default
+    assert user_service.get_user_avatar(user_id=user.id) is None
+
+    avatar_file = ControlFile.objects.create(name="avatar.png", type=UserAvatar.FILE_TYPE)
+    avatar = UserAvatar.objects.create(user=user, control_file_id=avatar_file.id)
+
+    rpc_avatar = user_service.get_user_avatar(user_id=user.id)
+
+    assert rpc_avatar
+    assert rpc_avatar.ident == avatar.ident
+    assert rpc_avatar.file_id == avatar.file_id
+    assert rpc_avatar.id == avatar.id
+    assert rpc_avatar.avatar_type == avatar.get_avatar_type_display()

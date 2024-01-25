@@ -11,7 +11,7 @@ from sentry.incidents.models import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.identity import IdentityProvider
+from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
@@ -19,6 +19,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
@@ -302,6 +303,9 @@ class Fixtures:
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
 
+    def create_sentry_app_installation_for_provider(self, *args, **kwargs):
+        return Factories.create_sentry_app_installation_for_provider(*args, **kwargs)
+
     def create_stacktrace_link_schema(self, *args, **kwargs):
         return Factories.create_stacktrace_link_schema(*args, **kwargs)
 
@@ -458,6 +462,26 @@ class Fixtures:
     def create_provider_integration(self, **integration_params: Any) -> Integration:
         """Create an integration tied to a provider but no particular organization."""
         return Factories.create_provider_integration(**integration_params)
+
+    def create_provider_integration_for(
+        self,
+        organization: Organization | RpcOrganization,
+        user: User | RpcUser | None,
+        **integration_params: Any,
+    ) -> tuple[Integration, OrganizationIntegration]:
+        """Create an integration tied to a provider, then add an organization."""
+        return Factories.create_provider_integration_for(organization, user, **integration_params)
+
+    def create_identity_integration(
+        self,
+        user: User | RpcUser,
+        organization: Organization | RpcOrganization,
+        integration_params: Mapping[Any, Any],
+        identity_params: Mapping[Any, Any],
+    ) -> tuple[Integration, OrganizationIntegration, Identity, IdentityProvider]:
+        return Factories.create_identity_integration(
+            user, organization, integration_params, identity_params
+        )
 
     def create_organization_integration(self, **integration_params: Any) -> OrganizationIntegration:
         """Create an OrganizationIntegration entity."""

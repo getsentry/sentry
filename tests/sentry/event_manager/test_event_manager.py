@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import time
 from unittest import mock
 from unittest.mock import MagicMock, patch
@@ -16,7 +16,7 @@ from arroyo.types import Partition, Topic
 from django.conf import settings
 from django.core.cache import cache
 from django.test.utils import override_settings
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from rest_framework.status import HTTP_404_NOT_FOUND
 
 from fixtures.github import (
@@ -286,7 +286,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         old_release = Release.objects.create(
             version="a",
             organization_id=self.project.organization_id,
-            date_added=timezone.now() - timedelta(minutes=30),
+            date_added=django_timezone.now() - timedelta(minutes=30),
         )
         old_release.add_project(self.project)
 
@@ -362,7 +362,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Create a release and a group associated with it
         old_release = self.create_release(
-            version="foobar", date_added=timezone.now() - timedelta(minutes=30)
+            version="foobar", date_added=django_timezone.now() - timedelta(minutes=30)
         )
         manager = EventManager(
             make_event(
@@ -422,7 +422,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Create a release and a group associated with it
         old_release = self.create_release(
-            version="a", date_added=timezone.now() - timedelta(minutes=30)
+            version="a", date_added=django_timezone.now() - timedelta(minutes=30)
         )
         manager = EventManager(
             make_event(
@@ -482,7 +482,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Create a release and a group associated with it
         old_release = self.create_release(
-            version="foo@1.0.0", date_added=timezone.now() - timedelta(minutes=30)
+            version="foo@1.0.0", date_added=django_timezone.now() - timedelta(minutes=30)
         )
         manager = EventManager(
             make_event(
@@ -725,7 +725,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         old_release = Release.objects.create(
             version="a",
             organization_id=self.project.organization_id,
-            date_added=timezone.now() - timedelta(minutes=30),
+            date_added=django_timezone.now() - timedelta(minutes=30),
         )
         old_release.add_project(self.project)
 
@@ -2451,14 +2451,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     )
     def test_perf_issue_slow_db_issue_is_created(self):
         def attempt_to_generate_slow_db_issue() -> Event:
-            for _ in range(100):
-                event = self.create_performance_issue(
-                    event_data=make_event(**get_event("slow-db-spans")),
-                    issue_type=PerformanceSlowDBQueryGroupType,
-                )
-                last_event = event
-
-            return last_event
+            return self.create_performance_issue(
+                event_data=make_event(**get_event("slow-db-spans")),
+                issue_type=PerformanceSlowDBQueryGroupType,
+            )
 
         # Should not create the group without the feature flag
         last_event = attempt_to_generate_slow_db_issue()

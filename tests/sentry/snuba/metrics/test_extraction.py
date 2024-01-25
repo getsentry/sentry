@@ -8,6 +8,7 @@ from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     SearchQueryConverter,
     apdex_tag_spec,
+    are_specs_equal,
     cleanup_search_query,
     failure_tag_spec,
     query_tokens_to_string,
@@ -15,6 +16,15 @@ from sentry.snuba.metrics.extraction import (
     to_standard_metrics_query,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
+
+
+@django_db_all
+def test_equality_of_specs(default_project) -> None:
+    spec_1 = OnDemandMetricSpec("count()", "issue:FOO", groupbys=["release", "country_code"])
+    spec_2 = OnDemandMetricSpec("count()", "issue:FOO", groupbys=["country_code", "release"])
+    assert are_specs_equal(
+        spec_1.to_metric_spec(default_project), spec_2.to_metric_spec(default_project)
+    )
 
 
 @pytest.mark.parametrize(
@@ -571,11 +581,28 @@ def test_spec_with_unknown_error_status() -> None:
     }
 
 
-def test_spec_ignore_fields() -> None:
-    with_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
-    without_ignored_field = OnDemandMetricSpec("count()", "transaction.duration:>=1")
+def test_spec_ignore_project() -> None:
+    with_project = OnDemandMetricSpec("count()", "transaction.duration:>=1 project:sentry")
+    without_project = OnDemandMetricSpec("count()", "transaction.duration:>=1")
 
-    assert with_ignored_field.condition == without_ignored_field.condition
+    assert with_project.condition == without_project.condition
+
+
+def test_spec_ignore_timestamp() -> None:
+    with_timestamp_to_hour = OnDemandMetricSpec(
+        "count()", "transaction.duration:>=1 timestamp.to_hour:-1h"
+    )
+    with_timestamp_to_day = OnDemandMetricSpec(
+        "count()", "transaction.duration:>=1 timestamp.to_day:-1d"
+    )
+
+    without_timestamp = OnDemandMetricSpec("count()", "transaction.duration:>=1")
+
+    assert (
+        with_timestamp_to_hour.condition
+        == with_timestamp_to_day.condition
+        == without_timestamp.condition
+    )
 
 
 @django_db_all

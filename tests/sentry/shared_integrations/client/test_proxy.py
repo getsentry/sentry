@@ -173,7 +173,7 @@ class IntegrationProxyClientTest(TestCase):
 
         client.get(f"{self.base_url}/some/endpoint", params={"query": 1, "user": "me"})
         assert mock_session_send.call_count == 1
-        assert mock_session_send.mock_calls[0].kwargs["timeout"] == 20
+        assert mock_session_send.mock_calls[0].kwargs["timeout"] == 10
 
 
 def test_get_control_silo_ip_address():

@@ -6,13 +6,13 @@ import type {
   AsyncComponentState,
 } from 'sentry/components/deprecatedAsyncComponent';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import InviteMembersModalView from 'sentry/components/modals/inviteMembersModal/inviteMembersModalview';
 import {
   InviteRow,
   InviteStatus,
   NormalizedInvite,
 } from 'sentry/components/modals/inviteMembersModal/types';
+import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -33,16 +33,6 @@ interface State extends AsyncComponentState {
 }
 
 const DEFAULT_ROLE = 'member';
-
-export const InviteModalHook = HookOrDefault({
-  hookName: 'member-invite-modal:customization',
-  defaultComponent: ({onSendInvites, children}) =>
-    children({sendInvites: onSendInvites, canSend: true}),
-});
-
-export type InviteModalRenderFunc = React.ComponentProps<
-  typeof InviteModalHook
->['children'];
 
 class InviteMembersModal extends DeprecatedAsyncComponent<
   InviteMembersModalProps,
