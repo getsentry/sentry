@@ -559,7 +559,7 @@ def augment_transactions_with_spans(
     # a trace.
     spans_params = params.copy()
     spans_params["project_objects"] = [p for p in params["project_objects"] if p.id in projects]
-    spans_params["project_id"] = list(projects)
+    spans_params["project_id"] = list(projects.union(set(problem_project_map.keys())))
 
     parents_results = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
