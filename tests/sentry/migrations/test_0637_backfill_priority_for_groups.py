@@ -22,35 +22,37 @@ class BackfillGroupPriority(TestMigrations):
         self._create_groups_to_backfill(self.project)
 
     def test(self):
-        for desc, group in self.high_priority_groups:
-            group.refresh_from_db()
-            assert group.priority == PriorityLevel.HIGH, desc
-            # assert group.data["metadata"]["initial_priority"] == PriorityLevel.HIGH
+        for groups, expected_priority in (
+            (self.high_priority_groups, PriorityLevel.HIGH),
+            (self.medium_priority_groups, PriorityLevel.MEDIUM),
+            (self.low_priority_groups, PriorityLevel.LOW),
+        ):
+            for desc, group in groups:
+                group.refresh_from_db()
+                assert group.priority == expected_priority, desc
+                if desc.startswith("existing"):
+                    continue
 
-        for desc, group in self.medium_priority_groups:
-            group.refresh_from_db()
-            assert group.priority == PriorityLevel.MEDIUM, desc
-            # assert group.data["metadata"]["initial_priority"] == PriorityLevel.MEDIUM
-
-        for desc, group in self.low_priority_groups:
-            group.refresh_from_db()
-            assert group.priority == PriorityLevel.LOW, desc
-            # assert group.data["metadata"]["initial_priority"] == PriorityLevel.LOW
+                assert group.data.get("metadata")["initial_priority"] == expected_priority
 
     def _create_groups_to_backfill(self, project: Project) -> None:
         data = [
             # groups with priority remain unchanged, even if escalating.
             (
-                "existing high priority",
-                {"priority": PriorityLevel.HIGH},
-                PriorityLevel.HIGH,
+                "existing low priority",
+                {
+                    "priority": PriorityLevel.LOW,
+                    "data": {"metadata": {"initial_priority": PriorityLevel.LOW}},
+                },
+                PriorityLevel.LOW,
             ),
             (
-                "existing low priority",
+                "existing low priority with escalation",
                 {
                     "priority": PriorityLevel.LOW,
                     "status": GroupStatus.UNRESOLVED,
                     "substatus": GroupSubStatus.ESCALATING,
+                    "data": {"metadata": {"initial_priority": PriorityLevel.LOW}},
                 },
                 PriorityLevel.LOW,
             ),
