@@ -89,7 +89,7 @@ describe('Issues Similar View', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(screen.getByText('Show 3 issues below threshold')).toBeInTheDocument();
-  
+
     expect(screen.queryByText('Would Group')).not.toBeInTheDocument();
   });
 
