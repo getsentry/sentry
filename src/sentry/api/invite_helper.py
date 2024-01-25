@@ -221,10 +221,11 @@ class ApiInviteHelper:
 
         if self.member_already_exists:
             self.handle_member_already_exists()
-            organization_service.delete_organization_member(
-                organization_member_id=self.invite_context.invite_organization_member_id,
-                organization_id=self.invite_context.organization.id,
-            )
+            if self.invite_context.invite_organization_member_id is not None:
+                organization_service.delete_organization_member(
+                    organization_member_id=self.invite_context.invite_organization_member_id,
+                    organization_id=self.invite_context.organization.id,
+                )
             return None
 
         try:
