@@ -4,7 +4,6 @@ import pytest
 from django.http import HttpRequest
 
 from sentry.api.invite_helper import ApiInviteHelper
-from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import receivers_raise_on_send
@@ -27,8 +26,9 @@ class ApiInviteHelperTest(TestCase):
             organization=self.org,
             teams=[self.team],
         )
-        self.auth_provider_inst = AuthProvider(
-            provider="Friendly IdP", organization_id=self.organization.id
+        self.auth_provider = self.create_auth_provider(
+            organization_id=self.organization.id,
+            provider="Friendly IdP",
         )
 
         self.request = HttpRequest()
@@ -99,8 +99,8 @@ class ApiInviteHelperTest(TestCase):
     @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
     @patch("sentry.api.invite_helper.AuthProvider.objects")
     def test_accept_invite_with_SSO(self, mock_provider, get_audit, create_audit):
-        self.auth_provider_inst.flags.allow_unlinked = True
-        mock_provider.get.return_value = self.auth_provider_inst
+        self.auth_provider.flags.allow_unlinked = True
+        mock_provider.get.return_value = self.auth_provider
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
@@ -127,8 +127,8 @@ class ApiInviteHelperTest(TestCase):
     @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
     @patch("sentry.api.invite_helper.AuthProvider.objects")
     def test_accept_invite_with_required_SSO(self, mock_provider, get_audit, create_audit):
-        self.auth_provider_inst.flags.allow_unlinked = False
-        mock_provider.get.return_value = self.auth_provider_inst
+        self.auth_provider.flags.allow_unlinked = False
+        mock_provider.get.return_value = self.auth_provider
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
@@ -158,8 +158,8 @@ class ApiInviteHelperTest(TestCase):
     def test_accept_invite_with_required_SSO_with_identity(
         self, mock_identity, mock_provider, get_audit, create_audit
     ):
-        self.auth_provider_inst.flags.allow_unlinked = False
-        mock_provider.get.return_value = self.auth_provider_inst
+        self.auth_provider.flags.allow_unlinked = False
+        mock_provider.get.return_value = self.auth_provider
         mock_identity.exists.return_value = True
 
         om = OrganizationMember.objects.get(id=self.member.id)
