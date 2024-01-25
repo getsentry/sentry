@@ -7,6 +7,7 @@ import {Group, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
+import {TraceTimeline} from 'sentry/views/issueDetails/quickTrace/traceTimeline';
 
 type GroupEventHeaderProps = {
   event: Event;
@@ -24,6 +25,7 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
         project={project}
         organization={organization}
       />
+      <TraceTimeline event={event} />
     </DataSection>
   );
 }
