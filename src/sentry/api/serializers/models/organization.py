@@ -16,6 +16,7 @@ from typing import (
     cast,
 )
 
+import sentry_sdk
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
@@ -271,24 +272,28 @@ class OrganizationSerializer(Serializer):
         ]
         feature_list = set()
 
-        # Check features in batch using the entity handler
-        batch_features = features.batch_has(org_features, actor=user, organization=obj)
+        with sentry_sdk.start_span(op="features.check", description="check batch features"):
+            # Check features in batch using the entity handler
+            batch_features = features.batch_has(org_features, actor=user, organization=obj)
 
-        # batch_has has found some features
-        if batch_features:
-            for feature_name, active in batch_features.get(f"organization:{obj.id}", {}).items():
-                if active:
-                    # Remove organization prefix
+            # batch_has has found some features
+            if batch_features:
+                for feature_name, active in batch_features.get(
+                    f"organization:{obj.id}", {}
+                ).items():
+                    if active:
+                        # Remove organization prefix
+                        feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+
+                    # This feature_name was found via `batch_has`, don't check again using `has`
+                    org_features.remove(feature_name)
+
+        with sentry_sdk.start_span(op="features.check", description="check individual features"):
+            # Remaining features should not be checked via the entity handler
+            for feature_name in org_features:
+                if features.has(feature_name, obj, actor=user, skip_entity=True):
+                    # Remove the organization scope prefix
                     feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
-
-                # This feature_name was found via `batch_has`, don't check again using `has`
-                org_features.remove(feature_name)
-
-        # Remaining features should not be checked via the entity handler
-        for feature_name in org_features:
-            if features.has(feature_name, obj, actor=user, skip_entity=True):
-                # Remove the organization scope prefix
-                feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 
         # Do not include the onboarding feature if OrganizationOptions exist
         if (
