@@ -94,12 +94,15 @@ def build_test_message_blocks(
 
     # add event and user count, state, first seen
     counts_section = {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": f"Events: *1*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
-        },
+        "type": "context",
+        "elements": [
+            {
+                "type": "mrkdwn",
+                "text": f"Events: *1*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
+            }
+        ],
     }
+
     blocks.append(counts_section)
 
     actions: dict[str, Any] = {
