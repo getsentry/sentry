@@ -15,7 +15,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
@@ -492,7 +492,7 @@ def update_groups(
                 group.status = GroupStatus.RESOLVED
                 group.substatus = None
                 group.resolved_at = now
-                if affected:
+                if affected and not options.get("groups.enable-post-update-signal"):
                     post_save.send(
                         sender=Group,
                         instance=group,
