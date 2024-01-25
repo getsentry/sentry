@@ -1256,7 +1256,6 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
         # Because we have two specs we will have two metrics.
         # The second spec includes the environment tag as part of the query hash.
         assert config and config["metrics"] == [
-            # _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
             _metric_spec([{"key": "query_hash", "value": "f1353b0f"}, env_tag]),
             _metric_spec([{"key": "query_hash", "value": "ab3344f4"}, env_tag]),
         ]
@@ -1264,6 +1263,7 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
         create_alert("count()", query, default_project)
         config = get_metric_extraction_config(default_project)
         # The deduplication code picks up the alert spec, thus, the env tag is not included
+        # as in the previous assertion
         assert config and config["metrics"] == [
             _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
             _metric_spec([{"key": "query_hash", "value": "ab3344f4"}]),

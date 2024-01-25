@@ -1180,15 +1180,16 @@ class OnDemandMetricSpec:
     @cached_property
     def _query_str_for_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
-        if self.spec_version.flags == {"include_environment_tag"}:
-            str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()};{self._tag_for_field('environment')}"
-        else:
-            str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()}"
+        str_to_hash = f"{self._field_for_hash()};{self._query_for_hash()}"
 
         if self.groupbys:
             # For compatibility with existing deployed metrics, leave existing hash untouched unless conditions are now
             # included in the spec.
-            return f"{str_to_hash};{self._groupbys_for_hash()}"
+            str_to_hash += f";{self._groupbys_for_hash()}"
+
+            print(self.groupbys)
+            if self.spec_version.flags == {"include_environment_tag"}:
+                str_to_hash += f";{self._tag_for_field('environment')}"
 
         return str_to_hash
 
@@ -1274,11 +1275,11 @@ class OnDemandMetricSpec:
         tag_from_groupbys = self.tags_groupbys(self.groupbys)
         extended_tags_conditions.extend(tag_from_groupbys)
 
-        if (
-            self.spec_type == MetricSpecType.DYNAMIC_QUERY
-            and self._tag_for_field("environment") not in extended_tags_conditions
-        ):
-            extended_tags_conditions.append(self._tag_for_field("environment"))
+        # if (
+        #     self.spec_type == MetricSpecType.DYNAMIC_QUERY
+        #     and self._tag_for_field("environment") not in extended_tags_conditions
+        # ):
+        #     extended_tags_conditions.append(self._tag_for_field("environment"))
 
         metric_spec: MetricSpec = {
             "category": DataCategory.TRANSACTION.api_name(),
