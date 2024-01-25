@@ -537,8 +537,7 @@ class FromRequestTest(AccessFactoryTestCase):
         result = self.from_request(request)
         assert result.has_permission("test.permission")
 
-    @patch("sentry.auth.access.is_active_superuser", return_value=True)
-    def test_superuser_scopes(self, mock_is_active_superuser):
+    def test_superuser_scopes(self):
         # superuser not in organization
         request = self.make_request(user=self.superuser)
 
