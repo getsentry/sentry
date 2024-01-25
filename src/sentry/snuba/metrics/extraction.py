@@ -1139,9 +1139,11 @@ class OnDemandMetricSpec:
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
         # In the previous version we were not including the environment tag in the hash.
         # Including it in the groupsby will include it in the query hash
-        if self.spec_type == MetricSpecType.DYNAMIC_QUERY and self.spec_version.flags == {
-            "include_environment_tag"
-        }:
+        if (
+            self.spec_type == MetricSpecType.DYNAMIC_QUERY
+            and "environment" not in self.groupbys
+            and self.spec_version.flags == {"include_environment_tag"}
+        ):
             # XXX: Should this always be included?
             self.groupbys.append("environment")
         # For now, we just support the environment as extra, but in the future we might need more complex ways to

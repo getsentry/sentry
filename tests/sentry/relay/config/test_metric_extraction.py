@@ -1270,8 +1270,6 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
         assert config and config["metrics"] == [
             _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
             _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
-            # XXX: Fix double env later
-            _metric_spec([{"key": "query_hash", "value": "4242ffd4"}, env_tag, env_tag]),
         ]
 
         create_alert(aggr, query, default_project)
@@ -1280,8 +1278,6 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
         assert config and config["metrics"] == [
             _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
             _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
-            # XXX: Fix double env later
-            _metric_spec([{"key": "query_hash", "value": "4242ffd4"}, env_tag, env_tag]),
         ]
 
 
