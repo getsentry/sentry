@@ -396,7 +396,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         for model in model_iterator:
             # Ignore some native Django models, since other models don't reference them and we don't
             # really use them for business logic.
-            if model._meta.app_label in {"sessions", "sites"}:
+            if model._meta.app_label in {"sessions", "sites", "test"}:
                 continue
 
             foreign_keys: dict[str, ForeignField] = dict()
