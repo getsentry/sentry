@@ -16,7 +16,7 @@ describe('Sentry Application Details', function () {
   let createAppRequest;
   let editAppRequest;
 
-  const maskedValue = 'sntrys_************oken';
+  const maskedValue = '************oken';
 
   const router = RouterFixture();
 
