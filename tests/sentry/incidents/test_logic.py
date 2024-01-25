@@ -1220,13 +1220,13 @@ class DeleteAlertRuleTriggerTest(TestCase):
         )
         trigger_id = trigger.id
         assert AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger=trigger, query_subscription__project=self.project
+            alert_rule_trigger=trigger_id, query_subscription__project=self.project
         ).exists()
         delete_alert_rule_trigger(trigger)
 
         assert not AlertRuleTrigger.objects.filter(id=trigger_id).exists()
         assert not AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger=trigger, query_subscription__project=self.project
+            alert_rule_trigger=trigger_id, query_subscription__project=self.project
         ).exists()
 
 
