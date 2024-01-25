@@ -51,9 +51,9 @@ jest.mock('lodash/debounce', () =>
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest.mock('sentry/utils/withOrganization');
-jest
-  .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
-  .mockImplementation(props => props.children as ReactElement);
+// jest
+//   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
+//   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
 jest.mock('react-router', function reactRouterMockFactory() {
   const ReactRouter = jest.requireActual('react-router');
