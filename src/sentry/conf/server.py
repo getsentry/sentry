@@ -677,6 +677,9 @@ RPC_SHARED_SECRET: list[str] | None = None
 # Timeout for RPC requests between regions
 RPC_TIMEOUT = 5.0
 
+# Shared secret used to sign cross-region RPC requests with the seer microservice.
+SEER_RPC_SHARED_SECRET: list[str] | None = None
+
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
@@ -733,6 +736,7 @@ CELERY_IMPORTS = (
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks",
+    "sentry.tasks.ai_autofix",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -1957,6 +1961,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
+    # Enable AI Autofix feture on the Issue Details page.
+    "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Workflow 2.0 Auto associate commits to commit sha release
@@ -3723,6 +3729,8 @@ SEVERITY_DETECTION_URL = ANOMALY_DETECTION_URL
 SEVERITY_DETECTION_TIMEOUT = 0.3  # 300 milliseconds
 SEVERITY_DETECTION_RETRIES = 1
 
+AI_AUTOFIX_URL = SEVERITY_DETECTION_URL
+
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
@@ -4039,6 +4047,7 @@ if SILO_DEVSERVER:
         "a-long-value-that-is-shared-but-also-secret",
     ]
     RPC_TIMEOUT = 15.0
+    SEER_RPC_SHARED_SECRET = ["seers-also-very-long-value-haha"]
 
     # Key for signing integration proxy requests.
     SENTRY_SUBNET_SECRET = "secret-subnet-signature"
