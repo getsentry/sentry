@@ -17,7 +17,7 @@ from sentry.services.hybrid_cloud.user import (
     UserSerializeType,
     UserUpdateArgs,
 )
-from sentry.services.hybrid_cloud.user.model import RpcVerifyUserEmail, UserIdEmailArgs
+from sentry.services.hybrid_cloud.user.model import RpcAvatar, RpcVerifyUserEmail, UserIdEmailArgs
 from sentry.silo import SiloMode
 
 
@@ -185,6 +185,11 @@ class UserService(RpcService):
     def verify_user_emails(
         self, *, user_id_emails: List[UserIdEmailArgs]
     ) -> Dict[int, RpcVerifyUserEmail]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_user_avatar(self, *, user_id: int) -> RpcAvatar | None:
         pass
 
 
