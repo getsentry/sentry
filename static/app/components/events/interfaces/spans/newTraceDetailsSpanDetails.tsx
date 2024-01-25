@@ -560,7 +560,10 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
             </tbody>
           </table>
           {span._metrics_summary ? (
-            <CustomMetricsEventData metricsSummary={span._metrics_summary} />
+            <CustomMetricsEventData
+              metricsSummary={span._metrics_summary}
+              startTimestamp={span.start_timestamp}
+            />
           ) : null}
         </SpanDetails>
       </Fragment>

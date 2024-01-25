@@ -582,7 +582,10 @@ function SpanDetail(props: Props) {
             </tbody>
           </table>
           {span._metrics_summary && (
-            <CustomMetricsEventData metricsSummary={span._metrics_summary} />
+            <CustomMetricsEventData
+              metricsSummary={span._metrics_summary}
+              startTimestamp={span.start_timestamp}
+            />
           )}
         </SpanDetails>
       </Fragment>

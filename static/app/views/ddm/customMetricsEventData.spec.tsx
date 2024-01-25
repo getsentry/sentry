@@ -21,16 +21,22 @@ describe('CustomMetricsEventData', () => {
       ],
     };
     const {container} = render(
-      <CustomMetricsEventData metricsSummary={metricsSummary} />
+      <CustomMetricsEventData
+        metricsSummary={metricsSummary}
+        startTimestamp={1706189398.176}
+      />
     );
     expect(container).toBeEmptyDOMElement();
   });
 
   it('renders empty (no data)', () => {
     const organization = OrganizationFixture({features: ['ddm-ui']});
-    const {container} = render(<CustomMetricsEventData metricsSummary={{}} />, {
-      organization,
-    });
+    const {container} = render(
+      <CustomMetricsEventData metricsSummary={{}} startTimestamp={1706189398.176} />,
+      {
+        organization,
+      }
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -50,9 +56,15 @@ describe('CustomMetricsEventData', () => {
       ],
     };
 
-    render(<CustomMetricsEventData metricsSummary={metricsSummary} />, {
-      organization,
-    });
+    render(
+      <CustomMetricsEventData
+        metricsSummary={metricsSummary}
+        startTimestamp={1706189398.176}
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 
@@ -89,9 +101,15 @@ describe('CustomMetricsEventData', () => {
       ],
     };
 
-    render(<CustomMetricsEventData metricsSummary={metricsSummary} />, {
-      organization,
-    });
+    render(
+      <CustomMetricsEventData
+        metricsSummary={metricsSummary}
+        startTimestamp={1706189398.176}
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 
@@ -101,7 +119,6 @@ describe('CustomMetricsEventData', () => {
 
     expect(screen.getByText('Stats')).toBeInTheDocument();
     expect(screen.getByText(/Type: distribution/)).toBeInTheDocument();
-    expect(screen.getByText(/Count: 1/)).toBeInTheDocument();
     expect(screen.getByText(/Value: 2s/)).toBeInTheDocument();
 
     expect(screen.getByText('Tags')).toBeInTheDocument();
@@ -125,9 +142,15 @@ describe('CustomMetricsEventData', () => {
       ],
     };
 
-    render(<CustomMetricsEventData metricsSummary={metricsSummary} />, {
-      organization,
-    });
+    render(
+      <CustomMetricsEventData
+        metricsSummary={metricsSummary}
+        startTimestamp={1706189398.176}
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 
@@ -158,9 +181,15 @@ describe('CustomMetricsEventData', () => {
       ],
     };
 
-    render(<CustomMetricsEventData metricsSummary={metricsSummary} />, {
-      organization,
-    });
+    render(
+      <CustomMetricsEventData
+        metricsSummary={metricsSummary}
+        startTimestamp={1706189398.176}
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 
@@ -189,9 +218,15 @@ describe('CustomMetricsEventData', () => {
       ],
     };
 
-    render(<CustomMetricsEventData metricsSummary={metricsSummary} />, {
-      organization,
-    });
+    render(
+      <CustomMetricsEventData
+        metricsSummary={metricsSummary}
+        startTimestamp={1706189398.176}
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 
@@ -240,9 +275,15 @@ describe('CustomMetricsEventData', () => {
       ],
     };
 
-    render(<CustomMetricsEventData metricsSummary={metricsSummary} />, {
-      organization,
-    });
+    render(
+      <CustomMetricsEventData
+        metricsSummary={metricsSummary}
+        startTimestamp={1706189398.176}
+      />,
+      {
+        organization,
+      }
+    );
 
     expect(screen.getByText('Emitted Metrics')).toBeInTheDocument();
 

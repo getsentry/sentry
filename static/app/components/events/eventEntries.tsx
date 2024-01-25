@@ -121,7 +121,10 @@ function EventEntries({
       {!isShare && <EventAttachments event={event} projectSlug={projectSlug} />}
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       {event.type === EventOrGroupType.TRANSACTION && event._metrics_summary && (
-        <CustomMetricsEventData metricsSummary={event._metrics_summary} />
+        <CustomMetricsEventData
+          metricsSummary={event._metrics_summary}
+          startTimestamp={event.startTimestamp}
+        />
       )}
       {!isShare && event.groupID && (
         <EventGroupingInfo

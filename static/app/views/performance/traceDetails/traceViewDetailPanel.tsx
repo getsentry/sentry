@@ -463,7 +463,10 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       <EventExtraData event={detail.event} />
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
       {detail.event._metrics_summary ? (
-        <CustomMetricsEventData metricsSummary={detail.event._metrics_summary} />
+        <CustomMetricsEventData
+          metricsSummary={detail.event._metrics_summary}
+          startTimestamp={detail.event.startTimestamp}
+        />
       ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
       {projectSlug && <EventAttachments event={detail.event} projectSlug={projectSlug} />}

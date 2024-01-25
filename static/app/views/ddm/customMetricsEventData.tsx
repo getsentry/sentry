@@ -9,6 +9,7 @@ import {
   MetricsSummaryItem,
 } from 'sentry/components/events/interfaces/spans/types';
 import Link from 'sentry/components/links/link';
+import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -34,13 +35,23 @@ function flattenMetricsSummary(
   );
 }
 
+function tagToQuery(tagKey: string, tagValue: string) {
+  return `${tagKey}:"${tagValue}"`;
+}
+
+const HALF_HOUR_IN_MS = 30 * 60 * 1000;
+
 export function CustomMetricsEventData({
   metricsSummary,
+  startTimestamp,
 }: {
   metricsSummary: MetricsSummary;
+  startTimestamp: number;
 }) {
   const organization = useOrganization();
   const metricsSummaryEntries = flattenMetricsSummary(metricsSummary);
+  const widgetStart = new Date(startTimestamp * 1000 - HALF_HOUR_IN_MS);
+  const widgetEnd = new Date(startTimestamp * 1000 + HALF_HOUR_IN_MS);
 
   if (!hasDDMFeature(organization) || metricsSummaryEntries.length === 0) {
     return null;
@@ -62,11 +73,16 @@ export function CustomMetricsEventData({
                     <LinkButton
                       size="xs"
                       to={getDdmUrl(organization.slug, {
+                        start: normalizeDateTimeString(widgetStart),
+                        end: normalizeDateTimeString(widgetEnd),
                         widgets: [
                           {
                             mri,
                             displayType: MetricDisplayType.LINE,
                             op: getDefaultMetricOp(mri),
+                            query: Object.entries(item.tags ?? {})
+                              .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
+                              .join(' '),
                           },
                         ],
                       })}
@@ -107,24 +123,22 @@ function MetricStats({mri, item}: {item: MetricsSummaryItem; mri: MRI}) {
   // We use formatMetricUsingUnit with unit 'none' to ensure uniform number formatting
   const countLine = t(`Count: %s`, formatMetricUsingUnit(item.count, 'none'));
 
-  const baseStats = (
-    <Fragment>
-      {typeLine}
-      <br />
-      {countLine}
-    </Fragment>
-  );
-
   // For counters the other stats offer little value, so we only show type and count
   if (type === 'c' || !item.count) {
-    return <pre>{baseStats}</pre>;
+    return (
+      <pre>
+        {typeLine}
+        <br />
+        {countLine}
+      </pre>
+    );
   }
 
   // If there is only one value, min, max, avg and sum are all the same
   if (item.count <= 1) {
     return (
       <pre>
-        {baseStats}
+        {typeLine}
         <br />
         {t('Value: %s', formatMetricUsingUnit(item.sum, unit))}
       </pre>
@@ -133,7 +147,9 @@ function MetricStats({mri, item}: {item: MetricsSummaryItem; mri: MRI}) {
 
   return (
     <pre>
-      {baseStats}
+      {typeLine}
+      <br />
+      {countLine}
       <br />
       {t('Sum: %s', formatMetricUsingUnit(item.sum, unit))}
       <br />
@@ -166,7 +182,7 @@ function Tags({
   return (
     <StyledPills>
       {renderedTags.map(([tagKey, tagValue]) => (
-        <Pill key={tagKey} name={tagKey}>
+        <StyledPill key={tagKey} name={tagKey}>
           <Link
             to={getDdmUrl(organization.slug, {
               widgets: [
@@ -174,14 +190,14 @@ function Tags({
                   mri,
                   displayType: MetricDisplayType.LINE,
                   op: getDefaultMetricOp(mri),
-                  query: `${tagKey}:"${tagValue}"`,
+                  query: tagToQuery(tagKey, tagValue),
                 },
               ],
             })}
           >
-            <StyledTextOverflow>{tagValue}</StyledTextOverflow>
+            {tagValue}
           </Link>
-        </Pill>
+        </StyledPill>
       ))}
       {Object.entries(tags).length > 5 && (
         <ShowMore onClick={() => setShowingAll(prev => !prev)}>{renderText}</ShowMore>
@@ -190,12 +206,12 @@ function Tags({
   );
 }
 
-const StyledTextOverflow = styled(TextOverflow)`
-  max-width: 300px;
-`;
-
 const StyledPills = styled(Pills)`
   padding-top: ${space(1)};
+`;
+
+const StyledPill = styled(Pill)`
+  width: min-content;
 `;
 
 const ShowMore = styled('a')`
