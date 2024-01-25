@@ -66,7 +66,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.group import SUBSTATUS_TO_STR
+from sentry.types.group import SUBSTATUS_TO_STR, PriorityLevel
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -149,6 +149,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     statusDetails: GroupStatusDetailsResponseOptional
     isPublic: bool
     platform: str
+    priority: str
     project: GroupProjectResponse
     type: str
     metadata: GroupMetadataResponse
@@ -326,6 +327,7 @@ class GroupSerializerBase(Serializer, ABC):
         self, obj: Group, attrs: MutableMapping[str, Any], user: Any, **kwargs: Any
     ) -> BaseGroupSerializerResponse:
         status_details, status_label = self._get_status(attrs, obj)
+        priority_label = self._get_priority(obj)
         permalink = self._get_permalink(attrs, obj)
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
@@ -343,6 +345,7 @@ class GroupSerializerBase(Serializer, ABC):
             "substatus": SUBSTATUS_TO_STR[obj.substatus] if obj.substatus else None,
             "isPublic": share_id is not None,
             "platform": obj.platform,
+            "priority": priority_label,
             "project": {
                 "id": str(obj.project.id),
                 "name": obj.project.name,
@@ -391,6 +394,16 @@ class GroupSerializerBase(Serializer, ABC):
         if self.collapse is None:
             return False
         return key in self.collapse
+
+    def _get_priority(self, obj: Group) -> str:
+        priority = obj.priority
+        if priority == PriorityLevel.HIGH:
+            priority_label = "high"
+        elif priority == PriorityLevel.MEDIUM:
+            priority_label = "medium"
+        else:
+            priority_label = "low"
+        return priority_label
 
     def _get_status(self, attrs: MutableMapping[str, Any], obj: Group):
         status = obj.status
