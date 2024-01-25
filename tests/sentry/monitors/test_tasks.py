@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, timezone
 from typing import MutableMapping
 from unittest import mock
 
@@ -9,7 +9,7 @@ from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
 from confluent_kafka.admin import PartitionMetadata
 from django.test import override_settings
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.constants import ObjectStatus
 from sentry.monitors.models import (
@@ -39,7 +39,7 @@ def make_ref_time(**kwargs):
     """
     tz_name = kwargs.pop("timezone", "UTC")
 
-    ts = timezone.now().replace(**kwargs, tzinfo=None)
+    ts = django_timezone.now().replace(**kwargs, tzinfo=None)
     ts = pytz.timezone(tz_name).localize(ts)
 
     # Typically the task will not run exactly on the minute, but it will
@@ -1026,7 +1026,7 @@ def test_clock_pulse(checkin_producer_mock):
 
 @mock.patch("sentry.monitors.tasks._dispatch_tasks")
 def test_monitor_task_trigger(dispatch_tasks):
-    now = timezone.now().replace(second=0, microsecond=0)
+    now = django_timezone.now().replace(second=0, microsecond=0)
 
     # Assumes a single partition for simplicitly. Multi-partition cases are
     # covered in further test cases.
@@ -1062,7 +1062,7 @@ def test_monitor_task_trigger_partition_desync(dispatch_tasks):
     timestamps in a non-monotonic order. In this scenario we want to make
     sure we still only trigger once
     """
-    now = timezone.now().replace(second=0, microsecond=0)
+    now = django_timezone.now().replace(second=0, microsecond=0)
 
     # First message in partition 0 with timestamp just after the minute
     # boundary triggers the task
@@ -1092,7 +1092,7 @@ def test_monitor_task_trigger_partition_sync(dispatch_tasks):
     When the kafka topic has multiple partitions we want to only tick our clock
     forward once all partitions have caught up. This test simulates that
     """
-    now = timezone.now().replace(second=0, microsecond=0)
+    now = django_timezone.now().replace(second=0, microsecond=0)
 
     # Tick for 4 partitions
     try_monitor_tasks_trigger(ts=now, partition=0)
@@ -1120,7 +1120,7 @@ def test_monitor_task_trigger_partition_tick_skip(dispatch_tasks):
     In a scenario where all partitions move multiple ticks past the slowest
     partition we may end up skipping a tick.
     """
-    now = timezone.now().replace(second=0, microsecond=0)
+    now = django_timezone.now().replace(second=0, microsecond=0)
 
     # Tick for 4 partitions
     try_monitor_tasks_trigger(ts=now, partition=0)

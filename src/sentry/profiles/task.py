@@ -79,6 +79,12 @@ def process_profile_task(
 
     assert profile is not None
 
+    if not sampled:
+        metrics.incr(
+            "process_profile.unsampled_profiles",
+            tags={"platform": profile["platform"]},
+        )
+
     organization = Organization.objects.get_from_cache(id=profile["organization_id"])
 
     sentry_sdk.set_tag("organization", organization.id)
