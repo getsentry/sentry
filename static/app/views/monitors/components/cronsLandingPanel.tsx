@@ -9,10 +9,14 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {ProjectKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import MonitorCreateForm from 'sentry/views/monitors/components/monitorCreateForm';
 
 import {
@@ -126,6 +130,22 @@ export function CronsLandingPanel() {
   const location = useLocation();
   const platform = decodeScalar(location.query?.platform) ?? null;
   const guide = decodeScalar(location.query?.guide);
+  const {
+    selection: {projects: selectedProjects},
+  } = usePageFilters();
+
+  const {projects} = useProjects();
+  const projectSlug =
+    selectedProjects.length === 1 &&
+    projects.find(project => project.id === String(selectedProjects[0]))?.slug;
+
+  const {data: projectKeys} = useApiQuery<Array<ProjectKey>>(
+    [`/projects/${organization.slug}/${projectSlug}/keys/`],
+    {
+      staleTime: Infinity,
+      enabled: !!projectSlug,
+    }
+  );
 
   useEffect(() => {
     if (!platform || !guide) {
@@ -198,7 +218,7 @@ export function CronsLandingPanel() {
               ...guides.map(({key, Guide}) => (
                 <TabPanels.Item key={key}>
                   <GuideContainer>
-                    <Guide />
+                    <Guide dsnKey={projectKeys?.[0].public ?? undefined} />
                   </GuideContainer>
                 </TabPanels.Item>
               )),
