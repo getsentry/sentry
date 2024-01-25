@@ -429,16 +429,28 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def get_integration_external_project(
         self, *, organization_id: int, integration_id: int, external_id: str
     ) -> RpcIntegrationExternalProject | None:
-        external_project = IntegrationExternalProject.objects.filter(
+        external_projects = self.get_integration_external_projects(
+            organization_id=organization_id,
+            integration_id=integration_id,
             external_id=external_id,
-            organization_integration_id__in=OrganizationIntegration.objects.filter(
-                organization_id=organization_id,
-                integration_id=integration_id,
-            ),
+        )
+        return external_projects[0] if len(external_projects) > 0 else None
+
+    def get_integration_external_projects(
+        self, *, organization_id: int, integration_id: int, external_id: str | None = None
+    ) -> List[RpcIntegrationExternalProject]:
+        oi = OrganizationIntegration.objects.filter(
+            organization_id=organization_id,
+            integration_id=integration_id,
         ).first()
-        if external_project is None:
-            return None
-        return serialize_integration_external_project(external_project)
+        if not oi:
+            return []
+
+        iep_kwargs = {"organization_integration_id": oi.id}
+        if external_id is not None:
+            iep_kwargs["external_id"] = external_id
+        external_projects = IntegrationExternalProject.objects.filter(**iep_kwargs)
+        return [serialize_integration_external_project(iep) for iep in external_projects]
 
     def get_integration_identity_context(
         self,
