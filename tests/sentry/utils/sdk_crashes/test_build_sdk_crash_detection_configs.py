@@ -23,7 +23,7 @@ def test_build_sdk_crash_detection_configs():
     assert cocoa_config.sdk_name == SdkName.Cocoa
     assert cocoa_config.project_id == 1
     assert cocoa_config.sample_rate == 0.1
-    assert cocoa_config.organization_allowlist is None
+    assert cocoa_config.organization_allowlist == []
 
     react_native_config = configs[1]
     assert react_native_config.sdk_name == SdkName.ReactNative

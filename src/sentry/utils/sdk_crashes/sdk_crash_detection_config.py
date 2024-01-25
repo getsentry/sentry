@@ -38,8 +38,8 @@ class SDKCrashDetectionConfig:
     project_id: int
     """The percentage of events to sample. 0.0 = 0%, 0.5 = 50% 1.0 = 100%."""
     sample_rate: float
-    """The organization allowlist to detect crashes for. If None, all organizations are allowed."""
-    organization_allowlist: Optional[list[int]]
+    """The organization allowlist to detect crashes for. If empty, all organizations are allowed. Use the sample_rate to disable the SDK crash detection for all organizations."""
+    organization_allowlist: list[int]
     """The SDK names to detect crashes for. For example, ["sentry.cocoa", "sentry.cocoa.react-native"]."""
     sdk_names: Sequence[str]
     """The minimum SDK version to detect crashes for. For example, "8.2.0"."""
@@ -55,7 +55,7 @@ class SDKCrashDetectionConfig:
 class SDKCrashDetectionOptions(TypedDict):
     project_id: int
     sample_rate: float
-    organization_allowlist: Optional[list[int]]
+    organization_allowlist: list[int]
 
 
 def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
@@ -167,7 +167,7 @@ def _get_options(
     if not sample_rate:
         return None
 
-    organization_allowlist: Optional[list[int]] = None
+    organization_allowlist: list[int] = []
     if has_organization_allowlist:
         organization_allowlist = options.get(f"{options_prefix}.organization_allowlist")
 
