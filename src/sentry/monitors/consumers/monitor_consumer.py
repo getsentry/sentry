@@ -51,7 +51,7 @@ from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
 
-CHECKIN_QUOTA_LIMIT = 5
+CHECKIN_QUOTA_LIMIT = 6
 CHECKIN_QUOTA_WINDOW = 60
 
 
@@ -155,16 +155,15 @@ def check_killswitch(
     return is_blocked
 
 
-def check_ratelimit(
-    metric_kwargs: Dict,
-    project: Project,
-    monitor_slug: str,
-    environment: str | None,
-):
+def check_ratelimit(metric_kwargs: Dict, item: CheckinItem):
     """
     Enforce check-in rate limits. Returns True if rate limit is enforced.
     """
-    ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
+    # Use the kafka message timestamp as part of the key to ensure we do not
+    # rate-limit during backlog processing.
+    ts = item.ts.replace(second=0, microsecond=0)
+
+    ratelimit_key = f"{item.processing_key}:{ts}"
 
     is_blocked = ratelimits.backend.is_limited(
         f"monitor-checkins:{ratelimit_key}",
@@ -342,7 +341,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         )
         return
 
-    if check_ratelimit(metric_kwargs, project, monitor_slug, environment):
+    if check_ratelimit(metric_kwargs, item):
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -784,7 +783,7 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
     and group them together by monitor ID (ensuring order is preserved) and
     execute each group using a ThreadPoolWorker.
 
-    By batching we're able to process check-ins in paralell while guaranteeing
+    By batching we're able to process check-ins in parallel while guaranteeing
     that no check-ins are processed out of order per monitor environment.
     """
     batch = message.payload
@@ -861,13 +860,13 @@ def process_single(message: Message[KafkaPayload]):
 
 
 class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    paralell = False
+    parallel = False
     """
-    Does the consumer process unrelated check-ins in paralell?
+    Does the consumer process unrelated check-ins in parallel?
     """
 
-    def __init__(self, paralell=False) -> None:
-        self.paralell = paralell
+    def __init__(self, parallel=False) -> None:
+        self.parallel = parallel
 
     def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         batch_processor = RunTask(
@@ -891,7 +890,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        if self.paralell:
+        if self.parallel:
             return self.create_paralell_worker(commit)
         else:
             return self.create_synchronous_worker(commit)

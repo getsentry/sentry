@@ -36,6 +36,7 @@ type ChartProps = {
   widgetIndex: number;
   addFocusArea?: (area: FocusArea) => void;
   correlations?: MetricCorrelation[];
+  drawFocusArea?: () => void;
   height?: number;
   highlightedSampleId?: string;
   onSampleClick?: (sample: Sample) => void;
@@ -55,6 +56,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       displayType,
       operation,
       widgetIndex,
+      drawFocusArea,
       addFocusArea,
       focusArea,
       removeFocusArea,
@@ -75,19 +77,19 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       },
       [router]
     );
-
-    const focusAreaBrush = useFocusArea(
+    const focusAreaBrush = useFocusArea({
       chartRef,
       focusArea,
-      {
+      opts: {
         widgetIndex,
         isDisabled: !addFocusArea || !removeFocusArea || !handleZoom,
         useFullYAxis: isCumulativeOp(operation),
       },
-      addFocusArea,
-      removeFocusArea,
-      handleZoom
-    );
+      onDraw: drawFocusArea,
+      onAdd: addFocusArea,
+      onRemove: removeFocusArea,
+      onZoom: handleZoom,
+    });
 
     useEffect(() => {
       const echartsInstance = chartRef?.current?.getEchartsInstance();
@@ -141,6 +143,10 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
 
       const heightOptions = height ? {height} : {autoHeightResize: true};
 
+      const onClick = focusAreaBrush.isDrawingRef.current
+        ? undefined
+        : samples.handleClick;
+
       return {
         ...heightOptions,
         ...focusAreaBrush.options,
@@ -151,7 +157,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 5, bottom: 0, left: 0, right: 0},
-        onClick: samples.handleClick,
+        onClick,
         tooltip: {
           formatter: (params, asyncTicket) => {
             if (focusAreaBrush.isDrawingRef.current) {

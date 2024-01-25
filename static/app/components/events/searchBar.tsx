@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
@@ -220,8 +219,7 @@ function SearchBar(props: SearchBarProps) {
         // allows searching for tags on sessions as well
         includeSessions: includeSessionTagsValues,
       }).then(
-        results =>
-          flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
+        results => results.filter(({name}) => defined(name)).map(({name}) => name),
         () => {
           throw new Error('Unable to fetch event field values');
         }

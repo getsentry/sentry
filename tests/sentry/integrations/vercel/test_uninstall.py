@@ -60,6 +60,7 @@ POST_DELETE_RESPONSE_NEW = """{
 }"""
 
 
+@control_silo_test
 class VercelUninstallTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/vercel/delete/"

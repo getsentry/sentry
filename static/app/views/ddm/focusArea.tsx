@@ -43,19 +43,29 @@ interface UseFocusAreaOptions {
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
 
-export function useFocusArea(
-  chartRef: RefObject<ReactEchartsRef>,
-  focusArea: FocusArea | null,
-  {widgetIndex, isDisabled = false, useFullYAxis = false}: UseFocusAreaOptions,
-  onAdd: (area: FocusArea) => void = () => {},
-  onRemove: () => void = () => {},
-  onZoom: (range: DateTimeObject) => void = () => {}
-) {
+type UseFocusAreaProps = {
+  chartRef: RefObject<ReactEchartsRef>;
+  focusArea: FocusArea | null;
+  opts: UseFocusAreaOptions;
+  onAdd?: (area: FocusArea) => void;
+  onDraw?: () => void;
+  onRemove?: () => void;
+  onZoom?: (range: DateTimeObject) => void;
+};
+
+export function useFocusArea({
+  chartRef,
+  focusArea,
+  opts: {widgetIndex, isDisabled, useFullYAxis},
+  onAdd,
+  onDraw,
+  onRemove,
+  onZoom,
+}: UseFocusAreaProps) {
   const hasFocusArea = useMemo(
     () => focusArea && focusArea.widgetIndex === widgetIndex,
     [focusArea, widgetIndex]
   );
-
   const isDrawingRef = useRef(false);
 
   const theme = useTheme();
@@ -64,6 +74,7 @@ export function useFocusArea(
     if (hasFocusArea || isDisabled) {
       return;
     }
+    onDraw?.();
 
     chartRef.current?.getEchartsInstance().dispatchAction({
       type: 'takeGlobalCursor',
@@ -73,7 +84,7 @@ export function useFocusArea(
       },
     });
     isDrawingRef.current = true;
-  }, [chartRef, hasFocusArea, isDisabled]);
+  }, [chartRef, hasFocusArea, isDisabled, onDraw]);
 
   useEffect(() => {
     const handleMouseDown = event => {
@@ -101,9 +112,9 @@ export function useFocusArea(
         return;
       }
 
-      onAdd({
+      onAdd?.({
         widgetIndex,
-        range: getMetricRange(brushEnd, useFullYAxis),
+        range: getMetricRange(brushEnd, !!useFullYAxis),
       });
 
       // Remove brush from echarts immediately after adding the focus area
@@ -120,11 +131,11 @@ export function useFocusArea(
   );
 
   const handleRemove = useCallback(() => {
-    onRemove();
+    onRemove?.();
   }, [onRemove]);
 
   const handleZoomIn = useCallback(() => {
-    onZoom({
+    onZoom?.({
       period: null,
       ...focusArea?.range,
     });
@@ -164,7 +175,7 @@ export function useFocusArea(
           onRemove={handleRemove}
           onZoom={handleZoomIn}
           chartRef={chartRef}
-          useFullYAxis={useFullYAxis}
+          useFullYAxis={!!useFullYAxis}
         />
       ),
       isDrawingRef,

@@ -21,6 +21,7 @@ from snuba_sdk import (
 )
 from snuba_sdk import Request as SnubaRequest
 
+from sentry import features
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -40,8 +41,8 @@ from sentry.tasks.integrations.github.constants import (
     RATE_LIMITED_MESSAGE,
     STACKFRAME_COUNT,
 )
-from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
-from sentry.tasks.integrations.github.pr_comment import format_comment_url, get_pr_comment
+from sentry.tasks.integrations.github.language_parsers import BETA_PATCH_PARSERS, PATCH_PARSERS
+from sentry.tasks.integrations.github.pr_comment import format_comment_url
 from sentry.tasks.integrations.github.utils import (
     GithubAPIErrorType,
     PullRequestFile,
@@ -183,10 +184,21 @@ def safe_for_comment(
     changed_lines_count = 0
     filtered_pr_files = []
 
+    try:
+        organization = Organization.objects.get_from_cache(id=repository.organization_id)
+    except Organization.DoesNotExist:
+        logger.exception("github.open_pr_comment.org_missing")
+        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
+        return []
+
+    patch_parsers = PATCH_PARSERS
+    if features.has("organizations:integrations-open-pr-comment-js", organization):
+        patch_parsers = BETA_PATCH_PARSERS
+
     for file in pr_files:
         filename = file["filename"]
         # don't count the file if it was added or is not a Python file
-        if file["status"] == "added" or filename.split(".")[-1] not in PATCH_PARSERS:
+        if file["status"] == "added" or filename.split(".")[-1] not in patch_parsers:
             continue
 
         changed_file_count += 1
@@ -252,9 +264,18 @@ def get_top_5_issues_by_count_for_file(
     and function names representing the list of functions changed in a PR file, return a
     sublist of the top 5 recent unhandled issues ordered by event count.
     """
+    if not len(projects):
+        return []
+
+    organization = projects[0].organization
+
+    patch_parsers = PATCH_PARSERS
+    if features.has("organizations:integrations-open-pr-comment-js", organization):
+        patch_parsers = BETA_PATCH_PARSERS
+
     # fetches the appropriate parser for formatting the snuba query given the file extension
     # the extension is never replaced in reverse codemapping
-    language_parser = PATCH_PARSERS.get(sentry_filenames[0].split(".")[-1], None)
+    language_parser = patch_parsers.get(sentry_filenames[0].split(".")[-1], None)
 
     if not language_parser:
         return []
@@ -405,6 +426,10 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     issue_table_contents = {}
     top_issues_per_file = []
 
+    patch_parsers = PATCH_PARSERS
+    if features.has("organizations:integrations-open-pr-comment-js", organization):
+        patch_parsers = BETA_PATCH_PARSERS
+
     # fetch issues related to the files
     for file in pullrequest_files:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
@@ -413,8 +438,16 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if not len(projects) or not len(sentry_filenames):
             continue
 
-        language_parser = PATCH_PARSERS.get(file.filename.split(".")[-1], None)
+        file_extension = file.filename.split(".")[-1]
+        language_parser = patch_parsers.get(file.filename.split(".")[-1], None)
         if not language_parser:
+            logger.info(
+                "github.open_pr_comment.missing_parser", extra={"extension": file_extension}
+            )
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(key="missing_parser"),
+                tags={"extension": file_extension},
+            )
             continue
 
         function_names = language_parser.extract_functions_from_patch(file.patch)
@@ -463,11 +496,8 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     issue_list: List[Dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
     issue_id_list: List[int] = [issue["group_id"] for issue in issue_list]
 
-    pr_comment = get_pr_comment(pr_id, comment_type=CommentType.OPEN_PR)
-
     try:
         create_or_update_comment(
-            pr_comment=pr_comment,
             client=client,
             repo=repo,
             pr_key=pull_request.key,
