@@ -473,7 +473,6 @@ export type PluginNoProject = {
   name: string;
   shortName: string;
   slug: string;
-  // TODO(ts)
   status: string;
   type: string;
   altIsSentryApp?: boolean;
@@ -481,6 +480,7 @@ export type PluginNoProject = {
   deprecationDate?: string;
   description?: string;
   firstPartyAlternative?: string;
+  issue?: any; // TODO (ts)
   resourceLinks?: Array<{title: string; url: string}>;
   version?: string;
 };

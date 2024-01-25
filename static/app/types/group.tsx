@@ -1,9 +1,10 @@
+import {TitledPlugin} from 'sentry/components/group/pluginActions';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
-import type {Commit, PullRequest, Repository} from './integrations';
+import type {Commit, ExternalIssue, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
 import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
@@ -715,12 +716,9 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: any[];
-  // TODO(ts)
-  pluginContexts: any[];
-  // TODO(ts)
-  pluginIssues: any[];
-  // TODO(ts)
+  pluginActions: TitledPlugin[];
+  pluginContexts: any[]; // TODO(ts)
+  pluginIssues: TitledPlugin[];
   project: Project;
   seenBy: User[];
   shareId: string;
@@ -732,7 +730,7 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
-  integrationIssues?: any[];
+  integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
   substatus?: GroupSubstatus | null;
@@ -824,7 +822,7 @@ export type ChunkType = {
 };
 
 /**
- * User Feedback
+ * Old User Feedback
  */
 export type UserReport = {
   comments: string;
