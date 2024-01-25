@@ -544,7 +544,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                         function="ifNull",
                         parameters=[
                             Column(
-                                name="tags[transaction.method]",
+                                name="sentry_tags[transaction.method]",
                             ),
                             "",
                         ],
