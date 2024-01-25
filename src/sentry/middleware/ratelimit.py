@@ -96,28 +96,27 @@ class RatelimitMiddleware:
                 )
                 if rate_limit_cond:
                     request.will_be_rate_limited = True
-                    if enforce_rate_limit:
-                        logger.info(
-                            "sentry.api.rate-limit.exceeded",
-                            extra={
-                                "key": request.rate_limit_key,
-                                "url": request.build_absolute_uri(),
-                                "limit": request.rate_limit_metadata.limit,
-                                "window": request.rate_limit_metadata.window,
-                            },
-                        )
-                        response = HttpResponse(
-                            json.dumps(
-                                DEFAULT_ERROR_MESSAGE.format(
-                                    limit=request.rate_limit_metadata.limit,
-                                    window=request.rate_limit_metadata.window,
-                                )
-                            ),
-                            status=429,
-                        )
-                        return apply_cors_headers(
-                            request=request, response=response, allowed_methods=[request.method]
-                        )
+                    logger.info(
+                        "sentry.api.rate-limit.exceeded",
+                        extra={
+                            "key": request.rate_limit_key,
+                            "url": request.build_absolute_uri(),
+                            "limit": request.rate_limit_metadata.limit,
+                            "window": request.rate_limit_metadata.window,
+                        },
+                    )
+                    response = HttpResponse(
+                        json.dumps(
+                            DEFAULT_ERROR_MESSAGE.format(
+                                limit=request.rate_limit_metadata.limit,
+                                window=request.rate_limit_metadata.window,
+                            )
+                        ),
+                        status=429,
+                    )
+                    return apply_cors_headers(
+                        request=request, response=response, allowed_methods=[request.method]
+                    )
             except Exception:
                 logging.exception(
                     "Error during rate limiting, failing open. THIS SHOULD NOT HAPPEN"
