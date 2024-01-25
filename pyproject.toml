@@ -36,7 +36,6 @@ filterwarnings = [
     "ignore:'index_together' is deprecated. Use 'Meta.indexes' in.*",
     "ignore:Passing unsaved model instances to related filters is deprecated.",
     "ignore:The django.utils.timezone.utc alias is deprecated.*",
-    "ignore:django.core.files.storage.get_storage_class is deprecated in favor of using django.core.files.storage.storages.",
 
     # a bunch of google packages use legacy namespace packages
     "ignore:pkg_resources is deprecated as an API",
