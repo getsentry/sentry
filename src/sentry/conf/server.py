@@ -1681,6 +1681,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-extraction-experimental": False,
     # Extract on demand metrics (widget extraction)
     "organizations:on-demand-metrics-extraction-widgets": False,
+    # Signals that the organization supports the on demand metrics prefill.
+    "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
     # Enable the SDK selection feature in the onboarding
