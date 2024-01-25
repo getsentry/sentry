@@ -67,8 +67,6 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
             tags = request.data.get("tags") or []
             unblock_tags_of_metric(metric_mri, set(tags), [project])
 
-        raise InvalidParams(f"The operation {metric_operation_type} can't be handled")
-
     def put(self, request: Request, project: Project) -> Response:
         metric_operation_type = MetricOperationType.from_request(request)
         if not metric_operation_type:
