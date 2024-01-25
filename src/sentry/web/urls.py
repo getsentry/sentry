@@ -1065,7 +1065,7 @@ urlpatterns += [
     re_path(
         r"^robots\.txt$",
         api.robots_txt,
-        name="sentry-api-robots-txt",
+        name="sentry-robots-txt",
     ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without

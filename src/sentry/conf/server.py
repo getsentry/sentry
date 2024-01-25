@@ -3993,6 +3993,9 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-organizations",
     "sentry-api-0-projects",
     "sentry-api-0-accept-project-transfer",
+    "sentry-organization-avatar-url",
+    "sentry-chartcuterie-config",
+    "sentry-robots-txt",
 }
 
 # Shared resource ids for accounting
