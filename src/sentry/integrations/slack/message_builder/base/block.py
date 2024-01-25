@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence,
 
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.dates import to_timestamp
 
 
@@ -95,12 +96,12 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return button
 
     @staticmethod
-    def get_link_button(action: MessageAction, text: str | None = None):
+    def get_link_button(action: MessageAction) -> SlackBlock:
         return {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": text if text else action.label,
+                "text": action.label,
             },
             "accessory": {
                 "type": "button",
