@@ -7,9 +7,7 @@ from psycopg2.extras import execute_values
 
 from sentry.issues.grouptype import (
     GroupCategory,
-    PerformanceDurationRegressionGroupType,
     PerformanceP95EndpointRegressionGroupType,
-    ProfileFunctionRegressionExperimentalType,
     ProfileFunctionRegressionType,
     get_group_type_by_type_id,
 )
@@ -30,7 +28,6 @@ logger = logging.getLogger(__name__)
 
 
 def _get_priority_level(group_id, level, type_id, substatus):
-    # TODO: profiling issues
     group_type = get_group_type_by_type_id(type_id)
 
     # Replay and Feedback issues are medium priority
@@ -58,13 +55,12 @@ def _get_priority_level(group_id, level, type_id, substatus):
 
         return PriorityLevel.HIGH
 
-    if group_type.category == GroupCategory.PERFORMANCE.value:
-        # tbd on the last two
+    # Profiling issues should be treated the same as Performance issues since they are merging
+    if group_type.category in [GroupCategory.PERFORMANCE.value, GroupCategory.PROFILE.value]:
+        # Statistical detectors are medium priority
         if type_id in [
-            PerformanceDurationRegressionGroupType.type_id,
-            PerformanceP95EndpointRegressionGroupType.type_id,
-            ProfileFunctionRegressionExperimentalType.type_id,
             ProfileFunctionRegressionType.type_id,
+            PerformanceP95EndpointRegressionGroupType.type_id,
         ]:
             return PriorityLevel.MEDIUM
         return PriorityLevel.LOW
