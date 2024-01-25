@@ -260,7 +260,7 @@ function RuleListRow({
     label: () => (
       <MenuItemWrapper>
         <StyledIconUser size="md" />
-        {t('Unassigned')}
+        <Label>{t('Unassigned')}</Label>
       </MenuItemWrapper>
     ),
     searchKey: 'unassigned',
@@ -496,8 +496,8 @@ const StyledChevron = styled(IconChevron)`
 `;
 
 const StyledIconUser = styled(IconUser)`
-  /* We need this to center with Avatar */
-  margin-right: 2px;
+  /* This is used to make the default icon the same size */
+  margin: 3px;
 `;
 
 const IconContainer = styled('div')`
