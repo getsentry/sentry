@@ -404,7 +404,9 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     if settings.SENTRY_SELF_HOSTED:
         from sentry import options
 
-        settings.CSRF_TRUSTED_ORIGINS = [options.get("system.url-prefix")]
+        system_url_prefix = options.get("system.url-prefix")
+        if system_url_prefix:
+            settings.CSRF_TRUSTED_ORIGINS = [system_url_prefix]
 
     env.data["config"] = get_sentry_conf()
     env.data["start_date"] = timezone.now()
