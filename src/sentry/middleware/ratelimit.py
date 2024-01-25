@@ -58,6 +58,10 @@ class RatelimitMiddleware:
                 if not view_class:
                     return None
 
+                enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
+                if enforce_rate_limit is False:
+                    return None
+
                 rate_limit_config = get_rate_limit_config(
                     view_class, view_args, {**view_kwargs, "request": request}
                 )
@@ -92,7 +96,6 @@ class RatelimitMiddleware:
                 )
                 if rate_limit_cond:
                     request.will_be_rate_limited = True
-                    enforce_rate_limit = getattr(view_class, "enforce_rate_limit", False)
                     if enforce_rate_limit:
                         logger.info(
                             "sentry.api.rate-limit.exceeded",
