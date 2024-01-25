@@ -71,3 +71,10 @@ class PriorityLevel:
     LOW = 25
     MEDIUM = 50
     HIGH = 75
+
+
+PRIORITY_LEVEL_TO_STR: dict[int, str] = {
+    PriorityLevel.LOW: "low",
+    PriorityLevel.MEDIUM: "medium",
+    PriorityLevel.HIGH: "high",
+}
