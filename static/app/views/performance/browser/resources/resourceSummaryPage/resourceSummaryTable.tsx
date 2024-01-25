@@ -8,6 +8,8 @@ import GridEditable, {
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -145,7 +147,12 @@ function ResourceSummaryTable() {
       if (value === 'non-blocking') {
         return <span>{t('No')}</span>;
       }
-      return <span>{'-'}</span>;
+      return (
+        <span>
+          <Tooltip title="test">{'--'}</Tooltip>
+          <IconQuestion />
+        </span>
+      );
     }
     return <span>{row[key]}</span>;
   };

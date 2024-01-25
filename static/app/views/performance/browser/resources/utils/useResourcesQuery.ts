@@ -151,7 +151,7 @@ export const getDomainFilter = (selectedDomain: string | undefined) => {
 };
 
 const SPAN_OP_FILTER = {
-  [ResourceSpanOps.SCRIPT]: [`${SPAN_OP}:${ResourceSpanOps.SCRIPT}`],
+  [ResourceSpanOps.SCRIPT]: [`${SPAN_OP}:${ResourceSpanOps.LINK}`],
   [ResourceSpanOps.CSS]: [`${FILE_EXTENSION}:css`],
   [ResourceSpanOps.FONT]: [`${FILE_EXTENSION}:[${FONT_FILE_EXTENSIONS.join(',')}]`],
   [ResourceSpanOps.IMAGE]: [

@@ -3,4 +3,5 @@ export enum ResourceSpanOps {
   CSS = 'resource.css',
   FONT = 'resource.font',
   IMAGE = 'resource.img',
+  LINK = 'resource.link',
 }
