@@ -17,7 +17,7 @@ from ..utils import check_signing_secret, logger
 
 
 def _get_field_id_option(data: Mapping[str, Any], field_name: str) -> str | None:
-    id_option: str | None = data.get(f"{field_name}_id") or data.get(field_name, {}).get("id")
+    id_option: str | None = data.get(f"{field_name}_id") or (data.get(field_name) or {}).get("id")
     return id_option
 
 
