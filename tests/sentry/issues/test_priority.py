@@ -86,7 +86,11 @@ class TestUpdatesPriority(TestCase):
         )
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
         self.group.refresh_from_db()
+
         assert self.group.priority == PriorityLevel.LOW
+        self.assert_activity_grouphistory_set(
+            self.group, PriorityLevel.LOW, PriorityChangeReason.ONGOING
+        )
 
     def test_updates_priority_ongoing_multiple_histories(self) -> None:
         self.group = self.create_group(
@@ -112,14 +116,37 @@ class TestUpdatesPriority(TestCase):
         )
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
         assert self.group.priority == PriorityLevel.HIGH
-
-    @patch("sentry.issues.priority.logger.error")
-    def test_updates_priority_ongoing_no_history(self, mock_logger: MagicMock) -> None:
-        self.group = self.create_group(
-            status=GroupStatus.RESOLVED,
-            priority=PriorityLevel.MEDIUM,
+        self.assert_activity_grouphistory_set(
+            self.group, PriorityLevel.HIGH, PriorityChangeReason.ONGOING
         )
 
+    def test_updates_priority_ongoing_no_history(self) -> None:
+        self.group = self.create_group(
+            status=GroupStatus.RESOLVED,
+        )
+        self.group.data.get("metadata", {})["initial_priority"] = PriorityLevel.MEDIUM
+        self.group.save()
+
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
-        mock_logger.assert_called_with("No previous priority history for group %s", self.group.id)
         assert self.group.priority == PriorityLevel.MEDIUM
+        self.assert_activity_grouphistory_set(
+            self.group, PriorityLevel.MEDIUM, PriorityChangeReason.ONGOING
+        )
+
+    @patch("sentry.issues.priority.logger.error")
+    def test_updates_priority_ongoing_no_initial_priority(self, mock_logger: MagicMock) -> None:
+        self.group = self.create_group(
+            status=GroupStatus.RESOLVED,
+        )
+        self.group.data.get("metadata", {})["initial_priority"] = None
+        self.group.save()
+
+        auto_update_priority(self.group, PriorityChangeReason.ONGOING)
+        mock_logger.assert_called_with(
+            "Unable to determine priority for group %s",
+            self.group.id,
+        )
+        assert not self.group.priority
+
+        assert Activity.objects.filter(group=self.group).count() == 0
+        assert GroupHistory.objects.filter(group=self.group).count() == 0

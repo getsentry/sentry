@@ -100,24 +100,30 @@ def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
         .first()
     )
 
-    if previous_priority_history is None:
-        logger.error("No previous priority history for group %s", group.id)
-        return None
+    initial_priority = (
+        group.data.get("metadata", {}).get("initial_priority")
+        if not previous_priority_history
+        else None
+    )
 
-    new_priority = [
-        priority
-        for priority, status in PRIORITY_TO_GROUP_HISTORY_STATUS.items()
-        if status == previous_priority_history.status
-    ]
-    if len(new_priority) != 1:
+    new_priority = (
+        [
+            priority
+            for priority, status in PRIORITY_TO_GROUP_HISTORY_STATUS.items()
+            if status == previous_priority_history.status
+        ][0]
+        if previous_priority_history
+        else initial_priority
+    )
+
+    if not new_priority:
         logger.error(
-            "Unable to determine priority for group %s with status %s",
+            "Unable to determine priority for group %s",
             group.id,
-            previous_priority_history.status,
         )
         return None
 
-    return new_priority[0]
+    return new_priority
 
 
 def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
