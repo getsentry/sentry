@@ -1,7 +1,7 @@
 import sentry_sdk
-from symbolic.proguard import ProguardMapper
 
 from sentry.lang.java.processing import deobfuscate_exception_value
+from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.java.utils import (
     deobfuscate_view_hierarchy,
     get_jvm_images,
@@ -23,6 +23,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
         self.images = get_proguard_images(self.data)
         self.available = len(self.images) > 0
+        self.mapping_views = []
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")
@@ -36,7 +37,6 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             dif_paths = ProjectDebugFile.difcache.fetch_difs(
                 self.project, self.images, features=["mapping"]
             )
-            self.mapping_views = []
 
         for debug_id in self.images:
             error_type = None
@@ -45,12 +45,11 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if dif_path is None:
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
-                with sentry_sdk.start_span(op="proguard.open"):
-                    view = ProguardMapper.open(dif_path)
-                    if not view.has_line_info:
-                        error_type = EventError.PROGUARD_MISSING_LINENO
-                    else:
-                        self.mapping_views.append(view)
+                view = open_proguard_mapper(dif_path)
+                if not view.has_line_info:
+                    error_type = EventError.PROGUARD_MISSING_LINENO
+                else:
+                    self.mapping_views.append(view)
 
             if error_type is None:
                 continue
@@ -72,6 +71,9 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         return True
 
     def process_exception(self, exception):
+        if not self.available:
+            return False
+
         ty = exception.get("type")
         mod = exception.get("module")
         if not ty or not mod:
@@ -92,6 +94,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
         raw_frame = dict(frame)
+        release = super().get_release()
 
         # first, try to remap complete frames
         for view in self.mapping_views:
@@ -113,6 +116,12 @@ class JavaStacktraceProcessor(StacktraceProcessor):
                         frame.pop("filename", None)
                         frame.pop("abs_path", None)
 
+                    # mark the frame as in_app after deobfuscation based on the release package name
+                    # only if it's not present
+                    if release and release.package and frame.get("in_app") is None:
+                        if frame["module"].startswith(release.package):
+                            frame["in_app"] = True
+
                     new_frames.append(frame)
 
                 return new_frames, [raw_frame], []
@@ -124,6 +133,13 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if mapped_class:
                 frame = dict(raw_frame)
                 frame["module"] = mapped_class
+
+                # mark the frame as in_app after deobfuscation based on the release package name
+                # only if it's not present
+                if release and release.package and frame.get("in_app") is None:
+                    if frame["module"].startswith(release.package):
+                        frame["in_app"] = True
+
                 return [frame], [raw_frame], []
 
         return
@@ -136,31 +152,35 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         self.proguard_processor = JavaStacktraceProcessor(*args, **kwargs)
-        self._proguard_processor_handles_frame = None
-        self._handles_frame = None
+        self._proguard_processor_handles_frame = {}
+        self._handles_frame = {}
         self.images = get_jvm_images(self.data)
         self._archives = []
         self.available = len(self.images) > 0
+
+    def _deep_freeze(self, d):
+        if isinstance(d, dict):
+            return frozenset((key, self._deep_freeze(value)) for key, value in d.items())
+        elif isinstance(d, list):
+            return tuple(self._deep_freeze(value) for value in d)
+        return d
 
     def close(self):
         for archive in self._archives:
             archive.close()
 
     def handles_frame(self, frame, stacktrace_info):
-        self._proguard_processor_handles_frame = self.proguard_processor.handles_frame(
+        key = self._deep_freeze(frame)
+        self._proguard_processor_handles_frame[key] = self.proguard_processor.handles_frame(
             frame, stacktrace_info
         )
 
         platform = frame.get("platform") or self.data.get("platform")
-        self._handles_frame = platform == "java" and self.available and "module" in frame
-        return self._proguard_processor_handles_frame or self._handles_frame
+        self._handles_frame[key] = platform == "java" and self.available and "module" in frame
+        return self._proguard_processor_handles_frame[key] or self._handles_frame[key]
 
     def preprocess_step(self, processing_task):
-        proguard_processor_preprocess_rv = False
-        if self._proguard_processor_handles_frame:
-            proguard_processor_preprocess_rv = self.proguard_processor.preprocess_step(
-                processing_task
-            )
+        proguard_processor_preprocess_rv = self.proguard_processor.preprocess_step(processing_task)
 
         if not self.available:
             return proguard_processor_preprocess_rv
@@ -176,9 +196,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         return proguard_processor_preprocess_rv or self.available
 
     def process_exception(self, exception):
-        if self._proguard_processor_handles_frame:
-            return self.proguard_processor.process_exception(exception)
-        return False
+        return self.proguard_processor.process_exception(exception)
 
     # if path contains a '$' sign or doesn't contain a '.' it has most likely been obfuscated
     def _is_valid_path(self, abs_path):
@@ -220,8 +238,10 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         new_frames = None
         raw_frames = None
         processing_errors = None
+        bare_frame = processable_frame.frame
+        key = self._deep_freeze(bare_frame)
 
-        if self._proguard_processor_handles_frame:
+        if self._proguard_processor_handles_frame[key]:
             proguard_result = self.proguard_processor.process_frame(
                 processable_frame, processing_task
             )
@@ -229,11 +249,11 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
             if proguard_result:
                 new_frames, raw_frames, processing_errors = proguard_result
 
-        if not self._handles_frame:
+        if not self._handles_frame[key]:
             return new_frames, raw_frames, processing_errors
 
         if not new_frames:
-            new_frames = [dict(processable_frame.frame)]
+            new_frames = [dict(bare_frame)]
 
         for new_frame in new_frames:
             lineno = new_frame.get("lineno")

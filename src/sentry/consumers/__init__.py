@@ -81,6 +81,31 @@ def ingest_replay_recordings_buffered_options() -> List[click.Option]:
     return options
 
 
+def ingest_monitors_options() -> List[click.Option]:
+    """Return a list of ingest-monitors options."""
+    options = [
+        click.Option(
+            ["--parallel", "parallel"],
+            type=bool,
+            default=False,
+            help="Process monitor check-ins in parallel.",
+        ),
+        click.Option(
+            ["--max-batch-size", "max_batch_size"],
+            type=int,
+            default=500,
+            help="Maximum number of check-ins to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-batch-time", "max_batch_time"],
+            type=int,
+            default=10,
+            help="Maximum time spent batching check-ins to batch before processing in parallel.",
+        ),
+    ]
+    return options
+
+
 _METRICS_INDEXER_OPTIONS = [
     click.Option(["--input-block-size"], type=int, default=None),
     click.Option(["--output-block-size"], type=int, default=None),
@@ -160,6 +185,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-monitors": {
         "topic": settings.KAFKA_INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
+        "click_options": ingest_monitors_options(),
     },
     "billing-metrics-consumer": {
         "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
@@ -296,11 +322,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_log_topic_default": "snuba-commit-log",
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
-    },
-    "ingest-spans": {
-        "click_options": _INGEST_SPANS_OPTIONS,
-        "topic": settings.KAFKA_INGEST_SPANS,
-        "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

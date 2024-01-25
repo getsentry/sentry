@@ -95,7 +95,7 @@ describe('Relocation', function () {
       expect(
         await screen.findByText('Organization slugs being relocated')
       ).toBeInTheDocument();
-      expect(await screen.findByText('Choose a datacenter region')).toBeInTheDocument();
+      expect(await screen.findByText('Choose a datacenter location')).toBeInTheDocument();
     });
 
     it('redirects to `in-progress` page if user already has active relocation', async function () {
@@ -130,9 +130,14 @@ describe('Relocation', function () {
       expect(await screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
     });
 
-    it('should be allowed to go to next step if org slug is entered and region is selected', async function () {
+    it('should be allowed to go to next step if org slug is entered, region is selected, and promo code is entered', async function () {
       await waitForRenderSuccess('get-started');
       await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      fetchPublicKey = MockApiClient.addMockResponse({
+        url: '/promocodes-external/free-hugs',
+        method: 'GET',
+        statusCode: 200,
+      });
 
       ConfigStore.set('regions', [{name: fakeRegionName, url: fakeRegionUrl}]);
       ConfigStore.set('relocationConfig', {selectableRegions: [fakeRegionName]});
@@ -142,6 +147,38 @@ describe('Relocation', function () {
       await userEvent.type(await screen.getByLabelText('region'), 'Narnia');
       await userEvent.click(await screen.getByRole('menuitemradio'));
       expect(continueButton).toBeEnabled();
+      await userEvent.click(screen.getByText('Got a promo code?', {exact: false}));
+      const promoCodeInput = await screen.getByLabelText('promocode');
+      await userEvent.type(promoCodeInput, 'free-hugs');
+      await userEvent.click(continueButton);
+      expect(addErrorMessage).not.toHaveBeenCalledWith();
+      sessionStorage.clear();
+    });
+
+    it('should not be allowed to go to next step if org slug is entered, region is selected, and promo code is invalid', async function () {
+      await waitForRenderSuccess('get-started');
+      await waitFor(() => expect(fetchPublicKey).toHaveBeenCalled());
+      fetchPublicKey = MockApiClient.addMockResponse({
+        url: '/promocodes-external/free-hugs',
+        method: 'GET',
+        statusCode: 403,
+      });
+
+      ConfigStore.set('regions', [{name: fakeRegionName, url: fakeRegionUrl}]);
+      ConfigStore.set('relocationConfig', {selectableRegions: [fakeRegionName]});
+      const orgSlugsInput = await screen.getByLabelText('org-slugs');
+      const continueButton = await screen.getByRole('button', {name: 'Continue'});
+      await userEvent.type(orgSlugsInput, 'test-org');
+      await userEvent.type(await screen.getByLabelText('region'), 'Narnia');
+      await userEvent.click(await screen.getByRole('menuitemradio'));
+      expect(continueButton).toBeEnabled();
+      await userEvent.click(screen.getByText('Got a promo code?', {exact: false}));
+      const promoCodeInput = await screen.getByLabelText('promocode');
+      await userEvent.type(promoCodeInput, 'free-hugs');
+      await userEvent.click(continueButton);
+      expect(addErrorMessage).toHaveBeenCalledWith(
+        'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
+      );
     });
 
     it('should show loading indicator and error message if existing relocation retrieval failed', async function () {

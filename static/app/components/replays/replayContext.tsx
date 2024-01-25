@@ -5,6 +5,7 @@ import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
+import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -48,6 +49,11 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * Original dimensions in pixels of the captured browser window
    */
   dimensions: Dimensions;
+
+  /**
+   * Total duration of the replay, in milliseconds
+   */
+  durationMs: number;
 
   /**
    * The calculated speed of the player when fast-forwarding through idle moments in the video
@@ -126,6 +132,11 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   speed: number;
 
   /**
+   * The time, in milliseconds, where the video should start
+   */
+  startTimeOffsetMs: number;
+
+  /**
    * Scale of the timeline width, starts from 1x and increases by 1x
    */
   timelineScale: number;
@@ -136,7 +147,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * @param play
    */
   togglePlayPause: (play: boolean) => void;
-
   /**
    * Allow RRWeb to use Fast-Forward mode for idle moments in the video
    *
@@ -150,6 +160,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   currentHoverTime: undefined,
   currentTime: 0,
   dimensions: {height: 0, width: 0},
+  durationMs: 0,
   fastForwardSpeed: 0,
   addHighlight: () => {},
   initRoot: () => {},
@@ -166,6 +177,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   setSpeed: () => {},
   setTimelineScale: () => {},
   speed: 1,
+  startTimeOffsetMs: 0,
   timelineScale: 1,
   togglePlayPause: () => {},
   toggleSkipInactive: () => {},
@@ -180,6 +192,14 @@ type Props = {
   isFetching: boolean;
 
   replay: ReplayReader | null;
+
+  /**
+   * If provided, the replay will be clipped to this window.
+   */
+  clipWindow?: {
+    durationMs: number;
+    startTimeOffsetMs: number;
+  };
 
   /**
    * Time, in seconds, when the video should start
@@ -202,8 +222,53 @@ function updateSavedReplayConfig(config: ReplayConfig) {
   localStorage.setItem(ReplayLocalstorageKeys.REPLAY_CONFIG, JSON.stringify(config));
 }
 
+/**
+ * When a clip window is provided, this hook will automatically pause and end
+ * the replay when the provided window time has passed.
+ */
+function useClipWindow({
+  clipWindow,
+  replayer,
+  onFinished,
+  isPlaying,
+}: {
+  clipWindow: Props['clipWindow'];
+  isPlaying: boolean;
+  onFinished: () => void;
+  replayer: Replayer | null;
+}) {
+  useEffect(() => {
+    if (!replayer || !clipWindow || !isPlaying) {
+      return () => {};
+    }
+
+    let timer: number | undefined;
+
+    const checkForEndOfClip = () => {
+      const currentTime = replayer.getCurrentTime();
+      const endTimeOffsetMs = clipWindow.startTimeOffsetMs + clipWindow.durationMs;
+
+      if (currentTime >= endTimeOffsetMs) {
+        replayer.pause(endTimeOffsetMs);
+        onFinished();
+      }
+
+      timer = requestAnimationFrame(checkForEndOfClip);
+    };
+
+    timer = requestAnimationFrame(checkForEndOfClip);
+
+    return () => {
+      if (timer) {
+        cancelAnimationFrame(timer);
+      }
+    };
+  }, [clipWindow, isPlaying, onFinished, replayer]);
+}
+
 export function Provider({
   children,
+  clipWindow,
   initialTimeOffsetMs,
   isFetching,
   replay,
@@ -235,6 +300,14 @@ export function Provider({
   const didApplyInitialOffset = useRef(false);
   const [timelineScale, setTimelineScale] = useState(1);
 
+  const fullReplayDurationMs = replay?.getDurationMs() ?? 0;
+  const startTimeOffsetMs = clipWindow?.startTimeOffsetMs
+    ? clamp(clipWindow.startTimeOffsetMs, 0, fullReplayDurationMs)
+    : 0;
+  const durationMs = clipWindow?.durationMs
+    ? Math.min(clipWindow.durationMs, fullReplayDurationMs - startTimeOffsetMs)
+    : fullReplayDurationMs;
+
   const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
 
   const forceDimensions = (dimension: Dimensions) => {
@@ -261,6 +334,13 @@ export function Provider({
     []
   );
 
+  useClipWindow({
+    clipWindow,
+    replayer: replayerRef.current,
+    isPlaying,
+    onFinished: setReplayFinished,
+  });
+
   const privateSetCurrentTime = useCallback(
     (requestedTimeMs: number) => {
       const replayer = replayerRef.current;
@@ -275,8 +355,11 @@ export function Provider({
         replayer.setConfig({skipInactive: false});
       }
 
-      const maxTimeMs = replayerRef.current?.getMetaData().totalTime;
-      const time = requestedTimeMs > maxTimeMs ? 0 : Math.max(0, requestedTimeMs);
+      const time = clamp(
+        requestedTimeMs,
+        startTimeOffsetMs,
+        startTimeOffsetMs + durationMs
+      );
 
       // Sometimes rrweb doesn't get to the exact target time, as long as it has
       // changed away from the previous time then we can hide then buffering message.
@@ -298,7 +381,7 @@ export function Provider({
         setIsPlaying(false);
       }
     },
-    [getCurrentTime, isPlaying]
+    [startTimeOffsetMs, durationMs, getCurrentTime, isPlaying]
   );
 
   const setCurrentTime = useCallback(
@@ -473,10 +556,10 @@ export function Provider({
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
-      replayerRef.current.play(0);
+      replayerRef.current.play(startTimeOffsetMs);
       setIsPlaying(true);
     }
-  }, []);
+  }, [startTimeOffsetMs]);
 
   const toggleSkipInactive = useCallback((skip: boolean) => {
     const replayer = replayerRef.current;
@@ -525,6 +608,7 @@ export function Provider({
         currentHoverTime,
         currentTime,
         dimensions,
+        durationMs,
         fastForwardSpeed,
         addHighlight,
         initRoot,
@@ -541,6 +625,7 @@ export function Provider({
         setSpeed,
         setTimelineScale,
         speed,
+        startTimeOffsetMs,
         timelineScale,
         togglePlayPause,
         toggleSkipInactive,

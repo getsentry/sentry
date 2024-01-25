@@ -28,7 +28,7 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
     useHaveSelectedProjectsSentAnyReplayEvents();
   const platformSupported = replayPlatforms.includes(feedbackItem.platform);
 
-  if (!platformSupported) {
+  if (!platformSupported && !(feedbackItem.platform === 'other')) {
     return (
       <ReplayUnsupportedAlert
         primaryAction="create"

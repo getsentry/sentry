@@ -311,6 +311,7 @@ export enum GroupActivityType {
   MARK_REVIEWED = 'mark_reviewed',
   AUTO_SET_ONGOING = 'auto_set_ongoing',
   SET_ESCALATING = 'set_escalating',
+  SET_PRIORITY = 'set_priority',
 }
 
 interface GroupActivityBase {
@@ -531,6 +532,14 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
   type: GroupActivityType.SET_ESCALATING;
 }
 
+export interface GroupActivitySetPriority extends GroupActivityBase {
+  data: {
+    priority: PriorityLevel;
+    reason: string;
+  };
+  type: GroupActivityType.SET_PRIORITY;
+}
+
 export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
@@ -582,7 +591,8 @@ export type GroupActivity =
   | GroupActivityAssigned
   | GroupActivityCreateIssue
   | GroupActivityAutoSetOngoing
-  | GroupActivitySetEscalating;
+  | GroupActivitySetEscalating
+  | GroupActivitySetPriority;
 
 export type Activity = GroupActivity;
 
@@ -677,6 +687,12 @@ export const enum GroupSubstatus {
   NEW = 'new',
 }
 
+export const enum PriorityLevel {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -699,9 +715,12 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: any[]; // TODO(ts)
-  pluginContexts: any[]; // TODO(ts)
-  pluginIssues: any[]; // TODO(ts)
+  pluginActions: any[];
+  // TODO(ts)
+  pluginContexts: any[];
+  // TODO(ts)
+  pluginIssues: any[];
+  // TODO(ts)
   project: Project;
   seenBy: User[];
   shareId: string;
@@ -713,6 +732,7 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  integrationIssues?: any[];
   latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
   substatus?: GroupSubstatus | null;

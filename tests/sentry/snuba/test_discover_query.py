@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import timedelta, timezone
 
 import pytest
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.discover.models import TeamKeyTransaction
@@ -2447,13 +2447,13 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=timezone.now(),
-            unadopted=timezone.now(),
+            adopted=django_timezone.now(),
+            unadopted=django_timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
