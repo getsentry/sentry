@@ -69,7 +69,8 @@ class ApiInviteHelperTest(TestCase):
         assert invite_context is not None
 
         helper = ApiInviteHelper(self.request, invite_context, None)
-        helper.accept_invite()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            helper.accept_invite()
         invite_context = organization_service.get_invite_by_id(
             organization_member_id=om.id, organization_id=om.organization_id
         )
