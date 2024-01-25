@@ -7,6 +7,7 @@ import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelin
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide, formatTime} from 'sentry/components/replays/utils';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import toPercent from 'sentry/utils/number/toPercent';
 
@@ -84,6 +85,7 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
           value={Math.round(currentTime)}
           onChange={value => setCurrentTime(value || 0)}
           showLabel={false}
+          aria-label={t('Seek slider')}
         />
       </RangeWrapper>
     </Wrapper>
