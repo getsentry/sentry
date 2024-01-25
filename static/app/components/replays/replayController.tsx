@@ -1,6 +1,5 @@
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
-import {useResizeObserver} from '@react-aria/utils';
 import screenfull from 'screenfull';
 
 import {Button} from 'sentry/components/button';
@@ -25,8 +24,6 @@ import {useUser} from 'sentry/utils/useUser';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 
 const SECOND = 1000;
-
-const COMPACT_WIDTH_BREAKPOINT = 500;
 
 interface Props {
   toggleFullscreen: () => void;
@@ -119,7 +116,6 @@ function ReplayControls({
   const user = useUser();
   const organization = useOrganization();
   const barRef = useRef<HTMLDivElement>(null);
-  const [isCompact, setIsCompact] = useState(false);
   const isFullscreen = useIsFullscreen();
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
@@ -135,24 +131,11 @@ function ReplayControls({
     toggleFullscreen();
   }, [user.email, isFullscreen, organization, toggleFullscreen]);
 
-  const updateIsCompact = useCallback(() => {
-    const {width} = barRef.current?.getBoundingClientRect() ?? {
-      width: COMPACT_WIDTH_BREAKPOINT,
-    };
-    setIsCompact(width < COMPACT_WIDTH_BREAKPOINT);
-  }, []);
-
-  useResizeObserver({
-    ref: barRef,
-    onResize: updateIsCompact,
-  });
-  useLayoutEffect(() => updateIsCompact, [updateIsCompact]);
-
   return (
-    <ButtonGrid ref={barRef} isCompact={isCompact}>
+    <ButtonGrid ref={barRef}>
       <ReplayPlayPauseBar />
       <Container>
-        <TimeAndScrubberGrid isCompact={isCompact} showZoom />
+        <TimeAndScrubberGrid showZoom />
       </Container>
       <ButtonBar gap={1}>
         <ReplayOptionsMenu speedOptions={speedOptions} />
@@ -170,12 +153,11 @@ function ReplayControls({
   );
 }
 
-const ButtonGrid = styled('div')<{isCompact: boolean}>`
+const ButtonGrid = styled('div')`
   display: flex;
   gap: 0 ${space(2)};
   flex-direction: row;
   justify-content: space-between;
-  ${p => (p.isCompact ? `flex-wrap: wrap;` : '')}
 `;
 
 const Container = styled('div')`

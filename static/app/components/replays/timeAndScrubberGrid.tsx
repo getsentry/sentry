@@ -13,7 +13,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type TimeAndScrubberGridProps = {
-  isCompact?: boolean;
   showZoom?: boolean;
 };
 
@@ -49,22 +48,17 @@ function TimelineSizeBar() {
   );
 }
 
-function TimeAndScrubberGrid({
-  isCompact = false,
-  showZoom = false,
-}: TimeAndScrubberGridProps) {
+function TimeAndScrubberGrid({showZoom = false}: TimeAndScrubberGridProps) {
   const {currentTime, startTimeOffsetMs, durationMs} = useReplayContext();
   const elem = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem});
 
   return (
-    <Grid id="replay-timeline-player" isCompact={isCompact}>
+    <Grid id="replay-timeline-player">
       <Time style={{gridArea: 'currentTime'}}>
         {formatTime(currentTime - startTimeOffsetMs)}
       </Time>
-      <div style={{gridArea: 'timeline'}}>
-        <ReplayTimeline />
-      </div>
+      <ReplayTimeline style={{gridArea: 'timeline'}} />
       <div style={{gridArea: 'timelineSize', fontVariantNumeric: 'tabular-nums'}}>
         {showZoom ? <TimelineSizeBar /> : null}
       </div>
@@ -78,7 +72,7 @@ function TimeAndScrubberGrid({
   );
 }
 
-const Grid = styled('div')<{isCompact: boolean}>`
+const Grid = styled('div')`
   width: 100%;
   display: grid;
   grid-template-areas:
@@ -86,15 +80,7 @@ const Grid = styled('div')<{isCompact: boolean}>`
     'currentTime scrubber duration';
   grid-column-gap: ${space(1)};
   grid-template-columns: max-content auto max-content;
-  align-items: center;
-  ${p =>
-    p.isCompact
-      ? `
-        order: -1;
-        min-width: 100%;
-        margin-top: -8px;
-      `
-      : ''}
+  align-items: stretch;
 `;
 
 const StyledScrubber = styled('div')`
