@@ -153,7 +153,7 @@ class DashboardWidgetQueryOnDemand(Model):
 
     extraction_state = models.CharField(max_length=30, choices=OnDemandExtractionState.choices)
     date_modified = models.DateTimeField(default=timezone.now)
-    date_added = models.DateTimeField(auto_now_add=True, null=True)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     def extraction_enabled(self):
         """Whether on-demand is enabled or disabled for this widget.
