@@ -139,7 +139,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, widget, organization, selection} = this.props;
+    const {location, widget, selection} = this.props;
     if (errorMessage) {
       return (
         <StyledErrorPanel>
@@ -172,7 +172,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           loader={<LoadingPlaceholder />}
           metadata={result.meta}
           data={result.data}
-          organization={organization}
           stickyHeaders
           fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
           getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
