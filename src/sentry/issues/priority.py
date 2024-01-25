@@ -7,6 +7,8 @@ from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.activity import ActivityType
 
 
@@ -41,6 +43,7 @@ def update_priority(
     group: Group,
     priority: PriorityLevel,
     reason: PriorityChangeReason | None = None,
+    actor: User | RpcUser | None = None,
 ) -> None:
     """
     Update the priority of a group and record the change in the activity and group history.
@@ -52,12 +55,13 @@ def update_priority(
     Activity.objects.create_group_activity(
         group=group,
         type=ActivityType.SET_PRIORITY,
+        user=actor,
         data={
             "priority": PRIORITY_LEVEL_TO_STR[priority],
             "reason": reason,
         },
     )
-    record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[priority])
+    record_group_history(group, status=PRIORITY_TO_GROUP_HISTORY_STATUS[priority], actor=actor)
 
 
 def get_priority_for_escalating_group(group: Group) -> PriorityLevel | None:
