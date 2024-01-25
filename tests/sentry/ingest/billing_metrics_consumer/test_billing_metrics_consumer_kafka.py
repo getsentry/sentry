@@ -16,7 +16,11 @@ from sentry.ingest.billing_metrics_consumer import (
 )
 from sentry.models.project import Project
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics.indexer.strings import (
+    SHARED_TAG_STRINGS,
+    SPAN_METRICS_NAMES,
+    TRANSACTION_METRICS_NAMES,
+)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -39,10 +43,13 @@ def test_outcomes_consumed(track_outcome, factories):
     missing_project_id = 2
 
     transaction_usage_mri = "c:transactions/usage@none"
-    transaction_usage_id = TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]
+    transaction_usage_id = TRANSACTION_METRICS_NAMES[transaction_usage_mri]
 
     transaction_duration_mri = "d:transactions/duration@millisecond"
-    transaction_duration_id = TRANSACTION_METRICS_NAMES["d:transactions/duration@millisecond"]
+    transaction_duration_id = TRANSACTION_METRICS_NAMES[transaction_duration_mri]
+
+    span_usage_mri = "c:spans/usage@none"
+    span_usage_id = SPAN_METRICS_NAMES[span_usage_mri]
 
     counter_custom_metric_mri = "c:custom/user_click@none"
     counter_custom_metric_id = cast(
@@ -173,6 +180,19 @@ def test_outcomes_consumed(track_outcome, factories):
             "use_case_id": "transactions",
             "retention_days": 90,
         },
+        # Span usage metric should be counted:
+        {
+            "mapping_meta": {"c": {str(span_usage_id): span_usage_mri}},
+            "metric_id": span_usage_id,
+            "type": "d",
+            "org_id": organization.id,
+            "project_id": project_2.id,
+            "timestamp": 123456,
+            "value": 65.0,
+            "tags": empty_tags,
+            "use_case_id": "spans",
+            "retention_days": 90,
+        },
     ]
 
     next_step = mock.MagicMock()
@@ -233,7 +253,7 @@ def test_outcomes_consumed(track_outcome, factories):
                 assert Project.objects.get(id=project_2.id).flags.has_custom_metrics
             else:
                 assert not Project.objects.get(id=project_2.id).flags.has_custom_metrics
-        else:
+        elif i < 9:
             assert track_outcome.mock_calls[1:] == [
                 mock.call(
                     org_id=organization.id,
@@ -260,8 +280,23 @@ def test_outcomes_consumed(track_outcome, factories):
             ]
             # We double-check that the project does not exist.
             assert not Project.objects.filter(id=2).exists()
+        else:
+            assert track_outcome.mock_calls[3:] == [
+                mock.call(
+                    org_id=organization.id,
+                    project_id=project_2.id,
+                    key_id=None,
+                    outcome=Outcome.ACCEPTED,
+                    reason=None,
+                    timestamp=mock.ANY,
+                    event_id=None,
+                    category=DataCategory.SPAN,
+                    quantity=65,
+                ),
+            ]
 
-    assert next_step.submit.call_count == 9
+    assert i == 9
+    assert next_step.submit.call_count == 10
 
     strategy.join()
     assert next_step.join.call_count == 1
