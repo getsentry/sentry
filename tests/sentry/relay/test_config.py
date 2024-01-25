@@ -89,6 +89,9 @@ def _validate_project_config(config):
     # Relay keeps BTreeSets for these, so sort here as well:
     for rule in config.get("metricConditionalTagging", []):
         rule["targetMetrics"] = sorted(rule["targetMetrics"])
+    # Relay uses a BTreeSet for features:
+    if features := config.get("features"):
+        config["features"] = sorted(features)
 
     validate_project_config(json.dumps(config), strict=True)
 
@@ -1055,7 +1058,7 @@ def test_performance_calculate_score_with_optional_lcp_and_cls(default_project):
 @django_db_all
 @region_silo_test
 def test_project_config_cardinality_limits(default_project, insta_snapshot):
-    with override_options(
+    options = override_options(
         {
             "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
                 {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
@@ -1073,7 +1076,11 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot):
                 {"window_seconds": 5000, "granularity_seconds": 500, "limit": 50}
             ],
         },
-    ):
+    )
+
+    features = Feature({"organizations:relay-cardinality-limiter": True})
+
+    with options, features:
         project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()
