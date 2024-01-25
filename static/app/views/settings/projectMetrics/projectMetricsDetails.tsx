@@ -1,9 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button, ButtonProps, LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Panel from 'sentry/components/panels/panel';
@@ -13,15 +14,21 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {IconClose, IconNot, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {MetricsOperation, MetricType, MRI, Organization, Project} from 'sentry/types';
 import {getDdmUrl, getReadableMetricType, MetricDisplayType} from 'sentry/utils/metrics';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
+
+import {useProjectMetric} from '../../../utils/metrics/useMetricsMeta';
 
 function getSettingsOperationForType(type: MetricType): MetricsOperation {
   switch (type) {
@@ -45,10 +52,20 @@ type Props = {
 
 function ProjectMetricsDetails({project, params, organization}: Props) {
   const {mri} = params;
+
+  const projectId = parseInt(project.id, 10);
+  const projectIds = [projectId];
+
+  const {
+    data: {blockingStatus},
+  } = useProjectMetric(mri, projectId);
+  const {data: tagsData = []} = useMetricsTags(mri, projectIds);
+
+  const isBlockedMetric = blockingStatus?.isBlocked ?? false;
+  const blockMetricMutation = useBlockMetric(mri, project);
+
   const {type, name, unit} = parseMRI(mri) ?? {};
   const operation = getSettingsOperationForType(type ?? 'c');
-  const field = MRIToField(mri, operation);
-  const {data: tagsData = []} = useMetricsTags(mri, [parseInt(project.id, 10)]);
   const {data: metricsData, isLoading} = useMetricsData(
     {
       datetime: {
@@ -59,12 +76,13 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
       },
       environments: [],
       mri,
-      projects: [parseInt(project.id, 10)],
+      projects: projectIds,
       op: operation,
     },
     {interval: '1d'}
   );
 
+  const field = MRIToField(mri, operation);
   const series = [
     {
       seriesName: formatMRIField(field) ?? 'Metric',
@@ -76,6 +94,24 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
     },
   ];
   const isChartEmpty = series[0].data.every(({value}) => value === 0);
+
+  const handleMetricBlockToggle = useCallback(() => {
+    const operationType = isBlockedMetric ? 'unblockMetric' : 'blockMetric';
+    blockMetricMutation.mutate({operationType});
+  }, [blockMetricMutation, isBlockedMetric]);
+
+  const handleMetricTagBlockToggle = useCallback(
+    (tag: string) => {
+      const operationType = isBlockedMetric ? 'unblockTags' : 'blockTags';
+
+      const newTags = isBlockedMetric
+        ? blockingStatus?.blockedTags?.filter(blockedTag => blockedTag !== tag)
+        : [...(blockingStatus?.blockedTags ?? []), tag];
+
+      blockMetricMutation.mutate({operationType, tags: newTags});
+    },
+    [blockMetricMutation, isBlockedMetric, blockingStatus?.blockedTags]
+  );
 
   const tags = tagsData.sort((a, b) => a.key.localeCompare(b.key));
 
@@ -107,7 +143,31 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
       />
 
       <Panel>
-        <PanelHeader>{t('Metric Details')}</PanelHeader>
+        <PanelHeader>
+          <Title>{t('Metric Details')}</Title>
+          <Controls>
+            <BlockMetricButton
+              size="xs"
+              disabled={blockMetricMutation.isLoading}
+              isBlocked={isBlockedMetric}
+              onConfirm={handleMetricBlockToggle}
+              aria-label="Block Metric"
+            />
+            <Confirm
+              disabled
+              priority="danger"
+              onConfirm={() => {}}
+              confirmText={t('Remove Key')}
+              message={t(
+                'Are you sure you want to remove this key? This action is irreversible.'
+              )}
+            >
+              <Button icon={<IconClose size="xs" />} size="xs">
+                {t('Hide')}
+              </Button>
+            </Confirm>
+          </Controls>
+        </PanelHeader>
 
         <PanelBody>
           <FieldGroup
@@ -158,14 +218,33 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
       </Panel>
 
       <PanelTable
-        headers={[<TableHeading key="tags"> {t('Tags')}</TableHeading>]}
+        headers={[
+          <TableHeading key="tags"> {t('Tags')}</TableHeading>,
+          <TextAlignRight key="actions">
+            <TableHeading> {t('Actions')}</TableHeading>
+          </TextAlignRight>,
+        ]}
         emptyMessage={t('There are no tags for this metric.')}
         isEmpty={tags.length === 0}
         isLoading={isLoading}
       >
-        {tags.map(({key}) => (
-          <div key={key}>{key}</div>
-        ))}
+        {tags.map(({key}) => {
+          const isBlockedTag = blockingStatus?.blockedTags?.includes(key) ?? false;
+          return (
+            <Fragment key={key}>
+              <div key={key}>{key}</div>
+              <TextAlignRight key={key}>
+                <BlockTagButton
+                  size="xs"
+                  disabled={blockMetricMutation.isLoading || isBlockedMetric}
+                  isBlocked={isBlockedTag}
+                  onConfirm={() => handleMetricTagBlockToggle(key)}
+                  aria-label="Block tag"
+                />
+              </TextAlignRight>
+            </Fragment>
+          );
+        })}
       </PanelTable>
 
       <Panel>
@@ -178,12 +257,73 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
   );
 }
 
+type BlockButtonProps = {
+  isBlocked: boolean;
+  onConfirm: () => void;
+} & ButtonProps;
+
+function BlockMetricButton({isBlocked, onConfirm, ...props}: BlockButtonProps) {
+  return (
+    <Confirm
+      priority="danger"
+      onConfirm={onConfirm}
+      confirmText={isBlocked ? t('Unblock Metric') : t('Block Metric')}
+      message={
+        isBlocked
+          ? t('Are you sure you want to unblock this metric?')
+          : t('Are you sure you want to block this metric?')
+      }
+    >
+      <Button
+        icon={isBlocked ? <IconPlay size="xs" /> : <IconNot size="xs" />}
+        {...props}
+      >
+        {isBlocked ? t('Unblock') : t('Block')}
+      </Button>
+    </Confirm>
+  );
+}
+
+function BlockTagButton({isBlocked, onConfirm, ...props}: BlockButtonProps) {
+  return (
+    <Confirm
+      priority="danger"
+      onConfirm={onConfirm}
+      confirmText={isBlocked ? t('Unblock Tag') : t('Block Tag')}
+      message={
+        isBlocked
+          ? t('Are you sure you want to unblock this tag?')
+          : t('Are you sure you want to block this tag?')
+      }
+    >
+      <Button
+        icon={isBlocked ? <IconPlay size="xs" /> : <IconNot size="xs" />}
+        {...props}
+      >
+        {isBlocked ? t('Unblock') : t('Block')}
+      </Button>
+    </Confirm>
+  );
+}
+
 const TableHeading = styled('div')`
   color: ${p => p.theme.textColor};
 `;
 
 const MetricName = styled('div')`
   word-break: break-word;
+`;
+
+const Title = styled('div')`
+  flex: 1;
+  margin-right: ${space(1)};
+`;
+
+const Controls = styled('div')`
+  display: grid;
+  align-items: center;
+  gap: ${space(1)};
+  grid-auto-flow: column;
 `;
 
 export default ProjectMetricsDetails;

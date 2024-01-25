@@ -1,9 +1,9 @@
 import {PageFilters} from 'sentry/types';
-import {formatMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {MetricMeta, UseCase} from '../../types/metrics';
+import {MetricMeta, MRI, UseCase} from '../../types/metrics';
 
 const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
 
@@ -59,4 +59,14 @@ export function useMetricsMeta(
       (customReq.isLoading && customReq.fetchStatus !== 'idle') ||
       (spansReq.isLoading && spansReq.fetchStatus !== 'idle'),
   };
+}
+
+export function useProjectMetric(mri: MRI, projectId: number) {
+  const useCase = getUseCaseFromMRI(mri);
+  const res = useMetricsMeta([projectId], [useCase ?? 'custom']);
+
+  const metricMeta = res.data?.find(({mri: metaMri}) => metaMri === mri);
+  const blockingStatus = metricMeta?.blockingStatus?.[0];
+
+  return {...res, data: {...metricMeta, blockingStatus}};
 }
