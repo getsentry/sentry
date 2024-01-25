@@ -129,8 +129,6 @@ def schedule_auto_transition_issues_new_to_ongoing(
         "first_seen_lte": first_seen_lte,
         "first_seen_lte_datetime": first_seen_lte_datetime,
     }
-    if base_queryset:
-        logger_extra["issue_first_seen"] = base_queryset[0].first_seen
     logger.info(
         "auto_transition_issues_new_to_ongoing started",
         extra=logger_extra,
