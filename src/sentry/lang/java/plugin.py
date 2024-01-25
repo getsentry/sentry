@@ -158,12 +158,19 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         self._archives = []
         self.available = len(self.images) > 0
 
+    def _deep_freeze(self, d):
+        if isinstance(d, dict):
+            return frozenset((key, self._deep_freeze(value)) for key, value in d.items())
+        elif isinstance(d, list):
+            return tuple(self._deep_freeze(value) for value in d)
+        return d
+
     def close(self):
         for archive in self._archives:
             archive.close()
 
     def handles_frame(self, frame, stacktrace_info):
-        key = frozenset(frame.items())
+        key = self._deep_freeze(frame)
         self._proguard_processor_handles_frame[key] = self.proguard_processor.handles_frame(
             frame, stacktrace_info
         )
@@ -232,7 +239,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         raw_frames = None
         processing_errors = None
         bare_frame = processable_frame.frame
-        key = frozenset(bare_frame.items())
+        key = self._deep_freeze(bare_frame)
 
         if self._proguard_processor_handles_frame[key]:
             proguard_result = self.proguard_processor.process_frame(

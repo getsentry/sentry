@@ -819,6 +819,19 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                                     "lineno": 1,
                                 },
                                 {
+                                    "abs_path": "Thread.java",
+                                    "filename": "Thread.java",
+                                    "function": "sleep",
+                                    "lineno": 450,
+                                    "lock": {
+                                        "address": "0x0ddc1f22",
+                                        "class_name": "Object",
+                                        "package_name": "java.lang",
+                                        "type:": 1,
+                                    },
+                                    "module": "java.lang.Thread",
+                                },
+                                {
                                     "function": "__start_thread",
                                     "package": "/apex/com.android.art/lib64/libart.so",
                                     "lineno": 196,
@@ -854,7 +867,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         bt = exc.stacktrace
         frames = bt.frames
 
-        assert len(frames) == 5
+        assert len(frames) == 6
 
         assert frames[0].function == "onClick"
         assert frames[0].module == "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4"
@@ -869,8 +882,12 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[3].lineno == 54
         assert frames[3].filename == "MainActivity.java"
         assert frames[3].module == "io.sentry.sample.MainActivity"
-        assert frames[4].function == "__start_thread"
-        assert frames[4].package == "/apex/com.android.art/lib64/libart.so"
+        assert frames[4].function == "sleep"
+        assert frames[4].lineno == 450
+        assert frames[4].filename == "Thread.java"
+        assert frames[4].module == "java.lang.Thread"
+        assert frames[5].function == "__start_thread"
+        assert frames[5].package == "/apex/com.android.art/lib64/libart.so"
 
     def test_error_on_resolving(self):
         url = reverse(
