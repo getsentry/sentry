@@ -16,7 +16,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useUser} from 'sentry/utils/useUser';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {ExperimentalFeatureBadge} from '../aiSuggestedSolution/experimentalFeatureBadge';
@@ -28,10 +28,10 @@ type Props = {
 };
 
 export function Banner({onButtonClick, additionalContext, setAdditionalContext}: Props) {
-  const {isStaff} = useUser();
+  const isSentryEmployee = useIsSentryEmployee();
   const [piiCertified, setPiiCertified] = useState(false);
 
-  const showPiiMessage = isStaff && !piiCertified;
+  const showPiiMessage = isSentryEmployee && !piiCertified;
 
   return (
     <Wrapper>
