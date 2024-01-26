@@ -7,7 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-const {SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DOMAIN} = SpanIndexedField;
+const {SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN} = SpanIndexedField;
 
 type Options = {
   enabled?: boolean;
@@ -35,7 +35,7 @@ export const useIndexedResourcesQuery = ({
         `any(id)`,
         'project',
         'span.group',
-        SPAN_DOMAIN,
+        RAW_DOMAIN,
         SPAN_DESCRIPTION,
         `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`,
       ],
@@ -68,7 +68,7 @@ export const useIndexedResourcesQuery = ({
       project: row.project as string,
       'transaction.id': row['transaction.id'] as string,
       [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]?.toString(),
-      [SPAN_DOMAIN]: row[SPAN_DOMAIN][0]?.toString(),
+      [RAW_DOMAIN]: row[RAW_DOMAIN][0]?.toString(),
       'measurements.http.response_content_length': row[
         `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`
       ] as number,
