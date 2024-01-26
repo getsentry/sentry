@@ -35,6 +35,7 @@ from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.options.user_option import UserOption
+from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.savedsearch import SavedSearch, Visibility
@@ -1786,6 +1787,60 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data[0]["integrationIssues"]) == 2
         assert response.data[0]["integrationIssues"][0]["title"] == external_issue_1.title
         assert response.data[0]["integrationIssues"][1]["title"] == external_issue_2.title
+
+    def test_expand_sentry_app_issues(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["sentryAppIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["sentryAppIssues"] is not None
+
+        # Test with no expand
+        response = self.get_response(sort_by="date", limit=10, query=query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "sentryAppIssues" not in response.data[0]
+
+        issue_1 = PlatformExternalIssue.objects.create(
+            group_id=event.group.id,
+            project_id=event.group.project.id,
+            service_type="sentry-app",
+            display_name="App#issue-1",
+            web_url="https://example.com/app/issues/1",
+        )
+        issue_2 = PlatformExternalIssue.objects.create(
+            group_id=event.group.id,
+            project_id=event.group.project.id,
+            service_type="sentry-app-2",
+            display_name="App#issue-2",
+            web_url="https://example.com/app/issues/1",
+        )
+        PlatformExternalIssue.objects.create(
+            group_id=1234,
+            project_id=event.group.project.id,
+            service_type="sentry-app-3",
+            display_name="App#issue-1",
+            web_url="https://example.com/app/issues/1",
+        )
+
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["sentryAppIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data[0]["sentryAppIssues"]) == 2
+        assert response.data[0]["sentryAppIssues"][0]["issueId"] == str(issue_1.group_id)
+        assert response.data[0]["sentryAppIssues"][1]["issueId"] == str(issue_2.group_id)
+        assert response.data[0]["sentryAppIssues"][0]["displayName"] == issue_1.display_name
+        assert response.data[0]["sentryAppIssues"][1]["displayName"] == issue_2.display_name
 
     def test_expand_owners(self):
         event = self.store_event(
