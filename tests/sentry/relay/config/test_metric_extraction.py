@@ -1227,3 +1227,49 @@ def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> 
         assert config
         assert len(config["metrics"]) == 1
         assert config["metrics"][0].get("condition") is None
+
+
+def _metric_spec(tags: list[dict[str, str]]) -> dict[str, Any]:
+    return {
+        "category": "transaction",
+        "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
+        "field": None,
+        "mri": "c:transactions/on_demand@none",
+        "tags": tags,
+    }
+
+
+@django_db_all
+def test_include_environment_for_widgets(default_project: Project) -> None:
+    aggr = "count()"
+    env_tag = {"field": "event.environment", "key": "environment"}
+    query = "transaction.duration:>=10"
+
+    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
+        create_widget([aggr], query, default_project)
+        config = get_metric_extraction_config(default_project)
+        # Because we have two specs we will have two metrics.
+        # The second spec includes the environment tag as part of the query hash.
+        # XXX: Verify that the query hash is as expected
+        # XXX: Should we have two versions when the widget does not have any groupbys OR "environment" not being a field?
+        assert config and config["metrics"] == [
+            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
+            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
+        ]
+
+        # Using environment in the columns will turn into a groupbys
+        create_widget([aggr], query, default_project, columns=["environment"], title="foo")
+        config = get_metric_extraction_config(default_project)
+        # XXX: Should this be four specs?
+        assert config and config["metrics"] == [
+            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
+            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
+        ]
+
+        create_alert(aggr, query, default_project)
+        config = get_metric_extraction_config(default_project)
+        # The list is as long as the previous assertions because we deduplicate the alert spec
+        assert config and config["metrics"] == [
+            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
+            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
+        ]
