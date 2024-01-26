@@ -176,14 +176,16 @@ function buildRoutes() {
         path="/accept-transfer/"
         component={make(() => import('sentry/views/acceptProjectTransfer'))}
       />
-      <Route
-        path="/extensions/external-install/:integrationSlug/:installationId"
-        component={make(() => import('sentry/views/integrationOrganizationLink'))}
-      />
-      <Route
-        path="/extensions/:integrationSlug/link/"
-        component={make(() => import('sentry/views/integrationOrganizationLink'))}
-      />
+      <Route component={errorHandler(OrganizationLayout)}>
+        <Route
+          path="/extensions/external-install/:integrationSlug/:installationId"
+          component={make(() => import('sentry/views/integrationOrganizationLink'))}
+        />
+        <Route
+          path="/extensions/:integrationSlug/link/"
+          component={make(() => import('sentry/views/integrationOrganizationLink'))}
+        />
+      </Route>
       <Route
         path="/sentry-apps/:sentryAppSlug/external-install/"
         component={make(() => import('sentry/views/sentryAppExternalInstallation'))}
