@@ -7,12 +7,17 @@ from django.urls import reverse
 
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.integrations.slack.webhooks.action import LINK_IDENTITY_MESSAGE, UNLINK_IDENTITY_MESSAGE
+from sentry.integrations.slack.webhooks.action import (
+    ARCHIVE_OPTIONS,
+    LINK_IDENTITY_MESSAGE,
+    UNLINK_IDENTITY_MESSAGE,
+)
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.identity import Identity
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
@@ -89,7 +94,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             },
         }
 
-    def get_ignore_status_action(self):
+    def get_archive_status_action(self):
         return {
             "action_id": "archive_dialog",
             "block_id": "bXwil",
@@ -133,7 +138,8 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         }
 
     def archive_issue_block_kit(self, original_message, selected_option, payload_data=None):
-        status_action = self.get_ignore_status_action()
+        assert selected_option in ARCHIVE_OPTIONS.values()
+        status_action = self.get_archive_status_action()
 
         # Expect request to open dialog on slack
         responses.add(
@@ -197,7 +203,11 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             data=self.event_data,
             project_id=self.project.id,
         )
-        status_action = {"name": "status", "value": "ignored:until_escalating", "type": "button"}
+        status_action = {
+            "name": "status",
+            "value": "ignored:archived_until_escalating",
+            "type": "button",
+        }
         assert event.group is not None
         resp = self.post_webhook(
             action_data=[status_action],
@@ -239,7 +249,11 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             data=self.event_data,
             project_id=self.project.id,
         )
-        status_action = {"name": "status", "value": "ignored:until_escalating", "type": "button"}
+        status_action = {
+            "name": "status",
+            "value": "ignored:archived_until_escalating",
+            "type": "button",
+        }
 
         assert event.group is not None
         with self.feature("organizations:slack-block-kit"):
@@ -261,7 +275,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     @responses.activate
     def test_archive_issue_until_escalating_block_kit(self):
         original_message = self.get_original_message_block_kit(self.group.id)
-        self.archive_issue_block_kit(original_message, "ignored:until_escalating")
+        self.archive_issue_block_kit(original_message, "ignored:archived_until_escalating")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -276,7 +290,9 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     def test_archive_issue_until_escalating_block_kit_through_unfurl(self):
         original_message = self.get_original_message_block_kit(self.group.id)
         payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.archive_issue_block_kit(original_message, "ignored:until_escalating", payload_data)
+        self.archive_issue_block_kit(
+            original_message, "ignored:archived_until_escalating", payload_data
+        )
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -290,13 +306,13 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     @responses.activate
     def test_archive_issue_until_condition_met_block_kit(self):
         original_message = self.get_original_message_block_kit(self.group.id)
-        self.archive_issue_block_kit(original_message, "ignored:until_condition_met:10")
+        self.archive_issue_block_kit(original_message, "ignored:archived_until_condition_met:10")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
-        assert (
-            self.group.substatus == GroupSubStatus.UNTIL_CONDITION_MET
-        )  # TODO: see if we can get the ignoreCount?
+        assert self.group.substatus == GroupSubStatus.UNTIL_CONDITION_MET
+        group_snooze = GroupSnooze.objects.get(group=self.group)
+        assert group_snooze.count == 10
 
         update_data = json.loads(responses.calls[1].request.body)
 
@@ -308,12 +324,14 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         original_message = self.get_original_message_block_kit(self.group.id)
         payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
         self.archive_issue_block_kit(
-            original_message, "ignored:until_condition_met:100", payload_data
+            original_message, "ignored:archived_until_condition_met:100", payload_data
         )
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_CONDITION_MET
+        group_snooze = GroupSnooze.objects.get(group=self.group)
+        assert group_snooze.count == 100
 
         update_data = json.loads(responses.calls[1].request.body)
 
@@ -323,7 +341,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     @responses.activate
     def test_archive_issue_forever_block_kit(self):
         original_message = self.get_original_message_block_kit(self.group.id)
-        self.archive_issue_block_kit(original_message, "ignored:forever")
+        self.archive_issue_block_kit(original_message, "ignored:archived_forever")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -338,7 +356,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     def test_archive_issue_forever_block_kit_through_unfurl(self):
         original_message = self.get_original_message_block_kit(self.group.id)
         payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.archive_issue_block_kit(original_message, "ignored:forever", payload_data)
+        self.archive_issue_block_kit(original_message, "ignored:archived_forever", payload_data)
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -359,7 +377,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             )
             AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
-        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
+        status_action = {"name": "status", "value": "ignored:archived_forever", "type": "button"}
 
         resp = self.post_webhook(action_data=[status_action])
         self.group = Group.objects.get(id=self.group.id)
@@ -393,7 +411,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
         original_message = self.get_original_message_block_kit(self.group.id)
-        self.archive_issue_block_kit(original_message, "ignored:forever")
+        self.archive_issue_block_kit(original_message, "ignored:archived_forever")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -416,7 +434,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
         original_message = self.get_original_message_block_kit(self.group.id)
         payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.archive_issue_block_kit(original_message, "ignored:forever", payload_data)
+        self.archive_issue_block_kit(original_message, "ignored:archived_forever", payload_data)
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -756,7 +774,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_response_differs_on_bot_message(self):
-        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
+        status_action = {"name": "status", "value": "ignored:archived_forever", "type": "button"}
 
         original_message = {"type": "message"}
 
@@ -781,7 +799,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     @responses.activate
     def test_response_differs_on_bot_message_block_kit(self):
-        status_action = self.get_ignore_status_action()
+        status_action = self.get_archive_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
 
         # Expect request to open dialog on slack
@@ -825,7 +843,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook_block_kit(
                 type="view_submission",
                 private_metadata=json.dumps(private_metadata),
-                selected_option="ignored:forever",
+                selected_option="ignored:archived_forever",
             )
         assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
@@ -1388,7 +1406,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             user=user2,
         )
 
-        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
+        status_action = {"name": "status", "value": "ignored:archived_forever", "type": "button"}
 
         resp = self.post_webhook(
             action_data=[status_action], slack_user={"id": user2_identity.external_id}
@@ -1426,7 +1444,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             identity_provider=self.idp,
             user=user2,
         )
-        status_action = self.get_ignore_status_action()
+        status_action = self.get_archive_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
         assert self.group.get_status() == GroupStatus.UNRESOLVED
 
@@ -1471,7 +1489,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook_block_kit(
                 type="view_submission",
                 private_metadata=json.dumps(private_metadata),
-                selected_option="ignored:forever",
+                selected_option="ignored:archived_forever",
                 slack_user={"id": user2_identity.external_id},
             )
 
@@ -1497,7 +1515,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             identity_provider=self.idp,
             user=user2,
         )
-        status_action = self.get_ignore_status_action()
+        status_action = self.get_archive_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
 
         # Expect request to open dialog on slack
@@ -1543,7 +1561,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook_block_kit(
                 type="view_submission",
                 private_metadata=json.dumps(private_metadata),
-                selected_option="ignored:until_escalating",
+                selected_option="ignored:archived_until_escalating",
                 slack_user={"id": user2_identity.external_id},
             )
         assert resp.status_code == 200, resp.content

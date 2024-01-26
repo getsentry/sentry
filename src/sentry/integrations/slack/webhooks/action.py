@@ -85,11 +85,11 @@ RESOLVE_OPTIONS = {
 }
 
 ARCHIVE_OPTIONS = {
-    "Until escalating": "ignored:until_escalating",
-    "Until 10 events": "ignored:until_condition_met:10",
-    "Until 100 events": "ignored:until_condition_met:100",
-    "Until 1000 events": "ignored:until_condition_met:1000",
-    "Forever": "ignored:forever",
+    "Until escalating": "ignored:archived_until_escalating",
+    "Until 10 events": "ignored:archived_until_condition_met:10",
+    "Until 100 events": "ignored:archived_until_condition_met:100",
+    "Until 1000 events": "ignored:archived_until_condition_met:1000",
+    "Forever": "ignored:archived_forever",
 }
 
 
@@ -271,7 +271,7 @@ class SlackActionEndpoint(Endpoint):
         # sub-status only applies to ignored/archived issues
         if len(status_data) > 1 and status_data[0] == "ignored":
             status["substatus"] = status_data[1]
-            if status["substatus"] == "until_condition_met":
+            if status["substatus"] == "archived_until_condition_met":
                 status.update({"statusDetails": {"ignoreCount": int(status_data[2])}})
 
         resolve_type = status_data[-1]
@@ -365,7 +365,7 @@ class SlackActionEndpoint(Endpoint):
                                 "text": "Until escalating",
                                 "emoji": True,
                             },
-                            "value": "ignored:until_escalating",
+                            "value": "ignored:archived_until_escalating",
                         },
                         "options": formatted_archive_options,
                         "action_id": "static_select-action",
@@ -432,11 +432,11 @@ class SlackActionEndpoint(Endpoint):
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
             "is_message": _is_message(slack_request.data),
+            "rule": slack_request.callback_data.get("rule"),
         }
 
         if slack_request.data.get("channel"):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
-            callback_id["rule"] = slack_request.callback_data.get("rule")
         callback_id = json.dumps(callback_id)
 
         slack_client = SlackClient(integration_id=slack_request.integration.id)
@@ -594,7 +594,11 @@ class SlackActionEndpoint(Endpoint):
                 if action.name == "status" or (
                     use_block_kit
                     and action.name
-                    in ("ignored:forever", "ignored:until_escalating", "unresolved:ongoing")
+                    in (
+                        "ignored:forever",
+                        "ignored:until_escalating",
+                        "unresolved:ongoing",
+                    )  # TODO: delete the first two names when block kit is GA
                 ):
                     self.on_status(request, identity_user, group, action)
                 elif action.name == "assign":
