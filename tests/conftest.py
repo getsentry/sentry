@@ -4,6 +4,7 @@ from typing import MutableMapping
 import psutil
 import pytest
 import responses
+from django.conf import settings
 from django.db import connections
 
 from sentry.silo import SiloMode
@@ -111,15 +112,17 @@ def validate_silo_mode():
     # during tests.  It depends upon `override_settings` using the correct contextmanager behaviors and correct
     # thread handling in acceptance tests.  If you hit one of these, it's possible either that cleanup logic has
     # a bug, or you may be using a contextmanager incorrectly.  Let us know and we can help!
-    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-        raise Exception(
-            "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
-        )
+    expected = settings.DEFAULT_SILO_MODE_FOR_TEST_CASES
+    message = (
+        f"Possible test leak bug!  SiloMode was not reset to {expected} between tests.  "
+        "Please read the comment for validate_silo_mode() in tests/conftest.py."
+    )
+
+    if SiloMode.get_current_mode() != expected:
+        raise Exception(message)
     yield
-    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-        raise Exception(
-            "Possible test leak bug!  SiloMode was not reset to Monolith between tests.  Please read the comment for validate_silo_mode() in tests/conftest.py."
-        )
+    if SiloMode.get_current_mode() != expected:
+        raise Exception(message)
 
 
 @pytest.fixture(autouse=True)

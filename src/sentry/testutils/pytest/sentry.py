@@ -16,6 +16,7 @@ from django.conf import settings
 from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
+from sentry.silo import SiloMode
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
@@ -50,6 +51,11 @@ def configure_split_db() -> None:
 
 
 def _configure_test_env_regions() -> None:
+    # This value is checked by validate_silo_mode and should remain stable at all times.
+    settings.DEFAULT_SILO_MODE_FOR_TEST_CASES = SiloMode.MONOLITH
+
+    # But this one is subject to ephemeral changes via override_settings, etc.
+    settings.SILO_MODE = settings.DEFAULT_SILO_MODE_FOR_TEST_CASES
 
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
