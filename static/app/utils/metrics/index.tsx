@@ -252,11 +252,11 @@ export function getDdmUrl(
 export function getMetricsApiRequestQuery(
   {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
-  overrides: Partial<MetricsApiRequestQueryOptions>
+  {fidelity, ...overrides}: Partial<MetricsApiRequestQueryOptions> = {}
 ): MetricsApiRequestQuery {
   const {mri: mri} = parseField(field) ?? {};
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getDDMInterval(datetime, useCase, overrides.fidelity);
+  const interval = getDDMInterval(datetime, useCase, fidelity);
 
   const hasGroupBy = groupBy && groupBy.length > 0;
 
@@ -270,10 +270,7 @@ export function getMetricsApiRequestQuery(
     interval,
     groupBy,
     orderBy: hasGroupBy && !orderBy && field ? `-${field}` : orderBy,
-    allowPrivate: true, // TODO(ddm): reconsider before widening audience
-    // Max result groups for compatibility with old metrics layer
-    // TODO(telemetry-experience): remove once everyone is on new metrics layer
-    per_page: Math.max(10, overrides.limit ?? 0),
+    useNewQueryLayer: true,
   };
 
   return {...queryToSend, ...overrides};
