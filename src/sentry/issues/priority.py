@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.models.activity import Activity
-from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.group import Group
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.activity import ActivityType
