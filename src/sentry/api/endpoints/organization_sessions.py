@@ -6,6 +6,7 @@ from django.utils.datastructures import MultiValueDict
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 
 from sentry import release_health
 from sentry.api.api_owners import ApiOwner
@@ -21,14 +22,43 @@ from sentry.snuba.sessions_v2 import SNUBA_LIMIT, InvalidField, QueryDefinition
 from sentry.utils.cursors import Cursor, CursorResult
 
 
+@extend_schema(tags=["Sessions"])
 @region_silo_endpoint
 class OrganizationSessionsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
+    @extend_schema(
+        operation_id="Create a New Team",
+        parameters=[ GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.START,
+            GlobalParams.STATS_PERIOD,
+            VisibilityParams.FIELD,
+            VisibilityParams.PER_PAGE,
+            SessionsParams.INTERVAL,
+            SessionsParams.GROUP_BY,
+            SessionsParams.INCLUDE_TOTALS,
+            SessionsParams.INCLUDE_SERIES,
+            VisibilityParams.QUERY,
+            VisibilityParams.SORT,],
+        request=TeamPostSerializer,
+        responses={
+            200: inline_sentry_response_serializer(),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: OpenApiResponse(description="A team with this slug already exists."),
+        },
+        examples=TeamExamples.CREATE_TEAM,
+    )
     def get(self, request: Request, organization) -> Response:
+        """
+        Query Session Events in Timeseries Format
+        """
         def data_fn(offset: int, limit: int):
             with self.handle_query_errors():
                 with sentry_sdk.start_span(
