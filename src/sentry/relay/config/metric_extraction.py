@@ -288,6 +288,9 @@ def _trim_if_above_limit(
                     len(specs_for_version),
                     widget_type,
                     project.slug,
+                    extra={
+                        specs=[spec[0] for spec in specs_for_version]
+                    }
                 )
 
             return_specs += specs_for_version[:max_specs]
