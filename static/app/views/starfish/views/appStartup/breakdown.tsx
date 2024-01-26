@@ -6,6 +6,9 @@ import {space} from 'sentry/styles/space';
 import toPercent from 'sentry/utils/number/toPercent';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 
+export const COLD_START_COLOR = '#F58C46';
+export const WARM_START_COLOR = '#F2B712';
+
 interface Row {
   [index: string]: number | undefined;
 }
