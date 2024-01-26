@@ -13,13 +13,13 @@ type ApiResponse = {
   metrics: MetricMetaCodeLocation[];
 };
 
-type MetricsDDMMetaOpts = MetricRange & {
+type MetricCorrelationOpts = MetricRange & {
   codeLocations?: boolean;
   metricSpans?: boolean;
   query?: string;
 };
 
-function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
+function useMetricsCorrelations(mri: MRI | undefined, options: MetricCorrelationOpts) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -66,21 +66,33 @@ function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
   return {...queryInfo, data};
 }
 
-export function useCorrelatedSamples(
+export function useMetricSamples(
   mri: MRI | undefined,
-  options: Omit<MetricsDDMMetaOpts, 'metricSpans'> = {}
+  options: Omit<MetricCorrelationOpts, 'metricSpans'> = {}
 ) {
-  return useMetricsDDMMeta(mri, {
+  const queryInfo = useMetricsCorrelations(mri, {
     ...options,
     metricSpans: true,
   });
+
+  if (!queryInfo.data) {
+    return queryInfo;
+  }
+
+  const data = queryInfo.data.metrics
+    .map(m => m.metricSpans)
+    .flat()
+    .filter(correlation => !!correlation)
+    .slice(0, 10) as MetricCorrelation[];
+
+  return {...queryInfo, data};
 }
 
-export function useMetricsCodeLocations(
+export function useMetricCodeLocations(
   mri: MRI | undefined,
-  options: Omit<MetricsDDMMetaOpts, 'codeLocations'> = {}
+  options: Omit<MetricCorrelationOpts, 'codeLocations'> = {}
 ) {
-  return useMetricsDDMMeta(mri, {...options, codeLocations: true});
+  return useMetricsCorrelations(mri, {...options, codeLocations: true});
 }
 
 const mapToNewResponseShape = (

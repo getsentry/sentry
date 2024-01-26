@@ -19,8 +19,12 @@ import {space} from 'sentry/styles/space';
 import type {MRI} from 'sentry/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/formatters';
-import type {MetricCorrelation, MetricRange} from 'sentry/utils/metrics/types';
-import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
+import type {
+  MetricCorrelation,
+  MetricRange,
+  SpanSummary,
+} from 'sentry/utils/metrics/types';
+import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,7 +35,7 @@ import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 /**
  * Limits the number of spans to the top n + an "other" entry
  */
-function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: number) {
+function sortAndLimitSpans(samples?: SpanSummary[], limit: number = 5) {
   if (!samples) {
     return [];
   }
@@ -78,14 +82,7 @@ export function SampleTable({
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const {data, isFetching} = useCorrelatedSamples(mri, metricMetaOptions);
-
-  const rows = data?.metrics
-    .map(m => m.metricSpans)
-    .flat()
-    .filter(Boolean)
-    // We only want to show the first 10 correlations
-    .slice(0, 10) as MetricCorrelation[];
+  const {data: rows, isFetching} = useMetricSamples(mri, metricMetaOptions);
 
   function renderHeadCell(col: Column) {
     if (col.key === 'profileId') {
@@ -205,7 +202,7 @@ export function SampleTable({
         return <NoValue>{t('(no value)')}</NoValue>;
       }
 
-      const preparedSpans = sortAndLimitSpans(row.spansSummary, 5);
+      const preparedSpans = sortAndLimitSpans(row.spansSummary);
 
       return (
         <StyledColorBar
@@ -279,7 +276,7 @@ export function SampleTable({
         isLoading={isFetching}
         columnOrder={columnOrder}
         columnSortBy={[]}
-        data={rows}
+        data={rows ?? []}
         grid={{
           renderHeadCell,
           renderBodyCell,

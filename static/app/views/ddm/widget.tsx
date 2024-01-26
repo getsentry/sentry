@@ -25,13 +25,10 @@ import {
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
-import type {
-  MetricCorrelation,
-  MetricWidgetQueryParams,
-} from 'sentry/utils/metrics/types';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
-import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
+import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import theme from 'sentry/utils/theme';
 import {MetricChart} from 'sentry/views/ddm/chart';
@@ -237,7 +234,7 @@ export const MetricWidgetBody = memo(
       {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
     );
 
-    const {data: samplesData} = useCorrelatedSamples(mri, {...focusArea?.range});
+    const {data: correlations} = useMetricSamples(mri, {...focusArea?.range});
 
     const chartRef = useRef<ReactEchartsRef>(null);
 
@@ -273,17 +270,6 @@ export const MetricWidgetBody = memo(
           })
         : [];
     }, [timeseriesData, displayType, focusedSeries, metricsQuery.groupBy, mri]);
-
-    const correlations = useMemo(() => {
-      return (
-        samplesData
-          ? samplesData.metrics
-              .map(m => m.metricSpans)
-              .flat()
-              .filter(correlation => !!correlation)
-          : []
-      ) as MetricCorrelation[];
-    }, [samplesData]);
 
     const handleSortChange = useCallback(
       newSort => {
