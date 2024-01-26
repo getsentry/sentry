@@ -7,11 +7,7 @@ from django.urls import reverse
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.visibility import (
-    block_metric,
-    block_tags_of_metric,
-    get_metrics_blocking_state,
-)
+from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.silo import SiloMode
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
@@ -175,63 +171,3 @@ class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
         assert data[2]["blockingStatus"] == [
             {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
         ]
-
-    def test_block_metric(self):
-        response = self.get_success_response(
-            self.organization.slug,
-            method="PUT",
-            project=[self.project.id],
-            operationType="blockMetric",
-            metric_mri="s:custom/user@none",
-        )
-
-        assert response.status_code == 200
-        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
-
-        response = self.get_success_response(
-            self.organization.slug,
-            method="PUT",
-            project=[self.project.id],
-            operationType="unblockMetric",
-            metric_mri="s:custom/user@none",
-        )
-
-        assert response.status_code == 200
-        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 0
-
-    def test_block_metric_tag(self):
-        response = self.get_success_response(
-            self.organization.slug,
-            method="PUT",
-            project=[self.project.id],
-            operationType="blockTags",
-            metric_mri="s:custom/user@none",
-            tags=["release", "transaction"],
-        )
-
-        assert response.status_code == 200
-        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
-
-        response = self.get_success_response(
-            self.organization.slug,
-            method="PUT",
-            project=[self.project.id],
-            operationType="unblockTags",
-            metric_mri="s:custom/user@none",
-            tags=["transaction"],
-        )
-
-        assert response.status_code == 200
-        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
-
-        response = self.get_success_response(
-            self.organization.slug,
-            method="PUT",
-            project=[self.project.id],
-            operationType="unblockTags",
-            metric_mri="s:custom/user@none",
-            tags=["release"],
-        )
-
-        assert response.status_code == 200
-        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 0

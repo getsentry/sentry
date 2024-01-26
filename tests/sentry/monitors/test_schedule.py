@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from django.utils import timezone
+from datetime import datetime, timezone
 
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule

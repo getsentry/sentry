@@ -16,8 +16,6 @@ type Props = {
   tokenPrefix?: string;
 };
 
-// TODO: After the BE portion of code changes have been released, remove the conditional rendering of the token.
-// We are currently doing the conditional logic to do safe blue/green deploys and handle contract changes.
 function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
   return (
     <StyledPanelItem>
@@ -33,6 +31,7 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
         </TokenPreview>
         <ButtonWrapper>
           <Button
+            data-test-id="token-delete"
             onClick={() => onRemove(token)}
             icon={<IconSubtract isCircled size="xs" />}
           >

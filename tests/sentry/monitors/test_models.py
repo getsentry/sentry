@@ -1,9 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from django.conf import settings
 from django.test.utils import override_settings
-from django.utils import timezone
 
 from sentry.monitors.models import (
     Monitor,

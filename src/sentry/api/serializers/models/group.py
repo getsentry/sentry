@@ -66,7 +66,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.group import SUBSTATUS_TO_STR
+from sentry.types.group import PRIORITY_LEVEL_TO_STR, SUBSTATUS_TO_STR
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -149,6 +149,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     statusDetails: GroupStatusDetailsResponseOptional
     isPublic: bool
     platform: str
+    priority: str
     project: GroupProjectResponse
     type: str
     metadata: GroupMetadataResponse
@@ -361,6 +362,10 @@ class GroupSerializerBase(Serializer, ABC):
             "issueType": obj.issue_type.slug,
             "issueCategory": obj.issue_category.name.lower(),
         }
+
+        if features.has("projects:issue-priority", obj.project, actor=None):
+            priority_label = PRIORITY_LEVEL_TO_STR[obj.priority] if obj.priority else None
+            group_dict["priority"] = priority_label
 
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:

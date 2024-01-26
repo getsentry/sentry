@@ -75,7 +75,7 @@ class CrossDomainXmlTest(TestCase):
 class RobotsTxtTest(TestCase):
     @cached_property
     def path(self):
-        return reverse("sentry-api-robots-txt")
+        return reverse("sentry-robots-txt")
 
     def test_robots(self):
         resp = self.client.get(self.path)

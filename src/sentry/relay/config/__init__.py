@@ -451,10 +451,6 @@ def _get_project_config(
             ),
         }
 
-    lcp_and_cls_is_optional = features.has(
-        "organizations:performance-score-optional-lcp-and-cls", project.organization
-    )
-
     if features.has("organizations:performance-calculate-score-relay", project.organization):
         config["performanceScore"] = {
             "profiles": [
@@ -473,7 +469,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -487,7 +483,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -608,7 +604,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -622,7 +618,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -653,7 +649,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -667,7 +663,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
