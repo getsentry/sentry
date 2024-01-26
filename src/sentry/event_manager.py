@@ -1674,12 +1674,13 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             transition_type="automatic",
             sender="handle_regression",
         )
-        post_save.send(
-            sender=Group,
-            instance=group,
-            created=False,
-            update_fields=["last_seen", "active_at", "status", "substatus"],
-        )
+        if not options.get("groups.enable-post-update-signal"):
+            post_save.send(
+                sender=Group,
+                instance=group,
+                created=False,
+                update_fields=["last_seen", "active_at", "status", "substatus"],
+            )
 
     follows_semver = False
     resolved_in_activity = None

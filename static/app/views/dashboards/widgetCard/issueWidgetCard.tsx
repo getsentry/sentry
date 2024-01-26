@@ -6,7 +6,7 @@ import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -18,7 +18,6 @@ import {ISSUE_FIELDS} from '../widgetBuilder/issueWidget/fields';
 type Props = {
   loading: boolean;
   location: Location;
-  organization: Organization;
   selection: PageFilters;
   transformedResults: TableDataRow[];
   widget: Widget;
@@ -26,7 +25,6 @@ type Props = {
 };
 
 export function IssueWidgetCard({
-  organization,
   selection,
   widget,
   errorMessage,
@@ -66,7 +64,6 @@ export function IssueWidgetCard({
       loading={loading}
       metadata={ISSUE_FIELDS}
       data={transformedResults}
-      organization={organization}
       getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
       fieldHeaderMap={datasetConfig.getFieldHeaderMap?.()}
       stickyHeaders

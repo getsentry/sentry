@@ -2,7 +2,7 @@ import {
   MetricsEnhancedSettingContext,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
@@ -32,6 +32,7 @@ function getAllowedChartsSmall(
 
 export function FrontendOtherView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
+  const {setPageError} = usePageAlert();
 
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
@@ -61,7 +62,7 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
         <Table
           {...props}
           columnTitles={FRONTEND_OTHER_COLUMN_TITLES}
-          setError={usePageError().setPageError}
+          setError={setPageError}
         />
       </div>
     </PerformanceDisplayProvider>
