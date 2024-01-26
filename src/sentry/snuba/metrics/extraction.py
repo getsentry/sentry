@@ -25,6 +25,7 @@ import sentry_sdk
 from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
+from sentry import features
 from sentry.api import event_search
 from sentry.api.event_search import (
     AggregateFilter,
@@ -86,7 +87,9 @@ class OnDemandMetricSpecVersioning:
     @classmethod
     def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
-        _ = Organization.objects.get_from_cache(id=organization_id)
+        org = Organization.objects.get_from_cache(id=organization_id)
+        if features.has("organizations:on-demand-metrics-query-spec-version-two", org):
+            return cls.spec_versions[1]
         return cls.spec_versions[0]
 
     @classmethod
