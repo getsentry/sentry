@@ -214,6 +214,7 @@ class FingerprintingRules:
         return {"version": self.version, "rules": [x._to_config_structure() for x in rules]}
 
     def to_json(self, include_builtin=False):
+        # TODO: it's called "to_json", but returns JSON-serializable dict
         return self._to_config_structure(include_builtin=include_builtin)
 
     @classmethod

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Sequence, TypedDict
+from typing import TYPE_CHECKING, Any, Sequence, TypedDict
 
 # TODO: import from typing once we're at Py>=3.11
 from typing_extensions import NotRequired
@@ -73,7 +73,7 @@ class GroupingConfig(TypedDict):
     id: str
     enhancements: str
     fingerprinting: NotRequired[
-        FingerprintingRules
+        dict[Any, Any]
     ]  # TODO: remove NotRequired when we determine legacy configs w/o fingerprinting are not a problem
 
 
