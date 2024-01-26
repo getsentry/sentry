@@ -246,7 +246,7 @@ def get_metrics_config(project: Project) -> Optional[Mapping[str, Any]]:
     if features.has("organizations:metrics-blocking", project.organization):
         metrics_blocking_state = get_metrics_blocking_state_for_relay(project)
         if metrics_blocking_state is not None:
-            metrics_config.update(**metrics_blocking_state)
+            metrics_config.update(metrics_blocking_state)  # type:ignore
 
     return metrics_config or None
 
