@@ -270,6 +270,7 @@ export function getMetricsApiRequestQuery(
     interval,
     groupBy,
     orderBy: hasGroupBy && !orderBy && field ? `-${field}` : orderBy,
+    useNewQueryLayer: true,
   };
 
   return {...queryToSend, ...overrides};
