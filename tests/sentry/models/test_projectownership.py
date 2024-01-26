@@ -12,7 +12,7 @@ from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema, resolve_
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
@@ -652,6 +652,7 @@ class ProjectOwnershipTestCase(TestCase):
         assert assignee.team_id == self.team.id
 
 
+@region_silo_test
 class ResolveActorsTestCase(TestCase):
     def test_no_actors(self):
         assert resolve_actors([], self.project.id) == {}
@@ -730,7 +731,8 @@ class ResolveActorsTestCase(TestCase):
         # non-null UserAvatar
 
         user = self.create_user()
-        UserAvatar.objects.create(user=user)
+        with assume_test_silo_mode_of(UserAvatar):
+            UserAvatar.objects.create(user=user)
 
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org, members=[user])

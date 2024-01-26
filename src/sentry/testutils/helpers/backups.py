@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import tempfile
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property, cmp_to_key
 from pathlib import Path
 from typing import Tuple
@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from sentry_relay.auth import generate_key_pair
 
 from sentry.backup.crypto import (
@@ -429,8 +429,8 @@ class BackupTestCase(TransactionTestCase):
         )
         CustomDynamicSamplingRule.update_or_create(
             condition={"op": "equals", "name": "environment", "value": "prod"},
-            start=timezone.now(),
-            end=timezone.now() + timedelta(hours=1),
+            start=django_timezone.now(),
+            end=django_timezone.now() + timedelta(hours=1),
             project_ids=[project.id],
             organization_id=org.id,
             num_samples=100,
