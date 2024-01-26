@@ -159,15 +159,15 @@ class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
 
         data = sorted(response.data, key=lambda d: d["mri"])
         assert data[0]["mri"] == "c:custom/clicks@none"
-        assert data[0]["project_ids"] == [project_1.id]
+        assert data[0]["projectIds"] == [project_1.id]
         assert data[0]["blockingStatus"] == []
         assert data[1]["mri"] == "d:custom/page_load@millisecond"
-        assert data[1]["project_ids"] == [project_2.id]
+        assert data[1]["projectIds"] == [project_2.id]
         assert data[1]["blockingStatus"] == [
             {"isBlocked": False, "blockedTags": ["release"], "projectId": project_2.id}
         ]
         assert data[2]["mri"] == "s:custom/user@none"
-        assert sorted(data[2]["project_ids"]) == sorted([project_1.id, project_2.id])
+        assert sorted(data[2]["projectIds"]) == sorted([project_1.id, project_2.id])
         assert data[2]["blockingStatus"] == [
             {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
         ]
