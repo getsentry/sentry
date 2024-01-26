@@ -1169,11 +1169,8 @@ def test_get_metric_extraction_config_with_no_tag_spec(
     "enabled_features, number_of_metrics",
     [
         ([ON_DEMAND_METRICS], 1),  # Alerts.
-        ([ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
-        ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widgets.
         ([ON_DEMAND_METRICS_WIDGETS], 1),  # Widgets.
-        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widget.
         ([], 0),  # Nothing.
     ],
 )
@@ -1204,29 +1201,7 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project:
 
     # We test with prefilling, and we expect that both alerts are fetched since we support both datasets.
     with Feature({ON_DEMAND_METRICS_PREFILL: True}):
-        config = get_metric_extraction_config(default_project)
-
-        assert config
-        assert config["metrics"] == [
-            {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [
-                    {"key": "query_hash", "value": "f1353b0f"},
-                ],
-            },
-            {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": 20.0},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [
-                    {"key": "query_hash", "value": "a547e4d9"},
-                ],
-            },
-        ]
+        assert not get_metric_extraction_config(default_project)
 
     # We test without prefilling, and we expect that only alerts for performance metrics are fetched.
     with Feature({ON_DEMAND_METRICS: True}):

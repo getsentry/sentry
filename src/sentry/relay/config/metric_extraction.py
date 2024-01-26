@@ -92,10 +92,8 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     enabled_features = on_demand_metrics_feature_flags(project.organization)
     sentry_sdk.set_tag("organization_id", project.organization_id)
 
-    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-
-    alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
-    widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
+    alert_specs = _get_alert_metric_specs(project, enabled_features, False)
+    widget_specs = _get_widget_metric_specs(project, enabled_features, False)
 
     metric_specs = _merge_metric_specs(alert_specs, widget_specs)
     if not metric_specs:
