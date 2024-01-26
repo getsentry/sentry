@@ -20,13 +20,12 @@ import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {
-  formatMetricUsingFixedUnit,
   getDDMInterval,
   getFieldFromMetricsQuery as getAlertAggregate,
-  MetricDisplayType,
-  MetricsQuery,
 } from 'sentry/utils/metrics';
+import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
 import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';

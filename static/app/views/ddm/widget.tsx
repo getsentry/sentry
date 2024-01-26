@@ -20,13 +20,15 @@ import {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getDefaultMetricDisplayType,
   getSeriesName,
-  MetricCorrelation,
-  MetricDisplayType,
-  metricDisplayTypeOptions,
-  MetricWidgetQueryParams,
   stringifyMetricWidget,
 } from 'sentry/utils/metrics';
+import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  MetricCorrelation,
+  MetricDisplayType,
+  MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';

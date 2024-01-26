@@ -12,14 +12,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {
-  formatMetricsUsingUnitAndOp,
-  MetricWidgetQueryParams,
-  SortState,
-} from 'sentry/utils/metrics';
+import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
+import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {MetricWidgetQueryParams, SortState} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
 import {Series} from 'sentry/views/ddm/widget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 

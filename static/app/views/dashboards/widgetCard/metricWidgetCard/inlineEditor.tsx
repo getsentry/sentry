@@ -18,16 +18,18 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MetricMeta, MRI} from 'sentry/types';
 import {
-  getReadableMetricType,
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
   isTransactionDuration,
+} from 'sentry/utils/metrics';
+import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
+import {
   MetricDisplayType,
   MetricsQuery,
   MetricsQuerySubject,
   MetricWidgetQueryParams,
-} from 'sentry/utils/metrics';
+} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';

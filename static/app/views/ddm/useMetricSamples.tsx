@@ -5,7 +5,8 @@ import moment from 'moment';
 
 import {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
-import {isCumulativeOp, MetricCorrelation} from 'sentry/utils/metrics';
+import {isCumulativeOp} from 'sentry/utils/metrics';
+import type {MetricCorrelation} from 'sentry/utils/metrics/types';
 import {fitToValueRect, getValueRect} from 'sentry/views/ddm/rect';
 import {Sample} from 'sentry/views/ddm/widget';
 
