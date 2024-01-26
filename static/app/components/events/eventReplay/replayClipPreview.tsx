@@ -1,4 +1,4 @@
-import {ComponentProps, Fragment, useMemo, useRef, useState} from 'react';
+import {ComponentProps, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import screenfull from 'screenfull';
 
@@ -6,6 +6,7 @@ import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
@@ -46,7 +47,7 @@ type Props = {
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
 
-const CLIP_DURATION_BEFORE_EVENT = 10_000;
+const CLIP_DURATION_BEFORE_EVENT = 5_000;
 const CLIP_DURATION_AFTER_EVENT = 5_000;
 
 function getReplayAnalyticsStatus({
@@ -100,7 +101,7 @@ function ReplayPreviewPlayer({
   };
 
   return (
-    <Fragment>
+    <PlayerPanel>
       <PlayerBreadcrumbContainer>
         <PlayerContextContainer>
           {isFullscreen ? (
@@ -121,7 +122,7 @@ function ReplayPreviewPlayer({
       </PlayerBreadcrumbContainer>
       <ErrorBoundary mini>
         <ButtonGrid>
-          <ReplayPlayPauseButton />
+          <ReplayPlayPauseButton priority="default" />
           <Container>
             <TimeAndScrubberGrid />
           </Container>
@@ -135,7 +136,7 @@ function ReplayPreviewPlayer({
           </ButtonBar>
         </ButtonGrid>
       </ErrorBoundary>
-    </Fragment>
+    </PlayerPanel>
   );
 }
 
@@ -230,9 +231,19 @@ function ReplayClipPreview({
   );
 }
 
+const PlayerPanel = styled(Panel)`
+  padding: ${space(3)} ${space(3)} ${space(1.5)};
+  margin: 0;
+  display: flex;
+  gap: ${space(1)};
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+  height: 100%;
+`;
+
 const PlayerBreadcrumbContainer = styled(FluidHeight)`
   position: relative;
-  height: 100%;
 `;
 
 const PlayerContainer = styled(FluidHeight)`
