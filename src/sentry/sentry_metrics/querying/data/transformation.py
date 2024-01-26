@@ -6,15 +6,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.data.execution import QueryResult
 from sentry.sentry_metrics.querying.data.utils import get_identity, nan_to_none
-from sentry.sentry_metrics.querying.errors import (
-    MetricsQueryExecutionError,
-)
-from sentry.sentry_metrics.querying.types import (
-    GroupKey,
-    ResultValue,
-    Series,
-    Total,
-)
+from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
+from sentry.sentry_metrics.querying.types import GroupKey, ResultValue, Series, Total
 
 
 @dataclass
@@ -94,8 +87,8 @@ def _generate_full_series(
 
     return full_series
 
-class QueryTransformer:
 
+class QueryTransformer:
     def __init__(self, query_results: List[QueryResult]):
         self._query_results = query_results
 
@@ -107,7 +100,9 @@ class QueryTransformer:
         assert self._start is not None and self._end is not None and self._interval is not None
         return self._start, self._end, self._interval
 
-    def _build_intermediate_results(self) -> Tuple[OrderedDict[GroupKey, OrderedDict[str, GroupValue]], List[QueryMeta]]:
+    def _build_intermediate_results(
+        self,
+    ) -> Tuple[OrderedDict[GroupKey, OrderedDict[str, GroupValue]], List[QueryMeta]]:
         """
         Builds a tuple of intermediate groups and metadata which is used to efficiently transform the query results.
         """
@@ -122,9 +117,7 @@ class QueryTransformer:
                     grouped_values.append((group_by, value.get(group_by)))
 
                 group_metrics = intermediate_groups.setdefault(tuple(grouped_values), OrderedDict())
-                group_value = group_metrics.setdefault(
-                    query_result.query_name, GroupValue.empty()
-                )
+                group_value = group_metrics.setdefault(query_result.query_name, GroupValue.empty())
 
                 block(value, group_value)
 

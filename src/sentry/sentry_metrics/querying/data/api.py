@@ -9,9 +9,7 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.execution import QueryExecutor
 from sentry.sentry_metrics.querying.data.parsing import QueryParser
 from sentry.sentry_metrics.querying.data.transformation import QueryTransformer
-from sentry.sentry_metrics.querying.errors import (
-    InvalidMetricsQueryError,
-)
+from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.utils import metrics
 
 
