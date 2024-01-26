@@ -369,7 +369,7 @@ def test_process_widget_specs(
             is_low_cardinality=expected_low_cardinality,
             has_features=bool(feature_flags),
             expected_applicable=True,
-            expected_hashes=["43adeb86", "08d55288"],
+            expected_hashes=["43adeb86"],
         )
 
     if 2 in widget_query_ids:
@@ -379,7 +379,7 @@ def test_process_widget_specs(
             is_low_cardinality=expected_low_cardinality,
             has_features=bool(feature_flags),
             expected_applicable=True,
-            expected_hashes=["8f74e5da", "c3628924"],
+            expected_hashes=["8f74e5da"],
         )
 
     if 3 in widget_query_ids:

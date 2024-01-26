@@ -17,7 +17,6 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold, Tra
 from sentry.relay.config.metric_extraction import get_metric_extraction_config
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -123,7 +122,7 @@ def test_get_metric_extraction_config_single_alert(default_project: Project) -> 
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -148,7 +147,7 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {
@@ -196,7 +195,7 @@ def test_get_metric_extraction_config_multiple_alerts(default_project: Project) 
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2 * len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 2
 
         first_hash = config["metrics"][0]["tags"][0]["value"]
         second_hash = config["metrics"][1]["tags"][0]["value"]
@@ -218,7 +217,7 @@ def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
 
         assert config
         # Since we have set a maximum of 1 we will not get 2
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
 
         out, _ = capfd.readouterr()
         assert out.splitlines()[0].split(": ")[1:3] == [
@@ -237,7 +236,7 @@ def test_get_metric_extraction_config_multiple_alerts_duplicated(default_project
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
 
 
 @django_db_all
@@ -245,18 +244,19 @@ def test_get_metric_extraction_config_environment(
     default_project: Project, default_environment: Environment
 ) -> None:
     with Feature(ON_DEMAND_METRICS):
-        query = "transaction.duration:>=0"
-        create_alert("count()", query, default_project)
-        create_alert("count()", query, default_project, environment=default_environment)
+        create_alert("count()", "transaction.duration:>0", default_project)
+        create_alert("count()", "transaction.duration:>0", default_project, environment=None)
+        create_alert(
+            "count()", "transaction.duration:>0", default_project, environment=default_environment
+        )
 
         config = get_metric_extraction_config(default_project)
 
         assert config
         # assert that the deduplication works with environments
-        assert len(config["metrics"]) == 2 * len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 2
 
-        no_env = config["metrics"][0]
-        default_env = config["metrics"][1]
+        no_env, default_env = config["metrics"]
 
         # assert that the conditions are different
         assert no_env["condition"] != default_env["condition"]
@@ -280,7 +280,7 @@ def test_get_metric_extraction_config_single_widget(default_project: Project) ->
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -306,7 +306,7 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2 * len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 2
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -345,7 +345,7 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 3 * len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 3
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -405,7 +405,7 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -430,7 +430,7 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2 * len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 2
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -467,7 +467,7 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
 
         assert config
         # Since we have set a maximum of 1 we will not get 2
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
 
         out, _ = capfd.readouterr()
         assert out.splitlines()[0].split(": ")[1:3] == [
@@ -490,7 +490,7 @@ def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
 
         assert config
         # Since we have set a maximum of 1 we will not get 2
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
 
         out, _ = capfd.readouterr()
         assert out.splitlines()[0].split(": ")[1:3] == [
@@ -515,7 +515,7 @@ def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
 
         assert config
         # Since we have set a maximum of 1 we will not get 2
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
 
         out, _ = capfd.readouterr()
         assert out.splitlines()[0].split(": ")[1:3] == [
@@ -539,7 +539,7 @@ def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2 * len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 2
 
 
 @django_db_all
@@ -552,7 +552,7 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project: Pr
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -574,7 +574,7 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project: Projec
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2 * len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 2
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -605,7 +605,7 @@ def test_get_metric_extraction_config_with_failure_count(default_project: Projec
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -642,7 +642,7 @@ def test_get_metric_extraction_config_with_apdex(default_project: Project) -> No
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -693,7 +693,7 @@ def test_get_metric_extraction_config_with_count_web_vitals(
         vital = measurement.split(".")[1]
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
 
         if measurement_rating == "good":
             assert config["metrics"][0] == {
@@ -831,23 +831,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                     {"key": "query_hash", "value": "1394a552"},
                     {"key": "environment", "field": "event.environment"},
                 ],
-            },
-            {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
-                # This is necessary for calculating unique users
-                "field": "event.user.id",
-                "mri": "s:transactions/on_demand@none",
-                "tags": [
-                    {
-                        "condition": {"name": "event.duration", "op": "gt", "value": threshold * 4},
-                        "key": "satisfaction",
-                        "value": "frustrated",
-                    },
-                    {"key": "query_hash", "value": "a11306a2"},
-                    {"key": "environment", "field": "event.environment"},
-                ],
-            },
+            }
         ]
 
 
@@ -887,25 +871,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                     {"key": "custom", "field": "event.tags.custom"},
                     {"key": "environment", "field": "event.environment"},
                 ],
-            },
-            {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
-                # This is necessary for calculating unique users
-                "field": "event.user.id",
-                "mri": "s:transactions/on_demand@none",
-                "tags": [
-                    {
-                        "condition": {"name": "event.duration", "op": "gt", "value": threshold * 4},
-                        "key": "satisfaction",
-                        "value": "frustrated",
-                    },
-                    {"key": "query_hash", "value": "20e2ae47"},
-                    {"key": "lcp.element", "field": "event.tags.lcp.element"},
-                    {"key": "custom", "field": "event.tags.custom"},
-                    {"key": "environment", "field": "event.environment"},
-                ],
-            },
+            }
         ]
 
 
@@ -936,19 +902,7 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                     {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
                 ],
-            },
-            {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [
-                    {"key": "query_hash", "value": "9ab93ac7"},
-                    {"field": "event.user.id", "key": "user.id"},
-                    {"field": "event.release", "key": "release"},
-                    {"field": "event.environment", "key": "environment"},
-                ],
-            },
+            }
         ]
 
 
@@ -1003,7 +957,7 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2 * len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 2
 
 
 @django_db_all
@@ -1097,7 +1051,7 @@ def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2 * len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 2
 
 
 @django_db_all
@@ -1154,26 +1108,6 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
                         {"field": "event.environment", "key": "environment"},
                     ],
                 },
-                {
-                    "category": "transaction",
-                    "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Armén"},
-                    "field": None,
-                    "mri": "c:transactions/on_demand@none",
-                    "tags": [
-                        {"key": "query_hash", "value": "e083f564"},
-                        {"field": "event.environment", "key": "environment"},
-                    ],
-                },
-                {
-                    "category": "transaction",
-                    "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Kevan"},
-                    "field": None,
-                    "mri": "c:transactions/on_demand@none",
-                    "tags": [
-                        {"key": "query_hash", "value": "a031603e"},
-                        {"field": "event.environment", "key": "environment"},
-                    ],
-                },
             ],
             "version": 2,
         }
@@ -1191,7 +1125,7 @@ def test_get_metric_extraction_config_with_no_tag_spec(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
@@ -1230,55 +1164,7 @@ def test_get_metrics_extraction_config_features_combinations(
             assert config is None
         else:
             assert config is not None
-            assert len(config["metrics"]) == number_of_metrics * len(
-                OnDemandMetricSpecVersioning.spec_versions
-            )
-
-
-def _metric_spec(tags: list[dict[str, str]]) -> dict[str, Any]:
-    return {
-        "category": "transaction",
-        "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
-        "field": None,
-        "mri": "c:transactions/on_demand@none",
-        "tags": tags,
-    }
-
-
-@django_db_all
-def test_include_environment_for_widgets(default_project: Project) -> None:
-    aggr = "count()"
-    env_tag = {"field": "event.environment", "key": "environment"}
-    query = "transaction.duration:>=10"
-
-    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        create_widget([aggr], query, default_project)
-        config = get_metric_extraction_config(default_project)
-        # Because we have two specs we will have two metrics.
-        # The second spec includes the environment tag as part of the query hash.
-        # XXX: Verify that the query hash is as expected
-        # XXX: Should we have two versions when the widget does not have any groupbys OR "environment" not being a field?
-        assert config and config["metrics"] == [
-            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
-            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
-        ]
-
-        # Using environment in the columns will turn into a groupbys
-        create_widget([aggr], query, default_project, columns=["environment"], title="foo")
-        config = get_metric_extraction_config(default_project)
-        # XXX: Should this be four specs?
-        assert config and config["metrics"] == [
-            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
-            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
-        ]
-
-        create_alert(aggr, query, default_project)
-        config = get_metric_extraction_config(default_project)
-        # The list is as long as the previous assertions because we deduplicate the alert spec
-        assert config and config["metrics"] == [
-            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
-            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
-        ]
+            assert len(config["metrics"]) == number_of_metrics
 
 
 @django_db_all
@@ -1295,7 +1181,7 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project:
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2 * len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 2
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
@@ -1316,7 +1202,7 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project:
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0] == {
             "category": "transaction",
             "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
@@ -1339,5 +1225,5 @@ def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> 
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == len(OnDemandMetricSpecVersioning.spec_versions)
+        assert len(config["metrics"]) == 1
         assert config["metrics"][0].get("condition") is None

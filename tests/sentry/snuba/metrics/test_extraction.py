@@ -27,27 +27,6 @@ def test_equality_of_specs(default_project) -> None:
     )
 
 
-@django_db_all
-def test_inclusion_of_environment_in_query_hash() -> None:
-    spec_1 = OnDemandMetricSpec("count()", "issue:FOO")
-    assert (
-        spec_1._query_str_for_hash
-        == "None;{'name': 'event.tags.issue', 'op': 'eq', 'value': 'FOO'}"
-    )
-
-    spec_2 = OnDemandMetricSpec("count()", "issue:FOO", environment="production")
-    assert (
-        spec_2._query_str_for_hash
-        == "None;{'inner': [{'op': 'eq', 'name': 'event.environment', 'value': 'production'}, {'op': 'eq', 'name': 'event.tags.issue', 'value': 'FOO'}], 'op': 'and'}"
-    )
-
-    spec_3 = OnDemandMetricSpec("count()", "issue:FOO", environment="production")
-    assert (
-        spec_3._query_str_for_hash
-        == "None;{'inner': [{'op': 'eq', 'name': 'event.environment', 'value': 'production'}, {'op': 'eq', 'name': 'event.tags.issue', 'value': 'FOO'}], 'op': 'and'}"
-    )
-
-
 @pytest.mark.parametrize(
     "agg, query, result",
     [
