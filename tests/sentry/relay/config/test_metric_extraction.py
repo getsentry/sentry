@@ -1608,7 +1608,6 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
         config = get_metric_extraction_config(default_project)
         # Because we have two specs we will have two metrics.
         # The second spec includes the environment tag as part of the query hash.
-        # XXX: Verify that the query hash is as expected
         assert config and config["metrics"] == [
             _metric_spec([{"key": "query_hash", "value": "f1353b0f"}, env_tag]),
             _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
@@ -1624,7 +1623,6 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
 
         create_alert(aggr, query, default_project)
         config = get_metric_extraction_config(default_project)
-        # XXX: Ask Kev about this
         # We loose the env in the tags because the alert spec is preferred over the widget spec
         assert config and config["metrics"] == [
             _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
