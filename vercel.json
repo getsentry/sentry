@@ -17,7 +17,10 @@
   "headers": [
     {
       "source": "/api/(.*)",
-      "headers": [{"key": "Referer", "value": "https://sentry.io/"}]
+      "headers": [
+        {"key": "Referer", "value": "https://sentry.io/"},
+        {"key": "Origin", "value": "https://sentry.io"}
+      ]
     }
   ],
   "github": {"silent": true}
