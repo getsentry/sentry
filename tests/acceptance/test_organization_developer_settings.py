@@ -119,7 +119,9 @@ class OrganizationDeveloperSettingsEditAcceptanceTest(AcceptanceTestCase):
 
         self.load_page(url)
 
+        assert self.browser.element_exists('[aria-label="Generated token"]') is False
+
         self.browser.click('[data-test-id="token-add"]')
         self.browser.wait_until(".ref-success")
 
-        assert len(self.browser.elements('[data-test-id="token-delete"]')) == 2
+        assert len(self.browser.elements('[aria-label="Generated token"]')) == 1

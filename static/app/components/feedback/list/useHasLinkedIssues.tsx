@@ -1,7 +1,5 @@
 import {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
-import useFetchSentryAppData from 'sentry/components/group/externalIssuesList/useFetchSentryAppData';
 import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
-import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Group, Project} from 'sentry/types';
@@ -17,10 +15,8 @@ type Props = {
 
 export default function useExternalIssueData({group, event, project}: Props) {
   const organization = useOrganization();
-  useFetchSentryAppData({group, organization}); // TODO: add this info onto the group directly
   const issueTrackingFilter = useIssueTrackingFilter();
   const components = useSentryAppComponentsStore({componentType: 'issue-link'});
-  const externalIssues = useLegacyStore(ExternalIssueStore);
   const sentryAppInstallations = useLegacyStore(SentryAppInstallationStore);
 
   const renderSentryAppIssues = (): ExternalIssueComponent[] => {
@@ -35,7 +31,9 @@ export default function useExternalIssueData({group, event, project}: Props) {
           return null;
         }
 
-        const issue = (externalIssues || []).find(i => i.serviceType === sentryApp.slug);
+        const issue = (group.sentryAppIssues || []).find(
+          i => i.serviceType === sentryApp.slug
+        );
 
         return {
           type: 'sentry-app-issue',

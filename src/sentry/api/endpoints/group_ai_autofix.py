@@ -85,7 +85,31 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 status=400,
             )
 
-        release: Release = Release.objects.get(version=release_version)
+        try:
+            release: Release = Release.objects.get(
+                organization_id=group.organization.id,
+                projects=group.project,
+                version=release_version,
+            )
+        except Release.DoesNotExist:
+            reason = "Release does not exist."
+            metadata["autofix"] = {
+                **metadata["autofix"],
+                "completedAt": datetime.now().isoformat(),
+                "status": "ERROR",
+                "fix": None,
+                "errorMessage": reason,
+            }
+
+            group.data["metadata"] = metadata
+            group.save()
+
+            return Response(
+                {
+                    "detail": reason,
+                },
+                status=500,
+            )
         release_commits: list[ReleaseCommit] = ReleaseCommit.objects.filter(release=release)
 
         commits: list[Commit] = [release_commit.commit for release_commit in release_commits]
