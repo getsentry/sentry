@@ -21,7 +21,6 @@ import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import {
-  Config,
   Frame,
   Organization,
   PlatformKey,
@@ -30,7 +29,6 @@ import {
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
@@ -62,7 +60,6 @@ const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
 ];
 
 export interface DeprecatedLineProps {
-  config: Config;
   data: Frame;
   event: Event;
   registers: Record<string, string>;
@@ -348,10 +345,7 @@ export class DeprecatedLine extends Component<Props, State> {
 
     const activeLineNumber = data.lineNo;
     const contextLine = (data?.context || []).find(l => l[0] === activeLineNumber);
-    const hasInFrameFeature = hasStacktraceLinkInFrameFeature(
-      organization,
-      this.props.config?.user
-    );
+    const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
     // InApp or .NET because of: https://learn.microsoft.com/en-us/dotnet/standard/library-guidance/sourcelink
     const hasStacktraceLink =
       (data.inApp || event.platform === 'csharp') &&
@@ -497,10 +491,8 @@ export class DeprecatedLine extends Component<Props, State> {
   }
 }
 
-export default withConfig(
-  withOrganization(
-    withSentryAppComponents(DeprecatedLine, {componentType: 'stacktrace-link'})
-  )
+export default withOrganization(
+  withSentryAppComponents(DeprecatedLine, {componentType: 'stacktrace-link'})
 );
 
 const RepeatedFrames = styled('div')`
