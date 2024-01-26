@@ -1,17 +1,20 @@
-import {ConfigFixture} from 'sentry-fixture/config';
-import {UserFixture} from 'sentry-fixture/user';
-
 import {render} from 'sentry-test/reactTestingLibrary';
-
-import ConfigStore from 'sentry/stores/configStore';
 
 import {Banner} from './banner';
 
+function mockIsSentryEmployee(isEmployee: boolean) {
+  jest
+    .spyOn(require('sentry/utils/useIsSentryEmployee'), 'useIsSentryEmployee')
+    .mockImplementation(() => isEmployee);
+}
+
 describe('PII Certification Check', () => {
-  it('shows PII check for staff users', () => {
-    ConfigStore.config = ConfigFixture({
-      user: UserFixture({isStaff: true}),
-    });
+  afterEach(() => {
+    jest.resetAllMocks();
+  });
+
+  it('shows PII check for sentry employee users', () => {
+    mockIsSentryEmployee(true);
 
     const {getByText} = render(
       <Banner
@@ -23,10 +26,8 @@ describe('PII Certification Check', () => {
     expect(getByText('Certify No PII')).toBeInTheDocument();
   });
 
-  it('does not show PII check for non-staff users', () => {
-    ConfigStore.config = ConfigFixture({
-      user: UserFixture({isStaff: false}),
-    });
+  it('does not show PII check for non sentry employee users', () => {
+    mockIsSentryEmployee(false);
 
     const {queryByText} = render(
       <Banner
