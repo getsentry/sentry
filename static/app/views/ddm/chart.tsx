@@ -22,7 +22,7 @@ import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
-import {useMetricSamples} from './useMetricSamples';
+import {useChartSamples} from './useChartSamples';
 import {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget';
 
 type ChartProps = {
@@ -114,7 +114,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       [unit, operation]
     );
 
-    const samples = useMetricSamples({
+    const samples = useChartSamples({
       chartRef,
       correlations,
       onClick: onSampleClick,
