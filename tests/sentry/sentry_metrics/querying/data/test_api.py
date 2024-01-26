@@ -26,8 +26,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
 
-        release_1 = self.create_release(project=self.project, version="1.0")
-        release_2 = self.create_release(project=self.project, version="2.0")
+        release_1 = self.create_release(
+            project=self.project, version="1.0", date_added=MOCK_DATETIME
+        )
+        release_2 = self.create_release(
+            project=self.project, version="2.0", date_added=MOCK_DATETIME + timedelta(minutes=5)
+        )
 
         for value, transaction, platform, env, release, time in (
             (1, "/hello", "android", "prod", release_1.version, self.now()),
