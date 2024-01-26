@@ -15,6 +15,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -89,6 +90,19 @@ class OrganizationPermission(SentryPermission):
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         return is_member_disabled_from_limit(request, organization)
+
+
+class OrganizationAndStaffPermission(OrganizationPermission):
+    """
+    Staff requires this permission because it has no scopes attached to it. We
+    use this permission on _admin endpoints that require Organization permissions.
+    """
+
+    def has_permission(self, request, *args, **kwargs):
+        return super().has_permission(request, *args, **kwargs) or is_active_staff(request)
+
+    def has_object_permission(self, request, *args, **kwargs):
+        return super().has_object_permission(request, *args, **kwargs) or is_active_staff(request)
 
 
 class OrganizationAuditPermission(OrganizationPermission):
