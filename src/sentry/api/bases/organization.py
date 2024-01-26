@@ -13,7 +13,7 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
@@ -89,6 +89,10 @@ class OrganizationPermission(SentryPermission):
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         return is_member_disabled_from_limit(request, organization)
+
+
+class OrganizationAndStaffPermission(StaffPermissionMixin, OrganizationPermission):
+    pass
 
 
 class OrganizationAuditPermission(OrganizationPermission):
