@@ -13,10 +13,7 @@ from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
-from sentry.sentry_metrics.querying.types import (
-    GroupKey,
-    GroupsCollection,
-)
+from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import to_intervals
 from sentry.snuba.metrics_layer.query import run_query
@@ -181,6 +178,7 @@ class ExecutableQuery:
                 self.metrics_query.query.set_filters(original_filters + snuba_filters)
             ),
         )
+
 
 @dataclass(frozen=True)
 class QueryResult:
