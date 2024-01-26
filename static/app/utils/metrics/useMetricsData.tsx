@@ -1,11 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import {DateString, MetricsApiResponse} from 'sentry/types';
-import {
-  getMetricsApiRequestQuery,
-  mapToMRIFields,
-  MetricsQuery,
-} from 'sentry/utils/metrics';
+import {getMetricsApiRequestQuery, mapToMRIFields} from 'sentry/utils/metrics';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -17,20 +14,16 @@ export function useMetricsData(
 ) {
   const organization = useOrganization();
 
-  const useNewMetricsLayer = organization.features.includes(
-    'metrics-api-new-metrics-layer'
-  );
-
   const field = op ? `${op}(${mri})` : mri;
 
   const queryToSend = getMetricsApiRequestQuery(
     {
       field,
-      query: `${query ?? ''}`,
+      query: query ?? '',
       groupBy,
     },
     {datetime, projects, environments},
-    {...overrides, useNewMetricsLayer}
+    {...overrides}
   );
 
   const metricsApiRepsonse = useApiQuery<MetricsApiResponse>(

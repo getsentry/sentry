@@ -16,15 +16,14 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MRI, Organization} from 'sentry/types';
+import {getDdmUrl, getDefaultMetricOp} from 'sentry/utils/metrics';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {
   formatMetricUsingUnit,
-  getDdmUrl,
-  getDefaultMetricOp,
   getReadableMetricType,
-  MetricDisplayType,
-} from 'sentry/utils/metrics';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+} from 'sentry/utils/metrics/formatters';
 import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function flattenMetricsSummary(

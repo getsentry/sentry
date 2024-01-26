@@ -18,7 +18,7 @@ import {Button} from 'sentry/components/button';
 import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
-import {MetricRange} from 'sentry/utils/metrics';
+import type {MetricRange} from 'sentry/utils/metrics/types';
 import {isInRect} from 'sentry/views/ddm/rect';
 
 import {DateTimeObject} from '../../components/charts/utils';

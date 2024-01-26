@@ -19,6 +19,9 @@ class GroupingConfigsEndpoint(Endpoint):
     def get(self, request: Request, **kwargs) -> Response:
         return Response(
             serialize(
-                [config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: x.id)]
+                [
+                    config.as_dict()
+                    for config in sorted(CONFIGURATIONS.values(), key=lambda x: str(x.id))
+                ]
             )
         )
