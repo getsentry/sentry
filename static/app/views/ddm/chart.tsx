@@ -69,19 +69,14 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       [router]
     );
 
-    const {selection: focusAreaSelection, onAdd, onRemove, onDraw} = focusArea ?? {};
-
     const focusAreaBrush = useFocusArea({
+      ...focusArea,
       chartRef,
-      selection: focusAreaSelection,
       opts: {
         widgetIndex,
-        isDisabled: !onAdd || !onRemove || !handleZoom,
+        isDisabled: !focusArea?.onAdd || !handleZoom,
         useFullYAxis: isCumulativeOp(operation),
       },
-      onDraw,
-      onAdd,
-      onRemove,
       onZoom: handleZoom,
     });
 
