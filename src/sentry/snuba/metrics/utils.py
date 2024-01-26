@@ -294,9 +294,8 @@ class MetricMeta(TypedDict):
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
     mri: str
-    # TODO: change to camelcase.
-    project_ids: Sequence[int]
-    blockedForProjects: Optional[Sequence[BlockedMetric]]
+    projectIds: Sequence[int]
+    blockingStatus: Optional[Sequence[BlockedMetric]]
 
 
 class MetricMetaWithTagKeys(MetricMeta):

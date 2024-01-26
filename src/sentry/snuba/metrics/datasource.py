@@ -220,7 +220,7 @@ def _build_metric_meta(
         unit=cast(MetricUnit, parsed_mri.unit),
         mri=parsed_mri.mri_string,
         operations=cast(Sequence[MetricOperationType], get_available_operations(parsed_mri)),
-        project_ids=project_ids,
+        projectIds=project_ids,
         blockingStatus=blocking_status,
     )
 
