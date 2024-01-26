@@ -25,23 +25,23 @@ import {FocusAreaProps} from 'sentry/views/ddm/context';
 
 import {DateTimeObject} from '../../components/charts/utils';
 
-interface AbsolutePosition {
+type AbsolutePosition = {
   height: string;
   left: string;
   top: string;
   width: string;
-}
+};
 
-export interface FocusAreaSelection {
-  range: SelectionRange;
-  widgetIndex: number;
-}
-
-interface UseFocusAreaOptions {
+type UseFocusAreaOptions = {
   widgetIndex: number;
   isDisabled?: boolean;
   useFullYAxis?: boolean;
-}
+};
+
+export type FocusAreaSelection = {
+  range: SelectionRange;
+  widgetIndex: number;
+};
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
 
