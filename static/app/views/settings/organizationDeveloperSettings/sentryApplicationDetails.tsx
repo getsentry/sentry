@@ -280,7 +280,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     if (tokens.length < 1 && newTokens.length < 1) {
       return <EmptyMessage description={t('No tokens created yet.')} />;
     }
-    const tokens_to_display = tokens.map(token => (
+    const tokensToDisplay = tokens.map(token => (
       <ApiTokenRow
         data-test-id="api-token"
         key={token.id}
@@ -288,7 +288,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
         onRemove={this.onRemoveToken}
       />
     ));
-    tokens_to_display.push(
+    tokensToDisplay.push(
       ...newTokens.map(newToken => (
         <NewTokenHandler
           data-test-id="new-api-token"
@@ -299,7 +299,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
       ))
     );
 
-    return tokens_to_display;
+    return tokensToDisplay;
   };
 
   onFieldChange = (name: string, value: FieldValue): void => {

@@ -35,16 +35,16 @@ export async function addSentryAppToken(
  *
  * @param {Object} client ApiClient
  * @param {Object} app SentryApp
- * @param {String} token_id Id of the token
+ * @param {String} tokenId Id of the token
  */
 export async function removeSentryAppToken(
   client: Client,
   app: SentryApp,
-  token_id: string
+  tokenId: string
 ): Promise<void> {
   addLoadingMessage();
   try {
-    await client.requestPromise(`/sentry-apps/${app.slug}/api-tokens/${token_id}/`, {
+    await client.requestPromise(`/sentry-apps/${app.slug}/api-tokens/${tokenId}/`, {
       method: 'DELETE',
     });
     addSuccessMessage(t('Token successfully deleted.'));
