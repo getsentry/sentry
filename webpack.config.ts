@@ -5,12 +5,10 @@ import fs from 'fs';
 import path from 'path';
 
 import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
-import browserslist from 'browserslist';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
-import lightningcss from 'lightningcss';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
@@ -23,11 +21,6 @@ import LastBuiltPlugin from './build-utils/last-built-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
 import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
 import babelConfig from './babel.config';
-import packageJson from './package.json';
-
-type MinimizerPluginOptions = {
-  targets: lightningcss.TransformAttributeOptions['targets'];
-};
 
 // Runs as part of prebuild step to generate a list of identifier -> name mappings for  iOS
 (async () => {
@@ -487,14 +480,9 @@ const appConfig: Configuration = {
         parallel: true,
         minify: TerserPlugin.esbuildMinify,
       }),
-      new CssMinimizerPlugin<MinimizerPluginOptions>({
+      new CssMinimizerPlugin({
         parallel: true,
-        minify: CssMinimizerPlugin.lightningCssMinify,
-        minimizerOptions: {
-          targets: lightningcss.browserslistToTargets(
-            browserslist(packageJson.browserslist.production)
-          ),
-        },
+        minify: CssMinimizerPlugin.esbuildMinify,
       }),
     ],
   },
