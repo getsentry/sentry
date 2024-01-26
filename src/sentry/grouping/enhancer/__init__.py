@@ -152,7 +152,7 @@ class Enhancements:
         # The extra fingerprint mostly makes sense during test execution when two different group configs
         # can share the same set of rules and bases
         stacktrace_fingerprint = _generate_stacktrace_fingerprint(
-            match_frames, exception_data, f"{extra_fingerprint}.{self.dumps()}", platform
+            match_frames, exception_data, extra_fingerprint, platform
         )
         # The most expensive part of creating groups is applying the rules to frames (next code block)
         cache_key = f"stacktrace_hash.{stacktrace_fingerprint}"
