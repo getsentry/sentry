@@ -3,11 +3,11 @@ import {IconContract, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 
-type ReplayFullscreenButtonProps = {
+type Props = {
   toggleFullscreen: () => void;
 };
 
-export function ReplayFullscreenButton({toggleFullscreen}: ReplayFullscreenButtonProps) {
+export function ReplayFullscreenButton({toggleFullscreen}: Props) {
   const isFullscreen = useIsFullscreen();
 
   return (

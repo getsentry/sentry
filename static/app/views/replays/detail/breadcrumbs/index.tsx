@@ -57,13 +57,17 @@ function Breadcrumbs() {
 
   const startTimestampMs =
     replay?.getReplay()?.started_at?.getTime() ?? 0 + startTimeOffsetMs;
-  const frames = replay
-    ?.getChapterFrames()
-    .filter(
-      frame =>
-        frame.offsetMs >= startTimeOffsetMs &&
-        frame.offsetMs <= startTimeOffsetMs + durationMs
-    );
+  const allFrames = replay?.getChapterFrames();
+
+  const frames = useMemo(
+    () =>
+      allFrames?.filter(
+        frame =>
+          frame.offsetMs >= startTimeOffsetMs &&
+          frame.offsetMs <= startTimeOffsetMs + durationMs
+      ),
+    [allFrames, durationMs, startTimeOffsetMs]
+  );
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 

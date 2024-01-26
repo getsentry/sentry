@@ -6,7 +6,7 @@ import Link from 'sentry/components/links/link';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -29,7 +29,7 @@ function ReplayCurrentUrl() {
 
   if (!replay || !url) {
     return (
-      <TextCopyInput aria-label="Current URL" size="sm" disabled>
+      <TextCopyInput aria-label={t('Current URL')} size="sm" disabled>
         {''}
       </TextCopyInput>
     );
@@ -57,7 +57,7 @@ function ReplayCurrentUrl() {
         )}
         isHoverable
       >
-        <TextCopyInput aria-label="Current URL" size="sm">
+        <TextCopyInput aria-label={t('Current URL')} size="sm">
           {url}
         </TextCopyInput>
       </Tooltip>
@@ -65,7 +65,7 @@ function ReplayCurrentUrl() {
   }
 
   return (
-    <TextCopyInput aria-label="Current URL" size="sm">
+    <TextCopyInput aria-label={t('Current URL')} size="sm">
       {url}
     </TextCopyInput>
   );
