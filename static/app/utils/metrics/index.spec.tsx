@@ -89,7 +89,7 @@ describe('getMetricsApiRequestQuery', () => {
       datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
     };
 
-    const result = getMetricsApiRequestQuery(metric, filters);
+    const result = getMetricsApiRequestQuery(metric, filters, {groupBy: ['environment']});
 
     expect(result).toEqual({
       start: '2023-01-01T00:00:00.000Z',
