@@ -79,7 +79,7 @@ class MetricsBlockingState:
             return MetricsBlockingState(metrics={})
 
         try:
-            blocked_metrics_payload = json.loads(json_payload)
+            metrics_blocking_state_payload = json.loads(json_payload)
         except ValueError:
             if repair:
                 project.delete_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
@@ -88,7 +88,7 @@ class MetricsBlockingState:
                 f"Invalid blocked metrics payload for project {project.id}"
             )
 
-        if not isinstance(blocked_metrics_payload, list):
+        if not isinstance(metrics_blocking_state_payload, list):
             if repair:
                 project.delete_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
 
@@ -96,49 +96,51 @@ class MetricsBlockingState:
                 f"The blocked metrics payload is not a list for {project.id}"
             )
 
-        blocked_metrics: Dict[str, MetricBlocking] = {}
-        for blocked_metric_payload in blocked_metrics_payload:
+        metrics: Dict[str, MetricBlocking] = {}
+        for blocked_metric_payload in metrics_blocking_state_payload:
             blocked_metric = MetricBlocking.from_dict(blocked_metric_payload)
             if blocked_metric is not None:
                 # When reading we deduplicate by taking the last version of a blocking.
-                blocked_metrics[blocked_metric.metric_mri] = blocked_metric
+                metrics[blocked_metric.metric_mri] = blocked_metric
 
-        return MetricsBlockingState(metrics=blocked_metrics)
+        return MetricsBlockingState(metrics=metrics)
 
     def save_to_project(self, project: Project):
         # We store the payload as a list of objects to give us more flexibility, since if we were to store a dict keyed
         # by the mri, we would need a migration of the options in case something in the data changes.
-        blocked_metrics_payload = [
-            blocked_metric.to_dict() for blocked_metric in self.metrics.values()
+        metrics_blocking_state_payload = [
+            metric_blocking.to_dict() for metric_blocking in self.metrics.values()
         ]
-        json_payload = json.dumps(blocked_metrics_payload)
+        json_payload = json.dumps(metrics_blocking_state_payload)
         project.update_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY, json_payload)
 
     def apply_metric_operation(self, metric_operation: MetricOperation):
         metric_mri = metric_operation.metric_mri
         if (existing_metric := self.metrics.get(metric_mri)) is not None:
-            blocked_metric = existing_metric.apply(metric_operation)
+            metric_blocking = existing_metric.apply(metric_operation)
             # If the new blocked metric is useless, we will just delete it from the dictionary since it's not
             # needed. For example, if you unblock all tags from a metric, when applying the operation we will delete
             # the actual entry, whereas if you block a new tag, we will update the entry with the new one.
-            if blocked_metric.is_useless():
+            if metric_blocking.is_useless():
                 del self.metrics[metric_mri]
             else:
-                self.metrics[metric_mri] = blocked_metric
+                self.metrics[metric_mri] = metric_blocking
         else:
-            blocked_metric = metric_operation.to_metric_blocking()
+            metric_blocking = metric_operation.to_metric_blocking()
             # If the merged blocked metric can't be cleared, it means that it will have an actual effect on metrics
             # ingestion, thus we add it to the dictionary. For example, if you block a new metric we will add it but if
             # you pass an operation that doesn't do anything we won't even apply the update.
-            if not blocked_metric.is_useless():
+            if not metric_blocking.is_useless():
                 self.metrics[metric_mri] = metric_operation.to_metric_blocking()
 
 
 def _apply_operation(metric_operation: MetricOperation, projects: Sequence[Project]):
     for project in projects:
-        blocked_metrics = MetricsBlockingState.load_from_project(project=project, repair=True)
-        blocked_metrics.apply_metric_operation(metric_operation=metric_operation)
-        blocked_metrics.save_to_project(project=project)
+        metrics_blocking_state = MetricsBlockingState.load_from_project(
+            project=project, repair=True
+        )
+        metrics_blocking_state.apply_metric_operation(metric_operation=metric_operation)
+        metrics_blocking_state.save_to_project(project=project)
 
 
 def block_metric(metric_mri: str, projects: Sequence[Project]):
