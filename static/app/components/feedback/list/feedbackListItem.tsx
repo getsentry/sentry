@@ -127,7 +127,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
                 <IssueTrackingSignals group={feedbackItem as unknown as Group} />
 
                 {hasComments && (
-                  <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
+                  <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
                     <IconChat color="gray500" size="sm" />
                   </Tooltip>
                 )}
