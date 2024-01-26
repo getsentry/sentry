@@ -259,7 +259,7 @@ function RuleListRow({
     value: '',
     label: () => (
       <MenuItemWrapper>
-        <StyledIconUser size="md" />
+        <PaddedIconUser size="lg" />
         <Label>{t('Unassigned')}</Label>
       </MenuItemWrapper>
     ),
@@ -299,7 +299,7 @@ function RuleListRow({
   };
 
   const avatarElement = assigneeTeamActor ? (
-    <PaddedActorAvatar
+    <ActorAvatar
       actor={assigneeTeamActor}
       className="avatar"
       size={24}
@@ -308,7 +308,7 @@ function RuleListRow({
     />
   ) : (
     <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
-      <StyledIconUser size="md" color="gray400" />
+      <PaddedIconUser size="lg" color="gray400" />
     </Tooltip>
   );
 
@@ -495,9 +495,8 @@ const StyledChevron = styled(IconChevron)`
   margin-left: ${space(1)};
 `;
 
-const StyledIconUser = styled(IconUser)`
-  /* This is used to make the default icon the same size */
-  margin: 3px;
+const PaddedIconUser = styled(IconUser)`
+  padding: ${space(0.25)};
 `;
 
 const IconContainer = styled('div')`
@@ -517,10 +516,6 @@ const MenuItemWrapper = styled('div')`
 
 const Label = styled(TextOverflow)`
   margin-left: 6px;
-`;
-
-const PaddedActorAvatar = styled(ActorAvatar)`
-  margin-bottom: 3px;
 `;
 
 export default RuleListRow;
