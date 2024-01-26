@@ -25,31 +25,31 @@ import {FocusAreaProps} from 'sentry/views/ddm/context';
 
 import {DateTimeObject} from '../../components/charts/utils';
 
-type AbsolutePosition = {
+interface AbsolutePosition {
   height: string;
   left: string;
   top: string;
   width: string;
-};
+}
 
-type UseFocusAreaOptions = {
+interface UseFocusAreaOptions {
   widgetIndex: number;
   isDisabled?: boolean;
   useFullYAxis?: boolean;
-};
+}
 
-export type FocusAreaSelection = {
+export interface FocusAreaSelection {
   range: SelectionRange;
   widgetIndex: number;
-};
+}
 
-type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
-
-export type UseFocusAreaProps = FocusAreaProps & {
+export interface UseFocusAreaProps extends FocusAreaProps {
   chartRef: RefObject<ReactEchartsRef>;
   opts: UseFocusAreaOptions;
   onZoom?: (range: DateTimeObject) => void;
-};
+}
+
+type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
 
 export function useFocusArea({
   chartRef,
