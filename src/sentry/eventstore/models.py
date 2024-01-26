@@ -46,6 +46,8 @@ EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
 SEARCH_MESSAGE_SKIPPED_KEYS = frozenset(["in_app_frame_mix"])
 
 if TYPE_CHECKING:
+    from sentry.grouping.api import GroupingConfig
+    from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.interfaces.user import User
     from sentry.models.environment import Environment
     from sentry.models.group import Group
@@ -317,16 +319,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # further.
         return self.data.get("metadata") or {}
 
-    def get_grouping_config(self) -> MutableMapping[str, Any]:
+    def get_grouping_config(self) -> GroupingConfig:
         """Returns the event grouping config."""
         from sentry.grouping.api import get_grouping_config_dict_for_event_data
 
-        return cast(
-            MutableMapping[str, Any],
-            get_grouping_config_dict_for_event_data(self.data, self.project),
-        )
+        return get_grouping_config_dict_for_event_data(self.data, self.project)
 
-    def get_hashes(self, force_config: str | Mapping[str, Any] | None = None) -> CalculatedHashes:
+    def get_hashes(self, force_config: StrategyConfiguration | None = None) -> CalculatedHashes:
         """
         Returns _all_ information that is necessary to group an event into
         issues. It returns two lists of hashes, `(flat_hashes, hierarchical_hashes)`:
@@ -381,7 +380,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             hashes=flat_hashes, hierarchical_hashes=hierarchical_hashes, tree_labels=tree_labels
         )
 
-    def get_sorted_grouping_variants(self, force_config: str | Mapping[str, Any] | None = None):
+    def get_sorted_grouping_variants(self, force_config: StrategyConfiguration | None = None):
         """Get grouping variants sorted into flat and hierarchical variants"""
         from sentry.grouping.api import sort_grouping_variants
 
@@ -412,7 +411,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return filtered_hashes, tree_labels
 
-    def normalize_stacktraces_for_grouping(self, grouping_config) -> None:
+    def normalize_stacktraces_for_grouping(self, grouping_config: StrategyConfiguration) -> None:
         """Normalize stacktraces and clear memoized interfaces
 
         See stand-alone function normalize_stacktraces_for_grouping
@@ -424,7 +423,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # We have modified event data, so any cached interfaces have to be reset:
         self.__dict__.pop("interfaces", None)
 
-    def get_grouping_variants(self, force_config=None, normalize_stacktraces: bool = False):
+    def get_grouping_variants(
+        self,
+        force_config: StrategyConfiguration | GroupingConfig | str | None = None,
+        normalize_stacktraces: bool = False,
+    ):
         """
         This is similar to `get_hashes` but will instead return the
         grouping components for each variant in a dictionary.
@@ -440,31 +443,37 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # config ID is given in which case it's merged with the stored or
         # default config dictionary
         if force_config is not None:
-            if isinstance(force_config, str):
-                stored_config = self.get_grouping_config()
-                config = dict(stored_config)
-                config["id"] = force_config
-            else:
-                config = force_config
+            from sentry.grouping.strategies.base import StrategyConfiguration
 
+            if isinstance(force_config, str):
+                # A string like `"mobile:2021-02-12"`
+                stored_config = self.get_grouping_config()
+                grouping_config = dict(stored_config)
+                grouping_config["id"] = force_config
+                loaded_grouping_config = load_grouping_config(grouping_config)
+            elif isinstance(force_config, StrategyConfiguration):
+                # A fully initialized `StrategyConfiguration`
+                loaded_grouping_config = force_config
+            else:
+                # A `GroupingConfig` dictionary
+                loaded_grouping_config = load_grouping_config(force_config)
         # Otherwise we just use the same grouping config as stored.  if
         # this is None we use the project's default config.
         else:
-            config = self.get_grouping_config()
-
-        config = load_grouping_config(config)
+            grouping_config = self.get_grouping_config()
+            loaded_grouping_config = load_grouping_config(grouping_config)
 
         if normalize_stacktraces:
             with sentry_sdk.start_span(op="grouping.normalize_stacktraces_for_grouping") as span:
                 span.set_tag("project", self.project_id)
                 span.set_tag("event_id", self.event_id)
-                self.normalize_stacktraces_for_grouping(config)
+                self.normalize_stacktraces_for_grouping(loaded_grouping_config)
 
         with sentry_sdk.start_span(op="grouping.get_grouping_variants") as span:
             span.set_tag("project", self.project_id)
             span.set_tag("event_id", self.event_id)
 
-            return get_grouping_variants_for_event(self, config)
+            return get_grouping_variants_for_event(self, loaded_grouping_config)
 
     def get_primary_hash(self) -> str | None:
         hashes = self.get_hashes()

@@ -46,6 +46,7 @@ from sentry.event_manager import (
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
+from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import (
@@ -2116,7 +2117,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager = EventManager(event)
         manager.normalize()
 
-        grouping_config = {
+        grouping_config: GroupingConfig = {
             "enhancements": enhancement.dumps(),
             "id": "mobile:2021-02-12",
         }
@@ -2126,7 +2127,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
-        assert event1.get_hashes().hashes == event2.get_hashes(grouping_config).hashes
+        assert (
+            event1.get_hashes().hashes
+            == event2.get_hashes(load_grouping_config(grouping_config)).hashes
+        )
 
     def test_write_none_tree_labels(self):
         """Write tree labels even if None"""

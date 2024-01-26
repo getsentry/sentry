@@ -397,14 +397,13 @@ def sort_grouping_variants(variants):
     return flat_variants, hierarchical_variants
 
 
-def detect_synthetic_exception(event_data: NodeData, grouping_config: GroupingConfig):
+def detect_synthetic_exception(event_data: NodeData, loaded_grouping_config: StrategyConfiguration):
     """Detect synthetic exception and write marker to event data
 
     This only runs if detect_synthetic_exception_types is True, so
     it is effectively only enabled for grouping strategy mobile:2021-04-02.
 
     """
-    loaded_grouping_config = load_grouping_config(grouping_config)
     should_detect = loaded_grouping_config.initial_context["detect_synthetic_exception_types"]
     if not should_detect:
         return

@@ -6,6 +6,7 @@ import pytest
 from sentry import eventstore, nodestore
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.grouping.api import GroupingConfig
 from sentry.grouping.enhancer import Enhancements
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
@@ -360,7 +361,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             category:foo_like -group
             """,
         )
-        grouping_config = {
+        grouping_config: GroupingConfig = {
             "enhancements": enhancement.dumps(),
             "id": "mobile:2021-02-12",
         }

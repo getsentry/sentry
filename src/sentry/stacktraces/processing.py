@@ -2,7 +2,16 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+)
 
 import sentry_sdk
 
@@ -15,6 +24,9 @@ from sentry.utils.safe import get_path, safe_execute
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
+
+if TYPE_CHECKING:
+    from sentry.grouping.strategies.base import StrategyConfiguration
 
 
 class StacktraceInfo(NamedTuple):
@@ -290,7 +302,7 @@ def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
 
 
 def normalize_stacktraces_for_grouping(
-    data: MutableMapping[str, Any], grouping_config=None
+    data: MutableMapping[str, Any], grouping_config: StrategyConfiguration | None = None
 ) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
