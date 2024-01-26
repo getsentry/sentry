@@ -10,14 +10,14 @@ from sentry.utils import json
 METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY = "sentry:blocked_metrics"
 
 
-class DeniedTagRelay(TypedDict):
+class DeniedTagRelayConfig(TypedDict):
     name: str
     tags: Sequence[str]
 
 
-class MetricsBlockingRelay(TypedDict):
+class MetricsBlockingStateRelayConfig(TypedDict):
     deniedNames: Sequence[str]
-    deniedTags: Sequence[DeniedTagRelay]
+    deniedTags: Sequence[DeniedTagRelayConfig]
 
 
 @dataclass(frozen=True)
@@ -184,7 +184,9 @@ def get_metrics_blocking_state(projects: Sequence[Project]) -> Mapping[int, Metr
     return metrics_blocking_state_by_project
 
 
-def get_metrics_blocking_state_for_relay(project: Project) -> Optional[MetricsBlockingRelay]:
+def get_metrics_blocking_state_for_relay(
+    project: Project,
+) -> Optional[MetricsBlockingStateRelayConfig]:
     try:
         metrics_blocking_state = get_metrics_blocking_state([project])[project.id]
     except MalformedBlockedMetricsPayloadError as e:
@@ -200,9 +202,9 @@ def get_metrics_blocking_state_for_relay(project: Project) -> Optional[MetricsBl
             denied_names.append(metric_blocking.metric_mri)
         elif metric_blocking.blocked_tags:
             denied_tags.append(
-                DeniedTagRelay(
+                DeniedTagRelayConfig(
                     name=metric_blocking.metric_mri, tags=list(metric_blocking.blocked_tags)
                 )
             )
 
-    return MetricsBlockingRelay(deniedNames=denied_names, deniedTags=denied_tags)
+    return MetricsBlockingStateRelayConfig(deniedNames=denied_names, deniedTags=denied_tags)
