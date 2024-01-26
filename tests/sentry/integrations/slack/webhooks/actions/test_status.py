@@ -996,19 +996,64 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert "blocks" in resp.data
             assert self.group.title in resp.data["blocks"][0]["text"]["text"]
 
+    @responses.activate
     def test_response_differs_on_bot_message_block_kit(self):
         status_action = self.get_ignore_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
+
+        # Expect request to open dialog on slack
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/views.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
-                action_data=[status_action], original_message=original_message
+                action_data=[status_action],
+                original_message=original_message,
             )
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = json.loads(responses.calls[0].request.body)
+        assert data["trigger_id"] == self.trigger_id
+        assert "view" in data
+
+        view = json.loads(data["view"])
+        private_metadata = json.loads(view["private_metadata"])
+        assert int(private_metadata["issue"]) == self.group.id
+        assert private_metadata["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                type="view_submission",
+                private_metadata=json.dumps(private_metadata),
+                selected_option="ignored:forever",
+            )
+        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
+
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
-        assert resp.status_code == 200, resp.content
-        assert "blocks" in resp.data
-        assert self.group.title in resp.data["blocks"][0]["text"]["text"]
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_assign_user_with_multiple_identities(self):
         org2 = self.create_organization(owner=None)
@@ -1224,7 +1269,8 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
-                action_data=[status_action], original_message=original_message
+                action_data=[status_action],
+                original_message=original_message,  # TODO: confirm payload type
             )
         assert resp.status_code == 200, resp.content
 
@@ -1589,6 +1635,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
             )
 
+    @responses.activate
     def test_permission_denied_block_kit(self):
         user2 = self.create_user(is_superuser=False)
         user2_identity = self.create_identity(
@@ -1598,25 +1645,68 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
         status_action = self.get_ignore_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
+
+        # Expect request to open dialog on slack; will only get permission denied when trying to complete an action
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/views.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
                 original_message=original_message,
                 slack_user={"id": user2_identity.external_id},
             )
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = json.loads(responses.calls[0].request.body)
+        assert data["trigger_id"] == self.trigger_id
+        assert "view" in data
+
+        view = json.loads(data["view"])
+        private_metadata = json.loads(view["private_metadata"])
+        assert int(private_metadata["issue"]) == self.group.id
+        assert private_metadata["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                type="view_submission",
+                private_metadata=json.dumps(private_metadata),
+                selected_option="ignored:forever",
+                slack_user={"id": user2_identity.external_id},
+            )
+
+        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
 
         associate_url = build_unlinking_url(
             self.integration.id, "slack_id2", "C065W1189", self.response_url
         )
 
-        assert resp.status_code == 200, resp.content
         assert resp.data["response_type"] == "ephemeral"
         assert not resp.data["replace_original"]
         assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
             associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
         )
 
+    @responses.activate
     def test_permission_denied_block_kit_through_unfurl(self):
         user2 = self.create_user(is_superuser=False)
         user2_identity = self.create_identity(
@@ -1626,20 +1716,64 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
         status_action = self.get_ignore_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
+
+        # Expect request to open dialog on slack
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/views.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
         data = self.get_block_kit_unfurl_data(original_message["blocks"])
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
                 data=data,
-                slack_user={"id": user2_identity.external_id},
+                slack_user={
+                    "id": user2_identity.external_id
+                },  # TODO: confirm identity is passed here
             )
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = json.loads(responses.calls[0].request.body)
+        assert data["trigger_id"] == self.trigger_id
+        assert "view" in data
+
+        view = json.loads(data["view"])
+        private_metadata = json.loads(view["private_metadata"])
+        assert int(private_metadata["issue"]) == self.group.id
+        assert private_metadata["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                type="view_submission",
+                private_metadata=json.dumps(private_metadata),
+                selected_option="ignored:until_escalating",
+                slack_user={
+                    "id": user2_identity.external_id
+                },  # TODO: confirm identity is passed here
+            )
+        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
 
         associate_url = build_unlinking_url(
             self.integration.id, "slack_id2", "C065W1189", self.response_url
         )
 
-        assert resp.status_code == 200, resp.content
         assert resp.data["response_type"] == "ephemeral"
         assert not resp.data["replace_original"]
         assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
