@@ -136,9 +136,9 @@ class MetricCorrelations:
 
 
 class QueryConditions:
-    def __init__(self, conditions: Sequence[QueryCondition]):
+    def __init__(self, conditions: List[QueryCondition]):
         self._conditions = conditions
-        self._visitors = []
+        self._visitors: List[QueryConditionVisitor[QueryCondition]] = []
 
     @classmethod
     def build(cls, query: Optional[str], environments: Sequence[Environment]) -> "QueryConditions":
@@ -164,13 +164,13 @@ class QueryConditions:
         parsed_phantom_query = EnvironmentsInjectionVisitor(environments).visit(
             parsed_phantom_query
         )
-        return QueryConditions(parsed_phantom_query.filters)
+        return QueryConditions(cast(List[QueryCondition], parsed_phantom_query.filters))
 
     def add_visitor(self, visitor: QueryConditionVisitor[QueryCondition]) -> "QueryConditions":
         self._visitors.append(visitor)
         return self
 
-    def get(self) -> Sequence[QueryCondition]:
+    def get(self) -> List[QueryCondition]:
         conditions = self._conditions
         for visitor in self._visitors:
             conditions = visitor.visit_group(conditions)
@@ -343,7 +343,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
     def _get_segments(
         self,
         metric_mri: str,
-        conditions: Optional[QueryConditions],
+        conditions: QueryConditions,
         start: datetime,
         end: datetime,
         min_value: Optional[float],
@@ -420,7 +420,7 @@ class TransactionDurationCorrelationsSource(CorrelationsSource):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Segment]:
-        where = []
+        where: List[QueryCondition] = []
 
         conditions.add_visitor(TagsTransformationVisitor(check_sentry_tags=True))
         conditions.add_visitor(MappingTransformationVisitor(mappings=SENTRY_TAG_TO_COLUMN_NAME))
@@ -464,7 +464,7 @@ class MeasurementsCorrelationsSource(CorrelationsSource):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Segment]:
-        where = []
+        where: List[QueryCondition] = []
 
         conditions.add_visitor(TagsTransformationVisitor(check_sentry_tags=True))
         conditions.add_visitor(MappingTransformationVisitor(mappings=SENTRY_TAG_TO_COLUMN_NAME))
