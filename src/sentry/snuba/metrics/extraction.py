@@ -1280,7 +1280,7 @@ class OnDemandMetricSpec:
         # since the environment will be added to the groupbys, thus, being included in the query hash
         if (
             self.spec_type == MetricSpecType.DYNAMIC_QUERY
-            and self.spec_version.flags == {}
+            and self.spec_version.flags == set()
             and self._tag_for_field("environment") not in extended_tags_conditions
         ):
             extended_tags_conditions.append(self._tag_for_field("environment"))
