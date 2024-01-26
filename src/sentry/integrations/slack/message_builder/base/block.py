@@ -40,12 +40,15 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def get_tags_block(tags) -> SlackBlock:
-        fields = []
+        text = ""
         for tag in tags:
             title = tag["title"]
             value = tag["value"]
-            fields.append({"type": "mrkdwn", "text": f"*{title}:*\n{value}"})
-        return {"type": "section", "fields": fields}
+            text += f"{title}: `{value}`  "
+        return {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": text},
+        }
 
     @staticmethod
     def get_divider() -> SlackBlock:

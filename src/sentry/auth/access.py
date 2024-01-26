@@ -22,7 +22,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features, roles
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
 from sentry.models.apikey import ApiKey
 from sentry.models.integrations.sentry_app import SentryApp
@@ -40,8 +40,6 @@ from sentry.services.hybrid_cloud.organization import RpcTeamMember, RpcUserOrga
 from sentry.services.hybrid_cloud.organization.serial import summarize_member
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils import metrics
-
-SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
 
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
@@ -957,10 +955,12 @@ def from_request_org_and_scopes(
             org_member=member,
         )
 
+        superuser_scopes = get_superuser_scopes(auth_state, request.user)
+
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
             auth_state=auth_state,
-            scopes=scopes if scopes is not None else SUPERUSER_SCOPES,
+            scopes=scopes if scopes is not None else superuser_scopes,
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
@@ -1037,17 +1037,20 @@ def from_request(
             )
         except OrganizationMember.DoesNotExist:
             pass
-        sso_state = access_service.get_user_auth_state(
+        auth_state = access_service.get_user_auth_state(
             user_id=request.user.id,
             organization_id=organization.id,
             is_superuser=is_superuser,
             org_member=(summarize_member(member) if member is not None else None),
-        ).sso_state
+        )
+        sso_state = auth_state.sso_state
+
+        superuser_scopes = get_superuser_scopes(auth_state, request.user)
 
         return OrganizationGlobalAccess(
             organization=organization,
             _member=member,
-            scopes=scopes if scopes is not None else SUPERUSER_SCOPES,
+            scopes=scopes if scopes is not None else superuser_scopes,
             sso_is_valid=sso_state.is_valid,
             requires_sso=sso_state.is_required,
             permissions=access_service.get_permissions_for_user(request.user.id),

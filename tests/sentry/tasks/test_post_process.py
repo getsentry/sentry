@@ -1818,7 +1818,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         assert cocoa_config.sdk_name == SdkName.Cocoa
         assert cocoa_config.project_id == 1234
         assert cocoa_config.sample_rate == 1.0
-        assert cocoa_config.organization_allowlist is None
+        assert cocoa_config.organization_allowlist == []
 
         react_native_config = args["configs"][1]
         assert react_native_config.sdk_name == SdkName.ReactNative

@@ -208,40 +208,41 @@ class CardinalityLimit(TypedDict):
     namespace: Optional[str]
 
 
-def get_metrics_config() -> Mapping[str, Any]:
+def get_metrics_config(project: Project) -> Optional[Mapping[str, Any]]:
     metrics_config = {}
 
-    cardinality_limits: List[CardinalityLimit] = []
-    cardinality_options = {
-        "unsupported": "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
-    }
-    cardinality_options.update(
-        (namespace.value, option)
-        for namespace, option in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items()
-    )
-    for namespace, option_name in cardinality_options.items():
-        option = options.get(option_name)
-        if not option or not len(option) == 1:
-            # Multiple quotas are not supported
-            continue
-
-        quota = option[0]
-
-        cardinality_limits.append(
-            {
-                "id": namespace,
-                "window": {
-                    "windowSeconds": quota["window_seconds"],
-                    "granularitySeconds": quota["granularity_seconds"],
-                },
-                "limit": quota["limit"],
-                "scope": "organization",
-                "namespace": namespace,
-            }
+    if features.has("organizations:relay-cardinality-limiter", project.organization):
+        cardinality_limits: List[CardinalityLimit] = []
+        cardinality_options = {
+            "unsupported": "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
+        }
+        cardinality_options.update(
+            (namespace.value, option)
+            for namespace, option in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items()
         )
-    metrics_config["cardinalityLimits"] = cardinality_limits
+        for namespace, option_name in cardinality_options.items():
+            option = options.get(option_name)
+            if not option or not len(option) == 1:
+                # Multiple quotas are not supported
+                continue
 
-    return metrics_config
+            quota = option[0]
+
+            cardinality_limits.append(
+                {
+                    "id": namespace,
+                    "window": {
+                        "windowSeconds": quota["window_seconds"],
+                        "granularitySeconds": quota["granularity_seconds"],
+                    },
+                    "limit": quota["limit"],
+                    "scope": "organization",
+                    "namespace": namespace,
+                }
+            )
+        metrics_config["cardinalityLimits"] = cardinality_limits
+
+    return metrics_config or None
 
 
 def get_project_config(
@@ -414,7 +415,7 @@ def _get_project_config(
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
-    add_experimental_config(config, "metrics", get_metrics_config)
+    add_experimental_config(config, "metrics", get_metrics_config, project)
 
     if _should_extract_transaction_metrics(project):
         add_experimental_config(
@@ -444,10 +445,6 @@ def _get_project_config(
             ),
         }
 
-    lcp_and_cls_is_optional = features.has(
-        "organizations:performance-score-optional-lcp-and-cls", project.organization
-    )
-
     if features.has("organizations:performance-calculate-score-relay", project.organization):
         config["performanceScore"] = {
             "profiles": [
@@ -466,7 +463,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -480,7 +477,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -601,7 +598,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -615,7 +612,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -646,7 +643,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -660,7 +657,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
