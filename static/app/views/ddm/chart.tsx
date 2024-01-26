@@ -168,13 +168,14 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             ).find(element => {
               return element.classList.contains('echarts-for-react');
             });
+            const isThisChartHovered = hoveredEchartElement === chartRef?.current?.ele;
+            if (!isThisChartHovered) {
+              return '';
+            }
             if (params.seriesType === 'scatter') {
               return getFormatter(samples.formatters)(params, asyncTicket);
             }
-            if (hoveredEchartElement === chartRef?.current?.ele) {
-              return getFormatter(timeseriesFormatters)(params, asyncTicket);
-            }
-            return '';
+            return getFormatter(timeseriesFormatters)(params, asyncTicket);
           },
         },
         yAxes: [
