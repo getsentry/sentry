@@ -12,10 +12,10 @@ import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Frame, MRI} from 'sentry/types';
-import {MetricCodeLocationFrame, MetricRange} from 'sentry/utils/metrics/types';
+import {MetricCodeLocationFrame, SelectionRange} from 'sentry/utils/metrics/types';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 
-export type CodeLocationsProps = MetricRange & {
+export type CodeLocationsProps = SelectionRange & {
   mri?: MRI;
 };
 
