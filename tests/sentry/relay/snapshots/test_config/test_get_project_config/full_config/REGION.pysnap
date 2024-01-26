@@ -1,5 +1,5 @@
 ---
-created: '2024-01-24T14:07:55.778589Z'
+created: '2024-01-25T23:53:45.025498Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -100,6 +100,9 @@ config:
       - '*/ping'
   groupingConfig:
     enhancements: eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeEEAHJMCAM
+    fingerprinting:
+      rules: []
+      version: 1
     id: newstyle:2023-01-11
   piiConfig:
     applications:

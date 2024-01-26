@@ -126,12 +126,16 @@ class GroupingConfigLoader:
 
         from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
-        if features.has("organizations:grouping-built-in-fingerprint-rules", project.organization):
-            include_builtin = True
-            bases = CONFIGURATIONS[config_id].fingerprinting_bases
-        else:
+        try:
+            include_builtin = features.has(
+                "organizations:grouping-built-in-fingerprint-rules", project.organization
+            )
+        except Exception:
+            # workaround for project being mocked w/o organization is some tests
             include_builtin = False
-            bases = []
+
+        bases = CONFIGURATIONS[config_id].fingerprinting_bases if include_builtin else []
+
         rules = project.get_option("sentry:fingerprinting_rules")
         if not rules:
             return FingerprintingRules([], bases=bases).to_json(include_builtin=include_builtin)
