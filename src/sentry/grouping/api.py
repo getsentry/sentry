@@ -77,7 +77,6 @@ class GroupingConfig(TypedDict):
     ]  # TODO: remove NotRequired when we determine legacy configs w/o fingerprinting are not a problem
 
 
-
 class GroupingConfigLoader:
     """Load a grouping config based on global or project options"""
 
@@ -232,7 +231,7 @@ def get_default_fingerprinting(config_id: str | None = None) -> FingerprintingRu
     # TODO: include_builtin ought to depend of a feature flag, but this is generic function that doesn't depend on project
     return FingerprintingRules([], bases=bases).to_json(include_builtin=False)
 
-  
+
 def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingConfig:
     """Returns the default grouping config."""
     if config_id is None:
