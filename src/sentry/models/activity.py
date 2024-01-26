@@ -133,7 +133,7 @@ class Activity(Model):
             features.has("projects:issue-priority", self.project)
             and self.type == ActivityType.SET_PRIORITY.value
         ):
-            self.data["priority"] = self.data["initial_priority"]
+            self.data["priority"] = self.data["priority"]
 
     def save(self, *args, **kwargs):
         created = bool(not self.id)
