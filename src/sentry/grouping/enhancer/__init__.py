@@ -170,6 +170,9 @@ class Enhancements:
                 ):
                     # Both frames and match_frames are updated
                     action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
+            for frame, match_frame in zip(frames, match_frames):
+                if (in_app := match_frame["in_app"]) is not None:
+                    set_in_app(frame, in_app)
 
         if use_cache:
             _cache_changed_frame_values(frames, cache_key, platform)
