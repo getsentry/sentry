@@ -14,7 +14,7 @@ from sentry.reprocessing2 import CannotReprocess, pull_event_data
 class EventReprocessableEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project, event_id) -> Response:

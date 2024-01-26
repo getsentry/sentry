@@ -86,7 +86,7 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):
 @region_silo_endpoint
 class AppStoreConnectAppsEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """Retrieves available applications with provided credentials.
 
@@ -205,7 +205,7 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):
 @region_silo_endpoint
 class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
@@ -283,7 +283,7 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
 @region_silo_endpoint
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """Updates a subset of the existing credentials.
 
@@ -349,7 +349,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 @region_silo_endpoint
 class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     """Triggers an immediate check for new App Store Connect builds.
 
@@ -403,7 +403,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
 @region_silo_endpoint
 class AppStoreConnectStatusEndpoint(ProjectEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """Returns a summary of the project's App Store Connect configuration
     and builds.

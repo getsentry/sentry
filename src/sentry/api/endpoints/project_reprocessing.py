@@ -12,7 +12,7 @@ from sentry.reprocessing import trigger_reprocessing
 class ProjectReprocessingEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_PROCESSING
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
