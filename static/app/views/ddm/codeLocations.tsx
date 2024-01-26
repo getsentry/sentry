@@ -15,9 +15,9 @@ import {Frame, MRI} from 'sentry/types';
 import {MetricCodeLocationFrame, MetricRange} from 'sentry/utils/metrics/types';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 
-export type CodeLocationsProps = MetricRange & {
+interface CodeLocationsProps extends MetricRange {
   mri?: MRI;
-};
+}
 
 export function CodeLocations({mri, ...rangeOpts}: CodeLocationsProps) {
   const {data, isFetching, isError, refetch} = useMetricsCodeLocations(mri, rangeOpts);
