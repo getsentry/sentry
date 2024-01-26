@@ -666,7 +666,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             footer_text = footer_text[:-4]  # chop off the empty space
             blocks.append(self.get_context_block(text=footer_text))
         else:
-            blocks.append(self.get_context_block(text=footer_text, timestamp=timestamp))
+            blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
 
         blocks.append(self.get_divider())
 
