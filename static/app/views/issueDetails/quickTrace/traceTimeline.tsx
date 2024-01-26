@@ -1,9 +1,7 @@
 import {useRef} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
-import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -11,9 +9,6 @@ import {Event} from 'sentry/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -44,8 +39,11 @@ function getFramesByColumn(
 
   const columnFramePairs = frames.map(frame => {
     const columnPositionCalc =
-      Math.floor(
-        (getEventTimestamp(start, frame) / safeDurationMs) * (totalColumns - 1)
+      // Not sure math.abs is doing what i want
+      Math.abs(
+        Math.floor(
+          (getEventTimestamp(start, frame) / safeDurationMs) * (totalColumns - 1)
+        )
       ) + 1;
 
     // Should start at minimum in the first column
@@ -74,7 +72,11 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
   const organization = useOrganization();
-  const {data, isLoading, isError} = useApiQuery<{
+  const {
+    data: issuePlatformData,
+    isLoading: isLoadingIssuePlatform,
+    isError: isErrorIssuePlatform,
+  } = useApiQuery<{
     data: TimelineTransactionEvent[];
     meta: unknown;
   }>(
@@ -82,6 +84,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
       `/organizations/${organization.slug}/events/`,
       {
         query: {
+          // Get performance issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
           field: ['title', 'project.name', 'timestamp', 'issue.id', 'issue'],
           per_page: 50,
@@ -95,39 +98,84 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     ],
     {staleTime: Infinity, retry: false}
   );
+  const {
+    data: discoverData,
+    isLoading: isLoadingDiscover,
+    isError: isErrorDiscover,
+  } = useApiQuery<{
+    data: TimelineTransactionEvent[];
+    meta: unknown;
+  }>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          // Other events
+          dataset: DiscoverDatasets.DISCOVER,
+          field: ['title', 'project.name', 'timestamp', 'issue.id', 'issue'],
+          per_page: 50,
+          query: `trace:${traceId}`,
+          referrer: 'api.issues.issue_events',
+          sort: '-timestamp',
+          start,
+          end,
+        },
+      },
+    ],
+    {staleTime: Infinity, retry: false}
+  );
+  const isLoading = isLoadingIssuePlatform || isLoadingDiscover;
+  const isError = isErrorIssuePlatform || isErrorDiscover;
 
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
 
   if (isLoading) {
     // TODO: Loading state
-    return <div>I love loading</div>;
+    return <div>loading</div>;
   }
 
   if (isError) {
     return null;
   }
 
-  const markerWidth = 12;
+  // Does this need to change?
+  const markerWidth = 30;
 
-  const timestamps = data.data.map(frame => new Date(frame.timestamp).getTime());
+  const data: TimelineTransactionEvent[] = [
+    ...(issuePlatformData?.data ?? []),
+    ...(discoverData?.data ?? []),
+  ];
+  const timestamps = data.map(frame => new Date(frame.timestamp).getTime());
   const startTimestamp = Math.min(...timestamps);
   const endTimestamp = Math.max(...timestamps);
-  const durationMs = endTimestamp - startTimestamp;
-  console.log({startTimestamp, endTimestamp, durationMs});
+  let durationMs = endTimestamp - startTimestamp;
+  // Will need to figure out padding
+  if (durationMs === 0) {
+    durationMs = 1000;
+  }
+
   const totalColumns = Math.floor(width / markerWidth);
-  const framesByCol = getFramesByColumn(
-    durationMs,
-    data.data,
-    totalColumns,
-    startTimestamp
-  );
-  console.log({
-    framesByCol,
-    totalColumns,
-    width,
-    markerWidth,
-  });
+  const framesByCol = getFramesByColumn(durationMs, data, totalColumns, startTimestamp);
+  const columnSize = width / totalColumns;
+  const startAndEndTimestampPerColumn = Array(totalColumns)
+    .fill(0)
+    .map<[start: number, end: number]>((_, i) => {
+      const columnStartTimestamp = (durationMs / totalColumns) * i + startTimestamp;
+      const columnEndTimestamp = (durationMs / totalColumns) * (i + 1) + startTimestamp;
+      return [columnStartTimestamp, columnEndTimestamp];
+    });
+
+  // console.log({
+  //   durationMs,
+  //   framesByCol,
+  //   totalColumns,
+  //   width,
+  //   markerWidth,
+  //   data,
+  //   timestamps: [...new Set(timestamps)],
+  //   startAndEndTimestampPerColumn,
+  // });
 
   return (
     <VisiblePanel>
@@ -135,8 +183,15 @@ export function TraceTimeline({event}: TraceTimelineProps) {
         <TimelineEventsContainer>
           <Timeline.Columns totalColumns={totalColumns} remainder={0}>
             {Array.from(framesByCol.entries()).map(([column, colFrames]) => (
-              <EventColumn key={column} column={column}>
-                <Thing markerWidth={markerWidth} colFrames={colFrames} />
+              <EventColumn
+                key={column}
+                style={{gridColumn: Math.floor(column), width: columnSize}}
+              >
+                <NodeGroup
+                  colFrames={colFrames}
+                  columnSize={columnSize}
+                  timerange={startAndEndTimestampPerColumn[column - 1] ?? [0, 0]}
+                />
               </EventColumn>
             ))}
           </Timeline.Columns>
@@ -153,8 +208,7 @@ const VisiblePanel = styled(Panel)`
   background: ${p => p.theme.translucentInnerBorder};
 `;
 
-const EventColumn = styled(Timeline.Col)<{column: number}>`
-  grid-column: ${p => Math.floor(p.column)};
+const EventColumn = styled(Timeline.Col)`
   place-items: stretch;
   display: grid;
   align-items: center;
@@ -165,19 +219,56 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
   }
 `;
 
-function Thing({
-  markerWidth,
+function NodeGroup({
+  timerange,
   colFrames,
+  columnSize,
 }: {
   colFrames: TimelineTransactionEvent[];
-  markerWidth: number;
+  columnSize: number;
+  timerange: [number, number];
 }) {
+  // Adjusting subwidth changes how many dots to render
+  const subWidth = 2;
+  const totalSubColumns = Math.floor(columnSize / subWidth);
+  const durationMs = timerange[1] - timerange[0];
+  const framesByCol = getFramesByColumn(
+    durationMs,
+    colFrames,
+    totalSubColumns,
+    timerange[1]
+  );
+
+  // console.log({
+  //   totalSubColumns,
+  //   subGroups: framesByCol,
+  //   subItems: new Set(colFrames.map(frame => frame.timestamp)).size,
+  //   durationMs,
+  // });
+
   return (
-    <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
-      <Tooltip title={colFrames[0]!.title} isHoverable skipWrapper>
-        <IconNode />
-      </Tooltip>
-    </IconPosition>
+    <Tooltip
+      title={
+        <div>
+          Total Items {colFrames.length}
+          {[...new Set(colFrames.map(frame => frame.timestamp))].map((x, idx) => (
+            <div key={idx}>{x}</div>
+          ))}
+        </div>
+      }
+      isHoverable
+      skipWrapper
+    >
+      <Timeline.Columns totalColumns={totalSubColumns} remainder={0}>
+        {Array.from(framesByCol.entries()).map(([column, groupFrames]) => (
+          <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
+            {groupFrames.map(frame => (
+              <IconNode key={frame.id} />
+            ))}
+          </EventColumn>
+        ))}
+      </Timeline.Columns>
+    </Tooltip>
   );
 }
 
@@ -186,12 +277,21 @@ const TimelineEventsContainer = styled('div')`
   padding-bottom: 10px;
 `;
 
-const IconPosition = styled('div')`
-  position: absolute;
-  transform: translate(-50%);
-`;
+// maybe transform: translate(-50%);
+// const IconPosition = styled('div')`
+//   position: absolute;
+// `;
+
+// const IconGroupContainer = styled('div')`
+//   position: relative;
+//   display: grid;
+//   grid-template-columns: 1fr;
+//   grid-template-rows: 1fr;
+//   grid-gap: 0;
+// `;
 
 const IconNode = styled('div')`
+  position: absolute;
   grid-column: 1;
   grid-row: 1;
   width: 8px;
@@ -200,5 +300,5 @@ const IconNode = styled('div')`
   color: ${p => p.theme.white};
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
-  background-color: red;
+  background-color: rgb(181, 19, 7, 0.2);
 `;
