@@ -1,7 +1,9 @@
+from datetime import timedelta
 from typing import Optional, Sequence
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 
 from sentry.incidents.models import AlertRule
 from sentry.models.dashboard import Dashboard
@@ -621,6 +623,54 @@ def test_get_metric_extraction_config_multiple_widgets_not_above_max_limit_ident
             assert config
 
             assert capture_exception.call_count == 0
+
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 4, "on_demand_metrics.check_widgets.enable": True})
+def test_get_metric_extraction_config_multiple_widgets_above_max_limit_ordered_specs(
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 1")
+        create_widget(["count()"], "transaction.duration:>=1100", default_project, "Dashboard 2")
+        widget_query = create_widget(
+            ["count()"], "transaction.duration:>=1200", default_project, "Dashboard 3"
+        )
+        create_widget(["count()"], "transaction.duration:>=1300", default_project, "Dashboard 4")
+        create_widget(["count()"], "transaction.duration:>=1400", default_project, "Dashboard 5")
+
+        widget_query.widget.dashboard.last_visited = timezone.now() - timedelta(days=1)
+        widget_query.widget.dashboard.save()
+
+        process_widget_specs([widget_query.id])
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config
+        assert len(config["metrics"]) == 4
+
+        duration_conditions = [spec["condition"]["value"] for spec in config["metrics"]]
+
+        assert duration_conditions == [
+            1400.0,
+            1300.0,
+            1100.0,
+            1000.0,
+        ]  # We only exclude the oldest spec (1200.0 duration)
+
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            assert capture_exception.call_count == 2
+            exception = capture_exception.call_args.args[0]
+            assert (
+                exception.args[0]
+                == "Spec version 1: Too many (5) on demand metric widgets for org baz"
+            )
+
+        # Check that state was correctly updated.
+        on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+        assert [entry.extraction_state for entry in on_demand_entries] == [
+            "disabled:spec-limit"
+        ]  # Only see the one entry disabled
 
 
 @django_db_all
