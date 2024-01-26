@@ -1,7 +1,6 @@
 import {memo, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import colorFn from 'color';
-import type {LineSeriesOption} from 'echarts';
+import type {SeriesOption} from 'echarts';
 import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
@@ -30,11 +29,11 @@ import {parseMRI} from 'sentry/utils/metrics/mri';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
-import theme from 'sentry/utils/theme';
 import {MetricChart} from 'sentry/views/ddm/chart';
 import {FocusArea} from 'sentry/views/ddm/focusArea';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
+import {getChartColors} from 'sentry/views/ddm/useGetChartPalette';
 
 import {MIN_WIDGET_WIDTH} from './constants';
 
@@ -46,6 +45,7 @@ type MetricWidgetProps = {
   widget: MetricWidgetQueryParams;
   addFocusArea?: (area: FocusArea) => void;
   focusArea?: FocusArea | null;
+  getChartPalette?: (seriesNames: string[]) => (seriesName: string) => string;
   hasSiblings?: boolean;
   highlightedSampleId?: string;
   index?: number;
@@ -70,6 +70,7 @@ export const MetricWidget = memo(
     environments,
     index = 0,
     isSelected = false,
+    getChartPalette,
     onSelect,
     onChange,
     hasSiblings = false,
@@ -162,6 +163,7 @@ export const MetricWidget = memo(
                 widgetIndex={index}
                 datetime={datetime}
                 projects={projects}
+                getChartPalette={getChartPalette}
                 environments={environments}
                 onChange={handleChange}
                 addFocusArea={addFocusArea}
@@ -193,11 +195,17 @@ interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   widgetIndex: number;
   addFocusArea?: (area: FocusArea) => void;
   chartHeight?: number;
+  getChartPalette?: (seriesNames: string[]) => (seriesName: string) => string;
   highlightedSampleId?: string;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   onSampleClick?: (sample: Sample) => void;
   removeFocusArea?: () => void;
 }
+
+const defaultGetChartPalette = (seriesNames: string[]) => {
+  const colors = getChartColors(seriesNames.length);
+  return (seriesName: string) => colors[seriesNames.indexOf(seriesName) % colors.length];
+};
 
 export const MetricWidgetBody = memo(
   ({
@@ -208,6 +216,7 @@ export const MetricWidgetBody = memo(
     sort,
     widgetIndex,
     addFocusArea,
+    getChartPalette = defaultGetChartPalette,
     focusArea,
     removeFocusArea,
     chartHeight,
@@ -263,13 +272,19 @@ export const MetricWidgetBody = memo(
     const chartSeries = useMemo(() => {
       return timeseriesData
         ? getChartTimeseries(timeseriesData, {
+            getChartPalette,
             mri,
             focusedSeries: focusedSeries?.seriesName,
             groupBy: metricsQuery.groupBy,
-            displayType,
           })
         : [];
-    }, [timeseriesData, displayType, focusedSeries, metricsQuery.groupBy, mri]);
+    }, [
+      timeseriesData,
+      getChartPalette,
+      mri,
+      focusedSeries?.seriesName,
+      metricsQuery.groupBy,
+    ]);
 
     const correlations = useMemo(() => {
       return (
@@ -349,17 +364,15 @@ export const MetricWidgetBody = memo(
 export function getChartTimeseries(
   data: MetricsApiResponse,
   {
+    getChartPalette,
     mri,
     focusedSeries,
     groupBy,
-    hoveredLegend,
-    displayType,
   }: {
-    displayType: MetricDisplayType;
+    getChartPalette: (seriesNames: string[]) => (seriesName: string) => string;
     mri: MRI;
     focusedSeries?: string;
     groupBy?: string[];
-    hoveredLegend?: string;
   }
 ) {
   // this assumes that all series have the same unit
@@ -376,15 +389,13 @@ export function getChartTimeseries(
     };
   });
 
-  const colors = getChartColorPalette(displayType, series.length);
+  const chartPalette = getChartPalette(series.map(s => s.name));
 
-  return sortSeries(series, displayType).map((item, i) => ({
+  return series.map(item => ({
     seriesName: item.name,
     groupBy: item.groupBy,
     unit,
-    color: colorFn(colors[i % colors.length])
-      .alpha(hoveredLegend && hoveredLegend !== item.name ? 0.1 : 1)
-      .string(),
+    color: chartPalette(item.name),
     hidden: focusedSeries && focusedSeries !== item.name,
     data: item.values.map((value, index) => ({
       name: moment(data.intervals[index]).valueOf(),
@@ -394,44 +405,8 @@ export function getChartTimeseries(
     release: item.release as string | undefined,
     emphasis: {
       focus: 'series',
-    } as LineSeriesOption['emphasis'],
+    } as SeriesOption['emphasis'],
   })) as Series[];
-}
-
-function sortSeries(
-  series: {
-    groupBy: Record<string, string>;
-    name: string;
-    release: string;
-    transaction: string;
-    values: (number | null)[];
-  }[],
-  displayType: MetricDisplayType
-) {
-  const sorted = series
-    // we need to sort the series by their values so that the colors in area chart do not overlap
-    // for now we are only sorting by the first value, but we might need to sort by the sum of all values
-    .sort((a, b) => {
-      return Number(a.values?.[0]) > Number(b.values?.[0]) ? -1 : 1;
-    });
-
-  if (displayType === MetricDisplayType.BAR) {
-    return sorted.toReversed();
-  }
-
-  return sorted;
-}
-
-function getChartColorPalette(displayType: MetricDisplayType, length: number) {
-  // We do length - 2 to be aligned with the colors in other parts of the app (copy-pasta)
-  // We use Math.max to avoid numbers < -1 as then `getColorPalette` returns undefined (not typesafe because of array access)
-  const palette = theme.charts.getColorPalette(Math.max(length - 2, -1));
-
-  if (displayType === MetricDisplayType.BAR) {
-    return palette;
-  }
-
-  return palette.toReversed();
 }
 
 export type Series = {
