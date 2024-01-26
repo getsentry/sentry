@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Mapping, MutableMapping, Sequence
 from urllib.parse import urlparse
 
@@ -10,12 +10,12 @@ import rest_framework
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.db.models.signals import post_save
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.db.models.query import create_or_update
@@ -340,7 +340,7 @@ def update_groups(
             activity_data = {}
             new_status_details = {}
 
-        now = timezone.now()
+        now = django_timezone.now()
         metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
 
         # if we've specified a commit, let's see if its already been released
@@ -472,7 +472,7 @@ def update_groups(
                         group=group, defaults=resolution_params
                     )
                     if not created:
-                        resolution.update(datetime=timezone.now(), **resolution_params)
+                        resolution.update(datetime=django_timezone.now(), **resolution_params)
 
                 if commit:
                     GroupLink.objects.create(
@@ -492,7 +492,7 @@ def update_groups(
                 group.status = GroupStatus.RESOLVED
                 group.substatus = None
                 group.resolved_at = now
-                if affected:
+                if affected and not options.get("groups.enable-post-update-signal"):
                     post_save.send(
                         sender=Group,
                         instance=group,
@@ -760,7 +760,7 @@ def handle_has_seen(
                     group=group,
                     user_id=user_id,
                     project=project_lookup[group.project_id],
-                    values={"last_seen": timezone.now()},
+                    values={"last_seen": django_timezone.now()},
                 )
     elif has_seen is False:
         GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()

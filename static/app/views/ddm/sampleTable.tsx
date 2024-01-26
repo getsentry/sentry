@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import {MRI} from 'sentry/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/formatters';
+import {MetricCorrelation, MetricRange} from 'sentry/utils/metrics/types';
 import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -29,8 +30,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
-
-import {MetricCorrelation, MetricRange} from '../../utils/metrics/index';
 
 /**
  * Limits the number of spans to the top n + an "other" entry
@@ -52,12 +51,12 @@ function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: nu
   ]);
 }
 
-export type SamplesTableProps = MetricRange & {
+interface SamplesTableProps extends MetricRange {
   highlightedRow?: string | null;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   query?: string;
-};
+}
 
 type Column = GridColumnHeader<keyof MetricCorrelation>;
 

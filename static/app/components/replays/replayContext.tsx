@@ -132,7 +132,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   speed: number;
 
   /**
-   *
+   * The time, in milliseconds, where the video should start
    */
   startTimeOffsetMs: number;
 
