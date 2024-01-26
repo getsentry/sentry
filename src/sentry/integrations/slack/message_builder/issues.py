@@ -309,15 +309,15 @@ def build_actions(
 
     status = group.get_status()
 
-    def _ignore_button(use_block_kit) -> MessageAction:
+    def _ignore_button(use_block_kit) -> MessageAction | None:
+        if group.issue_category == GroupCategory.FEEDBACK:
+            return None
         if use_block_kit:
             if status == GroupStatus.IGNORED:
                 return MessageAction(
                     name="status", label="Mark as Ongoing", value="unresolved:ongoing"
                 )
             return MessageAction(name="status", label="Archive", value="archive_dialog")
-        if group.issue_category == GroupCategory.FEEDBACK:
-            return None
 
         if status == GroupStatus.IGNORED:
             return MessageAction(

@@ -1154,6 +1154,7 @@ class ActionsTest(TestCase):
             res = build_actions(
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
             )
+            expected.update({"name": "status", "value": "archive_dialog"})
             self._assert_message_actions_list(
                 res[0],
                 expected,
@@ -1181,6 +1182,7 @@ class ActionsTest(TestCase):
             res = build_actions(
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
             )
+            expected.update({"name": "status", "value": "archive_dialog"})
             self._assert_message_actions_list(
                 res[0],
                 expected,
