@@ -268,16 +268,24 @@ def _set_widget_on_demand_state(
     is_low_cardinality: bool | None,
     enabled_features: Set[str],
 ):
-    extraction_state = _determine_extraction_state(specs, is_low_cardinality, enabled_features)
+    extraction_state = _determine_extraction_state(
+        widget_query, specs, is_low_cardinality, enabled_features
+    )
     spec_hashes = [hashed_spec[0] for hashed_spec in specs]
 
-    DashboardWidgetQueryOnDemand.objects.update_or_create(
+    on_demand = DashboardWidgetQueryOnDemand.objects.get_or_create(
         dashboard_widget_query=widget_query,
         defaults={
             "spec_hashes": spec_hashes,
             "extraction_state": extraction_state,
         },
     )
+
+    if on_demand.can_extraction_be_auto_overriden():
+        on_demand.extraction_state = extraction_state
+
+    on_demand.spec_hashes = spec_hashes
+    on_demand.save()
 
 
 def _determine_extraction_state(

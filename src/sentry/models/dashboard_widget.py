@@ -17,6 +17,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields import JSONField
+from sentry.relay.config.metric_extraction import OnDemandExtractionState
 
 _ON_DEMAND_ENABLED_KEY = "enabled"
 
@@ -154,6 +155,22 @@ class DashboardWidgetQueryOnDemand(Model):
     extraction_state = models.CharField(max_length=30, choices=OnDemandExtractionState.choices)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
+
+    def can_extraction_be_auto_overridden(self):
+        """Determines whether tasks can override extraction state"""
+        if self.extraction_state == OnDemandExtractionState.DISABLED_MANUAL:
+            # Manually disabling a widget will cause it to stay off until manually re-enabled.
+            return False
+
+        if self.extraction_state == OnDemandExtractionState.DISABLED_HIGH_CARDINALITY:
+            # High cardinality should remain off until manually re-enabled.
+            return False
+
+        if self.extraction_state == OnDemandExtractionState.DISABLED_SPEC_LIMIT:
+            # Spec limits also can only be re-enabled manually.
+            return False
+
+        return True
 
     def extraction_enabled(self):
         """Whether on-demand is enabled or disabled for this widget.
