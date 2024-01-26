@@ -20,13 +20,17 @@ import {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getDefaultMetricDisplayType,
   getSeriesName,
-  MetricDisplayType,
-  metricDisplayTypeOptions,
-  MetricWidgetQueryParams,
   stringifyMetricWidget,
 } from 'sentry/utils/metrics';
+import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  MetricCorrelation,
+  MetricDisplayType,
+  MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
+import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import theme from 'sentry/utils/theme';
 import {MetricChart} from 'sentry/views/ddm/chart';
@@ -45,11 +49,19 @@ type MetricWidgetProps = {
   addFocusArea?: (area: FocusArea) => void;
   focusArea?: FocusArea | null;
   hasSiblings?: boolean;
+  highlightedSampleId?: string;
   index?: number;
   isSelected?: boolean;
+  onSampleClick?: (sample: Sample) => void;
   onSelect?: (index: number) => void;
   removeFocusArea?: () => void;
   showQuerySymbols?: boolean;
+};
+
+export type Sample = {
+  projectId: number;
+  spanId: string;
+  transactionId: string;
 };
 
 export const MetricWidget = memo(
@@ -67,6 +79,8 @@ export const MetricWidget = memo(
     removeFocusArea,
     showQuerySymbols,
     focusArea = null,
+    onSampleClick,
+    highlightedSampleId,
   }: MetricWidgetProps) => {
     const handleChange = useCallback(
       (data: Partial<MetricWidgetQueryParams>) => {
@@ -155,7 +169,9 @@ export const MetricWidget = memo(
                 addFocusArea={addFocusArea}
                 focusArea={focusArea}
                 removeFocusArea={removeFocusArea}
+                onSampleClick={onSampleClick}
                 chartHeight={300}
+                highlightedSampleId={highlightedSampleId}
                 {...widget}
               />
             ) : (
@@ -179,7 +195,9 @@ interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   widgetIndex: number;
   addFocusArea?: (area: FocusArea) => void;
   chartHeight?: number;
+  highlightedSampleId?: string;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
+  onSampleClick?: (sample: Sample) => void;
   removeFocusArea?: () => void;
 }
 
@@ -188,17 +206,24 @@ export const MetricWidgetBody = memo(
     onChange,
     displayType,
     focusedSeries,
+    highlightedSampleId,
     sort,
     widgetIndex,
     addFocusArea,
     focusArea,
     removeFocusArea,
     chartHeight,
+    onSampleClick,
     ...metricsQuery
   }: MetricWidgetBodyProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
 
-    const {data, isLoading, isError, error} = useMetricsDataZoom(
+    const {
+      data: timeseriesData,
+      isLoading,
+      isError,
+      error,
+    } = useMetricsDataZoom(
       {
         mri,
         op,
@@ -210,6 +235,8 @@ export const MetricWidgetBody = memo(
       },
       {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
     );
+
+    const {data: samplesData} = useCorrelatedSamples(mri, {...focusArea?.range});
 
     const chartRef = useRef<ReactEchartsRef>(null);
 
@@ -236,16 +263,26 @@ export const MetricWidgetBody = memo(
     );
 
     const chartSeries = useMemo(() => {
+      return timeseriesData
+        ? getChartTimeseries(timeseriesData, {
+            mri,
+            focusedSeries: focusedSeries?.seriesName,
+            groupBy: metricsQuery.groupBy,
+            displayType,
+          })
+        : [];
+    }, [timeseriesData, displayType, focusedSeries, metricsQuery.groupBy, mri]);
+
+    const correlations = useMemo(() => {
       return (
-        data &&
-        getChartSeries(data, {
-          mri,
-          focusedSeries: focusedSeries?.seriesName,
-          groupBy: metricsQuery.groupBy,
-          displayType,
-        })
-      );
-    }, [data, displayType, focusedSeries, metricsQuery.groupBy, mri]);
+        samplesData
+          ? samplesData.metrics
+              .map(m => m.metricSpans)
+              .flat()
+              .filter(correlation => !!correlation)
+          : []
+      ) as MetricCorrelation[];
+    }, [samplesData]);
 
     const handleSortChange = useCallback(
       newSort => {
@@ -254,7 +291,7 @@ export const MetricWidgetBody = memo(
       [onChange]
     );
 
-    if (!chartSeries || !data || isError) {
+    if (!chartSeries || !timeseriesData || isError) {
       return (
         <StyledMetricWidgetBody>
           {isLoading && <LoadingIndicator />}
@@ -267,7 +304,7 @@ export const MetricWidgetBody = memo(
       );
     }
 
-    if (data.groups.length === 0) {
+    if (timeseriesData.groups.length === 0) {
       return (
         <StyledMetricWidgetBody>
           <EmptyMessage
@@ -292,6 +329,9 @@ export const MetricWidgetBody = memo(
           focusArea={focusArea}
           removeFocusArea={removeFocusArea}
           height={chartHeight}
+          highlightedSampleId={highlightedSampleId}
+          correlations={correlations}
+          onSampleClick={onSampleClick}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable
@@ -308,7 +348,7 @@ export const MetricWidgetBody = memo(
   }
 );
 
-export function getChartSeries(
+export function getChartTimeseries(
   data: MetricsApiResponse,
   {
     mri,
@@ -406,6 +446,19 @@ export type Series = {
   release?: string;
   transaction?: string;
 };
+
+export interface ScatterSeries extends Series {
+  itemStyle: {
+    color: string;
+    opacity: number;
+  };
+  projectId: number;
+  spanId: string;
+  symbol: string;
+  symbolSize: number;
+  transactionId: string;
+  z: number;
+}
 
 const MetricWidgetPanel = styled(Panel)<{
   isHighlightable: boolean;

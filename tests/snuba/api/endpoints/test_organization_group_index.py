@@ -1,12 +1,12 @@
 import functools
-from datetime import timedelta
+from datetime import timedelta, timezone
 from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from rest_framework import status
 
 from sentry import options
@@ -35,6 +35,7 @@ from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.options.user_option import UserOption
+from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.savedsearch import SavedSearch, Visibility
@@ -360,7 +361,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
     def test_invalid_query(self):
-        now = timezone.now()
+        now = django_timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
 
@@ -369,7 +370,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "Invalid number" in response.data["detail"]
 
     def test_valid_numeric_query(self):
-        now = timezone.now()
+        now = django_timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
 
@@ -377,7 +378,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
 
     def test_invalid_sort_key(self):
-        now = timezone.now()
+        now = django_timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
 
@@ -418,7 +419,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_stats_period(self):
         # TODO(dcramer): this test really only checks if validation happens
         # on groupStatsPeriod
-        now = timezone.now()
+        now = django_timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.create_group(last_seen=now)
 
@@ -758,7 +759,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
     def test_filters_based_on_retention(self):
         self.login_as(user=self.user)
 
-        self.create_group(last_seen=timezone.now() - timedelta(days=2))
+        self.create_group(last_seen=django_timezone.now() - timedelta(days=2))
 
         with self.options({"system.event-retention-days": 1}):
             response = self.get_success_response()
@@ -1400,13 +1401,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
-            adopted=timezone.now(),
-            unadopted=timezone.now(),
+            adopted=django_timezone.now(),
+            unadopted=django_timezone.now(),
         )
         adopted_release = self.create_release(
             version="adopted_release",
             environments=[self.environment],
-            adopted=timezone.now(),
+            adopted=django_timezone.now(),
         )
         self.create_release(version="not_adopted_release", environments=[self.environment])
 
@@ -1736,6 +1737,111 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert "pluginActions" not in response.data[0]
         assert "pluginIssues" not in response.data[0]
 
+    def test_expand_integration_issues(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["integrationIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["integrationIssues"] is not None
+
+        # Test with no expand
+        response = self.get_response(sort_by="date", limit=10, query=query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "integrationIssues" not in response.data[0]
+
+        integration_jira = self.create_integration(
+            organization=event.group.organization,
+            provider="jira",
+            external_id="jira_external_id",
+            name="Jira",
+            metadata={"base_url": "https://example.com", "domain_name": "test/"},
+        )
+        external_issue_1 = self.create_integration_external_issue(
+            group=event.group,
+            integration=integration_jira,
+            key="APP-123-JIRA",
+            title="jira issue 1",
+            description="this is an example description",
+        )
+        external_issue_2 = self.create_integration_external_issue(
+            group=event.group,
+            integration=integration_jira,
+            key="APP-456-JIRA",
+            title="jira issue 2",
+            description="this is an example description",
+        )
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["integrationIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data[0]["integrationIssues"]) == 2
+        assert response.data[0]["integrationIssues"][0]["title"] == external_issue_1.title
+        assert response.data[0]["integrationIssues"][1]["title"] == external_issue_2.title
+
+    def test_expand_sentry_app_issues(self):
+        event = self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["sentryAppIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert response.data[0]["sentryAppIssues"] is not None
+
+        # Test with no expand
+        response = self.get_response(sort_by="date", limit=10, query=query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+        assert "sentryAppIssues" not in response.data[0]
+
+        issue_1 = PlatformExternalIssue.objects.create(
+            group_id=event.group.id,
+            project_id=event.group.project.id,
+            service_type="sentry-app",
+            display_name="App#issue-1",
+            web_url="https://example.com/app/issues/1",
+        )
+        issue_2 = PlatformExternalIssue.objects.create(
+            group_id=event.group.id,
+            project_id=event.group.project.id,
+            service_type="sentry-app-2",
+            display_name="App#issue-2",
+            web_url="https://example.com/app/issues/1",
+        )
+        PlatformExternalIssue.objects.create(
+            group_id=1234,
+            project_id=event.group.project.id,
+            service_type="sentry-app-3",
+            display_name="App#issue-1",
+            web_url="https://example.com/app/issues/1",
+        )
+
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["sentryAppIssues"]
+        )
+        assert response.status_code == 200
+        assert len(response.data[0]["sentryAppIssues"]) == 2
+        assert response.data[0]["sentryAppIssues"][0]["issueId"] == str(issue_1.group_id)
+        assert response.data[0]["sentryAppIssues"][1]["issueId"] == str(issue_2.group_id)
+        assert response.data[0]["sentryAppIssues"][0]["displayName"] == issue_1.display_name
+        assert response.data[0]["sentryAppIssues"][1]["displayName"] == issue_2.display_name
+
     def test_expand_owners(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1927,7 +2033,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         GroupSnooze.objects.create(
             group=event.group,
             user_count=10,
-            until=timezone.now() + timedelta(days=1),
+            until=django_timezone.now() + timedelta(days=1),
             count=10,
             state={"times_seen": 0},
         )
@@ -2179,7 +2285,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
-        self.min_ago = timezone.now() - timedelta(minutes=1)
+        self.min_ago = django_timezone.now() - timedelta(minutes=1)
 
     def get_response(self, *args, **kwargs):
         if not args:
@@ -2264,7 +2370,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_resolve_ignored(self):
         group = self.create_group(status=GroupStatus.IGNORED)
         snooze = GroupSnooze.objects.create(
-            group=group, until=timezone.now() - timedelta(minutes=1)
+            group=group, until=django_timezone.now() - timedelta(minutes=1)
         )
 
         member = self.create_user()
@@ -2547,7 +2653,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         Group, when the project does not follow semantic versioning scheme
         """
         release_1 = self.create_release(
-            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
+            date_added=django_timezone.now() - timedelta(minutes=45), version="foobar 1"
         )
         release_2 = self.create_release(version="foobar 2")
 
@@ -2571,7 +2677,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         # Add a new release that is between 1 and 2, to make sure that if a the same issue/group
         # occurs in that issue, then it should not have a resolution
         release_3 = self.create_release(
-            date_added=timezone.now() - timedelta(minutes=30), version="foobar 3"
+            date_added=django_timezone.now() - timedelta(minutes=30), version="foobar 3"
         )
 
         grp_resolution = GroupResolution.objects.filter(group=group)
@@ -2594,7 +2700,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         algorithm
         """
         release_1 = self.create_release(
-            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
+            date_added=django_timezone.now() - timedelta(minutes=45), version="foobar 1"
         )
         release_2 = self.create_release(version="foobar 2")
 
@@ -2651,7 +2757,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         that was created after the last release associated with the group being resolved
         """
         release_1 = self.create_release(
-            date_added=timezone.now() - timedelta(minutes=45), version="foobar 1"
+            date_added=django_timezone.now() - timedelta(minutes=45), version="foobar 1"
         )
         release_2 = self.create_release(version="foobar 2")
         self.create_release(version="foobar 3")
@@ -3040,7 +3146,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_set_unresolved_on_snooze(self):
         group = self.create_group(status=GroupStatus.IGNORED)
 
-        GroupSnooze.objects.create(group=group, until=timezone.now() - timedelta(days=1))
+        GroupSnooze.objects.create(group=group, until=django_timezone.now() - timedelta(days=1))
 
         self.login_as(user=self.user)
 
@@ -3056,7 +3162,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_basic_ignore(self):
         group = self.create_group(status=GroupStatus.RESOLVED)
 
-        snooze = GroupSnooze.objects.create(group=group, until=timezone.now())
+        snooze = GroupSnooze.objects.create(group=group, until=django_timezone.now())
 
         self.login_as(user=self.user)
         assert not GroupHistory.objects.filter(
@@ -3083,7 +3189,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         snooze = GroupSnooze.objects.get(group=group)
         snooze.until = snooze.until
 
-        now = timezone.now()
+        now = django_timezone.now()
 
         assert snooze.count is None
         assert snooze.until is not None

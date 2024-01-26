@@ -129,7 +129,7 @@ class IntegrationProxyClient(ApiClient):
         # If the request flow for processing a Webhook outbox message is between the RegionSiloClient and the
         # IntegrationProxyClient, then the IntegrationProxyClient will need to have a smaller timeout value.
         # Otherwise, the RegionSiloClient will timeout before it can receive a response from the IntegrationProxyClient.
-        self.timeout = 20
+        self.timeout = 10
 
         if self.determine_whether_should_proxy_to_control():
             self._should_proxy_to_control = True

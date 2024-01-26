@@ -25,7 +25,7 @@ from typing import (
 import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
-from django.db.models import Max, Min
+from django.db.models import Count, Max, Min
 from django.db.transaction import Atomic
 from django.dispatch import Signal
 from django.http import HttpRequest
@@ -54,7 +54,7 @@ from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
 
-THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.timezone.utc)
 
 _T = TypeVar("_T")
 
@@ -593,9 +593,19 @@ class OutboxBase(Model):
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
             assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
-            deleted_count, _ = (
-                self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
-            )
+            deleted_count = 0
+
+            # Use a fetch and delete loop as doing cleanup in a single query
+            # causes timeouts with large datasets. Fetch in batches of 100 and
+            # Apply the ID condition in python as filtering rows in postgres
+            # leads to timeouts.
+            while True:
+                batch = self.select_coalesced_messages()[:100]
+                delete_ids = [item.id for item in batch if item.id <= coalesced.id]
+                if not len(delete_ids):
+                    break
+                self.objects.filter(id__in=delete_ids).delete()
+                deleted_count += len(delete_ids)
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
@@ -674,6 +684,41 @@ class OutboxBase(Model):
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
+
+    @classmethod
+    def get_shard_depths_descending(cls, limit: Optional[int] = 10) -> list[dict[str, int | str]]:
+        """
+        Queries all outbox shards for their total depth, aggregated by their
+        sharding columns as specified by the outbox class implementation.
+
+        :param limit: Limits the query to the top N rows with the greatest shard
+        depth. If limit is None, the entire set of rows will be returned.
+        :return: A list of dictionaries, containing shard depths and shard
+        relevant column values.
+        """
+        if limit is not None:
+            assert limit > 0, "Limit must be a positive integer if specified"
+
+        base_depth_query = (
+            cls.objects.values(*cls.sharding_columns).annotate(depth=Count("*")).order_by("-depth")
+        )
+
+        if limit is not None:
+            base_depth_query = base_depth_query[0:limit]
+
+        aggregated_shard_information = list()
+        for shard_row in base_depth_query:
+            shard_information = {
+                shard_column: shard_row[shard_column] for shard_column in cls.sharding_columns
+            }
+            shard_information["depth"] = shard_row["depth"]
+            aggregated_shard_information.append(shard_information)
+
+        return aggregated_shard_information
+
+    @classmethod
+    def get_total_outbox_count(cls) -> int:
+        return cls.objects.count()
 
 
 # Outboxes bound from region silo -> control silo

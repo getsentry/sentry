@@ -677,6 +677,9 @@ RPC_SHARED_SECRET: list[str] | None = None
 # Timeout for RPC requests between regions
 RPC_TIMEOUT = 5.0
 
+# Shared secret used to sign cross-region RPC requests with the seer microservice.
+SEER_RPC_SHARED_SECRET: list[str] | None = None
+
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
@@ -733,6 +736,7 @@ CELERY_IMPORTS = (
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
     "sentry.monitors.tasks",
+    "sentry.tasks.ai_autofix",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -1503,6 +1507,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Enables import of metric dashboards
+    "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
     # Enable inbound filters to be turned on by default for new Javascript Projects
@@ -1565,7 +1571,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable integration functionality to work with alert rules (specifically chat integrations)
     "organizations:integrations-chat-unfurl": True,
     # Enable the API to importing CODEOWNERS for a project
-    "organizations:integrations-codeowners": False,
+    "organizations:integrations-codeowners": True,
     # Enable integration functionality to work deployment integrations like Vercel
     "organizations:integrations-deployment": True,
     # Enable integration functionality to work with enterprise alert rules
@@ -1649,6 +1655,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-extraction": False,
     # Enables the usage of the new metrics layer in the metrics API.
     "organizations:metrics-api-new-metrics-layer": False,
+    # Enables the ability to block metrics.
+    "organizations:metrics-blocking": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1692,8 +1700,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-anomaly-detection-ui": False,
     # Enable performance score calculation for transactions in relay
     "organizations:performance-calculate-score-relay": False,
-    # Makes LCP and CLS optional components for performance score calculation
-    "organizations:performance-score-optional-lcp-and-cls": False,
     # Enable performance change explorer panel on trends page
     "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
@@ -1864,8 +1870,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-sdk": False,
     # Enable core Session Replay SDK for recording onError events on sentry.io
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable rendering of the `replay.hydrate-error` replay breadcrumb
-    "organizations:session-replay-show-hydration-errors": False,
     # Enable linking from 'new issue' slack notifs to the issue replay list
     "organizations:session-replay-slack-new-issue": False,
     # Enable the Replay Details > Performance tab
@@ -1890,8 +1894,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:spike-protection-decay-heuristic": False,
     # Enable Slack messages using Block Kit
     "organizations:slack-block-kit": False,
-    # Enable new Slack message formatting
-    "organizations:slack-formatting-update": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -1957,6 +1959,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
+    # Enable AI Autofix feture on the Issue Details page.
+    "projects:ai-autofix": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Workflow 2.0 Auto associate commits to commit sha release
@@ -1975,6 +1979,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:first-event-severity-new-escalation": False,
     # Enable severity alerts for new issues based on severity and escalation
     "projects:high-priority-alerts": False,
+    # Enable setting priority for issues
+    "projects:issue-priority": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,
@@ -2062,9 +2068,6 @@ SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0
 
 # Sample rate for the process_event task transactions
 SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
-
-# sample rate for the relay projectconfig endpoint
-SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
 
 # sample rate for relay's cache invalidation task
 SENTRY_RELAY_TASK_APM_SAMPLING = 0
@@ -2419,6 +2422,15 @@ SENTRY_SCOPES = {
     "openid",
     "profile",
     "email",
+}
+
+SENTRY_READONLY_SCOPES = {
+    "org:read",
+    "member:read",
+    "team:read",
+    "project:read",
+    "event:read",
+    "alerts:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -3037,7 +3049,7 @@ STATUS_PAGE_API_HOST = "statuspage.io"
 SENTRY_SELF_HOSTED = True
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.1.0"
+SELF_HOSTED_STABLE_VERSION = "24.1.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3432,7 +3444,6 @@ KAFKA_GROUP_ATTRIBUTES = "group-attributes"
 KAFKA_SHARED_RESOURCES_USAGE = "shared-resources-usage"
 
 # spans
-KAFKA_INGEST_SPANS = "ingest-spans"
 KAFKA_SNUBA_SPANS = "snuba-spans"
 
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
@@ -3483,7 +3494,6 @@ KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
     KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_GROUP_ATTRIBUTES: {"cluster": "default"},
-    KAFKA_INGEST_SPANS: {"cluster": "default"},
     KAFKA_SNUBA_SPANS: {"cluster": "default"},
     KAFKA_SHARED_RESOURCES_USAGE: {"cluster": "default"},
 }
@@ -3706,13 +3716,15 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # constraints instead of setting the column to not null.
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
-ANOMALY_DETECTION_URL = "127.0.0.1:9091"
+ANOMALY_DETECTION_URL = "http://127.0.0.1:9091"
 ANOMALY_DETECTION_TIMEOUT = 30
 
 # TODO: Once this moves to its own service, this URL will need to be updated
 SEVERITY_DETECTION_URL = ANOMALY_DETECTION_URL
 SEVERITY_DETECTION_TIMEOUT = 0.3  # 300 milliseconds
 SEVERITY_DETECTION_RETRIES = 1
+
+SEER_AUTOFIX_URL = ANOMALY_DETECTION_URL  # In local development this is the same as ANOMALY_DETECTION_URL, for prod check getsentry.
 
 # This is the URL to the profiling service
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
@@ -3971,10 +3983,14 @@ REGION_PINNED_URL_NAMES = {
     # Backwards compatibility for US customers.
     # New usage of these is region scoped.
     "sentry-error-page-embed",
+    "sentry-js-sdk-loader",
     "sentry-release-hook",
     "sentry-api-0-organizations",
     "sentry-api-0-projects",
     "sentry-api-0-accept-project-transfer",
+    "sentry-organization-avatar-url",
+    "sentry-chartcuterie-config",
+    "sentry-robots-txt",
 }
 
 # Shared resource ids for accounting
@@ -3989,7 +4005,7 @@ ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host and SILO_MODE != "REGION":
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.region-api-url-template"] = ""
-    CSRF_TRUSTED_ORIGINS = [f".{ngrok_host}"]
+    CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
 
     SESSION_COOKIE_DOMAIN: str = f".{ngrok_host}"
@@ -4026,6 +4042,7 @@ if SILO_DEVSERVER:
         "a-long-value-that-is-shared-but-also-secret",
     ]
     RPC_TIMEOUT = 15.0
+    SEER_RPC_SHARED_SECRET = ["seers-also-very-long-value-haha"]
 
     # Key for signing integration proxy requests.
     SENTRY_SUBNET_SECRET = "secret-subnet-signature"

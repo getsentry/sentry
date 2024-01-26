@@ -10,18 +10,17 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.code_locations import CodeLocationsSerializer
-from sentry.api.serializers.models.correlations import CorrelationsSerializer
+from sentry.api.serializers.models.metrics_code_locations import MetricCodeLocationsSerializer
+from sentry.api.serializers.models.metrics_correlations import MetricCorrelationsSerializer
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.metadata.code_locations import (
+from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
+from sentry.sentry_metrics.querying.metadata import (
     MetricCodeLocations,
-    get_metric_code_locations,
-)
-from sentry.sentry_metrics.querying.metadata.correlations import (
     MetricCorrelations,
+    get_metric_code_locations,
     get_metric_correlations,
 )
 
@@ -33,8 +32,8 @@ class MetricMetaType(Enum):
 
 
 METRIC_META_TYPE_SERIALIZER = {
-    MetricMetaType.CODE_LOCATIONS.value: CodeLocationsSerializer(),
-    MetricMetaType.CORRELATIONS.value: CorrelationsSerializer(),
+    MetricMetaType.CODE_LOCATIONS.value: MetricCodeLocationsSerializer(),
+    MetricMetaType.CORRELATIONS.value: MetricCorrelationsSerializer(),
 }
 
 
@@ -113,10 +112,17 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
         for meta_type in self._extract_metric_meta_types(request):
             data: Any = {}
 
-            if meta_type == MetricMetaType.CODE_LOCATIONS:
-                data = self._get_metric_code_locations(request, organization, projects, start, end)
-            elif meta_type == MetricMetaType.CORRELATIONS:
-                data = self._get_metric_correlations(request, organization, projects, start, end)
+            try:
+                if meta_type == MetricMetaType.CODE_LOCATIONS:
+                    data = self._get_metric_code_locations(
+                        request, organization, projects, start, end
+                    )
+                elif meta_type == MetricMetaType.CORRELATIONS:
+                    data = self._get_metric_correlations(
+                        request, organization, projects, start, end
+                    )
+            except LatestReleaseNotFoundError as e:
+                return Response(status=404, data={"detail": str(e)})
 
             response[meta_type.value] = serialize(
                 data, request.user, METRIC_META_TYPE_SERIALIZER[meta_type.value]

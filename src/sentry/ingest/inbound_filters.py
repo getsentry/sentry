@@ -223,6 +223,16 @@ class _LegacyBrowserFilterSerializer(_FilterSerializer):
         help_text="""
 Specifies which legacy browser filters should be active. Anything excluded from the list will be
 disabled. The options are:
+- `ie` - Internet Explorer Version 11 and lower
+- `edge` - Edge Version 18 and lower
+- `safari` - Safari Version 11 and lower
+- `firefox` - Firefox Version 66 and lower
+- `chrome` - Chrome Version 62 and lower
+- `opera` - Opera Version 50 and lower
+- `android` - Android Version 3 and lower
+- `opera_mini` - Opera Mini Version 34 and lower
+
+Deprecated options:
 - `ie_pre_9` - Internet Explorer Version 8 and lower
 - `ie9` - Internet Explorer Version 9
 - `ie10` - Internet Explorer Version 10
@@ -231,9 +241,17 @@ disabled. The options are:
 - `opera_pre_15` - Opera Version 14 and lower
 - `opera_mini_pre_8` - Opera Mini Version 8 and lower
 - `android_pre_4` - Android Version 3 and lower
-- 'edge_pre_79' - Edge Version 18 and lower (non Chromium based)
+- `edge_pre_79` - Edge Version 18 and lower (non Chromium based)
 """,
         choices=[
+            "ie",
+            "edge",
+            "safari",
+            "firefox",
+            "chrome",
+            "opera",
+            "android",
+            "opera_mini",
             "ie_pre_9",
             "ie9",
             "ie10",

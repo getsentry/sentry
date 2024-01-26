@@ -41,61 +41,156 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
         return build_sdk_crash_detection_configs()
 
 
+@pytest.mark.parametrize(
+    ["filename", "expected_stripped_filename", "detected"],
+    [
+        (
+            "/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js",
+            "/sentry-react-native/dist/js/client.js",
+            True,
+        ),
+        (
+            "/Users/sentry.user/git-repos/sentry-react-native/samples/react-native/src/Screens/HomeScreen.tsx",
+            "empty_on_purpose",
+            False,
+        ),
+    ],
+)
 @decorators
-def test_sdk_crash_is_reported(mock_sdk_crash_reporter, mock_random, store_event, configs):
-    event = store_event(data=get_crash_event())
+def test_sdk_crash_is_reported_development_paths(
+    mock_sdk_crash_reporter,
+    mock_random,
+    store_event,
+    configs,
+    filename,
+    expected_stripped_filename,
+    detected,
+):
+    event = store_event(data=get_crash_event(filename=filename))
 
     configs[1].organization_allowlist = [event.project.organization_id]
 
     sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
-    assert mock_sdk_crash_reporter.report.call_count == 1
-    reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+        reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
 
-    stripped_frames = get_path(
-        reported_event_data, "exception", "values", -1, "stacktrace", "frames"
-    )
-
-    assert len(stripped_frames) == 4
-    assert stripped_frames[0]["function"] == "dispatchEvent"
-    assert stripped_frames[1]["function"] == "community.lib.dosomething"
-    assert stripped_frames[2]["function"] == "nativeCrash"
-    assert stripped_frames[3]["function"] == "ReactNativeClient#nativeCrash"
-
-
-@decorators
-def test_sdk_crash_sample_app_not_reported(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
-):
-    event = store_event(
-        data=get_crash_event(
-            filename="/Users/sentry.user/git-repos/sentry-react-native/samples/react-native/src/Screens/HomeScreen.tsx"
+        stripped_frames = get_path(
+            reported_event_data, "exception", "values", -1, "stacktrace", "frames"
         )
-    )
+
+        assert len(stripped_frames) == 6
+        assert stripped_frames[0]["function"] == "dispatchEvent"
+        assert stripped_frames[1]["function"] == "community.lib.dosomething"
+        assert stripped_frames[2]["function"] == "nativeCrash"
+
+        sdk_frame = stripped_frames[3]
+        assert sdk_frame["function"] == "ReactNativeClient#nativeCrash"
+        assert sdk_frame["filename"] == expected_stripped_filename
+        assert sdk_frame["abs_path"] == expected_stripped_filename
+        assert sdk_frame["in_app"] is True
+
+        system_lib_frame1 = stripped_frames[4]
+        assert system_lib_frame1["function"] == "callFunctionReturnFlushedQueue"
+        assert (
+            system_lib_frame1["filename"]
+            == "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js"
+        )
+        assert system_lib_frame1["in_app"] is False
+
+        system_lib_frame2 = stripped_frames[5]
+        assert system_lib_frame2["function"] == "processCallbacks"
+        assert (
+            system_lib_frame2["filename"]
+            == "node_modules/react-native-community/BatchedBridge/MessageQueue.js"
+        )
+        assert system_lib_frame2["in_app"] is False
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@pytest.mark.parametrize(
+    ["package_name", "detected"],
+    [
+        (
+            "/@sentry/react-native/",
+            True,
+        ),
+        (
+            "/@sentry/reactnative/",
+            False,
+        ),
+        (
+            "/@sentry/browser/",
+            True,
+        ),
+        (
+            "/@sentry/cli/",
+            True,
+        ),
+        (
+            "/@sentry/core/",
+            True,
+        ),
+        (
+            "/@sentry/hub/",
+            True,
+        ),
+        (
+            "/@sentry/integrations/",
+            True,
+        ),
+        (
+            "/@sentry/react/",
+            True,
+        ),
+        (
+            "/@sentry/types/",
+            True,
+        ),
+        (
+            "/@sentry/utils/",
+            True,
+        ),
+    ],
+)
+@decorators
+def test_sdk_crash_is_reported_production_paths(
+    mock_sdk_crash_reporter, mock_random, store_event, configs, package_name, detected
+):
+    expected_stripped_filename = f"{package_name}dist/js/integrations/reactnativeerrorhandlers.js"
+    # Remove the first / from the path because the module is not prefixed with /.
+    expected_stripped_filename = expected_stripped_filename[1:]
+
+    filename = f"node_modules/{expected_stripped_filename}"
+    event = store_event(data=get_crash_event(filename=filename))
 
     configs[1].organization_allowlist = [event.project.organization_id]
 
-    sdk_crash_detection.detect_sdk_crash(
-        event=event,
-        configs=configs,
-    )
-
-    assert mock_sdk_crash_reporter.report.call_count == 0
-
-
-@decorators
-def test_sdk_crash_react_natives_not_reported(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
-):
-    event = store_event(
-        data=get_crash_event(
-            filename="/Users/sentry.user/git-repos/sentry-react-natives/dist/js/client.js"
-        )
-    )
-
     sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
-    assert mock_sdk_crash_reporter.report.call_count == 0
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+        reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+
+        stripped_frames = get_path(
+            reported_event_data, "exception", "values", -1, "stacktrace", "frames"
+        )
+
+        assert len(stripped_frames) == 6
+        assert stripped_frames[0]["function"] == "dispatchEvent"
+        assert stripped_frames[1]["function"] == "community.lib.dosomething"
+        assert stripped_frames[2]["function"] == "nativeCrash"
+
+        sdk_frame = stripped_frames[3]
+        assert sdk_frame["function"] == "ReactNativeClient#nativeCrash"
+        expected_module = expected_stripped_filename.replace(".js", "")
+        assert sdk_frame["module"] == expected_module
+        assert sdk_frame["filename"] == expected_stripped_filename
+        assert sdk_frame["abs_path"] == expected_stripped_filename
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0
 
 
 @decorators

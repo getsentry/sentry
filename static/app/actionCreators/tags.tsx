@@ -6,7 +6,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
-import {PageFilters, Tag} from 'sentry/types';
+import {PageFilters, Tag, TagValue} from 'sentry/types';
 
 const MAX_TAGS = 1000;
 
@@ -106,7 +106,7 @@ export function fetchTagValues({
   projectIds?: string[];
   search?: string;
   sort?: string;
-}) {
+}): Promise<TagValue[]> {
   const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
 
   const query: Query = {};

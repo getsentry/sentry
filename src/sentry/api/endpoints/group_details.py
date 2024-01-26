@@ -21,7 +21,9 @@ from sentry.api.helpers.group_index import (
     update_groups,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
+from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
+from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
 from sentry.issues.constants import get_issue_tsdb_group_model
@@ -30,9 +32,12 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
+from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
@@ -42,6 +47,11 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
 delete_logger = logging.getLogger("sentry.deletions.api")
+
+
+def get_group_global_count(group: Group) -> str:
+    fetch_buffered_group_stats(group)
+    return str(group.times_seen_with_pending)
 
 
 @region_silo_endpoint
@@ -115,11 +125,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )[group.id]
 
         return hourly_stats, daily_stats
-
-    @staticmethod
-    def __get_group_global_count(group: Group) -> str:
-        fetch_buffered_group_stats(group)
-        return str(group.times_seen_with_pending)
 
     def get(self, request: Request, group) -> Response:
         """
@@ -210,6 +215,26 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                         }
                     )
 
+            if "integrationIssues" in expand:
+                external_issues = ExternalIssue.objects.filter(
+                    id__in=GroupLink.objects.filter(group_id__in=[group.id]).values_list(
+                        "linked_id", flat=True
+                    ),
+                )
+                integration_issues = serialize(
+                    external_issues,
+                    request,
+                    serializer=ExternalIssueSerializer(),
+                )
+                data.update({"integrationIssues": integration_issues})
+
+            if "sentryAppIssues" in expand:
+                external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
+                sentry_app_issues = serialize(
+                    list(external_issues), request, serializer=PlatformExternalIssueSerializer()
+                )
+                data.update({"sentryAppIssues": sentry_app_issues})
+
             data.update(
                 {
                     "activity": serialize(activity, request.user),
@@ -219,7 +244,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "stats": {"24h": hourly_stats, "30d": daily_stats},
-                    "count": self.__get_group_global_count(group),
+                    "count": get_group_global_count(group),
                 }
             )
 

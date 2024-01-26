@@ -9,7 +9,8 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {MRI, Organization, PageFilters} from 'sentry/types';
-import {MetricWidgetQueryParams, stringifyMetricWidget} from 'sentry/utils/metrics';
+import {stringifyMetricWidget} from 'sentry/utils/metrics';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
 import {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -62,6 +63,10 @@ export function MetricWidgetCard({
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
     useState<MetricWidgetQueryParams>(convertFromWidget(widget));
 
+  const [title, setTitle] = useState<string>(
+    widget.title ?? stringifyMetricWidget(metricWidgetQueryParams)
+  );
+
   const handleChange = useCallback(
     (data: Partial<MetricWidgetQueryParams>) => {
       setMetricWidgetQueryParams(curr => ({
@@ -78,8 +83,6 @@ export function MetricWidgetCard({
       toMetricDisplayType(metricWidgetQueryParams.displayType)
     );
 
-    const title = stringifyMetricWidget(metricWidgetQueryParams);
-
     const updatedWidget = {
       ...widget,
       title,
@@ -88,7 +91,7 @@ export function MetricWidgetCard({
     };
 
     onUpdate?.(updatedWidget);
-  }, [metricWidgetQueryParams, onUpdate, widget, selection]);
+  }, [title, metricWidgetQueryParams, onUpdate, widget, selection]);
 
   const handleCancel = useCallback(() => {
     onUpdate?.(null);
@@ -101,9 +104,6 @@ export function MetricWidgetCard({
       </ErrorPanel>
     );
   }
-
-  const stringifiedMetricWidget =
-    widget.title ?? stringifyMetricWidget(metricWidgetQueryParams);
 
   return (
     <DashboardsMEPContext.Provider
@@ -124,12 +124,14 @@ export function MetricWidgetCard({
               onChange={handleChange}
               onSubmit={handleSubmit}
               onCancel={handleCancel}
+              onTitleChange={setTitle}
+              title={title}
             />
           ) : (
             <WidgetHeaderDescription>
               <WidgetTitleRow>
                 <WidgetTitle>
-                  <TextOverflow>{stringifiedMetricWidget}</TextOverflow>
+                  <TextOverflow>{title}</TextOverflow>
                 </WidgetTitle>
               </WidgetTitleRow>
             </WidgetHeaderDescription>

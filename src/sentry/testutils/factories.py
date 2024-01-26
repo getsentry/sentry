@@ -49,6 +49,8 @@ from sentry.models.actor import Actor
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -75,6 +77,9 @@ from sentry.models.integrations.integration_feature import (
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
 from sentry.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -381,6 +386,16 @@ class Factories:
         return ApiKey.objects.create(
             organization_id=organization.id if organization else None, scope_list=scope_list
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_auth_provider(**kwargs):
+        return AuthProvider.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_auth_identity(**kwargs):
+        return AuthIdentity.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1084,6 +1099,22 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_sentry_app_installation_for_provider(
+        sentry_app_id: int,
+        organization_id: int,
+        provider: str,
+    ) -> SentryAppInstallationForProvider:
+        installation = SentryAppInstallation.objects.get(
+            sentry_app_id=sentry_app_id, organization_id=organization_id
+        )
+        return SentryAppInstallationForProvider.objects.create(
+            organization_id=organization_id,
+            provider=provider,
+            sentry_app_installation=installation,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_stacktrace_link_schema():
         return {"type": "stacktrace-link", "uri": "/redirect/"}
 
@@ -1540,6 +1571,29 @@ class Factories:
         org_integration = integration.add_organization(organization, user)
         assert org_integration is not None
         return integration, org_integration
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_identity_integration(
+        user: User | RpcUser,
+        organization: Organization | RpcOrganization,
+        integration_params: Mapping[Any, Any],
+        identity_params: Mapping[Any, Any],
+    ) -> tuple[Integration, OrganizationIntegration, Identity, IdentityProvider]:
+        # Avoid common pitfalls in tests
+        assert "provider" in integration_params
+        assert "external_id" in integration_params
+        assert "external_id" in identity_params
+
+        integration = Factories.create_provider_integration(**integration_params)
+        identity_provider = Factories.create_identity_provider(integration=integration)
+        identity = Factories.create_identity(
+            user=user, identity_provider=identity_provider, **identity_params
+        )
+        organization_integration = integration.add_organization(
+            organization_id=organization.id, user=user, default_auth_id=identity.id
+        )
+        return integration, organization_integration, identity, identity_provider
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

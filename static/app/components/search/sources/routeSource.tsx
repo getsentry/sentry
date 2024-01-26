@@ -1,6 +1,5 @@
 import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
-import flattenDepth from 'lodash/flattenDepth';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Organization, Project} from 'sentry/types';
@@ -117,15 +116,12 @@ class RouteSource extends Component<Props, State> {
       features: new Set(project?.features ?? []),
     } as Context;
 
-    const searchMap = flattenDepth<NavigationItem>(
-      [
-        mapFunc(accountSettingsNavigation, context),
-        mapFunc(projectSettingsNavigation, context),
-        mapFunc(organizationSettingsNavigation, context),
-        mapFunc(this.getHookConfigs(), context),
-      ],
-      2
-    );
+    const searchMap: NavigationItem[] = [
+      mapFunc(accountSettingsNavigation, context),
+      mapFunc(projectSettingsNavigation, context),
+      mapFunc(organizationSettingsNavigation, context),
+      mapFunc(this.getHookConfigs(), context),
+    ].flat(2);
 
     const options = {
       ...this.props.searchOptions,

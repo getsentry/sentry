@@ -25,8 +25,21 @@ def get_frames(filename: str) -> Sequence[MutableMapping[str, str]]:
         },
         {
             "function": "ReactNativeClient#nativeCrash",
+            "module": filename.replace("node_modules/", "").replace(".js", ""),
             "filename": filename,
-            "abs_path": "/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js",
+            "abs_path": f"app:///{filename}",
+        },
+        {
+            "function": "callFunctionReturnFlushedQueue",
+            "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+            "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+            "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+        },
+        {
+            "function": "processCallbacks",
+            "module": "react-native-community/BatchedBridge/MessageQueue",
+            "filename": "node_modules/react-native-community/BatchedBridge/MessageQueue.js",
+            "abs_path": "app:///node_modules/react-native-community/BatchedBridge/MessageQueue.js",
         },
     ]
     return frames

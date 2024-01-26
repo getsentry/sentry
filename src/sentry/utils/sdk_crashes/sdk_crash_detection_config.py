@@ -38,8 +38,8 @@ class SDKCrashDetectionConfig:
     project_id: int
     """The percentage of events to sample. 0.0 = 0%, 0.5 = 50% 1.0 = 100%."""
     sample_rate: float
-    """The organization allowlist to detect crashes for. If None, all organizations are allowed."""
-    organization_allowlist: Optional[list[int]]
+    """The organization allowlist to detect crashes for. If empty, all organizations are allowed. Use the sample_rate to disable the SDK crash detection for all organizations."""
+    organization_allowlist: list[int]
     """The SDK names to detect crashes for. For example, ["sentry.cocoa", "sentry.cocoa.react-native"]."""
     sdk_names: Sequence[str]
     """The minimum SDK version to detect crashes for. For example, "8.2.0"."""
@@ -55,7 +55,7 @@ class SDKCrashDetectionConfig:
 class SDKCrashDetectionOptions(TypedDict):
     project_id: int
     sample_rate: float
-    organization_allowlist: Optional[list[int]]
+    organization_allowlist: list[int]
 
 
 def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
@@ -122,9 +122,27 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
             },
             sdk_frame_config=SDKFrameConfig(
                 function_patterns=set(),
-                filename_patterns={r"**/sentry-react-native/dist/**"},
+                filename_patterns={
+                    # Development path
+                    r"**/sentry-react-native/dist/**",
+                    # Production paths taken from https://github.com/getsentry/sentry-react-native/blob/037d5fa2f38b02eaf4ca92fda569e0acfd6c3ebe/package.json#L68-L77
+                    r"**/@sentry/react-native/**",
+                    r"**/@sentry/browser/**",
+                    r"**/@sentry/cli/**",
+                    r"**/@sentry/core/**",
+                    r"**/@sentry/hub/**",
+                    r"**/@sentry/integrations/**",
+                    r"**/@sentry/react/**",
+                    r"**/@sentry/types/**",
+                    r"**/@sentry/utils/**",
+                },
                 path_replacer=KeepAfterPatternMatchPathReplacer(
-                    patterns={r"\/sentry-react-native\/.*", r"\/@sentry.*"},
+                    patterns={
+                        r"\/sentry-react-native\/.*",
+                        # We don't add the first / here because module isn't prefixed with /.
+                        # We don't need to specify all production paths because the path replacer only runs for SDK frames.
+                        r"@sentry\/*",
+                    },
                     fallback_path="sentry-react-native",
                 ),
             ),
@@ -149,7 +167,7 @@ def _get_options(
     if not sample_rate:
         return None
 
-    organization_allowlist: Optional[list[int]] = None
+    organization_allowlist: list[int] = []
     if has_organization_allowlist:
         organization_allowlist = options.get(f"{options_prefix}.organization_allowlist")
 

@@ -282,13 +282,20 @@ class TagValue(TypedDict):
     value: str
 
 
+class BlockedMetric(TypedDict):
+    isBlocked: bool
+    blockedTags: Sequence[str]
+    projectId: int
+
+
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
     mri: str
-    project_ids: Sequence[int]
+    projectIds: Sequence[int]
+    blockingStatus: Optional[Sequence[BlockedMetric]]
 
 
 class MetricMetaWithTagKeys(MetricMeta):

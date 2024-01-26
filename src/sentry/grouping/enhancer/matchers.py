@@ -26,7 +26,7 @@ SHORT_MATCH_KEYS = {v: k for k, v in MATCH_KEYS.items()}
 
 assert len(SHORT_MATCH_KEYS) == len(MATCH_KEYS)  # assert short key names are not reused
 
-FAMILIES = {"native": "N", "javascript": "J", "all": "a"}
+FAMILIES = {"native": "N", "javascript": "J", "other": "O", "all": "a"}
 REVERSE_FAMILIES = {v: k for k, v in FAMILIES.items()}
 
 
@@ -63,7 +63,7 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
         category=get_path(frame_data, "data", "category"),
         family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
         function=_get_function_name(frame_data, platform),
-        in_app=frame_data.get("in_app") or False,
+        in_app=frame_data.get("in_app"),
         module=get_path(frame_data, "module"),
         package=frame_data.get("package"),
         path=frame_data.get("abs_path") or frame_data.get("filename"),
@@ -234,7 +234,7 @@ class InAppMatch(FrameMatch):
         self._ref_val = bool(get_rule_bool(self.pattern))
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
-        return self._ref_val == match_frame["in_app"]
+        return self._ref_val == bool(match_frame["in_app"])
 
 
 class FrameFieldMatch(FrameMatch):

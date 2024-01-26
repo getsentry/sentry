@@ -23,11 +23,13 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
+from sentry.sentry_metrics.querying.errors import CorrelationsQueryExecutionError
 from sentry.sentry_metrics.querying.metadata.utils import (
     add_environments_condition,
     get_snuba_conditions_from_query,
     transform_conditions_to_tags,
     transform_conditions_with,
+    transform_latest_release_condition,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import (
@@ -56,10 +58,6 @@ SENTRY_TAG_TO_COLUMN_NAME = {
     "user": "user",
     "status": "status",
 }
-
-
-class CorrelationsQueryExecutionError(Exception):
-    pass
 
 
 @dataclass(frozen=True)
@@ -152,6 +150,7 @@ class CorrelationsSource(ABC):
     ) -> Sequence[Segment]:
         conditions = get_snuba_conditions_from_query(query)
         conditions = add_environments_condition(conditions, environments)
+        conditions = transform_latest_release_condition(conditions, self.projects)
 
         return self._get_segments(
             metric_mri=metric_mri,

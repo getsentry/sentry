@@ -14,6 +14,7 @@ import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/
 import {projectCanUpsellReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   event: Event;
@@ -27,6 +28,7 @@ function EventReplayContent({
   replayId,
 }: Props & {replayId: undefined | string}) {
   const organization = useOrganization();
+  const user = useUser();
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
 
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
@@ -35,6 +37,11 @@ function EventReplayContent({
     []
   );
   const replayPreview = useCallback(() => import('./replayPreview'), []);
+  const replayClipPreview = useCallback(() => import('./replayClipPreview'), []);
+
+  const hasReplayClipFeature =
+    organization.features.includes('issue-details-inline-replay-viewer') &&
+    user.options.issueDetailsNewExperienceQ42023;
 
   if (fetching) {
     return null;
@@ -67,12 +74,14 @@ function EventReplayContent({
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
+  const replayComponent = hasReplayClipFeature ? replayClipPreview : replayPreview;
+
   return (
     <ReplaySectionMinHeight>
       <ErrorBoundary mini>
         <ReactLazyLoad debounce={50} height={448} offset={0} once>
           <LazyLoad
-            component={replayPreview}
+            component={replayComponent}
             replaySlug={replayId}
             orgSlug={organization.slug}
             eventTimestampMs={eventTimestampMs}
