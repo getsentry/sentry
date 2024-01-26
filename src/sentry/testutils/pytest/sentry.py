@@ -50,12 +50,11 @@ def configure_split_db() -> None:
     settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
-def _configure_test_env_regions() -> None:
-    # This value is checked by validate_silo_mode and should remain stable at all times.
-    settings.DEFAULT_SILO_MODE_FOR_TEST_CASES = SiloMode.MONOLITH
+DEFAULT_SILO_MODE_FOR_TEST_CASES = SiloMode.MONOLITH
 
-    # But this one is subject to ephemeral changes via override_settings, etc.
-    settings.SILO_MODE = settings.DEFAULT_SILO_MODE_FOR_TEST_CASES
+
+def _configure_test_env_regions() -> None:
+    settings.SILO_MODE = DEFAULT_SILO_MODE_FOR_TEST_CASES
 
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
