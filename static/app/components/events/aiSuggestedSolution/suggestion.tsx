@@ -19,8 +19,8 @@ import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import marked from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 
 import {ExperimentalFeatureBadge} from './experimentalFeatureBadge';
 import {SuggestionLoaderMessage} from './suggestionLoaderMessage';
@@ -104,7 +104,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
     useOpenAISuggestionLocalStorage();
   const [piiCertified, setPiiCertified] = useState(false);
-  const {isStaff} = useUser();
+  const isSentryEmployee = useIsSentryEmployee();
 
   const {
     data,
@@ -118,12 +118,12 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
       {
         query: {
           consent: suggestedSolutionLocalConfig.individualConsent ? 'yes' : undefined,
-          pii_certified: isStaff ? (piiCertified ? 'yes' : 'no') : undefined,
+          pii_certified: isSentryEmployee ? (piiCertified ? 'yes' : 'no') : undefined,
         },
       },
     ],
     {
-      enabled: isStaff ? (piiCertified ? true : false) : true,
+      enabled: isSentryEmployee ? (piiCertified ? true : false) : true,
       staleTime: Infinity,
       retry: false,
     }
@@ -133,7 +133,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
     addSuccessMessage('Thank you for your feedback!');
   }, []);
 
-  if (isStaff && !piiCertified) {
+  if (isSentryEmployee && !piiCertified) {
     return (
       <EmptyMessage
         icon={<IconFlag size="xl" />}

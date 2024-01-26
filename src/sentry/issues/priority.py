@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
+from sentry.models.group import Group
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.activity import ActivityType
@@ -52,7 +53,7 @@ def update_priority(
     Update the priority of a group and record the change in the activity and group history.
     """
     if group.priority_locked_at is not None:
-        return None
+        return
 
     group.update(priority=priority)
     Activity.objects.create_group_activity(
