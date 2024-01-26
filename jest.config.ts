@@ -1,7 +1,7 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-import path from 'path';
-import process from 'process';
+import path from 'node:path';
+import process from 'node:process';
 
 import type {Config} from '@jest/types';
 

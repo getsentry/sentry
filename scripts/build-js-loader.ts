@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* eslint import/no-nodejs-modules:0 */
 
-import fs from 'fs';
+import fs from 'node:fs';
 
 import {minify} from 'terser';
 import * as ts from 'typescript';
