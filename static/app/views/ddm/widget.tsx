@@ -447,7 +447,7 @@ export type Series = {
   transaction?: string;
 };
 
-export type ScatterSeries = Series & {
+export interface ScatterSeries extends Series {
   itemStyle: {
     color: string;
     opacity: number;
@@ -458,7 +458,7 @@ export type ScatterSeries = Series & {
   symbolSize: number;
   transactionId: string;
   z: number;
-};
+}
 
 const MetricWidgetPanel = styled(Panel)<{
   isHighlightable: boolean;
