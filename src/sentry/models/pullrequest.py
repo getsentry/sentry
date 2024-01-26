@@ -114,6 +114,8 @@ class PullRequestComment(Model):
     comment_type = BoundedPositiveIntegerField(
         default=CommentType.MERGED_PR, choices=CommentType.as_choices(), null=False
     )
+    # used for open PR comments
+    file_extensions = DjangoArrayField(models.CharField(max_length=64), null=True)
 
     class Meta:
         app_label = "sentry"
