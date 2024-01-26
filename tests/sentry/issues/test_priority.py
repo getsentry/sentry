@@ -143,7 +143,7 @@ class TestUpdatesPriority(TestCase):
 
         auto_update_priority(self.group, PriorityChangeReason.ONGOING)
         mock_logger.assert_called_with(
-            "Unable to determine priority for group %s",
+            "Unable to determine previous priority value for group %s after transitioning to ongoing",
             self.group.id,
         )
         assert not self.group.priority

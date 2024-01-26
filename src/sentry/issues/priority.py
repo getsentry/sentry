@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.models.activity import Activity
-from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
@@ -108,7 +107,7 @@ def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
 
     if not new_priority:
         logger.error(
-            "Unable to determine priority for group %s",
+            "Unable to determine previous priority value for group %s after transitioning to ongoing",
             group.id,
         )
         return None
