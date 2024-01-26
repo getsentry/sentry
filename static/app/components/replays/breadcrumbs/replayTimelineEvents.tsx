@@ -112,6 +112,8 @@ function Event({
     }
   `;
 
+  const firstFrame = frames.at(0);
+
   // We want to show the full variety of colors available.
   const uniqueColors = uniq(frames.map(frame => getFrameDetails(frame).color));
 
@@ -141,7 +143,9 @@ function Event({
           colors={sortedUniqueColors}
           frameCount={frameCount}
           onClick={() => {
-            onClickTimestamp(frames.at(0)!);
+            if (firstFrame) {
+              onClickTimestamp(firstFrame);
+            }
           }}
         />
       </IconNodeTooltip>
