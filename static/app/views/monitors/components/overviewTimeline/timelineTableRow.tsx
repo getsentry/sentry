@@ -8,7 +8,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconUnsubscribed} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
@@ -65,7 +65,10 @@ export function TimelineTableRow({
     <DetailsArea>
       <DetailsLink to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
         <DetailsHeadline>
-          <Name>{monitor.name}</Name>
+          <Name>
+            {monitor.name}
+            {monitor.isMuted && <StyledIconUnsubscribed color="subText" size="xs" />}
+          </Name>
           {isDisabled && <Tag>{t('Disabled')}</Tag>}
         </DetailsHeadline>
         <Schedule>{scheduleAsText(monitor.config)}</Schedule>
@@ -92,6 +95,7 @@ export function TimelineTableRow({
       ? [
           (env: string, isMuted: boolean) => ({
             label: isMuted ? t('Unmute Environment') : t('Mute Environment'),
+            details: monitor.isMuted ? 'Monitor is muted' : undefined,
             key: 'mute',
             onAction: () => onToggleMuteEnvironment(env, !isMuted),
           }),
@@ -128,7 +132,7 @@ export function TimelineTableRow({
       {monitorDetails}
       <MonitorEnvContainer>
         {environments.map(({name, status, isMuted}) => {
-          const envStatus = monitor.isMuted || isMuted ? MonitorStatus.DISABLED : status;
+          const envStatus = isMuted ? MonitorStatus.DISABLED : status;
           const {label, icon} = statusIconColorMap[envStatus];
           return (
             <EnvRow key={name}>
@@ -223,6 +227,10 @@ const Name = styled('h3')`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(0.25)};
   word-break: break-word;
+`;
+
+const StyledIconUnsubscribed = styled(IconUnsubscribed)`
+  margin-left: ${space(0.5)};
 `;
 
 const Schedule = styled('small')`
