@@ -48,8 +48,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def send_message(
         self, *, integration_id: int, organization_id: int, channel: str, message: str
     ) -> bool:
-        integration = Integration.objects.filter(id=integration_id).first()
-        if integration is None:
+        try:
+            integration = Integration.objects.get(id=integration_id)
+        except Integration.DoesNotExist:
             return False
         install = integration.get_installation(organization_id=organization_id)
         if isinstance(install, NotifyBasicMixin):
@@ -341,8 +342,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def add_organization(
         self, *, integration_id: int, org_ids: List[int]
     ) -> Optional[RpcIntegration]:
-        integration = Integration.objects.filter(id=integration_id).first()
-        if not integration:
+        try:
+            integration = Integration.objects.get(id=integration_id)
+        except Integration.DoesNotExist:
             return None
         for org_id in org_ids:
             integration.add_organization(organization_id=org_id)
@@ -421,8 +423,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         return False
 
     def delete_integration(self, *, integration_id: int) -> None:
-        integration = Integration.objects.filter(id=integration_id).first()
-        if integration is None:
+        try:
+            integration = Integration.objects.get(id=integration_id)
+        except Integration.DoesNotExist:
             return
         integration.delete()
 
@@ -439,11 +442,12 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def get_integration_external_projects(
         self, *, organization_id: int, integration_id: int, external_id: str | None = None
     ) -> List[RpcIntegrationExternalProject]:
-        oi = OrganizationIntegration.objects.filter(
-            organization_id=organization_id,
-            integration_id=integration_id,
-        ).first()
-        if not oi:
+        try:
+            oi = OrganizationIntegration.objects.get(
+                organization_id=organization_id,
+                integration_id=integration_id,
+            )
+        except OrganizationIntegration.DoesNotExist:
             return []
 
         iep_kwargs = {"organization_integration_id": oi.id}
