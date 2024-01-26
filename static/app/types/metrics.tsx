@@ -43,9 +43,8 @@ export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
   statsPeriod?: string;
 };
 
-export type MetricsApiRequestQueryOptions = MetricsApiRequestQuery & {
+export type MetricsApiRequestQueryOptions = Partial<MetricsApiRequestQuery> & {
   fidelity?: 'high' | 'low';
-  useNewMetricsLayer?: boolean;
 };
 
 export type MetricsApiResponse = {

@@ -1,4 +1,4 @@
-import {MetricsOperation, PageFilters} from 'sentry/types';
+import {MetricsApiRequestQueryOptions, MetricsOperation, PageFilters} from 'sentry/types';
 import {
   formatMetricsUsingUnitAndOp,
   formatMetricUsingFixedUnit,
@@ -12,7 +12,6 @@ import {
 
 describe('formatMetricsUsingUnitAndOp', () => {
   it('should format the value according to the unit', () => {
-    // Test cases for different units
     expect(formatMetricsUsingUnitAndOp(123456, 'millisecond')).toEqual('2.06min');
     expect(formatMetricsUsingUnitAndOp(5000, 'second')).toEqual('1.39hr');
     expect(formatMetricsUsingUnitAndOp(600, 'byte')).toEqual('600 B');
@@ -42,9 +41,8 @@ describe('getMetricsApiRequestQuery', () => {
       environments: ['production'],
       datetime: {start: '2023-01-01', end: '2023-01-31', period: null, utc: true},
     };
-    const overrides = {};
 
-    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+    const result = getMetricsApiRequestQuery(metric, filters);
 
     expect(result).toEqual({
       start: '2023-01-01T00:00:00.000Z',
@@ -57,8 +55,6 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '2h',
       groupBy: ['project'],
       orderBy: '-sessions',
-      allowPrivate: true,
-      per_page: 10,
     });
   });
 
@@ -69,9 +65,8 @@ describe('getMetricsApiRequestQuery', () => {
       environments: ['production'],
       datetime: {period: '7d', utc: true} as PageFilters['datetime'],
     };
-    const overrides = {};
 
-    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+    const result = getMetricsApiRequestQuery(metric, filters);
 
     expect(result).toEqual({
       statsPeriod: '7d',
@@ -83,8 +78,6 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '30m',
       groupBy: ['project'],
       orderBy: '-sessions',
-      allowPrivate: true,
-      per_page: 10,
     });
   });
 
@@ -95,9 +88,8 @@ describe('getMetricsApiRequestQuery', () => {
       environments: ['production'],
       datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
     };
-    const overrides = {interval: '5m', groupBy: ['environment']};
 
-    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+    const result = getMetricsApiRequestQuery(metric, filters);
 
     expect(result).toEqual({
       start: '2023-01-01T00:00:00.000Z',
@@ -110,12 +102,10 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '5m',
       groupBy: ['environment'],
       orderBy: '-sessions',
-      allowPrivate: true,
-      per_page: 10,
     });
   });
 
-  it('does not add a default orderBy if one is already present', () => {
+  it('should not add a default orderBy if one is already present', () => {
     const metric = {
       field: 'sessions',
       query: 'error',
@@ -127,9 +117,8 @@ describe('getMetricsApiRequestQuery', () => {
       environments: ['production'],
       datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
     };
-    const overrides = {};
 
-    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+    const result = getMetricsApiRequestQuery(metric, filters);
 
     expect(result).toEqual({
       start: '2023-01-01T00:00:00.000Z',
@@ -142,12 +131,10 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '5m',
       groupBy: ['project'],
       orderBy: 'foo',
-      allowPrivate: true,
-      per_page: 10,
     });
   });
 
-  it('does not add a default orderBy if there are no groups', () => {
+  it('should not add a default orderBy if there are no groups', () => {
     const metric = {
       field: 'sessions',
       query: 'error',
@@ -158,9 +145,8 @@ describe('getMetricsApiRequestQuery', () => {
       environments: ['production'],
       datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
     };
-    const overrides = {};
 
-    const result = getMetricsApiRequestQuery(metric, filters, overrides);
+    const result = getMetricsApiRequestQuery(metric, filters);
 
     expect(result).toEqual({
       start: '2023-01-01T00:00:00.000Z',
@@ -172,12 +158,10 @@ describe('getMetricsApiRequestQuery', () => {
       useCase: 'custom',
       interval: '5m',
       groupBy: [],
-      allowPrivate: true,
-      per_page: 10,
     });
   });
 
-  it('does not add a default orderBy if there is no field', () => {
+  it('should not add a default orderBy if there is no field', () => {
     const metric = {
       field: '',
       query: 'error',
@@ -188,7 +172,34 @@ describe('getMetricsApiRequestQuery', () => {
       environments: ['production'],
       datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
     };
-    const overrides = {};
+
+    const result = getMetricsApiRequestQuery(metric, filters);
+
+    expect(result).toEqual({
+      start: '2023-01-01T00:00:00.000Z',
+      end: '2023-01-02T00:00:00.000Z',
+      query: 'error',
+      project: [1],
+      environment: ['production'],
+      field: '',
+      useCase: 'custom',
+      interval: '5m',
+      groupBy: [],
+    });
+  });
+
+  it('should not add all overrides into the request', () => {
+    const metric = {
+      field: '',
+      query: 'error',
+      groupBy: [],
+    };
+    const filters = {
+      projects: [1],
+      environments: ['production'],
+      datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
+    };
+    const overrides: MetricsApiRequestQueryOptions = {fidelity: 'high'};
 
     const result = getMetricsApiRequestQuery(metric, filters, overrides);
 
@@ -202,8 +213,6 @@ describe('getMetricsApiRequestQuery', () => {
       useCase: 'custom',
       interval: '5m',
       groupBy: [],
-      allowPrivate: true,
-      per_page: 10,
     });
   });
 });
@@ -254,7 +263,7 @@ describe('formatMetricUsingFixedUnit', () => {
     }
   );
 
-  it('does not append a unit for unsupported units and "none"', () => {
+  it('should not append a unit for unsupported units and "none"', () => {
     expect(formatMetricUsingFixedUnit(1234.56, 'randomunitname')).toBe('1,234.56');
     expect(formatMetricUsingFixedUnit(1234.56, 'none')).toBe('1,234.56');
   });
@@ -266,7 +275,7 @@ describe('formatMetricUsingFixedUnit', () => {
     }
   );
 
-  it('does not append a unit for count operation', () => {
+  it('should not append a unit for count operation', () => {
     expect(formatMetricUsingFixedUnit(1234.56, 'second', 'count')).toBe('1,234.56');
   });
 });
