@@ -8,7 +8,9 @@ from django.utils import timezone
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.metadata.code_locations import get_cache_key_for_code_location
+from sentry.sentry_metrics.querying.metadata.metrics_code_locations import (
+    get_cache_key_for_code_location,
+)
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
