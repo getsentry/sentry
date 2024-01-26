@@ -22,7 +22,7 @@ import {space} from 'sentry/styles/space';
 import {MRI} from 'sentry/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/formatters';
-import {MetricCorrelation, MetricRange} from 'sentry/utils/metrics/types';
+import type {MetricCorrelation, SelectionRange} from 'sentry/utils/metrics/types';
 import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -51,7 +51,7 @@ function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: nu
   ]);
 }
 
-export type SamplesTableProps = MetricRange & {
+export type SamplesTableProps = SelectionRange & {
   highlightedRow?: string | null;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
