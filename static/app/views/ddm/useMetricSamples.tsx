@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {XAXisOption} from 'echarts/types/dist/shared';
 import moment from 'moment';
 
 import {Series} from 'sentry/types/echarts';
@@ -58,7 +59,7 @@ export function useMetricSamples({
     setValueRect(getValueRect(chartRef));
   }, [chartRef, timeseries]);
 
-  const xAxis = useMemo(() => {
+  const xAxis: XAXisOption = useMemo(() => {
     const {min, max} = getDateRange(timeseries);
 
     return {
@@ -69,6 +70,9 @@ export function useMetricSamples({
         formatter: () => {
           return '';
         },
+      },
+      axisPointer: {
+        type: 'none',
       },
       min: Math.max(valueRect.xMin, min),
       max: Math.min(valueRect.xMax, max),
@@ -85,6 +89,7 @@ export function useMetricSamples({
           return '';
         },
       },
+
       min: valueRect.yMin,
       max: valueRect.yMax,
     };
@@ -150,7 +155,11 @@ export function useMetricSamples({
         xAxisIndex: 1,
         xValue,
         yValue,
-
+        tooltip: {
+          axisPointer: {
+            type: 'none',
+          },
+        },
         data: [
           {
             name: xPosition,
