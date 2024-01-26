@@ -1,5 +1,5 @@
-import {MetricDisplayType} from 'sentry/utils/metrics';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 describe('convertToDashboardWidget', () => {

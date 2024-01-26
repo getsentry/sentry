@@ -17,7 +17,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {METRICS_DOCS_URL} from 'sentry/utils/metrics';
+import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {PageHeaderActions} from 'sentry/views/ddm/pageHeaderActions';

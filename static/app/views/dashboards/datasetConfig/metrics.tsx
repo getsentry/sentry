@@ -8,12 +8,8 @@ import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/custo
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventData} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {
-  formatMetricUsingUnit,
-  getMetricsApiRequestQuery,
-  getSeriesName,
-  groupByOp,
-} from 'sentry/utils/metrics';
+import {getMetricsApiRequestQuery, getSeriesName, groupByOp} from 'sentry/utils/metrics';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   formatMRIField,
   getMRI,

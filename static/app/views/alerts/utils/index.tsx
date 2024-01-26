@@ -7,7 +7,7 @@ import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics';
+import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
 import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
 import toArray from 'sentry/utils/toArray';
 import {
