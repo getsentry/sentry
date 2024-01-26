@@ -64,26 +64,15 @@ def update_priority(
     record_group_history(group, status=PRIORITY_TO_GROUP_HISTORY_STATUS[priority], actor=actor)
 
 
-def get_priority_for_escalating_group(group: Group) -> PriorityLevel | None:
+def get_priority_for_escalating_group(group: Group) -> PriorityLevel:
     """
     Get the priority for a group that is escalating by incrementing it one level.
     """
 
-    if not group.priority or group.priority == PriorityLevel.HIGH:
-        # HIGH priority issues can not be incremented further
-        return PriorityLevel.HIGH
-    elif group.priority == PriorityLevel.MEDIUM:
-        return PriorityLevel.HIGH
-    elif group.priority == PriorityLevel.LOW:
+    if group.priority and group.priority == PriorityLevel.LOW:
         return PriorityLevel.MEDIUM
 
-    # This should never happen
-    logger.error(
-        "Unable to determine escalation priority for group %s with priority %s",
-        group.id,
-        group.priority,
-    )
-    return None
+    return PriorityLevel.HIGH
 
 
 def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
