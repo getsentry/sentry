@@ -55,6 +55,7 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils import json
+from sentry.utils.committers import get_serialized_event_file_committers
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 logger = logging.getLogger(__name__)
@@ -289,6 +290,60 @@ def get_suggested_assignees(
                 assignee_texts.append(f"#{assignee.slug}")
         return assignee_texts
     return []
+
+
+def get_suspect_commit_block(project: Project, event: GroupEvent):
+    """Build up the suspect commit info for the given event"""
+    author = None
+    commit_id = None
+    commit_link = None
+    pr_link = None
+    pr_date = None
+    committers = None
+    repo_base = None
+
+    try:
+        committers = get_serialized_event_file_committers(project, event)
+    except (Release.DoesNotExist, Commit.DoesNotExist):
+        logger.info("Skipping suspect committers because release does not exist.")
+    except Exception:
+        logger.exception("Could not get suspect committers. Continuing execution.")
+    if not committers:
+        return None
+
+    if committers:
+        committer = committers[0]
+        author = committer.get("author", {})
+        commits = committer.get("commits")
+        if commits:
+            commit_id = commits[0].get("id")
+            pull_request = commits[0].get("pullRequest")
+            if pull_request:
+                pr_title = pull_request.get("title")
+                pr_link = pull_request.get("externalUrl")
+                repo_base = pull_request.get("repository", {}).get("url")
+                pr_date = pull_request.get("dateCreated")
+                pr_id = pull_request.get("id")
+                if pr_date:
+                    pr_date = time_since(pr_date)
+
+    if author and commit_id:
+        author_display = (
+            author.get("name") if author.get("name") is not None else author.get("email")
+        )
+
+        suspect_commit_text = "Suspect Commit: "
+        if repo_base:
+            commit_link = f"<{repo_base}/commits/{commit_id}|{commit_id[0:6]}>"
+            suspect_commit_text += f"{commit_link} by {author_display}"
+        else:
+            suspect_commit_text += f"{commit_id} by {author_display}"
+        if pull_request:
+            suspect_commit_text += (
+                f" {pr_date} \n{pr_title} ({pr_id}) <{pr_link}|View Pull Request>"
+            )
+        return suspect_commit_text
+    return None
 
 
 def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
@@ -580,6 +635,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(
                 self.get_context_block(suggested_assignee_text[:-2])
             )  # get rid of comma at the end
+
+        # add suspect commit info
+        suspect_commit_text = get_suspect_commit_block(project, event_for_tags)
+        if suspect_commit_text:
+            blocks.append(self.get_context_block(suspect_commit_text))
 
         # add notes
         if self.notes:
