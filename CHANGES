@@ -1,3 +1,35 @@
+24.1.1
+------
+
+### Various fixes & improvements
+
+- feat(issue-details): Add URL and breadcrumbs sidebar to issue replay when in fullscreen mode (#63920) by @malwilley
+- ref(open-pr-comments): include affected users in javascript comments (#63909) by @cathteng
+- fix(ai-ml): Fix ai feature PII check for isStaff users (#63958) by @jennmueng
+- fix(self-hosted): Try dynamically setting CSRF_TRUSTED_ORIGINS (#63908) by @hubertdeng123
+- fix(ai-autofix): Fix ai autofix release lookup (#63926) by @jennmueng
+- fix(feedback): update comments signal tooltip (#63953) by @michellewzhang
+- ref(feedback): expand `sentryAppIssues`  instead of endpoint call (#63952) by @michellewzhang
+- chore(api): Remove mocks from API helper invite tests (#63892) by @leeandher
+- fix(perf): Generate instrumentation gap spans before spans groups (#63531) by @gggritso
+- ref(api): Delete unnecessary `start_transaction` call in `project_configs.py` (#63948) by @szokeasaurusrex
+- feat(sdks): update js sdk to 7.98.0 (#63891) by @edwardgou-sentry
+- ref/tests(metrics_extraction): Reduce changes when adjusting spec versions (#63947) by @armenzg
+- fix(hybridcloud) Use record deletion to clear delivered outbox (#63890) by @markstory
+- feat(replay): Allow clicking on the circles in the replay timeline (#63887) by @ryan953
+- feat(feedback): Add comments icon to feedback list items (#63903) by @ryan953
+- fix(feedback): Only show URL when crash reports have a value, or its a feedback from the widget (#63901) by @ryan953
+- ref(ddm): replace types with interfaces (#63944) by @obostjancic
+- chore(cardinality): Add cardinality limiter mode option (#63942) by @Dav1dde
+- feat(issues/feedback): allow `sentryAppIssues` to be expanded (#63905) by @michellewzhang
+- chore(spans): Option for span usage metric (#63934) by @jjbayer
+- ref(ddm): Split utils (#63933) by @ArthurKnaus
+- ref(ddm): Adapt metadata to new folder structure (#63938) by @iambriccardo
+- fix(ddm): useNewMetricsLayer param (#63937) by @obostjancic
+- ref(ddm): Rename the files for metrics metadata (#63931) by @iambriccardo
+
+_Plus 517 more_
+
 24.1.0
 ------
 
