@@ -386,10 +386,6 @@ function getMetricRequest(
     ] as any);
   }
 
-  const useNewMetricsLayer = organization.features.includes(
-    'metrics-api-new-metrics-layer'
-  );
-
   const requestData = getMetricsApiRequestQuery(
     {
       field: query.aggregates[0],
@@ -400,7 +396,6 @@ function getMetricRequest(
     pageFilters,
     {
       limit: limit || undefined,
-      useNewMetricsLayer,
       fidelity: displayType === DisplayType.BAR ? 'low' : 'high',
     }
   );
