@@ -107,7 +107,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       for (const row of tableData) {
         const encodedSize = row[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`];
         if (encodedSize >= 2147483647) {
-          setPageInfo(RESOURCE_SIZE_ALERT);
+          setPageInfo(RESOURCE_SIZE_ALERT, {dismissId: 'resource-size-alert'});
           break;
         }
       }

@@ -2,15 +2,23 @@ import React, {createContext, Fragment, useContext, useState} from 'react';
 import {Theme} from '@emotion/react';
 
 import {Alert} from 'sentry/components/alert';
+import {IconClose} from 'sentry/icons';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 type PageAlertType = keyof Theme['alert'];
 
 export type PageAlertOptions = {
   message: React.ReactNode | undefined;
   type: PageAlertType;
+  dismissId?: string;
 };
 
-type PageAlertSetter = (message: React.ReactNode | undefined) => void;
+const localStorageKey = 'sentry:page-alert';
+
+type PageAlertSetter = (
+  message: React.ReactNode | undefined,
+  options?: Pick<PageAlertOptions, 'dismissId'>
+) => void;
 
 const pageErrorContext = createContext<{
   setPageError: PageAlertSetter;
@@ -31,23 +39,23 @@ const pageErrorContext = createContext<{
 export function PageAlertProvider({children}: {children: React.ReactNode}) {
   const [pageAlert, setPageAlert] = useState<PageAlertOptions | undefined>();
 
-  const setPageInfo: PageAlertSetter = message => {
-    setPageAlert({message, type: 'info'});
+  const setPageInfo: PageAlertSetter = (message, options) => {
+    setPageAlert({message, type: 'info', ...options});
   };
-  const setPageMuted: PageAlertSetter = message => {
-    setPageAlert({message, type: 'muted'});
-  };
-
-  const setPageSuccess: PageAlertSetter = message => {
-    setPageAlert({message, type: 'success'});
+  const setPageMuted: PageAlertSetter = (message, options) => {
+    setPageAlert({message, type: 'muted', ...options});
   };
 
-  const setPageWarning: PageAlertSetter = message => {
-    setPageAlert({message, type: 'warning'});
+  const setPageSuccess: PageAlertSetter = (message, options) => {
+    setPageAlert({message, type: 'success', ...options});
   };
 
-  const setPageError: PageAlertSetter = message => {
-    setPageAlert({message, type: 'error'});
+  const setPageWarning: PageAlertSetter = (message, options) => {
+    setPageAlert({message, type: 'warning', ...options});
+  };
+
+  const setPageError: PageAlertSetter = (message, options) => {
+    setPageAlert({message, type: 'error', ...options});
   };
 
   return (
@@ -68,15 +76,36 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
 
 export function PageAlert() {
   const {pageAlert} = useContext(pageErrorContext);
+  const [dismissedAlerts, setDismissedAlerts] = useLocalStorageState<string[]>(
+    localStorageKey,
+    []
+  );
+
   if (!pageAlert || !pageAlert.message) {
     return null;
   }
 
-  const isStringError = typeof pageAlert === 'string';
-  const message = isStringError ? pageAlert : pageAlert.message;
+  const {message, dismissId} = pageAlert;
+
+  if (dismissId && dismissedAlerts.includes(dismissId)) {
+    return null;
+  }
+
+  const handleDismiss = () => {
+    if (!dismissId || dismissedAlerts.includes(dismissId)) {
+      return;
+    }
+    const prev = new Set(dismissedAlerts);
+    setDismissedAlerts([...prev, dismissId]);
+  };
 
   return (
-    <Alert type={pageAlert.type} data-test-id="page-error-alert" showIcon>
+    <Alert
+      type={pageAlert.type}
+      data-test-id="page-error-alert"
+      showIcon
+      trailingItems={dismissId && <IconClose size="sm" onClick={handleDismiss} />}
+    >
       <Fragment>{message}</Fragment>
     </Alert>
   );
