@@ -4,7 +4,6 @@ export enum MetricDisplayType {
   LINE = 'line',
   AREA = 'area',
   BAR = 'bar',
-  TABLE = 'table',
 }
 
 export type MetricTag = {
