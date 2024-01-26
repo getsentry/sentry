@@ -7,7 +7,7 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.visibility.errors import MalformedBlockedMetricsPayloadError
 from sentry.utils import json
 
-METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY = "sentry:metrics_blocking_state"
+METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY = "sentry:blocked_metrics"
 
 
 class DeniedTagRelay(TypedDict):
