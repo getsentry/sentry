@@ -2463,17 +2463,6 @@ class TestCustomMetricAlertRule(TestCase):
 
         mocked_schedule_invalidate_project_config.reset_mock()
 
-        with self.feature({"organizations:on-demand-metrics-prefill": True}):
-            self.create_alert_rule(
-                projects=[self.project],
-                dataset=Dataset.PerformanceMetrics,
-                query="transaction.duration:>=50",
-            )
-
-            mocked_schedule_invalidate_project_config.assert_called_once_with(
-                trigger="alerts:create-on-demand-metric", project_id=self.project.id
-            )
-
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
     def test_create_custom_metric_turned_off(self, mocked_schedule_invalidate_project_config):
         self.create_alert_rule(
