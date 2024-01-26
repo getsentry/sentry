@@ -428,9 +428,6 @@ class SlackActionEndpoint(Endpoint):
                 logger.exception("slack.action.response-error", extra={"error": str(e)})
 
     def open_archive_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
-        if not features.has("organizations:slack-block-kit", group.project.organization):
-            raise SlackRequestError()  # TODO(isabella): probably backwards compatibility
-
         callback_id = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
@@ -605,7 +602,7 @@ class SlackActionEndpoint(Endpoint):
                 elif action.name == "resolve_dialog":
                     self.open_resolve_dialog(slack_request, group)
                     defer_attachment_update = True
-                elif action.name == "archive_dialog":
+                elif action.name == "archive_dialog" and use_block_kit:
                     self.open_archive_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:
