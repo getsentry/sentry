@@ -117,7 +117,7 @@ class GroupingConfigLoader:
         cache.set(cache_key, rv)
         return rv
 
-    def _get_fingerprinting(self, project: Project) -> FingerprintingRules:
+    def _get_fingerprinting(self, project: Project) -> dict[Any, Any]:
         """
         Returns the fingerprinting rules for a project.
         Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
@@ -148,7 +148,9 @@ class GroupingConfigLoader:
         cache_key = "fingerprinting-rules:" + md5_text(rules).hexdigest()
         rv = cache.get(cache_key)
         if rv is not None:
-            return FingerprintingRules.from_json(rv, bases=bases)
+            return FingerprintingRules.from_json(rv, bases=bases).to_json(
+                include_builtin=include_builtin
+            )
 
         try:
             rv = FingerprintingRules.from_config_string(rules, bases=bases)
@@ -221,7 +223,7 @@ def get_default_enhancements(config_id=None) -> str:
     return Enhancements(rules=[], bases=[base]).dumps()
 
 
-def get_default_fingerprinting(config_id: str | None = None) -> FingerprintingRules:
+def get_default_fingerprinting(config_id: str | None = None) -> dict[Any, Any]:
     """Returns the default fingerprinting rules."""
     bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
