@@ -2,11 +2,19 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+)
 
 import sentry_sdk
 
-from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.stacktraces.functions import set_in_app, trim_function_name
@@ -16,6 +24,9 @@ from sentry.utils.safe import get_path, safe_execute
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
+
+if TYPE_CHECKING:
+    from sentry.grouping.strategies.base import StrategyConfiguration
 
 
 class StacktraceInfo(NamedTuple):

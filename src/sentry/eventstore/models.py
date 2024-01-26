@@ -25,9 +25,7 @@ from django.utils.encoding import force_str
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
-from sentry.grouping.api import GroupingConfig
 from sentry.grouping.result import CalculatedHashes
-from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -48,6 +46,8 @@ EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
 SEARCH_MESSAGE_SKIPPED_KEYS = frozenset(["in_app_frame_mix"])
 
 if TYPE_CHECKING:
+    from sentry.grouping.api import GroupingConfig
+    from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.interfaces.user import User
     from sentry.models.environment import Environment
     from sentry.models.group import Group
