@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import {Client} from 'sentry/api';
-import {usingCustomerDomain} from 'sentry/constants';
+import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import LatestContextStore from 'sentry/stores/latestContextStore';
@@ -49,7 +49,7 @@ export function redirectToRemainingOrganization({
   const firstRemainingOrg = allOrgs[0];
 
   const route = `/organizations/${firstRemainingOrg.slug}/issues/`;
-  if (usingCustomerDomain) {
+  if (USING_CUSTOMER_DOMAIN) {
     const {organizationUrl} = firstRemainingOrg.links;
     window.location.assign(`${organizationUrl}${normalizeUrl(route)}`);
     return;

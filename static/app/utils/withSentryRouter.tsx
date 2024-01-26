@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-restricted-imports
 import {withRouter, WithRouterProps} from 'react-router';
 
-import {customerDomain, usingCustomerDomain} from 'sentry/constants';
+import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 
 /**
  * withSentryRouter is a higher-order component (HOC) that wraps withRouter, and implicitly injects the current customer
@@ -15,8 +15,8 @@ function withSentryRouter<P extends WithRouterProps>(
 ) {
   function WithSentryRouterWrapper(props: P) {
     const {params} = props;
-    if (usingCustomerDomain) {
-      const newParams = {...params, orgId: customerDomain};
+    if (USING_CUSTOMER_DOMAIN) {
+      const newParams = {...params, orgId: CUSTOMER_DOMAIN};
       return <WrappedComponent {...props} params={newParams} />;
     }
 

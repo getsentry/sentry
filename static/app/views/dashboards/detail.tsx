@@ -24,7 +24,7 @@ import {
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {usingCustomerDomain} from 'sentry/constants';
+import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -262,7 +262,7 @@ class DashboardDetail extends Component<Props, State> {
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
     ];
 
-    if (usingCustomerDomain) {
+    if (USING_CUSTOMER_DOMAIN) {
       // TODO: replace with url generation later on.
       widgetBuilderRoutes.push(
         ...[
