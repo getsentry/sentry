@@ -60,7 +60,7 @@ class MetricBlocking:
             blocked_tags=self.blocked_tags.union(other.block_tags) - other.unblock_tags,
         )
 
-    def is_useless(self):
+    def is_empty(self):
         return not self.is_blocked and not self.blocked_tags
 
     def to_dict(self) -> Mapping[str, Any]:
@@ -121,7 +121,7 @@ class MetricsBlockingState:
             # If the new blocked metric is useless, we will just delete it from the dictionary since it's not
             # needed. For example, if you unblock all tags from a metric, when applying the operation we will delete
             # the actual entry, whereas if you block a new tag, we will update the entry with the new one.
-            if metric_blocking.is_useless():
+            if metric_blocking.is_empty():
                 del self.metrics[metric_mri]
             else:
                 self.metrics[metric_mri] = metric_blocking
@@ -130,7 +130,7 @@ class MetricsBlockingState:
             # If the merged blocked metric can't be cleared, it means that it will have an actual effect on metrics
             # ingestion, thus we add it to the dictionary. For example, if you block a new metric we will add it but if
             # you pass an operation that doesn't do anything we won't even apply the update.
-            if not metric_blocking.is_useless():
+            if not metric_blocking.is_empty():
                 self.metrics[metric_mri] = metric_operation.to_metric_blocking()
 
 
