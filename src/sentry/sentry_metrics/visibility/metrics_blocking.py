@@ -5,6 +5,7 @@ import sentry_sdk
 
 from sentry.models.project import Project
 from sentry.sentry_metrics.visibility.errors import MalformedBlockedMetricsPayloadError
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import json
 
 METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY = "sentry:blocked_metrics"
@@ -141,6 +142,9 @@ def _apply_operation(metric_operation: MetricOperation, projects: Sequence[Proje
         )
         metrics_blocking_state.apply_metric_operation(metric_operation=metric_operation)
         metrics_blocking_state.save_to_project(project=project)
+
+        # We invalidate the project configuration once the updated settings were stored.
+        schedule_invalidate_project_config(project_id=project.id, trigger="metrics_blocking")
 
 
 def block_metric(metric_mri: str, projects: Sequence[Project]):
