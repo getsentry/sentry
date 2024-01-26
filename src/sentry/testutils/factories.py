@@ -1347,9 +1347,9 @@ class Factories:
     def create_integration_external_project(
         organization_id: int, integration_id: int, *args: Any, **kwargs: Any
     ) -> IntegrationExternalProject:
-        oi = OrganizationIntegration.objects.filter(
+        oi = OrganizationIntegration.objects.get(
             organization_id=organization_id, integration_id=integration_id
-        ).first()
+        )
         return IntegrationExternalProject.objects.create(
             organization_integration_id=oi.id, *args, **kwargs
         )
