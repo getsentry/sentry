@@ -1,10 +1,10 @@
 // eslint-disable-next-line simple-import-sort/imports
 import {browserHistory, createRoutes, match} from 'react-router';
-import {extraErrorDataIntegration} from '@sentry/integrations';
+import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
-import {Event, IntegrationFn} from '@sentry/types';
+import {Event} from '@sentry/types';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
@@ -46,11 +46,13 @@ const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  */
 function getSentryIntegrations(routes?: Function) {
   const integrations = [
-    extraErrorDataIntegration({
+    new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    Sentry.metrics.metricsAggregatorIntegration(),
+
+    new Sentry.metrics.MetricsAggregator(),
+
     new BrowserTracing({
       ...(typeof routes === 'function'
         ? {
@@ -67,7 +69,6 @@ function getSentryIntegrations(routes?: Function) {
       },
     }),
     new Sentry.BrowserProfilingIntegration(),
-    JSONSerializationIntegration(),
   ];
 
   return integrations;
@@ -309,49 +310,3 @@ export function addEndpointTagToRequestError(event: Event): void {
     event.tags = {...event.tags, endpoint: messageMatch[1]};
   }
 }
-
-/**
- * Custom Sentry integration to instrument JSON.stringify
- * and JSON.parse with spans.
- */
-const JSONSerializationIntegration = (() => {
-  let patched = false;
-  return {
-    name: 'JSONSerialization',
-    setupOnce(): void {
-      if (patched) {
-        return;
-      }
-
-      JSON.stringify = new Proxy(JSON.stringify, {
-        apply(target, thisArg, args) {
-          // Only attach JSON serialization spans to transactions for now
-          const activeSpan = Sentry.getActiveSpan();
-          if (!activeSpan) {
-            return target.apply(thisArg, args);
-          }
-
-          return Sentry.startSpan({op: 'serialize', name: 'JSON.stringify'}, () =>
-            target.apply(thisArg, args)
-          );
-        },
-      });
-
-      JSON.parse = new Proxy(JSON.parse, {
-        apply(target, thisArg, args) {
-          // Only attach JSON serialization spans to transactions for now
-          const activeSpan = Sentry.getActiveSpan();
-          if (!activeSpan) {
-            return target.apply(thisArg, args);
-          }
-
-          return Sentry.startSpan({op: 'parse', name: 'JSON.parse'}, () =>
-            target.apply(thisArg, args)
-          );
-        },
-      });
-
-      patched = true;
-    },
-  };
-}) satisfies IntegrationFn;
