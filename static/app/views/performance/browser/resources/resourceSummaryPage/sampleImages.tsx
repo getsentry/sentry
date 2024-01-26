@@ -134,7 +134,7 @@ function SampleImagesChartPanelBody(props: {
             : resource[SPAN_DESCRIPTION];
         return (
           <ImageContainer
-            src={src}
+            src={new URL(src).toString()}
             showImage={isImagesEnabled}
             fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
             size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}
