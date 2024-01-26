@@ -1,11 +1,9 @@
 import logging
-import random
 from typing import Any, List, MutableMapping, Optional, Set
 
-from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import Hub, set_tag, start_span, start_transaction
+from sentry_sdk import Hub, set_tag, start_span
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -29,10 +27,6 @@ PROJECT_CONFIG_SIZE_THRESHOLD = 10000
 ProjectConfig = MutableMapping[str, Any]
 
 
-def _sample_apm():
-    return random.random() < getattr(settings, "SENTRY_RELAY_ENDPOINT_APM_SAMPLING", 0)
-
-
 @region_silo_endpoint
 class RelayProjectConfigsEndpoint(Endpoint):
     publish_status = {
@@ -43,13 +37,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False
 
-    def post(self, request: Request) -> Response:
-        with start_transaction(
-            op="http.server", name="RelayProjectConfigsEndpoint", sampled=_sample_apm()
-        ):
-            return self._post(request)
-
-    def _post(self, request: Request):
+    def post(self, request: Request):
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
         response = {}
