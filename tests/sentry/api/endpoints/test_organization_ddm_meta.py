@@ -184,10 +184,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert len(codeLocations) == 0
 
     @patch(
-        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher._get_code_locations"
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher._get_code_locations"
     )
     @patch(
-        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.BATCH_SIZE", 10
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.BATCH_SIZE",
+        10,
     )
     def test_get_locations_batching(self, get_code_locations_mock):
         get_code_locations_mock.return_value = []
@@ -315,7 +316,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert frame["postContext"] == []
 
     @patch(
-        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
         50,
     )
     def test_get_locations_with_too_many_combinations(self):
