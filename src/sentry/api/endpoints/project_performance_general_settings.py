@@ -7,7 +7,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
-from sentry.api.permissions import SuperuserPermission
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS
 
@@ -18,13 +17,6 @@ class ProjectPerformanceGeneralSettingsSerializer(serializers.Serializer):
     enable_images = serializers.BooleanField(required=False)
 
 
-class ProjectOwnerOrSuperUserPermissions(ProjectSettingPermission):
-    def has_object_permission(self, request: Request, view, project):
-        return super().has_object_permission(
-            request, view, project
-        ) or SuperuserPermission().has_permission(request, view)
-
-
 @region_silo_endpoint
 class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
     owner = ApiOwner.PERFORMANCE
@@ -33,7 +25,7 @@ class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (ProjectOwnerOrSuperUserPermissions,)
+    permission_classes = (ProjectSettingPermission,)
 
     def get(self, request: Request, project) -> Response:
         if not self.has_feature(project, request):
