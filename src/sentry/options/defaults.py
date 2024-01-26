@@ -861,6 +861,9 @@ register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODI
 # [Unused] Sample rate for opting in orgs into transaction metrics extraction.
 register("relay.transaction-metrics-org-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Relay should emit a usage metric to track total spans.
+register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
