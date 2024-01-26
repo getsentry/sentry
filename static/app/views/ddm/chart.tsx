@@ -229,11 +229,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   }
 );
 
-type CombinedChartProps = BaseChartProps & {
+interface CombinedChartProps extends BaseChartProps {
   displayType: MetricDisplayType;
   series: Series[];
   scatterSeries?: ScatterSeriesType[];
-};
+}
 
 function CombinedChart({
   displayType,
