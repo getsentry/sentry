@@ -53,7 +53,7 @@ from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.committers import get_serialized_event_file_committers
 
@@ -268,22 +268,10 @@ def get_suggested_assignees(
             if assignee.actor_type == ActorType.USER and not (
                 isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
             ):
-                # for user assignees, we first try to get their Slack identity; if it's not linked,
-                # we use their display name linked with their email
-                assignee_identity = None
-                assignee_identities = identity_service.get_user_identities_by_provider_type(
-                    user_id=assignee.id, provider_type=ExternalProviderEnum.SLACK.value
+                assignee_as_user = assignee.resolve()
+                assignee_texts.append(
+                    f"<mailto:{assignee_as_user.email}|{assignee_as_user.get_display_name()}>"
                 )
-                if len(assignee_identities) > 0:
-                    assignee_identity = assignee_identities[0]
-                if assignee_identity is None:
-                    assignee_as_user = assignee.resolve()
-                    assignee_text = (
-                        f"<mailto:{assignee_as_user.email}|{assignee_as_user.get_display_name()}>"
-                    )
-                else:
-                    assignee_text = f"<@{assignee_identity.external_id}>"
-                assignee_texts.append(assignee_text)
             elif assignee.actor_type == ActorType.TEAM and not (
                 isinstance(current_assignee, Team) and assignee.id == current_assignee.id
             ):

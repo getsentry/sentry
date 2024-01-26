@@ -29,7 +29,6 @@ from sentry.issues.grouptype import (
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
@@ -601,7 +600,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             name="home-repo",
             integration_id=self.integration.id,
         )
-        user2 = self.create_user(name="Scooby Doo")
+        user2 = self.create_user()
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
 
         commit = self.create_commit(
@@ -625,7 +624,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         suspect_commit = {
             "commit_id": commit.key,
             "author_email": commit.author.email,
-            "author_name": commit.author.name,
         }
         expected_blocks = build_test_message_blocks(
             teams={self.team},
@@ -636,30 +634,25 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             initial_assignee=self.user,
             suspect_commit=suspect_commit,
         )
-
-        # suggested user without slack identity linked, with display name
-        expected_blocks["blocks"][4]["elements"][0][
-            "text"
-        ] = f"Suggested Assignees: #{self.team.slug}, <mailto:{user2.email}|{user2.name}>"
-
         assert (
             SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
             == expected_blocks
         )
 
-        # suggested user with slack identity linked
+        # suggested user/suspect commit for user with name
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
-            self.identity = Identity.objects.create(
-                external_id="UXXXXXXX2",
-                idp=self.idp,
-                user=user2,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
-        expected_blocks["blocks"][4]["elements"][0][
-            "text"
-        ] = f"Suggested Assignees: #{self.team.slug}, <@{self.identity.external_id}>"
+            user2.update(name="Scooby Doo")
+        commit.author.update(name=user2.name)
+        suspect_commit["author_name"] = commit.author.name
+        expected_blocks = build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            suggested_assignees=f"#{self.team.slug}, <mailto:{user2.email}|{user2.name}>",
+            initial_assignee=self.user,
+            suspect_commit=suspect_commit,
+        )
         assert (
             SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
             == expected_blocks
