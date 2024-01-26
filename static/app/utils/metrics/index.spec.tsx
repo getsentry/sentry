@@ -55,7 +55,7 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '2h',
       groupBy: ['project'],
       orderBy: '-sessions',
-      useNewQueryLayer: true,
+      useNewMetricsLayer: true,
     });
   });
 
@@ -79,7 +79,7 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '30m',
       groupBy: ['project'],
       orderBy: '-sessions',
-      useNewQueryLayer: true,
+      useNewMetricsLayer: true,
     });
   });
 
@@ -104,7 +104,7 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '5m',
       groupBy: ['environment'],
       orderBy: '-sessions',
-      useNewQueryLayer: true,
+      useNewMetricsLayer: true,
     });
   });
 
@@ -134,7 +134,7 @@ describe('getMetricsApiRequestQuery', () => {
       interval: '5m',
       groupBy: ['project'],
       orderBy: 'foo',
-      useNewQueryLayer: true,
+      useNewMetricsLayer: true,
     });
   });
 
@@ -162,7 +162,7 @@ describe('getMetricsApiRequestQuery', () => {
       useCase: 'custom',
       interval: '5m',
       groupBy: [],
-      useNewQueryLayer: true,
+      useNewMetricsLayer: true,
     });
   });
 
@@ -190,7 +190,7 @@ describe('getMetricsApiRequestQuery', () => {
       useCase: 'custom',
       interval: '5m',
       groupBy: [],
-      useNewQueryLayer: true,
+      useNewMetricsLayer: true,
     });
   });
 
@@ -219,7 +219,7 @@ describe('getMetricsApiRequestQuery', () => {
       useCase: 'custom',
       interval: '5m',
       groupBy: [],
-      useNewQueryLayer: true,
+      useNewMetricsLayer: true,
     });
   });
 });
