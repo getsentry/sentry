@@ -243,6 +243,8 @@ def github_comment_reactions():
         created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
     ).select_related("pull_request")
 
+    comment_count = 0
+
     for comment in RangeQuerySetWrapper(comments):
         pr = comment.pull_request
         try:
@@ -283,4 +285,10 @@ def github_comment_reactions():
                 sentry_sdk.capture_exception(e)
             continue
 
+        comment_count += 1
+
         metrics.incr("github_pr_comment.comment_reactions.success")
+
+    logger.info(
+        "github_pr_comment.comment_reactions.total_collected", extra={"count": comment_count}
+    )
