@@ -85,6 +85,33 @@ def test_callee_recursion():
         Enhancements.from_config_string(" category:foo | [ category:bar ] | [ category:baz ] +app")
 
 
+def test_flipflop_inapp():
+    enhancement = Enhancements.from_config_string(
+        """
+        family:all +app
+        family:all -app
+    """
+    )
+
+    frames: list[dict[str, Any]] = [{}]
+    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+
+    assert frames[0]["data"]["orig_in_app"] == -1  # == None
+    assert frames[0]["in_app"] is False
+
+    frames = [{"in_app": False}]
+    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+
+    assert "data" not in frames[0]  # no changes were made
+    assert frames[0]["in_app"] is False
+
+    frames = [{"in_app": True}]
+    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+
+    assert frames[0]["data"]["orig_in_app"] == 1  # == True
+    assert frames[0]["in_app"] is False
+
+
 def _get_matching_frame_actions(rule, frames, platform, exception_data=None, cache=None):
     """Convenience function for rule tests"""
     if cache is None:
