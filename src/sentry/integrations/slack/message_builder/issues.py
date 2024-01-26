@@ -166,7 +166,7 @@ def get_tags(
     if tags and isinstance(tags, list):
         tags = set(tags[0])
 
-    tags = tags | {"level", "release"}
+    tags = tags | {"level", "release", "handled", "environment"}
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
@@ -326,7 +326,7 @@ def get_suspect_commit_block(project: Project, event: GroupEvent):
             suspect_commit_text += f"{commit_id} by {author_display}"
         if pull_request:
             suspect_commit_text += (
-                f" {pr_date} \n{pr_title} ({pr_id}) <{pr_link}|View Pull Request>"
+                f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
             )
         return suspect_commit_text
     return None
@@ -650,8 +650,17 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if not self.notification:
             # the footer content differs if it's a workflow notification, so we must check for that
-            footer = f"Project: <{project.get_absolute_url()}|{escape_slack_text(project.slug)}>    Alert: {footer}"
-            blocks.append(self.get_context_block(text=footer))
+            footer_data = {
+                "Project": f"<{project.get_absolute_url()}|{escape_slack_text(project.slug)}>",
+                "Alert": footer,
+                "Short ID": self.group.qualified_short_id,
+            }
+            footer_text = ""
+            for k, v in footer_data.items():
+                footer_text += f"{k}: {v}    "
+
+            footer_text = footer_text[:-4]  # chop off the empty space
+            blocks.append(self.get_context_block(text=footer_text))
         else:
             blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
 

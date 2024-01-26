@@ -37,7 +37,7 @@ LEVEL_TO_EMOJI = {
 }
 
 CATEGORY_TO_EMOJI = {
-    GroupCategory.PERFORMANCE: ":chart_with_downwards_trend:",
+    GroupCategory.PERFORMANCE: ":chart_with_upwards_trend:",
     GroupCategory.FEEDBACK: ":busts_in_silhouette:",
     GroupCategory.CRON: ":spiral_calendar_pad:",
 }
