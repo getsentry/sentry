@@ -16,17 +16,17 @@ import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
-import {OUTPUT_TYPE, YAxis} from 'sentry/views/starfish/views/screens';
 
 const COLD_START_CONDITIONS = ['span.op:app.start.cold', 'span.description:"Cold Start"'];
 const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm Start"'];
 
-function transformData(data?: MultiSeriesEventsStats) {
+function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[yAxisName: string]: Series} = {};
   if (defined(data)) {
     Object.keys(data).forEach(yAxis => {
       transformedSeries[yAxis] = {
         seriesName: yAxis,
+        color: yAxis === primaryRelease ? '#444674' : '#e9626e',
         data:
           data[yAxis]?.data?.map(datum => {
             return {
@@ -91,7 +91,9 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
   }
 
   const hasReleaseData = series && !('data' in series);
-  const transformedSeries = hasReleaseData ? Object.values(transformData(series)) : [];
+  const transformedSeries = hasReleaseData
+    ? Object.values(transformData(series, primaryRelease)).sort()
+    : [];
 
   return (
     <MiniChartPanel
@@ -100,7 +102,6 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
       }
     >
       <Chart
-        chartColors={['#444674', '#e9626e']}
         data={transformedSeries}
         height={chartHeight}
         loading={isSeriesLoading}
@@ -113,10 +114,10 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
         showLegend
         definedAxisTicks={2}
         isLineChart
-        aggregateOutputFormat={OUTPUT_TYPE[YAxis.COLD_START]}
+        aggregateOutputFormat="duration"
         tooltipFormatterOptions={{
           valueFormatter: value =>
-            tooltipFormatterUsingAggregateOutputType(value, OUTPUT_TYPE[YAxis.COUNT]),
+            tooltipFormatterUsingAggregateOutputType(value, 'duration'),
           nameFormatter: value => formatVersion(value),
         }}
         legendFormatter={value => formatVersion(value)}
