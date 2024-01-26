@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from hashlib import sha1
-from typing import Any, Mapping
+from typing import Any, Dict, Mapping
 
 import sentry_sdk
 from django.dispatch import receiver
@@ -88,7 +88,7 @@ def process_async_webhooks(
         sentry_sdk.capture_exception(Exception("Called process_async_webhooks in REGION mode"))
         return
 
-    logging_context = {
+    logging_context: Dict[str, str | int] = {
         "outbox_message_object_id": object_identifier,
         "shard_id": shard_identifier,
     }
