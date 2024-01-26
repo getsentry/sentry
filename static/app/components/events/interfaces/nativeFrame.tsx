@@ -39,7 +39,6 @@ import {
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -101,7 +100,6 @@ function NativeFrame({
    */
   isHoverPreviewed = false,
 }: Props) {
-  const user = useUser();
   const organization = useOrganization();
 
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
@@ -152,7 +150,7 @@ function NativeFrame({
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
   const hasStacktraceLink = frame.inApp && !!frame.filename && (isHovering || expanded);
-  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
+  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
   const showStacktraceLinkInFrame = hasStacktraceLink && hasInFrameFeature;
   const showSentryAppStacktraceLinkInFrame =
     showStacktraceLinkInFrame && components.length > 0;

@@ -3,11 +3,9 @@ import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType, StacktraceType} from 'sentry/types';
@@ -49,16 +47,6 @@ describe('StacktraceBanners', () => {
     });
     ProjectsStore.loadInitialData([project]);
     HookStore.init?.();
-    // Can be removed with issueDetailsNewExperienceQ42023
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {
-          ...UserFixture().options,
-          issueDetailsNewExperienceQ42023: true,
-        },
-      })
-    );
   });
 
   it('renders nothing with no in app frames', () => {

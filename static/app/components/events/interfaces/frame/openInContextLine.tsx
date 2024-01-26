@@ -10,7 +10,6 @@ import type {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/typ
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
@@ -19,9 +18,8 @@ type Props = {
 };
 
 function OpenInContextLine({lineNo, filename, components}: Props) {
-  const user = useUser();
   const organization = useOrganization({allowNull: true});
-  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
+  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
 
   const handleRecordInteraction =
     (slug: SentryAppComponent<SentryAppSchemaStacktraceLink>['sentryApp']['slug']) =>
