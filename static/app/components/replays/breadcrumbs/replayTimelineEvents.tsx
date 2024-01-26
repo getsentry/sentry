@@ -112,6 +112,8 @@ function Event({
     }
   `;
 
+  const firstFrame = frames.at(0);
+
   // We want to show the full variety of colors available.
   const uniqueColors = uniq(frames.map(frame => getFrameDetails(frame).color));
 
@@ -137,7 +139,15 @@ function Event({
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
       <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
-        <IconNode colors={sortedUniqueColors} frameCount={frameCount} />
+        <IconNode
+          colors={sortedUniqueColors}
+          frameCount={frameCount}
+          onClick={() => {
+            if (firstFrame) {
+              onClickTimestamp(firstFrame);
+            }
+          }}
+        />
       </IconNodeTooltip>
     </IconPosition>
   );
@@ -190,7 +200,9 @@ const getBackgroundGradient = ({
     );`;
 };
 
-const IconNode = styled('div')<{colors: Color[]; frameCount: number}>`
+const IconNode = styled('button')<{colors: Color[]; frameCount: number}>`
+  padding: 0;
+  border: none;
   grid-column: 1;
   grid-row: 1;
   width: ${p => NODE_SIZES[p.frameCount - 1]}px;

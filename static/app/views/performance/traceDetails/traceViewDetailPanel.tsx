@@ -55,7 +55,7 @@ import {EntryBreadcrumbs, EntryType, EventTransaction, Organization} from 'sentr
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {PageErrorProvider} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -541,7 +541,7 @@ function TraceViewDetailPanel({detail, onClose}: DetailPanelProps) {
   const organization = useOrganization();
   const location = useLocation();
   return (
-    <PageErrorProvider>
+    <PageAlertProvider>
       <DetailPanel
         detailKey={detail && detail.openPanel === 'open' ? 'open' : undefined}
         onClose={onClose}
@@ -557,7 +557,7 @@ function TraceViewDetailPanel({detail, onClose}: DetailPanelProps) {
             <SpanDetailsBody organization={organization} detail={detail} />
           ))}
       </DetailPanel>
-    </PageErrorProvider>
+    </PageAlertProvider>
   );
 }
 

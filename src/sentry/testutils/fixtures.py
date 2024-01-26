@@ -130,6 +130,12 @@ class Fixtures:
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
 
+    def create_auth_provider(self, *args, **kwargs):
+        return Factories.create_auth_provider(*args, **kwargs)
+
+    def create_auth_identity(self, *args, **kwargs):
+        return Factories.create_auth_identity(*args, **kwargs)
+
     def create_user_auth_token(self, *args, **kwargs):
         return Factories.create_user_auth_token(*args, **kwargs)
 

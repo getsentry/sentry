@@ -109,12 +109,14 @@ def _calculate_event_grouping(
     }
 
     with metrics.timer("save_event._calculate_event_grouping", tags=metric_tags):
+        loaded_grouping_config = load_grouping_config(grouping_config)
+
         with metrics.timer("event_manager.normalize_stacktraces_for_grouping", tags=metric_tags):
             with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-                event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
+                event.normalize_stacktraces_for_grouping(loaded_grouping_config)
 
         # Detect & set synthetic marker if necessary
-        detect_synthetic_exception(event.data, grouping_config)
+        detect_synthetic_exception(event.data, loaded_grouping_config)
 
         with metrics.timer("event_manager.apply_server_fingerprinting", tags=metric_tags):
             # The active grouping config was put into the event in the
@@ -136,7 +138,7 @@ def _calculate_event_grouping(
             # default long before we get here. Should we consolidate bogus config handling into the
             # code actually getting the config?
             try:
-                hashes = event.get_hashes(grouping_config)
+                hashes = event.get_hashes(loaded_grouping_config)
             except GroupingConfigNotFound:
                 event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
                 hashes = event.get_hashes()

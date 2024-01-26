@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Sequence, TypedDict
 from typing_extensions import NotRequired
 
 from sentry import features, options
+from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -70,10 +71,11 @@ class GroupingConfigNotFound(LookupError):
 
 class GroupingConfig(TypedDict):
     id: str
-    enhancements: Enhancements
+    enhancements: str
     fingerprinting: NotRequired[
         FingerprintingRules
     ]  # TODO: remove NotRequired when we determine legacy configs w/o fingerprinting are not a problem
+
 
 
 class GroupingConfigLoader:
@@ -91,7 +93,7 @@ class GroupingConfigLoader:
             "fingerprinting": self._get_fingerprinting(project),
         }
 
-    def _get_enhancements(self, project):
+    def _get_enhancements(self, project) -> str:
         enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
@@ -196,7 +198,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
         return options.get("store.background-grouping-config-id")
 
 
-def get_grouping_config_dict_for_project(project, silent=True):
+def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -208,12 +210,12 @@ def get_grouping_config_dict_for_project(project, silent=True):
     return loader.get_config_dict(project)
 
 
-def get_grouping_config_dict_for_event_data(data, project):
+def get_grouping_config_dict_for_event_data(data, project) -> GroupingConfig:
     """Returns the grouping config for an event dictionary."""
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def get_default_enhancements(config_id=None):
+def get_default_enhancements(config_id=None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
@@ -230,7 +232,7 @@ def get_default_fingerprinting(config_id: str | None = None) -> FingerprintingRu
     # TODO: include_builtin ought to depend of a feature flag, but this is generic function that doesn't depend on project
     return FingerprintingRules([], bases=bases).to_json(include_builtin=False)
 
-
+  
 def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingConfig:
     """Returns the default grouping config."""
     if config_id is None:
@@ -244,7 +246,7 @@ def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingCo
     }
 
 
-def load_grouping_config(config_dict=None):
+def load_grouping_config(config_dict=None) -> StrategyConfiguration:
     """Loads the given grouping config."""
     if config_dict is None:
         config_dict = get_default_grouping_config_dict()
@@ -257,7 +259,7 @@ def load_grouping_config(config_dict=None):
     return CONFIGURATIONS[config_id](**config_dict)
 
 
-def load_default_grouping_config():
+def load_default_grouping_config() -> StrategyConfiguration:
     return load_grouping_config(config_dict=None)
 
 
@@ -431,14 +433,13 @@ def sort_grouping_variants(variants):
     return flat_variants, hierarchical_variants
 
 
-def detect_synthetic_exception(event_data, grouping_config):
+def detect_synthetic_exception(event_data: NodeData, loaded_grouping_config: StrategyConfiguration):
     """Detect synthetic exception and write marker to event data
 
     This only runs if detect_synthetic_exception_types is True, so
     it is effectively only enabled for grouping strategy mobile:2021-04-02.
 
     """
-    loaded_grouping_config = load_grouping_config(grouping_config)
     should_detect = loaded_grouping_config.initial_context["detect_synthetic_exception_types"]
     if not should_detect:
         return
