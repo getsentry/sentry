@@ -2,8 +2,8 @@ from .errors import MalformedBlockedMetricsPayloadError
 from .metrics_blocking import (
     block_metric,
     block_tags_of_metric,
-    get_blocked_metrics,
-    get_blocked_metrics_for_relay_config,
+    get_metrics_blocking_state,
+    get_metrics_blocking_state_for_relay,
     unblock_metric,
     unblock_tags_of_metric,
 )
@@ -13,7 +13,7 @@ __all__ = [
     "block_tags_of_metric",
     "unblock_metric",
     "unblock_tags_of_metric",
-    "get_blocked_metrics",
-    "get_blocked_metrics_for_relay_config",
+    "get_metrics_blocking_state",
+    "get_metrics_blocking_state_for_relay",
     "MalformedBlockedMetricsPayloadError",
 ]

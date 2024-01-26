@@ -45,7 +45,7 @@ from sentry.relay.config.metric_extraction import (
 )
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
-from sentry.sentry_metrics.visibility import get_blocked_metrics_for_relay_config
+from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
@@ -244,8 +244,9 @@ def get_metrics_config(project: Project) -> Optional[Mapping[str, Any]]:
         metrics_config["cardinalityLimits"] = cardinality_limits
 
     if features.has("organizations:metrics-blocking", project.organization):
-        blocked_metrics = get_blocked_metrics_for_relay_config(project)
-        metrics_config.update(**blocked_metrics)
+        metrics_blocking_state = get_metrics_blocking_state_for_relay(project)
+        if metrics_blocking_state is not None:
+            metrics_config.update(**metrics_blocking_state)
 
     return metrics_config or None
 

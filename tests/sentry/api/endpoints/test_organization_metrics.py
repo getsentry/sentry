@@ -7,7 +7,11 @@ from django.urls import reverse
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric, get_blocked_metrics
+from sentry.sentry_metrics.visibility import (
+    block_metric,
+    block_tags_of_metric,
+    get_metrics_blocking_state,
+)
 from sentry.silo import SiloMode
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
@@ -182,7 +186,7 @@ class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
         )
 
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 1
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
 
         response = self.get_success_response(
             self.organization.slug,
@@ -193,7 +197,7 @@ class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
         )
 
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 0
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 0
 
     def test_block_metric_tag(self):
         response = self.get_success_response(
@@ -206,7 +210,7 @@ class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
         )
 
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 1
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
 
         response = self.get_success_response(
             self.organization.slug,
@@ -218,7 +222,7 @@ class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
         )
 
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 1
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
 
         response = self.get_success_response(
             self.organization.slug,
@@ -230,4 +234,4 @@ class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
         )
 
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 0
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 0

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry.sentry_metrics.visibility import get_blocked_metrics
+from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 
 """
 Module that gets both metadata and time series from Snuba.
@@ -199,7 +199,7 @@ def get_blocked_metrics_of_projects(
     if use_case_id != UseCaseID.CUSTOM:
         return {}
 
-    blocked_metrics_by_project = get_blocked_metrics(projects)
+    blocked_metrics_by_project = get_metrics_blocking_state(projects)
     inverted_blocked_metrics = {}
 
     for project_id, blocked_metrics in blocked_metrics_by_project.items():
