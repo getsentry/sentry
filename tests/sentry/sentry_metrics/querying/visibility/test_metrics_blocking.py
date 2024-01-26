@@ -4,7 +4,7 @@ from sentry.sentry_metrics.visibility import (
     MalformedBlockedMetricsPayloadError,
     block_metric,
     get_metrics_blocking_state,
-    get_metrics_blocking_state_for_relay,
+    get_metrics_blocking_state_for_relay_config,
 )
 from sentry.sentry_metrics.visibility.metrics_blocking import (
     METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY,
@@ -151,7 +151,7 @@ def test_get_metrics_blocking_state_for_relay_config(default_project):
     block_metric(mri_3, [default_project])
     block_tags_of_metric(mri_3, {"environment"}, [default_project])
 
-    metrics_blocking_state = get_metrics_blocking_state_for_relay(default_project)
+    metrics_blocking_state = get_metrics_blocking_state_for_relay_config(default_project)
     assert metrics_blocking_state
     assert sorted(metrics_blocking_state["deniedNames"]) == [
         mri_1,

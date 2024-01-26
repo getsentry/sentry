@@ -184,7 +184,7 @@ def get_metrics_blocking_state(projects: Sequence[Project]) -> Mapping[int, Metr
     return metrics_blocking_state_by_project
 
 
-def get_metrics_blocking_state_for_relay(
+def get_metrics_blocking_state_for_relay_config(
     project: Project,
 ) -> Optional[MetricsBlockingStateRelayConfig]:
     try:
