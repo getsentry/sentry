@@ -231,7 +231,7 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
         user = self.create_user(is_superuser=True)
         assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
 
-    @mock.patch("sentry.api.bases.organization.is_active_staff", wraps=is_active_staff)
+    @mock.patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
     def test_staff(self, mock_is_active_staff):
         user = self.create_user(is_staff=True)
 

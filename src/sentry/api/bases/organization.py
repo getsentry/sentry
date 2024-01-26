@@ -13,9 +13,8 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
-from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -90,21 +89,6 @@ class OrganizationPermission(SentryPermission):
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         return is_member_disabled_from_limit(request, organization)
-
-
-class StaffPermissionMixin:
-    """
-    Endpoints that should be accessible by staff require this mixin because
-    staff does not give any scopes. The child class attached to this mixin
-    should inherit from another Parent permission class. See
-    'OrganizationAndStaffPermission' for an example of this.
-    """
-
-    def has_permission(self, request, *args, **kwargs):
-        return super().has_permission(request, *args, **kwargs) or is_active_staff(request)
-
-    def has_object_permission(self, request, *args, **kwargs):
-        return super().has_object_permission(request, *args, **kwargs) or is_active_staff(request)
 
 
 class OrganizationAndStaffPermission(StaffPermissionMixin, OrganizationPermission):
