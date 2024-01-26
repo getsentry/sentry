@@ -447,15 +447,17 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   ) {
     return (
       <StacktraceLinkWrapper hasInFrameFeature={hasInFrameFeature}>
-        <OpenInLink
-          onClick={onOpenLink}
-          href={frame.sourceLink}
-          openInNewTab
-          hasInFrameFeature={hasInFrameFeature}
-        >
-          <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-          {hasInFrameFeature ? null : t('Open this line in GitHub')}
-        </OpenInLink>
+        <Tooltip title={t('GitHub')} disabled={!hasInFrameFeature} skipWrapper>
+          <OpenInLink
+            onClick={onOpenLink}
+            href={frame.sourceLink}
+            openInNewTab
+            hasInFrameFeature={hasInFrameFeature}
+          >
+            <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+            {hasInFrameFeature ? null : t('Open this line in GitHub')}
+          </OpenInLink>
+        </Tooltip>
         {coverageEnabled && isLoadingCoverage ? (
           <Placeholder height="14px" width="14px" />
         ) : coverage &&
