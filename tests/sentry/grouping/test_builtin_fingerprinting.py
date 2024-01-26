@@ -674,3 +674,65 @@ class BuiltInFingerprintingTest(TestCase):
 
         assert event.data.data["fingerprint"] == ["my-route", "{{ default }}"]
         assert event.data.data.get("_fingerprint_info") is None
+
+    @with_feature("organizations:grouping-built-in-fingerprint-rules")
+    def test_with_rules_from_project_options(self):
+        mgr = EventManager(data=self.chunkload_error_trace, project=self.project)
+        self.project.update_option(
+            "sentry:fingerprinting-rules",
+            {
+                "version": 1,
+                "rules": [
+                    {
+                        "matchers": [["type", "DatabaseUnavailable"]],
+                        "fingerprint": ["DatabaseUnavailable"],
+                        "attributes": {},
+                    }
+                ],
+            },
+        )
+        mgr.normalize()
+        data = mgr.get_data()
+        data.setdefault("fingerprint", ["{{ default }}"])
+        grouping_config = get_grouping_config_dict_for_event_data(data.data, self.project)
+        apply_server_fingerprinting(data, grouping_config=grouping_config)
+        event_type = get_event_type(data)
+        event_metadata = event_type.get_metadata(data)
+        data.update(materialize_metadata(data, event_type, event_metadata))
+        event = eventstore.backend.create_event(data=data)
+
+        assert event.data["fingerprint"] == ["chunkloaderror"]
+        assert event.data["_fingerprint_info"]["matched_rule"] == {
+            "attributes": {},
+            "fingerprint": ["chunkloaderror"],
+            "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
+            "is_builtin": True,
+        }
+
+    @with_feature("organizations:grouping-built-in-fingerprint-rules")
+    def test_with_malformed_rules_from_project_options(self):
+        mgr = EventManager(data=self.chunkload_error_trace, project=self.project)
+
+        # malformed config string should raise InvalidFingerprintingConfig
+        # and fall back to empty custom rules
+        self.project.update_option(
+            "sentry:fingerprinting-rules",
+            "malformed config string",
+        )
+        mgr.normalize()
+        data = mgr.get_data()
+        data.setdefault("fingerprint", ["{{ default }}"])
+        grouping_config = get_grouping_config_dict_for_event_data(data.data, self.project)
+        apply_server_fingerprinting(data, grouping_config=grouping_config)
+        event_type = get_event_type(data)
+        event_metadata = event_type.get_metadata(data)
+        data.update(materialize_metadata(data, event_type, event_metadata))
+        event = eventstore.backend.create_event(data=data)
+
+        assert event.data["fingerprint"] == ["chunkloaderror"]
+        assert event.data["_fingerprint_info"]["matched_rule"] == {
+            "attributes": {},
+            "fingerprint": ["chunkloaderror"],
+            "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
+            "is_builtin": True,
+        }
