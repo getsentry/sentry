@@ -1,4 +1,5 @@
 import logging
+import math
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -49,6 +50,13 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
+MAX_PARALLEL_QUERIES: int = 3
+
+
+def chunk(input, chunk_size):
+    output = []
+    for i in range(0, len(input), chunk_size):
+        output.append(input[i : i + chunk_size])
 
 
 _T = TypeVar("_T")
@@ -557,24 +565,42 @@ def augment_transactions_with_spans(
     # Fetch parent span ids of segment spans and their corresponding
     # transaction id so we can link parent/child transactions in
     # a trace.
-    spans_params = params.copy()
-    spans_params["project_objects"] = [p for p in params["project_objects"] if p.id in projects]
-    spans_params["project_id"] = list(projects.union(set(problem_project_map.keys())))
 
-    parents_results = SpansIndexedQueryBuilder(
-        Dataset.SpansIndexed,
-        spans_params,
-        query=f"trace:{trace_id} span_id:[{','.join(query_spans)}]",
-        selected_columns=[
-            "transaction.id",
-            "span_id",
-            "timestamp",
-        ],
-        orderby=["timestamp", "id"],
-        limit=10000,
-    ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
+    def load_results(chunked_project_ids):
+        spans_params = params.copy()
+        spans_params["project_objects"] = [
+            p for p in params["project_objects"] if p.id in chunked_project_ids
+        ]
+        spans_params["project_id"] = list(chunked_project_ids)
+        return SpansIndexedQueryBuilder(
+            Dataset.SpansIndexed,
+            spans_params,
+            query=f"trace:{trace_id} span_id:[{','.join(query_spans)}]",
+            selected_columns=[
+                "transaction.id",
+                "span_id",
+                "timestamp",
+            ],
+            orderby=["timestamp", "id"],
+            limit=10000,
+        ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
 
-    parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
+    parent_map = {}
+    chunk_size = math.floor(len(projects) / MAX_PARALLEL_QUERIES)
+    if chunk_size > 10:
+        chunk_size = 10
+    # We can use a with statement to ensure threads are cleaned up promptly
+    with ThreadPoolExecutor(max_workers=MAX_PARALLEL_QUERIES) as executor:
+        # Start the load operations and mark each future with its URLtime.sleep(2000)
+        future_to_project = {
+            executor.submit(load_results, chunked_projects)
+            for chunked_projects in chunk(projects, chunk_size)
+        }
+        for future in as_completed(future_to_project):
+            parents_results = future.result()
+            for parent in parents_results["data"]:
+                parent_map[parent["span_id"]] = parent
+
     for transaction in transactions:
         # For a given transaction, if parent span id exists in the tranaction (so this is
         # not a root span), see if the indexed spans data can tell us what the parent
