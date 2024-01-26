@@ -113,9 +113,9 @@ def build_test_message_blocks(
             },
             {
                 "type": "button",
-                "action_id": "ignored:until_escalating",
+                "action_id": "archive_dialog",
                 "text": {"type": "plain_text", "text": "Archive"},
-                "value": "ignored:until_escalating",
+                "value": "archive_dialog",
             },
             {
                 "type": "external_select",
@@ -375,13 +375,13 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
         )
 
-        for section in test_message["blocks"]:
-            if section["type"] == "actions":
-                for element in section["elements"]:
-                    if "ignore" in element["action_id"]:
-                        element["action_id"] = "ignored:until_escalating"
-                        element["value"] = "ignored:until_escalating"
-                        element["text"]["text"] = "Archive"
+        # for section in test_message["blocks"]:
+        #     if section["type"] == "actions":
+        #         for element in section["elements"]:
+        #             if "ignore" in element["action_id"]:
+        #                 element["action_id"] = "ignored:until_escalating"
+        #                 element["value"] = "ignored:until_escalating"
+        #                 element["text"]["text"] = "Archive"
 
         assert SlackIssuesMessageBuilder(group).build() == test_message
 

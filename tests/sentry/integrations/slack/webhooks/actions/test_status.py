@@ -122,6 +122,16 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             "action_ts": "1702502121.403007",
         }
 
+    def get_mark_ongoing_action(self):
+        return {
+            "action_id": "unresolved:ongoing",
+            "block_id": "xPlAm",
+            "text": {"type": "plain_text", "text": "Mark as Ongoing", "emoji": True},
+            "value": "unresolved:ongoing",
+            "type": "button",
+            "action_ts": "1702502122.304116",
+        }
+
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_ask_linking(self):
         """Freezing time to prevent flakiness from timestamp mismatch."""
@@ -189,7 +199,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook(
                 action_data=[status_action],
                 original_message=self.original_message,
-                type="interactive_message",
+                type="interactive_message",  # TODO: is this correct?
                 callback_id=json.dumps({"issue": event.group.id}),
             )
             self.group = Group.objects.get(id=event.group.id)
@@ -217,7 +227,8 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
-                action_data=[status_action], original_message=original_message
+                action_data=[status_action],
+                original_message=original_message,
             )
         assert resp.status_code == 200, resp.content
 
@@ -697,6 +708,65 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+
+    def test_unarchive_issue_block_kit(self):
+        event = self.store_event(
+            data=self.event_data,
+            project_id=self.project.id,
+        )
+        assert event.group
+        self.group = Group.objects.get(id=event.group.id)
+        self.group.status = GroupStatus.IGNORED
+        self.group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        self.group.save(update_fields=["status", "substatus"])
+
+        status_action = self.get_mark_ongoing_action()
+        original_message = self.get_original_message_block_kit(self.group.id)
+
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message
+            )
+        assert resp.status_code == 200, resp.content
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
+        assert self.group.substatus == GroupSubStatus.NEW  # the issue is less than 7 days old
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue re-opened by <@{self.external_id}>*"
+        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+
+    def test_unarchive_issue_block_kit_through_unfurl(self):
+        event = self.store_event(
+            data=self.event_data,
+            project_id=self.project.id,
+        )
+        assert event.group
+        self.group = Group.objects.get(id=event.group.id)
+        self.group.status = GroupStatus.IGNORED
+        self.group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        self.group.save(update_fields=["status", "substatus"])
+
+        status_action = self.get_mark_ongoing_action()
+        original_message = self.get_original_message_block_kit(self.group.id)
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
+
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message, data=payload_data
+            )
+        assert resp.status_code == 200, resp.content
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
+        assert self.group.substatus == GroupSubStatus.NEW  # the issue is less than 7 days old
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue re-opened by <@{self.external_id}>*"
         assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     def test_assign_issue(self):
