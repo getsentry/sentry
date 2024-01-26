@@ -1391,6 +1391,7 @@ def detect_new_escalation(job: PostProcessJob):
     job.
     """
     from sentry.issues.issue_velocity import get_latest_threshold
+    from sentry.issues.priority import PriorityChangeReason, auto_update_priority
     from sentry.models.activity import Activity
     from sentry.models.group import GroupStatus
     from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -1445,6 +1446,7 @@ def detect_new_escalation(job: PostProcessJob):
                     type=ActivityType.SET_ESCALATING,
                     data={"event_id": job["event"].event_id},
                 )
+                auto_update_priority(group, PriorityChangeReason.ESCALATING)
             logger.info(
                 "tasks.post_process.detect_new_escalation",
                 extra={
