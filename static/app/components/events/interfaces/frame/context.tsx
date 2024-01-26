@@ -25,7 +25,6 @@ import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 
 import {parseAssembly} from '../utils';
 
@@ -82,9 +81,8 @@ function Context({
   frameMeta,
   registersMeta,
 }: Props) {
-  const user = useUser();
   const organization = useOrganization({allowNull: true});
-  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
+  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
 
   // This is the old design. Only show if the feature flag is not enabled for this organization.
   const hasStacktraceLink =

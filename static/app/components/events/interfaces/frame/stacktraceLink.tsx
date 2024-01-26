@@ -41,7 +41,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
@@ -212,9 +211,8 @@ interface StacktraceLinkProps {
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   const organization = useOrganization();
-  const user = useUser();
   const {projects} = useProjects();
-  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
+  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
   const validFilePath = hasFileExtension(frame.absPath || frame.filename || '');
   // TODO: Currently we only support GitHub links. Implement support for other source code providers.
   // Related comment: https://github.com/getsentry/sentry/pull/62596#discussion_r1443025242
