@@ -206,5 +206,7 @@ def get_metrics_blocking_state_for_relay_config(
                     name=metric_blocking.metric_mri, tags=list(metric_blocking.blocked_tags)
                 )
             )
+    if not denied_names and not denied_tags:
+        return None
 
     return MetricsBlockingStateRelayConfig(deniedNames=denied_names, deniedTags=denied_tags)
