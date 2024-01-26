@@ -35,7 +35,6 @@ filterwarnings = [
     # TODO: after upgrading to django 4.x
     "ignore:'index_together' is deprecated. Use 'Meta.indexes' in.*",
     "ignore:Passing unsaved model instances to related filters is deprecated.",
-    "ignore:The django.utils.timezone.utc alias is deprecated.*",
 
     # a bunch of google packages use legacy namespace packages
     "ignore:pkg_resources is deprecated as an API",
