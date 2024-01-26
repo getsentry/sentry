@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import logging
 from enum import Enum, IntEnum
+from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.models.activity import Activity
-from sentry.models.group import Group
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.activity import ActivityType
+
+if TYPE_CHECKING:
+    from sentry.models.group import Group
 
 
 class PriorityLevel(IntEnum):
@@ -68,11 +71,48 @@ def get_priority_for_escalating_group(group: Group) -> PriorityLevel:
     """
     Get the priority for a group that is escalating by incrementing it one level.
     """
-
     if group.priority and group.priority == PriorityLevel.LOW:
         return PriorityLevel.MEDIUM
 
     return PriorityLevel.HIGH
+
+
+def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
+    if not features.has("projects:issue-priority", group.project, actor=None):
+        return None
+
+    previous_priority_history = (
+        GroupHistory.objects.filter(
+            group_id=group.id, status__in=PRIORITY_TO_GROUP_HISTORY_STATUS.values()
+        )
+        .order_by("-date_added")
+        .first()
+    )
+
+    initial_priority = (
+        group.data.get("metadata", {}).get("initial_priority")
+        if not previous_priority_history
+        else None
+    )
+
+    new_priority = (
+        [
+            priority
+            for priority, status in PRIORITY_TO_GROUP_HISTORY_STATUS.items()
+            if status == previous_priority_history.status
+        ][0]
+        if previous_priority_history
+        else initial_priority
+    )
+
+    if not new_priority:
+        logger.error(
+            "Unable to determine previous priority value for group %s after transitioning to ongoing",
+            group.id,
+        )
+        return None
+
+    return new_priority
 
 
 def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
@@ -80,11 +120,13 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
     Update the priority of a group due to state changes.
     """
     if not features.has("projects:issue-priority", group.project, actor=None):
-        return
+        return None
 
+    new_priority = None
     if reason == PriorityChangeReason.ESCALATING:
         new_priority = get_priority_for_escalating_group(group)
-        if not new_priority:
-            return
+    elif reason == PriorityChangeReason.ONGOING:
+        new_priority = get_priority_for_ongoing_group(group)
 
+    if new_priority is not None:
         update_priority(group, new_priority, reason)
