@@ -4,7 +4,7 @@ import * as echarts from 'echarts/core';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricWidgetQueryParams} from 'sentry/utils/metrics';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';

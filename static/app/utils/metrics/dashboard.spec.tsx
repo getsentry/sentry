@@ -1,11 +1,11 @@
 import {MRI} from 'sentry/types';
-import {MetricDisplayType} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
   getWidgetQuery,
   toDisplayType,
   toMetricDisplayType,
 } from 'sentry/utils/metrics/dashboard';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 describe('convertToDashboardWidget', () => {

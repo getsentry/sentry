@@ -4,7 +4,7 @@ import * as echarts from 'echarts/core';
 
 import {space} from 'sentry/styles/space';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {MetricWidgetQueryParams} from 'sentry/utils/metrics';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

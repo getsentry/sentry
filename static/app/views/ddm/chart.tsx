@@ -13,12 +13,9 @@ import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {
-  formatMetricsUsingUnitAndOp,
-  isCumulativeOp,
-  MetricCorrelation,
-  MetricDisplayType,
-} from 'sentry/utils/metrics';
+import {isCumulativeOp} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {MetricCorrelation, MetricDisplayType} from 'sentry/utils/metrics/types';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';

@@ -1,5 +1,6 @@
 import {Client} from 'sentry/api';
-import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 
 import {MetricMeta, MRI} from '../../types/metrics';
 

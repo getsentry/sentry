@@ -1,10 +1,10 @@
 import {MRI} from 'sentry/types';
+import {getDateTimeParams} from 'sentry/utils/metrics';
 import {
-  getDateTimeParams,
   MetricCorrelation,
   MetricMetaCodeLocation,
   MetricRange,
-} from 'sentry/utils/metrics';
+} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

@@ -14,12 +14,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {
-  isCustomMeasurement,
-  isCustomMetric,
-  MetricDisplayType,
-  MetricsQuery,
-} from 'sentry/utils/metrics';
+import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
   encodeWidgetQuery,
@@ -27,6 +22,7 @@ import {
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useDDMContext} from 'sentry/views/ddm/context';

@@ -1,11 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import {DateString, MetricsApiResponse} from 'sentry/types';
-import {
-  getMetricsApiRequestQuery,
-  mapToMRIFields,
-  MetricsQuery,
-} from 'sentry/utils/metrics';
+import {getMetricsApiRequestQuery, mapToMRIFields} from 'sentry/utils/metrics';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

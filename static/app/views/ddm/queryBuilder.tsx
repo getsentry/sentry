@@ -9,16 +9,18 @@ import {space} from 'sentry/styles/space';
 import {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
 import {
   getDefaultMetricDisplayType,
-  getReadableMetricType,
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
   isTransactionDuration,
+} from 'sentry/utils/metrics';
+import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
+import {formatMRI} from 'sentry/utils/metrics/mri';
+import {
   MetricDisplayType,
   MetricsQuerySubject,
   MetricWidgetQueryParams,
-} from 'sentry/utils/metrics';
-import {formatMRI} from 'sentry/utils/metrics/mri';
+} from 'sentry/utils/metrics/types';
 import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
