@@ -78,13 +78,13 @@ export function WidgetDetails() {
                       )}`.trim()
                     : selectedWidget?.query
                 }
-                {...focusArea?.range}
+                {...focusArea?.selection?.range}
                 highlightedRow={highlightedSampleId}
                 onRowHover={handleSampleRowHover}
               />
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
-              <CodeLocations mri={selectedWidget?.mri} {...focusArea?.range} />
+              <CodeLocations mri={selectedWidget?.mri} {...focusArea?.selection?.range} />
             </TabPanels.Item>
           </TabPanels>
         </ContentWrapper>
