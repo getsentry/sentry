@@ -65,7 +65,6 @@ export enum MetricDisplayType {
   LINE = 'line',
   AREA = 'area',
   BAR = 'bar',
-  TABLE = 'table',
 }
 
 export const metricDisplayTypeOptions = [
@@ -95,12 +94,9 @@ export function getDefaultMetricDisplayType(
 
 export const getMetricDisplayType = (displayType: unknown): MetricDisplayType => {
   if (
-    [
-      MetricDisplayType.AREA,
-      MetricDisplayType.BAR,
-      MetricDisplayType.LINE,
-      MetricDisplayType.TABLE,
-    ].includes(displayType as MetricDisplayType)
+    [MetricDisplayType.AREA, MetricDisplayType.BAR, MetricDisplayType.LINE].includes(
+      displayType as MetricDisplayType
+    )
   ) {
     return displayType as MetricDisplayType;
   }
