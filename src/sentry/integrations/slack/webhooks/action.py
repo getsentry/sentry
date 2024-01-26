@@ -260,7 +260,7 @@ class SlackActionEndpoint(Endpoint):
         group: Group,
         action: MessageAction,
     ) -> None:
-        status_data = (action.value or "").split(":", 1)
+        status_data = (action.value or "").split(":", 2)
         if not len(status_data):
             return
 
@@ -355,14 +355,14 @@ class SlackActionEndpoint(Endpoint):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "How long would you like to Archive this for?",
+                        "text": "Archive",
                     },
                     "accessory": {
                         "type": "static_select",
                         "initial_option": {
                             "text": {
                                 "type": "plain_text",
-                                "text": "Until Escalating",
+                                "text": "Until escalating",
                                 "emoji": True,
                             },
                             "value": "ignored:until_escalating",
@@ -431,18 +431,19 @@ class SlackActionEndpoint(Endpoint):
         if not features.has("organizations:slack-block-kit", group.project.organization):
             raise SlackRequestError()  # TODO(isabella): probably backwards compatibility
 
-        callback_id = json.dumps(
-            {
-                "issue": group.id,
-                "orig_response_url": slack_request.data["response_url"],
-                "is_message": _is_message(slack_request.data),
-                "channel_id": slack_request.data["channel"]["id"],
-                "rule": slack_request.callback_data.get("rule"),
-            }
-        )
+        callback_id = {
+            "issue": group.id,
+            "orig_response_url": slack_request.data["response_url"],
+            "is_message": _is_message(slack_request.data),
+        }
 
-        modal_payload = self.build_archive_modal_payload(callback_id)
+        if slack_request.data.get("channel"):
+            callback_id["channel_id"] = slack_request.data["channel"]["id"]
+            callback_id["rule"] = slack_request.callback_data.get("rule")
+        callback_id = json.dumps(callback_id)
+
         slack_client = SlackClient(integration_id=slack_request.integration.id)
+        modal_payload = self.build_archive_modal_payload(callback_id)
         try:
             payload = {
                 "view": json.dumps(modal_payload),
@@ -606,6 +607,7 @@ class SlackActionEndpoint(Endpoint):
                     defer_attachment_update = True
                 elif action.name == "archive_dialog":
                     self.open_archive_dialog(slack_request, group)
+                    defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
             except serializers.ValidationError as error:
