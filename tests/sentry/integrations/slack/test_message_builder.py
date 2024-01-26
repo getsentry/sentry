@@ -375,14 +375,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
         )
 
-        # for section in test_message["blocks"]:
-        #     if section["type"] == "actions":
-        #         for element in section["elements"]:
-        #             if "ignore" in element["action_id"]:
-        #                 element["action_id"] = "ignored:until_escalating"
-        #                 element["value"] = "ignored:until_escalating"
-        #                 element["text"]["text"] = "Archive"
-
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @patch(
