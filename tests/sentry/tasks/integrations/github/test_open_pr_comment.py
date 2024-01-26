@@ -799,8 +799,11 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
-        assert pull_request_comment_query[0].external_id == 1
-        assert pull_request_comment_query[0].comment_type == CommentType.OPEN_PR
+
+        pr_comment = pull_request_comment_query[0]
+        assert pr_comment.external_id == 1
+        assert pr_comment.comment_type == CommentType.OPEN_PR
+        assert pr_comment.file_extensions == ["py"]
         mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_created")
 
     @responses.activate
@@ -832,6 +835,7 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
             updated_at=now,
             group_ids=[0, 1],
             comment_type=CommentType.OPEN_PR,
+            file_extensions=["py"],
         )
 
         responses.add(

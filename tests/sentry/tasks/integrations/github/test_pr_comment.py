@@ -367,8 +367,11 @@ class TestCommentWorkflow(GithubCommentTestCase):
         )
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
-        assert pull_request_comment_query[0].external_id == 1
-        assert pull_request_comment_query[0].comment_type == CommentType.MERGED_PR
+
+        pr_comment = pull_request_comment_query[0]
+        assert pr_comment.external_id == 1
+        assert pr_comment.comment_type == CommentType.MERGED_PR
+        assert pr_comment.file_extensions is None
         mock_metrics.incr.assert_called_with("github_pr_comment.comment_created")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")

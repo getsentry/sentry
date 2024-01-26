@@ -439,6 +439,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         patch_parsers = BETA_PATCH_PARSERS
 
     # fetch issues related to the files
+    file_extensions = set()  # tracks the different file extensions in the comment
     for file in pullrequest_files:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
             org_id, file.filename
@@ -470,6 +471,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             continue
 
         top_issues_per_file.append(top_issues)
+        file_extensions.add(file_extension)
 
         issue_table_contents[file.filename] = get_issue_table_contents(top_issues)
 
@@ -518,6 +520,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             issue_list=issue_id_list,
             comment_type=CommentType.OPEN_PR,
             metrics_base=OPEN_PR_METRICS_BASE,
+            file_extensions=list(file_extensions),
         )
     except ApiError as e:
         if e.json:

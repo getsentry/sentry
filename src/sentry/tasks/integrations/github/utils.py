@@ -44,6 +44,7 @@ def create_or_update_comment(
     issue_list: List[int],
     metrics_base: str,
     comment_type: int = CommentType.MERGED_PR,
+    file_extensions: List[str] | None = None,  # only passed in for open PR comments
 ):
     pr_comment_query = PullRequestComment.objects.filter(
         pull_request__id=pullrequest_id, comment_type=comment_type
@@ -64,6 +65,7 @@ def create_or_update_comment(
             updated_at=current_time,
             group_ids=issue_list,
             comment_type=comment_type,
+            file_extensions=file_extensions,
         )
         metrics.incr(metrics_base.format(key="comment_created"))
     else:
