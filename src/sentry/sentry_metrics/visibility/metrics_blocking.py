@@ -12,7 +12,7 @@ METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY = "sentry:blocked_metrics"
 
 
 class DeniedTagRelayConfig(TypedDict):
-    name: str
+    name: Sequence[str]
     tags: Sequence[str]
 
 
@@ -207,7 +207,7 @@ def get_metrics_blocking_state_for_relay_config(
         elif metric_blocking.blocked_tags:
             denied_tags.append(
                 DeniedTagRelayConfig(
-                    name=metric_blocking.metric_mri, tags=list(metric_blocking.blocked_tags)
+                    name=[metric_blocking.metric_mri], tags=list(metric_blocking.blocked_tags)
                 )
             )
     if not denied_names and not denied_tags:

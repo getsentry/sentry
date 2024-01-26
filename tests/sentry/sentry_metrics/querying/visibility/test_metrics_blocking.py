@@ -159,7 +159,7 @@ def test_get_metrics_blocking_state_for_relay_config(default_project):
         # blocked.
         mri_3,
     ]
-    assert metrics_blocking_state["deniedTags"][0]["name"] == mri_2
+    assert metrics_blocking_state["deniedTags"][0]["name"] == [mri_2]
     assert sorted(metrics_blocking_state["deniedTags"][0]["tags"]) == [
         "environment",
         "release",
