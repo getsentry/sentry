@@ -269,9 +269,7 @@ def get_suggested_assignees(
                 isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
             ):
                 assignee_as_user = assignee.resolve()
-                assignee_texts.append(
-                    f"<mailto:{assignee_as_user.email}|{assignee_as_user.get_display_name()}>"
-                )
+                assignee_texts.append(assignee_as_user.get_display_name())
             elif assignee.actor_type == ActorType.TEAM and not (
                 isinstance(current_assignee, Team) and assignee.id == current_assignee.id
             ):

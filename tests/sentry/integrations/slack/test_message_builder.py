@@ -630,7 +630,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             event=event,
-            suggested_assignees=f"#{self.team.slug}, <mailto:{user2.email}|{user2.email}>",  # auto-assignee is not included in suggested
+            suggested_assignees=f"#{self.team.slug}, {user2.email}",  # auto-assignee is not included in suggested
             initial_assignee=self.user,
             suspect_commit=suspect_commit,
         )
@@ -649,7 +649,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             event=event,
-            suggested_assignees=f"#{self.team.slug}, <mailto:{user2.email}|{user2.name}>",
+            suggested_assignees=f"#{self.team.slug}, {user2.name}",
             initial_assignee=self.user,
             suspect_commit=suspect_commit,
         )
