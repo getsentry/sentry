@@ -2069,9 +2069,6 @@ SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0
 # Sample rate for the process_event task transactions
 SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
 
-# sample rate for the relay projectconfig endpoint
-SENTRY_RELAY_ENDPOINT_APM_SAMPLING = 0
-
 # sample rate for relay's cache invalidation task
 SENTRY_RELAY_TASK_APM_SAMPLING = 0
 
