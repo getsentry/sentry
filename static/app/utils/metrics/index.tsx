@@ -16,8 +16,12 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
+import {
+  normalizeDateTimeParams,
+  parseStatsPeriod,
+} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse} from 'sentry/types';
+import {MetricsApiResponse, PageFilters} from 'sentry/types';
 import type {
   MetricMeta,
   MetricsApiRequestMetric,
@@ -47,12 +51,6 @@ import type {
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import useRouter from 'sentry/utils/useRouter';
 
-import {
-  normalizeDateTimeParams,
-  parseStatsPeriod,
-} from '../../components/organizations/pageFilters/parse';
-import {PageFilters} from '../../types/core';
-
 export function getDefaultMetricDisplayType(
   mri: MetricsQuery['mri'],
   op: MetricsQuery['op']
@@ -65,12 +63,9 @@ export function getDefaultMetricDisplayType(
 
 export const getMetricDisplayType = (displayType: unknown): MetricDisplayType => {
   if (
-    [
-      MetricDisplayType.AREA,
-      MetricDisplayType.BAR,
-      MetricDisplayType.LINE,
-      MetricDisplayType.TABLE,
-    ].includes(displayType as MetricDisplayType)
+    [MetricDisplayType.AREA, MetricDisplayType.BAR, MetricDisplayType.LINE].includes(
+      displayType as MetricDisplayType
+    )
   ) {
     return displayType as MetricDisplayType;
   }
@@ -111,11 +106,11 @@ export function getDdmUrl(
 export function getMetricsApiRequestQuery(
   {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
-  overrides: Partial<MetricsApiRequestQueryOptions>
+  {fidelity, ...overrides}: Partial<MetricsApiRequestQueryOptions> = {}
 ): MetricsApiRequestQuery {
   const {mri: mri} = parseField(field) ?? {};
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getDDMInterval(datetime, useCase, overrides.fidelity);
+  const interval = getDDMInterval(datetime, useCase, fidelity);
 
   const hasGroupBy = groupBy && groupBy.length > 0;
 
@@ -129,10 +124,7 @@ export function getMetricsApiRequestQuery(
     interval,
     groupBy,
     orderBy: hasGroupBy && !orderBy && field ? `-${field}` : orderBy,
-    allowPrivate: true, // TODO(ddm): reconsider before widening audience
-    // Max result groups for compatibility with old metrics layer
-    // TODO(telemetry-experience): remove once everyone is on new metrics layer
-    per_page: Math.max(10, overrides.limit ?? 0),
+    useNewQueryLayer: true,
   };
 
   return {...queryToSend, ...overrides};

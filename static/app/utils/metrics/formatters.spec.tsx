@@ -42,19 +42,19 @@ describe('formatMetricUsingFixedUnit', () => {
     }
   );
 
-  it('does not append a unit for unsupported units and "none"', () => {
+  it('should not append a unit for unsupported units and "none"', () => {
     expect(formatMetricUsingFixedUnit(1234.56, 'randomunitname')).toBe('1,234.56');
     expect(formatMetricUsingFixedUnit(1234.56, 'none')).toBe('1,234.56');
   });
 
   it.each(['sum', 'count_unique', 'avg', 'max', 'p50', 'p75', 'p95', 'p99'])(
-    'does append a unit for every operation (except count)',
+    'should append a unit for every operation (except count)',
     op => {
       expect(formatMetricUsingFixedUnit(1234.56, 'second', op)).toMatch(/1,234\.56s/);
     }
   );
 
-  it('does not append a unit for count operation', () => {
+  it('should not append a unit for count operation', () => {
     expect(formatMetricUsingFixedUnit(1234.56, 'second', 'count')).toBe('1,234.56');
   });
 });

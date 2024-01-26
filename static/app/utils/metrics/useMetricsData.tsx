@@ -14,20 +14,16 @@ export function useMetricsData(
 ) {
   const organization = useOrganization();
 
-  const useNewMetricsLayer = organization.features.includes(
-    'metrics-api-new-metrics-layer'
-  );
-
   const field = op ? `${op}(${mri})` : mri;
 
   const queryToSend = getMetricsApiRequestQuery(
     {
       field,
-      query: `${query ?? ''}`,
+      query: query ?? '',
       groupBy,
     },
     {datetime, projects, environments},
-    {...overrides, useNewMetricsLayer}
+    {...overrides}
   );
 
   const metricsApiRepsonse = useApiQuery<MetricsApiResponse>(
