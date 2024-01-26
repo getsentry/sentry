@@ -454,7 +454,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           hasInFrameFeature={hasInFrameFeature}
         >
           <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
-          {hasInFrameFeature ? t('GitHub') : t('Open this line in GitHub')}
+          {hasInFrameFeature ? null : t('Open this line in GitHub')}
         </OpenInLink>
         {coverageEnabled && isLoadingCoverage ? (
           <Placeholder height="14px" width="14px" />
