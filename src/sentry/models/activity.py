@@ -130,7 +130,7 @@ class Activity(Model):
             self.data["assignee"] = str(self.data["assignee"])
 
         if (
-            features.has("projects:issue-priority", self.data.group.project)
+            features.has("projects:issue-priority", self.project)
             and self.type == ActivityType.SET_PRIORITY.value
         ):
             self.data["priority"] = self.data["initial_priority"]
