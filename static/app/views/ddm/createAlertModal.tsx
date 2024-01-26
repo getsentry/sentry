@@ -23,7 +23,6 @@ import {
   formatMetricUsingFixedUnit,
   getDDMInterval,
   getFieldFromMetricsQuery as getAlertAggregate,
-  MetricDisplayType,
   MetricsQuery,
 } from 'sentry/utils/metrics';
 import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
@@ -39,6 +38,7 @@ import {
   TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
+import {getChartColors} from 'sentry/views/ddm/useGetChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
 
 interface FormState {
@@ -153,10 +153,10 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
       data &&
       getChartTimeseries(data, {
         mri: metricsQuery.mri,
-        displayType: MetricDisplayType.AREA,
         focusedSeries: undefined,
         groupBy: [],
-        hoveredLegend: undefined,
+        // We are limited to one series in this chart, so we can just use the first color
+        getChartPalette: () => () => getChartColors(1)[0],
       }),
     [data, metricsQuery.mri]
   );
