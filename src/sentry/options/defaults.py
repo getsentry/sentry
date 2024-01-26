@@ -864,7 +864,7 @@ register("relay.transaction-metrics-org-sample-rate", default=0.0, flags=FLAG_AU
 # Relay should emit a usage metric to track total spans.
 register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive.`
+# Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
 # In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
 #
 # Note: To fully enable the cardinality limiter the feature `organizations:relay-cardinality-limiter`
