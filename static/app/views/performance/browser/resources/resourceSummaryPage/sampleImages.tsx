@@ -134,7 +134,7 @@ function SampleImagesChartPanelBody(props: {
             src = url.href;
           } catch {
             Sentry.captureException(new Error('Invalid URL'), {
-              data: {
+              tags: {
                 [SPAN_DESCRIPTION]: resource[SPAN_DESCRIPTION],
                 [RAW_DOMAIN]: resource[RAW_DOMAIN],
               },
