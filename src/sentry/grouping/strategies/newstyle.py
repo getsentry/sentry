@@ -562,7 +562,7 @@ def _single_stacktrace_variant(
     if not context["hierarchical_grouping"]:
         return {variant: main_variant}
 
-    all_variants: ReturnedVariants = get_stacktrace_hierarchy(
+    all_variants = get_stacktrace_hierarchy(
         main_variant, values, frames_for_filtering, inverted_hierarchy
     )
 
@@ -676,7 +676,6 @@ def single_exception(
 def chained_exception(
     interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
@@ -730,7 +729,6 @@ def filter_exceptions_for_exception_groups(
     exception_components: Dict[int, GroupingComponent],
     event: Event,
 ) -> List[SingleException]:
-
     # This function only filters exceptions if there are at least two exceptions.
     if len(exceptions) <= 1:
         return exceptions
