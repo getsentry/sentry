@@ -480,15 +480,15 @@ class BuiltInFingerprintingTest(TestCase):
     def _get_event_for_trace(self, stacktrace):
         mgr = EventManager(data=stacktrace, project=self.project)
         mgr.normalize()
-        data = mgr.get_data()
-        data.setdefault("fingerprint", ["{{ default }}"])
-        grouping_config = get_grouping_config_dict_for_event_data(data.data, self.project)
-        apply_server_fingerprinting(data, grouping_config=grouping_config)
-        event_type = get_event_type(data)
-        event_metadata = event_type.get_metadata(data)
-        data.update(materialize_metadata(data, event_type, event_metadata))
+        event_data = mgr.get_data()
+        event_data.setdefault("fingerprint", ["{{ default }}"])
+        grouping_config = get_grouping_config_dict_for_event_data(event_data, self.project)
+        apply_server_fingerprinting(event_data, grouping_config=grouping_config)
+        event_type = get_event_type(event_data)
+        event_metadata = event_type.get_metadata(event_data)
+        event_data.update(materialize_metadata(event_data, event_type, event_metadata))
 
-        return eventstore.backend.create_event(data=data)
+        return eventstore.backend.create_event(data=event_data)
 
     @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_chunkload_rules(self):
@@ -655,17 +655,17 @@ class BuiltInFingerprintingTest(TestCase):
     def test_doesnt_blow_up_without_fingerprinting_rules(self):
         mgr = EventManager(data=self.chunkload_error_trace, project=self.project)
         mgr.normalize()
-        data = mgr.get_data()
-        data.setdefault("fingerprint", ["{{ default }}"])
-        grouping_config = get_grouping_config_dict_for_event_data(data.data, self.project)
+        event_data = mgr.get_data()
+        event_data.setdefault("fingerprint", ["{{ default }}"])
+        grouping_config = get_grouping_config_dict_for_event_data(event_data, self.project)
         del grouping_config[
             "fingerprinting"
         ]  # emulating legacy serialized config w/o fingerprinting
-        apply_server_fingerprinting(data, grouping_config=grouping_config)
-        event_type = get_event_type(data)
-        event_metadata = event_type.get_metadata(data)
-        data.update(materialize_metadata(data, event_type, event_metadata))
-        event = eventstore.backend.create_event(data=data)
+        apply_server_fingerprinting(event_data, grouping_config=grouping_config)
+        event_type = get_event_type(event_data)
+        event_metadata = event_type.get_metadata(event_data)
+        event_data.update(materialize_metadata(event_data, event_type, event_metadata))
+        event = eventstore.backend.create_event(data=event_data)
 
         # with no fingerprinting rules in serialized config, falls back to the global default,
         # which does not evaluate flags, thus doesn't apply built-in rules regagles of flag state
@@ -677,29 +677,20 @@ class BuiltInFingerprintingTest(TestCase):
 
     @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_with_rules_from_project_options(self):
-        mgr = EventManager(data=self.chunkload_error_trace, project=self.project)
         self.project.update_option(
-            "sentry:fingerprinting-rules",
-            {
-                "version": 1,
-                "rules": [
-                    {
-                        "matchers": [["type", "DatabaseUnavailable"]],
-                        "fingerprint": ["DatabaseUnavailable"],
-                        "attributes": {},
-                    }
-                ],
-            },
+            "sentry:fingerprinting_rules",
+            "type:DatabaseUnavailable -> DatabaseUnavailable",
         )
+        mgr = EventManager(data=self.chunkload_error_trace, project=self.project)
         mgr.normalize()
-        data = mgr.get_data()
-        data.setdefault("fingerprint", ["{{ default }}"])
-        grouping_config = get_grouping_config_dict_for_event_data(data.data, self.project)
-        apply_server_fingerprinting(data, grouping_config=grouping_config)
-        event_type = get_event_type(data)
-        event_metadata = event_type.get_metadata(data)
-        data.update(materialize_metadata(data, event_type, event_metadata))
-        event = eventstore.backend.create_event(data=data)
+        event_data = mgr.get_data()
+        event_data.setdefault("fingerprint", ["{{ default }}"])
+        grouping_config = get_grouping_config_dict_for_event_data(event_data, self.project)
+        apply_server_fingerprinting(event_data, grouping_config=grouping_config)
+        event_type = get_event_type(event_data)
+        event_metadata = event_type.get_metadata(event_data)
+        event_data.update(materialize_metadata(event_data, event_type, event_metadata))
+        event = eventstore.backend.create_event(data=event_data)
 
         assert event.data["fingerprint"] == ["chunkloaderror"]
         assert event.data["_fingerprint_info"]["matched_rule"] == {
@@ -711,14 +702,13 @@ class BuiltInFingerprintingTest(TestCase):
 
     @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_with_malformed_rules_from_project_options(self):
-        mgr = EventManager(data=self.chunkload_error_trace, project=self.project)
-
         # malformed config string should raise InvalidFingerprintingConfig
         # and fall back to empty custom rules
         self.project.update_option(
-            "sentry:fingerprinting-rules",
+            "sentry:fingerprinting_rules",
             "malformed config string",
         )
+        mgr = EventManager(data=self.chunkload_error_trace, project=self.project)
         mgr.normalize()
         data = mgr.get_data()
         data.setdefault("fingerprint", ["{{ default }}"])

@@ -137,6 +137,7 @@ class GroupingConfigLoader:
         bases = CONFIGURATIONS[config_id].fingerprinting_bases if include_builtin else []
 
         rules = project.get_option("sentry:fingerprinting_rules")
+
         if not rules:
             return FingerprintingRules([], bases=bases).to_json(include_builtin=include_builtin)
 
