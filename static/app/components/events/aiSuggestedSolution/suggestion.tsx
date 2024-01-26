@@ -12,7 +12,6 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Event, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,6 +20,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import marked from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 import {ExperimentalFeatureBadge} from './experimentalFeatureBadge';
 import {SuggestionLoaderMessage} from './suggestionLoaderMessage';
@@ -104,7 +104,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
     useOpenAISuggestionLocalStorage();
   const [piiCertified, setPiiCertified] = useState(false);
-  const {isStaff} = ConfigStore.get('user');
+  const {isStaff} = useUser();
 
   const {
     data,

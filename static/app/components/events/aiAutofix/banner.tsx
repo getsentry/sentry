@@ -15,8 +15,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {useUser} from 'sentry/utils/useUser';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {ExperimentalFeatureBadge} from '../aiSuggestedSolution/experimentalFeatureBadge';
@@ -28,7 +28,7 @@ type Props = {
 };
 
 export function Banner({onButtonClick, additionalContext, setAdditionalContext}: Props) {
-  const {isStaff} = ConfigStore.get('user');
+  const {isStaff} = useUser();
   const [piiCertified, setPiiCertified] = useState(false);
 
   const showPiiMessage = isStaff && !piiCertified;
