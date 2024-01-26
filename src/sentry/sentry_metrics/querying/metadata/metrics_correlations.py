@@ -23,6 +23,7 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
+from sentry.sentry_metrics.querying.errors import CorrelationsQueryExecutionError
 from sentry.sentry_metrics.querying.metadata.utils import (
     add_environments_condition,
     get_snuba_conditions_from_query,
@@ -57,10 +58,6 @@ SENTRY_TAG_TO_COLUMN_NAME = {
     "user": "user",
     "status": "status",
 }
-
-
-class CorrelationsQueryExecutionError(Exception):
-    pass
 
 
 @dataclass(frozen=True)

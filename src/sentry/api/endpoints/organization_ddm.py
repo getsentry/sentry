@@ -17,12 +17,10 @@ from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
-from sentry.sentry_metrics.querying.metadata.metrics_code_locations import (
+from sentry.sentry_metrics.querying.metadata import (
     MetricCodeLocations,
-    get_metric_code_locations,
-)
-from sentry.sentry_metrics.querying.metadata.metrics_correlations import (
     MetricCorrelations,
+    get_metric_code_locations,
     get_metric_correlations,
 )
 
