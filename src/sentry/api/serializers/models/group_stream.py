@@ -19,6 +19,7 @@ from sentry.api.serializers.models.group import (
     SeenStats,
     snuba_tsdb,
 )
+from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import StatsPeriod
 from sentry.issues.grouptype import GroupCategory
@@ -28,6 +29,7 @@ from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
@@ -385,6 +387,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
                 attrs[item].update({"integrationIssues": integration_issues})
 
+        if self._expand("sentryAppIssues"):
+            for item in item_list:
+                external_issues = PlatformExternalIssue.objects.filter(group_id=item.id)
+                sentry_app_issues = serialize(
+                    list(external_issues), request, serializer=PlatformExternalIssueSerializer()
+                )
+                attrs[item].update({"sentryAppIssues": sentry_app_issues})
+
         return attrs
 
     def serialize(
@@ -439,6 +449,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("integrationIssues"):
             result["integrationIssues"] = attrs["integrationIssues"]
+
+        if self._expand("sentryAppIssues"):
+            result["sentryAppIssues"] = attrs["sentryAppIssues"]
 
         return result
 
