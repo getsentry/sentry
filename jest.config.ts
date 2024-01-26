@@ -4,8 +4,12 @@ import path from 'path';
 import process from 'process';
 
 import type {Config} from '@jest/types';
+import fs from 'node:fs';
 
-import babelConfig from './babel.config';
+const swcrc = JSON.parse(fs.readFileSync('.swcrc', 'utf8'));
+
+// If you have other plugins, change this line.
+swcrc.jsc.experimental.plugins.push(['swc_mut_cjs_exports', {}]);
 
 const {
   CI,
@@ -246,8 +250,8 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.jsx?$': '@swc/jest',
-    '^.+\\.tsx?$': '@swc/jest',
+    '^.+\\.jsx?$': ['@swc/jest', swcrc],
+    '^.+\\.tsx?$': ['@swc/jest', swcrc],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [

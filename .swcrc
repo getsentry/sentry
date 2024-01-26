@@ -6,7 +6,7 @@
       "syntax": "typescript",
       "tsx": true
     },
-    "target": "es5", // this is a workaround because swc-emotion has a bug dealing with es5 tag template,see https://github.com/vercel/next.js/issues/38301
+    "target": "es5",
     "transform": {
       "react": {
         "runtime": "automatic",
