@@ -9,7 +9,10 @@ import fs from 'node:fs';
 const swcrc = JSON.parse(fs.readFileSync('.swcrc', 'utf8'));
 
 // If you have other plugins, change this line.
-swcrc.jsc.experimental.plugins.push(['swc_mut_cjs_exports', {}]);
+swcrc.jsc.experimental.plugins = [
+  ['swc_mut_cjs_exports', {sourceMap: false}],
+  ['@swc/plugin-emotion', {}],
+];
 
 const {
   CI,
