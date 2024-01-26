@@ -69,7 +69,7 @@ class MetricBlocking:
 
 @dataclass
 class MetricsBlockingState:
-    # We store the data in a map keyed by the metric_mri in order to make the merging of `BlockedMetric`(s) easier.
+    # We store the data in a map keyed by the metric_mri in order to make the merging more efficient.
     metrics: Dict[str, MetricBlocking]
 
     @classmethod
@@ -85,7 +85,7 @@ class MetricsBlockingState:
                 project.delete_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
 
             raise MalformedBlockedMetricsPayloadError(
-                f"Invalid blocked metrics payload for project {project.id}"
+                f"Invalid metrics blocking state payload for project {project.id}"
             )
 
         if not isinstance(metrics_blocking_state_payload, list):
@@ -93,7 +93,7 @@ class MetricsBlockingState:
                 project.delete_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
 
             raise MalformedBlockedMetricsPayloadError(
-                f"The blocked metrics payload is not a list for {project.id}"
+                f"The metrics blocking state payload is not a list for project {project.id}"
             )
 
         metrics: Dict[str, MetricBlocking] = {}
