@@ -23,7 +23,6 @@ type State = {
    */
   fetchingAttachments: boolean;
   fetchingErrors: boolean;
-  // fetchingReplay: boolean;
 };
 
 type Options = {
