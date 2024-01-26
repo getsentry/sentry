@@ -92,10 +92,12 @@ class OrganizationPermission(SentryPermission):
         return is_member_disabled_from_limit(request, organization)
 
 
-class OrganizationAndStaffPermission(OrganizationPermission):
+class StaffPermissionMixin:
     """
-    Staff requires this permission because it has no scopes attached to it. We
-    use this permission on _admin endpoints that require Organization permissions.
+    Endpoints that should be accessible by staff require this mixin because
+    staff does not give any scopes. The child class attached to this mixin
+    should inherit from another Parent permission class. See
+    'OrganizationAndStaffPermission' for an example of this.
     """
 
     def has_permission(self, request, *args, **kwargs):
@@ -103,6 +105,10 @@ class OrganizationAndStaffPermission(OrganizationPermission):
 
     def has_object_permission(self, request, *args, **kwargs):
         return super().has_object_permission(request, *args, **kwargs) or is_active_staff(request)
+
+
+class OrganizationAndStaffPermission(StaffPermissionMixin, OrganizationPermission):
+    pass
 
 
 class OrganizationAuditPermission(OrganizationPermission):
