@@ -18,8 +18,10 @@ import {Button} from 'sentry/components/button';
 import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
-import type {MetricRange} from 'sentry/utils/metrics/types';
-import {isInRect} from 'sentry/views/ddm/rect';
+import type {SelectionRange} from 'sentry/utils/metrics/types';
+import {isInRect} from 'sentry/views/ddm/chartUtils';
+import {CHART_HEIGHT} from 'sentry/views/ddm/constants';
+import {FocusAreaProps} from 'sentry/views/ddm/context';
 
 import {DateTimeObject} from '../../components/charts/utils';
 
@@ -30,8 +32,8 @@ interface AbsolutePosition {
   width: string;
 }
 
-export interface FocusArea {
-  range: MetricRange;
+export interface FocusAreaSelection {
+  range: SelectionRange;
   widgetIndex: number;
 }
 
@@ -43,19 +45,15 @@ interface UseFocusAreaOptions {
 
 type BrushEndResult = Parameters<EChartBrushEndHandler>[0];
 
-type UseFocusAreaProps = {
+export type UseFocusAreaProps = FocusAreaProps & {
   chartRef: RefObject<ReactEchartsRef>;
-  focusArea: FocusArea | null;
   opts: UseFocusAreaOptions;
-  onAdd?: (area: FocusArea) => void;
-  onDraw?: () => void;
-  onRemove?: () => void;
   onZoom?: (range: DateTimeObject) => void;
 };
 
 export function useFocusArea({
   chartRef,
-  focusArea,
+  selection: selection,
   opts: {widgetIndex, isDisabled, useFullYAxis},
   onAdd,
   onDraw,
@@ -63,8 +61,8 @@ export function useFocusArea({
   onZoom,
 }: UseFocusAreaProps) {
   const hasFocusArea = useMemo(
-    () => focusArea && focusArea.widgetIndex === widgetIndex,
-    [focusArea, widgetIndex]
+    () => selection && selection.widgetIndex === widgetIndex,
+    [selection, widgetIndex]
   );
   const isDrawingRef = useRef(false);
 
@@ -114,7 +112,7 @@ export function useFocusArea({
 
       onAdd?.({
         widgetIndex,
-        range: getMetricRange(brushEnd, !!useFullYAxis),
+        range: getSelectionRange(brushEnd, !!useFullYAxis),
       });
 
       // Remove brush from echarts immediately after adding the focus area
@@ -137,10 +135,10 @@ export function useFocusArea({
   const handleZoomIn = useCallback(() => {
     onZoom?.({
       period: null,
-      ...focusArea?.range,
+      ...selection?.range,
     });
     handleRemove();
-  }, [focusArea, handleRemove, onZoom]);
+  }, [selection, handleRemove, onZoom]);
 
   const brushOptions = useMemo(() => {
     return {
@@ -171,7 +169,7 @@ export function useFocusArea({
     return {
       overlay: (
         <BrushRectOverlay
-          rect={focusArea}
+          rect={selection!}
           onRemove={handleRemove}
           onZoom={handleZoomIn}
           chartRef={chartRef}
@@ -194,7 +192,7 @@ type BrushRectOverlayProps = {
   chartRef: RefObject<ReactEchartsRef>;
   onRemove: () => void;
   onZoom: () => void;
-  rect: FocusArea | null;
+  rect: FocusAreaSelection | null;
   useFullYAxis: boolean;
 };
 
@@ -290,7 +288,10 @@ const getDate = date =>
 
 const getTimestamp = date => (date ? moment.utc(date).valueOf() : null);
 
-const getMetricRange = (params: BrushEndResult, useFullYAxis: boolean): MetricRange => {
+const getSelectionRange = (
+  params: BrushEndResult,
+  useFullYAxis: boolean
+): SelectionRange => {
   const rect = params.areas[0];
 
   const startTimestamp = Math.min(...rect.coordRange[0]);
@@ -309,8 +310,6 @@ const getMetricRange = (params: BrushEndResult, useFullYAxis: boolean): MetricRa
     max,
   };
 };
-
-const CHART_HEIGHT = 275;
 
 const FocusAreaRectActions = styled('div')<{
   left: string;

@@ -100,7 +100,7 @@ export type MetricCorrelation = {
   }[];
 };
 
-export type MetricRange = {
+export type SelectionRange = {
   end?: DateString;
   max?: number;
   min?: number;

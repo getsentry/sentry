@@ -18,7 +18,8 @@ import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
 import {MetricCorrelation, MetricDisplayType} from 'sentry/utils/metrics/types';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
-import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';
+import {FocusAreaProps} from 'sentry/views/ddm/context';
+import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
@@ -27,17 +28,14 @@ import {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget';
 
 type ChartProps = {
   displayType: MetricDisplayType;
-  focusArea: FocusArea | null;
   series: Series[];
   widgetIndex: number;
-  addFocusArea?: (area: FocusArea) => void;
   correlations?: MetricCorrelation[];
-  drawFocusArea?: () => void;
+  focusArea?: FocusAreaProps;
   height?: number;
   highlightedSampleId?: string;
   onSampleClick?: (sample: Sample) => void;
   operation?: string;
-  removeFocusArea?: () => void;
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
@@ -52,10 +50,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       displayType,
       operation,
       widgetIndex,
-      drawFocusArea,
-      addFocusArea,
       focusArea,
-      removeFocusArea,
       height,
       correlations,
       onSampleClick,
@@ -73,17 +68,20 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       },
       [router]
     );
+
+    const {selection: focusAreaSelection, onAdd, onRemove, onDraw} = focusArea ?? {};
+
     const focusAreaBrush = useFocusArea({
       chartRef,
-      focusArea,
+      selection: focusAreaSelection,
       opts: {
         widgetIndex,
-        isDisabled: !addFocusArea || !removeFocusArea || !handleZoom,
+        isDisabled: !onAdd || !onRemove || !handleZoom,
         useFullYAxis: isCumulativeOp(operation),
       },
-      onDraw: drawFocusArea,
-      onAdd: addFocusArea,
-      onRemove: removeFocusArea,
+      onDraw,
+      onAdd,
+      onRemove,
       onZoom: handleZoom,
     });
 
