@@ -785,6 +785,23 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   };
 
   onQueryFocus = () => {
+    const txn = Sentry.startTransaction({
+      name: 'smart_search_bar.open',
+      op: 'ui.render',
+    });
+
+    if (typeof window.requestIdleCallback === 'function') {
+      txn.setTag('finish_strategy', 'idle_callback');
+      window.requestIdleCallback(() => {
+        txn.finish();
+      });
+    } else {
+      txn.setTag('finish_strategy', 'timeout');
+      setTimeout(() => {
+        txn.finish();
+      }, 1_000);
+    }
+
     this.open();
     this.setState({inputHasFocus: true});
   };
