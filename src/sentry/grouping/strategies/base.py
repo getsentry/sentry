@@ -1,18 +1,5 @@
 import inspect
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    Iterator,
-    List,
-    Optional,
-    Protocol,
-    Sequence,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Generic, Iterator, Optional, Protocol, Sequence, TypeVar, Union
 
 import sentry_sdk
 
@@ -22,7 +9,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.interfaces.base import Interface
 
-STRATEGIES: Dict[str, "Strategy[Any]"] = {}
+STRATEGIES: dict[str, "Strategy[Any]"] = {}
 
 RISK_LEVEL_LOW = 0
 RISK_LEVEL_MEDIUM = 1
@@ -33,12 +20,12 @@ Risk = int  # TODO: make enum or union of literals
 # XXX: Want to make ContextDict typeddict but also want to type/overload dict
 # API on GroupingContext
 ContextValue = Any
-ContextDict = Dict[str, ContextValue]
+ContextDict = dict[str, ContextValue]
 
 DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
-DEFAULT_GROUPING_FINGERPRINTING_BASES = []
+DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
-ReturnedVariants = Dict[str, GroupingComponent]
+ReturnedVariants = dict[str, GroupingComponent]
 ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
 
 
@@ -62,7 +49,7 @@ class VariantProcessor(Protocol):
 
 def strategy(
     ids: Sequence[str],
-    interface: Type[Interface],
+    interface: type[Interface],
     score: Optional[int] = None,
 ) -> Callable[[StrategyFunc[ConcreteInterface]], "Strategy[ConcreteInterface]"]:
     """
@@ -114,7 +101,7 @@ class GroupingContext:
         self.push()
         return self
 
-    def __exit__(self, exc_type: Type[Exception], exc_value: Exception, tb: Any) -> None:
+    def __exit__(self, exc_type: type[Exception], exc_value: Exception, tb: Any) -> None:
         self.pop()
 
     def push(self) -> None:
@@ -283,11 +270,11 @@ class Strategy(Generic[ConcreteInterface]):
 
 
 class StrategyConfiguration:
-    id: str
-    base: Optional[Type["StrategyConfiguration"]] = None
+    id: str | None
+    base: Optional[type["StrategyConfiguration"]] = None
     config_class = None
-    strategies: Dict[str, Strategy[Any]] = {}
-    delegates: Dict[str, Strategy[Any]] = {}
+    strategies: dict[str, Strategy[Any]] = {}
+    delegates: dict[str, Strategy[Any]] = {}
     changelog: Optional[str] = None
     hidden = False
     risk = RISK_LEVEL_LOW
@@ -310,7 +297,7 @@ class StrategyConfiguration:
         return iter(sorted(self.strategies.values(), key=lambda x: x.score and -x.score or 0))
 
     @classmethod
-    def as_dict(cls) -> Dict[str, Any]:
+    def as_dict(cls) -> dict[str, Any]:
         return {
             "id": cls.id,
             "base": cls.base.id if cls.base else None,
@@ -327,17 +314,17 @@ class StrategyConfiguration:
 
 
 def create_strategy_configuration(
-    id: str,
+    id: str | None,
     strategies: Optional[Sequence[str]] = None,
     delegates: Optional[Sequence[str]] = None,
     changelog: Optional[str] = None,
     hidden: bool = False,
-    base: Optional[Type[StrategyConfiguration]] = None,
+    base: Optional[type[StrategyConfiguration]] = None,
     risk: Optional[Risk] = None,
     initial_context: Optional[ContextDict] = None,
     enhancements_base: Optional[str] = None,
     fingerprinting_bases: Optional[Sequence[str]] = None,
-) -> Type[StrategyConfiguration]:
+) -> type[StrategyConfiguration]:
     """Declares a new strategy configuration.
 
     Values can be inherited from a base configuration.  For strategies if there is
@@ -367,7 +354,7 @@ def create_strategy_configuration(
     NewStrategyConfiguration.risk = risk
     NewStrategyConfiguration.hidden = hidden
 
-    by_class: Dict[str, List[str]] = {}
+    by_class: dict[str, list[str]] = {}
     for strategy in NewStrategyConfiguration.strategies.values():
         by_class.setdefault(strategy.strategy_class, []).append(strategy.id)
 
@@ -466,9 +453,6 @@ def call_with_variants(
             rv_variants = f(*args, **kwargs)
             assert len(rv_variants) == 1
             component = rv_variants[variant.lstrip("!")]
-
-        if component is None:
-            continue
 
         rv[variant] = component
 

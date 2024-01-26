@@ -271,7 +271,7 @@ class Enhancements:
         ]
 
     @sentry_sdk.tracing.trace
-    def dumps(self):
+    def dumps(self) -> str:
         encoded = msgpack.dumps(self._to_config_structure())
 
         try:
@@ -288,7 +288,7 @@ class Enhancements:
         return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
 
     @classmethod
-    def _from_config_structure(cls, data):
+    def _from_config_structure(cls, data) -> Enhancements:
         version, bases, rules = data
         if version not in VERSIONS:
             raise ValueError("Unknown version")
@@ -300,7 +300,7 @@ class Enhancements:
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def loads(cls, data):
+    def loads(cls, data) -> Enhancements:
         if isinstance(data, str):
             data = data.encode("ascii", "ignore")
         padded = data + b"=" * (4 - (len(data) % 4))
@@ -318,7 +318,7 @@ class Enhancements:
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_config_string(self, s, bases=None, id=None):
+    def from_config_string(self, s, bases=None, id=None) -> Enhancements:
         try:
             tree = enhancements_grammar.parse(s)
             rules = EnhancementsVisitor().visit(tree)
@@ -643,7 +643,7 @@ def _generate_match_frames_fingerprint(match_frames: Sequence[dict[str, Any]]) -
     return stacktrace_hash.hexdigest()
 
 
-def _load_configs():
+def _load_configs() -> dict[str, Enhancements]:
     rv = {}
     base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for fn in os.listdir(base):
