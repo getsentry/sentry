@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.utils import timezone as django_timezone
 
-from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
@@ -627,7 +627,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["series"] == {field: [0, 2, 0]}
         assert groups[0]["totals"] == {field: 2}
 
-    @patch("sentry.sentry_metrics.querying.api.SNUBA_QUERY_LIMIT", 5)
+    @patch("sentry.sentry_metrics.querying.data.execution.SNUBA_QUERY_LIMIT", 5)
     def test_query_with_too_many_results(self) -> None:
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -662,8 +662,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[2]["series"] == {field: [0.0, 9.0]}
         assert groups[2]["totals"] == {field: 9.0}
 
-    @patch("sentry.sentry_metrics.querying.api.SNUBA_QUERY_LIMIT", 5)
-    @patch("sentry.sentry_metrics.querying.api.DEFAULT_QUERY_INTERVALS", [])
+    @patch("sentry.sentry_metrics.querying.data.execution.SNUBA_QUERY_LIMIT", 5)
+    @patch("sentry.sentry_metrics.querying.data.execution.DEFAULT_QUERY_INTERVALS", [])
     def test_query_with_too_many_results_and_no_interval_found(self) -> None:
         with pytest.raises(MetricsQueryExecutionError):
             run_metrics_query(
