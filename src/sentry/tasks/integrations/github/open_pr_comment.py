@@ -88,8 +88,6 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 {issue_rows}
 </details>"""
 
-OPEN_PR_ISSUE_ROW_TEMPLATE = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
-
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
@@ -104,15 +102,25 @@ def format_open_pr_comment_subtitle(title_length, subtitle):
 
 
 # for a single file, create a table
-def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggle=False) -> str:
+def format_issue_table(
+    diff_filename: str, issues: List[PullRequestIssue], patch_parsers: Dict[str, Any], toggle: bool
+) -> str:
+    language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
+
+    if not language_parser:
+        return ""
+
+    issue_row_template = language_parser.issue_row_template
+
     issue_rows = "\n".join(
         [
-            OPEN_PR_ISSUE_ROW_TEMPLATE.format(
+            issue_row_template.format(
                 title=issue.title,
                 subtitle=format_open_pr_comment_subtitle(len(issue.title), issue.subtitle),
                 url=format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
                 event_count=small_count(issue.event_count),
                 function_name=issue.function_name,
+                affected_users=small_count(issue.affected_users),
             )
             for issue in issues
         ]
@@ -482,11 +490,15 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             continue
 
         if first_table:
-            issue_table = format_issue_table(pr_filename, issue_table_content)
+            issue_table = format_issue_table(
+                pr_filename, issue_table_content, patch_parsers, toggle=False
+            )
             first_table = False
         else:
             # toggle all tables but the first one
-            issue_table = format_issue_table(pr_filename, issue_table_content, toggle=True)
+            issue_table = format_issue_table(
+                pr_filename, issue_table_content, patch_parsers, toggle=True
+            )
 
         issue_tables.append(issue_table)
 

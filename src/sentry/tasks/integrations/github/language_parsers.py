@@ -42,6 +42,8 @@ class LanguageParser(ABC):
 
 
 class PythonParser(LanguageParser):
+    issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
+
     @staticmethod
     def extract_functions_from_patch(patch: str) -> Set[str]:
         r"""
@@ -97,6 +99,8 @@ class PythonParser(LanguageParser):
 
 
 class JavascriptParser(LanguageParser):
+    issue_row_template = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** `Affected Users:` **{affected_users}** |"
+
     @staticmethod
     def extract_functions_from_patch(patch: str) -> Set[str]:
         r"""
