@@ -443,6 +443,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # config ID is given in which case it's merged with the stored or
         # default config dictionary
         if force_config is not None:
+            from sentry.grouping.strategies.base import StrategyConfiguration
+
             if isinstance(force_config, str):
                 # A string like `"mobile:2021-02-12"`
                 stored_config = self.get_grouping_config()
