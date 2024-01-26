@@ -8,8 +8,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from snuba_sdk.conditions import Condition, Op
-from snuba_sdk.function import Function
+from snuba_sdk import Condition, Function, Op
 from typing_extensions import NotRequired, TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
@@ -610,6 +609,13 @@ def get_facets(
             offset=cursor - 1 if fetch_projects and cursor > 0 else cursor,
             turbo=sample,
         )
+        for condition in key_name_builder.where:
+            if condition.lhs == key_name_builder.resolve_column("trace"):
+                key_name_builder.turbo = False
+                break
+            elif condition.lhs == key_name_builder.resolve_column("id"):
+                key_name_builder.turbo = False
+                break
         key_names = key_name_builder.run_query(referrer)
         # Sampling keys for multi-project results as we don't need accuracy
         # with that much data.
