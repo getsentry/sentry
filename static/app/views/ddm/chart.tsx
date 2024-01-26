@@ -13,12 +13,9 @@ import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {
-  formatMetricsUsingUnitAndOp,
-  isCumulativeOp,
-  MetricCorrelation,
-  MetricDisplayType,
-} from 'sentry/utils/metrics';
+import {isCumulativeOp} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {MetricCorrelation, MetricDisplayType} from 'sentry/utils/metrics/types';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';
@@ -168,13 +165,14 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             ).find(element => {
               return element.classList.contains('echarts-for-react');
             });
+            const isThisChartHovered = hoveredEchartElement === chartRef?.current?.ele;
+            if (!isThisChartHovered) {
+              return '';
+            }
             if (params.seriesType === 'scatter') {
               return getFormatter(samples.formatters)(params, asyncTicket);
             }
-            if (hoveredEchartElement === chartRef?.current?.ele) {
-              return getFormatter(timeseriesFormatters)(params, asyncTicket);
-            }
-            return '';
+            return getFormatter(timeseriesFormatters)(params, asyncTicket);
           },
         },
         yAxes: [
@@ -231,11 +229,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   }
 );
 
-type CombinedChartProps = BaseChartProps & {
+interface CombinedChartProps extends BaseChartProps {
   displayType: MetricDisplayType;
   series: Series[];
   scatterSeries?: ScatterSeriesType[];
-};
+}
 
 function CombinedChart({
   displayType,

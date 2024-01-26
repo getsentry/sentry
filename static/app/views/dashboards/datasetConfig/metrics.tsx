@@ -8,12 +8,8 @@ import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/custo
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventData} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {
-  formatMetricUsingUnit,
-  getMetricsApiRequestQuery,
-  getSeriesName,
-  groupByOp,
-} from 'sentry/utils/metrics';
+import {getMetricsApiRequestQuery, getSeriesName, groupByOp} from 'sentry/utils/metrics';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   formatMRIField,
   getMRI,
@@ -386,10 +382,6 @@ function getMetricRequest(
     ] as any);
   }
 
-  const useNewMetricsLayer = organization.features.includes(
-    'metrics-api-new-metrics-layer'
-  );
-
   const requestData = getMetricsApiRequestQuery(
     {
       field: query.aggregates[0],
@@ -400,7 +392,6 @@ function getMetricRequest(
     pageFilters,
     {
       limit: limit || undefined,
-      useNewMetricsLayer,
       fidelity: displayType === DisplayType.BAR ? 'low' : 'high',
     }
   );
