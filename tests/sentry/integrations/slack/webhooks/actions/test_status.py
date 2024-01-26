@@ -175,7 +175,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 type="view_submission",
                 private_metadata=json.dumps(private_metadata),
                 selected_option=selected_option,
-                data=payload_data,  # TODO: check that unfurls still passes data in the modal submission
             )
 
         assert resp.status_code == 200, resp.content
@@ -247,7 +246,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook(
                 action_data=[status_action],
                 original_message=self.original_message,
-                type="interactive_message",  # TODO: is this correct?
+                type="interactive_message",
                 callback_id=json.dumps({"issue": event.group.id}),
             )
             self.group = Group.objects.get(id=event.group.id)
@@ -1054,7 +1053,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
-                original_message=original_message,  # TODO: confirm payload type
+                original_message=original_message,
             )
         assert resp.status_code == 200, resp.content
 
@@ -1515,9 +1514,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
                 data=data,
-                slack_user={
-                    "id": user2_identity.external_id
-                },  # TODO: confirm identity is passed here
+                slack_user={"id": user2_identity.external_id},
             )
         assert resp.status_code == 200, resp.content
 
@@ -1547,9 +1544,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 type="view_submission",
                 private_metadata=json.dumps(private_metadata),
                 selected_option="ignored:until_escalating",
-                slack_user={
-                    "id": user2_identity.external_id
-                },  # TODO: confirm identity is passed here
+                slack_user={"id": user2_identity.external_id},
             )
         assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
