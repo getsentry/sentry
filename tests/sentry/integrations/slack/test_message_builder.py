@@ -164,8 +164,12 @@ def build_test_message_blocks(
             suspect_commit_text += f"{commit_link}"
         else:
             suspect_commit_text += f"{suspect_commit['commit_id']}"
-
-        suspect_commit_text += f" by {suspect_commit['commit_author']}"
+        suspect_commit_name = (
+            suspect_commit["author_name"]
+            if suspect_commit.get("author_name")
+            else suspect_commit["author_email"]
+        )
+        suspect_commit_text += f" by {suspect_commit_name}"
 
         if suspect_commit.get("time_since"):
             suspect_commit_text += f" {suspect_commit['time_since']}"
@@ -532,7 +536,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         suspect_commit = {
             "commit_id": self.commit.key,
-            "commit_author": commit_author.email,
+            "author_email": commit_author.email,
             "time_since": "Just now",
             "pr_title": pull_request.title,
             "pr_link": mock_external_url.return_value,
@@ -597,8 +601,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             name="home-repo",
             integration_id=self.integration.id,
         )
-        user2 = self.create_user()
+        user2 = self.create_user(name="Scooby Doo")
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
+
         commit = self.create_commit(
             project=self.project,
             repo=repo,
@@ -619,7 +624,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ProjectOwnership.handle_auto_assignment(self.project.id, event)
         suspect_commit = {
             "commit_id": commit.key,
-            "commit_author": commit.author.email,
+            "author_email": commit.author.email,
+            "author_name": commit.author.name,
         }
         expected_blocks = build_test_message_blocks(
             teams={self.team},
@@ -632,12 +638,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         # suggested user without slack identity linked, with display name
-        user2.name = "Scooby Doo"
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            user2.save()
         expected_blocks["blocks"][4]["elements"][0][
             "text"
         ] = f"Suggested Assignees: #{self.team.slug}, <mailto:{user2.email}|{user2.name}>"
+
         assert (
             SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
             == expected_blocks

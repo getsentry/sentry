@@ -313,8 +313,7 @@ def get_suspect_commit_block(project: Project, event: GroupEvent):
 
     if committers:
         committer = committers[0]
-        # TODO show the user's Slack name if their identity is linked
-        author = committer.get("author", {}).get("email")
+        author = committer.get("author", {})
         commits = committer.get("commits")
         if commits:
             commit_id = commits[0].get("id")
@@ -329,12 +328,16 @@ def get_suspect_commit_block(project: Project, event: GroupEvent):
                     pr_date = time_since(pr_date)
 
     if author and commit_id:
+        author_display = (
+            author.get("name") if author.get("name") is not None else author.get("email")
+        )
+
         suspect_commit_text = "Suspect Commit: "
         if repo_base:
             commit_link = f"<{repo_base}/commits/{commit_id}|{commit_id[0:6]}>"
-            suspect_commit_text += f"{commit_link} by {author}"
+            suspect_commit_text += f"{commit_link} by {author_display}"
         else:
-            suspect_commit_text += f"{commit_id} by {author}"
+            suspect_commit_text += f"{commit_id} by {author_display}"
         if pull_request:
             suspect_commit_text += (
                 f" {pr_date} \n{pr_title} ({pr_id}) <{pr_link}|View Pull Request>"
@@ -634,10 +637,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             )  # get rid of comma at the end
 
         # add suspect commit info
-        if self.event:
-            suspect_commit_text = get_suspect_commit_block(project, self.event)
-            if suspect_commit_text:
-                blocks.append(self.get_context_block(suspect_commit_text))
+        suspect_commit_text = get_suspect_commit_block(project, event_for_tags)
+        if suspect_commit_text:
+            blocks.append(self.get_context_block(suspect_commit_text))
 
         # add notes
         if self.notes:
