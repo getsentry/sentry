@@ -176,7 +176,7 @@ def build_test_message_blocks(
 
         if suspect_commit.get("pr_link") and suspect_commit.get("pr_id"):
             pr_link = f"<{suspect_commit['pr_link']}|View Pull Request>"
-            pr_title_text = f"'{suspect_commit['pr_title']} ({suspect_commit['pr_id']})'"
+            pr_title_text = f"'{suspect_commit['pr_title']} (#{suspect_commit['pr_id']})'"
 
             suspect_commit_text += f" \n{pr_title_text} {pr_link}"
         suspect_commit_section = {

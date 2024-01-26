@@ -340,7 +340,7 @@ def get_suspect_commit_block(project: Project, event: GroupEvent):
             suspect_commit_text += f"{commit_id} by {author_display}"
         if pull_request:
             suspect_commit_text += (
-                f" {pr_date} \n'{pr_title} ({pr_id})' <{pr_link}|View Pull Request>"
+                f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
             )
         return suspect_commit_text
     return None
