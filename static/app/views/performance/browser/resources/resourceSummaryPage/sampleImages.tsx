@@ -127,14 +127,24 @@ function SampleImagesChartPanelBody(props: {
       {images.map(resource => {
         const hasRawDomain = Boolean(resource[RAW_DOMAIN]);
         const isRelativeUrl = resource[SPAN_DESCRIPTION].startsWith('/');
+        let src = resource[SPAN_DESCRIPTION];
+        if (isRelativeUrl && hasRawDomain) {
+          try {
+            const url = new URL(resource[SPAN_DESCRIPTION], resource[RAW_DOMAIN]);
+            src = url.href;
+          } catch {
+            Sentry.captureException(new Error('Invalid URL'), {
+              data: {
+                [SPAN_DESCRIPTION]: resource[SPAN_DESCRIPTION],
+                [RAW_DOMAIN]: resource[RAW_DOMAIN],
+              },
+            });
+          }
+        }
 
-        const src =
-          isRelativeUrl && hasRawDomain
-            ? `${resource[RAW_DOMAIN]}${resource[SPAN_DESCRIPTION]}`
-            : resource[SPAN_DESCRIPTION];
         return (
           <ImageContainer
-            src={new URL(src).toString()}
+            src={src}
             showImage={isImagesEnabled}
             fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
             size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}
