@@ -116,9 +116,11 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         base_commit: Commit | None = None
         for commit in commits:
             repo: Repository = Repository.objects.get(id=commit.repository_id)
+            provider = repo.get_provider()
+            external_slug = provider.repository_external_slug(repo)
             # Hardcoded to only accept getsentry/sentry repo for now, when autofix on the seer side
             # supports more than just getsentry/sentry, we can remove this, and instead feature flag by project
-            if repo.external_id == "getsentry/sentry":
+            if external_slug == "getsentry/sentry":
                 base_commit = commit
                 break
 
