@@ -21,10 +21,6 @@ interface TimelineTransactionEvent {
   title: string;
 }
 
-interface TraceTimelineProps {
-  event: Event;
-}
-
 function getEventTimestamp(start: number, event: TimelineTransactionEvent) {
   return new Date(event.timestamp).getTime() - start;
 }
@@ -37,7 +33,7 @@ function getFramesByColumn(
 ) {
   const safeDurationMs = isNaN(durationMs) ? 1 : durationMs;
 
-  const columnFramePairs = frames.map(frame => {
+  const columnFramePairs = frames.map<[number, TimelineTransactionEvent]>(frame => {
     const columnPositionCalc =
       // Not sure math.abs is doing what i want
       Math.abs(
@@ -49,22 +45,23 @@ function getFramesByColumn(
     // Should start at minimum in the first column
     const column = Math.max(1, columnPositionCalc);
 
-    return [column, frame] as [number, TimelineTransactionEvent];
+    return [column, frame];
   });
 
-  const framesByColumn = columnFramePairs.reduce<Map<number, TimelineTransactionEvent[]>>(
-    (map, [column, frame]) => {
-      if (map.has(column)) {
-        map.get(column)?.push(frame);
-      } else {
-        map.set(column, [frame]);
-      }
-      return map;
-    },
-    new Map()
-  );
+  const framesByColumn = columnFramePairs.reduce((map, [column, frame]) => {
+    if (map.has(column)) {
+      map.get(column)?.push(frame);
+    } else {
+      map.set(column, [frame]);
+    }
+    return map;
+  }, new Map<number, TimelineTransactionEvent[]>());
 
   return framesByColumn;
+}
+
+interface TraceTimelineProps {
+  event: Event;
 }
 
 export function TraceTimeline({event}: TraceTimelineProps) {
@@ -87,7 +84,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
           // Get performance issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
           field: ['title', 'project.name', 'timestamp', 'issue.id', 'issue'],
-          per_page: 50,
+          per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
           sort: '-timestamp',
@@ -113,7 +110,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
           // Other events
           dataset: DiscoverDatasets.DISCOVER,
           field: ['title', 'project.name', 'timestamp', 'issue.id', 'issue'],
-          per_page: 50,
+          per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
           sort: '-timestamp',
@@ -124,27 +121,24 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     ],
     {staleTime: Infinity, retry: false}
   );
-  const isLoading = isLoadingIssuePlatform || isLoadingDiscover;
-  const isError = isErrorIssuePlatform || isErrorDiscover;
-
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
 
-  if (isLoading) {
+  if (isLoadingIssuePlatform || isLoadingDiscover) {
     // TODO: Loading state
     return <div>loading</div>;
   }
 
-  if (isError) {
+  if (isErrorIssuePlatform || isErrorDiscover) {
     return null;
   }
 
-  // Does this need to change?
-  const markerWidth = 30;
+  // Adjusting this will change the number of tooltip groups
+  const markerWidth = 20;
 
   const data: TimelineTransactionEvent[] = [
-    ...(issuePlatformData?.data ?? []),
-    ...(discoverData?.data ?? []),
+    ...(issuePlatformData.data ?? []),
+    ...(discoverData.data ?? []),
   ];
   const timestamps = data.map(frame => new Date(frame.timestamp).getTime());
   const startTimestamp = Math.min(...timestamps);
@@ -158,13 +152,6 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const totalColumns = Math.floor(width / markerWidth);
   const framesByCol = getFramesByColumn(durationMs, data, totalColumns, startTimestamp);
   const columnSize = width / totalColumns;
-  const startAndEndTimestampPerColumn = Array(totalColumns)
-    .fill(0)
-    .map<[start: number, end: number]>((_, i) => {
-      const columnStartTimestamp = (durationMs / totalColumns) * i + startTimestamp;
-      const columnEndTimestamp = (durationMs / totalColumns) * (i + 1) + startTimestamp;
-      return [columnStartTimestamp, columnEndTimestamp];
-    });
 
   // console.log({
   //   durationMs,
@@ -182,18 +169,26 @@ export function TraceTimeline({event}: TraceTimelineProps) {
       <Stacked ref={timelineRef}>
         <TimelineEventsContainer>
           <Timeline.Columns totalColumns={totalColumns} remainder={0}>
-            {Array.from(framesByCol.entries()).map(([column, colFrames]) => (
-              <EventColumn
-                key={column}
-                style={{gridColumn: Math.floor(column), width: columnSize}}
-              >
-                <NodeGroup
-                  colFrames={colFrames}
-                  columnSize={columnSize}
-                  timerange={startAndEndTimestampPerColumn[column - 1] ?? [0, 0]}
-                />
-              </EventColumn>
-            ))}
+            {Array.from(framesByCol.entries()).map(([column, colFrames]) => {
+              // Calculate the timestamp range that this column represents
+              const columnStartTimestamp =
+                (durationMs / totalColumns) * (column - 1) + startTimestamp;
+              const columnEndTimestamp =
+                (durationMs / totalColumns) * column + startTimestamp;
+              return (
+                <EventColumn
+                  key={column}
+                  style={{gridColumn: Math.floor(column), width: columnSize}}
+                >
+                  <NodeGroup
+                    colFrames={colFrames}
+                    columnSize={columnSize}
+                    timerange={[columnStartTimestamp, columnEndTimestamp]}
+                    currentEventId={event.id}
+                  />
+                </EventColumn>
+              );
+            })}
           </Timeline.Columns>
         </TimelineEventsContainer>
       </Stacked>
@@ -223,9 +218,11 @@ function NodeGroup({
   timerange,
   colFrames,
   columnSize,
+  currentEventId,
 }: {
   colFrames: TimelineTransactionEvent[];
   columnSize: number;
+  currentEventId: string;
   timerange: [number, number];
 }) {
   // Adjusting subwidth changes how many dots to render
@@ -256,6 +253,7 @@ function NodeGroup({
           ))}
         </div>
       }
+      position="bottom"
       isHoverable
       skipWrapper
     >
@@ -263,7 +261,18 @@ function NodeGroup({
         {Array.from(framesByCol.entries()).map(([column, groupFrames]) => (
           <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
             {groupFrames.map(frame => (
-              <IconNode key={frame.id} />
+              <IconNode
+                key={frame.id}
+                style={
+                  frame.id === currentEventId
+                    ? {
+                        backgroundColor: 'rgb(181, 19, 7, 1)',
+                        outline: '1px solid rgb(181, 19, 7, 0.5)',
+                        outlineOffset: '3px',
+                      }
+                    : undefined
+                }
+              />
             ))}
           </EventColumn>
         ))}
@@ -276,19 +285,6 @@ const TimelineEventsContainer = styled('div')`
   padding-top: 10px;
   padding-bottom: 10px;
 `;
-
-// maybe transform: translate(-50%);
-// const IconPosition = styled('div')`
-//   position: absolute;
-// `;
-
-// const IconGroupContainer = styled('div')`
-//   position: relative;
-//   display: grid;
-//   grid-template-columns: 1fr;
-//   grid-template-rows: 1fr;
-//   grid-gap: 0;
-// `;
 
 const IconNode = styled('div')`
   position: absolute;
