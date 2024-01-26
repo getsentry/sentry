@@ -454,7 +454,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
                 loaded_grouping_config = force_config
             else:
                 # A `GroupingConfig` dictionary
-                loaded_grouping_config = load_grouping_config(grouping_config)
+                loaded_grouping_config = load_grouping_config(force_config)
         # Otherwise we just use the same grouping config as stored.  if
         # this is None we use the project's default config.
         else:
