@@ -53,10 +53,15 @@ def save_userreport(
             report["group_id"] = event.group_id
 
         try:
+
+        existing_report = UserReport.objects.filter(project_id=report["project_id"], event_id=report["event_id"]).first()
+
             with atomic_transaction(using=router.db_for_write(UserReport)):
                 report_instance = UserReport.objects.create(**report)
 
         except IntegrityError:
+
+            logger.error(f'IntegrityError while saving UserReport: {e}', exc_info=True)
             # There was a duplicate, so just overwrite the existing
             # row with the new one. The only way this ever happens is
             # if someone is messing around with the API, or doing
@@ -73,12 +78,11 @@ def save_userreport(
             if existing_report.date_added < timezone.now() - timedelta(minutes=5):
                 raise Conflict("Feedback for this event cannot be modified.")
 
-            existing_report.update(
-                name=report.get("name", ""),
-                email=report["email"],
-                comments=report["comments"],
-                date_added=timezone.now(),
-            )
+            existing_report.name = report.get("name", existing_report.name)
+            existing_report.email = report.get("email", existing_report.email)
+            existing_report.comments = report.get("comments", existing_report.comments)
+            existing_report.date_added = timezone.now()
+            existing_report.save(update_fields=['name', 'email', 'comments', 'date_added'])
             report_instance = existing_report
 
         else:
