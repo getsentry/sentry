@@ -201,8 +201,8 @@ function WidgetBuilder({
   const pageFilters: PageFilters = statsPeriod
     ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
     : start && end
-    ? {...selection, datetime: {start, end, period: null, utc: null}}
-    : selection;
+      ? {...selection, datetime: {start, end, period: null, utc: null}}
+      : selection;
 
   // when opening from discover or issues page, the user selects the dashboard in the widget UI
   const notDashboardsOrigin = [
@@ -213,8 +213,8 @@ function WidgetBuilder({
   const dataSet = dataset
     ? dataset
     : source === DashboardWidgetSource.DDM
-    ? DataSet.METRICS
-    : DataSet.EVENTS;
+      ? DataSet.METRICS
+      : DataSet.EVENTS;
 
   const api = useApi();
 

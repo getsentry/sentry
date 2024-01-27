@@ -366,8 +366,8 @@ export function upperBound<T extends {end: number; start: number} | {x: number}>
         ? 1
         : 0
       : values[0].start < target
-      ? 1
-      : 0;
+        ? 1
+        : 0;
   }
 
   while (low !== high) {
@@ -418,8 +418,8 @@ export function lowerBound<T extends {end: number; start: number}>(
         ? 1
         : 0
       : values[0].end < target
-      ? 1
-      : 0;
+        ? 1
+        : 0;
   }
 
   while (low !== high) {

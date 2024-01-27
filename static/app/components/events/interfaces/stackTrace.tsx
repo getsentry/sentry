@@ -81,8 +81,8 @@ export function StackTrace({
               display.includes('raw-stack-trace')
                 ? StackView.RAW
                 : fullStackTrace
-                ? StackView.FULL
-                : StackView.APP
+                  ? StackView.FULL
+                  : StackView.APP
             }
             newestFirst={recentFirst}
             stacktrace={data}

@@ -65,8 +65,8 @@ function DifferentialFlamegraphView() {
     frameFilterSetting === 'application'
       ? applicationFrameOnly
       : frameFilterSetting === 'system'
-      ? systemFrameOnly
-      : undefined;
+        ? systemFrameOnly
+        : undefined;
 
   const project = useCurrentProjectFromRouteParam();
 

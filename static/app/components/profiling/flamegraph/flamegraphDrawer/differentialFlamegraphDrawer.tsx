@@ -55,8 +55,8 @@ const DifferentialFlamegraphDrawer = memo(function FlamegraphDrawer(
       treeType === 'application'
         ? f => !f.frame.is_application
         : treeType === 'system'
-        ? f => f.frame.is_application
-        : () => false;
+          ? f => f.frame.is_application
+          : () => false;
 
     const maybeFilteredRoots =
       treeType !== 'all'
@@ -309,12 +309,12 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
     'drawer drawer'
     `
       : layout === 'table left'
-      ? `
+        ? `
       'tabs tabs drawer'
       'table table drawer'
       'details details drawer';
       `
-      : `
+        : `
       'drawer tabs tabs'
       'drawer table table'
       'drawer details details';

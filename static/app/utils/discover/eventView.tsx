@@ -1183,8 +1183,8 @@ class EventView {
       this.sorts.length <= 0
         ? undefined
         : this.sorts.length > 1
-        ? encodeSorts(this.sorts)
-        : encodeSort(this.sorts[0]);
+          ? encodeSorts(this.sorts)
+          : encodeSort(this.sorts[0]);
     const fields = this.getFields();
     const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));

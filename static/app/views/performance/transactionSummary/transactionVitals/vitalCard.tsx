@@ -153,8 +153,8 @@ class VitalCard extends Component<Props, State> {
     return summary === null
       ? '\u2014'
       : type === 'duration'
-      ? getDuration(summary / 1000, 2, true)
-      : formatFloat(summary, 2);
+        ? getDuration(summary / 1000, 2, true)
+        : formatFloat(summary, 2);
   }
 
   renderSummary() {

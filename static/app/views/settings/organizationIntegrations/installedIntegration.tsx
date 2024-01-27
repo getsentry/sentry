@@ -214,10 +214,10 @@ function IntegrationStatus(
         status === 'active'
           ? t('enabled')
           : status === 'pending_deletion'
-          ? t('pending deletion')
-          : status === 'disabled'
-          ? t('disabled')
-          : t('unknown')
+            ? t('pending deletion')
+            : status === 'disabled'
+              ? t('disabled')
+              : t('unknown')
       }`}</IntegrationStatusText>
     </div>
   );
@@ -229,8 +229,8 @@ function IntegrationStatus(
         status === 'active'
           ? t('This integration can be disabled by clicking the Uninstall button')
           : status === 'disabled'
-          ? t('This integration has been disconnected from the external provider')
-          : t('This integration is pending deletion.')
+            ? t('This integration has been disconnected from the external provider')
+            : t('This integration is pending deletion.')
       }
     >
       {inner}

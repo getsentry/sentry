@@ -193,8 +193,8 @@ const getEventView = (
     dataDisplayType === DataDisplayType.DURATION_P95
       ? `p95(${SPAN_SELF_TIME})`
       : dataDisplayType === DataDisplayType.DURATION_AVG
-      ? `avg(${SPAN_SELF_TIME})`
-      : `sum(${SPAN_SELF_TIME})`;
+        ? `avg(${SPAN_SELF_TIME})`
+        : `sum(${SPAN_SELF_TIME})`;
 
   return EventView.fromNewQueryWithPageFilters(
     {

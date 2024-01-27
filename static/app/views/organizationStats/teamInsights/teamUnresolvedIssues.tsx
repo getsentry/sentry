@@ -172,8 +172,8 @@ export function TeamUnresolvedIssues({
                           totals.percentChange === 0
                             ? 'subText'
                             : totals.percentChange > 0
-                            ? 'errorText'
-                            : 'successText'
+                              ? 'errorText'
+                              : 'successText'
                         }
                       >
                         {formatPercentage(

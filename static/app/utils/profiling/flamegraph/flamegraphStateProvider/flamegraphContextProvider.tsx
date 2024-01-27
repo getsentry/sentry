@@ -60,8 +60,8 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
             ...initialState?.search?.highlightFrames,
           }
         : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.search.highlightFrames)
-        ? DEFAULT_FLAMEGRAPH_STATE.search.highlightFrames
-        : null,
+          ? DEFAULT_FLAMEGRAPH_STATE.search.highlightFrames
+          : null,
       query: initialState?.search?.query ?? DEFAULT_FLAMEGRAPH_STATE.search.query,
     },
   };
