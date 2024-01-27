@@ -230,8 +230,8 @@ class Chart extends Component<ChartProps, State> {
     const selected = !Array.isArray(releaseSeries)
       ? seriesSelection
       : Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
-      ? {[releasesLegend]: false}
-      : seriesSelection;
+        ? {[releasesLegend]: false}
+        : seriesSelection;
 
     const legend = showLegend
       ? {

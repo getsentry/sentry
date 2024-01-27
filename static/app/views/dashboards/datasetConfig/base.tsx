@@ -217,10 +217,10 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
 ): T extends WidgetType.ISSUE
   ? typeof IssuesConfig
   : T extends WidgetType.RELEASE
-  ? typeof ReleasesConfig
-  : T extends WidgetType.METRICS
-  ? typeof MetricsConfig
-  : typeof ErrorsAndTransactionsConfig;
+    ? typeof ReleasesConfig
+    : T extends WidgetType.METRICS
+      ? typeof MetricsConfig
+      : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType

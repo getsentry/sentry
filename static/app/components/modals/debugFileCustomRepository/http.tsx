@@ -88,8 +88,8 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
         validData.password === undefined
           ? {'hidden-secret': true}
           : !validData.password
-          ? undefined
-          : validData.password,
+            ? undefined
+            : validData.password,
     });
   }
 
@@ -261,8 +261,7 @@ const StyledSelectField = styled(SelectField)`
 `;
 
 const PasswordInput = styled(Input)`
-  padding-right: ${p =>
-    p.theme.formPadding.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
+  padding-right: ${p => p.theme.formPadding.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
 `;
 
 const ClearPasswordButton = styled(ActionButton)`

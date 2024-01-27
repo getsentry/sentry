@@ -44,8 +44,8 @@ function GroupReleaseStats({
     environments.length > 1
       ? t('selected environments')
       : environments.length === 1
-      ? environments[0]
-      : undefined;
+        ? environments[0]
+        : undefined;
 
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
     [

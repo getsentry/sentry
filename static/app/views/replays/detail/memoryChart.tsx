@@ -83,9 +83,7 @@ function MemoryChart({
         const seriesTooltips = values.map(
           value => `
             <div>
-              <span className="tooltip-label">${value.marker}<strong>${
-                value.seriesName
-              }</strong></span>
+              <span className="tooltip-label">${value.marker}<strong>${value.seriesName}</strong></span>
           ${formatBytesBase2(value.data[1])}
             </div>
           `

@@ -45,8 +45,8 @@ function GlobalSelectionLink(props: Props) {
     const toWithGlobalQuery: LocationDescriptor = !hasGlobalQuery
       ? {}
       : typeof to === 'string'
-      ? {pathname: to, query}
-      : {...to, query};
+        ? {pathname: to, query}
+        : {...to, query};
 
     const routerProps = hasGlobalQuery
       ? {...props, to: toWithGlobalQuery}

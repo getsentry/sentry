@@ -335,8 +335,8 @@ function AppStoreConnect({
             {initialData
               ? t('Update')
               : activeStep + 1 === steps.length
-              ? t('Save')
-              : steps[activeStep + 1]}
+                ? t('Save')
+                : steps[activeStep + 1]}
           </StyledButton>
         </ButtonBar>
       </Footer>

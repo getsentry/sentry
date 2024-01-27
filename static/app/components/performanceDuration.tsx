@@ -31,8 +31,8 @@ function PerformanceDuration(props: PerformanceDurationProps) {
   const normalizedSeconds = isNanoseconds(props)
     ? props.nanoseconds / 1_000_000_000
     : isMilliseconds(props)
-    ? props.milliseconds / 1000
-    : props.seconds;
+      ? props.milliseconds / 1000
+      : props.seconds;
 
   return (
     <Duration

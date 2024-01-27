@@ -54,8 +54,8 @@ function MetricRulesCreate(props: Props) {
   const defaultRule = eventView
     ? createRuleFromEventView(eventView)
     : wizardTemplate
-    ? createRuleFromWizardTemplate(wizardTemplate)
-    : createDefaultRule();
+      ? createRuleFromWizardTemplate(wizardTemplate)
+      : createDefaultRule();
 
   const projectTeamIds = new Set(project.teams.map(({id}) => id));
   const defaultOwnerId = userTeamIds.find(id => projectTeamIds.has(id)) ?? null;

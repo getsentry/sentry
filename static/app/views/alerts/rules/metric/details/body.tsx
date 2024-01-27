@@ -219,8 +219,8 @@ export default function MetricDetailsBody({
                       ? // Not using (query) AND (event.type:x) because issues doesn't support it yet
                         `${extractEventTypeFilterFromRule(rule)} ${query}`.trim()
                       : isCrashFreeAlert(dataset)
-                      ? `${query} error.unhandled:true`.trim()
-                      : undefined
+                        ? `${query} error.unhandled:true`.trim()
+                        : undefined
                   }
                 />
               )}

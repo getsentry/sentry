@@ -254,8 +254,8 @@ function BaseSlider(
                 index === 0
                   ? 'start'
                   : index === allTickValues.length - 1
-                  ? 'end'
-                  : 'center'
+                    ? 'end'
+                    : 'center'
               }
             >
               {showTickLabels && (

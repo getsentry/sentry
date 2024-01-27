@@ -298,14 +298,14 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
         {inviteDetails.needsAuthentication
           ? this.authenticationActions
           : inviteDetails.existingMember
-          ? this.existingMemberAlert
-          : inviteDetails.needs2fa
-          ? this.warning2fa
-          : inviteDetails.needsEmailVerification
-          ? this.warningEmailVerification
-          : inviteDetails.requireSso
-          ? this.authenticationActions
-          : this.acceptActions}
+            ? this.existingMemberAlert
+            : inviteDetails.needs2fa
+              ? this.warning2fa
+              : inviteDetails.needsEmailVerification
+                ? this.warningEmailVerification
+                : inviteDetails.requireSso
+                  ? this.authenticationActions
+                  : this.acceptActions}
       </NarrowLayout>
     );
   }

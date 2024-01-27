@@ -217,8 +217,8 @@ function Chart({
           stacked
         )
       : percentOnly
-      ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
-      : undefined;
+        ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
+        : undefined;
     // Fix an issue where max == 1 for duration charts would look funky cause we round
     if (dataMax === 1 && durationOnly) {
       dataMax += 1;

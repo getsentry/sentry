@@ -162,8 +162,8 @@ function TransactionSummaryCharts({
       display === DisplayModes.VITALS
         ? TransactionsListOption.SLOW_LCP
         : display === DisplayModes.DURATION
-        ? TransactionsListOption.SLOW
-        : undefined,
+          ? TransactionsListOption.SLOW
+          : undefined,
   };
 
   const mepSetting = useMEPSettingContext();

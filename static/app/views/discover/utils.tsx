@@ -350,8 +350,8 @@ function generateAdditionalConditions(
         value === null || value === undefined
           ? ''
           : shouldQuote
-          ? String(value)
-          : String(value).trim();
+            ? String(value)
+            : String(value).trim();
 
       if (isMeasurement(column.field) && !nextValue) {
         // Do not add measurement conditions if nextValue is falsey.

@@ -70,7 +70,7 @@ const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
   animation: 0.25s FadeIn linear forwards;
 
   @media (max-width: ${p =>
-      p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+    p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 
@@ -125,7 +125,7 @@ const AssigneesLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
   margin-right: ${space(2)};
 
   @media (max-width: ${p =>
-      p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;

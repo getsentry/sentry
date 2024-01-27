@@ -153,8 +153,8 @@ export default function MonitorQuickStartGuide({monitor}: Props) {
     {label: t('Generic'), options: genericGuides.map(guideToSelectOption)},
   ];
 
-  const platformSpecific = platformGuides.filter(
-    guide => guide.platforms?.has(monitor.project.platform ?? 'other')
+  const platformSpecific = platformGuides.filter(guide =>
+    guide.platforms?.has(monitor.project.platform ?? 'other')
   );
 
   const defaultExample = platformSpecific.length > 0 ? platformSpecific[0].key : 'cli';

@@ -177,8 +177,8 @@ function StacktraceLinkModal({
                     }
                   )
                 : error.includes('blank')
-                ? t('URL is required.')
-                : error}
+                  ? t('URL is required.')
+                  : error}
             </StyledAlert>
           )}
           <div>

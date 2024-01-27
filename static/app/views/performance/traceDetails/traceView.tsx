@@ -86,23 +86,23 @@ function TraceHiddenMessage({
     numberOfHiddenTransactionsAbove < 1
       ? ''
       : numberOfHiddenTransactionsAbove === 1
-      ? tct('[numOfTransaction] hidden transaction', {
-          numOfTransaction,
-        })
-      : tct('[numOfTransaction] hidden transactions', {
-          numOfTransaction,
-        });
+        ? tct('[numOfTransaction] hidden transaction', {
+            numOfTransaction,
+          })
+        : tct('[numOfTransaction] hidden transactions', {
+            numOfTransaction,
+          });
 
   const hiddenErrorsMessage =
     numberOfHiddenErrorsAbove < 1
       ? ''
       : numberOfHiddenErrorsAbove === 1
-      ? tct('[numOfErrors] hidden error', {
-          numOfErrors,
-        })
-      : tct('[numOfErrors] hidden errors', {
-          numOfErrors,
-        });
+        ? tct('[numOfErrors] hidden error', {
+            numOfErrors,
+          })
+        : tct('[numOfErrors] hidden errors', {
+            numOfErrors,
+          });
 
   return (
     <MessageRow>

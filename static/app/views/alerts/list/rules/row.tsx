@@ -158,8 +158,8 @@ function RuleListRow({
         trigger?.label === AlertRuleTriggerType.CRITICAL
           ? 'errorText'
           : trigger?.label === AlertRuleTriggerType.WARNING
-          ? 'warningText'
-          : 'successText';
+            ? 'warningText'
+            : 'successText';
       iconDirection = rule.thresholdType === AlertRuleThresholdType.ABOVE ? 'up' : 'down';
     } else {
       // Use the Resolved threshold type, which is opposite of Critical

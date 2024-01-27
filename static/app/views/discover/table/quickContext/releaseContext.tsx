@@ -63,14 +63,14 @@ function ReleaseContext(props: BaseContextProps) {
             authorsCount,
           })
         : commitCount !== 1
-        ? tct('[commitCount] commits by you and 1 other', {
-            commitCount,
-          })
-        : authorsCount !== 1
-        ? tct('1 commit by you and [authorsCount] others', {
-            authorsCount,
-          })
-        : t('1 commit by you and 1 other');
+          ? tct('[commitCount] commits by you and 1 other', {
+              commitCount,
+            })
+          : authorsCount !== 1
+            ? tct('1 commit by you and [authorsCount] others', {
+                authorsCount,
+              })
+            : t('1 commit by you and 1 other');
     }
 
     return (
@@ -81,14 +81,14 @@ function ReleaseContext(props: BaseContextProps) {
             authorsCount,
           })
         : commitCount !== 1
-        ? tct('[commitCount] commits by 1 author', {
-            commitCount,
-          })
-        : authorsCount !== 1
-        ? tct('1 commit by [authorsCount] authors', {
-            authorsCount,
-          })
-        : t('1 commit by 1 author'))
+          ? tct('[commitCount] commits by 1 author', {
+              commitCount,
+            })
+          : authorsCount !== 1
+            ? tct('1 commit by [authorsCount] authors', {
+                authorsCount,
+              })
+            : t('1 commit by 1 author'))
     );
   };
 

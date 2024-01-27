@@ -228,14 +228,14 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
       !shouldUseStoredScores || (name as number) <= SCORE_MIGRATION_TIMESTAMP
         ? PERFORMANCE_SCORE_WEIGHTS
         : projectScore !== undefined
-        ? {
-            lcp: projectScore.lcpWeight,
-            fcp: projectScore.fcpWeight,
-            fid: projectScore.fidWeight,
-            cls: projectScore.clsWeight,
-            ttfb: projectScore.ttfbWeight,
-          }
-        : undefined;
+          ? {
+              lcp: projectScore.lcpWeight,
+              fcp: projectScore.fcpWeight,
+              fid: projectScore.fidWeight,
+              cls: projectScore.clsWeight,
+              ttfb: projectScore.ttfbWeight,
+            }
+          : undefined;
     return {name, value};
   });
 
@@ -270,8 +270,9 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         tooltipFormatterOptions={{
           nameFormatter: (name, seriesParams: any) => {
             const timestamp = seriesParams?.data[0];
-            const weights = weightsSeries.find(series => series.name === timestamp)
-              ?.value;
+            const weights = weightsSeries.find(
+              series => series.name === timestamp
+            )?.value;
             // nameFormatter expects a string an will wrap the output in an html string.
             // Kind of a hack, but we can inject some html to escape styling for the subLabel.
             const subLabel =

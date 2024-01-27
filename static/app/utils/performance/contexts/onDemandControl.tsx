@@ -41,8 +41,8 @@ export function OnDemandControlProvider({
     _forceOnDemandQuery === 'true'
       ? true
       : _forceOnDemandQuery === 'false'
-      ? false
-      : undefined;
+        ? false
+        : undefined;
   const [isControlEnabled, setIsControlEnabled] = useState(_forceOnDemand !== undefined);
   const [forceOnDemand, _setForceOnDemand] = useState(_forceOnDemand || false);
 

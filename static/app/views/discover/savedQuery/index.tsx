@@ -185,8 +185,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       !savedQuery.yAxis
         ? ['count()']
         : typeof savedQuery.yAxis === 'string'
-        ? [savedQuery.yAxis]
-        : savedQuery.yAxis
+          ? [savedQuery.yAxis]
+          : savedQuery.yAxis
     );
     return {
       isNewQuery: false,
@@ -440,8 +440,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const analyticsEventSource = isHomepage
       ? 'homepage'
       : eventView.id
-      ? 'saved-query'
-      : 'prebuilt-query';
+        ? 'saved-query'
+        : 'prebuilt-query';
     if (
       homepageQuery &&
       eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id', 'name'])

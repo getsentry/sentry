@@ -333,14 +333,14 @@ const FlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? 'auto auto auto auto auto auto 1fr'
       : layout === 'table right'
-      ? 'min-content min-content min-content min-content min-content min-content 1fr'
-      : 'min-content min-content min-content min-content min-content min-content 1fr'};
+        ? 'min-content min-content min-content min-content min-content min-content 1fr'
+        : 'min-content min-content min-content min-content min-content min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
       : layout === 'table left'
-      ? `min-content auto`
-      : `auto min-content`};
+        ? `min-content auto`
+        : `auto min-content`};
 
   /* false positive for grid layout */
   /* stylelint-disable */
@@ -357,7 +357,7 @@ const FlamegraphGrid = styled('div')<{
         'frame-stack'
         `
       : layout === 'table right'
-      ? `
+        ? `
         'minimap        frame-stack'
         'spans          frame-stack'
         'ui-frames      frame-stack'
@@ -366,8 +366,8 @@ const FlamegraphGrid = styled('div')<{
         'cpu-chart      frame-stack'
         'flamegraph     frame-stack'
       `
-      : layout === 'table left'
-      ? `
+        : layout === 'table left'
+          ? `
         'frame-stack minimap'
         'frame-stack spans'
         'frame-stack ui-frames'
@@ -376,7 +376,7 @@ const FlamegraphGrid = styled('div')<{
         'frame-stack cpu-chart'
         'frame-stack flamegraph'
     `
-      : ''};
+          : ''};
 `;
 
 const MinimapContainer = styled('div')<{

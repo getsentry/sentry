@@ -199,8 +199,8 @@ function SetupInstructions({
     showSnippet === Output.SETUP
       ? t('Capture Request and Response Headers and Bodies')
       : visibleTab === 'details'
-      ? t('Capture Request and Response Headers')
-      : t('Capture Request and Response Bodies');
+        ? t('Capture Request and Response Headers')
+        : t('Capture Request and Response Bodies');
 
   return (
     <StyledInstructions data-test-id="network-setup-steps">

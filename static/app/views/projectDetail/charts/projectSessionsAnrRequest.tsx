@@ -151,8 +151,8 @@ function ProjectSessionsAnrRequest({
                   totalUsers === 0 && previousPeriodTotalUsers === 0
                     ? 0
                     : anrRate === null
-                    ? null
-                    : anrRate * 100,
+                      ? null
+                      : anrRate * 100,
               };
             }),
         },
@@ -191,8 +191,8 @@ function ProjectSessionsAnrRequest({
                     totalUsers === 0 && previousPeriodTotalUsers === 0
                       ? 0
                       : previousAnrRate === null
-                      ? null
-                      : previousAnrRate * 100,
+                        ? null
+                        : previousAnrRate * 100,
                 };
               }),
           } as Series) // TODO(project-detail): Change SeriesDataUnit value to support null

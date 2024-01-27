@@ -136,8 +136,8 @@ export function AggregateFlamegraphTreeTable({
       return frameFilter === 'application'
         ? !frame.frame.is_application
         : frameFilter === 'system'
-        ? frame.frame.is_application
-        : false;
+          ? frame.frame.is_application
+          : false;
     }
 
     const maybeFilteredRoots =

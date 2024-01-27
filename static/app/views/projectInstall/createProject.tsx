@@ -141,8 +141,8 @@ function CreateProject() {
           issue_alert: defaultRules
             ? 'Default'
             : shouldCreateCustomRule
-            ? 'Custom'
-            : 'No Rule',
+              ? 'Custom'
+              : 'No Rule',
           project_id: projectData.id,
           rule_id: ruleId || '',
         });

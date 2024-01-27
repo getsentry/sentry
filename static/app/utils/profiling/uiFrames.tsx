@@ -80,11 +80,11 @@ class UIFrames {
       const nextType = !slowFramesQueue.length
         ? 'frozen'
         : !frozenFramesQueue.length
-        ? 'slow'
-        : slowFramesQueue[0].elapsed_since_start_ns - slowFramesQueue[0].value <
-          frozenFramesQueue[0].elapsed_since_start_ns - frozenFramesQueue[0].value
-        ? 'slow'
-        : 'frozen';
+          ? 'slow'
+          : slowFramesQueue[0].elapsed_since_start_ns - slowFramesQueue[0].value <
+              frozenFramesQueue[0].elapsed_since_start_ns - frozenFramesQueue[0].value
+            ? 'slow'
+            : 'frozen';
 
       // Being lazy, but we could reverse and pop to avoid shift which is O(n)
       const frame =

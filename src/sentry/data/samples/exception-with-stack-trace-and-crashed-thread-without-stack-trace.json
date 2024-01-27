@@ -1,5 +1,4 @@
 {
-
   "exception": {
     "values": [
       {
@@ -56,6 +55,8 @@
     ]
   },
   "threads": {
-    "values": [{"id": 13920, "name": "puma 002", "crashed": true, "current": true}]
+    "values": [
+      { "id": 13920, "name": "puma 002", "crashed": true, "current": true }
+    ]
   }
 }

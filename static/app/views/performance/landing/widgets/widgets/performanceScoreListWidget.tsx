@@ -111,13 +111,13 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                 scoreCount
               : 0
             : count !== undefined
-            ? calculateOpportunity(
-                projectScore.totalScore ?? 0,
-                count,
-                listItem.totalScore,
-                listItem['count()']
-              )
-            : 0;
+              ? calculateOpportunity(
+                  projectScore.totalScore ?? 0,
+                  count,
+                  listItem.totalScore,
+                  listItem['count()']
+                )
+              : 0;
           return (
             <Fragment>
               <GrowLink

@@ -584,7 +584,7 @@ const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   align-self: center;
 
   @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+    p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 `;
@@ -607,7 +607,7 @@ const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
   align-self: center;
 
   @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;

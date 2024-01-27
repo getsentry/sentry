@@ -380,6 +380,6 @@ const CompareLabel = styled('div')<{change?: 'increase' | 'decrease'}>`
     p.change === 'increase'
       ? p.theme.red300
       : p.change === 'decrease'
-      ? p.theme.green300
-      : p.theme.gray300};
+        ? p.theme.green300
+        : p.theme.gray300};
 `;

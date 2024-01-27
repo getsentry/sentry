@@ -53,7 +53,7 @@ Permitted Purposes specifically include using the Software:
 
 4. in connection with software development services or managed services that
    you provide to a licensee using the Software in accordance with these Terms
-and Conditions.
+   and Conditions.
 
 ### Patents
 

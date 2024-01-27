@@ -71,14 +71,14 @@ function Repository({
                 !hasFeature
                   ? undefined
                   : !hasAccess
-                  ? t(
-                      'You do not have permission to edit custom repositories configurations.'
-                    )
-                  : !authenticated
-                  ? t(
-                      'Authentication is required before this repository can sync with App Store Connect.'
-                    )
-                  : undefined
+                    ? t(
+                        'You do not have permission to edit custom repositories configurations.'
+                      )
+                    : !authenticated
+                      ? t(
+                          'Authentication is required before this repository can sync with App Store Connect.'
+                        )
+                      : undefined
               }
             >
               {t('Sync Now')}

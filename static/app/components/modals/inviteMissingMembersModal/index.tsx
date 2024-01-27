@@ -155,8 +155,8 @@ export function InviteMissingMembersModal({
         !errorResponse || !errorResponse.email
           ? false
           : Array.isArray(errorResponse.email)
-          ? errorResponse.email[0]
-          : errorResponse.email;
+            ? errorResponse.email[0]
+            : errorResponse.email;
 
       const error = emailError || t('Could not invite user');
 
@@ -196,8 +196,8 @@ export function InviteMissingMembersModal({
         memberInvites.length === selectedCount
           ? `all ${selectedCount}`
           : selectedCount === 0
-          ? ''
-          : selectedCount,
+            ? ''
+            : selectedCount,
       isPlural: selectedCount !== 1 ? 's' : '',
     });
   };

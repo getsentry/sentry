@@ -137,10 +137,10 @@ function IssueListActions({
       const statusDetails = data.statusDetails.ignoreCount
         ? 'ignoreCount'
         : data.statusDetails.ignoreDuration
-        ? 'ignoreDuration'
-        : data.statusDetails.ignoreUserCount
-        ? 'ignoreUserCount'
-        : undefined;
+          ? 'ignoreDuration'
+          : data.statusDetails.ignoreUserCount
+            ? 'ignoreUserCount'
+            : undefined;
       trackAnalytics('issues_stream.archived', {
         action_status_details: statusDetails,
         action_substatus: data.substatus,

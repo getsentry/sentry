@@ -69,7 +69,12 @@
       },
       "status": {
         "type": "string",
-        "enum": ["active", "disabled", "pending_deletion", "deletion_in_progress"]
+        "enum": [
+          "active",
+          "disabled",
+          "pending_deletion",
+          "deletion_in_progress"
+        ]
       }
     }
   },

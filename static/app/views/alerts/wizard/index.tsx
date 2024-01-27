@@ -97,8 +97,8 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
           isTransactionDataset
             ? ['organizations:incidents', 'organizations:performance-view']
             : isMetricAlert
-            ? ['organizations:incidents']
-            : []
+              ? ['organizations:incidents']
+              : []
         }
         requireAll
         organization={organization}

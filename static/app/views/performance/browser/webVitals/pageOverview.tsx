@@ -152,8 +152,8 @@ export default function PageOverview() {
     (shouldUseStoredScores && isProjectScoresLoading) || isLoading
       ? undefined
       : shouldUseStoredScores
-      ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
-      : calculatePerformanceScoreFromTableDataRow(pageData?.data?.[0]);
+        ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
+        : calculatePerformanceScoreFromTableDataRow(pageData?.data?.[0]);
 
   const scoreMigrationTimestampString = moment(SCORE_MIGRATION_TIMESTAMP).format(
     'DD MMMM YYYY'

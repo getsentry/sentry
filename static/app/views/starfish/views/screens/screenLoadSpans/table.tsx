@@ -353,8 +353,8 @@ export function ScreenLoadSpansTable({
               ? 'desc'
               : 'asc'
             : sort?.field === column.key
-            ? sort.kind
-            : undefined
+              ? sort.kind
+              : undefined
         }
         canSort={canSort}
         generateSortLink={generateSortLink}

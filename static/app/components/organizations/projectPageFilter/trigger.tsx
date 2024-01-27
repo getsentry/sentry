@@ -64,15 +64,15 @@ function BaseProjectPageFilterTrigger(
   const label = isAllProjectsSelected
     ? t('All Projects')
     : isMyProjectsSelected
-    ? t('My Projects')
-    : enumeratedLabel;
+      ? t('My Projects')
+      : enumeratedLabel;
 
   // Number of projects that aren't listed in the trigger label
   const remainingCount = isAllProjectsSelected
     ? 0
     : isMyProjectsSelected
-    ? value.length - memberProjects.length
-    : value.length - projectsToShow.length;
+      ? value.length - memberProjects.length
+      : value.length - projectsToShow.length;
 
   return (
     <DropdownButton

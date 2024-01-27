@@ -41,8 +41,8 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
       const options = isSingleId
         ? {}
         : ids === 'all'
-        ? listQueryKey[1]!
-        : {query: {id: ids}};
+          ? listQueryKey[1]!
+          : {query: {id: ids}};
       return fetchMutation(api)(['PUT', url, options, payload]);
     },
     onSettled: (_resp, _error, [ids, _payload]) => {

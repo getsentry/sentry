@@ -102,8 +102,8 @@ class ResultsChart extends Component<ResultsChartProps> {
       display === DisplayModes.BAR
         ? BarChart
         : customPerformanceMetricFieldType === 'size' && isTopEvents
-        ? AreaChart
-        : undefined;
+          ? AreaChart
+          : undefined;
     const interval =
       display === DisplayModes.BAR
         ? getInterval(

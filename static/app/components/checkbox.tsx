@@ -171,11 +171,11 @@ const StyledCheckbox = styled('div')<{
           border: 0;
         `
       : p.checked
-      ? css`
+        ? css`
           background: ${p.color ?? p.theme.active};
           border: 0;
         `
-      : css`
+        : css`
           background: ${p.theme.background};
           border: 1px solid ${p.theme.gray200};
         `}

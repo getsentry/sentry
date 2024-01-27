@@ -296,8 +296,8 @@ class SpanTreeModel {
         spanGroupingCriteria && toggleNestedSpanGroup && !isNestedSpanGroupExpanded
           ? toggleNestedSpanGroup
           : isFirstSpanOfGroup && this.isNestedSpanGroupExpanded && !hideSpanTree
-          ? this.toggleNestedSpanGroup
-          : undefined,
+            ? this.toggleNestedSpanGroup
+            : undefined,
       toggleSiblingSpanGroup: undefined,
       isEmbeddedTransactionTimeAdjusted: this.isEmbeddedTransactionTimeAdjusted,
     };
