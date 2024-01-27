@@ -55,7 +55,9 @@ def get_next_schedule(
         if prev_occurrence is None:
             # Handle the case where there is no valid occurrence before reference_ts
             # You may consider logging an error, raising an exception, or providing some fallback behavior
-            raise ValueError("No previous occurrence found for the given schedule and reference timestamp.")
+            raise ValueError(
+                "No previous occurrence found for the given schedule and reference timestamp."
+            )
         return prev_occurrence.replace(second=0, microsecond=0)
 
     raise NotImplementedError("unknown schedule_type")
