@@ -66,6 +66,13 @@ class Operation:
             raise ArithmeticValidationError("division by 0 is not allowed")
 
     def to_snuba_json(self, alias: Optional[str] = None) -> JsonQueryType:
+        # If the rhs is a string and this is an arithmetic operation, try converting to a float
+        if isinstance(self.rhs, str) and self.operator in ARITHMETIC_OPERATORS:
+            try:
+                self.rhs = float(self.rhs)
+            except ValueError:
+                pass  # If conversion fails, keep the string value
+
         """Convert this tree of Operations to the equivalent snuba json"""
         lhs = self.lhs.to_snuba_json() if isinstance(self.lhs, Operation) else self.lhs
         # TODO(snql): This is a hack so the json syntax doesn't turn lhs into a function
