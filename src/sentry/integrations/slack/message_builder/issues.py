@@ -205,6 +205,7 @@ def get_option_groups_block_kit(group: Group) -> Sequence[Mapping[str, Any]]:
     members = list({m.id: m for m in all_members}.values())
     teams = group.project.teams.all()
     use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        # Confirming the use of `organizations:slack-block-kit` feature flag to ensure it does not interfere with Slack message unfurling.
 
     option_groups = []
     if teams:
@@ -491,7 +492,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
             # If we figure out why this is required we should note it here because it's quite strange
             if self.is_unfurl:
-                text = escape_slack_text(text)
+            # Removed double-escaping for unfurled messages to avoid potential issues with Slack's unfurling process.
+            # if self.is_unfurl:
+            #     text = escape_slack_text(text)
 
         # This link does not contain user input (it's a static label and a url), must not escape it.
         text += build_attachment_replay_link(self.group, self.event) or ""
