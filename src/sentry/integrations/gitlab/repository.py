@@ -101,11 +101,14 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider):
     def _transform_patchset(self, patch_set):
         file_changes = []
         for changed_file in patch_set:
-            if changed_file["new_file"]:
+            if "new_file" in changed_file and changed_file["new_file"]:
+                # Added key existence check to prevent KeyError
                 file_changes.append({"path": changed_file["new_path"], "type": "A"})
-            elif changed_file["deleted_file"]:
+            elif "deleted_file" in changed_file and changed_file["deleted_file"]:
+                # Added key existence check to prevent KeyError
                 file_changes.append({"path": changed_file["old_path"], "type": "D"})
-            elif changed_file["renamed_file"]:
+            elif "renamed_file" in changed_file and changed_file["renamed_file"]:
+                # Added key existence check to prevent KeyError
                 file_changes.append({"path": changed_file["old_path"], "type": "D"})
                 file_changes.append({"path": changed_file["new_path"], "type": "A"})
             else:
