@@ -109,8 +109,8 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
                     'You need this identity to sign into your account. If you want to disconnect it, set a password first.'
                   )
                 : identity.status === UserIdentityStatus.NEEDED_FOR_ORG_AUTH
-                ? t('You need this identity to access your organization.')
-                : null
+                  ? t('You need this identity to access your organization.')
+                  : null
             }
           >
             {t('Disconnect')}

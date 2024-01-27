@@ -209,8 +209,8 @@ export function importSchema(
     input.metadata.platform === 'node'
       ? 'node'
       : input.metadata.platform === 'javascript'
-      ? 'javascript'
-      : 'mobile',
+        ? 'javascript'
+        : 'mobile',
     input.shared.frames
   );
 

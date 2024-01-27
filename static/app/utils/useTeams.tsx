@@ -367,8 +367,8 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
     return slugs
       ? store.teams.filter(t => slugs.includes(t.slug))
       : provideUserTeams && !isSuperuser
-      ? store.teams.filter(t => t.isMember)
-      : store.teams;
+        ? store.teams.filter(t => t.isMember)
+        : store.teams;
   }, [store.teams, slugs, provideUserTeams, isSuperuser]);
 
   const result: Result = {

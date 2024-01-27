@@ -83,11 +83,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
     const yCenter = Math.abs(canvasSize.height - hierarchyData.maxHeight * scale) / 2;
 
     // prettier-ignore
-    return mat3.fromValues(
-      scale, 0, 0,
-      0, scale, 0,
-      xCenter, yCenter, 1
-    );
+    return mat3.fromValues(scale, 0, 0, 0, scale, 0, xCenter, yCenter, 1);
   }, [
     canvasSize.height,
     canvasSize.width,

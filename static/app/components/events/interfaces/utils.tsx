@@ -398,8 +398,9 @@ export function getStacktracePlatform(
   event: Event,
   stacktrace?: StacktraceType | null
 ): PlatformKey {
-  const overridePlatform = stacktrace?.frames?.find(frame => defined(frame.platform))
-    ?.platform;
+  const overridePlatform = stacktrace?.frames?.find(frame =>
+    defined(frame.platform)
+  )?.platform;
 
   return overridePlatform ?? event.platform ?? 'other';
 }

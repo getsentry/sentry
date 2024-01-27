@@ -174,8 +174,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
     frameFilterSetting === 'application'
       ? applicationFrameOnly
       : frameFilterSetting === 'system'
-      ? systemFrameOnly
-      : undefined;
+        ? systemFrameOnly
+        : undefined;
 
   const [negated, setNegated] = useState<boolean>(false);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);

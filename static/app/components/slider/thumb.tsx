@@ -104,8 +104,8 @@ const SliderThumbWrap = styled('div')<{
     `}
 
     ${p =>
-    p.isDisabled &&
-    `
+      p.isDisabled &&
+      `
         cursor: initial;
         background: ${p.theme.subText};
         color: ${p.theme.subText};

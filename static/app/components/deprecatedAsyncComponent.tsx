@@ -105,13 +105,13 @@ class DeprecatedAsyncComponent<
     const currentLocation = isLocationInProps
       ? this.props.location
       : isRouterInContext
-      ? this.context.router.location
-      : null;
+        ? this.context.router.location
+        : null;
     const prevLocation = isLocationInProps
       ? prevProps.location
       : isRouterInContext
-      ? prevContext.router.location
-      : null;
+        ? prevContext.router.location
+        : null;
 
     if (!(currentLocation && prevLocation)) {
       return;
@@ -452,8 +452,8 @@ class DeprecatedAsyncComponent<
     return this.shouldRenderLoading
       ? this.renderLoading()
       : this.state.error
-      ? this.renderError()
-      : this.renderBody();
+        ? this.renderError()
+        : this.renderBody();
   }
 
   /**

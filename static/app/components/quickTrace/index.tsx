@@ -392,13 +392,13 @@ function EventNodeSelector({
     const target = errors.length
       ? generateSingleErrorTarget(errors[0], organization, location, errorDest)
       : perfIssues.length
-      ? generateSingleErrorTarget(perfIssues[0], organization, location, errorDest)
-      : generateSingleTransactionTarget(
-          events[0],
-          organization,
-          location,
-          transactionDest
-        );
+        ? generateSingleErrorTarget(perfIssues[0], organization, location, errorDest)
+        : generateSingleTransactionTarget(
+            events[0],
+            organization,
+            location,
+            transactionDest
+          );
     return (
       <StyledEventNode
         text={text}
@@ -419,8 +419,8 @@ function EventNodeSelector({
       errors.length && events.length
         ? 'events'
         : events.length
-        ? 'transactions'
-        : 'errors',
+          ? 'transactions'
+          : 'errors',
   });
   return (
     <DropdownContainer>

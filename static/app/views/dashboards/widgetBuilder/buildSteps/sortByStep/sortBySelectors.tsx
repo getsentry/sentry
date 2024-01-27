@@ -127,8 +127,8 @@ export function SortBySelectors({
               widgetType === WidgetType.METRICS
                 ? {kind: 'field', field: values.sortBy}
                 : showCustomEquation
-                ? explodeField({field: CUSTOM_EQUATION_VALUE})
-                : explodeField({field: values.sortBy})
+                  ? explodeField({field: CUSTOM_EQUATION_VALUE})
+                  : explodeField({field: values.sortBy})
             }
             fieldOptions={datasetConfig.getTimeseriesSortOptions!(
               organization,

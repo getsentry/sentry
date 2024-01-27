@@ -112,8 +112,8 @@ export default class InstallWizard extends DeprecatedAsyncView<
             {this.state.loading
               ? this.renderLoading()
               : this.state.error
-              ? this.renderError()
-              : this.renderBody()}
+                ? this.renderError()
+                : this.renderBody()}
           </SetupWizard>
         </Wrapper>
       </SentryDocumentTitle>

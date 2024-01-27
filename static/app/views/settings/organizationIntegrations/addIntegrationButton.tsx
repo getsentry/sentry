@@ -33,8 +33,8 @@ export function AddIntegrationButton({
     buttonText ?? reinstall
       ? t('Enable')
       : installStatus === 'Disabled'
-      ? t('Reinstall')
-      : t('Add %s', provider.metadata.noun);
+        ? t('Reinstall')
+        : t('Add %s', provider.metadata.noun);
 
   return (
     <Tooltip
