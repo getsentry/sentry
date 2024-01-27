@@ -51,6 +51,13 @@ def get_next_schedule(
         )
         return rule.after(reference_ts).replace(second=0, microsecond=0)
 
+        prev_occurrence = rule.before(reference_ts)
+        if prev_occurrence is None:
+            # Handle the case where there is no valid occurrence before reference_ts
+            # You may consider logging an error, raising an exception, or providing some fallback behavior
+            raise ValueError("No previous occurrence found for the given schedule and reference timestamp.")
+        return prev_occurrence.replace(second=0, microsecond=0)
+
     raise NotImplementedError("unknown schedule_type")
 
 
@@ -59,6 +66,9 @@ def get_prev_schedule(
     reference_ts: datetime,
     schedule: ScheduleConfig,
 ) -> datetime:
+    if start_ts >= reference_ts:
+        raise ValueError("'start_ts' must be earlier than 'reference_ts'.")
+
     """
     Given the schedule type and schedule, determine the previous timestamp for a
     schedule from the reference_ts. Requires `start_ts` to accurately compute
