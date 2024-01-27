@@ -25,7 +25,7 @@ class UserReport(Model):
         unique_together = (("project_id", "event_id"),)
 
         indexes = [
-            models.Index(fields=['project_id', 'event_id']),
+            models.Index(fields=["project_id", "event_id"]),
         ] + Meta.indexes
 
     __repr__ = sane_repr("event_id", "name", "email")
