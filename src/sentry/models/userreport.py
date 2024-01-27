@@ -24,6 +24,10 @@ class UserReport(Model):
         index_together = (("project_id", "event_id"), ("project_id", "date_added"))
         unique_together = (("project_id", "event_id"),)
 
+        indexes = [
+            models.Index(fields=['project_id', 'event_id']),
+        ] + Meta.indexes
+
     __repr__ = sane_repr("event_id", "name", "email")
 
     def notify(self):
