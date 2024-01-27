@@ -26,7 +26,6 @@ module.exports = {
     tick: true,
     jest: true,
   },
-
   rules: {
     'react-hooks/exhaustive-deps': [
       'warn',
@@ -39,7 +38,6 @@ module.exports = {
       {fixStyle: 'separate-type-imports', prefer: 'type-imports'},
     ],
   },
-
   overrides: [
     {
       files: ['tests/js/**/*.{ts,js}'],
