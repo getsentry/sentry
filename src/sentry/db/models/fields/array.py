@@ -9,6 +9,15 @@ from sentry.utils import json
 # Adapted from django-pgfields
 # https://github.com/lukesneeringer/django-pgfields/blob/master/django_pg/models/fields/array.py
 class ArrayField(models.Field):
+
+    def repair_invalid_surrogates(value):
+        import re
+        if not isinstance(value, str):
+            return value
+        # Pattern to match surrogate pairs
+        pattern = re.compile(r'[\uD800-\uDBFF][\uDC00-\uDFFF]')
+        return pattern.sub('�', value)
+
     def __init__(self, of=models.TextField, **kwargs):
         # Arrays in PostgreSQL are arrays of a particular type.
         # Save the subtype in our field class.
@@ -53,6 +62,8 @@ class ArrayField(models.Field):
         if not value:
             value = []
         if isinstance(value, str):
+            # Repair invalid surrogate pairs.
+            value = repair_invalid_surrogates(value)
             try:
                 value = json.loads(value)
             except json.JSONDecodeError:
