@@ -100,7 +100,7 @@ def schedule_auto_transition_to_ongoing() -> None:
     acks_late=True,
     silo_mode=SiloMode.REGION,
 )
-@log_error_if_queue_has_items
+# @log_error_if_queue_has_items
 def schedule_auto_transition_issues_new_to_ongoing(
     first_seen_lte: int,
     **kwargs,
