@@ -16,7 +16,7 @@ import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
-import {PerformanceWidgetProps} from '../types';
+import type {PerformanceWidgetProps} from '../types';
 
 export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const location = useLocation();

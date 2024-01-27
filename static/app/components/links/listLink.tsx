@@ -1,7 +1,7 @@
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
 import useRouter from 'sentry/utils/useRouter';

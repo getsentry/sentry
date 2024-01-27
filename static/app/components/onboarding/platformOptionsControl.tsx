@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {
+import type {
   BasePlatformOptions,
   PlatformOption,
   SelectedPlatformOptions,

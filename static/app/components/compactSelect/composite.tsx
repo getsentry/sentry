@@ -6,10 +6,12 @@ import {Item} from '@react-stately/collections';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {Control, ControlProps} from './control';
-import {List, MultipleListProps, SingleListProps} from './list';
+import type {ControlProps} from './control';
+import {Control} from './control';
+import type {MultipleListProps, SingleListProps} from './list';
+import {List} from './list';
 import {EmptyMessage} from './styles';
-import {SelectOption} from './types';
+import type {SelectOption} from './types';
 import {getItemsWithKeys} from './utils';
 
 interface BaseCompositeSelectRegion<Value extends React.Key> {

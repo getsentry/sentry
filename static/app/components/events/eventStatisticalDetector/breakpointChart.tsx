@@ -2,21 +2,18 @@ import {useMemo} from 'react';
 
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Event, EventsStatsData} from 'sentry/types';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {Event, EventsStatsData} from 'sentry/types';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transformEventStats} from 'sentry/views/performance/trends/chart';
-import {
-  NormalizedTrendsTransaction,
-  TrendFunctionField,
-} from 'sentry/views/performance/trends/types';
+import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import {TrendFunctionField} from 'sentry/views/performance/trends/types';
 import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils';
 
 import {DataSection} from '../styles';

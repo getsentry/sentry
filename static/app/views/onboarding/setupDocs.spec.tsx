@@ -6,7 +6,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OnboardingRecentCreatedProject, Organization, Project} from 'sentry/types';
+import type {OnboardingRecentCreatedProject, Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
 const PROJECT_KEY = ProjectKeysFixture()[0];

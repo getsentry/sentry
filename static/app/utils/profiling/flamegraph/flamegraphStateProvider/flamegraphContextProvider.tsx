@@ -1,16 +1,15 @@
 import {useMemo} from 'react';
 
-import {DeepPartial} from 'sentry/types/utils';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {DeepPartial} from 'sentry/types/utils';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 
-import {FlamegraphSearch} from './reducers/flamegraphSearch';
+import type {FlamegraphSearch} from './reducers/flamegraphSearch';
+import type {FlamegraphState, FlamegraphStateValue} from './flamegraphContext';
 import {
   DEFAULT_FLAMEGRAPH_STATE,
-  FlamegraphState,
   FlamegraphStateDispatchContext,
   flamegraphStateReducer,
-  FlamegraphStateValue,
   FlamegraphStateValueContext,
 } from './flamegraphContext';
 

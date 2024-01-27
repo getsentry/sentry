@@ -11,7 +11,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t, tct} from 'sentry/locale';
-import {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 
 type OnboardingCTAProps = {

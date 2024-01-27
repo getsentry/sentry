@@ -3,7 +3,8 @@ import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import dropRightWhile from 'lodash/dropRightWhile';
 
-import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {decodeInteger, decodeList} from 'sentry/utils/queryString';
 
 interface Props<K extends string> {

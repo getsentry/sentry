@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types';
 import type EventView from 'sentry/utils/discover/eventView';

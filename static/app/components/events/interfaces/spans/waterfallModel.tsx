@@ -3,13 +3,15 @@ import pick from 'lodash/pick';
 import {action, computed, makeObservable, observable} from 'mobx';
 
 import {Client} from 'sentry/api';
-import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
-import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
-import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
+import type {ActiveOperationFilter} from './filter';
+import {noFilter, toggleAllFilters, toggleFilter} from './filter';
 import SpanTreeModel from './spanTreeModel';
-import {
+import type {
   EnhancedProcessedSpanType,
   FilterSpans,
   IndexedFusedSpan,

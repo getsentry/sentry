@@ -1,12 +1,13 @@
 import {t} from 'sentry/locale';
-import {IssueCategory, IssueType, Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
+import {IssueCategory, IssueType} from 'sentry/types';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
 import {
   errorConfig,
   getErrorHelpResource,
 } from 'sentry/utils/issueTypeConfig/errorConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
-import {
+import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';

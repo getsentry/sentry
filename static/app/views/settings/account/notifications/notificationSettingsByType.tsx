@@ -7,29 +7,29 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import {Field} from 'sentry/components/forms/types';
+import type {Field} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, OrganizationSummary} from 'sentry/types';
-import {OrganizationIntegration} from 'sentry/types/integrations';
+import type {Organization, OrganizationSummary} from 'sentry/types';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {
+import type {
   DefaultSettings,
   NotificationOptionsObject,
   NotificationProvidersObject,
-  SUPPORTED_PROVIDERS,
   SupportedProviders,
 } from './constants';
+import {SUPPORTED_PROVIDERS} from './constants';
 import {ACCOUNT_NOTIFICATION_FIELDS} from './fields';
 import {NOTIFICATION_SETTING_FIELDS, QUOTA_FIELDS} from './fields2';
 import NotificationSettingsByEntity from './notificationSettingsByEntity';
-import {Identity} from './types';
+import type {Identity} from './types';
 import UnlinkedAlert from './unlinkedAlert';
 import {isGroupedByProject} from './utils';
 

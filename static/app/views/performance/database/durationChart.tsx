@@ -1,4 +1,4 @@
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {DurationAggregateSelector} from 'sentry/views/performance/database/durationAggregateSelector';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';

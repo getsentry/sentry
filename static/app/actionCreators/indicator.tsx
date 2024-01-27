@@ -2,7 +2,8 @@ import {isValidElement} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import FormModel, {FieldValue} from 'sentry/components/forms/model';
+import type {FieldValue} from 'sentry/components/forms/model';
+import type FormModel from 'sentry/components/forms/model';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';

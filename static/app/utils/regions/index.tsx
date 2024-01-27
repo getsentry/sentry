@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, Region} from 'sentry/types';
+import type {Organization, Region} from 'sentry/types';
 
 const RegionDisplayName: Record<string, string> = {
   US: t('United States of America (US)'),

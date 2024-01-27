@@ -1,13 +1,13 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {LineSeriesOption} from 'echarts';
-import {Location} from 'history';
+import type {Location} from 'history';
 import compact from 'lodash/compact';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
@@ -25,10 +25,10 @@ import {
   truncationFormatter,
 } from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
+import type {StatsPeriodType} from 'sentry/components/organizations/pageFilters/parse';
 import {
   normalizeDateTimeParams,
   parseStatsPeriod,
-  StatsPeriodType,
 } from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -37,8 +37,8 @@ import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
-import {EChartClickHandler} from 'sentry/types/echarts';
+import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
+import type {EChartClickHandler} from 'sentry/types/echarts';
 import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';

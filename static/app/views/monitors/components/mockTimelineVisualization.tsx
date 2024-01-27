@@ -2,7 +2,7 @@ import {Fragment, useContext, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import FormContext from 'sentry/components/forms/formContext';
-import {FieldValue} from 'sentry/components/forms/model';
+import type {FieldValue} from 'sentry/components/forms/model';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';

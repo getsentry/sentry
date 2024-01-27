@@ -5,12 +5,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization as TOrganization} from 'sentry/types';
-import {OrganizationIntegration} from 'sentry/types/integrations';
+import type {Organization as TOrganization} from 'sentry/types';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 
-import {NotificationOptionsObject, NotificationProvidersObject} from './constants';
+import type {NotificationOptionsObject, NotificationProvidersObject} from './constants';
 import NotificationSettingsByType from './notificationSettingsByType';
-import {Identity} from './types';
+import type {Identity} from './types';
 
 function renderMockRequests({
   notificationOptions = [],

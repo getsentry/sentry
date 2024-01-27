@@ -1,4 +1,4 @@
-import {useSortable} from '@dnd-kit/sortable';
+import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';

@@ -27,8 +27,9 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 
-import {ColorChannels, LCH} from './flamegraph/flamegraphTheme';
-import {ELLIPSIS, TrimTextCenter} from './gl/utils';
+import type {ColorChannels, LCH} from './flamegraph/flamegraphTheme';
+import type {TrimTextCenter} from './gl/utils';
+import {ELLIPSIS} from './gl/utils';
 
 export class Rect {
   origin: vec2;

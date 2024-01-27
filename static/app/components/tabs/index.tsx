@@ -2,9 +2,9 @@ import 'intersection-observer'; // polyfill
 
 import {createContext, useState} from 'react';
 import styled from '@emotion/styled';
-import {AriaTabListOptions} from '@react-aria/tabs';
-import {TabListState, TabListStateOptions} from '@react-stately/tabs';
-import {Orientation} from '@react-types/shared';
+import type {AriaTabListOptions} from '@react-aria/tabs';
+import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
+import type {Orientation} from '@react-types/shared';
 
 import {tabsShouldForwardProp} from './utils';
 

@@ -1,11 +1,12 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import Color from 'color';
 
-import {DurationDisplay} from 'sentry/components/performance/waterfall/types';
+import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 
-import {getSpanBarColours, SpanBarType} from './constants';
+import type {SpanBarType} from './constants';
+import {getSpanBarColours} from './constants';
 
 export const getBackgroundColor = ({
   showStriping,

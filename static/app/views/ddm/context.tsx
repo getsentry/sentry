@@ -16,13 +16,13 @@ import {
   useUpdateQuery,
 } from 'sentry/utils/metrics';
 import {DEFAULT_SORT_STATE, emptyWidget} from 'sentry/utils/metrics/constants';
-import {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {FocusArea} from 'sentry/views/ddm/focusArea';
+import type {FocusArea} from 'sentry/views/ddm/focusArea';
 import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
 
 interface DDMContextValue {

@@ -1,9 +1,11 @@
-import {RefObject, useCallback, useMemo, useRef} from 'react';
+import type {RefObject} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
 import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {getFrameOpOrCategory, ReplayFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export type FilterFields = {

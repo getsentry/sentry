@@ -1,4 +1,4 @@
-import {MonitorBucketEnvMapping} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {MonitorBucketEnvMapping} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 import {CHECKIN_STATUS_PRECEDENT} from './constants';
 import {getAggregateStatus} from './getAggregateStatus';

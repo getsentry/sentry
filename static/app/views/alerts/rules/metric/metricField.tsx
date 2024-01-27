@@ -3,16 +3,17 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
-import {Organization} from 'sentry/types';
+import type {FormFieldProps} from 'sentry/components/forms/formField';
+import FormField from 'sentry/components/forms/formField';
+import type {Organization} from 'sentry/types';
+import type {Aggregation} from 'sentry/utils/discover/fields';
 import {
-  Aggregation,
   AGGREGATIONS,
   explodeFieldString,
   generateFieldAsString,
 } from 'sentry/utils/discover/fields';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
-  AlertType,
   hideParameterSelectorSet,
   hidePrimarySelectorSet,
 } from 'sentry/views/alerts/wizard/options';
@@ -20,10 +21,10 @@ import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
+import type {OptionConfig} from './constants';
 import {
   errorFieldConfig,
   getWizardAlertFieldConfig,
-  OptionConfig,
   transactionFieldConfig,
 } from './constants';
 import {Dataset} from './types';

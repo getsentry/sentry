@@ -1,10 +1,12 @@
-import {ReactNode, useCallback, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
 import useQueryBasedColumnResize from 'sentry/components/replays/useQueryBasedColumnResize';
@@ -18,7 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {DeadRageSelectorItem} from 'sentry/views/replays/types';
+import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 
 export interface UrlState {

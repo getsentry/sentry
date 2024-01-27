@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -10,22 +10,19 @@ import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {
-  platformProductAvailability,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
+import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {
   performance as performancePlatforms,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
-import {Platform} from 'sentry/data/platformPickerCategories';
+import type {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {PlatformIntegration, PlatformKey} from 'sentry/types';
-import {OnboardingSelectedSDK} from 'sentry/types';
-import {IssueAlertRule} from 'sentry/types/alerts';
+import type {OnboardingSelectedSDK, PlatformIntegration, PlatformKey} from 'sentry/types';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';

@@ -7,7 +7,7 @@ import {useOverlay} from '@react-aria/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
 import {truncate} from '@sentry/utils';
 import type {VisualMapComponentOption} from 'echarts';
-import {Location} from 'history';
+import type {Location} from 'history';
 import memoize from 'lodash/memoize';
 
 import HeatMapChart from 'sentry/components/charts/heatMapChart';
@@ -24,13 +24,13 @@ import {DropdownItem, SectionSubtext} from 'sentry/components/quickTrace/styles'
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Organization, Project} from 'sentry/types';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
+import type {
   TableData as TagTableData,
   TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';

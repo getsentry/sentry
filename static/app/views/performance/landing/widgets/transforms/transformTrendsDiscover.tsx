@@ -1,4 +1,4 @@
-import {TrendDiscoveryChildrenProps} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import type {TrendDiscoveryChildrenProps} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {normalizeTrends} from 'sentry/views/performance/trends/utils';
 
 import {QUERY_LIMIT_PARAM} from '../utils';

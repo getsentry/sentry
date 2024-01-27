@@ -8,7 +8,8 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EntryType, EventTransaction, IssueTitle, IssueType} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types';
+import {EntryType, IssueTitle, IssueType} from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import {SpanEvidenceSection} from './spanEvidence';

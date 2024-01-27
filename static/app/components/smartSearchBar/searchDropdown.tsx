@@ -6,21 +6,19 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
-import {
-  BooleanOperator,
-  parseSearch,
-  SearchConfig,
-} from 'sentry/components/searchSyntax/parser';
+import type {BooleanOperator, SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import Tag from 'sentry/components/tag';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types';
 import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';
-import {invalidTypes, ItemType, SearchGroup, SearchItem, Shortcut} from './types';
+import type {SearchGroup, SearchItem, Shortcut} from './types';
+import {invalidTypes, ItemType} from './types';
 
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${

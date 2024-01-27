@@ -1,6 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
+import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 
 import {generateDocKeys, isPlatformSupported} from './utils';
 

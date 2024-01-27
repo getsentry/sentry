@@ -1,12 +1,12 @@
 import {useContext} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useMedia from 'sentry/utils/useMedia';
 

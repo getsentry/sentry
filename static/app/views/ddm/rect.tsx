@@ -1,7 +1,7 @@
-import {RefObject} from 'react';
+import type {RefObject} from 'react';
 import moment from 'moment';
 
-import {ReactEchartsRef} from 'sentry/types/echarts';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 
 export function isInRect(x: number, y: number, rect: DOMRect | undefined) {
   if (!rect) {

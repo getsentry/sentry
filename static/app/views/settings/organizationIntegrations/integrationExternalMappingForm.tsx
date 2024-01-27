@@ -1,13 +1,14 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {SelectAsyncControlProps} from 'sentry/components/forms/controls/selectAsyncControl';
+import type {SelectAsyncControlProps} from 'sentry/components/forms/controls/selectAsyncControl';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import {Field} from 'sentry/components/forms/types';
+import type {Field} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
-import {
+import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,

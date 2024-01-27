@@ -1,22 +1,18 @@
 import {Component} from 'react';
-import {Theme, withTheme} from '@emotion/react';
-import {LineSeriesOption} from 'echarts';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
+import type {LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {
-  Organization,
-  PageFilters,
-  SessionApiResponse,
-  SessionFieldWithOperation,
-  SessionStatus,
-} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {
   filterSessionsInTimeWindow,

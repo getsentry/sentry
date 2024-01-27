@@ -4,15 +4,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import {t} from 'sentry/locale';
-import {
-  Group,
-  GroupActivity,
-  GroupActivityNote,
-  GroupActivityType,
-  User,
-} from 'sentry/types';
-import {NoteType} from 'sentry/types/alerts';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {Group, GroupActivity, GroupActivityNote, User} from 'sentry/types';
+import {GroupActivityType} from 'sentry/types';
+import type {NoteType} from 'sentry/types/alerts';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';

@@ -1,23 +1,25 @@
 import {createRef, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import {Observer} from 'mobx-react';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
-import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
+import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import NewTraceDetailsSpanTree from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanTree';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import * as SpanContext from 'sentry/components/events/interfaces/spans/spanContext';
 import {MeasurementMarker} from 'sentry/components/events/interfaces/spans/styles';
+import type {
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+  VerticalMark,
+} from 'sentry/components/events/interfaces/spans/utils';
 import {
   getMeasurementBounds,
   parseTraceDetailsURLHash,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   transactionTargetHash,
-  VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -60,11 +62,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconZoom} from 'sentry/icons/iconZoom';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
-import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {
+  TraceError,
+  TraceFullDetailed,
+} from 'sentry/utils/performance/quickTrace/types';
 import {
   isTraceError,
   isTraceRoot,
@@ -77,9 +82,9 @@ import useRouter from 'sentry/utils/useRouter';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
-import {EventDetail} from './newTraceDetailsContent';
+import type {EventDetail} from './newTraceDetailsContent';
 import {ProjectBadgeContainer} from './styles';
-import {TraceInfo, TraceRoot, TreeDepth} from './types';
+import type {TraceInfo, TraceRoot, TreeDepth} from './types';
 import {shortenErrorTitle} from './utils';
 
 const MARGIN_LEFT = 0;

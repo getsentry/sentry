@@ -1,9 +1,10 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 
 import LineSeries from './series/lineSeries';
-import BaseChart, {BaseChartProps} from './baseChart';
+import type {BaseChartProps} from './baseChart';
+import BaseChart from './baseChart';
 
 export interface LineChartSeries
   extends Series,

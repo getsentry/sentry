@@ -1,4 +1,5 @@
-import {css, Global, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, Global} from '@emotion/react';
 
 import {prismStyles} from 'sentry/styles/prism';
 

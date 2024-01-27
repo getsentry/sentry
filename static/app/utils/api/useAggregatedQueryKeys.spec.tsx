@@ -1,11 +1,12 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import {ApiResult} from 'sentry/api';
+import type {ApiResult} from 'sentry/api';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
-import {ApiQueryKey, QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, QueryClient} from 'sentry/utils/queryClient';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 function makeWrapper(queryClient: QueryClient) {
   return function wrapper({children}: {children?: ReactNode}) {

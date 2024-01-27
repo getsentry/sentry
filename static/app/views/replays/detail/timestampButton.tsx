@@ -1,4 +1,4 @@
-import {MouseEvent} from 'react';
+import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';

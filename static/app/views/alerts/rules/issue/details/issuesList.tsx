@@ -11,8 +11,8 @@ import Pagination from 'sentry/components/pagination';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
-import {IssueAlertRule} from 'sentry/types/alerts';
+import type {Group, Organization, Project} from 'sentry/types';
+import type {IssueAlertRule} from 'sentry/types/alerts';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
 

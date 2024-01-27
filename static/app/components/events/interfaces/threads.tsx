@@ -17,15 +17,8 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  EntryType,
-  Event,
-  Organization,
-  Project,
-  StackType,
-  StackView,
-  Thread,
-} from 'sentry/types';
+import type {Event, Organization, Project, Thread} from 'sentry/types';
+import {EntryType, StackType, StackView} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';

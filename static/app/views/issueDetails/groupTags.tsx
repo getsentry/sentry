@@ -1,8 +1,9 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/actionCreators/events';
-import {GroupTagsResponse, useFetchIssueTags} from 'sentry/actionCreators/group';
+import type {Tag} from 'sentry/actionCreators/events';
+import type {GroupTagsResponse} from 'sentry/actionCreators/group';
+import {useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Alert} from 'sentry/components/alert';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
@@ -19,7 +20,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import Version from 'sentry/components/version';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, IssueType} from 'sentry/types';
+import type {Event, Group} from 'sentry/types';
+import {IssueType} from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';

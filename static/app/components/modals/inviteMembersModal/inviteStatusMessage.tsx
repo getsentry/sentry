@@ -5,7 +5,7 @@ import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {InviteStatus} from './types';
+import type {InviteStatus} from './types';
 
 interface Props {
   complete: boolean;

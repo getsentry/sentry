@@ -4,7 +4,7 @@ import moment from 'moment';
 
 import DateTime from 'sentry/components/dateTime';
 import {space} from 'sentry/styles/space';
-import {TimeWindowOptions} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {TimeWindowOptions} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 import {useTimelineCursor} from './timelineCursor';
 

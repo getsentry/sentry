@@ -4,8 +4,8 @@ import {useTheme} from '@emotion/react';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import VisualMap from 'sentry/components/charts/components/visualMap';
 import {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
-import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -13,7 +13,7 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import useRouter from 'sentry/utils/useRouter';
-import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 import {getIntervalLine} from 'sentry/views/performance/utils';
 
 interface ChartProps {

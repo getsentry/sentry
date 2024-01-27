@@ -1,4 +1,4 @@
-import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
+import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import {Flex} from 'sentry/components/profiling/flex';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';

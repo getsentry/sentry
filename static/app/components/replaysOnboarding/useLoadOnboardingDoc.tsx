@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 
-import {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {Organization, PlatformIntegration, ProjectKey} from 'sentry/types';
+import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {Organization, PlatformIntegration, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 function useLoadOnboardingDoc({

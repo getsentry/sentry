@@ -1,27 +1,20 @@
-import {
-  Fragment,
-  RefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import type {RefObject} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import color from 'color';
-import {EChartsOption} from 'echarts';
+import type {EChartsOption} from 'echarts';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
 import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
+import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import type {MetricRange} from 'sentry/utils/metrics/types';
 import {isInRect} from 'sentry/views/ddm/rect';
 
-import {DateTimeObject} from '../../components/charts/utils';
+import type {DateTimeObject} from '../../components/charts/utils';
 
 interface AbsolutePosition {
   height: string;

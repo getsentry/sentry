@@ -8,12 +8,12 @@ import {
   updateSavedQuery,
 } from 'sentry/actionCreators/discoverSavedQueries';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, SavedQuery} from 'sentry/types';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
-import EventView from 'sentry/utils/discover/eventView';
+import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
+import type EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 

@@ -1,14 +1,15 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {AggregationKeyWithAlias, QueryFieldValue} from 'sentry/utils/discover/fields';
-import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
-import {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import {
-  canUseMetricsData,
-  MetricsEnhancedSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import type {Organization} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {
+  AggregationKeyWithAlias,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
+import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';

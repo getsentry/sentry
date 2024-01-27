@@ -5,7 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Well from 'sentry/components/well';
 import {AVATAR_URL_MAP} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {AvatarUser} from 'sentry/types';
+import type {AvatarUser} from 'sentry/types';
 
 const ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
 

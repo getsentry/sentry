@@ -1,4 +1,4 @@
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 
 export type FlamegraphColorCodings = [
   'by system vs application frame',

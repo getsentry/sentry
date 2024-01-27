@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import type {IconSize} from 'sentry/utils/theme';
 

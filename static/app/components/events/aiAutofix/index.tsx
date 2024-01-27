@@ -1,7 +1,7 @@
 import {Banner} from 'sentry/components/events/aiAutofix/banner';
 import {FixResult} from 'sentry/components/events/aiAutofix/fixResult';
 import {useAiAutofix} from 'sentry/components/events/aiAutofix/useAiAutofix';
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types';
 
 type Props = {
   group: Group;

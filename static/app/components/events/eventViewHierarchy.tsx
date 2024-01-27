@@ -7,13 +7,14 @@ import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils
 import FeatureBadge from 'sentry/components/featureBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Event, IssueAttachment, Project} from 'sentry/types';
+import type {Event, IssueAttachment, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {EventDataSection} from './eventDataSection';
-import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
+import type {ViewHierarchyData} from './viewHierarchy';
+import {ViewHierarchy} from './viewHierarchy';
 
 type Props = {
   event: Event;

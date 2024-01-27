@@ -1,7 +1,8 @@
 import {Component} from 'react';
 import type {Range} from 'react-date-range';
-import {WithRouterProps} from 'react-router';
-import {Theme, withTheme} from '@emotion/react';
+import type {WithRouterProps} from 'react-router';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -10,7 +11,7 @@ import Checkbox from 'sentry/components/checkbox';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getEndOfDay,

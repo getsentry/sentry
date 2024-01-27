@@ -6,11 +6,8 @@ import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdo
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
-import {
-  EventOwners,
-  getAssignedToDisplayName,
-  getOwnerList,
-} from 'sentry/components/group/assignedTo';
+import type {EventOwners} from 'sentry/components/group/assignedTo';
+import {getAssignedToDisplayName, getOwnerList} from 'sentry/components/group/assignedTo';
 import {IconChevron, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

@@ -1,16 +1,14 @@
-import {Fragment, MouseEvent, useMemo} from 'react';
+import type {MouseEvent} from 'react';
+import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Query} from 'history';
+import type {Query} from 'history';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {
-  ModalRenderProps,
-  openModal,
-  openReprocessEventModal,
-} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
@@ -25,18 +23,16 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Group,
-  GroupStatus,
   GroupStatusResolution,
-  GroupSubstatus,
-  IssueCategory,
   MarkReviewed,
   Organization,
   Project,
   SavedQueryVersions,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {GroupStatus, GroupSubstatus, IssueCategory} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';

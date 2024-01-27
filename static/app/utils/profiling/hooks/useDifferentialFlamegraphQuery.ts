@@ -3,10 +3,8 @@ import {useMemo} from 'react';
 import {RELATIVE_DAYS_WINDOW} from 'sentry/components/events/eventStatisticalDetector/consts';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 
-import {
-  AggregateFlamegraphQueryParameters,
-  useAggregateFlamegraphQuery,
-} from './useAggregateFlamegraphQuery';
+import type {AggregateFlamegraphQueryParameters} from './useAggregateFlamegraphQuery';
+import {useAggregateFlamegraphQuery} from './useAggregateFlamegraphQuery';
 
 interface DifferentialFlamegraphQueryParameters {
   breakpoint: number;

@@ -16,7 +16,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -24,7 +24,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import Header from '../components/header';
-import {Threshold} from '../utils/types';
+import type {Threshold} from '../utils/types';
 import useFetchThresholdsListData from '../utils/useFetchThresholdsListData';
 
 import NoThresholdCard from './noThresholdCard';

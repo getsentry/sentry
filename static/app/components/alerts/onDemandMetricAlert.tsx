@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Color} from 'sentry/utils/theme';
+import type {Color} from 'sentry/utils/theme';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 const EXTRAPOLATED_AREA_STRIPE_IMG =

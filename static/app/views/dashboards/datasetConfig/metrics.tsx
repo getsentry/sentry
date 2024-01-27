@@ -1,12 +1,17 @@
 import omit from 'lodash/omit';
 
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, Organization, PageFilters, TagCollection} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import {EventData} from 'sentry/utils/discover/eventView';
+import type {
+  MetricsApiResponse,
+  Organization,
+  PageFilters,
+  TagCollection,
+} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {EventData} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {getMetricsApiRequestQuery, getSeriesName, groupByOp} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
@@ -18,14 +23,16 @@ import {
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
-import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
-import {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-import {DisplayType, Widget, WidgetQuery} from '../types';
+import type {Widget, WidgetQuery} from '../types';
+import {DisplayType} from '../types';
 
-import {DatasetConfig, handleOrderByReset} from './base';
+import type {DatasetConfig} from './base';
+import {handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',

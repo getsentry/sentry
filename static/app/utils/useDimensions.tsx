@@ -1,4 +1,5 @@
-import {RefObject, useCallback, useState} from 'react';
+import type {RefObject} from 'react';
+import {useCallback, useState} from 'react';
 import {useResizeObserver} from '@react-aria/utils';
 
 interface Props<Element extends HTMLElement> {

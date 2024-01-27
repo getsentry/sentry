@@ -1,7 +1,8 @@
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 
-import {NormalizedInvite} from './types';
+import type {NormalizedInvite} from './types';
 
 interface Props extends Omit<ButtonProps, 'children'> {
   invites: NormalizedInvite[];

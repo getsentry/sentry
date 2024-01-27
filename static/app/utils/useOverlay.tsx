@@ -1,21 +1,20 @@
 import {useMemo, useRef, useState} from 'react';
-import {PopperProps, usePopper} from 'react-popper';
-import {detectOverflow, Modifier} from '@popperjs/core';
+import type {PopperProps} from 'react-popper';
+import {usePopper} from 'react-popper';
+import type {Modifier} from '@popperjs/core';
+import {detectOverflow} from '@popperjs/core';
 import type {ArrowModifier} from '@popperjs/core/lib/modifiers/arrow';
 import type {FlipModifier} from '@popperjs/core/lib/modifiers/flip';
 import type {PreventOverflowModifier} from '@popperjs/core/lib/modifiers/preventOverflow';
 import {useButton as useButtonAria} from '@react-aria/button';
+import type {AriaOverlayProps, OverlayTriggerProps} from '@react-aria/overlays';
 import {
-  AriaOverlayProps,
-  OverlayTriggerProps,
   useOverlay as useOverlayAria,
   useOverlayTrigger as useOverlayTriggerAria,
 } from '@react-aria/overlays';
 import {mergeProps} from '@react-aria/utils';
-import {
-  OverlayTriggerProps as OverlayTriggerStateProps,
-  useOverlayTriggerState,
-} from '@react-stately/overlays';
+import type {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-stately/overlays';
+import {useOverlayTriggerState} from '@react-stately/overlays';
 
 /**
  * PopperJS modifier to change the popper element's width/height to prevent

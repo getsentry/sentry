@@ -21,7 +21,8 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 import {Fragment} from 'react';
 
-import ObjectInspector, {OnExpandCallback} from 'sentry/components/objectInspector';
+import type {OnExpandCallback} from 'sentry/components/objectInspector';
+import ObjectInspector from 'sentry/components/objectInspector';
 
 const formatRegExp = /%[csdj%]/g;
 

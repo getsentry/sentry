@@ -15,11 +15,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import MonitorCreateForm from 'sentry/views/monitors/components/monitorCreateForm';
 
-import {
-  CRON_SDK_PLATFORMS,
-  PlatformPickerPanel,
-  SupportedPlatform,
-} from './platformPickerPanel';
+import type {SupportedPlatform} from './platformPickerPanel';
+import {CRON_SDK_PLATFORMS, PlatformPickerPanel} from './platformPickerPanel';
+import type {QuickStartProps} from './quickStartEntries';
 import {
   CeleryBeatAutoDiscovery,
   GoUpsertPlatformGuide,
@@ -27,7 +25,6 @@ import {
   LaravelUpsertPlatformGuide,
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
-  QuickStartProps,
   RubyRailsMixinPlatformGuide,
   RubySidekiqAutoPlatformGuide,
   RubyUpsertPlatformGuide,

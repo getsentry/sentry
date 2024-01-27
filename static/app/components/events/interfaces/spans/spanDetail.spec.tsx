@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SpanDetail from 'sentry/components/events/interfaces/spans/spanDetail';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
-import {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types';
 
 describe('SpanDetail', function () {
   const organization = OrganizationFixture();

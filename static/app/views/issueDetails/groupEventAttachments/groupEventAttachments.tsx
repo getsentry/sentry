@@ -13,7 +13,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueAttachment, Project} from 'sentry/types';
+import type {IssueAttachment, Project} from 'sentry/types';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';

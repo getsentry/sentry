@@ -1,5 +1,5 @@
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -9,10 +9,10 @@ import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/getting
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
+import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
 import {
   getDefaultNodeImports,
   getInstallConfig,
-  ProductSelectionMap,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;

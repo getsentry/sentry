@@ -3,7 +3,8 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, GroupActivityType, GroupStats, TimeseriesValue} from 'sentry/types';
+import type {Group, GroupStats, TimeseriesValue} from 'sentry/types';
+import {GroupActivityType} from 'sentry/types';
 
 const MOCK_PROJECT = ProjectFixture();
 

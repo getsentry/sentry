@@ -1,7 +1,7 @@
 import pick from 'lodash/pick';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
+import type {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 
 export enum BrowserStarfishFields {
   SPAN_OP = 'span.op',

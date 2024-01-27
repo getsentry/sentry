@@ -1,6 +1,6 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types';
 
 export function didProjectOrEnvironmentChange(location1: Location, location2: Location) {
   return (

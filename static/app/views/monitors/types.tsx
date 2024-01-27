@@ -1,4 +1,4 @@
-import {ObjectStatus, Project} from 'sentry/types';
+import type {ObjectStatus, Project} from 'sentry/types';
 
 export enum MonitorType {
   UNKNOWN = 'unknown',

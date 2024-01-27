@@ -4,14 +4,10 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
-import {
-  DashboardDetails,
-  DashboardListItem,
-  DashboardWidgetSource,
-  DisplayType,
-} from 'sentry/views/dashboards/types';
+import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 

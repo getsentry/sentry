@@ -1,6 +1,6 @@
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {Vitals} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {Vitals} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 function hasWebVital(data: TableDataRow, webVital: WebVitals): boolean {
   if (data.hasOwnProperty(`count_web_vitals(measurements.${webVital}, any)`)) {

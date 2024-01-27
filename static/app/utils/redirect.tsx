@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 
 import {useNavigate} from './useNavigate';
 

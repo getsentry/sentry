@@ -5,7 +5,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {replayFrontendPlatforms, replayPlatforms} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {tct} from 'sentry/locale';
-import {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
+import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 
 export function generateDocKeys(platform: PlatformKey): string[] {
   const platformKey = platform.startsWith('javascript')

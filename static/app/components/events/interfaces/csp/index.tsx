@@ -4,9 +4,11 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {EntryType, Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
-import Help, {HelpProps} from './help';
+import type {HelpProps} from './help';
+import Help from './help';
 
 type View = 'report' | 'raw' | 'help';
 

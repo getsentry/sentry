@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
+import type {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

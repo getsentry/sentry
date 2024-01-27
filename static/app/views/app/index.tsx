@@ -1,5 +1,5 @@
 import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {

@@ -1,5 +1,6 @@
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
-import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import useRouter from 'sentry/utils/useRouter';
 

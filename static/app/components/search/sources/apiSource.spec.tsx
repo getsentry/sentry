@@ -1,4 +1,4 @@
-import {ComponentProps} from 'react';
+import type {ComponentProps} from 'react';
 import omit from 'lodash/omit';
 import {EventIdQueryResultFixture} from 'sentry-fixture/eventIdQueryResult';
 import {MembersFixture} from 'sentry-fixture/members';

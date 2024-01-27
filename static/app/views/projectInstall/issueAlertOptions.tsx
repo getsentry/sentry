@@ -9,12 +9,9 @@ import Input from 'sentry/components/input';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {
-  IssueAlertActionType,
-  IssueAlertConditionType,
-  IssueAlertRuleAction,
-} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types';
+import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import withOrganization from 'sentry/utils/withOrganization';
 
 export enum MetricValues {

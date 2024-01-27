@@ -1,6 +1,6 @@
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getWebVitalsFromTableData} from 'sentry/views/performance/browser/webVitals/utils/getWebVitalValues';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 export const PERFORMANCE_SCORE_WEIGHTS = {
   lcp: 30,

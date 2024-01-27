@@ -1,13 +1,14 @@
 import {useState} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import Form from 'sentry/components/forms/form';
-import {OnSubmitCallback} from 'sentry/components/forms/types';
+import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {SavedSearchModalContent} from 'sentry/components/modals/savedSearchModal/savedSearchModalContent';
 import {t} from 'sentry/locale';
-import {Organization, SavedSearch, SavedSearchType} from 'sentry/types';
+import type {Organization, SavedSearch} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {useModifySavedSearch} from 'sentry/views/issueList/mutations/useModifySavedSearch';
 
 interface EditSavedSearchModalProps extends ModalRenderProps {

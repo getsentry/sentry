@@ -1,4 +1,4 @@
-import {MouseEventHandler} from 'react';
+import type {MouseEventHandler} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {IconDelete} from 'sentry/icons';

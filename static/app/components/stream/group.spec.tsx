@@ -7,12 +7,8 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {
-  EventOrGroupType,
-  GroupStatus,
-  GroupStatusResolution,
-  MarkReviewed,
-} from 'sentry/types';
+import type {GroupStatusResolution, MarkReviewed} from 'sentry/types';
+import {EventOrGroupType, GroupStatus} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');

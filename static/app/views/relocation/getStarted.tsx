@@ -14,7 +14,7 @@ import ContinueButton from 'sentry/views/relocation/components/continueButton';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 const PROMO_CODE_ERROR_MSG = t(
   'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'

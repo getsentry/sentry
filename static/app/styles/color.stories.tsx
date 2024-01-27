@@ -13,7 +13,8 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import ThemeToggle from 'sentry/components/stories/themeToggle';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import theme, {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
+import theme from 'sentry/utils/theme';
 
 interface Palette {
   color: ColorOrAlias;

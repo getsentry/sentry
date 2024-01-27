@@ -1,10 +1,10 @@
 import {Fragment, useMemo, useRef} from 'react';
+import type {ListRowProps} from 'react-virtualized';
 import {
   AutoSizer,
   CellMeasurer,
   InfiniteLoader,
   List as ReactVirtualizedList,
-  ListRowProps,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 

@@ -21,8 +21,8 @@ import {
 } from 'sentry/components/performance/waterfall/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import theme from 'sentry/utils/theme';
@@ -37,23 +37,14 @@ import {
 } from './constants';
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import {DragManagerChildrenProps} from './dragManager';
-import {ActiveOperationFilter} from './filter';
+import type {DragManagerChildrenProps} from './dragManager';
+import type {ActiveOperationFilter} from './filter';
 import MeasurementsPanel from './measurementsPanel';
 import * as ScrollbarManager from './scrollbarManager';
-import {
-  EnhancedProcessedSpanType,
-  ParsedTraceType,
-  RawSpanType,
-  TickAlignment,
-} from './types';
-import {
-  boundsGenerator,
-  getMeasurements,
-  getSpanOperation,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-} from './utils';
+import type {EnhancedProcessedSpanType, ParsedTraceType, RawSpanType} from './types';
+import {TickAlignment} from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
+import {boundsGenerator, getMeasurements, getSpanOperation} from './utils';
 
 type PropType = {
   dragProps: DragManagerChildrenProps;

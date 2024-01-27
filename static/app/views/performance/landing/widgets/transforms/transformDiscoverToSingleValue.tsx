@@ -1,7 +1,7 @@
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import {GenericChildrenProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {GenericChildrenProps} from 'sentry/utils/discover/genericDiscoverQuery';
 
-import {
+import type {
   QueryDefinitionWithKey,
   WidgetDataConstraint,
   WidgetDataResult,

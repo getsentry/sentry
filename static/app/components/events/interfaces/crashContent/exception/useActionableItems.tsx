@@ -1,8 +1,9 @@
 import type {Organization, SharedViewOrganization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
-import {ActionableItemErrors} from './actionableItemsUtils';
+import type {ActionableItemErrors} from './actionableItemsUtils';
 
 const actionableItemsQuery = ({
   orgSlug,

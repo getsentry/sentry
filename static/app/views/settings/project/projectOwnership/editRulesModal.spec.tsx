@@ -6,7 +6,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {IssueOwnership} from 'sentry/types';
+import type {IssueOwnership} from 'sentry/types';
 
 import {EditOwnershipRules} from './editRulesModal';
 

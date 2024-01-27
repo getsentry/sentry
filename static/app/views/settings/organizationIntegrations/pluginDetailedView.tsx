@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import * as modal from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PluginProjectItem, PluginWithProjectList} from 'sentry/types';
+import type {PluginProjectItem, PluginWithProjectList} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 

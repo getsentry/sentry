@@ -1,4 +1,4 @@
-import {EventMetadata, Group} from 'sentry/types';
+import type {EventMetadata, Group} from 'sentry/types';
 
 export type AutofixData = {
   completedAt: string | null;

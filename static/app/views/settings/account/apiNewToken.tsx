@@ -8,7 +8,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {NewInternalAppApiToken, Permissions} from 'sentry/types';
+import type {NewInternalAppApiToken, Permissions} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';

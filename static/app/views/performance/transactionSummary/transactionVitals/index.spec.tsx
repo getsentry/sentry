@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 

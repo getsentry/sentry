@@ -9,7 +9,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';
 

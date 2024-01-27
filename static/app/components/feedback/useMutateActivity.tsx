@@ -1,8 +1,9 @@
 import {useCallback} from 'react';
 
 import type {Group, GroupActivity, Organization} from 'sentry/types';
-import {NoteType} from 'sentry/types/alerts';
-import {fetchMutation, MutateOptions, useMutation} from 'sentry/utils/queryClient';
+import type {NoteType} from 'sentry/types/alerts';
+import type {MutateOptions} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type TPayload = {activity: GroupActivity[]; note?: NoteType; noteId?: string};

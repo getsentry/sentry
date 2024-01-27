@@ -5,7 +5,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import testableTransition from 'sentry/utils/testableTransition';
 import Wrapper from 'sentry/views/relocation/components/wrapper';
 
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 export function InProgress(props: StepProps) {
   const userIdentity = ConfigStore.get('userIdentity');

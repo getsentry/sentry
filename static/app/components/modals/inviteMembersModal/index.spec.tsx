@@ -7,9 +7,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import InviteMembersModal, {
-  InviteMembersModalProps,
-} from 'sentry/components/modals/inviteMembersModal';
+import type {InviteMembersModalProps} from 'sentry/components/modals/inviteMembersModal';
+import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('InviteMembersModal', function () {

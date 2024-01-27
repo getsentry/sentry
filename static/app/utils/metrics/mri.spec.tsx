@@ -1,5 +1,5 @@
-import {MetricType, MRI} from 'sentry/types';
-import {ParsedMRI, UseCase} from 'sentry/types/metrics';
+import type {MetricType, MRI} from 'sentry/types';
+import type {ParsedMRI, UseCase} from 'sentry/types/metrics';
 import {getUseCaseFromMRI, parseField, parseMRI, toMRI} from 'sentry/utils/metrics/mri';
 
 describe('parseMRI', () => {

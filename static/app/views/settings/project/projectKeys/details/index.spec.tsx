@@ -11,7 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
-import {Organization as TOrganization, Project, ProjectKey} from 'sentry/types';
+import type {Organization as TOrganization, Project, ProjectKey} from 'sentry/types';
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
 describe('ProjectKeyDetails', function () {

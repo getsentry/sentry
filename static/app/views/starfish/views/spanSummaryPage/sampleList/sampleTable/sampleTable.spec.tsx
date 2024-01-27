@@ -4,7 +4,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 import SampleTable from './sampleTable';

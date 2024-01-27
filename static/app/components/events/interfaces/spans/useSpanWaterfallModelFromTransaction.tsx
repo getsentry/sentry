@@ -2,9 +2,10 @@ import {useMemo} from 'react';
 import omit from 'lodash/omit';
 
 import {useAggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {AggregateSpanType} from 'sentry/components/events/interfaces/spans/types';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
-import {AggregateEventTransaction, EntryType, EventOrGroupType} from 'sentry/types';
+import type {AggregateEventTransaction} from 'sentry/types';
+import {EntryType, EventOrGroupType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 export function useSpanWaterfallModelFromTransaction(

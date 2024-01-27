@@ -1,12 +1,12 @@
 import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 
 import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Event} from 'sentry/types';
-import {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import type {Event} from 'sentry/types';
+import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 

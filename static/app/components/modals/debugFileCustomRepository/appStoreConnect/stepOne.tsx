@@ -7,7 +7,7 @@ import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
-import {StepOneData} from './types';
+import type {StepOneData} from './types';
 
 type Props = {
   onSetStepOneData: (stepOneData: StepOneData) => void;

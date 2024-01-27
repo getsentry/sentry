@@ -1,8 +1,8 @@
 import keyBy from 'lodash/keyBy';
 import sortBy from 'lodash/sortBy';
 
-import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {intervalToMilliseconds} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -11,7 +11,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getIntervalForMetricFunction} from 'sentry/views/performance/database/getIntervalForMetricFunction';
 import {DEFAULT_INTERVAL} from 'sentry/views/performance/database/settings';
-import {MetricsProperty, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import type {MetricsProperty, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 interface SpanMetricTimeseriesRow {

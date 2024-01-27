@@ -1,6 +1,6 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';

@@ -1,9 +1,9 @@
 import {Component} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import AccountSettingsNavigation from 'sentry/views/settings/account/accountSettingsNavigation';

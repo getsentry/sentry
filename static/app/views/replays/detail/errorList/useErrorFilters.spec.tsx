@@ -7,10 +7,11 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import {useLocation} from 'sentry/utils/useLocation';
-import useErrorFilters, {
+import type {
   ErrorSelectOption,
   FilterFields,
 } from 'sentry/views/replays/detail/errorList/useErrorFilters';
+import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');

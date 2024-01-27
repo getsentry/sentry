@@ -1,21 +1,22 @@
+import type {ReactNode} from 'react';
 import {
   createContext,
-  ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import sortBy from 'lodash/sortBy';
 
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {
+import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type {
   TraceError,
   TraceFullDetailed,
   TraceSplitResults,

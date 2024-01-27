@@ -4,7 +4,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {GroupListColumn} from './groupList';
+import type {GroupListColumn} from './groupList';
 
 type Props = {
   withChart: boolean;

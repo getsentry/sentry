@@ -4,10 +4,8 @@ import styled from '@emotion/styled';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueOwnership, Organization, Project} from 'sentry/types';
-import {
-  IssueAlertActionType,
-  IssueAlertConditionType,
+import type {IssueOwnership, Organization, Project} from 'sentry/types';
+import type {
   IssueAlertConfiguration,
   IssueAlertGenericConditionConfig,
   IssueAlertRuleAction,
@@ -15,6 +13,7 @@ import {
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'sentry/types/alerts';
+import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,

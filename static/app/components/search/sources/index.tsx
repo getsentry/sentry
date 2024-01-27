@@ -2,7 +2,7 @@ import {Component} from 'react';
 
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
-import {Result} from './types';
+import type {Result} from './types';
 
 type ChildProps = {
   hasAnyResults: boolean;

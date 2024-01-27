@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 
 const cronConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {

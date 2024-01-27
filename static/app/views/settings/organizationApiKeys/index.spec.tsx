@@ -8,7 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 import OrganizationApiKeys from 'sentry/views/settings/organizationApiKeys';
 
 const routes: RouteWithName[] = [

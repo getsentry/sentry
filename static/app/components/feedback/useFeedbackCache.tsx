@@ -4,7 +4,8 @@ import type {ApiResult} from 'sentry/api';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {defined} from 'sentry/utils';
 import type {FeedbackIssue, FeedbackIssueList} from 'sentry/utils/feedback/types';
-import {ApiQueryKey, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
 

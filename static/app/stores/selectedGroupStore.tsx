@@ -2,7 +2,7 @@ import {createStore} from 'reflux';
 
 import GroupStore from 'sentry/stores/groupStore';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 interface InternalDefinition {
   /**

@@ -1,7 +1,7 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {MetricType, Organization, SelectValue} from 'sentry/types';
+import type {MetricType, Organization, SelectValue} from 'sentry/types';
 import {assert} from 'sentry/types/utils';
 import {isMRIField} from 'sentry/utils/metrics/mri';
 import {

@@ -1,5 +1,5 @@
-import {RouteComponentProps} from 'react-router';
-import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import type {RouteComponentProps} from 'react-router';
+import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 

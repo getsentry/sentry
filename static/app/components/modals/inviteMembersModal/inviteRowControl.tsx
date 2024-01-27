@@ -1,19 +1,19 @@
 import {useState} from 'react';
-import {MultiValueProps} from 'react-select';
-import {Theme, useTheme} from '@emotion/react';
+import type {MultiValueProps} from 'react-select';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
 import {Button} from 'sentry/components/button';
-import SelectControl, {
-  StylesConfig,
-} from 'sentry/components/forms/controls/selectControl';
+import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {OrgRole, SelectValue} from 'sentry/types';
+import type {OrgRole, SelectValue} from 'sentry/types';
 
 import renderEmailValue from './renderEmailValue';
-import {InviteStatus} from './types';
+import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
 

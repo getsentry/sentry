@@ -5,7 +5,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Tag from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricMeta, MRI, ParsedMRI, Project} from 'sentry/types';
+import type {MetricMeta, MRI, ParsedMRI, Project} from 'sentry/types';
 import {isAllowedOp} from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {

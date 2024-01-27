@@ -1,4 +1,4 @@
-import {Query} from 'history';
+import type {Query} from 'history';
 import chunk from 'lodash/chunk';
 import debounce from 'lodash/debounce';
 
@@ -7,12 +7,12 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {PlatformKey, Project, Team} from 'sentry/types';
+import type {PlatformKey, Project, Team} from 'sentry/types';
 
 type UpdateParams = {
   orgId: string;

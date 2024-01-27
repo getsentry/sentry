@@ -11,7 +11,7 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {Monitor} from '../types';
+import type {Monitor} from '../types';
 
 import {StatusToggleButton} from './statusToggleButton';
 

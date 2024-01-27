@@ -1,4 +1,4 @@
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 
 export type Row = {
   'count()': number;

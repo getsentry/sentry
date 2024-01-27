@@ -1,10 +1,8 @@
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import {
-  TimeRangeSelector,
-  TimeRangeSelectorProps,
-} from 'sentry/components/timeRangeSelector';
+import type {TimeRangeSelectorProps} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';

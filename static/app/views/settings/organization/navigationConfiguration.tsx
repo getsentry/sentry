@@ -1,6 +1,6 @@
 import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
-import {NavigationSection} from 'sentry/views/settings/types';
+import type {NavigationSection} from 'sentry/views/settings/types';
 
 const pathPrefix = '/settings/:orgId';
 

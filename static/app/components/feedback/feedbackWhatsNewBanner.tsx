@@ -1,4 +1,5 @@
-import {CSSProperties, useEffect} from 'react';
+import type {CSSProperties} from 'react';
+import {useEffect} from 'react';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 

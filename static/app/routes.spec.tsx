@@ -1,4 +1,5 @@
-import {createRoutes, RouteComponent} from 'react-router';
+import type {RouteComponent} from 'react-router';
+import {createRoutes} from 'react-router';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/routes';

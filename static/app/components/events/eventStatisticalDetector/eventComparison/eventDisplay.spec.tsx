@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 
 import {EventDisplay} from './eventDisplay';
 

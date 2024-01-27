@@ -5,11 +5,12 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import {AlertRuleComparisonType, Dataset} from './types';
+import type {Dataset} from './types';
+import {AlertRuleComparisonType} from './types';
 
 type Props = {
   comparisonType: AlertRuleComparisonType;

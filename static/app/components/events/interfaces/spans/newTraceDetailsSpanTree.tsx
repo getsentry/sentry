@@ -1,16 +1,15 @@
 import {Component, createRef, useEffect, useRef} from 'react';
+import type {ListRowProps, OverscanIndicesGetterParams} from 'react-virtualized';
 import {
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
   List as ReactVirtualizedList,
-  ListRowProps,
-  OverscanIndicesGetterParams,
   WindowScroller,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import differenceWith from 'lodash/differenceWith';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
@@ -19,38 +18,33 @@ import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/c
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
-import {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
+import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
 
-import {ActiveOperationFilter} from './filter';
+import type {ActiveOperationFilter} from './filter';
 import {NewTraceDetailsProfiledSpanBar} from './newTraceDetailsSpanBar';
-import {SpanDetailProps} from './newTraceDetailsSpanDetails';
-import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
-import * as SpanContext from './spanContext';
+import type {SpanDetailProps} from './newTraceDetailsSpanDetails';
+import type {ScrollbarManagerChildrenProps} from './scrollbarManager';
+import {withScrollbarManager} from './scrollbarManager';
+import type * as SpanContext from './spanContext';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
-import {
+import type {
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FilterSpans,
-  GroupType,
   ParsedTraceType,
   SpanTreeNode,
-  SpanTreeNodeType,
   SpanType,
   TreeDepthType,
 } from './types';
-import {
-  getSpanID,
-  getSpanOperation,
-  isGapSpan,
-  spanTargetHash,
-  VerticalMark,
-} from './utils';
-import WaterfallModel from './waterfallModel';
+import {GroupType, SpanTreeNodeType} from './types';
+import type {VerticalMark} from './utils';
+import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash} from './utils';
+import type WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
   filterSpans: FilterSpans | undefined;

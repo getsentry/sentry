@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {RouteContextInterface} from 'react-router';
+import type {RouteContextInterface} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -16,7 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {OrganizationContextProvider, useEnsureOrganization} from './organizationContext';

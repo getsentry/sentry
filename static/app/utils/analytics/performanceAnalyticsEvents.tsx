@@ -1,5 +1,4 @@
-import type {PlatformKey} from 'sentry/types';
-import {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 
 type SampleTransactionParam = {
   platform?: PlatformKey;

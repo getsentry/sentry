@@ -8,8 +8,9 @@ import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventGroupInfo, Group, IssueCategory, Organization} from 'sentry/types';
-import {Event, EventOccurrence} from 'sentry/types/event';
+import type {EventGroupInfo, Group, Organization} from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
+import type {Event, EventOccurrence} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import GroupingConfigSelect from './groupingConfigSelect';

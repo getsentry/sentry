@@ -2,7 +2,7 @@ import {Client} from 'sentry/api';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 
-import {MetricMeta, MRI} from '../../types/metrics';
+import type {MetricMeta, MRI} from '../../types/metrics';
 
 // import types
 export type ImportDashboard = {

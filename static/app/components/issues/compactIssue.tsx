@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import Link from 'sentry/components/links/link';
@@ -12,9 +12,9 @@ import {IconChat, IconMute, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {BaseGroup, Organization} from 'sentry/types';
+import type {BaseGroup, Organization} from 'sentry/types';
 import {getMessage} from 'sentry/utils/events';
-import {Aliases} from 'sentry/utils/theme';
+import type {Aliases} from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 

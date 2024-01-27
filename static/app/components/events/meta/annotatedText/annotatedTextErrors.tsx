@@ -6,7 +6,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {MetaError} from 'sentry/types';
+import type {MetaError} from 'sentry/types';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 function formatErrorKind(kind: string) {

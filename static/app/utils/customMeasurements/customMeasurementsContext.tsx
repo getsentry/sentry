@@ -1,6 +1,6 @@
 import {createContext} from 'react';
 
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 
 export interface CustomMeasurementsContextValue {
   customMeasurements: CustomMeasurementCollection;

@@ -6,7 +6,7 @@ import Link from 'sentry/components/links/link';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {GroupActivityReprocess, Organization} from 'sentry/types';
+import type {GroupActivityReprocess, Organization} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 
 type Props = {

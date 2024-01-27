@@ -1,13 +1,14 @@
 import {Component, Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {closeModal, ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {closeModal, openModal} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import {Group, Organization, Plugin, Project} from 'sentry/types';
+import type {Group, Organization, Plugin, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import withApi from 'sentry/utils/withApi';

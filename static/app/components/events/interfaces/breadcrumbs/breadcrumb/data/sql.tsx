@@ -1,5 +1,8 @@
 import Highlight from 'sentry/components/highlight';
-import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
+import type {
+  BreadcrumbTypeDefault,
+  BreadcrumbTypeNavigation,
+} from 'sentry/types/breadcrumbs';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 import Summary from './summary';

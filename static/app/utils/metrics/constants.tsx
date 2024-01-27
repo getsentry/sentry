@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types';
 import type {MetricWidgetQueryParams, SortState} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 

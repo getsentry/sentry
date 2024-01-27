@@ -4,7 +4,8 @@ import pick from 'lodash/pick';
 
 import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
-import EventsRequest, {RenderProps} from 'sentry/components/charts/eventsRequest';
+import type {RenderProps} from 'sentry/components/charts/eventsRequest';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -13,7 +14,7 @@ import Truncate from 'sentry/components/truncate';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -32,8 +33,8 @@ import {
   WidgetEmptyStateWarning,
 } from 'sentry/views/performance/landing/widgets/components/selectableList';
 import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
-import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
-import {
+import type {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
+import type {
   PerformanceWidgetProps,
   QueryDefinition,
   QueryDefinitionWithKey,

@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
-import {incrementalSnapshotEvent, IncrementalSource} from '@sentry-internal/rrweb';
+import type {incrementalSnapshotEvent} from '@sentry-internal/rrweb';
+import {IncrementalSource} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 

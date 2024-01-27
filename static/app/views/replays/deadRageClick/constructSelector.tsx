@@ -1,4 +1,4 @@
-import {ReplayClickElement} from 'sentry/views/replays/types';
+import type {ReplayClickElement} from 'sentry/views/replays/types';
 
 function trimAttribute(elementAttribute, fullAlltribute) {
   return elementAttribute === '' ? '' : fullAlltribute;

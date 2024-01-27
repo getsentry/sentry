@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 import * as Layout from 'sentry/components/layouts/thirds';

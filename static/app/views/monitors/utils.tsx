@@ -1,10 +1,11 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import cronstrue from 'cronstrue';
 
 import {t, tn} from 'sentry/locale';
-import {Organization, SelectValue} from 'sentry/types';
+import type {Organization, SelectValue} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
-import {CheckInStatus, MonitorConfig, ScheduleType} from 'sentry/views/monitors/types';
+import type {MonitorConfig} from 'sentry/views/monitors/types';
+import {CheckInStatus, ScheduleType} from 'sentry/views/monitors/types';
 
 export function makeMonitorListQueryKey(
   organization: Organization,

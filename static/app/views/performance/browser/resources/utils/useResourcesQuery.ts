@@ -10,11 +10,9 @@ import {
   IMAGE_FILE_EXTENSIONS,
 } from 'sentry/views/performance/browser/resources/shared/constants';
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
-import {
-  ModuleFilters,
-  useResourceModuleFilters,
-} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
-import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
+import type {ModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
+import type {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {

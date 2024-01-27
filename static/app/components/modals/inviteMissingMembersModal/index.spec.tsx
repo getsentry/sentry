@@ -7,11 +7,10 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import InviteMissingMembersModal, {
-  InviteMissingMembersModalProps,
-} from 'sentry/components/modals/inviteMissingMembersModal';
+import type {InviteMissingMembersModalProps} from 'sentry/components/modals/inviteMissingMembersModal';
+import InviteMissingMembersModal from 'sentry/components/modals/inviteMissingMembersModal';
 import TeamStore from 'sentry/stores/teamStore';
-import {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types';
 
 const roles = [
   {

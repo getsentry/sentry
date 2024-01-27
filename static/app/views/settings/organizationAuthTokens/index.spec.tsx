@@ -12,7 +12,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {OrgAuthToken} from 'sentry/types';
+import type {OrgAuthToken} from 'sentry/types';
 import {OrganizationAuthTokensIndex} from 'sentry/views/settings/organizationAuthTokens';
 
 describe('OrganizationAuthTokensIndex', function () {

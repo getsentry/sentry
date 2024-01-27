@@ -4,14 +4,8 @@ import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {
-  Organization,
-  PageFilters,
-  SavedSearchType,
-  Tag,
-  TagCollection,
-  TagValue,
-} from 'sentry/types';
+import type {Organization, PageFilters, Tag, TagCollection, TagValue} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {AutofixData} from 'sentry/components/events/aiAutofix/types';
+import type {AutofixData} from 'sentry/components/events/aiAutofix/types';
 import Anchor from 'sentry/components/links/anchor';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';

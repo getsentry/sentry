@@ -1,7 +1,7 @@
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {Context} from './types';
+import type {Context} from './types';
 
 const serverSideSdks = [
   'sentry.javascript.nextjs',

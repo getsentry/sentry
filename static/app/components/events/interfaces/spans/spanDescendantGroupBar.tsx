@@ -1,10 +1,10 @@
 import {useTheme} from '@emotion/react';
 import countBy from 'lodash/countBy';
 
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   getSpanBarColours,
   ROW_HEIGHT,
-  SpanBarType,
 } from 'sentry/components/performance/waterfall/constants';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {
@@ -17,21 +17,19 @@ import {
   getHumanDuration,
 } from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import toPercent from 'sentry/utils/number/toPercent';
 
 import {SpanGroupBar} from './spanGroupBar';
-import {EnhancedSpan, ProcessedSpanType, TreeDepthType} from './types';
+import type {EnhancedSpan, ProcessedSpanType, TreeDepthType} from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType, VerticalMark} from './utils';
 import {
   getSpanGroupBounds,
   getSpanGroupTimestamps,
   getSpanOperation,
   isOrphanSpan,
   isOrphanTreeDepth,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   unwrapTreeDepth,
-  VerticalMark,
 } from './utils';
 
 export type SpanDescendantGroupBarProps = {

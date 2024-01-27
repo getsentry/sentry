@@ -1,23 +1,24 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {
   formatAbbreviatedNumber,
   formatFloat,
   formatPercentage,
   getDuration,
 } from 'sentry/utils/formatters';
-import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {AxisOption, getTermHelp, PerformanceTerm} from '../data';
-import {Rectangle} from '../transactionSummary/transactionVitals/types';
+import type {AxisOption} from '../data';
+import {getTermHelp, PerformanceTerm} from '../data';
+import type {Rectangle} from '../transactionSummary/transactionVitals/types';
 import {platformToPerformanceType, ProjectPerformanceType} from '../utils';
 
 export const LEFT_AXIS_QUERY_KEY = 'left';

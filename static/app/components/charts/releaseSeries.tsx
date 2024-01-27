@@ -1,17 +1,18 @@
 import {Component} from 'react';
-import {WithRouterProps} from 'react-router';
-import {Theme, withTheme} from '@emotion/react';
-import {Query} from 'history';
+import type {WithRouterProps} from 'react-router';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
+import type {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import {DateString, Organization} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {DateString, Organization} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';
 import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/formatters';

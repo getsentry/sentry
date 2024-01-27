@@ -22,14 +22,15 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SentryServiceStatus} from 'sentry/types';
+import type {SentryServiceStatus} from 'sentry/types';
 import marked from 'sentry/utils/marked';
 
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
 import SidebarPanelEmpty from './sidebarPanelEmpty';
 import SidebarPanelItem from './sidebarPanelItem';
-import {CommonSidebarProps, SidebarPanelKey} from './types';
+import type {CommonSidebarProps} from './types';
+import {SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps;
 

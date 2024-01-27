@@ -1,7 +1,7 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 import withConfig from 'sentry/utils/withConfig';
 
 describe('withConfig HoC', function () {

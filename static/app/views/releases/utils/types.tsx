@@ -1,6 +1,6 @@
-import moment from 'moment';
+import type moment from 'moment';
 
-import {Environment, Project} from 'sentry/types';
+import type {Environment, Project} from 'sentry/types';
 
 export type ThresholdQuery = {
   environment?: string[] | undefined; // list of environment names

@@ -8,7 +8,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   IntegrationInstallationStatus,
   Organization,
   PluginWithProjectList,

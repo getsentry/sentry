@@ -1,5 +1,5 @@
 import {defined} from 'sentry/utils';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 export function appendReleaseFilters(
   query: MutableSearch,

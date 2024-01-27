@@ -5,10 +5,10 @@ import partition from 'lodash/partition';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey} from 'sentry/types';
-import {ProjectKey} from 'sentry/types';
+import type {PlatformKey, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {QuickStartProps} from 'sentry/views/monitors/components/quickStartEntries';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
@@ -21,13 +21,12 @@ import {
   PHPLaravelCronQuickStart,
   PythonCeleryCronQuickStart,
   PythonCronQuickStart,
-  QuickStartProps,
   RubyCronQuickStart,
   RubyRailsCronQuickStart,
   RubySidekiqCronQuickStart,
 } from 'sentry/views/monitors/components/quickStartEntries';
 
-import {Monitor} from '../types';
+import type {Monitor} from '../types';
 
 interface Props {
   monitor: Monitor;

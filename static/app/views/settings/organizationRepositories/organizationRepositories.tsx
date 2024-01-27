@@ -8,7 +8,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization, Repository, RepositoryStatus} from 'sentry/types';
+import type {Organization, Repository, RepositoryStatus} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

@@ -4,7 +4,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import FormContext from 'sentry/components/forms/formContext';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {PermissionResource, Permissions, PermissionValue} from 'sentry/types';
+import type {PermissionResource, Permissions, PermissionValue} from 'sentry/types';
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning

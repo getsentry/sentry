@@ -1,5 +1,5 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';

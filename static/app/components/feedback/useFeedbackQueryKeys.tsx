@@ -1,4 +1,5 @@
-import {createContext, ReactNode, useCallback, useContext, useRef, useState} from 'react';
+import type {ReactNode} from 'react';
+import {createContext, useCallback, useContext, useRef, useState} from 'react';
 import invariant from 'invariant';
 
 import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';

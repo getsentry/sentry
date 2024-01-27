@@ -1,4 +1,4 @@
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types';
 
 export interface SelectOption<Value extends React.Key> extends SelectValue<Value> {
   /**

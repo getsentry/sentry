@@ -1,4 +1,4 @@
-import {ModuleName} from 'sentry/views/starfish/types';
+import type {ModuleName} from 'sentry/views/starfish/types';
 
 const OP_MAPPING = {
   'db.redis': 'cache',

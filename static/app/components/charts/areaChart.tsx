@@ -3,7 +3,8 @@ import type {LineSeriesOption} from 'echarts';
 import type {Series} from 'sentry/types/echarts';
 
 import AreaSeries from './series/areaSeries';
-import BaseChart, {BaseChartProps} from './baseChart';
+import type {BaseChartProps} from './baseChart';
+import BaseChart from './baseChart';
 
 export interface AreaChartSeries
   extends Omit<LineSeriesOption, 'data' | 'areaStyle' | 'color' | 'id'>,

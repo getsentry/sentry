@@ -1,4 +1,5 @@
-import {CSSProperties, forwardRef, ReactNode} from 'react';
+import type {CSSProperties, ReactNode} from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';

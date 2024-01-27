@@ -1,7 +1,8 @@
-import {ComponentProps, lazy, Suspense, useEffect, useState} from 'react';
+import type {ComponentProps} from 'react';
+import {lazy, Suspense, useEffect, useState} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
-import {HookName, Hooks} from 'sentry/types/hooks';
+import type {HookName, Hooks} from 'sentry/types/hooks';
 
 interface Params<H extends HookName> {
   /**

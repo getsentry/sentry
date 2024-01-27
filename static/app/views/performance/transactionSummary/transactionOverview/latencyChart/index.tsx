@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 
-import {ViewProps} from '../../../types';
+import type {ViewProps} from '../../../types';
 import {SpanOperationBreakdownFilter} from '../../filter';
 
 import Content from './content';

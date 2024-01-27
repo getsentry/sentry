@@ -1,10 +1,10 @@
 import {createStore} from 'reflux';
 
-import {Team} from 'sentry/types';
+import type {Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import ProjectsStore from './projectsStore';
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 type State = {
   cursor: string | null;

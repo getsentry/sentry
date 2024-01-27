@@ -3,17 +3,17 @@ import styled from '@emotion/styled';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {AggregateEventTransaction} from 'sentry/types/event';
+import type {Organization, Project} from 'sentry/types';
+import type {AggregateEventTransaction} from 'sentry/types/event';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
-import {
+import type {
   QuickTraceEvent,
   TraceErrorOrIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 
-import {AggregateSpanType, ParsedTraceType} from './types';
+import type {AggregateSpanType, ParsedTraceType} from './types';
 
 type Props = {
   childTransactions: QuickTraceEvent[] | null;

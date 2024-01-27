@@ -21,13 +21,8 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {
-  Group,
-  GroupActivityType,
-  Organization as TOrganization,
-  PriorityLevel,
-  Project,
-} from 'sentry/types';
+import type {Group, Organization as TOrganization, Project} from 'sentry/types';
+import {GroupActivityType, PriorityLevel} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActivity from 'sentry/views/issueDetails/groupActivity';
 

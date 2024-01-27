@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 export function handleXhrErrorResponse(message: string, err: RequestError): void {
   // Sudo errors are handled separately elsewhere

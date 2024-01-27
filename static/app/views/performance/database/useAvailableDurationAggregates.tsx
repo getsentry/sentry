@@ -1,6 +1,6 @@
 import useOrganization from 'sentry/utils/useOrganization';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/performance/database/settings';
-import {Aggregate} from 'sentry/views/starfish/types';
+import type {Aggregate} from 'sentry/views/starfish/types';
 
 type Result = Aggregate[];
 

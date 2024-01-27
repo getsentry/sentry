@@ -1,8 +1,9 @@
 import {createContext, useContext, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Frame} from 'sentry/utils/profiling/frame';
-import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {Frame} from 'sentry/utils/profiling/frame';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 
 type ProfileGroupContextValue = ProfileGroup;
 

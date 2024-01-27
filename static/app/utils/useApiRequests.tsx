@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -14,7 +14,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import PermissionDenied from 'sentry/views/permissionDenied';
 import RouteError from 'sentry/views/routeError';
 
-import RequestError from './requestError/requestError';
+import type RequestError from './requestError/requestError';
 import {useEffectAfterFirstRender} from './useEffectAfterFirstRender';
 
 /**

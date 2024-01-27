@@ -11,7 +11,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -20,7 +20,8 @@ import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
-import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
+import type {DashboardListItem} from './types';
+import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
   dashboardState: DashboardState;

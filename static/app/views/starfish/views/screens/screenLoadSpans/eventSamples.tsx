@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {t} from 'sentry/locale';
-import {NewQuery, Project} from 'sentry/types';
+import type {NewQuery, Project} from 'sentry/types';
 import EventView, {fromSorts} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';

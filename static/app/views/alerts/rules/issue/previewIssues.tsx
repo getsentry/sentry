@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Member, Project} from 'sentry/types';
-import {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
+import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
 import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useOrganization from 'sentry/utils/useOrganization';

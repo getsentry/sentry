@@ -6,7 +6,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
+import type {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {uniq} from 'sentry/utils/array/uniq';
 import {safeURL} from 'sentry/utils/url/safeURL';

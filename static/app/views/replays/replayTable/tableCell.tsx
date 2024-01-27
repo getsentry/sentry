@@ -22,10 +22,11 @@ import {
   IconFire,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space, ValidSize} from 'sentry/styles/space';
+import type {ValidSize} from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';

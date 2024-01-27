@@ -1,13 +1,12 @@
 import {Sql} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/sql';
-import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
-import {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
-import {Organization} from 'sentry/types';
-import {
-  BreadcrumbMessageFormat,
-  BreadcrumbType,
-  RawCrumb,
-} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import type {
+  BreadcrumbMeta,
+  BreadcrumbTransactionEvent,
+} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import type {Organization} from 'sentry/types';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbMessageFormat, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
 
 import {Default} from './default';
 import {Exception} from './exception';

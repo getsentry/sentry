@@ -18,10 +18,11 @@ import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import FieldGroup from '../fieldGroup';
 import FieldControl from '../fieldGroup/fieldControl';
-import {FieldGroupProps} from '../fieldGroup/types';
+import type {FieldGroupProps} from '../fieldGroup/types';
 import FormContext from '../formContext';
-import FormModel, {MockModel} from '../model';
-import {FieldValue} from '../types';
+import type FormModel from '../model';
+import {MockModel} from '../model';
+import type {FieldValue} from '../types';
 
 import FormFieldControlState from './controlState';
 

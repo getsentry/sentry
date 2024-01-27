@@ -1,13 +1,13 @@
 import {createStore} from 'reflux';
 
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
-import {Organization} from 'sentry/types';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type {Organization} from 'sentry/types';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 import HookStore from './hookStore';
 import LatestContextStore from './latestContextStore';
 import ReleaseStore from './releaseStore';
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 type State = {
   dirty: boolean;

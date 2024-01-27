@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import LazyLoad from 'sentry/components/lazyLoad';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
 interface Props {

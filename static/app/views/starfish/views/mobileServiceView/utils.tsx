@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {decodeScalar} from 'sentry/utils/queryString';
 

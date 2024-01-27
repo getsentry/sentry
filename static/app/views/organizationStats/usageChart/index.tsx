@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
-import {Theme, withTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 import type {
@@ -21,7 +22,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types';
+import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import commonTheme from 'sentry/utils/theme';

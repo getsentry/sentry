@@ -1,9 +1,9 @@
 import {Release} from '@sentry/release-parser';
 import round from 'lodash/round';
-import moment from 'moment';
+import type moment from 'moment';
 
 import {t, tn} from 'sentry/locale';
-import {CommitAuthor, User} from 'sentry/types';
+import type {CommitAuthor, User} from 'sentry/types';
 import {RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {

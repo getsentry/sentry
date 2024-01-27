@@ -2,15 +2,12 @@ import {Fragment} from 'react';
 import {Link} from 'react-router';
 import * as qs from 'query-string';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {BrowserStarfishFields} from 'sentry/views/performance/browser/useBrowserFilters';
-import {ValidSort} from 'sentry/views/performance/browser/useBrowserSort';
+import type {ValidSort} from 'sentry/views/performance/browser/useBrowserSort';
 import {useInteractionsQuery} from 'sentry/views/performance/browser/useInteractionsQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';

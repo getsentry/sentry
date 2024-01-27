@@ -1,5 +1,6 @@
 import {_isOnDemandMetricWidget} from 'sentry/utils/performance/contexts/onDemandControl';
-import {Widget, WidgetType} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 
 function widget(
   aggregates: string[],

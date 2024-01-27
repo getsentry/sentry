@@ -7,7 +7,7 @@ import Footer from 'sentry/components/footer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 

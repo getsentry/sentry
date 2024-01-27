@@ -1,7 +1,7 @@
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
-import {Project, Scope, Team} from 'sentry/types';
+import type {Project, Scope, Team} from 'sentry/types';
 
 interface Props extends React.ComponentPropsWithoutRef<typeof Alert> {
   access?: Scope[];

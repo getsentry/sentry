@@ -1,8 +1,8 @@
-import {mat3, vec2} from 'gl-matrix';
+import type {mat3, vec2} from 'gl-matrix';
 
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
+import type {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {upperBound} from '../gl/utils';
 

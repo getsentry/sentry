@@ -1,4 +1,4 @@
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import getConfiguration from 'sentry/views/settings/account/navigationConfiguration';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
 

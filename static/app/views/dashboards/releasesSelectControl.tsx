@@ -11,7 +11,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
-import {DashboardFilterKeys, DashboardFilters} from './types';
+import type {DashboardFilters} from './types';
+import {DashboardFilterKeys} from './types';
 
 type Props = {
   selectedReleases: string[];

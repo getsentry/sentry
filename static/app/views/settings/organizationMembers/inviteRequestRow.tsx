@@ -3,10 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import {
-  InviteModalHook,
-  InviteModalRenderFunc,
-} from 'sentry/components/modals/memberInviteModalCustomization';
+import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
+import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import Tag from 'sentry/components/tag';
@@ -15,7 +13,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization, OrgRole} from 'sentry/types';
+import type {Member, Organization, OrgRole} from 'sentry/types';
 
 type Props = {
   allRoles: OrgRole[];

@@ -2,14 +2,12 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import DropdownAutoComplete, {
-  StaticDropdownAutoCompleteProps,
-} from 'sentry/components/dropdownAutoComplete';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {StaticDropdownAutoCompleteProps} from 'sentry/components/dropdownAutoComplete';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
-import SelectControl, {
-  ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,7 +15,7 @@ import {space} from 'sentry/styles/space';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps} from './inputField';
+import type {InputFieldProps} from './inputField';
 
 interface DefaultProps {
   /**

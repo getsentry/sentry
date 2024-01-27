@@ -5,7 +5,8 @@ import 'echarts/lib/component/brush';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
-import {css, Global, Theme, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {
   AxisPointerComponentOption,
@@ -28,7 +29,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
   EChartBrushStartHandler,
@@ -49,7 +50,8 @@ import {defined} from 'sentry/utils';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import {computeChartTooltip, TooltipSubLabel} from './components/tooltip';
+import type {TooltipSubLabel} from './components/tooltip';
+import {computeChartTooltip} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';

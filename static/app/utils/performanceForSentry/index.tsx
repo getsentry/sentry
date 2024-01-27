@@ -1,5 +1,6 @@
-import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
-import {IdleTransaction} from '@sentry/core';
+import type {ReactNode} from 'react';
+import {Fragment, Profiler, useEffect, useRef} from 'react';
+import type {IdleTransaction} from '@sentry/core';
 import {captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {

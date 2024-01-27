@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 
-import {RuntimeData, RuntimeKnownDataType} from './types';
+import type {RuntimeData} from './types';
+import {RuntimeKnownDataType} from './types';
 
 type Output = {
   subject: string;

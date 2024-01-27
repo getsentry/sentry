@@ -1,7 +1,7 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {
+import type {
   AggregateSpanType,
   GapSpanType,
 } from 'sentry/components/events/interfaces/spans/types';

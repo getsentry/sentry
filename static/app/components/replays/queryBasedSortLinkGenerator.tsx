@@ -2,7 +2,7 @@ import type {ReactText} from 'react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 
 export default function queryBasedSortLinkGenerator<Key extends ReactText>(
   location: Location,

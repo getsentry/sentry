@@ -2,7 +2,8 @@ import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
 import {Frame} from './../frame';
 import {Profile} from './profile';
-import {createFrameIndex, resolveFlamegraphSamplesProfileIds} from './utils';
+import type {createFrameIndex} from './utils';
+import {resolveFlamegraphSamplesProfileIds} from './utils';
 
 function sortStacks(
   a: {stack: number[]; weight: number},

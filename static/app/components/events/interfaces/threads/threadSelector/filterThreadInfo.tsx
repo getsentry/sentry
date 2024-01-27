@@ -1,9 +1,7 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {
-  getMappedThreadState,
-  ThreadStates,
-} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
-import {
+import type {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
+import {getMappedThreadState} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
+import type {
   EntryData,
   Event,
   ExceptionType,

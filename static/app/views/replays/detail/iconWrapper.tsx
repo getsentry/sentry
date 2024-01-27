@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 
 /**
  * Taken `from events/interfaces/.../breadcrumbs/types`

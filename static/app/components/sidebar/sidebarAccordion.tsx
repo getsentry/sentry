@@ -7,7 +7,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
-import SidebarItem, {isItemActive, SidebarItemProps} from './sidebarItem';
+import type {SidebarItemProps} from './sidebarItem';
+import SidebarItem, {isItemActive} from './sidebarItem';
 
 type SidebarAccordionProps = SidebarItemProps & {
   children?: React.ReactNode;

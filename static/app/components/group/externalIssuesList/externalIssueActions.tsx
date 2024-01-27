@@ -6,7 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, GroupIntegration} from 'sentry/types';
+import type {Group, GroupIntegration} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useApi from 'sentry/utils/useApi';

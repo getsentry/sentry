@@ -1,21 +1,24 @@
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ConfigStore from 'sentry/stores/configStore';
-import {
+import type {
   BaseGroup,
   EntryException,
   EntryRequest,
   EntryThreads,
   EventMetadata,
-  EventOrGroupType,
   Group,
   GroupActivityAssigned,
-  GroupActivityType,
   GroupTombstoneHelper,
-  IssueCategory,
-  IssueType,
   TreeLabelPart,
 } from 'sentry/types';
-import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
+import {
+  EventOrGroupType,
+  GroupActivityType,
+  IssueCategory,
+  IssueType,
+} from 'sentry/types';
+import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {uniq} from 'sentry/utils/array/uniq';

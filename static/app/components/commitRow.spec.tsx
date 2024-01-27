@@ -5,7 +5,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {CommitRow} from 'sentry/components/commitRow';
-import {Commit, Repository, RepositoryStatus, User} from 'sentry/types';
+import type {Commit, Repository, User} from 'sentry/types';
+import {RepositoryStatus} from 'sentry/types';
 
 jest.mock('sentry/components/hovercard', () => {
   return {

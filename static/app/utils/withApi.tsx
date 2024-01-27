@@ -1,4 +1,4 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import useApi from 'sentry/utils/useApi';
 

@@ -1,6 +1,6 @@
+import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   canUseMetricsData,
-  MetricsEnhancedSettingContext,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -13,7 +13,7 @@ import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartR
 import {filterAllowedChartsMetrics} from '../widgets/utils';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
-import {BasePerformanceViewProps} from './types';
+import type {BasePerformanceViewProps} from './types';
 
 function getAllowedChartsSmall(
   props: BasePerformanceViewProps,
