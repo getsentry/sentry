@@ -1,14 +1,14 @@
 import {useMemo} from 'react';
 import * as React from 'react';
-import {vec2} from 'gl-matrix';
+import type {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {t} from 'sentry/locale';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
-import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
+import type {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {
   FlamegraphTooltipColorIndicator,

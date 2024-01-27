@@ -13,21 +13,23 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
+import type {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
+import type {
+  IssueAlertConfiguration,
+  IssueAlertRuleAction,
+  IssueAlertRuleCondition,
+} from 'sentry/types/alerts';
 import {
   AssigneeTargetType,
   IssueAlertActionType,
   IssueAlertConditionType,
-  IssueAlertConfiguration,
   IssueAlertFilterType,
-  IssueAlertRuleAction,
-  IssueAlertRuleCondition,
   MailActionTargetType,
 } from 'sentry/types/alerts';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
-import {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 export function hasStreamlineTargeting(organization: Organization): boolean {
   return organization.features.includes('streamline-targeting-context');

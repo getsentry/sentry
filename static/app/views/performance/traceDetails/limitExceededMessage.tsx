@@ -6,11 +6,11 @@ import DiscoverFeature from 'sentry/components/discover/discoverFeature';
 import Link from 'sentry/components/links/link';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import type {Organization} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
+import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 interface LimitExceededMessageProps {
   meta: TraceMeta | null;

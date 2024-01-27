@@ -12,7 +12,7 @@ import {
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import TagStore from 'sentry/stores/tagStore';
-import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import ColumnEditModal from 'sentry/views/discover/table/columnEditModal';
 
 const stubEl = styled(p => p.children);

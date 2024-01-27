@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -14,7 +15,7 @@ import Tag from 'sentry/components/tag';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';

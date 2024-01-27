@@ -1,5 +1,5 @@
-import {Organization} from 'sentry/types';
-import {
+import type {Organization} from 'sentry/types';
+import type {
   ExperimentAssignment,
   ExperimentKey,
   Experiments,

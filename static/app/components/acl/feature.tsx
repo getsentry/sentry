@@ -1,8 +1,8 @@
 import {Component} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
-import {Config, Organization, Project} from 'sentry/types';
-import {FeatureDisabledHooks} from 'sentry/types/hooks';
+import type {Config, Organization, Project} from 'sentry/types';
+import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';

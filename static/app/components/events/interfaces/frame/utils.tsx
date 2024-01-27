@@ -1,6 +1,7 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Event, EventOrGroupType, Frame, Organization, PlatformKey} from 'sentry/types';
+import type {Event, Frame, Organization, PlatformKey} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
 import {SymbolicatorStatus} from '../types';

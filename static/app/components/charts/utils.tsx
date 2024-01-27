@@ -6,8 +6,8 @@ import orderBy from 'lodash/orderBy';
 import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';

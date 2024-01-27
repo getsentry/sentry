@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {BarChartSeries} from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {IconDelete} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {Organization, SentryFunction} from 'sentry/types';
+import type {Organization, SentryFunction} from 'sentry/types';
 
 type Props = {
   onDelete: (org: Organization, sentryFn: SentryFunction) => void;

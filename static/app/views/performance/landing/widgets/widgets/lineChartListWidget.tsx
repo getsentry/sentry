@@ -50,7 +50,7 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,

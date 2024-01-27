@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -18,14 +18,14 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {TagWithTopValues} from 'sentry/types';
+import type {TagWithTopValues} from 'sentry/types';
 import {
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

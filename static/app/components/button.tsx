@@ -1,13 +1,15 @@
 import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';

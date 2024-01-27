@@ -1,7 +1,5 @@
-import {
-  initializeData as _initializeData,
-  InitializeDataSettings,
-} from 'sentry-test/performance/initializePerformanceData';
+import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
+import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';

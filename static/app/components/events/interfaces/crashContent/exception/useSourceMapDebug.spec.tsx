@@ -1,7 +1,7 @@
 import cloneDeep from 'lodash/cloneDeep';
 import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
 
-import {EntryException, Event} from 'sentry/types';
+import type {EntryException, Event} from 'sentry/types';
 
 import {getUniqueFilesFromException} from './useSourceMapDebug';
 

@@ -1,4 +1,4 @@
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 /**
  * Used to determine if viewer can see project creation button

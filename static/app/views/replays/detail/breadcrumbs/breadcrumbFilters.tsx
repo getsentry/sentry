@@ -1,7 +1,7 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
+import type useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {

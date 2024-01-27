@@ -7,18 +7,14 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  GroupStatus,
-  GroupStatusResolution,
-  GroupSubstatus,
-  Project,
-  ResolvedStatusDetails,
-} from 'sentry/types';
+import type {GroupStatusResolution, Project, ResolvedStatusDetails} from 'sentry/types';
+import {GroupStatus, GroupSubstatus} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';

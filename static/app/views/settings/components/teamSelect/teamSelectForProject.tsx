@@ -14,10 +14,11 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import {useTeams} from 'sentry/utils/useTeams';
 
-import {DropdownAddTeam, TeamSelectProps} from './utils';
+import type {TeamSelectProps} from './utils';
+import {DropdownAddTeam} from './utils';
 
 type Props = TeamSelectProps & {
   canCreateTeam: boolean;

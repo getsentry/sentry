@@ -2,7 +2,7 @@ import {browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
@@ -11,7 +11,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type RedirectRemainingOrganizationParams = {

@@ -2,12 +2,13 @@ import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import Badge from 'sentry/components/badge';
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton from 'sentry/components/dropdownButton';
 import PlatformList from 'sentry/components/platformList';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {trimSlug} from 'sentry/utils/trimSlug';
 
 import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
