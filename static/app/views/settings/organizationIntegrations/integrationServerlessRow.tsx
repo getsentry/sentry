@@ -6,12 +6,12 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
+import type {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withApi from 'sentry/utils/withApi';
 

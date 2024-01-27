@@ -50,14 +50,13 @@ import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMar
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
+import type {MetricRule, Trigger} from '../../types';
 import {
   AlertRuleComparisonType,
   Dataset,
-  MetricRule,
   SessionsAggregate,
   TimePeriod,
   TimeWindow,
-  Trigger,
 } from '../../types';
 import {getMetricDatasetQueryExtras} from '../../utils/getMetricDatasetQueryExtras';
 

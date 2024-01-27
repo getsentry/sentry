@@ -8,7 +8,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EventOrGroupType, StacktraceType} from 'sentry/types';
+import type {StacktraceType} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 
 import {StacktraceBanners} from './stacktraceBanners';

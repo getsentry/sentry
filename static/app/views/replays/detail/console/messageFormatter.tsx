@@ -1,6 +1,6 @@
 import {memo} from 'react';
 
-import {OnExpandCallback} from 'sentry/components/objectInspector';
+import type {OnExpandCallback} from 'sentry/components/objectInspector';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {isConsoleFrame} from 'sentry/utils/replays/types';
 import Format from 'sentry/views/replays/detail/console/format';

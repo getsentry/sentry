@@ -4,9 +4,12 @@ import Loading from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {Organization} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {
+  TraceError,
+  TraceFullDetailed,
+} from 'sentry/utils/performance/quickTrace/types';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

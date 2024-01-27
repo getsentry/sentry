@@ -4,7 +4,7 @@ import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types';
 import ProjectCharts from 'sentry/views/projectDetail/projectCharts';
 
 function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {

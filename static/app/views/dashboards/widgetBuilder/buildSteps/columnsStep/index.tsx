@@ -1,9 +1,9 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
-import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {Organization, TagCollection} from 'sentry/types';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
+import type {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
 
 import {DataSet, useTableFieldOptions} from '../../utils';
 import {BuildStep} from '../buildStep';

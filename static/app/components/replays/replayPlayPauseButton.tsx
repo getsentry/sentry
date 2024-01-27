@@ -1,4 +1,5 @@
-import {BaseButtonProps, Button} from 'sentry/components/button';
+import type {BaseButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconPause, IconPlay, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';

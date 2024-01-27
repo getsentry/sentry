@@ -1,11 +1,11 @@
 import {createContext, useContext, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import {t} from 'sentry/locale';
 import type {EventTransaction, Organization, Project} from 'sentry/types';
-import {RequestState} from 'sentry/types/core';
+import type {RequestState} from 'sentry/types/core';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import useApi from 'sentry/utils/useApi';

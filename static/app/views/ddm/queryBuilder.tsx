@@ -1,12 +1,13 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import Tag from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
+import type {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
 import {
   getDefaultMetricDisplayType,
   isAllowedOp,
@@ -16,7 +17,7 @@ import {
 } from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
-import {
+import type {
   MetricDisplayType,
   MetricsQuerySubject,
   MetricWidgetQueryParams,

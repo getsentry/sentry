@@ -1,22 +1,21 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Entry,
-  EntryType,
   Event,
-  EventOrGroupType,
   Group,
   Organization,
   Project,
   SharedViewOrganization,
 } from 'sentry/types';
+import {EntryType, EventOrGroupType} from 'sentry/types';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {objectIsEmpty} from 'sentry/utils';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';

@@ -1,10 +1,11 @@
 import chunk from 'lodash/chunk';
 
-import {NewQuery, Release} from 'sentry/types';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {NewQuery, Release} from 'sentry/types';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {ApiQueryKey, useApiQuery, useQueries} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';

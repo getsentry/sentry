@@ -1,7 +1,8 @@
-import {CrashContent} from 'sentry/components/events/interfaces/crashContent';
+import type {CrashContent} from 'sentry/components/events/interfaces/crashContent';
 import {t} from 'sentry/locale';
-import {Group, PlatformKey, Project} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import type {Group, PlatformKey, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {StackView} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';

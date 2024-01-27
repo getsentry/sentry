@@ -29,7 +29,8 @@ import {
   mapMonitorFormErrors,
   transformMonitorFormData,
 } from 'sentry/views/monitors/components/monitorForm';
-import {Monitor, ScheduleType} from 'sentry/views/monitors/types';
+import type {Monitor} from 'sentry/views/monitors/types';
+import {ScheduleType} from 'sentry/views/monitors/types';
 import {crontabAsText, getScheduleIntervals} from 'sentry/views/monitors/utils';
 
 const DEFAULT_SCHEDULE_CONFIG = {

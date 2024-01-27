@@ -2,9 +2,12 @@ import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfac
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
-import {Organization} from 'sentry/types';
-import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {
+  BreadcrumbTypeDefault,
+  BreadcrumbTypeNavigation,
+} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';

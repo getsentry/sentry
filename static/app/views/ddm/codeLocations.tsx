@@ -11,8 +11,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Frame, MRI} from 'sentry/types';
-import {MetricCodeLocationFrame, MetricRange} from 'sentry/utils/metrics/types';
+import type {Frame, MRI} from 'sentry/types';
+import type {MetricCodeLocationFrame, MetricRange} from 'sentry/utils/metrics/types';
 import {useMetricsCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 
 interface CodeLocationsProps extends MetricRange {

@@ -7,7 +7,7 @@ import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,7 +16,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {
   DEFAULT_PLATFORM,

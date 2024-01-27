@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -26,7 +26,7 @@ import MonitorIssues from './components/monitorIssues';
 import MonitorStats from './components/monitorStats';
 import MonitorOnboarding from './components/onboarding';
 import {StatusToggleButton} from './components/statusToggleButton';
-import {Monitor} from './types';
+import type {Monitor} from './types';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
