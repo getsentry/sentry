@@ -21,6 +21,7 @@ from sentry.types.ratelimit import RateLimitCategory, RateLimitMeta, RateLimitTy
 from sentry.utils import json, metrics
 
 DEFAULT_ERROR_MESSAGE = (
+RATE_LIMIT_MESSAGE = 'Rate limit exceeded. You have made too many attempts in a short period of time. Try again later.'
     "You are attempting to use this endpoint too frequently. Limit is "
     "{limit} requests in {window} seconds"
 )
