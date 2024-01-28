@@ -537,8 +537,12 @@ class ReleaseSerializer(Serializer):
             p.update(release_metadata_attrs[item])
             p.update(deploy_metadata_attrs[item])
 
-            p.update(authors_metadata_attrs[item] if authors_metadata_attrs[item] is not None else {})
-            p.update(release_metadata_attrs[item] if release_metadata_attrs[item] is not None else {})
+            p.update(
+                authors_metadata_attrs[item] if authors_metadata_attrs[item] is not None else {}
+            )
+            p.update(
+                release_metadata_attrs[item] if release_metadata_attrs[item] is not None else {}
+            )
             p.update(deploy_metadata_attrs[item] if deploy_metadata_attrs[item] is not None else {})
 
             result[item] = p
@@ -595,8 +599,12 @@ class GroupEventReleaseSerializer(Serializer):
             p.update(last_commit_metadata_attrs[item])
             p.update(deploy_metadata_attrs[item])
 
-            p.update(authors_metadata_attrs[item] if authors_metadata_attrs[item] is not None else {})
-            p.update(release_metadata_attrs[item] if release_metadata_attrs[item] is not None else {})
+            p.update(
+                authors_metadata_attrs[item] if authors_metadata_attrs[item] is not None else {}
+            )
+            p.update(
+                release_metadata_attrs[item] if release_metadata_attrs[item] is not None else {}
+            )
             p.update(deploy_metadata_attrs[item] if deploy_metadata_attrs[item] is not None else {})
 
             result[item] = p
