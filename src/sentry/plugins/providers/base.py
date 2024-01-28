@@ -120,6 +120,8 @@ class ProviderMixin:
 
     def handle_api_error(self, e):
         context = {"error_type": "unknown"}
+        API_ERRORS = {404: 'The requested resource was not found. Please check installation permissions and repository existence.'}
+
         if isinstance(e, InvalidIdentity):
             if self.auth_provider is None:
                 context.update(
