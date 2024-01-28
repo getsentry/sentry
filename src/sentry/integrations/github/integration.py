@@ -219,15 +219,19 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
     def message_from_error(self, exc: Exception) -> str:
         if isinstance(exc, ApiError) and exc.code == 404:
-            context = 'The resource was not found. This may occur if the repository no longer exists or if permissions for the repository or installation have been revoked.'
-            if 'apps/create-an' in exc.json.get('documentation_url', ''):
-                context += ' Please ensure your GitHub integration is correctly installed and has proper access permissions.'
+            context = "The resource was not found. This may occur if the repository no longer exists or if permissions for the repository or installation have been revoked."
+            if "apps/create-an" in exc.json.get("documentation_url", ""):
+                context += " Please ensure your GitHub integration is correctly installed and has proper access permissions."
             return context
 
-        
-                # Adding a specific error handling for API 404 errors
+            # Adding a specific error handling for API 404 errors
         if exc.code == 404:
-            context.update({'error_type': 'repository_not_found', 'message': 'The requested resource was not found. Please check installation permissions and repository existence.'})
+            context.update(
+                {
+                    "error_type": "repository_not_found",
+                    "message": "The requested resource was not found. Please check installation permissions and repository existence.",
+                }
+            )
             status = 404
         else:
             if self.logger:
