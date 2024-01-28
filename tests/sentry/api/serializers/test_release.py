@@ -26,6 +26,34 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 
 class ReleaseSerializerTest(TestCase, SnubaTestCase):
     def test_simple(self):
+
+    def test_metadata_none_values(self):
+        user = self.create_user()
+        project = self.create_project()
+        release_version = uuid4().hex
+
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=release_version
+        )
+        release.add_project(project)
+
+        authors_metadata_attrs = None
+        release_metadata_attrs = {'last_commit': {'id': '123456'}}
+        deploy_metadata_attrs = {'last_deploy': {'id': '654321'}}
+
+        get_attrs_result = {
+            'authors': [],
+            'last_commit': release_metadata_attrs['last_commit'],
+            'last_deploy': deploy_metadata_attrs['last_deploy'],
+        }
+
+        with patch('sentry.api.serializers.models.release.get_attrs', return_value=get_attrs_result):
+            result = serialize(release, user)
+
+        assert 'authors' in result
+        assert result['last_commit'] == release_metadata_attrs['last_commit']
+        assert result['last_deploy'] == deploy_metadata_attrs['last_deploy']
+        # Ensure no errors occur when authors_metadata_attrs is None
         user = self.create_user()
         project = self.create_project()
         project2 = self.create_project(organization=project.organization)
@@ -570,6 +598,34 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
 class ReleaseRefsSerializerTest(TestCase):
     def test_simple(self):
+
+    def test_metadata_none_values(self):
+        user = self.create_user()
+        project = self.create_project()
+        release_version = uuid4().hex
+
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=release_version
+        )
+        release.add_project(project)
+
+        authors_metadata_attrs = None
+        release_metadata_attrs = {'last_commit': {'id': '123456'}}
+        deploy_metadata_attrs = {'last_deploy': {'id': '654321'}}
+
+        get_attrs_result = {
+            'authors': [],
+            'last_commit': release_metadata_attrs['last_commit'],
+            'last_deploy': deploy_metadata_attrs['last_deploy'],
+        }
+
+        with patch('sentry.api.serializers.models.release.get_attrs', return_value=get_attrs_result):
+            result = serialize(release, user)
+
+        assert 'authors' in result
+        assert result['last_commit'] == release_metadata_attrs['last_commit']
+        assert result['last_deploy'] == deploy_metadata_attrs['last_deploy']
+        # Ensure no errors occur when authors_metadata_attrs is None
         # test bad refs
         data: dict[str, Any] = {"version": "a" * 40, "projects": ["earth"], "refs": [None]}
 
@@ -594,6 +650,34 @@ class ReleaseRefsSerializerTest(TestCase):
 
 class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
     def test_simple(self):
+
+    def test_metadata_none_values(self):
+        user = self.create_user()
+        project = self.create_project()
+        release_version = uuid4().hex
+
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=release_version
+        )
+        release.add_project(project)
+
+        authors_metadata_attrs = None
+        release_metadata_attrs = {'last_commit': {'id': '123456'}}
+        deploy_metadata_attrs = {'last_deploy': {'id': '654321'}}
+
+        get_attrs_result = {
+            'authors': [],
+            'last_commit': release_metadata_attrs['last_commit'],
+            'last_deploy': deploy_metadata_attrs['last_deploy'],
+        }
+
+        with patch('sentry.api.serializers.models.release.get_attrs', return_value=get_attrs_result):
+            result = serialize(release, user)
+
+        assert 'authors' in result
+        assert result['last_commit'] == release_metadata_attrs['last_commit']
+        assert result['last_deploy'] == deploy_metadata_attrs['last_deploy']
+        # Ensure no errors occur when authors_metadata_attrs is None
         user = self.create_user()
         project = self.create_project()
         project2 = self.create_project(organization=project.organization)
