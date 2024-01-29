@@ -1,9 +1,9 @@
+from sentry.issues.priority import PRIORITY_LEVEL_TO_STR, PriorityLevel
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.group import PRIORITY_LEVEL_TO_STR, PriorityLevel
 from sentry.utils.iterators import chunked
 
 
