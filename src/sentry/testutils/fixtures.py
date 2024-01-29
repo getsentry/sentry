@@ -139,6 +139,9 @@ class Fixtures:
     def create_user_auth_token(self, *args, **kwargs):
         return Factories.create_user_auth_token(*args, **kwargs)
 
+    def create_org_auth_token(self, *args, **kwargs):
+        return Factories.create_org_auth_token(*args, **kwargs)
+
     def create_team_membership(self, *args, **kwargs):
         return Factories.create_team_membership(*args, **kwargs)
 
