@@ -17,6 +17,7 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold, Tra
 from sentry.relay.config.metric_extraction import get_metric_extraction_config
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -1261,3 +1262,103 @@ def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> 
         assert config
         assert len(config["metrics"]) == 1
         assert config["metrics"][0].get("condition") is None
+
+
+# XXX: This may have bugs, therefore, use with caution
+def _on_demand_spec_from_widget(widget: DashboardWidgetQuery) -> OnDemandMetricSpec:
+    field = widget.aggregates[0] if widget.aggregates else ""
+    return OnDemandMetricSpec(
+        field=field,
+        query=widget.conditions,
+        groupbys=widget.columns,
+        spec_type=MetricSpecType.DYNAMIC_QUERY,
+    )
+
+
+# XXX: This may have bugs, therefore, use with caution
+def _on_demand_spec_from_alert(alert: AlertRule) -> OnDemandMetricSpec:
+    return OnDemandMetricSpec(
+        field=alert.snuba_query.aggregate,
+        query=alert.snuba_query.query,
+        spec_type=MetricSpecType.SIMPLE_QUERY,
+    )
+
+
+def _metric_spec(
+    query_hash: str,
+    tags: Optional[list[dict[str, str]]] = None,
+    condition: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    tags = [{"key": "query_hash", "value": query_hash}] + (tags or [])
+    return {
+        "category": "transaction",
+        "condition": condition or {},
+        "field": None,
+        "mri": "c:transactions/on_demand@none",
+        "tags": tags,
+    }
+
+
+@django_db_all
+def test_widgets_with_without_environment_do_not_collide(default_project: Project) -> None:
+    aggr = "count()"
+    query = "transaction.duration:>=10"
+    condition = {"name": "event.duration", "op": "gte", "value": 10.0}
+    env_tag = {"field": "event.environment", "key": "environment"}
+
+    with Feature([ON_DEMAND_METRICS_WIDGETS]):
+        widget1 = create_widget([aggr], query, default_project)
+        widget2 = create_widget(
+            [aggr], query, default_project, columns=["environment"], title="foo"
+        )
+
+        config = get_metric_extraction_config(default_project)
+        assert config and config["metrics"] == [
+            _metric_spec("f1353b0f", [env_tag], condition=condition),
+            _metric_spec("4fb5a472", [env_tag], condition=condition),
+        ]
+
+        spec1 = _on_demand_spec_from_widget(widget1)
+        spec2 = _on_demand_spec_from_widget(widget2)
+
+        expected_query_str_hash = f"None;{condition}"
+        assert spec1._query_str_for_hash == expected_query_str_hash
+        # The environment is included because columns become groupbys which is included in the query hash
+        assert spec2._query_str_for_hash == f"{expected_query_str_hash};['environment']"
+
+
+@django_db_all
+def test_alert_and_widget_colliding(
+    default_project: Project, default_environment: Environment
+) -> None:
+    aggr = "count()"
+    query = "transaction.duration:>=10"
+    condition = {"name": "event.duration", "op": "gte", "value": 10.0}
+    env_tag = {"field": "event.environment", "key": "environment"}
+
+    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
+        alert = create_alert(aggr, query, default_project, environment=default_environment)
+        widget = create_widget([aggr], query, default_project)
+
+        config = get_metric_extraction_config(default_project)
+
+        assert config and config["metrics"] == [
+            # The alert does not include the environment as part of the tags
+            _metric_spec(
+                query_hash="0af3eea3",
+                condition={
+                    "inner": [
+                        {"name": "event.environment", "op": "eq", "value": "development"},
+                        condition,
+                    ],
+                    "op": "and",
+                },
+            ),
+            _metric_spec("f1353b0f", [env_tag], condition=condition),
+        ]
+
+        widget_spec = _on_demand_spec_from_widget(widget)
+        alert_spec = _on_demand_spec_from_alert(alert)
+        expected_query_str_hash = f"None;{condition}"
+        assert widget_spec._query_str_for_hash == expected_query_str_hash
+        assert alert_spec._query_str_for_hash == expected_query_str_hash
