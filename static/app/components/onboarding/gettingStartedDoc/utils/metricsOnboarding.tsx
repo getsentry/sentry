@@ -1,5 +1,6 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepProps, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
   OnboardingConfig,

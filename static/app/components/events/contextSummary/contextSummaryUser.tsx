@@ -6,13 +6,13 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AvatarUser, Meta} from 'sentry/types';
-import {EventUser} from 'sentry/types/event';
+import type {AvatarUser, Meta} from 'sentry/types';
+import type {EventUser} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import ContextSummaryNoSummary from './contextSummaryNoSummary';
 import Item from './item';
-import {ContextItemProps} from './types';
+import type {ContextItemProps} from './types';
 
 type UserTitle = {
   value: string;

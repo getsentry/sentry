@@ -1,6 +1,6 @@
 import {createRef, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Alert from 'sentry/components/alert';
@@ -20,9 +20,9 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
+import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import NewTraceDetailsSpanDetail, {
   SpanDetailContainer,
-  SpanDetailProps,
   SpanDetails,
 } from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
@@ -51,7 +51,8 @@ import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryBreadcrumbs, EntryType, EventTransaction, Organization} from 'sentry/types';
+import type {EntryBreadcrumbs, EventTransaction, Organization} from 'sentry/types';
+import {EntryType} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -69,7 +70,7 @@ import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
-import {EventDetail} from './newTraceDetailsContent';
+import type {EventDetail} from './newTraceDetailsContent';
 import {Row, Tags} from './styles';
 
 type DetailPanelProps = {

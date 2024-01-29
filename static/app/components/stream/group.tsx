@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -9,7 +10,7 @@ import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import {GroupListColumn} from 'sentry/components/issues/groupList';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
@@ -26,15 +27,15 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Group,
   GroupReprocessing,
   InboxDetails,
-  IssueCategory,
   NewQuery,
   Organization,
   User,
 } from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
@@ -42,7 +43,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
-import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
@@ -584,7 +585,7 @@ const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   align-self: center;
 
   @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+    p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 `;
@@ -607,7 +608,7 @@ const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
   align-self: center;
 
   @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;

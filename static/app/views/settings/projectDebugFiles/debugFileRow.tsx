@@ -14,8 +14,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {DebugFile} from 'sentry/types/debugFiles';
+import type {Project} from 'sentry/types';
+import type {DebugFile} from 'sentry/types/debugFiles';
 
 import {getFeatureTooltip, getPrettyFileType} from './utils';
 

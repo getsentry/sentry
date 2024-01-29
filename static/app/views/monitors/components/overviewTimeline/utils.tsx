@@ -2,7 +2,7 @@ import moment from 'moment';
 
 import {getFormat} from 'sentry/utils/dates';
 
-import {TimeWindow, TimeWindowOptions} from './types';
+import type {TimeWindow, TimeWindowOptions} from './types';
 
 // Stores the elapsed minutes for each selectable resolution
 export const resolutionElapsedMinutes: Record<TimeWindow, number> = {

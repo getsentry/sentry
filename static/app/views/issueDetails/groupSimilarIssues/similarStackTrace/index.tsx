@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -10,9 +10,10 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
+import type {SimilarItem} from 'sentry/stores/groupingStore';
+import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';

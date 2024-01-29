@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {MetricsSummary} from 'sentry/components/events/interfaces/spans/types';
+import type {MetricsSummary} from 'sentry/components/events/interfaces/spans/types';
 import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 
 describe('CustomMetricsEventData', () => {

@@ -6,8 +6,8 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Group, GroupActivity} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group, GroupActivity} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export function markEventSeen(

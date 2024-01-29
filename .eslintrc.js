@@ -16,6 +16,7 @@ const strictRulesNotCi = {
 };
 
 module.exports = {
+  root: true,
   extends: [isRelaxed ? 'sentry-app' : 'sentry-app/strict'],
   globals: {
     require: false,
@@ -25,16 +26,39 @@ module.exports = {
     tick: true,
     jest: true,
   },
-
+  parserOptions: {
+    project: true,
+    tsConfigRootDir: __dirname,
+  },
   rules: {
     'react-hooks/exhaustive-deps': [
       'warn',
       {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
     ],
     ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
+    // TODO(@anonrig): Move this to eslint-config-sentry-app
+    '@typescript-eslint/consistent-type-imports': [
+      'error',
+      {fixStyle: 'separate-type-imports', prefer: 'type-imports'},
+    ],
+    '@typescript-eslint/consistent-type-exports': ['error'],
   },
-
   overrides: [
+    {
+      // Benchmarks are not compiled with the same tsconfig as the rest of the
+      // app, so we need to disable some rules.
+      files: ['static/app/**/*.benchmark.ts'],
+      parserOptions: {
+        project: false,
+      },
+      rules: {
+        '@typescript-eslint/consistent-type-exports': 'off',
+      },
+    },
+    {
+      files: ['tests/js/**/*.{ts,js}'],
+      extends: ['plugin:testing-library/react', 'sentry-app/strict'],
+    },
     {
       files: ['*.ts', '*.tsx'],
       rules: {},

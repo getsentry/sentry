@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -15,14 +15,12 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, UserEmail} from 'sentry/types';
+import type {Organization, Project, UserEmail} from 'sentry/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
-import {
-  ACCOUNT_NOTIFICATION_FIELDS,
-  FineTuneField,
-} from 'sentry/views/settings/account/notifications/fields';
+import type {FineTuneField} from 'sentry/views/settings/account/notifications/fields';
+import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
 import {

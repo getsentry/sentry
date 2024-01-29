@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
-import {Location} from 'history';
+import type {RouteComponentProps} from 'react-router';
+import type {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -12,7 +12,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Commit, Project, Repository} from 'sentry/types';
+import type {Commit, Project, Repository} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';

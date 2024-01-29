@@ -4,25 +4,22 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {NewQuery, Project} from 'sentry/types';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {
-  fromSorts,
-  isFieldSortable,
-  MetaType,
-} from 'sentry/utils/discover/eventView';
+import type {NewQuery, Project} from 'sentry/types';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {fieldAlignment, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -353,8 +350,8 @@ export function ScreenLoadSpansTable({
               ? 'desc'
               : 'asc'
             : sort?.field === column.key
-            ? sort.kind
-            : undefined
+              ? sort.kind
+              : undefined
         }
         canSort={canSort}
         generateSortLink={generateSortLink}

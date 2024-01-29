@@ -3,10 +3,10 @@ import moment from 'moment';
 
 import Datetime from 'sentry/components/dateTime';
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
-import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
+import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
-import {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types';
 import {
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,

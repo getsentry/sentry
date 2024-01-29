@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FeatureBadge from 'sentry/components/featureBadge';
-import SelectControl, {
-  ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';

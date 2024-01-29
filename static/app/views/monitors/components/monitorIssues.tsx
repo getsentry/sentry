@@ -13,7 +13,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {Monitor, MonitorEnvironment} from '../types';
+import type {Monitor, MonitorEnvironment} from '../types';
 
 type Props = {
   monitor: Monitor;

@@ -2,21 +2,23 @@ import {Fragment} from 'react';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import Form, {FormProps} from 'sentry/components/forms/form';
-import FormModel, {FieldValue} from 'sentry/components/forms/model';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
+import type {FieldValue} from 'sentry/components/forms/model';
+import FormModel from 'sentry/components/forms/model';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
-import {
+import type {
   Choices,
   IntegrationIssueConfig,
   IssueConfigField,
   SelectValue,
 } from 'sentry/types';
-import {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
+import type {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 
