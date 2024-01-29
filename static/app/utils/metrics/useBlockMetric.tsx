@@ -54,7 +54,10 @@ export const useBlockMetric = (project: Project) => {
 
           if (index !== undefined && index !== -1) {
             const newMeta = [...oldMeta];
-            newMeta[index] = {...newMeta[index], ...data};
+            newMeta[index] = {
+              ...newMeta[index],
+              blockingStatus: [{...data, project: project.id}],
+            };
 
             return [newMeta, oldData[1], oldData[2]];
           }
