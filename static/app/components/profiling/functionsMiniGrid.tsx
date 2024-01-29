@@ -1,4 +1,5 @@
-import {CSSProperties, Fragment, SyntheticEvent} from 'react';
+import type {CSSProperties, SyntheticEvent} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
@@ -7,9 +8,9 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {EventsResults} from 'sentry/utils/profiling/hooks/types';
+import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 
 const functionsFields = [

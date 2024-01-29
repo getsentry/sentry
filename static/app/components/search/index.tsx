@@ -17,7 +17,7 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 
-import {Result} from './sources/types';
+import type {Result} from './sources/types';
 import List from './list';
 
 type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];
@@ -211,7 +211,8 @@ function Search({
   );
 }
 
-export {Search, SearchProps};
+export type {SearchProps};
+export {Search};
 
 const SearchWrapper = styled('div')`
   position: relative;

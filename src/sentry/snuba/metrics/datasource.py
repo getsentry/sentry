@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from sentry.sentry_metrics.visibility import get_metrics_blocking_state
+
 """
 Module that gets both metadata and time series from Snuba.
 For metadata, it fetch metrics metadata (metric names, tag names, tag values, ...) from snuba.
@@ -46,6 +48,7 @@ from sentry.snuba.metrics.fields.base import (
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import (
+    ParsedMRI,
     get_available_operations,
     is_custom_measurement,
     is_mri,
@@ -63,6 +66,7 @@ from sentry.snuba.metrics.utils import (
     CUSTOM_MEASUREMENT_DATASETS,
     METRIC_TYPE_TO_ENTITY,
     UNALLOWED_TAGS,
+    BlockedMetric,
     DerivedMetricParseException,
     MetricDoesNotExistInIndexer,
     MetricMeta,
@@ -188,32 +192,86 @@ def get_available_derived_metrics(
     return found_derived_metrics.intersection(all_derived_metrics)
 
 
-def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
-    metas = []
-    stored_mris = get_stored_mris(projects, use_case_id) if projects else {}
+def get_metrics_blocking_state_of_projects(
+    projects: Sequence[Project], use_case_id: UseCaseID
+) -> Dict[str, Sequence[Tuple[bool, Sequence[str], int]]]:
+    # Blocked metrics are only supported for custom metrics.
+    if use_case_id != UseCaseID.CUSTOM:
+        return {}
 
-    for metric_mri, project_ids in stored_mris.items():
+    metrics_blocking_state_by_project = get_metrics_blocking_state(projects)
+    metrics_blocking_state_by_mri = {}
+
+    for project_id, metrics_blocking_state in metrics_blocking_state_by_project.items():
+        for metric_blocking in metrics_blocking_state.metrics.values():
+            metrics_blocking_state_by_mri.setdefault(metric_blocking.metric_mri, []).append(
+                (metric_blocking.is_blocked, list(metric_blocking.blocked_tags), project_id)
+            )
+
+    return metrics_blocking_state_by_mri
+
+
+def _build_metric_meta(
+    parsed_mri: ParsedMRI, project_ids: Sequence[int], blocking_status: Sequence[BlockedMetric]
+) -> MetricMeta:
+    return MetricMeta(
+        type=parsed_mri.entity,
+        name=parsed_mri.name,
+        unit=cast(MetricUnit, parsed_mri.unit),
+        mri=parsed_mri.mri_string,
+        operations=cast(Sequence[MetricOperationType], get_available_operations(parsed_mri)),
+        projectIds=project_ids,
+        blockingStatus=blocking_status,
+    )
+
+
+def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
+    if not projects:
+        return []
+
+    stored_metrics = get_stored_metrics_of_projects(projects, use_case_id)
+    metrics_blocking_state = get_metrics_blocking_state_of_projects(projects, use_case_id)
+
+    metrics_metas = []
+    for metric_mri, project_ids in stored_metrics.items():
         parsed_mri = parse_mri(metric_mri)
         if parsed_mri is None:
             continue
 
-        metas.append(
-            MetricMeta(
-                mri=metric_mri,
-                name=parsed_mri.name,
-                operations=cast(
-                    Sequence[MetricOperationType], get_available_operations(parsed_mri)
-                ),
-                unit=cast(MetricUnit, parsed_mri.unit),
-                type=parsed_mri.entity,
-                project_ids=project_ids,
+        blocking_status = []
+        if (metric_blocking := metrics_blocking_state.get(metric_mri)) is not None:
+            blocking_status = [
+                BlockedMetric(isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id)
+                for is_blocked, blocked_tags, project_id in metric_blocking
+            ]
+            # We delete the metric so that in the next steps we can just merge the remaining blocked metrics that are
+            # not stored.
+            del metrics_blocking_state[metric_mri]
+
+        metrics_metas.append(_build_metric_meta(parsed_mri, project_ids, blocking_status))
+
+    for metric_mri, metric_blocking in metrics_blocking_state.items():
+        parsed_mri = parse_mri(metric_mri)
+        if parsed_mri is None:
+            continue
+
+        metrics_metas.append(
+            _build_metric_meta(
+                parsed_mri,
+                [],
+                [
+                    BlockedMetric(
+                        isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id
+                    )
+                    for is_blocked, blocked_tags, project_id in metric_blocking
+                ],
             )
         )
 
-    return metas
+    return metrics_metas
 
 
-def get_stored_mris(
+def get_stored_metrics_of_projects(
     projects: Sequence[Project], use_case_id: UseCaseID
 ) -> Mapping[str, Sequence[int]]:
     org_id = projects[0].organization_id
@@ -669,14 +727,18 @@ def _get_group_limit_filters(
     # Get an ordered list of tuples containing the values of the group keys.
     # This needs to be deduplicated since in timeseries queries the same
     # grouping key will reappear for every time bucket.
+    # If there is only one value, then we don't need to preserve the order with tuples
     values = list({tuple(row[col] for col in aliased_group_keys): None for row in results})
-    conditions = [
-        Condition(
-            Function("tuple", list(key_to_condition_dict.values())),
-            Op.IN,
-            Function("tuple", values),
-        )
-    ]
+    conditions = []
+    if len(aliased_group_keys) > 1:
+        conditions = [
+            Condition(
+                Function("tuple", list(key_to_condition_dict.values())),
+                Op.IN,
+                Function("tuple", values),
+            )
+        ]
+
     # In addition to filtering down on the tuple combination of the fields in
     # the group by columns, we need a separate condition for each of the columns
     # in the group by with their respective values so Clickhouse can filter the

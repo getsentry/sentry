@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-import {ListItemProps} from './listItem';
+import type {ListItemProps} from './listItem';
 import {getListSymbolStyle, listSymbol} from './utils';
 
 type ListItemChild = React.ReactElement<ListItemProps> | undefined | false;

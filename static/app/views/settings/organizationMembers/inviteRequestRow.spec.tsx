@@ -12,7 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
-import {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types';
 import InviteRequestRow from 'sentry/views/settings/organizationMembers/inviteRequestRow';
 
 const roles: OrgRole[] = [

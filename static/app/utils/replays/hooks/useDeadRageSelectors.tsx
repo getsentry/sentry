@@ -2,7 +2,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import hydratedSelectorData from 'sentry/utils/replays/hydrateSelectorData';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
+import type {
   DeadRageSelectorListResponse,
   DeadRageSelectorQueryParams,
 } from 'sentry/views/replays/types';

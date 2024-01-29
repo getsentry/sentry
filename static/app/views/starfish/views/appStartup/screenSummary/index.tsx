@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import type {Crumb} from 'sentry/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -12,10 +13,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -87,7 +85,7 @@ function ScreenSummary() {
   return (
     <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
       <Layout.Page>
-        <PageErrorProvider>
+        <PageAlertProvider>
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs crumbs={crumbs} />
@@ -97,7 +95,7 @@ function ScreenSummary() {
 
           <Layout.Body>
             <Layout.Main fullWidth>
-              <PageErrorAlert />
+              <PageAlert />
               <PageFiltersContainer>
                 <Container>
                   <PageFilterBar condensed>
@@ -248,7 +246,7 @@ function ScreenSummary() {
               )}
             </Layout.Main>
           </Layout.Body>
-        </PageErrorProvider>
+        </PageAlertProvider>
       </Layout.Page>
     </SentryDocumentTitle>
   );

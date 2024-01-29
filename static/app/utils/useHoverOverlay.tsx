@@ -7,11 +7,12 @@ import {
   useRef,
   useState,
 } from 'react';
-import {PopperProps, usePopper} from 'react-popper';
+import type {PopperProps} from 'react-popper';
+import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 
 import domId from 'sentry/utils/domId';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
   return [
@@ -334,4 +335,5 @@ function useHoverOverlay(
   };
 }
 
-export {useHoverOverlay, UseHoverOverlayProps};
+export type {UseHoverOverlayProps};
+export {useHoverOverlay};

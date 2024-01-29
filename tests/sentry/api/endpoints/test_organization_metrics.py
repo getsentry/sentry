@@ -7,14 +7,19 @@ from django.urls import reverse
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.silo import SiloMode
-from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
-from sentry.snuba.metrics.fields.snql import complement, division_float
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI
+from sentry.snuba.metrics import (
+    DERIVED_METRICS,
+    SessionMRI,
+    SingularEntityDerivedMetric,
+    complement,
+    division_float,
+)
 from sentry.testutils.cases import (
     APITestCase,
     MetricsAPIBaseTestCase,
-    OrganizationMetricMetaIntegrationTestCase,
+    OrganizationMetricsIntegrationTestCase,
 )
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -58,6 +63,7 @@ class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
         ("sentry-api-0-organization-metrics-index",),
+        ("sentry-api-0-organization-metrics-details",),
         ("sentry-api-0-organization-metric-details", "foo"),
         ("sentry-api-0-organization-metrics-tags",),
         ("sentry-api-0-organization-metrics-tag-details", "foo"),
@@ -85,7 +91,7 @@ class OrganizationMetricsPermissionTest(APITestCase):
 
 
 @region_silo_test
-class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
+class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-index"
 
@@ -93,16 +99,11 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-    def setUp(self):
-        super().setUp()
-        self.proj2 = self.create_project(organization=self.organization)
-        self.transaction_proj = self.create_project(organization=self.organization)
-
     def test_metrics_meta_sessions(self):
         response = self.get_success_response(
             self.organization.slug, project=[self.project.id], useCase=["sessions"]
         )
-        # TODO(ogi): make proper assertions here
+
         assert isinstance(response.data, list)
 
     def test_metrics_meta_transactions(self):
@@ -130,6 +131,9 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
         project_1 = self.create_project()
         project_2 = self.create_project()
 
+        block_metric("s:custom/user@none", [project_1])
+        block_tags_of_metric("d:custom/page_load@millisecond", {"release"}, [project_2])
+
         metrics = (
             ("s:custom/user@none", "set", project_1),
             ("s:custom/user@none", "set", project_2),
@@ -155,8 +159,15 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
 
         data = sorted(response.data, key=lambda d: d["mri"])
         assert data[0]["mri"] == "c:custom/clicks@none"
-        assert data[0]["project_ids"] == [project_1.id]
+        assert data[0]["projectIds"] == [project_1.id]
+        assert data[0]["blockingStatus"] == []
         assert data[1]["mri"] == "d:custom/page_load@millisecond"
-        assert data[1]["project_ids"] == [project_2.id]
+        assert data[1]["projectIds"] == [project_2.id]
+        assert data[1]["blockingStatus"] == [
+            {"isBlocked": False, "blockedTags": ["release"], "projectId": project_2.id}
+        ]
         assert data[2]["mri"] == "s:custom/user@none"
-        assert sorted(data[2]["project_ids"]) == sorted([project_1.id, project_2.id])
+        assert sorted(data[2]["projectIds"]) == sorted([project_1.id, project_2.id])
+        assert data[2]["blockingStatus"] == [
+            {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
+        ]

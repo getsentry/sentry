@@ -12,15 +12,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {
-  formatMetricsUsingUnitAndOp,
-  MetricWidgetQueryParams,
-  SortState,
-} from 'sentry/utils/metrics';
+import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
+import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import type {MetricWidgetQueryParams, SortState} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
-import {Series} from 'sentry/views/ddm/widget';
+import type {Series} from 'sentry/views/ddm/widget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export const SummaryTable = memo(function SummaryTable({
@@ -298,7 +295,6 @@ function getValues(seriesData: Series['data']) {
   if (!seriesData) {
     return {min: null, max: null, avg: null, sum: null};
   }
-
   const res = seriesData.reduce(
     (acc, {value}) => {
       if (value === null) {
@@ -308,13 +304,14 @@ function getValues(seriesData: Series['data']) {
       acc.min = Math.min(acc.min, value);
       acc.max = Math.max(acc.max, value);
       acc.sum += value;
+      acc.definedDatapoints += 1;
 
       return acc;
     },
-    {min: Infinity, max: -Infinity, sum: 0}
+    {min: Infinity, max: -Infinity, sum: 0, definedDatapoints: 0}
   );
 
-  return {...res, avg: res.sum / seriesData.length};
+  return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
 }
 
 // TODO(ddm): PanelTable component proved to be a bit too opinionated for this use case,

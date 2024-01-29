@@ -4,6 +4,7 @@ import re
 from typing import TYPE_CHECKING, Sequence, TypedDict
 
 from sentry import features, options
+from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -61,7 +62,7 @@ class GroupingConfigNotFound(LookupError):
 
 class GroupingConfig(TypedDict):
     id: str
-    enhancements: Enhancements
+    enhancements: str
 
 
 class GroupingConfigLoader:
@@ -75,7 +76,7 @@ class GroupingConfigLoader:
             "enhancements": self._get_enhancements(project),
         }
 
-    def _get_enhancements(self, project):
+    def _get_enhancements(self, project) -> str:
         enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
@@ -137,7 +138,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
         return options.get("store.background-grouping-config-id")
 
 
-def get_grouping_config_dict_for_project(project, silent=True):
+def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -149,12 +150,12 @@ def get_grouping_config_dict_for_project(project, silent=True):
     return loader.get_config_dict(project)
 
 
-def get_grouping_config_dict_for_event_data(data, project):
+def get_grouping_config_dict_for_event_data(data, project) -> GroupingConfig:
     """Returns the grouping config for an event dictionary."""
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def get_default_enhancements(config_id=None):
+def get_default_enhancements(config_id=None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
@@ -178,7 +179,7 @@ def get_projects_default_fingerprinting_bases(
     return bases
 
 
-def get_default_grouping_config_dict(id=None):
+def get_default_grouping_config_dict(id=None) -> GroupingConfig:
     """Returns the default grouping config."""
     if id is None:
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
@@ -187,7 +188,7 @@ def get_default_grouping_config_dict(id=None):
     return {"id": id, "enhancements": get_default_enhancements(id)}
 
 
-def load_grouping_config(config_dict=None):
+def load_grouping_config(config_dict=None) -> StrategyConfiguration:
     """Loads the given grouping config."""
     if config_dict is None:
         config_dict = get_default_grouping_config_dict()
@@ -200,7 +201,7 @@ def load_grouping_config(config_dict=None):
     return CONFIGURATIONS[config_id](**config_dict)
 
 
-def load_default_grouping_config():
+def load_default_grouping_config() -> StrategyConfiguration:
     return load_grouping_config(config_dict=None)
 
 
@@ -396,14 +397,13 @@ def sort_grouping_variants(variants):
     return flat_variants, hierarchical_variants
 
 
-def detect_synthetic_exception(event_data, grouping_config):
+def detect_synthetic_exception(event_data: NodeData, loaded_grouping_config: StrategyConfiguration):
     """Detect synthetic exception and write marker to event data
 
     This only runs if detect_synthetic_exception_types is True, so
     it is effectively only enabled for grouping strategy mobile:2021-04-02.
 
     """
-    loaded_grouping_config = load_grouping_config(grouping_config)
     should_detect = loaded_grouping_config.initial_context["detect_synthetic_exception_types"]
     if not should_detect:
         return

@@ -1,12 +1,12 @@
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
-import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
-import {ActiveOperationFilter} from './filter';
-import {
+import type {ActiveOperationFilter} from './filter';
+import type {
   DescendantGroup,
   EnhancedProcessedSpanType,
   EnhancedSpan,
@@ -19,6 +19,7 @@ import {
   TraceBound,
   TreeDepthType,
 } from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
 import {
   generateRootSpan,
   getSiblingGroupKey,
@@ -28,8 +29,6 @@ import {
   isEventFromBrowserJavaScriptSDK,
   isOrphanSpan,
   parseTrace,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   SpanSubTimingMark,
   subTimingMarkToTime,
 } from './utils';
@@ -149,6 +148,7 @@ class SpanTreeModel {
   };
 
   generateSpanGap(
+    span: SpanType,
     event: Readonly<EventTransaction | AggregateEventTransaction>,
     previousSiblingEndTimestamp: number | undefined,
     treeDepth: number,
@@ -161,9 +161,9 @@ class SpanTreeModel {
     const isValidGap =
       shouldIncludeGap &&
       typeof previousSiblingEndTimestamp === 'number' &&
-      previousSiblingEndTimestamp < this.span.start_timestamp &&
+      previousSiblingEndTimestamp < span.start_timestamp &&
       // gap is at least 100 ms
-      this.span.start_timestamp - previousSiblingEndTimestamp >= 0.1;
+      span.start_timestamp - previousSiblingEndTimestamp >= 0.1;
     if (!isValidGap) {
       return undefined;
     }
@@ -172,10 +172,10 @@ class SpanTreeModel {
       type: 'gap',
       span: {
         type: 'gap',
-        start_timestamp: previousSiblingEndTimestamp || this.span.start_timestamp,
-        timestamp: this.span.start_timestamp, // this is essentially end_timestamp
+        start_timestamp: previousSiblingEndTimestamp || span.start_timestamp,
+        timestamp: span.start_timestamp, // this is essentially end_timestamp
         description: t('Missing span instrumentation'),
-        isOrphan: isOrphanSpan(this.span),
+        isOrphan: isOrphanSpan(span),
       },
       numOfSpanChildren: 0,
       treeDepth,
@@ -295,8 +295,8 @@ class SpanTreeModel {
         spanGroupingCriteria && toggleNestedSpanGroup && !isNestedSpanGroupExpanded
           ? toggleNestedSpanGroup
           : isFirstSpanOfGroup && this.isNestedSpanGroupExpanded && !hideSpanTree
-          ? this.toggleNestedSpanGroup
-          : undefined,
+            ? this.toggleNestedSpanGroup
+            : undefined,
       toggleSiblingSpanGroup: undefined,
       isEmbeddedTransactionTimeAdjusted: this.isEmbeddedTransactionTimeAdjusted,
     };
@@ -481,6 +481,18 @@ class SpanTreeModel {
                 endTimestamp: spanModel.span.timestamp,
               });
 
+              const gapSpan = this.generateSpanGap(
+                group[0].span,
+                event,
+                acc.previousSiblingEndTimestamp,
+                treeDepth + 1,
+                continuingTreeDepths
+              );
+
+              if (gapSpan) {
+                acc.descendants.push(gapSpan);
+              }
+
               acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
 
               // It's possible that a section in the minimap is selected so some spans in this group may be out of view
@@ -525,6 +537,18 @@ class SpanTreeModel {
             })
           );
           return acc;
+        }
+
+        const gapSpan = this.generateSpanGap(
+          group[0].span,
+          event,
+          acc.previousSiblingEndTimestamp,
+          treeDepth + 1,
+          continuingTreeDepths
+        );
+
+        if (gapSpan) {
+          acc.descendants.push(gapSpan);
         }
 
         // Since the group is not expanded, return a singular grouped span bar
@@ -669,6 +693,7 @@ class SpanTreeModel {
     }
 
     const gapSpan = this.generateSpanGap(
+      this.span,
       event,
       previousSiblingEndTimestamp,
       treeDepth,

@@ -1,6 +1,7 @@
-import {Fragment, ReactNode, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';

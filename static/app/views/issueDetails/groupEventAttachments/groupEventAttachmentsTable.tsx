@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {IssueAttachment} from 'sentry/types';
+import type {IssueAttachment} from 'sentry/types';
 import GroupEventAttachmentsTableRow from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsTableRow';
 
 type Props = {

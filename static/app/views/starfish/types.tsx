@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import type {FieldDefinition} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 export enum StarfishType {
   BACKEND = 'backend',
@@ -113,6 +114,7 @@ export enum SpanIndexedField {
   TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
   TIMESTAMP = 'timestamp',
+  RAW_DOMAIN = 'raw_domain',
   PROJECT = 'project',
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',

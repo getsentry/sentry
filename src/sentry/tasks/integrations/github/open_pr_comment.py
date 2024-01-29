@@ -21,6 +21,7 @@ from snuba_sdk import (
 )
 from snuba_sdk import Request as SnubaRequest
 
+from sentry import features
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -40,7 +41,7 @@ from sentry.tasks.integrations.github.constants import (
     RATE_LIMITED_MESSAGE,
     STACKFRAME_COUNT,
 )
-from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
+from sentry.tasks.integrations.github.language_parsers import BETA_PATCH_PARSERS, PATCH_PARSERS
 from sentry.tasks.integrations.github.pr_comment import format_comment_url
 from sentry.tasks.integrations.github.utils import (
     GithubAPIErrorType,
@@ -87,8 +88,6 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 {issue_rows}
 </details>"""
 
-OPEN_PR_ISSUE_ROW_TEMPLATE = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
-
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
@@ -103,15 +102,25 @@ def format_open_pr_comment_subtitle(title_length, subtitle):
 
 
 # for a single file, create a table
-def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggle=False) -> str:
+def format_issue_table(
+    diff_filename: str, issues: List[PullRequestIssue], patch_parsers: Dict[str, Any], toggle: bool
+) -> str:
+    language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
+
+    if not language_parser:
+        return ""
+
+    issue_row_template = language_parser.issue_row_template
+
     issue_rows = "\n".join(
         [
-            OPEN_PR_ISSUE_ROW_TEMPLATE.format(
+            issue_row_template.format(
                 title=issue.title,
                 subtitle=format_open_pr_comment_subtitle(len(issue.title), issue.subtitle),
                 url=format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
                 event_count=small_count(issue.event_count),
                 function_name=issue.function_name,
+                affected_users=small_count(issue.affected_users),
             )
             for issue in issues
         ]
@@ -183,10 +192,21 @@ def safe_for_comment(
     changed_lines_count = 0
     filtered_pr_files = []
 
+    try:
+        organization = Organization.objects.get_from_cache(id=repository.organization_id)
+    except Organization.DoesNotExist:
+        logger.exception("github.open_pr_comment.org_missing")
+        metrics.incr(OPEN_PR_METRICS_BASE.format(key="error"), tags={"type": "missing_org"})
+        return []
+
+    patch_parsers = PATCH_PARSERS
+    if features.has("organizations:integrations-open-pr-comment-js", organization):
+        patch_parsers = BETA_PATCH_PARSERS
+
     for file in pr_files:
         filename = file["filename"]
         # don't count the file if it was added or is not a Python file
-        if file["status"] == "added" or filename.split(".")[-1] not in PATCH_PARSERS:
+        if file["status"] == "added" or filename.split(".")[-1] not in patch_parsers:
             continue
 
         changed_file_count += 1
@@ -252,9 +272,18 @@ def get_top_5_issues_by_count_for_file(
     and function names representing the list of functions changed in a PR file, return a
     sublist of the top 5 recent unhandled issues ordered by event count.
     """
+    if not len(projects):
+        return []
+
+    organization = projects[0].organization
+
+    patch_parsers = PATCH_PARSERS
+    if features.has("organizations:integrations-open-pr-comment-js", organization):
+        patch_parsers = BETA_PATCH_PARSERS
+
     # fetches the appropriate parser for formatting the snuba query given the file extension
     # the extension is never replaced in reverse codemapping
-    language_parser = PATCH_PARSERS.get(sentry_filenames[0].split(".")[-1], None)
+    language_parser = patch_parsers.get(sentry_filenames[0].split(".")[-1], None)
 
     if not language_parser:
         return []
@@ -405,6 +434,10 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     issue_table_contents = {}
     top_issues_per_file = []
 
+    patch_parsers = PATCH_PARSERS
+    if features.has("organizations:integrations-open-pr-comment-js", organization):
+        patch_parsers = BETA_PATCH_PARSERS
+
     # fetch issues related to the files
     for file in pullrequest_files:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
@@ -413,8 +446,16 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if not len(projects) or not len(sentry_filenames):
             continue
 
-        language_parser = PATCH_PARSERS.get(file.filename.split(".")[-1], None)
+        file_extension = file.filename.split(".")[-1]
+        language_parser = patch_parsers.get(file.filename.split(".")[-1], None)
         if not language_parser:
+            logger.info(
+                "github.open_pr_comment.missing_parser", extra={"extension": file_extension}
+            )
+            metrics.incr(
+                OPEN_PR_METRICS_BASE.format(key="missing_parser"),
+                tags={"extension": file_extension},
+            )
             continue
 
         function_names = language_parser.extract_functions_from_patch(file.patch)
@@ -449,11 +490,15 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             continue
 
         if first_table:
-            issue_table = format_issue_table(pr_filename, issue_table_content)
+            issue_table = format_issue_table(
+                pr_filename, issue_table_content, patch_parsers, toggle=False
+            )
             first_table = False
         else:
             # toggle all tables but the first one
-            issue_table = format_issue_table(pr_filename, issue_table_content, toggle=True)
+            issue_table = format_issue_table(
+                pr_filename, issue_table_content, patch_parsers, toggle=True
+            )
 
         issue_tables.append(issue_table)
 

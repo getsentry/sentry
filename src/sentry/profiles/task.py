@@ -9,10 +9,10 @@ from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 import msgpack
 import sentry_sdk
 from django.conf import settings
-from symbolic.proguard import ProguardMapper
 
 from sentry import options, quotas
 from sentry.constants import DataCategory
+from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorTaskKind
@@ -78,6 +78,12 @@ def process_profile_task(
         )
 
     assert profile is not None
+
+    if not sampled:
+        metrics.incr(
+            "process_profile.unsampled_profiles",
+            tags={"platform": profile["platform"]},
+        )
 
     organization = Organization.objects.get_from_cache(id=profile["organization_id"])
 
@@ -529,7 +535,6 @@ def _process_symbolicator_results(
 def _process_symbolicator_results_for_sample(
     profile: Profile, stacktraces: List[Any], frames_sent: set[int], platform: str
 ) -> None:
-
     if platform == "rust":
 
         def truncate_stack_needed(frames: List[dict[str, Any]], stack: List[Any]) -> List[Any]:
@@ -724,10 +729,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
         if debug_file_path is None:
             return
 
-    with sentry_sdk.start_span(op="proguard.open"):
-        mapper = ProguardMapper.open(debug_file_path)
-        if not mapper.has_line_info:
-            return
+    mapper = open_proguard_mapper(debug_file_path)
+    if not mapper.has_line_info:
+        return
 
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
@@ -806,10 +810,9 @@ def _deobfuscate_v2(profile: Profile, project: Project) -> None:
         if debug_file_path is None:
             return
 
-    with sentry_sdk.start_span(op="proguard.open"):
-        mapper = ProguardMapper.open(debug_file_path, initialize_param_mapping=True)
-        if not mapper.has_line_info:
-            return
+    mapper = open_proguard_mapper(debug_file_path, initialize_param_mapping=True)
+    if not mapper.has_line_info:
+        return
 
     with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:

@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
-import {ApiResult} from 'sentry/api';
-import {Organization} from 'sentry/types';
+import type {ApiResult} from 'sentry/api';
+import type {Organization} from 'sentry/types';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
-import {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
   bufferLimit: number;

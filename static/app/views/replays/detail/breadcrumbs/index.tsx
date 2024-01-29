@@ -1,10 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {
-  AutoSizer,
-  CellMeasurer,
-  List as ReactVirtualizedList,
-  ListRowProps,
-} from 'react-virtualized';
+import type {ListRowProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -17,6 +13,7 @@ import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -45,7 +42,7 @@ const cellMeasurer = {
 
 function Breadcrumbs() {
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
-  const {currentTime, replay} = useReplayContext();
+  const {currentTime, replay, startTimeOffsetMs, durationMs} = useReplayContext();
   const organization = useOrganization();
   const hasPerfTab = organization.features.includes('session-replay-trace-table');
 
@@ -54,8 +51,19 @@ function Breadcrumbs() {
     useExtractedDomNodes({replay});
   const {data: frameToTrace, isFetching: isFetchingTraces} = useReplayPerfData({replay});
 
-  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
-  const frames = replay?.getChapterFrames();
+  const startTimestampMs =
+    replay?.getReplay()?.started_at?.getTime() ?? 0 + startTimeOffsetMs;
+  const allFrames = replay?.getChapterFrames();
+
+  const frames = useMemo(
+    () =>
+      allFrames?.filter(
+        frame =>
+          frame.offsetMs >= startTimeOffsetMs &&
+          frame.offsetMs <= startTimeOffsetMs + durationMs
+      ),
+    [allFrames, durationMs, startTimeOffsetMs]
+  );
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
@@ -152,7 +160,14 @@ function Breadcrumbs() {
         >
           {tct('Learn how to unmask text (****) and unblock media [link:here].', {
             link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/privacy/" />
+              <ExternalLink
+                href="https://docs.sentry.io/platforms/javascript/session-replay/privacy/"
+                onClick={() => {
+                  trackAnalytics('replay.details-mask-banner-link-clicked', {
+                    organization,
+                  });
+                }}
+              />
             ),
           })}
         </StyledAlert>

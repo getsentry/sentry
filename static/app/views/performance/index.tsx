@@ -1,11 +1,11 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';

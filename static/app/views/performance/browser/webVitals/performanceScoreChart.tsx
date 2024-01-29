@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {
+import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';

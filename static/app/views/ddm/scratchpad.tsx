@@ -3,11 +3,17 @@ import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
 import {space} from 'sentry/styles/space';
-import {MetricWidgetQueryParams} from 'sentry/utils/metrics';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
 
+import type {Sample} from './widget';
 import {MetricWidget} from './widget';
 
 export function MetricScratchpad() {
@@ -16,12 +22,15 @@ export function MetricScratchpad() {
     selectedWidgetIndex,
     widgets,
     updateWidget,
-    focusArea,
-    addFocusArea,
-    removeFocusArea,
     showQuerySymbols,
+    highlightedSampleId,
+    focusArea,
   } = useDDMContext();
   const {selection} = usePageFilters();
+
+  const router = useRouter();
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
   // Make sure all charts are connected to the same group whenever the widgets definition changes
   useLayoutEffect(() => {
@@ -33,6 +42,27 @@ export function MetricScratchpad() {
       updateWidget(index, widget);
     },
     [updateWidget]
+  );
+
+  const handleSampleClick = useCallback(
+    (sample: Sample) => {
+      const project = projects.find(p => parseInt(p.id, 10) === sample.projectId);
+      const eventSlug = generateEventSlug({
+        id: sample.transactionId,
+        project: project?.slug,
+      });
+
+      router.push(
+        getTransactionDetailsUrl(
+          organization.slug,
+          eventSlug,
+          undefined,
+          {referrer: 'metrics'},
+          sample.spanId
+        )
+      );
+    },
+    [router, organization.slug, projects]
   );
 
   const Wrapper =
@@ -52,10 +82,10 @@ export function MetricScratchpad() {
           datetime={selection.datetime}
           projects={selection.projects}
           environments={selection.environments}
-          addFocusArea={addFocusArea}
-          removeFocusArea={removeFocusArea}
-          showQuerySymbols={showQuerySymbols}
           focusArea={focusArea}
+          showQuerySymbols={showQuerySymbols}
+          onSampleClick={handleSampleClick}
+          highlightedSampleId={highlightedSampleId}
         />
       ))}
     </Wrapper>

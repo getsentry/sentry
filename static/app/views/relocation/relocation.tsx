@@ -1,9 +1,12 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
+import type {MotionProps} from 'framer-motion';
+import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -24,7 +27,7 @@ import EncryptBackup from './encryptBackup';
 import GetStarted from './getStarted';
 import InProgress from './inProgress';
 import PublicKey from './publicKey';
-import {StepDescriptor} from './types';
+import type {StepDescriptor} from './types';
 import UploadBackup from './uploadBackup';
 
 type RouteParams = {
@@ -108,8 +111,7 @@ function RelocationOnboarding(props: Props) {
         const response = responses.flat(1);
         response.sort((a, b) => {
           return (
-            new Date(a.dateAdded || 0).getMilliseconds() -
-            new Date(b.dateAdded || 0).getMilliseconds()
+            new Date(a.dateAdded || 0).getTime() - new Date(b.dateAdded || 0).getTime()
           );
         });
         const existingRelocationUUID =

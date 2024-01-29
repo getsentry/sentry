@@ -23,7 +23,12 @@ from sentry.testutils.requests import (
     make_user_request_from_org,
     request_factory,
 )
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import (
+    assume_test_silo_mode_of,
+    control_silo_test,
+    create_test_regions,
+    no_silo_test,
+)
 from sentry.types import region
 from sentry.web.client_config import get_client_config
 
@@ -38,7 +43,8 @@ def make_user_request_from_non_existant_org(org=None):
 
 def make_user_request_from_org_with_auth_identities(org=None):
     request, user = make_user_request_from_org(org)
-    org = Organization.objects.get_for_user_ids({user.id})[0]
+    with assume_test_silo_mode_of(Organization):
+        org = Organization.objects.get_for_user_ids({user.id})[0]
     provider = AuthProvider.objects.create(
         organization_id=org.id, provider="google", config={"domain": "olddomain.com"}
     )
@@ -58,6 +64,13 @@ def clear_env_request():
     env.clear()
 
 
+multiregion_client_config_test = control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
+
+
+@multiregion_client_config_test
 @pytest.mark.parametrize(
     "request_factory",
     [
@@ -85,21 +98,16 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
     base_line["links"].pop("regionUrl")
     cache.clear()
 
-    with override_settings(SILO_MODE=SiloMode.REGION):
-        result = get_client_config(request)
-        result.pop("regions")
-        result["links"].pop("regionUrl")
-        assert result == base_line
-        cache.clear()
-
-    with override_settings(SILO_MODE=SiloMode.CONTROL):
-        result = get_client_config(request)
-        result.pop("regions")
-        result["links"].pop("regionUrl")
-        assert result == base_line
-        cache.clear()
+    for silo_mode in SiloMode:
+        with override_settings(SILO_MODE=silo_mode):
+            result = get_client_config(request)
+            result.pop("regions")
+            result["links"].pop("regionUrl")
+            assert result == base_line
+            cache.clear()
 
 
+@no_silo_test
 @django_db_all(transaction=True)
 def test_client_config_deleted_user():
     request, user = make_user_request_from_org()
@@ -112,6 +120,7 @@ def test_client_config_deleted_user():
     assert result["user"] is None
 
 
+@no_silo_test
 @django_db_all
 def test_client_config_default_region_data():
     request, user = make_user_request_from_org()
@@ -124,8 +133,8 @@ def test_client_config_default_region_data():
     assert regions[0]["url"] == options.get("system.url-prefix")
 
 
+@no_silo_test
 @django_db_all
-@override_settings(SILO_MODE=SiloMode.MONOLITH)
 def test_client_config_empty_region_data():
     region_directory = region.load_from_config(())
 
@@ -143,11 +152,8 @@ def test_client_config_empty_region_data():
     assert regions[0]["url"] == options.get("system.url-prefix")
 
 
+@multiregion_client_config_test
 @django_db_all
-@control_silo_test(
-    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
-    include_monolith_run=True,
-)
 def test_client_config_with_region_data():
     request, user = make_user_request_from_org()
     request.user = user
@@ -158,11 +164,8 @@ def test_client_config_with_region_data():
     assert {r["name"] for r in regions} == {"eu", "us"}
 
 
+@multiregion_client_config_test
 @django_db_all
-@control_silo_test(
-    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
-    include_monolith_run=True,
-)
 def test_client_config_with_single_tenant_membership():
     request, user = make_user_request_from_org()
     request.user = user
@@ -178,11 +181,8 @@ def test_client_config_with_single_tenant_membership():
     assert {r["name"] for r in regions} == {"eu", "us", "acme"}
 
 
+@multiregion_client_config_test
 @django_db_all
-@control_silo_test(
-    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
-    include_monolith_run=True,
-)
 def test_client_config_links_regionurl():
     request, user = make_user_request_from_org()
     request.user = user
@@ -203,11 +203,8 @@ def test_client_config_links_regionurl():
         assert result["links"]["regionUrl"] == "http://eu.testserver"
 
 
+@multiregion_client_config_test
 @django_db_all
-@control_silo_test(
-    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
-    include_monolith_run=True,
-)
 def test_client_config_links_with_priority_org():
     # request, user = make_user_request_from_non_existant_org()
     request, user = make_user_request_from_org()

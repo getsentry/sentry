@@ -4,8 +4,6 @@ from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
-from sentry.api.endpoints.internal.feature_flags import InternalFeatureFlagsEndpoint
-from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
@@ -44,6 +42,7 @@ from sentry.api.endpoints.relocations.pause import RelocationPauseEndpoint
 from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
 from sentry.api.endpoints.relocations.retry import RelocationRetryEndpoint
 from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
+from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -206,6 +205,7 @@ from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_activities import GroupActivitiesEndpoint
+from .endpoints.group_ai_autofix import GroupAiAutofixEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -268,10 +268,13 @@ from .endpoints.integrations.sentry_apps import (
 from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
+    InternalFeatureFlagsEndpoint,
+    InternalIntegrationProxyEndpoint,
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalQueueTasksEndpoint,
     InternalQuotasEndpoint,
+    InternalRpcServiceEndpoint,
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
@@ -379,6 +382,7 @@ from .endpoints.organization_member_unreleased_commits import (
 from .endpoints.organization_metrics import (
     OrganizationMetricDetailsEndpoint,
     OrganizationMetricsDataEndpoint,
+    OrganizationMetricsDetailsEndpoint,
     OrganizationMetricsEndpoint,
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
@@ -482,6 +486,7 @@ from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
+from .endpoints.project_metrics import ProjectMetricsVisibilityEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -553,7 +558,6 @@ from .endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
-from .endpoints.rpc import RpcServiceEndpoint
 from .endpoints.rule_snooze import MetricRuleSnoozeEndpoint, RuleSnoozeEndpoint
 from .endpoints.setup_wizard import SetupWizard
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
@@ -734,6 +738,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/participants/$",
             GroupParticipantsEndpoint.as_view(),
             name=f"{name_prefix}-group-participants",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
+            GroupAiAutofixEndpoint.as_view(),
+            name=f"{name_prefix}-group-ai-autofix",
         ),
         # Load plugin group urls
         re_path(
@@ -1952,9 +1961,14 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-ddm-meta",
     ),
     re_path(
-        r"^(?P<organization_slug>[^/]+)/metrics/meta/$",
+        r"^(?P<organization_slug>[^/]+)/metrics/$",
         OrganizationMetricsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-index",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/metrics/meta/$",
+        OrganizationMetricsDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-details",
     ),
     re_path(
         r"^(?P<organization_slug>[^/]+)/metrics/meta/(?P<metric_name>[^/]+)/$",
@@ -2263,6 +2277,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/members/$",
         ProjectMemberIndexEndpoint.as_view(),
         name="sentry-api-0-project-member-index",
+    ),
+    re_path(
+        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/visibility/$",
+        ProjectMetricsVisibilityEndpoint.as_view(),
+        name="sentry-api-0-project-metrics-visibility",
     ),
     re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$",
@@ -2870,8 +2889,13 @@ INTERNAL_URLS = [
     ),
     re_path(
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
-        RpcServiceEndpoint.as_view(),
+        InternalRpcServiceEndpoint.as_view(),
         name="sentry-api-0-rpc-service",
+    ),
+    re_path(
+        r"^seer-rpc/(?P<method_name>\w+)/$",
+        SeerRpcServiceEndpoint.as_view(),
+        name="sentry-api-0-seer-rpc-service",
     ),
     re_path(
         r"^check-am2-compatibility/$",

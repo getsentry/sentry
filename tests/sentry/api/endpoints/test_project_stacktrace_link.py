@@ -220,7 +220,12 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         self.get_success_response(
             self.organization.slug,
             self.project.slug,
-            qs_params={"file": self.filepath, "groupId": 1, "absPath": self.filepath},
+            qs_params={
+                "file": self.filepath,
+                "groupId": 1,
+                "absPath": self.filepath,
+                "platform": "python",
+            },
         )
 
         mock_record.assert_any_call(
@@ -241,6 +246,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             filepath=self.filepath,
             status="success",
             link_fetch_iterations=1,
+            platform="python",
         )
 
 
