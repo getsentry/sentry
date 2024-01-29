@@ -94,7 +94,7 @@ class ReleaseFile(Model):
 
     class Meta:
         unique_together = (("release_id", "ident"),)
-        indexes = (models.Index(fields=("release_id", "name")),)
+        index_together = (("release_id", "name"),)
         app_label = "sentry"
         db_table = "sentry_releasefile"
 

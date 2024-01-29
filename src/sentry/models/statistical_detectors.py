@@ -74,7 +74,7 @@ class RegressionGroup(Model):
     regressed = models.FloatField()
 
     class Meta:
-        indexes = (models.Index(fields=("type", "project_id", "fingerprint", "active")),)
+        index_together = (("type", "project_id", "fingerprint", "active"),)
         unique_together = (("type", "project_id", "fingerprint", "version"),)
 
     __repr__ = sane_repr("active", "version", "type", "project_id", "fingerprint")
