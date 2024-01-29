@@ -75,7 +75,7 @@ def build_test_message_blocks(
         if link_to_event:
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
-    title_text = f":exclamation: <{title_link}|*{formatted_title}*>  \n"
+    title_text = f":exclamation: <{title_link}|*{formatted_title}*>"
 
     blocks: list[dict[str, Any]] = [
         {
@@ -755,7 +755,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         for section in blocks["blocks"]:
             if section["type"] == "text":
                 assert occurrence.issue_title in section["text"]["text"]
-        assert occurrence.evidence_display[0].value in blocks["blocks"][0]["text"]["text"]
+
+        assert (
+            occurrence.evidence_display[0].value
+            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
+        )
         assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
 
     def test_build_error_issue_fallback_text(self):
@@ -795,7 +799,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert "N+1 Query" in blocks["blocks"][0]["text"]["text"]
         assert (
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in blocks["blocks"][0]["text"]["text"]
+            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
@@ -827,7 +831,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         ret = SlackIssuesMessageBuilder(group, None).build()
         assert isinstance(ret, dict)
-        assert "&lt;https://example.com/|*Click Here*&gt;" in ret["blocks"][0]["text"]["text"]
+        assert (
+            "&lt;https://example.com/|*Click Here*&gt;"
+            in ret["blocks"][1]["elements"][0]["elements"][0]["text"]
+        )
 
 
 class BuildGroupAttachmentReplaysTest(TestCase):
@@ -885,7 +892,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
         assert isinstance(blocks, dict)
         assert (
             f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
-            in blocks["blocks"][0]["text"]["text"]
+            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
         )
 
 

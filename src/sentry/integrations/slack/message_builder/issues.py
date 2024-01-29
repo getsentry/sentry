@@ -554,12 +554,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # build title block
         if text:
-            text = f"```{text.lstrip(' ')}```"
+            text = text.lstrip(" ")
             if self.actions:
                 text += "\n" + action_text
         if not text:
             text = action_text
-        title_text = f"<{title_link}|*{escape_slack_text(title)}*>  \n{text}"
+        title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
         if self.group.issue_category == GroupCategory.ERROR:
             level_text = None
@@ -573,8 +573,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"
-
         blocks = [self.get_markdown_block(title_text)]
+        if text:
+            blocks.append(self.get_rich_text_preformatted_block(text))
+
         # build tags block
         tags = get_tags(event_for_tags, self.tags)
         if tags:
@@ -633,9 +635,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             )  # get rid of comma at the end
 
         # add suspect commit info
-        suspect_commit_text = get_suspect_commit_block(project, event_for_tags)
-        if suspect_commit_text:
-            blocks.append(self.get_context_block(suspect_commit_text))
+        if event_for_tags:
+            suspect_commit_text = get_suspect_commit_block(project, event_for_tags)
+            if suspect_commit_text:
+                blocks.append(self.get_context_block(suspect_commit_text))
 
         # add notes
         if self.notes:
