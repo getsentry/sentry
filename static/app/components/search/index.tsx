@@ -211,7 +211,8 @@ function Search({
   );
 }
 
-export {Search, SearchProps};
+export type {SearchProps};
+export {Search};
 
 const SearchWrapper = styled('div')`
   position: relative;

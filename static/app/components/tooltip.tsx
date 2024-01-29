@@ -80,4 +80,5 @@ const TooltipContent = styled(Overlay)`
   text-align: center;
 `;
 
-export {Tooltip, TooltipProps};
+export type {TooltipProps};
+export {Tooltip};

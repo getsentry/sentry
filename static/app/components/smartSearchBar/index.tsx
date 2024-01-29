@@ -2114,7 +2114,8 @@ class SmartSearchBarContainer extends Component<Props, ContainerState> {
 
 export default withApi(withSentryRouter(withOrganization(SmartSearchBarContainer)));
 
-export {SmartSearchBar, Props as SmartSearchBarProps};
+export type {Props as SmartSearchBarProps};
+export {SmartSearchBar};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`
   min-height: ${p => p.theme.form.md.height}px;
