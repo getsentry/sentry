@@ -7,10 +7,18 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SpanFrame} from 'sentry/utils/replays/types';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
+
+export const useDismissReqRespBodiesAlert = () => {
+  const organization = useOrganization();
+  return useDismissAlert({
+    key: `${organization.id}:replay-network-bodies-alert-dismissed`,
+  });
+};
 
 export function UnsupportedOp({type}: {type: 'headers' | 'bodies'}) {
   const title =
