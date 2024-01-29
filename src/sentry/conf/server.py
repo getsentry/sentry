@@ -1949,8 +1949,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
-    # Enable User Feedback spam auto filtering feature
-    "organizations:user-feedback-spam-filter": False,
+    # Enable User Feedback spam auto filtering feature UI
+    "organizations:user-feedback-spam-filter-ui": False,
+    # Enable User Feedback spam auto filtering feature ingest
+    "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
     # Enable view hierarchies options
