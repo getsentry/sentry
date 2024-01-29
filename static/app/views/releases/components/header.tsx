@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -9,7 +9,7 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type Props = {

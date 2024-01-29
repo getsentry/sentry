@@ -11,7 +11,8 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
 import SlackForm from 'sentry/components/notificationActions/forms/slackForm';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -19,12 +20,12 @@ import {IconEllipsis, IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {
+import type {Project} from 'sentry/types';
+import type {
   AvailableNotificationAction,
   NotificationAction,
-  NotificationActionService,
 } from 'sentry/types/notificationActions';
+import {NotificationActionService} from 'sentry/types/notificationActions';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 

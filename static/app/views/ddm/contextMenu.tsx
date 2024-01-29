@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   IconClose,
   IconCopy,
@@ -13,7 +14,7 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
@@ -22,7 +23,7 @@ import {
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
-import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
+import type {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useDDMContext} from 'sentry/views/ddm/context';

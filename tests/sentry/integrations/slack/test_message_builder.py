@@ -175,7 +175,7 @@ def build_test_message_blocks(
 
         if suspect_commit.get("pr_link") and suspect_commit.get("pr_id"):
             pr_link = f"<{suspect_commit['pr_link']}|View Pull Request>"
-            pr_title_text = f"{suspect_commit['pr_title']} ({suspect_commit['pr_id']})"
+            pr_title_text = f"'{suspect_commit['pr_title']} (#{suspect_commit['pr_id']})'"
 
             suspect_commit_text += f" \n{pr_title_text} {pr_link}"
         suspect_commit_section = {
@@ -192,7 +192,7 @@ def build_test_message_blocks(
         }
         blocks.append(notes_section)
 
-    context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}"
+    context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}    Short ID: {group.qualified_short_id}"
     context = {
         "type": "context",
         "elements": [{"type": "mrkdwn", "text": context_text}],

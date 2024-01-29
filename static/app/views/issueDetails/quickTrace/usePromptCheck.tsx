@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
 

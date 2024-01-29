@@ -1,8 +1,9 @@
-import {mat3, vec2} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
+import {vec2} from 'gl-matrix';
 
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
 
-import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import type {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext} from '../gl/utils';
 
 class CursorRenderer {

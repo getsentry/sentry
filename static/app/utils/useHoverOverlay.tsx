@@ -7,12 +7,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import {PopperProps, usePopper} from 'react-popper';
+import type {PopperProps} from 'react-popper';
+import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import domId from 'sentry/utils/domId';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 /**
  * How long to wait before opening the overlay
@@ -308,4 +309,5 @@ const Container = styled('span')<{containerDisplayMode: React.CSSProperties['dis
   max-width: 100%;
 `;
 
-export {useHoverOverlay, UseHoverOverlayProps};
+export type {UseHoverOverlayProps};
+export {useHoverOverlay};

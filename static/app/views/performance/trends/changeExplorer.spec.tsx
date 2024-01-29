@@ -5,24 +5,19 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
-import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import type {SuspectSpans} from 'sentry/utils/performance/suspectSpans/types';
+import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
-import {
-  FunctionsField,
-  FunctionsList,
-} from 'sentry/views/performance/trends/changeExplorerUtils/functionsList';
+import type {FunctionsField} from 'sentry/views/performance/trends/changeExplorerUtils/functionsList';
+import {FunctionsList} from 'sentry/views/performance/trends/changeExplorerUtils/functionsList';
 import {
   COLUMNS,
   MetricsTable,
   renderBodyCell,
 } from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {SpansList} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
-import {
-  NormalizedTrendsTransaction,
-  TrendChangeType,
-  TrendFunctionField,
-} from 'sentry/views/performance/trends/types';
+import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import {TrendChangeType, TrendFunctionField} from 'sentry/views/performance/trends/types';
 import {TRENDS_PARAMETERS} from 'sentry/views/performance/trends/utils';
 
 async function waitForMockCall(mock: jest.Mock) {

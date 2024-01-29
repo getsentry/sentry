@@ -2,16 +2,17 @@ import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Frame, Organization, PlatformKey} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
+import type {Frame, Organization, PlatformKey} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import DeprecatedLine, {DeprecatedLineProps} from '../../frame/deprecatedLine';
+import type {DeprecatedLineProps} from '../../frame/deprecatedLine';
+import DeprecatedLine from '../../frame/deprecatedLine';
 import {
   findImageForAddress,
   getHiddenFrameIndices,

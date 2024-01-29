@@ -11,7 +11,12 @@
 // eslint-disable-next-line import/no-named-default
 import {discoverCharts} from './discover';
 import {metricAlertCharts} from './metricAlert';
-import {ChartcuterieConfig, ChartType, RenderConfig, RenderDescriptor} from './types';
+import type {
+  ChartcuterieConfig,
+  ChartType,
+  RenderConfig,
+  RenderDescriptor,
+} from './types';
 
 /**
  * All registered style descriptors

@@ -1,7 +1,9 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
-from sentry.sentry_metrics.visibility import get_blocked_metrics
+from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -41,7 +43,10 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 1
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is True
+        assert response.data["blockedTags"] == []
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
 
         response = self.get_success_response(
             self.organization.slug,
@@ -52,7 +57,10 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 0
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is False
+        assert response.data["blockedTags"] == []
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 0
 
     def test_block_metric_tag(self):
         response = self.get_success_response(
@@ -65,7 +73,10 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 1
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is False
+        assert sorted(response.data["blockedTags"]) == ["release", "transaction"]
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
 
         response = self.get_success_response(
             self.organization.slug,
@@ -77,7 +88,10 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 1
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is False
+        assert response.data["blockedTags"] == ["release"]
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
 
         response = self.get_success_response(
             self.organization.slug,
@@ -89,4 +103,23 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 0
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is False
+        assert response.data["blockedTags"] == []
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 0
+
+    @patch(
+        "sentry.api.endpoints.project_metrics.ProjectMetricsVisibilityEndpoint.create_audit_entry"
+    )
+    def test_audit_log_entry_emitted(self, create_audit_entry):
+        for operation_type in ("blockMetric", "unblockMetric", "blockTags", "unblockTags"):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="put",
+                operationType=operation_type,
+                metricMri="s:custom/user@none",
+                tags=["release", "transaction"],
+            )
+            create_audit_entry.assert_called()
+            create_audit_entry.reset_mock()

@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', function () {

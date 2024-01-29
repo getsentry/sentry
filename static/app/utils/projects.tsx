@@ -3,13 +3,13 @@ import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {AvatarProject, Project} from 'sentry/types';
+import type {AvatarProject, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 
@@ -289,8 +289,8 @@ class BaseProjects extends Component<Props, State> {
         projectsMap.has(slug)
           ? projectsMap.get(slug)
           : passthroughPlaceholderProject
-          ? {slug}
-          : null
+            ? {slug}
+            : null
       )
       .filter(defined);
 

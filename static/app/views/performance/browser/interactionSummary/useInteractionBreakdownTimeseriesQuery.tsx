@@ -1,10 +1,9 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import {Series} from 'sentry/types/echarts';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {Series} from 'sentry/types/echarts';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';

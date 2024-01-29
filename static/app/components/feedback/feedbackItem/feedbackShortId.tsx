@@ -1,4 +1,4 @@
-import {CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {AvatarUser, Team} from 'sentry/types';
+import type {AvatarUser, Team} from 'sentry/types';
 
 type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 

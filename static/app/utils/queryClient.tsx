@@ -1,5 +1,12 @@
-import type {QueryClientConfig, QueryFunctionContext} from '@tanstack/react-query';
-import * as reactQuery from '@tanstack/react-query';
+import type {
+  QueryClient,
+  QueryClientConfig,
+  QueryFunctionContext,
+  SetDataOptions,
+  Updater,
+  UseQueryOptions,
+  UseQueryResult,
+} from '@tanstack/react-query';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
 import type {ApiResult, Client, ResponseMeta} from 'sentry/api';
@@ -50,7 +57,7 @@ export type ApiQueryKey =
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   extends Omit<
-    reactQuery.UseQueryOptions<
+    UseQueryOptions<
       ApiResult<TApiResponse>,
       TError,
       ApiResult<TApiResponse>,
@@ -82,10 +89,7 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError>
   staleTime: number;
 }
 
-export type UseApiQueryResult<TData, TError> = reactQuery.UseQueryResult<
-  TData,
-  TError
-> & {
+export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError> & {
   /**
    * Get a header value from the response
    */
@@ -129,7 +133,7 @@ export function useApiQuery<TResponseData, TError = RequestError>(
 
 /**
  * This method, given an `api` will return a new method which can be used as a
- * default `queryFn` with `useApiQuery` or even the raw `reactQuery.useQuery` hook.
+ * default `queryFn` with `useApiQuery` or even the raw `useQuery` hook.
  *
  * This returned method, the `queryFn`, unwraps react-query's `QueryFunctionContext`
  * type into parts that will be passed into api.requestPromise
@@ -155,7 +159,7 @@ export function fetchDataQuery(api: Client) {
  * manually call queryClient.getQueryData.
  */
 export function getApiQueryData<TResponseData>(
-  queryClient: reactQuery.QueryClient,
+  queryClient: QueryClient,
   queryKey: ApiQueryKey
 ): TResponseData | undefined {
   return queryClient.getQueryData<ApiResult<TResponseData>>(queryKey)?.[0];
@@ -166,10 +170,10 @@ export function getApiQueryData<TResponseData>(
  * response data without needing to provide a request object.
  */
 export function setApiQueryData<TResponseData>(
-  queryClient: reactQuery.QueryClient,
+  queryClient: QueryClient,
   queryKey: ApiQueryKey,
-  updater: reactQuery.Updater<TResponseData, TResponseData>,
-  options?: reactQuery.SetDataOptions
+  updater: Updater<TResponseData, TResponseData>,
+  options?: SetDataOptions
 ): TResponseData | undefined {
   const previous = queryClient.getQueryData<ApiResult<TResponseData>>(queryKey);
 
@@ -193,7 +197,7 @@ export function setApiQueryData<TResponseData>(
 
 /**
  * This method, given an `api` will return a new method which can be used as a
- * default `queryFn` with `reactQuery.useInfiniteQuery` hook.
+ * default `queryFn` with `useInfiniteQuery` hook.
  *
  * This returned method, the `queryFn`, unwraps react-query's `QueryFunctionContext`
  * type into parts that will be passed into api.requestPromise including the next
@@ -244,10 +248,7 @@ export function useInfiniteApiQuery<TResponseData>({queryKey}: {queryKey: ApiQue
   });
 }
 
-type ApiMutationVariables<
-  Headers = Record<string, string>,
-  Query = Record<string, any>,
-> =
+type ApiMutationVariables<Headers = Record<string, string>, Query = Record<string, any>> =
   | ['PUT' | 'POST' | 'DELETE', string]
   | ['PUT' | 'POST' | 'DELETE', string, QueryKeyEndpointOptions<Headers, Query>]
   | [
@@ -259,7 +260,7 @@ type ApiMutationVariables<
 
 /**
  * This method, given an `api` will return a new method which can be used as a
- * default `queryFn` with `reactQuery.useMutation` hook.
+ * default `queryFn` with `useMutation` hook.
  *
  * This returned method, the `queryFn`, unwraps react-query's `QueryFunctionContext`
  * type into parts that will be passed into api.requestPromise including different

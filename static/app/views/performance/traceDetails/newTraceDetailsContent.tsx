@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -8,7 +8,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import EventVitals from 'sentry/components/events/eventVitals';
-import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
+import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -18,15 +18,15 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction, Organization} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
-import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
-import {
+import type {
   TraceError,
   TraceFullDetailed,
   TraceMeta,
