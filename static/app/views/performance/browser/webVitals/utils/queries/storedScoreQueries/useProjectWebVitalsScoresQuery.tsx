@@ -77,14 +77,19 @@ export const useProjectWebVitalsScoresQuery = ({
     referrer: 'api.performance.browser.web-vitals.project-scores',
   });
 
-  if (result.status === 'success' && result.data) {
+  if (
+    result.status === 'success' &&
+    result.data?.data?.[0]?.['avg(measurements.score.weight.fid)'] &&
+    result.data?.data?.[0]?.['count_scores(measurements.score.fid)'] &&
+    result.data?.data?.[0]?.['performance_score(measurements.score.fid)']
+  ) {
     // Fake INP data with FID data
     result.data.data[0]['avg(measurements.score.weight.inp)'] =
-      result.data?.data[0]['avg(measurements.score.weight.fid)'];
+      result.data.data[0]['avg(measurements.score.weight.fid)'];
     result.data.data[0]['count_scores(measurements.score.inp)'] =
-      result.data?.data[0]['count_scores(measurements.score.fid)'];
+      result.data.data[0]['count_scores(measurements.score.fid)'];
     result.data.data[0]['performance_score(measurements.score.inp)'] =
-      result.data?.data[0]['performance_score(measurements.score.fid)'];
+      result.data.data[0]['performance_score(measurements.score.fid)'];
   }
   return result;
 };
