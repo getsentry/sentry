@@ -552,6 +552,13 @@ class Quota(Service):
         """
         return SeatAssignmentResult(assignable=True)
 
+    def check_assign_monitor_seats(self, monitor: list[Monitor]) -> SeatAssignmentResult:
+        """
+        Determines if a list of monitor can be assigned seat. If it is not possible
+        to assign a seat to all given monitors, a reason will be included in the response
+        """
+        return SeatAssignmentResult(assignable=True)
+
     def assign_monitor_seat(self, monitor: Monitor) -> int:
         """
         Assigns a monitor a seat if possible, resulting in a Outcome.ACCEPTED.
