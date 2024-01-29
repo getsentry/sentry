@@ -26,7 +26,7 @@ function renderDropdown(props: any = {}) {
       org={organization}
       {...props}
     />,
-    {context: routerContext}
+    {context: routerContext, organization}
   );
 }
 
@@ -34,9 +34,11 @@ describe('SidebarDropdown', function () {
   it('renders', function () {
     renderDropdown();
   });
+
   it('renders without org links', function () {
     renderDropdown({hideOrgLinks: true});
   });
+
   it('renders open sidebar', async function () {
     const config = ConfigFixture({
       singleOrganization: false,
@@ -45,6 +47,7 @@ describe('SidebarDropdown', function () {
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(screen.getByText('Switch organization')).toBeInTheDocument();
   });
+
   it('sandbox/demo mode render open sidebar', async function () {
     ConfigStore.set('demoMode', true);
     const config = ConfigFixture({singleOrganization: false});
