@@ -278,7 +278,7 @@ def get_suggested_assignees(
     return []
 
 
-def get_suspect_commit_block(
+def get_suspect_commit_text(
     project: Project, event: GroupEvent, commits: Sequence[Mapping[str, Any]] | None = None
 ) -> SlackBlock:
     """Build up the suspect commit text for the given event"""

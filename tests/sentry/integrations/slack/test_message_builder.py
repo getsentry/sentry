@@ -18,7 +18,7 @@ from sentry.integrations.slack.message_builder.issues import (
     format_release_tag,
     get_option_groups,
     get_option_groups_block_kit,
-    get_suspect_commit_block,
+    get_suspect_commit_text,
     time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
@@ -159,7 +159,7 @@ def build_test_message_blocks(
         blocks.append(suggested_assignees_section)
 
     if suspect_commit and event:
-        suspect_commit_text = get_suspect_commit_block(project, event)
+        suspect_commit_text = get_suspect_commit_text(project, event)
         suspect_commit_section = {
             "type": "context",
             "elements": [{"type": "mrkdwn", "text": suspect_commit_text}],
