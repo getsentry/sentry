@@ -17,6 +17,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.identity import Identity
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -150,6 +151,51 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             content_type="application/json",
         )
 
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message, data=payload_data
+            )
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = json.loads(responses.calls[0].request.body)
+        assert data["trigger_id"] == self.trigger_id
+        assert "view" in data
+
+        view = json.loads(data["view"])
+        private_metadata = json.loads(view["private_metadata"])
+        assert int(private_metadata["issue"]) == self.group.id
+        assert private_metadata["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                type="view_submission",
+                private_metadata=json.dumps(private_metadata),
+                selected_option=selected_option,
+            )
+
+        assert resp.status_code == 200, resp.content
+
+    def resolve_issue_block_kit(self, original_message, selected_option, payload_data=None):
+        status_action = self.get_resolve_status_action()
+        # Expect request to open dialog on slack
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/views.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action], original_message=original_message, data=payload_data
@@ -1058,53 +1104,12 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     @responses.activate
     def test_resolve_issue_block_kit(self):
-        status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                action_data=[status_action],
-                original_message=original_message,
-            )
-        assert resp.status_code == 200, resp.content
+        self.resolve_issue_block_kit(original_message, "resolved")
 
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = json.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                type="view_submission",
-                private_metadata=json.dumps(private_metadata),
-                selected_option="resolved",
-            )
-
-        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
+        assert not GroupResolution.objects.filter(group=self.group)
 
         update_data = json.loads(responses.calls[1].request.body)
 
@@ -1113,51 +1118,13 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
     @responses.activate
     def test_resolve_issue_block_kit_through_unfurl(self):
-        status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
         payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(action_data=[status_action], data=payload_data)
-        assert resp.status_code == 200, resp.content
+        self.resolve_issue_block_kit(original_message, "resolved", payload_data)
 
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = json.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                type="view_submission",
-                private_metadata=json.dumps(private_metadata),
-                selected_option="resolved",
-            )
-
-        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
+        assert not GroupResolution.objects.filter(group=self.group)
 
         update_data = json.loads(responses.calls[1].request.body)
 
@@ -1283,58 +1250,66 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
 
     @responses.activate
+    def test_resolve_issue_in_current_release_block_kit(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1.0",
+        )
+        release.add_project(self.project)
+
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.resolve_issue_block_kit(original_message, "resolved:inCurrentRelease")
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.release == release
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_resolve_issue_in_current_release_block_kit_through_unfurl(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1.0",
+        )
+        release.add_project(self.project)
+
+        original_message = self.get_original_message_block_kit(self.group.id)
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        self.resolve_issue_block_kit(original_message, "resolved:inCurrentRelease", payload_data)
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.release == release
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
     def test_resolve_in_next_release_block_kit(self):
         release = Release.objects.create(
             organization_id=self.organization.id,
             version="1.0",
         )
         release.add_project(self.project)
-        status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                action_data=[status_action], original_message=original_message
-            )
-        assert resp.status_code == 200, resp.content
+        self.resolve_issue_block_kit(original_message, "resolved:inNextRelease")
 
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = json.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                type="view_submission",
-                private_metadata=json.dumps(private_metadata),
-                selected_option="resolved:inNextRelease",
-            )
-
-        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.release == release
+
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
@@ -1347,51 +1322,16 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             version="1.0",
         )
         release.add_project(self.project)
-        status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
         payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(action_data=[status_action], data=payload_data)
-        assert resp.status_code == 200, resp.content
+        self.resolve_issue_block_kit(original_message, "resolved:inNextRelease", payload_data)
 
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = json.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                type="view_submission",
-                private_metadata=json.dumps(private_metadata),
-                selected_option="resolved:inNextRelease",
-            )
-
-        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.release == release
+
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
