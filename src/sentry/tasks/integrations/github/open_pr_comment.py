@@ -21,8 +21,8 @@ from snuba_sdk import (
 )
 from snuba_sdk import Request as SnubaRequest
 
-from bin.extension_language_map import EXTENSION_LANGUAGE_MAP
 from sentry import features
+from sentry.constants import EXTENSION_LANGUAGE_MAP
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
