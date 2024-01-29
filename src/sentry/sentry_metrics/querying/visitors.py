@@ -7,10 +7,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.errors import (
-    InvalidMetricsQueryError,
-    LatestReleaseNotFoundError,
-)
+from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.types import QueryCondition, QueryExpression
 
 TVisited = TypeVar("TVisited")
@@ -102,16 +99,8 @@ class ValidationVisitor(QueryExpressionVisitor[QueryExpression]):
     """
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
-        self._validate_filters(timeseries.filters)
+        # This visitor has been kept in case we need future validations.
         return timeseries
-
-    def _validate_filters(self, filters: Optional[ConditionGroup]):
-        for f in filters or ():
-            if isinstance(f, BooleanCondition):
-                if f.op == BooleanOp.OR:
-                    raise InvalidMetricsQueryError("The OR operator is not supported")
-
-                self._validate_filters(f.conditions)
 
 
 class FiltersCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
