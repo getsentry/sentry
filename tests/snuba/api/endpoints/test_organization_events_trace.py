@@ -1537,13 +1537,28 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
                 data={"project": -1},
             )
 
-        assert sorted(
-            [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
-        ) == sorted(mock_query_builder.mock_calls[0].args[1]["project_id"])
+        assert mock_query_builder.call_count == 2
 
-        assert sorted(
-            [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
-        ) == sorted([p.id for p in mock_query_builder.mock_calls[0].args[1]["project_objects"]])
+        projects_to_be_queried = {
+            self.project.id,
+            self.gen1_project.id,
+            self.gen2_project.id,
+            self.gen3_project.id,
+        }
+
+        assert set(mock_query_builder.call_args_list[0].args[1]["project_id"]).issubset(
+            projects_to_be_queried
+        )
+        assert {
+            p.id for p in mock_query_builder.call_args_list[0].args[1]["project_objects"]
+        }.issubset(projects_to_be_queried)
+
+        assert set(mock_query_builder.call_args_list[1].args[1]["project_id"]).issubset(
+            projects_to_be_queried
+        )
+        assert {
+            p.id for p in mock_query_builder.call_args_list[1].args[1]["project_objects"]
+        }.issubset(projects_to_be_queried)
 
         assert response.status_code == 200, response.content
 

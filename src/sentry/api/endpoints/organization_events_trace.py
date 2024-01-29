@@ -515,7 +515,7 @@ def augment_transactions_with_spans(
     issue_occurrences = []
     occurrence_spans = set()
     error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
-    projects = set()
+    projects = {e["project.id"] for e in errors if e["trace.span"]}
 
     for transaction in transactions:
         transaction["occurrence_spans"] = []
