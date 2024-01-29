@@ -45,7 +45,7 @@ def create_or_update_comment(
     issue_list: List[int],
     metrics_base: str,
     comment_type: int = CommentType.MERGED_PR,
-    language: str | None = "",
+    language: str | None = "not found",
 ):
     pr_comment_query = PullRequestComment.objects.filter(
         pull_request__id=pullrequest_id, comment_type=comment_type

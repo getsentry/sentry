@@ -517,7 +517,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         for extension in file_extensions
         if extension in EXTENSION_LANGUAGE_MAP
     ]
-    language = languages[0] if len(languages) else ""
+    language = languages[0] if len(languages) else "not found"
 
     try:
         create_or_update_comment(
