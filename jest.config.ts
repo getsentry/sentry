@@ -1,8 +1,9 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
-import type {Config} from '@jest/types';
 import path from 'node:path';
 import process from 'node:process';
+
+import type {Config} from '@jest/types';
 
 import babelConfig from './babel.config';
 
