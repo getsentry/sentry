@@ -626,7 +626,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # add suspect commit info
         if event_for_tags:
-            suspect_commit_text = get_suspect_commit_block(project, event_for_tags, self.commits)
+            suspect_commit_text = get_suspect_commit_text(project, event_for_tags, self.commits)
             if suspect_commit_text:
                 blocks.append(self.get_context_block(suspect_commit_text))
 

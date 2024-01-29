@@ -159,7 +159,7 @@ def build_test_message_blocks(
         blocks.append(suggested_assignees_section)
 
     if suspect_commit and event:
-        suspect_commit_text = get_suspect_commit_text(project, event)
+        suspect_commit_text = get_suspect_commit_text(project, event.for_group(group))
         suspect_commit_section = {
             "type": "context",
             "elements": [{"type": "mrkdwn", "text": suspect_commit_text}],
