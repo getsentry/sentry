@@ -243,7 +243,7 @@ class ArtifactBundleIndex(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundleindex"
 
-        index_together = (("url", "artifact_bundle"),)
+        indexes = (models.Index(fields=("url", "artifact_bundle")),)
 
 
 @region_silo_only_model
@@ -264,7 +264,11 @@ class ReleaseArtifactBundle(Model):
 
         # We add the organization_id to this index since there are many occurrences of the same release/dist
         # pair, and we would like to reduce the result set by scoping to the org.
-        index_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
+        indexes = (
+            models.Index(
+                fields=("organization_id", "release_name", "dist_name", "artifact_bundle")
+            ),
+        )
 
 
 @region_silo_only_model
@@ -281,7 +285,7 @@ class DebugIdArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_debugidartifactbundle"
 
-        index_together = (("debug_id", "artifact_bundle"),)
+        indexes = (models.Index(fields=("debug_id", "artifact_bundle")),)
 
 
 @region_silo_only_model
@@ -297,7 +301,7 @@ class ProjectArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_projectartifactbundle"
 
-        index_together = (("project_id", "artifact_bundle"),)
+        indexes = (models.Index(fields=("project_id", "artifact_bundle")),)
 
 
 class ArtifactBundleArchive:

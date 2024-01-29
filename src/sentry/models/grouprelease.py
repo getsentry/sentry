@@ -32,9 +32,9 @@ class GroupRelease(Model):
         app_label = "sentry"
         db_table = "sentry_grouprelease"
         unique_together = (("group_id", "release_id", "environment"),)
-        index_together = (
-            ("group_id", "first_seen"),
-            ("group_id", "last_seen"),
+        indexes = (
+            models.Index(fields=("group_id", "first_seen")),
+            models.Index(fields=("group_id", "last_seen")),
         )
 
     __repr__ = sane_repr("group_id", "release_id")
