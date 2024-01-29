@@ -32,7 +32,6 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
-from sentry.web.decorators import transaction_start
 
 
 def clean_rule_data(data):
@@ -498,7 +497,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         },
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
-    @transaction_start("ProjectRulesEndpoint")
     def get(self, request: Request, project) -> Response:
         """
         Return a list of active issue alert rules bound to a project.
@@ -535,7 +533,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         },
         examples=IssueAlertExamples.CREATE_ISSUE_ALERT_RULE,
     )
-    @transaction_start("ProjectRulesEndpoint")
     def post(self, request: Request, project) -> Response:
         """
         Create a new issue alert rule for the given project.
