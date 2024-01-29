@@ -3,7 +3,7 @@ import {getDateTimeParams} from 'sentry/utils/metrics';
 import type {
   MetricCorrelation,
   MetricMetaCodeLocation,
-  MetricRange,
+  SelectionRange,
 } from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -13,7 +13,7 @@ type ApiResponse = {
   metrics: MetricMetaCodeLocation[];
 };
 
-type MetricsDDMMetaOpts = MetricRange & {
+type MetricsDDMMetaOpts = SelectionRange & {
   codeLocations?: boolean;
   metricSpans?: boolean;
   query?: string;
