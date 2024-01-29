@@ -84,11 +84,17 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
             patched_metrics = unblock_metric(metric_mri, [project])
             self._create_audit_log_entry("METRIC_UNBLOCK", metric_mri, None, project)
         elif metric_operation_type == MetricOperationType.BLOCK_TAGS:
-            tags = request.data.get("tags") or []
+            tags = request.data.get("tags")
+            if not tags:
+                raise InvalidParams("You must supply at least one tag to block")
+
             patched_metrics = block_tags_of_metric(metric_mri, set(tags), [project])
             self._create_audit_log_entry("METRIC_TAGS_BLOCK", metric_mri, tags, project)
         elif metric_operation_type == MetricOperationType.UNBLOCK_TAGS:
-            tags = request.data.get("tags") or []
+            tags = request.data.get("tags")
+            if not tags:
+                raise InvalidParams("You must supply at least one tag to unblock")
+
             patched_metrics = unblock_tags_of_metric(metric_mri, set(tags), [project])
             self._create_audit_log_entry("METRIC_TAGS_UNBLOCK", metric_mri, tags, project)
 
