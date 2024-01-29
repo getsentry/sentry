@@ -230,7 +230,9 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         return data
 
     def _get_attr(self, data, attr, empty_value=None):
-        value = data.get(attr)
+        if not isinstance(data, dict):  # New check to ensure 'data' is a dictionary
+            raise ValueError(f"Expected a dictionary for `data`, but got {type(data).__name__}")
+        value = data.get(attr)  # The existing code will no longer fail with AttributeError.
         if value is not None:
             return value
         if self.instance:
