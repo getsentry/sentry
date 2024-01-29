@@ -36,6 +36,7 @@ export default function FeedbackListBulkSelection({
   const newMailboxResolve =
     mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
 
+  // reuse the issues ignored category for spam feedbacks
   const newMailboxSpam =
     mailbox === 'ignored' ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
 

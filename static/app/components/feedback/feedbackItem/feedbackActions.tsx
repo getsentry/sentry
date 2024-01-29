@@ -47,8 +47,9 @@ export default function FeedbackActions({
     },
   };
 
-  const isResolved = feedbackItem.status === 'resolved';
-  const isSpam = feedbackItem.status === 'ignored';
+  // reuse the issues ignored category for spam feedbacks
+  const isResolved = feedbackItem.status === GroupStatus.RESOLVED;
+  const isSpam = feedbackItem.status === GroupStatus.IGNORED;
 
   return (
     <Flex gap={space(0.5)} align="center" className={className} style={style}>

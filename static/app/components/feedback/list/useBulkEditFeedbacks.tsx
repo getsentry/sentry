@@ -13,9 +13,9 @@ import type {GroupStatus} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const statusToButtonLabel: Record<string, string> = {
-  resolved: 'Resolve',
-  unresolved: 'Unresolve',
-  ignored: 'Mark as Spam',
+  resolved: t('Resolve'),
+  unresolved: t('Unresolve'),
+  ignored: t('Mark as Spam'),
 };
 
 const statusToText: Record<string, string> = {

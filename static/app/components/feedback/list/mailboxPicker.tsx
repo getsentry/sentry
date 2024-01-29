@@ -11,9 +11,16 @@ interface Props {
   value: Mailbox;
 }
 
+const items = [
+  {key: 'unresolved', label: t('Inbox')},
+  {key: 'resolved', label: t('Resolved')},
+  {key: 'ignored', label: t('Spam')},
+];
+
 export default function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const hasSpamFeature = organization.features.includes('user-feedback-spam-filter-ui');
+  const children = hasSpamFeature ? items : items.filter(i => i.key !== 'ignored');
   return (
     <Flex justify="flex-end" flex="1 0 auto">
       <SegmentedControl
@@ -22,11 +29,9 @@ export default function MailboxPicker({onChange, value}: Props) {
         value={value}
         onChange={onChange}
       >
-        <SegmentedControl.Item key="unresolved">{t('Inbox')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="resolved">{t('Resolved')}</SegmentedControl.Item>
-        <SegmentedControl.Item key="ignored" disabled={!hasSpamFeature}>
-          {t('Spam')}
-        </SegmentedControl.Item>
+        {children.map(c => (
+          <SegmentedControl.Item key={c.key}>{c.label}</SegmentedControl.Item>
+        ))}
       </SegmentedControl>
     </Flex>
   );
