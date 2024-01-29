@@ -92,6 +92,7 @@ class IntType(Type[int]):
 
     def convert(self, value):
         try:
+        if value is None: return self.default
             return int(value)
         except ValueError:
             return None
@@ -107,6 +108,7 @@ class FloatType(Type[float]):
 
     def convert(self, value):
         try:
+        if value is None: return self.default
             return float(value)
         except ValueError:
             return None
@@ -133,6 +135,7 @@ class DictType(Type[dict]):
 
     def convert(self, value):
         try:
+        if value is None: return self.default
             return safe_load(value)
         except (AttributeError, ParserError, ScannerError):
             return None
@@ -152,6 +155,7 @@ class SequenceType(Type[list]):
     def convert(self, value):
         if isinstance(value, str):
             try:
+        if value is None: return self.default
                 value = safe_load(value)
             except (AttributeError, ParserError, ScannerError):
                 return None
