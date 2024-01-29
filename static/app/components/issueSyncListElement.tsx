@@ -103,8 +103,10 @@ function IssueSyncListElement({
             bodyClassName="issue-list-body"
             forceVisible={showHoverCard}
           >
-            {icon}
-            {link}
+            <Label>
+              {icon}
+              {link}
+            </Label>
           </StyledHovercard>
         )}
       </ClassNames>
@@ -154,5 +156,9 @@ const StyledHovercard = styled(Hovercard)`
     overflow-y: auto;
   }
 `;
+
+const Label = styled('div')`
+display: flex;
+align-items: center;`;
 
 export default IssueSyncListElement;
