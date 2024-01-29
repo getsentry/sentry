@@ -1,10 +1,10 @@
+import zoneinfo
 from datetime import timedelta, timezone
 from typing import MutableMapping
 from unittest import mock
 
 import msgpack
 import pytest
-import pytz
 from arroyo import Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
 from confluent_kafka.admin import PartitionMetadata
@@ -39,8 +39,7 @@ def make_ref_time(**kwargs):
     """
     tz_name = kwargs.pop("timezone", "UTC")
 
-    ts = django_timezone.now().replace(**kwargs, tzinfo=None)
-    ts = pytz.timezone(tz_name).localize(ts)
+    ts = django_timezone.now().replace(**kwargs, tzinfo=zoneinfo.ZoneInfo(tz_name))
 
     # Typically the task will not run exactly on the minute, but it will
     # run very close, let's say for our test that it runs 12 seconds after

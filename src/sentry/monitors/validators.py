@@ -1,6 +1,5 @@
 from typing import Literal
 
-import pytz
 import sentry_sdk
 from croniter import CroniterBadDateError, croniter
 from django.core.exceptions import ValidationError
@@ -18,6 +17,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import MAX_SLUG_LENGTH, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
@@ -126,7 +126,7 @@ class ConfigValidator(serializers.Serializer):
     )
 
     timezone = serializers.ChoiceField(
-        choices=pytz.all_timezones,
+        choices=sorted(AVAILABLE_TIMEZONES),
         required=False,
         allow_blank=True,
         help_text="tz database style timezone string",
