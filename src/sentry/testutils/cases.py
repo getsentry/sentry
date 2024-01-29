@@ -2799,9 +2799,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         issue_link = f"http://testserver/organizations/{org_slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
         if issue_link_extra_params is not None:
             issue_link += issue_link_extra_params
-        assert (
-            blocks[1]["text"]["text"] == f":chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
-        )
+        assert blocks[1]["text"]["text"] == f":chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
         assert (
             blocks[2]["elements"][0]["elements"][0]["text"]
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
