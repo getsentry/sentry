@@ -35,7 +35,7 @@ coverage==6.3.3
 croniter==1.3.10
 cryptography==41.0.7
 cssselect==1.0.3
-cssutils==2.4.0
+cssutils==2.9.0
 datadog==0.44.0
 distlib==0.3.4
 distro==1.8.0
