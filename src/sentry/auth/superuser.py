@@ -18,6 +18,7 @@ from typing import Any, Tuple
 
 from django.conf import settings
 from django.core.signing import BadSignature
+from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
@@ -86,7 +87,7 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
     return superuser_scopes
 
 
-def superuser_has_permission(request: Request):
+def superuser_has_permission(request: HttpRequest | Request):
     if not is_active_superuser(request):
         return False
 
@@ -103,7 +104,7 @@ def superuser_has_permission(request: Request):
     return True
 
 
-def is_active_superuser(request: Request) -> bool:
+def is_active_superuser(request: HttpRequest | Request) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     su = getattr(request, "superuser", None) or Superuser(request)
