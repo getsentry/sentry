@@ -34,6 +34,7 @@ describe('Feature', function () {
 
       render(<Feature features={features}>{childrenMock}</Feature>, {
         context: routerContext,
+        organization,
       });
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -52,7 +53,7 @@ describe('Feature', function () {
         <Feature features={features} requireAll={false}>
           {childrenMock}
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -67,6 +68,7 @@ describe('Feature', function () {
     it('has no features', function () {
       render(<Feature features="org-baz">{childrenMock}</Feature>, {
         context: routerContext,
+        organization,
       });
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -84,7 +86,7 @@ describe('Feature', function () {
         <Feature features="org-baz" renderDisabled={noFeatureRenderer}>
           {childrenMock}
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(childrenMock).not.toHaveBeenCalled();
@@ -103,7 +105,7 @@ describe('Feature', function () {
         <Feature organization={customOrg} features="org-bazar">
           {childrenMock}
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -121,7 +123,7 @@ describe('Feature', function () {
         <Feature project={customProject} features="project-baz">
           {childrenMock}
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -137,6 +139,7 @@ describe('Feature', function () {
       const features = ['org-foo', 'project-foo'];
       render(<Feature features={features}>{childrenMock}</Feature>, {
         context: routerContext,
+        organization,
       });
 
       expect(childrenMock).toHaveBeenCalledWith(
@@ -153,6 +156,7 @@ describe('Feature', function () {
     it('handles features prefixed with org/project', function () {
       render(<Feature features="organizations:org-bar">{childrenMock}</Feature>, {
         context: routerContext,
+        organization,
       });
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -165,6 +169,7 @@ describe('Feature', function () {
 
       render(<Feature features="projects:bar">{childrenMock}</Feature>, {
         context: routerContext,
+        organization,
       });
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -183,6 +188,7 @@ describe('Feature', function () {
 
       render(<Feature features="organizations:create">{childrenMock}</Feature>, {
         context: routerContext,
+        organization,
       });
 
       expect(childrenMock).toHaveBeenCalledWith({
@@ -201,7 +207,7 @@ describe('Feature', function () {
         <Feature features="nope" renderDisabled={() => <span>disabled</span>}>
           <div>The Child</div>
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
       expect(screen.getByText('disabled')).toBeInTheDocument();
     });
@@ -211,7 +217,7 @@ describe('Feature', function () {
         <Feature features="org-bar" renderDisabled={() => <span>disabled</span>}>
           <div>The Child</div>
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
       expect(screen.queryByText('disabled')).not.toBeInTheDocument();
     });
@@ -223,7 +229,7 @@ describe('Feature', function () {
         <Feature features="org-bar">
           <div>The Child</div>
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.getByText('The Child')).toBeInTheDocument();
@@ -234,7 +240,7 @@ describe('Feature', function () {
         <Feature features="org-baz">
           <div>The Child</div>
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();
@@ -245,7 +251,7 @@ describe('Feature', function () {
         <Feature features="org-baz" renderDisabled>
           <div>The Child</div>
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.getByText('This feature is coming soon!')).toBeInTheDocument();
@@ -259,7 +265,7 @@ describe('Feature', function () {
         <Feature features="org-baz" renderDisabled={noFeatureRenderer}>
           {children}
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();
@@ -292,7 +298,7 @@ describe('Feature', function () {
         <Feature features="org-bazar" hookName="feature-disabled:sso-basic">
           {children}
         </Feature>,
-        {context: routerContext}
+        {context: routerContext, organization}
       );
 
       expect(screen.queryByText('The Child')).not.toBeInTheDocument();

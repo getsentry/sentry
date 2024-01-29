@@ -108,7 +108,7 @@ const createWrapper = (props = {}) => {
         userTeamIds={[]}
       />
     </ProjectAlerts>,
-    {context: routerContext}
+    {context: routerContext, organization}
   );
 
   return {

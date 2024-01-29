@@ -50,7 +50,6 @@ jest.mock('lodash/debounce', () =>
 );
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
-jest.mock('sentry/utils/withOrganization');
 jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);

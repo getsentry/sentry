@@ -17,6 +17,7 @@ describe('ProviderItem', function () {
   it('renders', function () {
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
       context: routerContext,
+      organization: org,
     });
 
     expect(
@@ -28,6 +29,7 @@ describe('ProviderItem', function () {
     const mock = jest.fn();
     render(<ProviderItem active={false} provider={provider} onConfigure={mock} />, {
       context: routerContext,
+      organization: org,
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Configure'}));
@@ -35,9 +37,9 @@ describe('ProviderItem', function () {
   });
 
   it('renders a disabled Tag when disabled', function () {
-    const noFeatureRouterContext = RouterContextFixture();
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
-      context: noFeatureRouterContext,
+      context: RouterContextFixture(),
+      organization: OrganizationFixture(),
     });
 
     expect(screen.getByRole('status')).toHaveTextContent('disabled');
