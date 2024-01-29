@@ -34,6 +34,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -534,8 +535,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             "pr_id": pull_request.key,
             "repo_base": self.repo.url,
         }
+        commits = get_commits(self.project, event)
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group)
+            group,
+            event.for_group(group),
+            commits=commits,
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
