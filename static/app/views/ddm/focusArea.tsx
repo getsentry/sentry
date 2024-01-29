@@ -283,10 +283,7 @@ const getDate = date =>
 
 const getTimestamp = date => (date ? moment.utc(date).valueOf() : null);
 
-const getMetricRange = (
-  params: BrushEndResult,
-  useFullYAxis: boolean
-): SelectionRange => {
+const getMetricRange = (params: BrushEndResult, useFullYAxis: boolean): MetricRange => {
   const rect = params.areas[0];
 
   const startTimestamp = Math.min(...rect.coordRange[0]);
