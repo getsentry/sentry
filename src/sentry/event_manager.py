@@ -1367,7 +1367,7 @@ def _save_aggregate(
     metadata: dict[str, Any],
     received_timestamp: Union[int, float],
     migrate_off_hierarchical: Optional[bool] = False,
-    **kwargs: Any,
+    **group_creation_kwargs: Any,
 ) -> Optional[GroupInfo]:
     project = event.project
 
@@ -1406,12 +1406,12 @@ def _save_aggregate(
     #
     # Additionally the `last_received` key is set for group metadata, later in
     # _save_aggregate
-    kwargs["data"] = materialize_metadata(
+    group_creation_kwargs["data"] = materialize_metadata(
         event.data,
         get_event_type(event.data),
         metadata,
     )
-    kwargs["data"]["last_received"] = received_timestamp
+    group_creation_kwargs["data"]["last_received"] = received_timestamp
 
     if existing_grouphash is None:
         if killswitch_matches_context(
@@ -1455,7 +1455,7 @@ def _save_aggregate(
                 root_hierarchical_grouphash = None
 
             if existing_grouphash is None:
-                group = _create_group(project, event, **kwargs)
+                group = _create_group(project, event, **group_creation_kwargs)
 
                 if (
                     features.has("projects:first-event-severity-calculation", event.project)
@@ -1570,7 +1570,7 @@ def _save_aggregate(
     is_regression = _process_existing_aggregate(
         group=group,
         event=event,
-        incoming_group_values=kwargs,
+        incoming_group_values=group_creation_kwargs,
         release=release,
     )
 
