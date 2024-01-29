@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+import logging
 import socket
 from hashlib import sha1
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Set
@@ -204,6 +205,16 @@ class RegionSiloClient(BaseSiloClient):
         if not isinstance(request_attempts, int):
             request_attempts = 0
 
+        logging.info(
+            "silo_client.check_request_attempts",
+            extra={
+                "path": path,
+                "method": method,
+                "request_hash": hash,
+                "request_attempts": request_attempts,
+                "configured_attempt_limit": REQUEST_ATTEMPTS_LIMIT,
+            },
+        )
         if request_attempts < REQUEST_ATTEMPTS_LIMIT:
             request_attempts += 1
             cache.set(cache_key, request_attempts, timeout=CACHE_TIMEOUT)
@@ -214,6 +225,8 @@ class RegionSiloClient(BaseSiloClient):
     def cleanup_request_attempts(self, hash: str | None) -> None:
         if hash is None:
             return
+
+        logging.info("silo_client.cleaning_request_attempts", extra={"request_hash": hash})
         cache_key = self._get_hash_cache_key(hash=hash)
         cache.delete(cache_key)
 
