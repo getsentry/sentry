@@ -265,7 +265,9 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
                     if commit.get("pullRequest"):
                         commit_data["pull_request"] = commit["pullRequest"]
                     commits[commit["id"]] = commit_data
-    return sorted(commits.values())
+    # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
+    # commits from Commit Context dont have a "score" key
+    return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
 @region_silo_function
