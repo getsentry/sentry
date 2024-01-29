@@ -7,7 +7,7 @@ import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/suspectFunctions/functionsTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';

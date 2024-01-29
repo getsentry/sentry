@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type {Organization, PageFilters} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {STARFISH_TYPE_FOR_PROJECT} from 'sentry/views/starfish/allowedProjects';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';

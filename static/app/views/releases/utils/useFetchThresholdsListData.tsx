@@ -1,7 +1,7 @@
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {Threshold, ThresholdQuery} from './types';
+import type {Threshold, ThresholdQuery} from './types';
 
 export type HookProps = {
   selectedEnvs?: string[];

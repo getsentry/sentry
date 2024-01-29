@@ -6,10 +6,10 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct} from 'sentry/locale';
-import {GroupStatus} from 'sentry/types';
+import type {GroupStatus} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const statusToText: Record<string, string> = {

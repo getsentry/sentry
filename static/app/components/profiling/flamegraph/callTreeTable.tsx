@@ -6,7 +6,7 @@ import {IconUser} from 'sentry/icons/iconUser';
 import {space} from 'sentry/styles/space';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
 export const enum CallTreeTableClassNames {
   ROW = 'CallTreeTableRow',

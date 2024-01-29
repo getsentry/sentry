@@ -11,13 +11,13 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Frame, MRI} from 'sentry/types';
-import {MetricCodeLocationFrame, MetricRange} from 'sentry/utils/metrics/types';
+import type {Frame, MRI} from 'sentry/types';
+import type {MetricCodeLocationFrame, MetricRange} from 'sentry/utils/metrics/types';
 import {useMetricCodeLocations} from 'sentry/utils/metrics/useMetricsCorrelations';
 
-export type CodeLocationsProps = MetricRange & {
+interface CodeLocationsProps extends MetricRange {
   mri?: MRI;
-};
+}
 
 export function CodeLocations({mri, ...rangeOpts}: CodeLocationsProps) {
   const {data, isFetching, isError, refetch} = useMetricCodeLocations(mri, rangeOpts);

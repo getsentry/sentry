@@ -7,7 +7,7 @@ import {
   BrowserStarfishFields,
   useBrowserModuleFilters,
 } from 'sentry/views/performance/browser/useBrowserFilters';
-import {ValidSort} from 'sentry/views/performance/browser/useBrowserSort';
+import type {ValidSort} from 'sentry/views/performance/browser/useBrowserSort';
 
 export const useInteractionsQuery = ({sort}: {sort: ValidSort}) => {
   const pageFilters = usePageFilters();

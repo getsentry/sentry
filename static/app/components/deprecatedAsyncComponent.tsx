@@ -1,9 +1,10 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import {Client, ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import AsyncComponentSearchInput from 'sentry/components/asyncComponentSearchInput';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -105,13 +106,13 @@ class DeprecatedAsyncComponent<
     const currentLocation = isLocationInProps
       ? this.props.location
       : isRouterInContext
-      ? this.context.router.location
-      : null;
+        ? this.context.router.location
+        : null;
     const prevLocation = isLocationInProps
       ? prevProps.location
       : isRouterInContext
-      ? prevContext.router.location
-      : null;
+        ? prevContext.router.location
+        : null;
 
     if (!(currentLocation && prevLocation)) {
       return;
@@ -452,8 +453,8 @@ class DeprecatedAsyncComponent<
     return this.shouldRenderLoading
       ? this.renderLoading()
       : this.state.error
-      ? this.renderError()
-      : this.renderBody();
+        ? this.renderError()
+        : this.renderBody();
   }
 
   /**

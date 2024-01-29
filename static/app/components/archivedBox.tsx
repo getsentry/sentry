@@ -3,7 +3,8 @@ import Duration from 'sentry/components/duration';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
-import {Group, GroupSubstatus, IgnoredStatusDetails, Organization} from 'sentry/types';
+import type {Group, IgnoredStatusDetails, Organization} from 'sentry/types';
+import {GroupSubstatus} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 interface ArchivedBoxProps {

@@ -1,14 +1,15 @@
-import {RefObject, useCallback, useEffect, useMemo, useState} from 'react';
+import type {RefObject} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {XAXisOption} from 'echarts/types/dist/shared';
+import type {XAXisOption} from 'echarts/types/dist/shared';
 import moment from 'moment';
 
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import {isCumulativeOp} from 'sentry/utils/metrics';
 import type {MetricCorrelation, MetricSummary} from 'sentry/utils/metrics/types';
 import {fitToValueRect, getValueRect} from 'sentry/views/ddm/rect';
-import {Sample} from 'sentry/views/ddm/widget';
+import type {Sample} from 'sentry/views/ddm/widget';
 
 type UseChartSamplesProps = {
   timeseries: Series[];

@@ -1,4 +1,4 @@
-import {PlainRoute} from 'react-router';
+import type {PlainRoute} from 'react-router';
 
 type RouteWithPath = Omit<PlainRoute, 'path'> & Required<Pick<PlainRoute, 'path'>>;
 

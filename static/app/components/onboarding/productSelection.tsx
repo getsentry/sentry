@@ -1,4 +1,5 @@
-import {Fragment, ReactNode, useCallback, useEffect, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,8 +13,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey} from 'sentry/types';
-import {Organization} from 'sentry/types';
+import type {Organization, PlatformKey} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -193,8 +193,8 @@ function Product({
   const ProductWrapper = permanentDisabled
     ? PermanentDisabledProductWrapper
     : disabled
-    ? DisabledProductWrapper
-    : ProductButtonWrapper;
+      ? DisabledProductWrapper
+      : ProductButtonWrapper;
 
   return (
     <Tooltip
@@ -449,8 +449,7 @@ const DisabledProductWrapper = styled(Button)`
   && {
     cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
     input {
-      cursor: ${p =>
-        p.disabled || p.priority === 'default' ? 'not-allowed' : 'pointer'};
+      cursor: ${p => (p.disabled || p.priority === 'default' ? 'not-allowed' : 'pointer')};
     }
   }
 `;

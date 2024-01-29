@@ -2,14 +2,14 @@ import {forwardRef, Fragment, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
-import {TreeState} from '@react-stately/tree';
-import {Node} from '@react-types/shared';
-import {LocationDescriptor} from 'history';
+import type {TreeState} from '@react-stately/tree';
+import type {Node} from '@react-types/shared';
+import type {LocationDescriptor} from 'history';
 
 import Link from 'sentry/components/links/link';
+import type {MenuListItemProps} from 'sentry/components/menuListItem';
 import MenuListItem, {
   InnerWrap as MenuListItemInnerWrap,
-  MenuListItemProps,
 } from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
 import mergeRefs from 'sentry/utils/mergeRefs';

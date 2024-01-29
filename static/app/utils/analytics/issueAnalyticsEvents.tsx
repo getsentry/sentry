@@ -1,8 +1,8 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
-import {FieldValue} from 'sentry/components/forms/model';
-import {IntegrationType} from 'sentry/types';
+import type {FieldValue} from 'sentry/components/forms/model';
+import type {IntegrationType} from 'sentry/types';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
-import {CommonGroupAnalyticsData} from 'sentry/utils/events';
+import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
 type IssueStream = {
   group_id: string;

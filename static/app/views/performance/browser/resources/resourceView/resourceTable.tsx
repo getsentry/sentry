@@ -3,12 +3,10 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,7 +19,7 @@ import {
   IMAGE_FILE_EXTENSIONS,
 } from 'sentry/views/performance/browser/resources/shared/constants';
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
-import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
+import type {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';

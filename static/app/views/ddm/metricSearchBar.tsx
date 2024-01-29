@@ -2,18 +2,20 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
+import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {
   BooleanOperator,
   FilterType,
   joinQuery,
   parseSearch,
-  SearchConfig,
   Token,
 } from 'sentry/components/searchSyntax/parser';
 import {treeTransformer} from 'sentry/components/searchSyntax/utils';
-import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
-import {MRI, SavedSearchType, TagCollection} from 'sentry/types';
+import type {MRI, TagCollection} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
