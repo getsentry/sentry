@@ -60,19 +60,23 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
                 "89aeed6a472e4c5fb992d14df4d7e1b6",
                 data=data,
             )
+            group_creation_kwargs = {"level": 10, "culprit": ""}
+            hashes = CalculatedHashes(
+                hashes=["a" * 32, "b" * 32],
+                hierarchical_hashes=[],
+                tree_labels=[],
+            )
+
             ret = _save_aggregate(
                 evt,
-                hashes=CalculatedHashes(
-                    hashes=["a" * 32, "b" * 32],
-                    hierarchical_hashes=[],
-                    tree_labels=[],
-                ),
+                hashes=hashes,
                 release=None,
                 metadata={},
                 received_timestamp=0,
-                level=10,
-                culprit="",
+                migrate_off_hierarchical=False,
+                **group_creation_kwargs,
             )
+
             assert ret is not None
             return_values.append(ret)
         finally:
