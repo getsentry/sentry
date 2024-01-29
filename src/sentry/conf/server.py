@@ -800,6 +800,7 @@ CELERY_IMPORTS = (
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
+    "sentry.replays.usecases.ingest.issue_creation",
 )
 
 default_exchange = Exchange("default", type="direct")
