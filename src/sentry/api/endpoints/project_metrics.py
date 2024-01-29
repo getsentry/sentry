@@ -79,10 +79,10 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
 
         if metric_operation_type == MetricOperationType.BLOCK_METRIC:
             patched_metrics = block_metric(metric_mri, [project])
-            self._create_audit_log_entry("METRIC_BLOCK", metric_mri, [], project)
+            self._create_audit_log_entry("METRIC_BLOCK", metric_mri, None, project)
         elif metric_operation_type == MetricOperationType.UNBLOCK_METRIC:
             patched_metrics = unblock_metric(metric_mri, [project])
-            self._create_audit_log_entry("METRIC_UNBLOCK", metric_mri, [], project)
+            self._create_audit_log_entry("METRIC_UNBLOCK", metric_mri, None, project)
         elif metric_operation_type == MetricOperationType.BLOCK_TAGS:
             tags = request.data.get("tags") or []
             patched_metrics = block_tags_of_metric(metric_mri, set(tags), [project])
