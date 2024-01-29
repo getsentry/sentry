@@ -21,6 +21,7 @@ from snuba_sdk import (
 )
 from snuba_sdk import Request as SnubaRequest
 
+from bin.extension_language_map import EXTENSION_LANGUAGE_MAP
 from sentry import features
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group, GroupStatus
@@ -438,6 +439,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     if features.has("organizations:integrations-open-pr-comment-js", organization):
         patch_parsers = BETA_PATCH_PARSERS
 
+    file_extensions = set()
     # fetch issues related to the files
     for file in pullrequest_files:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
@@ -470,6 +472,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             continue
 
         top_issues_per_file.append(top_issues)
+        file_extensions.add(file_extension)
 
         issue_table_contents[file.filename] = get_issue_table_contents(top_issues)
 
@@ -508,6 +511,14 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     issue_list: List[Dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
     issue_id_list: List[int] = [issue["group_id"] for issue in issue_list]
 
+    # pick one language from the list of languages in the PR for analytics
+    languages = [
+        EXTENSION_LANGUAGE_MAP[extension]
+        for extension in file_extensions
+        if extension in EXTENSION_LANGUAGE_MAP
+    ]
+    language = languages[0] if len(languages) else ""
+
     try:
         create_or_update_comment(
             client=client,
@@ -518,6 +529,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             issue_list=issue_id_list,
             comment_type=CommentType.OPEN_PR,
             metrics_base=OPEN_PR_METRICS_BASE,
+            language=language,
         )
     except ApiError as e:
         if e.json:
