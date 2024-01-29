@@ -1,4 +1,5 @@
-import {Fragment, MouseEvent, useContext, useState} from 'react';
+import type {MouseEvent} from 'react';
+import {Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
@@ -30,19 +31,18 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Frame,
   PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
-import DebugImage from './debugMeta/debugImage';
+import type DebugImage from './debugMeta/debugImage';
 import {combineStatus} from './debugMeta/utils';
 import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
@@ -101,7 +101,6 @@ function NativeFrame({
    */
   isHoverPreviewed = false,
 }: Props) {
-  const user = useUser();
   const organization = useOrganization();
 
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
@@ -152,7 +151,7 @@ function NativeFrame({
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
   const hasStacktraceLink = frame.inApp && !!frame.filename && (isHovering || expanded);
-  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
+  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
   const showStacktraceLinkInFrame = hasStacktraceLink && hasInFrameFeature;
   const showSentryAppStacktraceLinkInFrame =
     showStacktraceLinkInFrame && components.length > 0;

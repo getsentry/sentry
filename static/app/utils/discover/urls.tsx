@@ -1,6 +1,7 @@
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 
-import EventView, {EventData} from './eventView';
+import type {EventData} from './eventView';
+import type EventView from './eventView';
 
 /**
  * Create a slug that can be used with discover details views

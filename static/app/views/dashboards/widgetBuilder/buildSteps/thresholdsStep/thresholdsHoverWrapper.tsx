@@ -5,10 +5,10 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import theme from 'sentry/utils/theme';
 
-import {ThresholdsConfig} from './thresholdsStep';
+import type {ThresholdsConfig} from './thresholdsStep';
 
 type Props = {
   children: React.ReactNode;

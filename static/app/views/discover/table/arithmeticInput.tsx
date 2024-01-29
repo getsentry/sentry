@@ -2,14 +2,12 @@ import {createRef, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Input, {InputProps} from 'sentry/components/input';
+import type {InputProps} from 'sentry/components/input';
+import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  Column,
-  generateFieldAsString,
-  isLegalEquationColumn,
-} from 'sentry/utils/discover/fields';
+import type {Column} from 'sentry/utils/discover/fields';
+import {generateFieldAsString, isLegalEquationColumn} from 'sentry/utils/discover/fields';
 
 const NONE_SELECTED = -1;
 

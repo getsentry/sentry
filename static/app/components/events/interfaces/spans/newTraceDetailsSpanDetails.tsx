@@ -26,15 +26,15 @@ import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
+import type {
   QuickTraceEvent,
   TraceErrorOrIssue,
 } from 'sentry/utils/performance/quickTrace/types';
@@ -51,7 +51,9 @@ import * as SpanEntryContext from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {SpanProfileDetails} from './spanProfileDetails';
-import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
+import type {ParsedTraceType, ProcessedSpanType, RawSpanType} from './types';
+import {rawSpanKeys} from './types';
+import type {SubTimingInfo} from './utils';
 import {
   getCumulativeAlertLevelFromErrors,
   getFormattedTimeRangeWithLeadingAndTrailingZero,
@@ -62,7 +64,6 @@ import {
   isHiddenDataKey,
   isOrphanSpan,
   scrollToSpan,
-  SubTimingInfo,
 } from './utils';
 
 const DEFAULT_ERRORS_VISIBLE = 5;

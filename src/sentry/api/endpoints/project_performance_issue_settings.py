@@ -10,7 +10,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
-from sentry.api.permissions import SuperuserPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.issues.grouptype import (
     GroupType,
@@ -99,13 +98,6 @@ configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
 }
 
 
-class ProjectOwnerOrSuperUserPermissions(ProjectSettingPermission):
-    def has_object_permission(self, request: Request, view, project):
-        return super().has_object_permission(
-            request, view, project
-        ) or SuperuserPermission().has_permission(request, view)
-
-
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     n_plus_one_db_duration_threshold = serializers.IntegerField(
         required=False, min_value=50, max_value=TEN_SECONDS
@@ -179,7 +171,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
-    permission_classes = (ProjectOwnerOrSuperUserPermissions,)
+    permission_classes = (ProjectSettingPermission,)
 
     def has_feature(self, project, request) -> bool:
         return features.has(

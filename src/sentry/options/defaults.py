@@ -503,7 +503,6 @@ register("snuba.search.max-chunk-size", default=2000, flags=FLAG_AUTOMATOR_MODIF
 register("snuba.search.max-total-chunk-time-seconds", default=30.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("snuba.use-mql-endpoint", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -860,6 +859,16 @@ register("relay.drop-transaction-metrics", default=[], flags=FLAG_AUTOMATOR_MODI
 
 # [Unused] Sample rate for opting in orgs into transaction metrics extraction.
 register("relay.transaction-metrics-org-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Relay should emit a usage metric to track total spans.
+register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Killswitch for the Relay cardinality limiter, one of `enabled`, `disabled`, `passive`.
+# In `passive` mode Relay's cardinality limiter is active but it does not enforce the limits.
+#
+# Note: To fully enable the cardinality limiter the feature `organizations:relay-cardinality-limiter`
+# needs to be rolled out as well.
+register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)

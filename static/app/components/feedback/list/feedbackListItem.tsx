@@ -1,4 +1,5 @@
-import {CSSProperties, forwardRef} from 'react';
+import type {CSSProperties} from 'react';
+import {forwardRef} from 'react';
 import {browserHistory} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -14,14 +15,14 @@ import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
+import {IconChat, IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Group} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
@@ -54,6 +55,8 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
+    const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
+    const hasComments = feedbackItem.numComments > 0;
     const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;
 
     return (
@@ -125,7 +128,13 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               <Row justify="flex-end" gap={space(1)}>
                 <IssueTrackingSignals group={feedbackItem as unknown as Group} />
 
-                {isCrashReport && (
+                {hasComments && (
+                  <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
+                    <IconChat color="gray500" size="sm" />
+                  </Tooltip>
+                )}
+
+                {(isCrashReport || isUserReportWithError) && (
                   <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
                     <IconFatal color="red400" size="xs" />
                   </Tooltip>

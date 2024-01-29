@@ -16,17 +16,21 @@ from sentry.services.hybrid_cloud.integration.serial import serialize_integratio
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.silo import region_silo_test
 
 TOKEN = "JWT anexampletoken"
 
 
+@region_silo_test
 class JiraIssueUpdatedWebhookTest(APITestCase):
     endpoint = "sentry-extensions-jira-issue-updated"
     method = "post"
 
     def setUp(self):
         super().setUp()
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            organization=self.organization,
+            user=self.user,
             provider="jira",
             name="Example Jira",
             metadata={
@@ -36,7 +40,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        integration.add_organization(self.organization, self.user)
+        # Ensure this is region safe, and doesn't require the ORM integration model
         self.integration = serialize_integration(integration=integration)
 
     @patch("sentry.integrations.jira.utils.api.sync_group_assignee_inbound")

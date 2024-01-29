@@ -1,11 +1,11 @@
-import {mat3} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
 
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
 import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/UIFramesRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import {UIFrames} from 'sentry/utils/profiling/uiFrames';
+import type {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 export class UIFramesRenderer2D extends UIFramesRenderer {
   ctx: CanvasRenderingContext2D | null = null;

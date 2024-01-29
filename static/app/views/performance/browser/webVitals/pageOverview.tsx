@@ -9,7 +9,8 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import {COL_WIDTH_UNDEFINED, GridColumnOrder} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -41,7 +42,7 @@ import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performanc
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {
+import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -152,8 +153,8 @@ export default function PageOverview() {
     (shouldUseStoredScores && isProjectScoresLoading) || isLoading
       ? undefined
       : shouldUseStoredScores
-      ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
-      : calculatePerformanceScoreFromTableDataRow(pageData?.data?.[0]);
+        ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
+        : calculatePerformanceScoreFromTableDataRow(pageData?.data?.[0]);
 
   const scoreMigrationTimestampString = moment(SCORE_MIGRATION_TIMESTAMP).format(
     'DD MMMM YYYY'

@@ -1,28 +1,26 @@
 import {Fragment} from 'react';
 
-import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   ConnectorBar,
   TOGGLE_BORDER_BOX,
   TreeConnector,
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {t} from 'sentry/locale';
-import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {SpanGroupBar} from './spanGroupBar';
 import SpanRectangle from './spanRectangle';
 import {SpanRectangleOverlay} from './spanRectangleOverlay';
-import {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types';
+import type {EnhancedSpan, ProcessedSpanType, SpanType, TreeDepthType} from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType, VerticalMark} from './utils';
 import {
   getSpanGroupBounds,
   isOrphanSpan,
   isOrphanTreeDepth,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   unwrapTreeDepth,
-  VerticalMark,
 } from './utils';
 
 export type SpanSiblingGroupBarProps = {
