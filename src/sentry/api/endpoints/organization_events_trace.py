@@ -590,16 +590,16 @@ def augment_transactions_with_spans(
 
     parent_map = {}
     chunk_size = math.ceil(len(projects) / MAX_PARALLEL_QUERIES)
+    # Limit to 10 projects per query
     if chunk_size > 10:
         chunk_size = 10
-    # We can use a with statement to ensure threads are cleaned up promptly
+
     with ThreadPoolExecutor(max_workers=MAX_PARALLEL_QUERIES) as executor:
-        # Start the load operations and mark each future with its URLtime.sleep(2000)
-        future_to_project = {
+        futures = {
             executor.submit(load_results, chunked_projects)
             for chunked_projects in chunk(projects, chunk_size)
         }
-        for future in as_completed(future_to_project):
+        for future in as_completed(futures):
             parents_results = future.result()
             for parent in parents_results["data"]:
                 parent_map[parent["span_id"]] = parent
