@@ -58,6 +58,8 @@ def chunk(input, chunk_size):
     for i in range(0, len(input), chunk_size):
         output.append(input[i : i + chunk_size])
 
+    return output
+
 
 _T = TypeVar("_T")
 NodeSpans = List[Dict[str, Any]]
@@ -552,6 +554,7 @@ def augment_transactions_with_spans(
                 ]
             )
 
+    projects = list(projects)
     for problem in issue_occurrences:
         occurrence_spans = occurrence_spans.union(set(problem.evidence_data["offender_span_ids"]))
 
@@ -571,7 +574,7 @@ def augment_transactions_with_spans(
         spans_params["project_objects"] = [
             p for p in params["project_objects"] if p.id in chunked_project_ids
         ]
-        spans_params["project_id"] = list(chunked_project_ids)
+        spans_params["project_id"] = chunked_project_ids
         return SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             spans_params,
@@ -586,7 +589,7 @@ def augment_transactions_with_spans(
         ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
 
     parent_map = {}
-    chunk_size = math.floor(len(projects) / MAX_PARALLEL_QUERIES)
+    chunk_size = math.ceil(len(projects) / MAX_PARALLEL_QUERIES)
     if chunk_size > 10:
         chunk_size = 10
     # We can use a with statement to ensure threads are cleaned up promptly
