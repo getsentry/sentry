@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
@@ -105,3 +107,19 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         assert response.data["isBlocked"] is False
         assert response.data["blockedTags"] == []
         assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 0
+
+    @patch(
+        "sentry.api.endpoints.project_metrics.ProjectMetricsVisibilityEndpoint.create_audit_entry"
+    )
+    def test_audit_log_entry_emitted(self, create_audit_entry):
+        for operation_type in ("blockMetric", "unblockMetric", "blockTags", "unblockTags"):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="put",
+                operationType=operation_type,
+                metricMri="s:custom/user@none",
+                tags=["release", "transaction"],
+            )
+            create_audit_entry.assert_called()
+            create_audit_entry.reset_mock()

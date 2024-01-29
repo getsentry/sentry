@@ -20,7 +20,7 @@ import type {MetricCorrelation} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
-import type {FocusArea} from 'sentry/views/ddm/focusArea';
+import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
@@ -30,17 +30,14 @@ import type {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget'
 
 type ChartProps = {
   displayType: MetricDisplayType;
-  focusArea: FocusArea | null;
   series: Series[];
   widgetIndex: number;
-  addFocusArea?: (area: FocusArea) => void;
   correlations?: MetricCorrelation[];
-  drawFocusArea?: () => void;
+  focusArea?: FocusAreaProps;
   height?: number;
   highlightedSampleId?: string;
   onSampleClick?: (sample: Sample) => void;
   operation?: string;
-  removeFocusArea?: () => void;
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
@@ -55,10 +52,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       displayType,
       operation,
       widgetIndex,
-      drawFocusArea,
-      addFocusArea,
       focusArea,
-      removeFocusArea,
       height,
       correlations,
       onSampleClick,
@@ -76,17 +70,15 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       },
       [router]
     );
+
     const focusAreaBrush = useFocusArea({
+      ...focusArea,
       chartRef,
-      focusArea,
       opts: {
         widgetIndex,
-        isDisabled: !addFocusArea || !removeFocusArea || !handleZoom,
+        isDisabled: !focusArea?.onAdd || !handleZoom,
         useFullYAxis: isCumulativeOp(operation),
       },
-      onDraw: drawFocusArea,
-      onAdd: addFocusArea,
-      onRemove: removeFocusArea,
       onZoom: handleZoom,
     });
 
