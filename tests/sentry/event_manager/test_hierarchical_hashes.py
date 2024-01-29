@@ -23,57 +23,59 @@ def fast_save(default_project, task_runner):
             uuid.uuid4().hex,
             data=data,
         )
+        group_creation_kwargs = {"level": 10, "culprit": ""}
+        hashes = CalculatedHashes(
+            hashes=["a" * 32, "b" * 32],
+            hierarchical_hashes=["c" * 32, "d" * 32, "e" * 32, last_frame * 32],
+            tree_labels=[
+                [
+                    {
+                        "function": "foo",
+                        "package": "",
+                        "is_sentinel": False,
+                        "is_prefix": False,
+                        "datapath": "",
+                    }
+                ],
+                [
+                    {
+                        "function": "bar",
+                        "package": "",
+                        "is_sentinel": False,
+                        "is_prefix": False,
+                        "datapath": "",
+                    }
+                ],
+                [
+                    {
+                        "function": "baz",
+                        "package": "",
+                        "is_sentinel": False,
+                        "is_prefix": False,
+                        "datapath": "",
+                    }
+                ],
+                [
+                    {
+                        "function": "bam",
+                        "package": "",
+                        "is_sentinel": False,
+                        "is_prefix": False,
+                        "datapath": "",
+                    }
+                ],
+            ],
+        )
 
         with task_runner():
             return _save_aggregate(
                 evt,
-                hashes=CalculatedHashes(
-                    hashes=["a" * 32, "b" * 32],
-                    hierarchical_hashes=["c" * 32, "d" * 32, "e" * 32, last_frame * 32],
-                    tree_labels=[
-                        [
-                            {
-                                "function": "foo",
-                                "package": "",
-                                "is_sentinel": False,
-                                "is_prefix": False,
-                                "datapath": "",
-                            }
-                        ],
-                        [
-                            {
-                                "function": "bar",
-                                "package": "",
-                                "is_sentinel": False,
-                                "is_prefix": False,
-                                "datapath": "",
-                            }
-                        ],
-                        [
-                            {
-                                "function": "baz",
-                                "package": "",
-                                "is_sentinel": False,
-                                "is_prefix": False,
-                                "datapath": "",
-                            }
-                        ],
-                        [
-                            {
-                                "function": "bam",
-                                "package": "",
-                                "is_sentinel": False,
-                                "is_prefix": False,
-                                "datapath": "",
-                            }
-                        ],
-                    ],
-                ),
+                hashes=hashes,
                 release=None,
                 metadata={},
                 received_timestamp=0,
-                level=10,
-                culprit="",
+                migrate_off_hierarchical=False,
+                **group_creation_kwargs,
             )
 
     return inner
