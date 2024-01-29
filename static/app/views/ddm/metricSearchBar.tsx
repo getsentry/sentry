@@ -4,7 +4,6 @@ import memoize from 'lodash/memoize';
 
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {
-  BooleanOperator,
   FilterType,
   joinQuery,
   parseSearch,
@@ -32,7 +31,6 @@ interface MetricSearchBarProps extends Partial<SmartSearchBarProps> {
 
 const EMPTY_ARRAY = [];
 const EMPTY_SET = new Set<never>();
-const DISSALLOWED_LOGICAL_OPERATORS = new Set([BooleanOperator.OR]);
 
 export function ensureQuotedTextFilters(
   query: string,
@@ -96,7 +94,6 @@ export function MetricSearchBar({
       sizeKeys: EMPTY_SET,
       textOperatorKeys: EMPTY_SET,
       supportedTags,
-      disallowedLogicalOperators: DISSALLOWED_LOGICAL_OPERATORS,
       disallowFreeText: true,
     }),
     [supportedTags]
