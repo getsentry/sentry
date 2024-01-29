@@ -20,15 +20,21 @@ import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQue
 const COLD_START_CONDITIONS = ['span.op:app.start.cold', 'span.description:"Cold Start"'];
 const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm Start"'];
 
-function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
-  const transformedSeries: {[yAxisName: string]: Series} = {};
+const PRIMARY_RELEASE_COLOR = '#444674';
+const SECONDARY_RELEASE_COLOR = '#e9626e';
+
+export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
+  const transformedSeries: {[releaseName: string]: Series} = {};
   if (defined(data)) {
-    Object.keys(data).forEach(yAxis => {
-      transformedSeries[yAxis] = {
-        seriesName: yAxis,
-        color: yAxis === primaryRelease ? '#444674' : '#e9626e',
+    Object.keys(data).forEach(releaseName => {
+      transformedSeries[releaseName] = {
+        seriesName: releaseName,
+        color:
+          releaseName === primaryRelease
+            ? PRIMARY_RELEASE_COLOR
+            : SECONDARY_RELEASE_COLOR,
         data:
-          data[yAxis]?.data?.map(datum => {
+          data[releaseName]?.data?.map(datum => {
             return {
               name: datum[0] * 1000,
               value: datum[1][0].count,
@@ -90,7 +96,12 @@ function StartDurationWidget({additionalFilters, chartHeight, type}: Props) {
     return <LoadingContainer isLoading />;
   }
 
+  // The expected response is a multi series response, but if there is no data
+  // then we get an object representing a single series with all empty values
+  // (i.e without being grouped by release)
   const hasReleaseData = series && !('data' in series);
+
+  // Only transform the data is we know there's at least one release
   const transformedSeries = hasReleaseData
     ? Object.values(transformData(series, primaryRelease)).sort()
     : [];
