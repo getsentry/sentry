@@ -11,7 +11,6 @@ from sentry.models.rule import Rule
 from sentry.rules.processor import RuleProcessor
 from sentry.utils.safe import safe_execute
 from sentry.utils.samples import create_sample_event
-from sentry.web.decorators import transaction_start
 
 
 @region_silo_endpoint
@@ -23,7 +22,6 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
 
     permission_classes = (ProjectAlertRulePermission,)
 
-    @transaction_start("ProjectRuleActionsEndpoint")
     def post(self, request: Request, project) -> Response:
         """
         Creates a dummy event/group and activates the actions given by request body
