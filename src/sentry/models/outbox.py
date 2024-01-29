@@ -783,6 +783,8 @@ class ControlOutboxBase(OutboxBase):
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
             shard_scope=self.shard_scope,
+            date_added=self.date_added,
+            scheduled_for=self.scheduled_for,
         )
 
     class Meta:
