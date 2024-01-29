@@ -235,9 +235,8 @@ def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
                 == "Spec version 2: Too many (2) on demand metric alerts for org baz"
             )
 
-    # Revert to 1 after {"include_environment_tag"} becomes the default
-    # Since we have set a maximum of 1 we will not get 2
-    assert len(config["metrics"]) == 1
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 1
 
 
 @django_db_all
@@ -594,9 +593,9 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
                 == "Spec version 2: Too many (2) on demand metric widgets for org baz"
             )
 
-    # Revert to 1 after {"include_environment_tag"} becomes the default
-    # Since we have set a maximum of 1 we will not get 2
-    assert len(config["metrics"]) == 2
+        # Revert to 1 after {"include_environment_tag"} becomes the default
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 2
 
 
 @django_db_all
@@ -619,9 +618,9 @@ def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
                 == "Spec version 2: Too many (2) on demand metric widgets for org baz"
             )
 
-    # Revert to 1 after {"include_environment_tag"} becomes the default
-    # Since we have set a maximum of 1 we will not get 2
-    assert len(config["metrics"]) == 2
+        # Revert to 1 after {"include_environment_tag"} becomes the default
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 2
 
 
 @django_db_all
@@ -646,9 +645,9 @@ def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
                 == "Spec version 2: Too many (2) on demand metric widgets for org baz"
             )
 
-    # Revert to 1 after {"include_environment_tag"} becomes the default
-    # Since we have set a maximum of 1 we will not get 2
-    assert len(config["metrics"]) == 2
+        # Revert to 1 after {"include_environment_tag"} becomes the default
+        # Since we have set a maximum of 1 we will not get 2
+        assert len(config["metrics"]) == 2
 
 
 @django_db_all
