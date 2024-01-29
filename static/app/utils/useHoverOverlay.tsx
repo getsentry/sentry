@@ -309,4 +309,5 @@ const Container = styled('span')<{containerDisplayMode: React.CSSProperties['dis
   max-width: 100%;
 `;
 
-export {useHoverOverlay, UseHoverOverlayProps};
+export type {UseHoverOverlayProps};
+export {useHoverOverlay};
