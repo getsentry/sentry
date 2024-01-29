@@ -14,7 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
-import type {Configuration as DevServerConfig} from 'webpack-dev-server';
+import {Configuration as DevServerConfig} from 'webpack-dev-server';
 import WebpackHookPlugin from 'webpack-hook-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
