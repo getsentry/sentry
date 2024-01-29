@@ -13,7 +13,8 @@ import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
 
-import {MetricWidget, Sample} from './widget';
+import type {Sample} from './widget';
+import {MetricWidget} from './widget';
 
 export function MetricScratchpad() {
   const {
@@ -21,11 +22,9 @@ export function MetricScratchpad() {
     selectedWidgetIndex,
     widgets,
     updateWidget,
-    focusArea,
-    addFocusArea,
-    removeFocusArea,
     showQuerySymbols,
     highlightedSampleId,
+    focusArea,
   } = useDDMContext();
   const {selection} = usePageFilters();
 
@@ -83,10 +82,8 @@ export function MetricScratchpad() {
           datetime={selection.datetime}
           projects={selection.projects}
           environments={selection.environments}
-          addFocusArea={addFocusArea}
-          removeFocusArea={removeFocusArea}
-          showQuerySymbols={showQuerySymbols}
           focusArea={focusArea}
+          showQuerySymbols={showQuerySymbols}
           onSampleClick={handleSampleClick}
           highlightedSampleId={highlightedSampleId}
         />

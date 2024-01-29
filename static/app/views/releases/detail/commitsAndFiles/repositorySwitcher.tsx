@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Repository} from 'sentry/types';
+import type {Repository} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 

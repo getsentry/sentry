@@ -6,7 +6,7 @@ import {defined} from 'sentry/utils';
 
 import KeyValueList from '../interfaces/keyValueList';
 
-import {ViewHierarchyWindow} from '.';
+import type {ViewHierarchyWindow} from '.';
 
 type DetailsPanelProps = {
   data: ViewHierarchyWindow;

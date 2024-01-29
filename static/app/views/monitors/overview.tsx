@@ -36,7 +36,7 @@ import {
 } from './components/cronsLandingPanel';
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
-import {Monitor} from './types';
+import type {Monitor} from './types';
 import {makeMonitorListQueryKey} from './utils';
 
 function DisabledMonitorCreationPanel() {

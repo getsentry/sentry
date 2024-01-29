@@ -6,7 +6,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Release, ReleaseProject} from 'sentry/types';
+import type {Organization, Release, ReleaseProject} from 'sentry/types';
 
 type Props = {
   organization: Organization;

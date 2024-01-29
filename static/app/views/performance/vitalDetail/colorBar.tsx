@@ -1,8 +1,8 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import {Color} from 'sentry/utils/theme';
+import type {Color} from 'sentry/utils/theme';
 
 type ColorStop = {
   color: Color | string;

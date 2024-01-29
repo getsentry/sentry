@@ -5,13 +5,13 @@ import xor from 'lodash/xor';
 
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
-import {
-  CompactSelect,
+import type {
   MultipleSelectProps,
   SelectOption,
   SelectOptionOrSection,
   SelectSection,
 } from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

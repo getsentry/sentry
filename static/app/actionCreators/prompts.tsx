@@ -1,6 +1,7 @@
 import type {Client} from 'sentry/api';
 import type {OrganizationSummary} from 'sentry/types';
-import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 type PromptsUpdateParams = {
   /**

@@ -14,10 +14,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
-import {MetricWidgetQueryParams, SortState} from 'sentry/utils/metrics/types';
+import type {MetricWidgetQueryParams, SortState} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {Series} from 'sentry/views/ddm/widget';
+import type {Series} from 'sentry/views/ddm/widget';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export const SummaryTable = memo(function SummaryTable({

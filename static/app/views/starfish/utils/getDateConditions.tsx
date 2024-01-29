@@ -1,5 +1,5 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 
 export const getDateConditions = (

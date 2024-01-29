@@ -282,11 +282,54 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[1]["series"] == {field: [1.0]}
         assert groups[1]["totals"] == {field: 1.0}
 
-    def test_query_with_two_simple_filters(self) -> None:
+    def test_query_with_parenthesized_filter(self) -> None:
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
             query="(transaction:/hello)",
+            group_bys=["platform"],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = sorted(results["groups"], key=lambda value: value["by"]["platform"])
+        assert len(groups) == 2
+        assert groups[0]["by"] == {"platform": "android"}
+        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
+        assert groups[0]["totals"] == {field: 3.0}
+        assert groups[1]["by"] == {"platform": "ios"}
+        assert groups[1]["series"] == {field: [0.0, 6.0, 3.0]}
+        assert groups[1]["totals"] == {field: 9.0}
+
+    def test_query_with_and_filter(self) -> None:
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query="platform:ios AND transaction:/hello",
+            group_bys=["platform"],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = sorted(results["groups"], key=lambda value: value["by"]["platform"])
+        assert len(groups) == 1
+        assert groups[0]["by"] == {"platform": "ios"}
+        assert groups[0]["series"] == {field: [0.0, 6.0, 3.0]}
+        assert groups[0]["totals"] == {field: 9.0}
+
+    def test_query_with_or_filter(self) -> None:
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query="platform:ios OR platform:android",
             group_bys=["platform"],
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -551,23 +594,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 group_bys=["platform"],
                 order_by=f"{field_3}",
                 limit=2,
-                start=self.now() - timedelta(minutes=30),
-                end=self.now() + timedelta(hours=1, minutes=30),
-                interval=3600,
-                organization=self.project.organization,
-                projects=[self.project],
-                environments=[],
-                referrer="metrics.data.api",
-            )
-
-    def test_query_with_invalid_filters(self) -> None:
-        field = f"sum({TransactionMRI.DURATION.value})"
-
-        with pytest.raises(InvalidMetricsQueryError):
-            run_metrics_query(
-                fields=[field],
-                query='platform:"android" OR platform:ios',
-                group_bys=["platform"],
                 start=self.now() - timedelta(minutes=30),
                 end=self.now() + timedelta(hours=1, minutes=30),
                 interval=3600,

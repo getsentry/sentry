@@ -2,9 +2,8 @@ import {browserHistory} from 'react-router';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import SelectControlWithProps, {
-  Option,
-} from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
+import type {Option} from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
+import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 

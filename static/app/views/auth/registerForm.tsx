@@ -10,7 +10,7 @@ import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types';
 
 type Props = {
   authConfig: AuthConfig;

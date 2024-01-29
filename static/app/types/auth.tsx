@@ -1,7 +1,7 @@
 import type u2f from 'u2f-api';
 
 import type {Field} from 'sentry/components/forms/types';
-import {ControlSiloOrganization} from 'sentry/types/control_silo_organization';
+import type {ControlSiloOrganization} from 'sentry/types/control_silo_organization';
 
 export type AuthenticatorDevice = {
   authId: string;

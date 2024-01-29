@@ -1,4 +1,5 @@
-import {CSSProperties, isValidElement, memo, MouseEvent, useMemo} from 'react';
+import type {CSSProperties, MouseEvent} from 'react';
+import {isValidElement, memo, useMemo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -10,14 +11,14 @@ import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
 import useProjects from 'sentry/utils/useProjects';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
-import {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
+import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;

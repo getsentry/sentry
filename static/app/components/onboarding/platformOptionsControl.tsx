@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {
+import type {
   BasePlatformOptions,
   PlatformOption,
   SelectedPlatformOptions,
@@ -25,14 +25,17 @@ export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOption
       return {} as SelectedPlatformOptions<PlatformOptions>;
     }
 
-    return Object.keys(platformOptions).reduce((acc, key) => {
-      const defaultValue = platformOptions[key].defaultValue;
-      const values = platformOptions[key].items.map(({value}) => value);
-      acc[key as keyof PlatformOptions] = values.includes(query[key])
-        ? query[key]
-        : defaultValue ?? values[0];
-      return acc;
-    }, {} as SelectedPlatformOptions<PlatformOptions>);
+    return Object.keys(platformOptions).reduce(
+      (acc, key) => {
+        const defaultValue = platformOptions[key].defaultValue;
+        const values = platformOptions[key].items.map(({value}) => value);
+        acc[key as keyof PlatformOptions] = values.includes(query[key])
+          ? query[key]
+          : defaultValue ?? values[0];
+        return acc;
+      },
+      {} as SelectedPlatformOptions<PlatformOptions>
+    );
   }, [platformOptions, query]);
 }
 
