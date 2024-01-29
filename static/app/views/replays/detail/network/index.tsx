@@ -18,7 +18,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkDetails from 'sentry/views/replays/detail/network/details';
-import {ReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
@@ -162,7 +161,6 @@ function NetworkList() {
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
-      <ReqRespBodiesAlert isNetworkDetailsSetup={isNetworkDetailsSetup} />
       <GridTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{
