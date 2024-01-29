@@ -22,7 +22,7 @@
     "editor.tabSize": 2,
     "editor.defaultFormatter": "biomejs.biome",
     "editor.codeActionsOnSave": {
-      "quickfix.biome": true
+      "quickfix.biome": "explicit"
     }
   },
 
@@ -31,7 +31,7 @@
     "editor.tabSize": 2,
     "editor.defaultFormatter": "biomejs.biome",
     "editor.codeActionsOnSave": {
-      "quickfix.biome": true
+      "quickfix.biome": "explicit"
     }
   },
   // Exclude Specific Files from Auto-Imports
@@ -48,7 +48,7 @@
     "editor.tabSize": 2,
     "editor.defaultFormatter": "biomejs.biome",
     "editor.codeActionsOnSave": {
-      "quickfix.biome": true
+      "quickfix.biome": "explicit"
     }
   },
 
@@ -57,7 +57,7 @@
     "editor.tabSize": 2,
     "editor.defaultFormatter": "biomejs.biome",
     "editor.codeActionsOnSave": {
-      "quickfix.biome": true
+      "quickfix.biome": "explicit"
     }
   },
 
@@ -83,7 +83,7 @@
   "[json]": {
     "editor.defaultFormatter": "biomejs.biome",
     "editor.codeActionsOnSave": {
-      "quickfix.biome": true
+      "quickfix.biome": "explicit"
     }
   },
 
