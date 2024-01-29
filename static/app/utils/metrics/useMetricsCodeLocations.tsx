@@ -1,10 +1,10 @@
-import {MRI} from 'sentry/types';
-import {
-  getDateTimeParams,
+import type {MRI} from 'sentry/types';
+import {getDateTimeParams} from 'sentry/utils/metrics';
+import type {
   MetricCorrelation,
   MetricMetaCodeLocation,
-  MetricRange,
-} from 'sentry/utils/metrics';
+  SelectionRange,
+} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -13,7 +13,7 @@ type ApiResponse = {
   metrics: MetricMetaCodeLocation[];
 };
 
-type MetricsDDMMetaOpts = MetricRange & {
+type MetricsDDMMetaOpts = SelectionRange & {
   codeLocations?: boolean;
   metricSpans?: boolean;
   query?: string;

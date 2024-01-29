@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
@@ -13,7 +13,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {
   createOnDemandFilterWarning,
   isOnDemandQueryString,
@@ -23,12 +23,8 @@ import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
-import {
-  DashboardFilterKeys,
-  DashboardFilters,
-  WidgetQuery,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DashboardFilterKeys, WidgetType} from 'sentry/views/dashboards/types';
 
 import {BuildStep, SubHeading} from '../buildStep';
 

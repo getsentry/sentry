@@ -5,7 +5,7 @@
  * Also displays 2fa method specific details.
  */
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -15,7 +15,7 @@ import DateTime from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Authenticator, AuthenticatorDevice} from 'sentry/types';
+import type {Authenticator, AuthenticatorDevice} from 'sentry/types';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import RecoveryCodes from 'sentry/views/settings/account/accountSecurity/components/recoveryCodes';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';

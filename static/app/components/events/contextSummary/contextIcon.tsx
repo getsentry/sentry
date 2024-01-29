@@ -42,7 +42,7 @@ import logoWindows from 'sentry-logos/logo-windows.svg';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {IconSize} from 'sentry/utils/theme';
+import type {IconSize} from 'sentry/utils/theme';
 
 const LOGO_MAPPING = {
   'android-phone': logoAndroidPhone,

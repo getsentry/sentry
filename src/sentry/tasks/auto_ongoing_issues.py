@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 TRANSITION_AFTER_DAYS = 7
 ITERATOR_CHUNK = 100
-CHILD_TASK_COUNT = 10
+CHILD_TASK_COUNT = 250
 
 
 def log_error_if_queue_has_items(func):
@@ -129,8 +129,6 @@ def schedule_auto_transition_issues_new_to_ongoing(
         "first_seen_lte": first_seen_lte,
         "first_seen_lte_datetime": first_seen_lte_datetime,
     }
-    if base_queryset:
-        logger_extra["issue_first_seen"] = base_queryset[0].first_seen
     logger.info(
         "auto_transition_issues_new_to_ongoing started",
         extra=logger_extra,

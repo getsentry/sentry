@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import time
 from unittest import mock
 from unittest.mock import MagicMock, patch
@@ -16,7 +16,7 @@ from arroyo.types import Partition, Topic
 from django.conf import settings
 from django.core.cache import cache
 from django.test.utils import override_settings
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from rest_framework.status import HTTP_404_NOT_FOUND
 
 from fixtures.github import (
@@ -46,6 +46,7 @@ from sentry.event_manager import (
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
+from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import (
@@ -286,7 +287,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         old_release = Release.objects.create(
             version="a",
             organization_id=self.project.organization_id,
-            date_added=timezone.now() - timedelta(minutes=30),
+            date_added=django_timezone.now() - timedelta(minutes=30),
         )
         old_release.add_project(self.project)
 
@@ -362,7 +363,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Create a release and a group associated with it
         old_release = self.create_release(
-            version="foobar", date_added=timezone.now() - timedelta(minutes=30)
+            version="foobar", date_added=django_timezone.now() - timedelta(minutes=30)
         )
         manager = EventManager(
             make_event(
@@ -422,7 +423,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Create a release and a group associated with it
         old_release = self.create_release(
-            version="a", date_added=timezone.now() - timedelta(minutes=30)
+            version="a", date_added=django_timezone.now() - timedelta(minutes=30)
         )
         manager = EventManager(
             make_event(
@@ -482,7 +483,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Create a release and a group associated with it
         old_release = self.create_release(
-            version="foo@1.0.0", date_added=timezone.now() - timedelta(minutes=30)
+            version="foo@1.0.0", date_added=django_timezone.now() - timedelta(minutes=30)
         )
         manager = EventManager(
             make_event(
@@ -725,7 +726,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         old_release = Release.objects.create(
             version="a",
             organization_id=self.project.organization_id,
-            date_added=timezone.now() - timedelta(minutes=30),
+            date_added=django_timezone.now() - timedelta(minutes=30),
         )
         old_release.add_project(self.project)
 
@@ -2116,7 +2117,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager = EventManager(event)
         manager.normalize()
 
-        grouping_config = {
+        grouping_config: GroupingConfig = {
             "enhancements": enhancement.dumps(),
             "id": "mobile:2021-02-12",
         }
@@ -2126,7 +2127,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
-        assert event1.get_hashes().hashes == event2.get_hashes(grouping_config).hashes
+        assert (
+            event1.get_hashes().hashes
+            == event2.get_hashes(load_grouping_config(grouping_config)).hashes
+        )
 
     def test_write_none_tree_labels(self):
         """Write tree labels even if None"""

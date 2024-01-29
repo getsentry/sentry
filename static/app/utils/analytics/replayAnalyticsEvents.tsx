@@ -1,12 +1,13 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
-import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
-import {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
+import type {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
+import type {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
   'replay.accessibility-issue-clicked': {
     issue_description: string;
     issue_impact: string | undefined;
   };
+  'replay.canvas-detected-banner-clicked': {};
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
@@ -113,6 +114,7 @@ export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.accessibility-issue-clicked': 'Clicked Replay Accessibility Issue',
+  'replay.canvas-detected-banner-clicked': 'Clicked Canvas Detected in Replay Banner',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-has-hydration-error': 'Replay Details Has Hydration Error',
   'replay.details-layout-changed': 'Changed Replay Details Layout',

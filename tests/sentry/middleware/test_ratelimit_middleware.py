@@ -35,10 +35,19 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         return RequestFactory()
 
     class TestEndpoint(Endpoint):
+        enforce_rate_limit = True
+
+        def get(self):
+            return Response({"ok": True})
+
+    class TestEndpointNoRateLimits(Endpoint):
+        enforce_rate_limit = False
+
         def get(self):
             return Response({"ok": True})
 
     _test_endpoint = TestEndpoint.as_view()
+    _test_endpoint_no_rate_limits = TestEndpointNoRateLimits.as_view()
 
     def populate_sentry_app_request(self, request):
         install = self.create_sentry_app_installation(organization=self.organization)
@@ -248,6 +257,14 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             == "ip:default:OrganizationGroupIndexEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
+    def test_enforce_rate_limit_is_false(self):
+        request = self.factory.get("/")
+        self.middleware.process_view(request, self._test_endpoint_no_rate_limits, [], {})
+        assert request.will_be_rate_limited is False
+        assert request.rate_limit_category is None
+        assert hasattr(request, "rate_limit_key") is False
+        assert hasattr(request, "rate_limit_metadata") is False
+
 
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestGetRateLimitValue(TestCase):
@@ -380,7 +397,6 @@ urlpatterns = [
     ROOT_URLCONF="tests.sentry.middleware.test_ratelimit_middleware", SENTRY_SELF_HOSTED=False
 )
 class TestRatelimitHeader(APITestCase):
-
     endpoint = "ratelimit-header-endpoint"
 
     def test_header_counts(self):

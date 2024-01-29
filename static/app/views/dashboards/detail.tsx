@@ -1,5 +1,6 @@
 import {cloneElement, Component, isValidElement} from 'react';
-import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
+import type {PlainRoute, RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
@@ -13,7 +14,7 @@ import {
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -24,10 +25,10 @@ import {
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {usingCustomerDomain} from 'sentry/constants';
+import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, Project} from 'sentry/types';
+import type {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -56,10 +57,8 @@ import {generatePerformanceEventView} from '../performance/data';
 import {MetricsDataSwitcher} from '../performance/landing/metricsDataSwitcher';
 import {DiscoverQueryPageSource} from '../performance/utils';
 
-import {
-  WidgetViewerContext,
-  WidgetViewerContextProps,
-} from './widgetViewer/widgetViewerContext';
+import type {WidgetViewerContextProps} from './widgetViewer/widgetViewerContext';
+import {WidgetViewerContext} from './widgetViewer/widgetViewerContext';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
@@ -72,15 +71,17 @@ import {
   getDashboardLayout,
 } from './layoutUtils';
 import DashboardTitle from './title';
-import {
+import type {
   DashboardDetails,
-  DashboardFilterKeys,
   DashboardFilters,
   DashboardListItem,
+  Widget,
+} from './types';
+import {
+  DashboardFilterKeys,
   DashboardState,
   DashboardWidgetSource,
   MAX_WIDGETS,
-  Widget,
   WidgetType,
 } from './types';
 
@@ -262,7 +263,7 @@ class DashboardDetail extends Component<Props, State> {
       `/organizations/${organization.slug}/dashboard/${dashboardId}/widget/${widgetIndex}/edit/`,
     ];
 
-    if (usingCustomerDomain) {
+    if (USING_CUSTOMER_DOMAIN) {
       // TODO: replace with url generation later on.
       widgetBuilderRoutes.push(
         ...[

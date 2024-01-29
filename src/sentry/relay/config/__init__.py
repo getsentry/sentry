@@ -45,6 +45,7 @@ from sentry.relay.config.metric_extraction import (
 )
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
+from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
@@ -241,6 +242,11 @@ def get_metrics_config(project: Project) -> Optional[Mapping[str, Any]]:
                 }
             )
         metrics_config["cardinalityLimits"] = cardinality_limits
+
+    if features.has("organizations:metrics-blocking", project.organization):
+        metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+        if metrics_blocking_state is not None:
+            metrics_config.update(metrics_blocking_state)  # type:ignore
 
     return metrics_config or None
 
@@ -445,10 +451,6 @@ def _get_project_config(
             ),
         }
 
-    lcp_and_cls_is_optional = features.has(
-        "organizations:performance-score-optional-lcp-and-cls", project.organization
-    )
-
     if features.has("organizations:performance-calculate-score-relay", project.organization):
         config["performanceScore"] = {
             "profiles": [
@@ -467,7 +469,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -481,7 +483,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -602,7 +604,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -616,7 +618,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -647,7 +649,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -661,7 +663,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",

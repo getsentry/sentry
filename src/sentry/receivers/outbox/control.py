@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from hashlib import sha1
-from typing import Any, Mapping
+from typing import Any, Dict, Mapping
 
 import sentry_sdk
 from django.dispatch import receiver
@@ -88,8 +88,20 @@ def process_async_webhooks(
         sentry_sdk.capture_exception(Exception("Called process_async_webhooks in REGION mode"))
         return
 
-    region = get_region_by_name(name=region_name)
-    webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
+    logging_context: Dict[str, str | int] = {
+        "outbox_message_object_id": object_identifier,
+        "shard_id": shard_identifier,
+    }
+    try:
+        region = get_region_by_name(name=region_name)
+        webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
+    except Exception:
+        sentry_sdk.capture_exception()
+        logger.exception(
+            "integration_proxy.failed_to_preprocess_outbox_message",
+            extra=logging_context,
+        )
+        raise
 
     try:
         client = RegionSiloClient(region=region)
@@ -97,6 +109,19 @@ def process_async_webhooks(
             "integration_proxy.control.process_async_webhooks",
             tags={"destination_region": region.name},
         ):
+            request_prefix_hash = sha1(
+                f"{shard_identifier}{object_identifier}".encode()
+            ).hexdigest()
+            logging_context["region"] = region.name
+            logging_context["request_method"] = webhook_payload.method
+            logging_context["proxy_path"] = webhook_payload.path
+            logging_context["request_hash"] = request_prefix_hash
+
+            logger.info(
+                "integration_proxy.issuing_proxy_request",
+                extra=logging_context,
+            )
+
             response = client.request(
                 method=webhook_payload.method,
                 path=webhook_payload.path,
@@ -104,7 +129,7 @@ def process_async_webhooks(
                 # We need to send the body as raw bytes to avoid interfering with webhook signatures
                 data=webhook_payload.body.encode("utf-8"),
                 json=False,
-                prefix_hash=sha1(f"{shard_identifier}{object_identifier}".encode()).hexdigest(),
+                prefix_hash=request_prefix_hash,
             )
         logger.info(
             "webhook_proxy.complete",
@@ -112,14 +137,18 @@ def process_async_webhooks(
                 "status": getattr(
                     response, "status_code", 204
                 ),  # Request returns empty dict instead of a response object when the code is a 204
-                "request_path": webhook_payload.path,
-                "request_method": webhook_payload.method,
+                **logging_context,
             },
         )
     except SiloClientError as e:
         metrics.incr(
             "integration_proxy.control.process_async_webhook.failure",
             tags={"reason": "silo_client_error", "destination_region": region.name},
+        )
+
+        logger.warning(
+            "webhook_proxy.silo_client_error",
+            extra=logging_context,
         )
         sentry_sdk.capture_exception(e)
     except ApiHostError as err:
@@ -152,17 +181,14 @@ def process_async_webhooks(
         )
         logger.warning(
             "webhook_proxy.conflict_occurred",
-            extra={
-                "request_path": webhook_payload.path,
-                "request_method": webhook_payload.method,
-                "conflict_text": e.text,
-            },
+            extra={"conflict_text": e.text, **logging_context},
         )
     except (ApiTimeoutError, ApiConnectionResetError):
         metrics.incr(
             "integration_proxy.control.process_async_webhook.failure",
             tags={"reason": "timeout_reset", "destination_region": region.name},
         )
+        logger.warning("integration_proxy.timeout_error", extra=logging_context)
         raise
     except ApiError as api_err:
         err_cause = api_err.__cause__
@@ -184,6 +210,8 @@ def process_async_webhooks(
             "integration_proxy.control.process_async_webhook.failure",
             tags={"reason": "discard", "destination_region": region.name},
         )
+
+        logger.warning("integration_proxy.api_error", extra={"error": api_err, **logging_context})
 
         return
 

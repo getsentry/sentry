@@ -5,7 +5,8 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {isCustomMetric, MetricWidgetQueryParams} from 'sentry/utils/metrics';
+import {isCustomMetric} from 'sentry/utils/metrics';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {SampleTable} from 'sentry/views/ddm/sampleTable';
@@ -77,13 +78,13 @@ export function WidgetDetails() {
                       )}`.trim()
                     : selectedWidget?.query
                 }
-                {...focusArea?.range}
+                {...focusArea?.selection?.range}
                 highlightedRow={highlightedSampleId}
                 onRowHover={handleSampleRowHover}
               />
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
-              <CodeLocations mri={selectedWidget?.mri} {...focusArea?.range} />
+              <CodeLocations mri={selectedWidget?.mri} {...focusArea?.selection?.range} />
             </TabPanels.Item>
           </TabPanels>
         </ContentWrapper>

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -31,10 +31,15 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const url = eventData?.tags.find(tag => tag.key === 'url');
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
+  const overflowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    overflowRef.current?.scrollTo({top: 0});
+  }, [feedbackItem.id]);
+
   return (
     <Fragment>
       <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
-      <OverflowPanelItem>
+      <OverflowPanelItem ref={overflowRef}>
         <Section
           title={t('Description')}
           contentRight={
@@ -49,11 +54,13 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
           </Blockquote>
         </Section>
 
-        <Section icon={<IconLink size="xs" />} title={t('URL')}>
-          <TextCopyInput size="sm">
-            {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
-          </TextCopyInput>
-        </Section>
+        {!crashReportId || (crashReportId && url) ? (
+          <Section icon={<IconLink size="xs" />} title={t('URL')}>
+            <TextCopyInput size="sm">
+              {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
+            </TextCopyInput>
+          </Section>
+        ) : null}
 
         {crashReportId && (
           <Section icon={<IconFire size="xs" />} title={t('Linked Error')}>

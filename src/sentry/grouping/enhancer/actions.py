@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any, Callable, Sequence
 
 from sentry.grouping.utils import get_rule_bool
-from sentry.stacktraces.functions import set_in_app
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
@@ -102,6 +101,9 @@ class FlagAction(Action):
                 orig_in_app = None
             return orig_in_app != frame.get("in_app")
         else:
+            # FIXME: I don't fully understand this. The `group` Action is the only
+            # one I can find that actually sets the `contributes` flag to `True`.
+            # And `orig_in_app` is only `None` if the `app` Action was never applied.
             return self.flag == component.contributes
 
     def apply_modifications_to_frame(
@@ -113,9 +115,8 @@ class FlagAction(Action):
     ) -> None:
         # Change a frame or many to be in_app
         if self.key == "app":
-            for frame, match_frame in self._slice_to_range(list(zip(frames, match_frames)), idx):
-                set_in_app(frame, self.flag)
-                match_frame["in_app"] = frame["in_app"]
+            for match_frame in self._slice_to_range(match_frames, idx):
+                match_frame["in_app"] = self.flag
 
     def update_frame_components_contributions(
         self, components, frames: Sequence[dict[str, Any]], idx, rule=None

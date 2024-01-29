@@ -955,7 +955,7 @@ def from_request_org_and_scopes(
             org_member=member,
         )
 
-        superuser_scopes = get_superuser_scopes(auth_state, member)
+        superuser_scopes = get_superuser_scopes(auth_state, request.user)
 
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
@@ -1045,7 +1045,7 @@ def from_request(
         )
         sso_state = auth_state.sso_state
 
-        superuser_scopes = get_superuser_scopes(auth_state, member)
+        superuser_scopes = get_superuser_scopes(auth_state, request.user)
 
         return OrganizationGlobalAccess(
             organization=organization,

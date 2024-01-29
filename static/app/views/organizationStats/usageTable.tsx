@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
@@ -14,7 +14,7 @@ import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable'
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DataCategoryInfo, Project} from 'sentry/types';
+import type {DataCategoryInfo, Project} from 'sentry/types';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
