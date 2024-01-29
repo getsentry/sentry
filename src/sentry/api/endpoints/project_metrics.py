@@ -4,6 +4,7 @@ from typing import Mapping, Optional, Sequence, cast
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -51,6 +52,21 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
+    def _create_audit_log_entry(
+        self, event_id: str, metric_mri: str, tags: Optional[Sequence[str]], project: Project
+    ):
+        audit_data = {"metric_mri": metric_mri, "project_slug": project.slug}
+        if tags is not None:
+            audit_data["tags"] = tags
+
+        self.create_audit_entry(
+            request=self.request,
+            organization_id=project.organization_id,
+            target_object=project.id,
+            event=audit_log.get_event_id(event_id),
+            data=audit_data,
+        )
+
     def _handle_by_operation_type(
         self, request: Request, project: Project, metric_operation_type: MetricOperationType
     ) -> MetricBlocking:
@@ -63,14 +79,24 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
 
         if metric_operation_type == MetricOperationType.BLOCK_METRIC:
             patched_metrics = block_metric(metric_mri, [project])
+            self._create_audit_log_entry("METRIC_BLOCK", metric_mri, None, project)
         elif metric_operation_type == MetricOperationType.UNBLOCK_METRIC:
             patched_metrics = unblock_metric(metric_mri, [project])
+            self._create_audit_log_entry("METRIC_UNBLOCK", metric_mri, None, project)
         elif metric_operation_type == MetricOperationType.BLOCK_TAGS:
-            tags = request.data.get("tags") or []
+            tags = request.data.get("tags")
+            if not tags:
+                raise InvalidParams("You must supply at least one tag to block")
+
             patched_metrics = block_tags_of_metric(metric_mri, set(tags), [project])
+            self._create_audit_log_entry("METRIC_TAGS_BLOCK", metric_mri, tags, project)
         elif metric_operation_type == MetricOperationType.UNBLOCK_TAGS:
-            tags = request.data.get("tags") or []
+            tags = request.data.get("tags")
+            if not tags:
+                raise InvalidParams("You must supply at least one tag to unblock")
+
             patched_metrics = unblock_tags_of_metric(metric_mri, set(tags), [project])
+            self._create_audit_log_entry("METRIC_TAGS_UNBLOCK", metric_mri, tags, project)
 
         return patched_metrics[project.id]
 
