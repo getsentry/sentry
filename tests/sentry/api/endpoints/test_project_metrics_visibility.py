@@ -43,6 +43,9 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 200
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is True
+        assert response.data["blockedTags"] == []
         assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
 
         response = self.get_success_response(
@@ -54,6 +57,9 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 200
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is False
+        assert response.data["blockedTags"] == []
         assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 0
 
     def test_block_metric_tag(self):
@@ -67,6 +73,9 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 200
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is False
+        assert sorted(response.data["blockedTags"]) == ["release", "transaction"]
         assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
 
         response = self.get_success_response(
@@ -79,6 +88,9 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 200
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is False
+        assert response.data["blockedTags"] == ["release"]
         assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
 
         response = self.get_success_response(
@@ -91,6 +103,9 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 200
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is False
+        assert response.data["blockedTags"] == []
         assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 0
 
     @patch(
