@@ -23,18 +23,18 @@ import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   AvatarUser,
   CurrentRelease,
   Group,
-  IssueType,
   Organization,
   OrganizationSummary,
   Project,
   TeamParticipant,
   UserParticipant,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {IssueType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -284,10 +284,10 @@ export default function GroupSidebar({
                 ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
                 : MOBILE_TAGS
               : frontend.some(val => val === project?.platform)
-              ? FRONTEND_TAGS
-              : backend.some(val => val === project?.platform)
-              ? BACKEND_TAGS
-              : DEFAULT_TAGS
+                ? FRONTEND_TAGS
+                : backend.some(val => val === project?.platform)
+                  ? BACKEND_TAGS
+                  : DEFAULT_TAGS
           }
           event={event}
           tagFormatter={TAGS_FORMATTER}

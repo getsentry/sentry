@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization as TOrganization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types';
 import SettingsIndex from 'sentry/views/settings/settingsIndex';
 
 describe('SettingsIndex', function () {

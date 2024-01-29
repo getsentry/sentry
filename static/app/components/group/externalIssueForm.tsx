@@ -1,14 +1,18 @@
 import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import AbstractExternalIssueForm, {
-  ExternalIssueAction,
-} from 'sentry/components/externalIssues/abstractExternalIssueForm';
-import {FormProps} from 'sentry/components/forms/form';
+import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import type {ExternalIssueAction} from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import type {FormProps} from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import {Group, Integration, IntegrationExternalIssue, Organization} from 'sentry/types';
+import type {
+  Group,
+  Integration,
+  IntegrationExternalIssue,
+  Organization,
+} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 

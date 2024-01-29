@@ -1,19 +1,19 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {
+import type {
   TraceFullDetailed,
   TraceMeta,
   TraceSplitResults,

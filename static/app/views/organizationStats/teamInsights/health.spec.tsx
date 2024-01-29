@@ -10,7 +10,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Project, Team as TeamType} from 'sentry/types';
+import type {Project, Team as TeamType} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsHealth from 'sentry/views/organizationStats/teamInsights/health';

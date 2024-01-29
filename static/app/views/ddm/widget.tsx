@@ -6,7 +6,8 @@ import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -15,24 +16,26 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
-import {ReactEchartsRef} from 'sentry/types/echarts';
+import type {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getDefaultMetricDisplayType,
   getSeriesName,
-  MetricCorrelation,
-  MetricDisplayType,
-  metricDisplayTypeOptions,
-  MetricWidgetQueryParams,
   stringifyMetricWidget,
 } from 'sentry/utils/metrics';
+import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
+import type {
+  MetricCorrelation,
+  MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import theme from 'sentry/utils/theme';
 import {MetricChart} from 'sentry/views/ddm/chart';
-import {FocusArea} from 'sentry/views/ddm/focusArea';
+import type {FocusArea} from 'sentry/views/ddm/focusArea';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
@@ -445,7 +448,7 @@ export type Series = {
   transaction?: string;
 };
 
-export type ScatterSeries = Series & {
+export interface ScatterSeries extends Series {
   itemStyle: {
     color: string;
     opacity: number;
@@ -456,7 +459,7 @@ export type ScatterSeries = Series & {
   symbolSize: number;
   transactionId: string;
   z: number;
-};
+}
 
 const MetricWidgetPanel = styled(Panel)<{
   isHighlightable: boolean;

@@ -8,13 +8,14 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
+import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {customMetricPlatforms} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project, SelectValue} from 'sentry/types';
-import {METRICS_DOCS_URL} from 'sentry/utils/metrics';
+import type {Project, SelectValue} from 'sentry/types';
+import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useCurrentProjectState} from './useCurrentProjectState';

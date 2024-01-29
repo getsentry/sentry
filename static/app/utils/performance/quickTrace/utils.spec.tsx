@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {Event} from 'sentry/types/event';
-import {TraceFull} from 'sentry/utils/performance/quickTrace/types';
+import type {Event} from 'sentry/types/event';
+import type {TraceFull} from 'sentry/utils/performance/quickTrace/types';
 import {
   flattenRelevantPaths,
   parseQuickTrace,

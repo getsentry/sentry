@@ -1,9 +1,10 @@
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
-import {useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {MetricMeta, MRI, UseCase} from '../../types/metrics';
+import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
 
 const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
 

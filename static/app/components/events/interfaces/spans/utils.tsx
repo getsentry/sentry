@@ -1,32 +1,35 @@
 import {browserHistory} from 'react-router';
-import {Theme} from '@emotion/react';
-import {Location, LocationDescriptorObject} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location, LocationDescriptorObject} from 'history';
 import isNumber from 'lodash/isNumber';
 import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
-import {Organization} from 'sentry/types';
-import {
+import type {Organization} from 'sentry/types';
+import type {
   AggregateEntrySpans,
   AggregateEventTransaction,
   EntrySpans,
-  EntryType,
   Event,
   EventTransaction,
 } from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
-import {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import type {
+  TraceError,
+  TraceFullDetailed,
+} from 'sentry/utils/performance/quickTrace/types';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
-import SpanTreeModel from './spanTreeModel';
-import {
+import type SpanTreeModel from './spanTreeModel';
+import type {
   AggregateSpanType,
   EnhancedSpan,
   GapSpanType,
@@ -1031,8 +1034,10 @@ export function getSpanGroupBounds(
 export function getCumulativeAlertLevelFromErrors(
   errors?: Pick<TraceError, 'level' | 'type'>[]
 ): keyof Theme['alert'] | undefined {
-  const highestErrorLevel = maxBy(errors || [], error => ERROR_LEVEL_WEIGHTS[error.level])
-    ?.level;
+  const highestErrorLevel = maxBy(
+    errors || [],
+    error => ERROR_LEVEL_WEIGHTS[error.level]
+  )?.level;
 
   if (errors?.some(isErrorPerformanceError)) {
     return 'error';

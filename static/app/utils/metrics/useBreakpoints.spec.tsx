@@ -1,4 +1,4 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 
 import {checkBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 

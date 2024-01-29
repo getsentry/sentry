@@ -2,12 +2,13 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 
 function getDateObj(date: RelaxedDateType): Date {
   return typeof date === 'string' || isNumber(date) ? new Date(date) : date;
@@ -136,8 +137,8 @@ function TimeSince({
       liveUpdateInterval === 'minute'
         ? 60 * 1000
         : liveUpdateInterval === 'second'
-        ? 1000
-        : liveUpdateInterval;
+          ? 1000
+          : liveUpdateInterval;
 
     // Start a ticker to update the relative time
     tickerRef.current = window.setInterval(

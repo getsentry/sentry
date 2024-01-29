@@ -42,8 +42,8 @@ export function appendTagCondition(
   let currentQuery = Array.isArray(query)
     ? query.pop()
     : typeof query === 'string'
-    ? query
-    : '';
+      ? query
+      : '';
 
   if (typeof value === 'string' && /[:\s\(\)\\"]/g.test(value)) {
     value = `"${escapeDoubleQuotes(value)}"`;
@@ -65,8 +65,8 @@ export function appendExcludeTagValuesCondition(
   let currentQuery = Array.isArray(query)
     ? query.pop()
     : typeof query === 'string'
-    ? query
-    : '';
+      ? query
+      : '';
   const filteredValuesCondition = `[${values
     .map(value => {
       if (typeof value === 'string' && /[\s"]/g.test(value)) {
@@ -96,8 +96,8 @@ export function decodeScalar(value: QueryValue, fallback?: string): string | und
     Array.isArray(value) && value.length > 0
       ? value[0]
       : typeof value === 'string'
-      ? value
-      : fallback;
+        ? value
+        : fallback;
   return typeof unwrapped === 'string' ? unwrapped : fallback;
 }
 

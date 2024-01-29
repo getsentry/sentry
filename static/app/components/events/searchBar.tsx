@@ -3,14 +3,16 @@ import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {defaultConfig, SearchConfig} from 'sentry/components/searchSyntax/parser';
+import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {defaultConfig} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
+import type {Organization, TagCollection} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {Field} from 'sentry/utils/discover/fields';
 import {
-  Field,
   FIELD_TAGS,
   isAggregateField,
   isEquation,

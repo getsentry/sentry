@@ -10,7 +10,7 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Group, PageFilters} from 'sentry/types';
+import type {Group, PageFilters} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import theme from 'sentry/utils/theme';
@@ -137,10 +137,10 @@ function IssueListActions({
       const statusDetails = data.statusDetails.ignoreCount
         ? 'ignoreCount'
         : data.statusDetails.ignoreDuration
-        ? 'ignoreDuration'
-        : data.statusDetails.ignoreUserCount
-        ? 'ignoreUserCount'
-        : undefined;
+          ? 'ignoreDuration'
+          : data.statusDetails.ignoreUserCount
+            ? 'ignoreUserCount'
+            : undefined;
       trackAnalytics('issues_stream.archived', {
         action_status_details: statusDetails,
         action_substatus: data.substatus,

@@ -1,6 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {MetricMeta, MRI, Project} from 'sentry/types';
+import type {MetricMeta, MRI, Project} from 'sentry/types';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -21,14 +21,11 @@ export const useBlockMetric = (mri: MRI, project: Project) => {
 
   const options = {
     mutationFn: (data: {operationType: BlockOperationType; tags?: string[]}) => {
-      return api.requestPromise(
-        `/organizations/${slug}/${project.slug}/metrics/visibility/`,
-        {
-          method: 'PUT',
-          query: {project: project.id},
-          data: {metric_mri: mri, project, data},
-        }
-      );
+      return api.requestPromise(`/projects/${slug}/${project.slug}/metrics/visibility/`, {
+        method: 'PUT',
+        query: {project: project.id},
+        data: {metricMri: mri, project: project.id, ...data},
+      });
     },
     onSuccess: data => {
       queryClient.setQueryData(

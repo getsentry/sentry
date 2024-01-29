@@ -18,10 +18,13 @@ import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOver
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {EventsResults, EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import type {
+  EventsResults,
+  EventsResultsDataRow,
+} from 'sentry/utils/profiling/hooks/types';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
 import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';

@@ -1,8 +1,9 @@
 import {Fragment, useCallback} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Button, ButtonProps, LinkButton} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -17,9 +18,17 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClose, IconNot, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsOperation, MetricType, MRI, Organization, Project} from 'sentry/types';
-import {getDdmUrl, getReadableMetricType, MetricDisplayType} from 'sentry/utils/metrics';
+import type {
+  MetricsOperation,
+  MetricType,
+  MRI,
+  Organization,
+  Project,
+} from 'sentry/types';
+import {getDdmUrl} from 'sentry/utils/metrics';
+import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';

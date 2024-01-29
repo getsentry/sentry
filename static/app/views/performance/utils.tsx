@@ -1,14 +1,14 @@
 import {browserHistory} from 'react-router';
-import {Theme} from '@emotion/react';
-import {Location} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location} from 'history';
 
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {
+import type {
   NewQuery,
   Organization,
   OrganizationSummary,
@@ -16,11 +16,12 @@ import {
   Project,
   ReleaseProject,
 } from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/formatters';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
@@ -32,7 +33,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {
+import type {
   NormalizedTrendsTransaction,
   TrendChangeType,
 } from 'sentry/views/performance/trends/types';

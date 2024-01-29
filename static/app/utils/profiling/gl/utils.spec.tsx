@@ -1,4 +1,4 @@
-import Fuse from 'fuse.js';
+import type Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
 import {
@@ -19,11 +19,9 @@ import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {
     // prettier-ignore
-    expect(makeProjectionMatrix(1024, 768)).toEqual(mat3.fromValues(
-      2 / 1024, 0, 0,
-      -0, -2 / 768, -0,
-      -1,1,1
-    ));
+    expect(makeProjectionMatrix(1024, 768)).toEqual(
+      mat3.fromValues(2 / 1024, 0, 0, -0, -2 / 768, -0, -1, 1, 1)
+    );
   });
 });
 
@@ -321,11 +319,7 @@ describe('Rect', () => {
     it('transformRect', () => {
       // prettier-ignore
       // Scale (10,20),translate by (3, 4)
-      const matrix = mat3.fromValues(
-        10,0,0,
-        0,20,0,
-        3,4,0,
-  );
+      const matrix = mat3.fromValues(10, 0, 0, 0, 20, 0, 3, 4, 0);
       expect(new Rect(1, 1, 1, 1).transformRect(matrix)).toEqual(
         new Rect(13, 24, 10, 20)
       );
@@ -624,11 +618,7 @@ describe('computeConfigViewWithStrategy', () => {
       // Scales by 2 along the x and y axis
       expect(actual).toEqual(
         // prettier-ignore
-        mat3.fromValues(
-          2, 0, 0,
-          0, 2, 0,
-          0, 0, 1
-        )
+        mat3.fromValues(2, 0, 0, 0, 2, 0, 0, 0, 1)
       );
     });
 
@@ -640,11 +630,7 @@ describe('computeConfigViewWithStrategy', () => {
 
       expect(actual).toEqual(
         // prettier-ignore
-        mat3.fromValues(
-          2, 0, 0,
-          0, 2, 0,
-          -5, -5, 1
-        )
+        mat3.fromValues(2, 0, 0, 0, 2, 0, -5, -5, 1)
       );
     });
   });
