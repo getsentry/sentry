@@ -600,8 +600,8 @@ class OutboxBase(Model):
             # Apply the ID condition in python as filtering rows in postgres
             # leads to timeouts.
             while True:
-                batch = self.select_coalesced_messages()[:100]
-                delete_ids = [item.id for item in batch if item.id <= coalesced.id]
+                batch = self.select_coalesced_messages().values_list("id", flat=True)[:100]
+                delete_ids = [item_id for item_id in batch if item_id <= coalesced.id]
                 if not len(delete_ids):
                     break
                 self.objects.filter(id__in=delete_ids).delete()
