@@ -1,5 +1,6 @@
-import {Component, createRef, VFC} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {VFC} from 'react';
+import {Component, createRef} from 'react';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -7,19 +8,21 @@ import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ButtonBar from 'sentry/components/buttonBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {
+import type {
   BooleanOperator,
-  FilterType,
-  InvalidReason,
   ParseResult,
-  parseSearch,
   SearchConfig,
   TermOperator,
-  Token,
   TokenResult,
+} from 'sentry/components/searchSyntax/parser';
+import {
+  FilterType,
+  InvalidReason,
+  parseSearch,
+  Token,
 } from 'sentry/components/searchSyntax/parser';
 import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {
@@ -37,35 +40,27 @@ import {IconClose, IconEllipsis, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {space} from 'sentry/styles/space';
-import {Organization, SavedSearchType, Tag, TagCollection, User} from 'sentry/types';
+import type {Organization, Tag, TagCollection, User} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  FieldDefinition,
-  FieldKind,
-  FieldValueType,
-  getFieldDefinition,
-} from 'sentry/utils/fields';
+import type {FieldDefinition} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import SearchBoxTextArea from 'sentry/utils/search/searchBoxTextArea';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import {DropdownMenu, MenuItemProps} from '../dropdownMenu';
+import type {MenuItemProps} from '../dropdownMenu';
+import {DropdownMenu} from '../dropdownMenu';
 
 import {ActionButton} from './actionButton';
 import SearchBarDatePicker from './searchBarDatePicker';
 import SearchDropdown from './searchDropdown';
 import SearchHotkeysListener from './searchHotkeysListener';
-import {
-  AutocompleteGroup,
-  ItemType,
-  SearchGroup,
-  SearchItem,
-  Shortcut,
-  ShortcutType,
-} from './types';
+import type {AutocompleteGroup, SearchGroup, SearchItem, Shortcut} from './types';
+import {ItemType, ShortcutType} from './types';
 import {
   addSpace,
   createSearchGroups,
@@ -885,8 +880,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         key === 'ArrowUp'
           ? (currIndex - 1 + totalItems) % totalItems
           : isSelectingDropdownItems
-          ? (currIndex + 1) % totalItems
-          : 0;
+            ? (currIndex + 1) % totalItems
+            : 0;
 
       // Clear previous selection
       const prevItem = flatSearchItems[currIndex];
@@ -1018,8 +1013,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           token.type !== Token.LOGIC_BOOLEAN
           ? null
           : token.invalid
-          ? returnResult(false)
-          : skipToken;
+            ? returnResult(false)
+            : skipToken;
       },
     });
   }
@@ -1184,8 +1179,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         !matchedTokens.includes(token.type)
           ? null
           : isWithinToken(token, cursor)
-          ? returnResult(token)
-          : skipToken,
+            ? returnResult(token)
+            : skipToken,
     });
   }
 
@@ -1483,8 +1478,8 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       tag.key === 'firstRelease'
         ? this.getReleases
         : tag.predefined
-        ? this.getPredefinedTagValues
-        : this.getTagValues;
+          ? this.getPredefinedTagValues
+          : this.getTagValues;
 
     const [tagValues, recentSearches] = await Promise.all([
       fetchTagValuesFn(tag, preparedQuery),

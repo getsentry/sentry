@@ -7,7 +7,7 @@ import SentryAppPublishRequestModal from 'sentry/components/modals/sentryAppPubl
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {space} from 'sentry/styles/space';
-import {Organization, SentryApp} from 'sentry/types';
+import type {Organization, SentryApp} from 'sentry/types';
 
 import SentryApplicationRowButtons from './sentryApplicationRowButtons';
 

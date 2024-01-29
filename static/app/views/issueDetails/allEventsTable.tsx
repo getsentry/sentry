@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import LoadingError from 'sentry/components/loadingError';
@@ -8,14 +8,8 @@ import {
   profiling as PROFILING_PLATFORMS,
 } from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {
-  EventTransaction,
-  Group,
-  IssueCategory,
-  IssueType,
-  Organization,
-  PlatformKey,
-} from 'sentry/types';
+import type {EventTransaction, Group, Organization, PlatformKey} from 'sentry/types';
+import {IssueCategory, IssueType} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';

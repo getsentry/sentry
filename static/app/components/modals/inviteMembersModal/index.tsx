@@ -1,20 +1,20 @@
 import {css} from '@emotion/react';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {
   AsyncComponentProps,
   AsyncComponentState,
 } from 'sentry/components/deprecatedAsyncComponent';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import InviteMembersModalView from 'sentry/components/modals/inviteMembersModal/inviteMembersModalview';
-import {
+import type {
   InviteRow,
   InviteStatus,
   NormalizedInvite,
 } from 'sentry/components/modals/inviteMembersModal/types';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -130,8 +130,8 @@ class InviteMembersModal extends DeprecatedAsyncComponent<
         !errorResponse || !errorResponse.email
           ? false
           : Array.isArray(errorResponse.email)
-          ? errorResponse.email[0]
-          : errorResponse.email;
+            ? errorResponse.email[0]
+            : errorResponse.email;
 
       const error = emailError || t('Could not invite user');
 

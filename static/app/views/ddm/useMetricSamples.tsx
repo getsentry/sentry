@@ -1,14 +1,14 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {XAXisOption} from 'echarts/types/dist/shared';
+import type {XAXisOption} from 'echarts/types/dist/shared';
 import moment from 'moment';
 
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import {isCumulativeOp} from 'sentry/utils/metrics';
 import type {MetricCorrelation} from 'sentry/utils/metrics/types';
 import {fitToValueRect, getValueRect} from 'sentry/views/ddm/rect';
-import {Sample} from 'sentry/views/ddm/widget';
+import type {Sample} from 'sentry/views/ddm/widget';
 
 type UseMetricSamplesProps = {
   timeseries: Series[];
@@ -150,7 +150,7 @@ export function useMetricSamples({
         projectId: sample.projectId,
         itemStyle: {
           color: theme.purple400,
-          opacity: isHighlighted ? 0.9 : 0.75,
+          opacity: 1,
         },
         yAxisIndex: 1,
         xAxisIndex: 1,

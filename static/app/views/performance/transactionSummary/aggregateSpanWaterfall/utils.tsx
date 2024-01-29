@@ -1,4 +1,4 @@
-import {Query} from 'history';
+import type {Query} from 'history';
 
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

@@ -8,7 +8,7 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import {Aggregate} from 'sentry/views/starfish/types';
+import type {Aggregate} from 'sentry/views/starfish/types';
 
 export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.python': '1.29.2',

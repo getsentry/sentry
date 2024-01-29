@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
 import {t} from 'sentry/locale';
-import {
+import type {
   Organization,
   OrganizationSummary,
   SelectValue,
@@ -21,22 +21,19 @@ import {
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import type {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  DisplayType,
-  Widget,
-  WidgetQuery,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
-import {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {FlatValidationError, getNumEquations, ValidationError} from '../utils';
+import type {FlatValidationError, ValidationError} from '../utils';
+import {getNumEquations} from '../utils';
 
 import {DISABLED_SORT, TAG_SORT_DENY_LIST} from './releaseWidget/fields';
 

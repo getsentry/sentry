@@ -1,10 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {
-  AutoSizer,
-  CellMeasurer,
-  List as ReactVirtualizedList,
-  ListRowProps,
-} from 'react-virtualized';
+import type {ListRowProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';

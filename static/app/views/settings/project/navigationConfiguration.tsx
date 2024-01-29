@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {NavigationSection} from 'sentry/views/settings/types';
+import type {Organization, Project} from 'sentry/types';
+import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
   debugFilesNeedsReview?: boolean;

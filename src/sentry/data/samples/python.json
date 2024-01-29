@@ -22,19 +22,13 @@
           "'event_type'": "'raven.events.Message'",
           "'date'": "datetime.datetime(2013, 8, 13, 3, 8, 24, 880386)",
           "'extra'": {
-            "'loadavg'": [
-              0.37255859375,
-              0.5341796875,
-              0.62939453125
-            ],
+            "'loadavg'": [0.37255859375, 0.5341796875, 0.62939453125],
             "'user'": "'dcramer'",
             "'go_deeper'": [
               [
                 {
                   "'foo'": "'bar'",
-                  "'bar'": [
-                    "'baz'"
-                  ]
+                  "'bar'": ["'baz'"]
                 }
               ]
             ]
@@ -99,19 +93,13 @@
           "'event_type'": "'raven.events.Message'",
           "'date'": null,
           "'extra'": {
-            "'loadavg'": [
-              0.37255859375,
-              0.5341796875,
-              0.62939453125
-            ],
+            "'loadavg'": [0.37255859375, 0.5341796875, 0.62939453125],
             "'user'": "'dcramer'",
             "'go_deeper'": [
               [
                 {
                   "'foo'": "'bar'",
-                  "'bar'": [
-                    "'baz'"
-                  ]
+                  "'bar'": ["'baz'"]
                 }
               ]
             ]
@@ -155,19 +143,13 @@
           "'message'": "'This is a test message generated using ``raven test``'",
           "'kwargs'": {
             "'extra'": {
-              "'loadavg'": [
-                0.37255859375,
-                0.5341796875,
-                0.62939453125
-              ],
+              "'loadavg'": [0.37255859375, 0.5341796875, 0.62939453125],
               "'user'": "'dcramer'",
               "'go_deeper'": [
                 [
                   {
                     "'foo'": "'bar'",
-                    "'bar'": [
-                      "'baz'"
-                    ]
+                    "'bar'": ["'baz'"]
                   }
                 ]
               ]

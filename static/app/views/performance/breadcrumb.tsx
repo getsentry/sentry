@@ -1,9 +1,10 @@
-import {Location, LocationDescriptor} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
-import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import type {Crumb} from 'sentry/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import type {Organization} from 'sentry/types';
+import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import Tab from './transactionSummary/tabs';

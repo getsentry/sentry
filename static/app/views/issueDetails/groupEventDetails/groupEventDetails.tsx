@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -13,14 +14,14 @@ import {TransactionProfileIdProvider} from 'sentry/components/profiling/transact
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Group,
   GroupActivityReprocess,
   GroupReprocessing,
   Organization,
   Project,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';

@@ -1,5 +1,6 @@
 import {useRef, useState} from 'react';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
@@ -143,13 +144,15 @@ const alertStyles = ({
     font-size: ${theme.fontSizeMedium};
     border-radius: ${theme.borderRadius};
     border: 1px solid ${alertColors.border};
-    background: ${opaque
-      ? `linear-gradient(
+    background: ${
+      opaque
+        ? `linear-gradient(
           ${alertColors.backgroundLight},
           ${alertColors.backgroundLight}),
           linear-gradient(${theme.background}, ${theme.background}
         )`
-      : `${alertColors.backgroundLight}`};
+        : `${alertColors.backgroundLight}`
+    };
 
     a:not([role='button']) {
       color: ${theme.textColor};
@@ -173,26 +176,32 @@ const alertStyles = ({
       color: ${alertColors.iconColor};
     }
 
-    ${hovered &&
-    `
+    ${
+      hovered &&
+      `
       border-color: ${alertColors.borderHover};
       ${IconWrapper}, ${IconChevron} {
         color: ${alertColors.iconHoverColor};
       }
-    `}
+    `
+    }
 
-    ${showExpand &&
-    `cursor: pointer;
+    ${
+      showExpand &&
+      `cursor: pointer;
       ${TrailingItems} {
        cursor: auto;
       }
-    `}
-
-    ${system &&
     `
+    }
+
+    ${
+      system &&
+      `
       border-width: 0 0 1px 0;
       border-radius: 0;
-    `}
+    `
+    }
   `;
 };
 

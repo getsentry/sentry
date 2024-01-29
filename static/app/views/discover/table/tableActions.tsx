@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -10,11 +10,11 @@ import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/inves
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconDownload, IconSliders, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseCursor} from 'sentry/utils/cursor';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {downloadAsCsv} from '../utils';
