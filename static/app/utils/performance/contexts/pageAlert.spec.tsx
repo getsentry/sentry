@@ -1,17 +1,17 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
-  PageErrorAlert,
-  PageErrorProvider,
-  usePageError,
-} from 'sentry/utils/performance/contexts/pageError';
+  PageAlert,
+  PageAlertProvider,
+  usePageAlert,
+} from 'sentry/utils/performance/contexts/pageAlert';
 
 function SimpleErrorButton() {
-  const context = usePageError();
+  const {setPageError} = usePageAlert();
   return (
     <button
       data-test-id="pageErrorButton"
-      onClick={() => context.setPageError('Fresh new error')}
+      onClick={() => setPageError('Fresh new error')}
     />
   );
 }
@@ -19,12 +19,12 @@ function SimpleErrorButton() {
 describe('Performance > Contexts > pageError', function () {
   it('Check that pageError context will render error alert', async function () {
     render(
-      <PageErrorProvider>
+      <PageAlertProvider>
         <div data-test-id="errorAlert">
-          <PageErrorAlert />
+          <PageAlert />
         </div>
         <SimpleErrorButton />
-      </PageErrorProvider>
+      </PageAlertProvider>
     );
 
     const button = await screen.findByTestId('pageErrorButton');

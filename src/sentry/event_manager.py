@@ -66,6 +66,7 @@ from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.priority import PriorityLevel
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -108,7 +109,7 @@ from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.types.group import GroupSubStatus
 from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -1673,12 +1674,13 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             transition_type="automatic",
             sender="handle_regression",
         )
-        post_save.send(
-            sender=Group,
-            instance=group,
-            created=False,
-            update_fields=["last_seen", "active_at", "status", "substatus"],
-        )
+        if not options.get("groups.enable-post-update-signal"):
+            post_save.send(
+                sender=Group,
+                instance=group,
+                created=False,
+                update_fields=["last_seen", "active_at", "status", "substatus"],
+            )
 
     follows_semver = False
     resolved_in_activity = None

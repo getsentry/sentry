@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 

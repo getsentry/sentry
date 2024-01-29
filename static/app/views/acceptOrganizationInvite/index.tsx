@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -298,14 +299,14 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
         {inviteDetails.needsAuthentication
           ? this.authenticationActions
           : inviteDetails.existingMember
-          ? this.existingMemberAlert
-          : inviteDetails.needs2fa
-          ? this.warning2fa
-          : inviteDetails.needsEmailVerification
-          ? this.warningEmailVerification
-          : inviteDetails.requireSso
-          ? this.authenticationActions
-          : this.acceptActions}
+            ? this.existingMemberAlert
+            : inviteDetails.needs2fa
+              ? this.warning2fa
+              : inviteDetails.needsEmailVerification
+                ? this.warningEmailVerification
+                : inviteDetails.requireSso
+                  ? this.authenticationActions
+                  : this.acceptActions}
       </NarrowLayout>
     );
   }

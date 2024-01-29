@@ -10,16 +10,16 @@ import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import {
+import type {
   GroupActivity,
   GroupActivityAssigned,
   GroupActivitySetEscalating,
   GroupActivitySetIgnored,
-  GroupActivityType,
   Organization,
   Project,
   User,
 } from 'sentry/types';
+import {GroupActivityType} from 'sentry/types';
 import {isSemverRelease} from 'sentry/utils/formatters';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 

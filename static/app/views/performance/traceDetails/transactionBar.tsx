@@ -1,19 +1,21 @@
 import {createRef, Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import {MeasurementMarker} from 'sentry/components/events/interfaces/spans/styles';
-import {
-  getMeasurementBounds,
+import type {
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  transactionTargetHash,
   VerticalMark,
+} from 'sentry/components/events/interfaces/spans/utils';
+import {
+  getMeasurementBounds,
+  transactionTargetHash,
 } from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -50,10 +52,13 @@ import {
 } from 'sentry/components/performance/waterfall/utils';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
-import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {
+  TraceError,
+  TraceFullDetailed,
+} from 'sentry/utils/performance/quickTrace/types';
 import {
   isTraceError,
   isTraceRoot,
@@ -63,7 +68,7 @@ import Projects from 'sentry/utils/projects';
 
 import {ProjectBadgeContainer} from './styles';
 import TransactionDetail from './transactionDetail';
-import {TraceInfo, TraceRoot, TreeDepth} from './types';
+import type {TraceInfo, TraceRoot, TreeDepth} from './types';
 import {shortenErrorTitle} from './utils';
 
 const MARGIN_LEFT = 0;

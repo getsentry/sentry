@@ -85,10 +85,10 @@ def ingest_monitors_options() -> List[click.Option]:
     """Return a list of ingest-monitors options."""
     options = [
         click.Option(
-            ["--parallel", "parallel"],
-            type=bool,
-            default=False,
-            help="Process monitor check-ins in parallel.",
+            ["--mode", "mode"],
+            type=click.Choice(["serial", "parallel"]),
+            default="serial",
+            help="The mode to process check-ins in. Parallel uses multithreading.",
         ),
         click.Option(
             ["--max-batch-size", "max_batch_size"],
@@ -285,6 +285,17 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "dlq_topic": settings.KAFKA_INGEST_GENERIC_METRICS_DLQ,
         "dlq_max_invalid_ratio": 0.01,
         "dlq_max_consecutive_count": 1000,
+    },
+    "ingest-generic-metrics-experimental": {
+        "topic": settings.KAFKA_INGEST_PERFORMANCE_METRICS,
+        "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
+        "click_options": [
+            *_METRICS_INDEXER_OPTIONS,
+            click.Option(["--indexer-db"], default="experimental"),
+        ],
+        "static_args": {
+            "ingest_profile": "experimental",
+        },
     },
     "generic-metrics-last-seen-updater": {
         "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,

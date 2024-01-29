@@ -1,4 +1,4 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import SdkUpdatesStore from 'sentry/stores/sdkUpdatesStore';
 
 /**

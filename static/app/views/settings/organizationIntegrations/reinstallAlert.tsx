@@ -1,6 +1,6 @@
 import {Alert} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
-import {Integration} from 'sentry/types';
+import type {Integration} from 'sentry/types';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 
 type Props = {

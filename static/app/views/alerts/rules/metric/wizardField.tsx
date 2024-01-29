@@ -2,20 +2,18 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
+import type {FormFieldProps} from 'sentry/components/forms/formField';
+import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {
-  explodeFieldString,
-  generateFieldAsString,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
+import type {Organization, Project} from 'sentry/types';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
-  AlertType,
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
 } from 'sentry/views/alerts/wizard/options';

@@ -5,7 +5,8 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import Matrix from 'sentry/components/stories/matrix';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
-import {TabList, TabListProps, TabPanels, Tabs, TabsProps} from 'sentry/components/tabs';
+import type {TabListProps, TabsProps} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook(Tabs, story => {

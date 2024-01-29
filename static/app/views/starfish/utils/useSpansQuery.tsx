@@ -1,15 +1,12 @@
 import moment from 'moment';
 
-import {TableData, useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView, {
-  encodeSort,
-  EventsMetaType,
-  MetaType,
-} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {encodeSort} from 'sentry/utils/discover/eventView';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

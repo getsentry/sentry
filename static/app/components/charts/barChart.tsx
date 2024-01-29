@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
-import {BarSeriesOption} from 'echarts';
+import type {BarSeriesOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
 
 import BarSeries from './series/barSeries';
-import BaseChart, {BaseChartProps} from './baseChart';
+import type {BaseChartProps} from './baseChart';
+import BaseChart from './baseChart';
 
 export interface BarChartSeries
   extends Omit<BarSeriesOption, 'data' | 'color' | 'id'>,

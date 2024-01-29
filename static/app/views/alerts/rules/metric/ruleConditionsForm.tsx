@@ -1,12 +1,12 @@
 import {Fragment, PureComponent} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
@@ -23,7 +23,7 @@ import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Environment, Organization, Project, SelectValue} from 'sentry/types';
+import type {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {getMRI} from 'sentry/utils/metrics/mri';
@@ -37,14 +37,16 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType, getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
+import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 import {getProjectOptions} from '../utils';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
-import {AlertRuleComparisonType, Dataset, Datasource, TimeWindow} from './types';
+import type {AlertRuleComparisonType} from './types';
+import {Dataset, Datasource, TimeWindow} from './types';
 
 const TIME_WINDOW_MAP: Record<TimeWindow, string> = {
   [TimeWindow.ONE_MINUTE]: t('1 minute'),

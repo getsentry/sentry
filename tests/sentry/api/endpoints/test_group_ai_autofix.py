@@ -48,9 +48,9 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_ai_autofix_post_endpoint(self):
         release = self.create_release(project=self.project, version="1.0.0")
 
-        repo = self.create_repo(project=self.project)
-        # For some reason can't set external_id on repo creation
-        repo.external_id = "getsentry/sentry"
+        repo = self.create_repo(
+            project=self.project, name="getsentry/sentry", provider="integrations:github"
+        )
         repo.save()
 
         self.create_commit(project=self.project, release=release, key="1234", repo=repo)
@@ -75,7 +75,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             response = self.client.post(url, data={"additional_context": "Yes"}, format="json")
             mock_post.assert_called_once()
             mock_post.assert_called_with(
-                "127.0.0.1:9091/v0/automation/autofix",
+                "http://127.0.0.1:9091/v0/automation/autofix",
                 json={
                     "additional_context": "Yes",
                     "base_commit_sha": "1234",
