@@ -44,6 +44,10 @@ class MetricBlocking:
     blocked_tags: Set[str]
 
     @classmethod
+    def empty(cls, metric_mri: str) -> "MetricBlocking":
+        return MetricBlocking(metric_mri=metric_mri, is_blocked=False, blocked_tags=set())
+
+    @classmethod
     def from_dict(cls, dictionary: Mapping[str, Any]) -> Optional["MetricBlocking"]:
         if "metric_mri" not in dictionary:
             return None
@@ -66,6 +70,10 @@ class MetricBlocking:
 
     def to_dict(self) -> Mapping[str, Any]:
         return self.__dict__
+
+    def __hash__(self):
+        # For the serializer we need to implement a hashing function that uniquely identifies a blocking metric.
+        return hash(self.metric_mri)
 
 
 @dataclass
@@ -115,7 +123,7 @@ class MetricsBlockingState:
         json_payload = json.dumps(metrics_blocking_state_payload)
         project.update_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY, json_payload)
 
-    def apply_metric_operation(self, metric_operation: MetricOperation):
+    def apply_metric_operation(self, metric_operation: MetricOperation) -> Optional[MetricBlocking]:
         metric_mri = metric_operation.metric_mri
         if (existing_metric := self.metrics.get(metric_mri)) is not None:
             metric_blocking = existing_metric.apply(metric_operation)
@@ -134,21 +142,35 @@ class MetricsBlockingState:
             if not metric_blocking.is_empty():
                 self.metrics[metric_mri] = metric_operation.to_metric_blocking()
 
+        return self.metrics.get(metric_mri)
 
-def _apply_operation(metric_operation: MetricOperation, projects: Sequence[Project]):
+
+def _apply_operation(
+    metric_operation: MetricOperation, projects: Sequence[Project]
+) -> Mapping[int, MetricBlocking]:
+    patched_metrics = {}
+
     for project in projects:
         metrics_blocking_state = MetricsBlockingState.load_from_project(
             project=project, repair=True
         )
-        metrics_blocking_state.apply_metric_operation(metric_operation=metric_operation)
+        patched_blocking_metric = metrics_blocking_state.apply_metric_operation(
+            metric_operation=metric_operation
+        )
         metrics_blocking_state.save_to_project(project=project)
 
+        # We store the newly patched state, or we default to empty state in case of an unblocking.
+        patched_metrics[project.id] = patched_blocking_metric or MetricBlocking.empty(
+            metric_mri=metric_operation.metric_mri
+        )
         # We invalidate the project configuration once the updated settings were stored.
         schedule_invalidate_project_config(project_id=project.id, trigger="metrics_blocking")
 
+    return patched_metrics
 
-def block_metric(metric_mri: str, projects: Sequence[Project]):
-    _apply_operation(
+
+def block_metric(metric_mri: str, projects: Sequence[Project]) -> Mapping[int, MetricBlocking]:
+    return _apply_operation(
         MetricOperation(
             metric_mri=metric_mri, block_metric=True, block_tags=set(), unblock_tags=set()
         ),
@@ -156,8 +178,8 @@ def block_metric(metric_mri: str, projects: Sequence[Project]):
     )
 
 
-def unblock_metric(metric_mri: str, projects: Sequence[Project]):
-    _apply_operation(
+def unblock_metric(metric_mri: str, projects: Sequence[Project]) -> Mapping[int, MetricBlocking]:
+    return _apply_operation(
         MetricOperation(
             metric_mri=metric_mri, block_metric=False, block_tags=set(), unblock_tags=set()
         ),
@@ -165,14 +187,18 @@ def unblock_metric(metric_mri: str, projects: Sequence[Project]):
     )
 
 
-def block_tags_of_metric(metric_mri: str, tags: Set[str], projects: Sequence[Project]):
-    _apply_operation(
+def block_tags_of_metric(
+    metric_mri: str, tags: Set[str], projects: Sequence[Project]
+) -> Mapping[int, MetricBlocking]:
+    return _apply_operation(
         MetricOperation(metric_mri=metric_mri, block_tags=tags, unblock_tags=set()), projects
     )
 
 
-def unblock_tags_of_metric(metric_mri: str, tags: Set[str], projects: Sequence[Project]):
-    _apply_operation(
+def unblock_tags_of_metric(
+    metric_mri: str, tags: Set[str], projects: Sequence[Project]
+) -> Mapping[int, MetricBlocking]:
+    return _apply_operation(
         MetricOperation(metric_mri=metric_mri, block_tags=set(), unblock_tags=tags), projects
     )
 
