@@ -38,6 +38,9 @@ module.exports = {
       {fixStyle: 'separate-type-imports', prefer: 'type-imports'},
     ],
   },
+  // JSON file formatting is handled by Biome. ESLint should not be linting
+  // and formatting these files.
+  ignorePatterns: ['*.json'],
   overrides: [
     {
       files: ['tests/js/**/*.{ts,js}'],
