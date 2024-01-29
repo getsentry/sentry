@@ -46,9 +46,10 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
 
         slug = serializer.validated_data.get("slug")
 
-        # only published apps are allowed to be installed
-        app = SentryApp.objects.filter(slug=slug, status=SentryAppStatus.PUBLISHED)
-        if not app:
+        # only published or owned apps are allowed to be installed
+        app_published = SentryApp.objects.filter(slug=slug, status=SentryAppStatus.PUBLISHED)
+        app_owned = SentryApp.objects.filter(slug=slug, owner_id=organization.id)
+        if not app_published and not app_owned:
             return Response(status=404)
 
         try:

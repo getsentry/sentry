@@ -127,3 +127,19 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.login_as(user=self.user)
         response = self.get_error_response(self.org.slug, slug="1234", status_code=400)
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
+
+    def test_cannot_install_nonexistent_app(self):
+        self.login_as(user=self.user)
+        self.get_error_response(self.org.slug, slug="nonexistent", status_code=404)
+
+    def test_cannot_install_unpublished_unowned_app(self):
+        self.login_as(user=self.user)
+        org2 = self.create_organization()
+        app2 = self.create_sentry_app(name="Unpublished", organization=org2)
+        self.get_error_response(self.org.slug, slug=app2.slug, status_code=404)
+
+    def test_cannot_install_other_org_internal_app(self):
+        self.login_as(user=self.user)
+        org2 = self.create_organization()
+        internal_app = self.create_internal_integration(name="Internal App", organization=org2)
+        self.get_error_response(self.org.slug, slug=internal_app.slug, status_code=404)
