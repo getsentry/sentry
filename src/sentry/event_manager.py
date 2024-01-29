@@ -525,8 +525,6 @@ class EventManager:
 
         group_creation_kwargs = _get_group_creation_kwargs(job)
 
-        group_creation_kwargs["culprit"] = job["culprit"]
-
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
         # incremented for sure. Also wait for grouping to remove attachments
@@ -960,6 +958,7 @@ def _get_group_creation_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any
         "last_seen": job["event"].datetime,
         "first_seen": job["event"].datetime,
         "active_at": job["event"].datetime,
+        "culprit": job["culprit"],
     }
 
     if job["release"]:
