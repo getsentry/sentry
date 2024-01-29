@@ -1607,24 +1607,6 @@ register(
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
 
-# Globally enables the check_accept_monitor_checkin method to be run during
-# monitor check-ins. This is temporarily in support of billing in getsentry.
-register(
-    "crons.check-accept-monitor-checkin-enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# A list of monitor slugs that should have the check_accept_monitor_checkin
-# method run, even when check-accept-monitor-checkin-enabled is False.
-register(
-    "crons.check-accept-monitor-checkin-slug-overrides",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Turns on and off the running for dynamic sampling collect_orgs.
 register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
 
