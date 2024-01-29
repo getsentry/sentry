@@ -43,6 +43,9 @@ module.exports = {
     ],
     '@typescript-eslint/consistent-type-exports': ['error'],
   },
+  // JSON file formatting is handled by Biome. ESLint should not be linting
+  // and formatting these files.
+  ignorePatterns: ['*.json'],
   overrides: [
     {
       // Benchmarks are not compiled with the same tsconfig as the rest of the

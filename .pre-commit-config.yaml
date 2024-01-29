@@ -123,7 +123,7 @@ repos:
     hooks:
       - id: prettier
         name: prettier (yaml, markdown)
-        types: [yaml, markdown]
+        types_or: [yaml, markdown]
         # https://pre-commit.com/#regular-expressions
         exclude: |
           (?x)^($^
