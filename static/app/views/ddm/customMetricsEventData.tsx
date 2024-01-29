@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/button';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {
+import type {
   MetricsSummary,
   MetricsSummaryItem,
 } from 'sentry/components/events/interfaces/spans/types';
@@ -15,7 +15,7 @@ import Pills from 'sentry/components/pills';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MRI, Organization} from 'sentry/types';
+import type {MRI, Organization} from 'sentry/types';
 import {getDdmUrl, getDefaultMetricOp} from 'sentry/utils/metrics';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {

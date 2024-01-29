@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
-import {Location} from 'history';
+import type {RouteComponentProps} from 'react-router';
+import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {JsonFormObject} from 'sentry/components/forms/types';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationAuthProvider, Scope} from 'sentry/types';

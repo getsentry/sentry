@@ -7,23 +7,26 @@ import {CanvasRenderer} from 'echarts/renderers';
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
-import BaseChart, {BaseChartProps} from 'sentry/components/charts/baseChart';
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import BaseChart from 'sentry/components/charts/baseChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
-import {DateTimeObject} from 'sentry/components/charts/utils';
-import {ReactEchartsRef} from 'sentry/types/echarts';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
-import {MetricCorrelation, MetricDisplayType} from 'sentry/utils/metrics/types';
+import type {MetricCorrelation} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
-import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';
+import type {FocusArea} from 'sentry/views/ddm/focusArea';
+import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
 import {useMetricSamples} from './useMetricSamples';
-import {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget';
+import type {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget';
 
 type ChartProps = {
   displayType: MetricDisplayType;
@@ -229,11 +232,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   }
 );
 
-type CombinedChartProps = BaseChartProps & {
+interface CombinedChartProps extends BaseChartProps {
   displayType: MetricDisplayType;
   series: Series[];
   scatterSeries?: ScatterSeriesType[];
-};
+}
 
 function CombinedChart({
   displayType,

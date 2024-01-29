@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
@@ -6,7 +6,7 @@ import {addTeamToProject, removeTeamFromProject} from 'sentry/actionCreators/pro
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

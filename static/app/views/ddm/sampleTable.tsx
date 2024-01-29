@@ -7,11 +7,8 @@ import * as qs from 'query-string';
 import {LinkButton} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -19,10 +16,10 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconArrow, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/formatters';
-import {MetricCorrelation, MetricRange} from 'sentry/utils/metrics/types';
+import type {MetricCorrelation, MetricRange} from 'sentry/utils/metrics/types';
 import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -51,12 +48,12 @@ function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: nu
   ]);
 }
 
-export type SamplesTableProps = MetricRange & {
+interface SamplesTableProps extends MetricRange {
   highlightedRow?: string | null;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   query?: string;
-};
+}
 
 type Column = GridColumnHeader<keyof MetricCorrelation>;
 

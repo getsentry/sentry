@@ -8,7 +8,7 @@ import RelocationCodeBlock from 'sentry/views/relocation/components/relocationCo
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import Wrapper from 'sentry/views/relocation/components/wrapper';
 
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 export function EncryptBackup(props: StepProps) {
   const code =

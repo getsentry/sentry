@@ -108,8 +108,8 @@ export function CodeSnippet({
     tooltipState === 'copy'
       ? t('Copy')
       : tooltipState === 'copied'
-      ? t('Copied')
-      : t('Unable to copy');
+        ? t('Copied')
+        : t('Unable to copy');
 
   return (
     <Wrapper

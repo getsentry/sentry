@@ -5,7 +5,7 @@ import {Frame} from 'sentry/utils/profiling/frame';
 import {stackMarkerToHumanReadable} from './../formatters/stackMarkerToHumanReadable';
 import {resolveJSSelfProfilingStack} from './../jsSelfProfiling';
 import {Profile} from './profile';
-import {createFrameIndex} from './utils';
+import type {createFrameIndex} from './utils';
 
 function sortJSSelfProfileSamples(samples: Readonly<JSSelfProfiling.Trace['samples']>) {
   return [...samples].sort((a, b) => {
