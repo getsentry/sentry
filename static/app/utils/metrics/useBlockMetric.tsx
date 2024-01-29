@@ -12,35 +12,45 @@ export type BlockOperationType =
   | 'blockTags'
   | 'unblockTags';
 
-export const useBlockMetric = (mri: MRI, project: Project) => {
+type BlockMetricData = [MetricMeta[], unknown, unknown] | undefined;
+
+export const useBlockMetric = (project: Project) => {
   const api = useApi();
   const {slug} = useOrganization();
   const queryClient = useQueryClient();
 
-  const useCase = getUseCaseFromMRI(mri);
-
   const options = {
-    mutationFn: (data: {operationType: BlockOperationType; tags?: string[]}) => {
+    mutationFn: (data: {
+      mri: MRI;
+      operationType: BlockOperationType;
+      tags?: string[];
+    }) => {
       return api.requestPromise(`/projects/${slug}/${project.slug}/metrics/visibility/`, {
         method: 'PUT',
         query: {project: project.id},
-        data: {metricMri: mri, project: project.id, ...data},
+        data: {
+          metricMri: data.mri,
+          project: project.id,
+          tags: data.tags,
+          operationType: data.operationType,
+        },
       });
     },
     onSuccess: data => {
+      const useCase = getUseCaseFromMRI(data.metricMri);
       queryClient.setQueryData(
         [
           `/organizations/${slug}/metrics/meta/`,
           {query: {useCase, project: [parseInt(project.id, 10)]}},
         ],
-        (
-          oldData: [MetricMeta[], unknown, unknown] | undefined
-        ): [MetricMeta[], unknown, unknown] | undefined => {
+        (oldData: BlockMetricData): BlockMetricData => {
           if (!oldData) {
             return undefined;
           }
           const oldMeta = oldData[0];
-          const index = oldMeta.findIndex((metric: {mri: MRI}) => metric.mri === mri);
+          const index = oldMeta.findIndex(
+            (metric: {mri: MRI}) => metric.mri === data.metricMri
+          );
 
           if (index !== undefined && index !== -1) {
             const newMeta = [...oldMeta];

@@ -28,7 +28,8 @@ function useMetaUseCase(
 
 export function useMetricsMeta(
   projects: PageFilters['projects'],
-  useCases?: UseCase[]
+  useCases?: UseCase[],
+  filterBlockedMetrics = true
 ): {data: MetricMeta[]; isLoading: boolean} {
   const enabledUseCases = useCases ?? DEFAULT_USE_CASES;
 
@@ -45,6 +46,12 @@ export function useMetricsMeta(
     enabled: enabledUseCases.includes('spans'),
   });
 
+  const isLoading =
+    (sessionsReq.isLoading && sessionsReq.fetchStatus !== 'idle') ||
+    (txnsReq.isLoading && txnsReq.fetchStatus !== 'idle') ||
+    (customReq.isLoading && customReq.fetchStatus !== 'idle') ||
+    (spansReq.isLoading && spansReq.fetchStatus !== 'idle');
+
   const data = [
     ...(enabledUseCases.includes('sessions') ? sessionMeta : []),
     ...(enabledUseCases.includes('transactions') ? txnsMeta : []),
@@ -52,19 +59,21 @@ export function useMetricsMeta(
     ...(enabledUseCases.includes('spans') ? spansMeta : []),
   ].sort((a, b) => formatMRI(a.mri).localeCompare(formatMRI(b.mri)));
 
+  if (!filterBlockedMetrics) {
+    return {data, isLoading};
+  }
+
   return {
-    data,
-    isLoading:
-      (sessionsReq.isLoading && sessionsReq.fetchStatus !== 'idle') ||
-      (txnsReq.isLoading && txnsReq.fetchStatus !== 'idle') ||
-      (customReq.isLoading && customReq.fetchStatus !== 'idle') ||
-      (spansReq.isLoading && spansReq.fetchStatus !== 'idle'),
+    data: data.filter(meta => {
+      return meta.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
+    }),
+    isLoading,
   };
 }
 
 export function useProjectMetric(mri: MRI, projectId: number) {
   const useCase = getUseCaseFromMRI(mri);
-  const res = useMetricsMeta([projectId], [useCase ?? 'custom']);
+  const res = useMetricsMeta([projectId], [useCase ?? 'custom'], false);
 
   const metricMeta = res.data?.find(({mri: metaMri}) => metaMri === mri);
   const blockingStatus = metricMeta?.blockingStatus?.[0];

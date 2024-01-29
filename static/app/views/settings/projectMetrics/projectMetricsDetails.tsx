@@ -2,7 +2,6 @@ import {Fragment, useCallback} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/button';
 import {Button, LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Confirm from 'sentry/components/confirm';
@@ -15,7 +14,7 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconClose, IconNot, IconPlay} from 'sentry/icons';
+import {IconNot, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -35,6 +34,10 @@ import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {
+  type BlockButtonProps,
+  BlockMetricButton,
+} from 'sentry/views/settings/projectMetrics/blockButton';
 import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 
 import {useProjectMetric} from '../../../utils/metrics/useMetricsMeta';
@@ -71,7 +74,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
   const {data: tagsData = []} = useMetricsTags(mri, projectIds);
 
   const isBlockedMetric = blockingStatus?.isBlocked ?? false;
-  const blockMetricMutation = useBlockMetric(mri, project);
+  const blockMetricMutation = useBlockMetric(project);
 
   const {type, name, unit} = parseMRI(mri) ?? {};
   const operation = getSettingsOperationForType(type ?? 'c');
@@ -106,8 +109,8 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
 
   const handleMetricBlockToggle = useCallback(() => {
     const operationType = isBlockedMetric ? 'unblockMetric' : 'blockMetric';
-    blockMetricMutation.mutate({operationType});
-  }, [blockMetricMutation, isBlockedMetric]);
+    blockMetricMutation.mutate({operationType, mri});
+  }, [blockMetricMutation, mri, isBlockedMetric]);
 
   const handleMetricTagBlockToggle = useCallback(
     (tag: string) => {
@@ -117,9 +120,9 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
         ? blockingStatus?.blockedTags?.filter(blockedTag => blockedTag !== tag)
         : [...(blockingStatus?.blockedTags ?? []), tag];
 
-      blockMetricMutation.mutate({operationType, tags: newTags});
+      blockMetricMutation.mutate({operationType, mri, tags: newTags});
     },
-    [blockMetricMutation, isBlockedMetric, blockingStatus?.blockedTags]
+    [blockMetricMutation, isBlockedMetric, mri, blockingStatus?.blockedTags]
   );
 
   const tags = tagsData.sort((a, b) => a.key.localeCompare(b.key));
@@ -130,52 +133,39 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
       <SettingsPageHeader
         title={t('Metric Details')}
         action={
-          <LinkButton
-            to={getDdmUrl(organization.slug, {
-              statsPeriod: '30d',
-              project: [project.id],
-              widgets: [
-                {
-                  mri,
-                  displayType: MetricDisplayType.BAR,
-                  op: operation,
-                  query: '',
-                  groupBy: undefined,
-                },
-              ],
-            })}
-            size="sm"
-          >
-            {t('Open in Metrics')}
-          </LinkButton>
+          <Controls>
+            <BlockMetricButton
+              size="sm"
+              disabled={blockMetricMutation.isLoading}
+              isBlocked={isBlockedMetric}
+              onConfirm={handleMetricBlockToggle}
+              aria-label="Block Metric"
+            />
+            <LinkButton
+              to={getDdmUrl(organization.slug, {
+                statsPeriod: '30d',
+                project: [project.id],
+                widgets: [
+                  {
+                    mri,
+                    displayType: MetricDisplayType.BAR,
+                    op: operation,
+                    query: '',
+                    groupBy: undefined,
+                  },
+                ],
+              })}
+              size="sm"
+            >
+              {t('Open in Metrics')}
+            </LinkButton>
+          </Controls>
         }
       />
 
       <Panel>
         <PanelHeader>
           <Title>{t('Metric Details')}</Title>
-          <Controls>
-            <BlockMetricButton
-              size="xs"
-              disabled={blockMetricMutation.isLoading}
-              isBlocked={isBlockedMetric}
-              onConfirm={handleMetricBlockToggle}
-              aria-label="Block Metric"
-            />
-            <Confirm
-              disabled
-              priority="danger"
-              onConfirm={() => {}}
-              confirmText={t('Remove Key')}
-              message={t(
-                'Are you sure you want to remove this key? This action is irreversible.'
-              )}
-            >
-              <Button icon={<IconClose size="xs" />} size="xs">
-                {t('Hide')}
-              </Button>
-            </Confirm>
-          </Controls>
         </PanelHeader>
 
         <PanelBody>
@@ -263,33 +253,6 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
         </PanelBody>
       </Panel>
     </Fragment>
-  );
-}
-
-type BlockButtonProps = {
-  isBlocked: boolean;
-  onConfirm: () => void;
-} & ButtonProps;
-
-function BlockMetricButton({isBlocked, onConfirm, ...props}: BlockButtonProps) {
-  return (
-    <Confirm
-      priority="danger"
-      onConfirm={onConfirm}
-      confirmText={isBlocked ? t('Unblock Metric') : t('Block Metric')}
-      message={
-        isBlocked
-          ? t('Are you sure you want to unblock this metric?')
-          : t('Are you sure you want to block this metric?')
-      }
-    >
-      <Button
-        icon={isBlocked ? <IconPlay size="xs" /> : <IconNot size="xs" />}
-        {...props}
-      >
-        {isBlocked ? t('Unblock') : t('Block')}
-      </Button>
-    </Confirm>
   );
 }
 

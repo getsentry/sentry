@@ -20,6 +20,7 @@ import type {MetricMeta, Organization, Project} from 'sentry/types';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
+import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -28,6 +29,7 @@ import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMet
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {BlockMetricButton} from 'sentry/views/settings/projectMetrics/blockButton';
 
 type Props = {
   organization: Organization;
@@ -40,7 +42,11 @@ enum BlockingStatusTab {
 }
 
 function ProjectMetrics({project, location}: Props) {
-  const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], ['custom']);
+  const {data: meta, isLoading} = useMetricsMeta(
+    [parseInt(project.id, 10)],
+    ['custom'],
+    false
+  );
   const query = decodeScalar(location.query.query, '').trim();
   const {activateSidebar} = useMetricsOnboardingSidebar();
   const [selectedTab, setSelectedTab] = useState(BlockingStatusTab.ACTIVE);
@@ -115,7 +121,9 @@ function ProjectMetrics({project, location}: Props) {
         <TabPanelsWrapper>
           <TabPanels.Item key={BlockingStatusTab.ACTIVE}>
             <MetricsTable
-              metrics={metrics.filter(({blockingStatus}) => !blockingStatus[0].isBlocked)}
+              metrics={metrics.filter(
+                ({blockingStatus}) => !blockingStatus[0]?.isBlocked
+              )}
               isLoading={isLoading}
               query={query}
               project={project}
@@ -123,7 +131,7 @@ function ProjectMetrics({project, location}: Props) {
           </TabPanels.Item>
           <TabPanels.Item key={BlockingStatusTab.BLOCKED}>
             <MetricsTable
-              metrics={metrics.filter(({blockingStatus}) => blockingStatus[0].isBlocked)}
+              metrics={metrics.filter(({blockingStatus}) => blockingStatus[0]?.isBlocked)}
               isLoading={isLoading}
               query={query}
               project={project}
@@ -143,12 +151,15 @@ interface MetricsTableProps {
 }
 
 function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
+  const blockMetricMutation = useBlockMetric(project);
+
   return (
     <StyledPanelTable
       headers={[
         t('Metric'),
         <RightAligned key="type"> {t('Type')}</RightAligned>,
         <RightAligned key="unit">{t('Unit')}</RightAligned>,
+        <RightAligned key="actions">{t('Actions')}</RightAligned>,
       ]}
       emptyMessage={
         query
@@ -158,7 +169,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
       isEmpty={metrics.length === 0}
       isLoading={isLoading}
     >
-      {metrics.map(({mri, type, unit}) => (
+      {metrics.map(({mri, type, unit, blockingStatus}) => (
         <Fragment key={mri}>
           <Link
             to={`/settings/projects/${project.slug}/metrics/${encodeURIComponent(mri)}`}
@@ -170,6 +181,20 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
           </RightAligned>
           <RightAligned>
             <Tag>{unit}</Tag>
+          </RightAligned>
+          <RightAligned>
+            <BlockMetricButton
+              size="xs"
+              isBlocked={blockingStatus[0]?.isBlocked}
+              onConfirm={() => {
+                blockMetricMutation.mutate({
+                  mri,
+                  operationType: blockingStatus[0]?.isBlocked
+                    ? 'unblockMetric'
+                    : 'blockMetric',
+                });
+              }}
+            />
           </RightAligned>
         </Fragment>
       ))}
@@ -186,7 +211,8 @@ const SearchWrapper = styled('div')`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr minmax(115px, min-content) minmax(115px, min-content);
+  grid-template-columns: 1fr repeat(3, minmax(115px, min-content));
+  align-items: center;
 `;
 
 const RightAligned = styled('div')`
