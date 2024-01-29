@@ -196,7 +196,7 @@ def recording_post_processor(
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
             decompressed_segment = decompress(segment_bytes)
-            parsed_segment_data = json.loads(decompressed_segment, use_rapid_json=True)
+            parsed_segment_data = json.loads(decompressed_segment)
             _report_size_metrics(len(segment_bytes), len(decompressed_segment))
 
         # Emit DOM search metadata to Clickhouse.
