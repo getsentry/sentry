@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -783,7 +783,7 @@ def raw_query(
     return bulk_raw_query([snuba_params], referrer=referrer, use_cache=use_cache)[0]
 
 
-SnubaQuery = Request | MutableMapping[str, Any]
+SnubaQuery = Union[Request, MutableMapping[str, Any]]
 Translator = Callable[[Any], Any]
 SnubaQueryBody = tuple[SnubaQuery, Translator, Translator]
 ResultSet = list[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
