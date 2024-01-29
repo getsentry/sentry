@@ -42,6 +42,8 @@ class Type(typing.Generic[T]):
         raise InvalidTypeError(f"{value!r} is not a valid {self!r}")
 
     def convert(self, value):
+        if value is None:
+            return self.default if self.default is not None else InvalidTypeError("NoneType is not a valid input for IntType")
         return value
 
     def _default(self) -> T:
@@ -72,6 +74,8 @@ class BoolType(Type[bool]):
     compatible_types = (str, int)
 
     def convert(self, value):
+        if value is None:
+            return self.default if self.default is not None else InvalidTypeError("NoneType is not a valid input for IntType")
         if isinstance(value, int):
             return bool(value)
         value = value.lower()
@@ -91,6 +95,8 @@ class IntType(Type[int]):
     expected_types = (int,)
 
     def convert(self, value):
+        if value is None:
+            return self.default if self.default is not None else InvalidTypeError("NoneType is not a valid input for IntType")
         try:
             return int(value)
         except ValueError:
@@ -106,6 +112,8 @@ class FloatType(Type[float]):
     compatible_types = (str, int, float)
 
     def convert(self, value):
+        if value is None:
+            return self.default if self.default is not None else InvalidTypeError("NoneType is not a valid input for IntType")
         try:
             return float(value)
         except ValueError:
@@ -132,6 +140,8 @@ class DictType(Type[dict]):
         return {}
 
     def convert(self, value):
+        if value is None:
+            return self.default if self.default is not None else InvalidTypeError("NoneType is not a valid input for IntType")
         try:
             return safe_load(value)
         except (AttributeError, ParserError, ScannerError):
@@ -150,6 +160,8 @@ class SequenceType(Type[list]):
         return []
 
     def convert(self, value):
+        if value is None:
+            return self.default if self.default is not None else InvalidTypeError("NoneType is not a valid input for IntType")
         if isinstance(value, str):
             try:
                 value = safe_load(value)
