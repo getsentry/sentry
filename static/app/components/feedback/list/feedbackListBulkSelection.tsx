@@ -9,6 +9,7 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {GroupStatus} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props
   extends Pick<
@@ -24,13 +25,19 @@ export default function FeedbackListBulkSelection({
   selectedIds,
   deselectAll,
 }: Props) {
+  const organization = useOrganization();
+  const hasSpamFeature = organization.features.includes('user-feedback-spam-filter-ui');
+
   const {onToggleResovled, onMarkAsRead, onMarkUnread} = useBulkEditFeedbacks({
     selectedIds,
     deselectAll,
   });
 
-  const newMailbox =
+  const newMailboxResolve =
     mailbox === 'resolved' ? GroupStatus.UNRESOLVED : GroupStatus.RESOLVED;
+
+  const newMailboxSpam =
+    mailbox === 'ignored' ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
 
   return (
     <Flex gap={space(1)} align="center" justify="space-between" flex="1 0 auto">
@@ -43,10 +50,24 @@ export default function FeedbackListBulkSelection({
       </span>
       <Flex gap={space(1)} justify="flex-end">
         <ErrorBoundary mini>
-          <Button onClick={() => onToggleResovled(newMailbox)}>
+          <Button onClick={() => onToggleResovled({newMailbox: newMailboxResolve})}>
             {mailbox === 'resolved' ? t('Unresolve') : t('Resolve')}
           </Button>
         </ErrorBoundary>
+        {hasSpamFeature && (
+          <ErrorBoundary mini>
+            <Button
+              onClick={() =>
+                onToggleResovled({
+                  newMailbox: newMailboxSpam,
+                  moveToInbox: mailbox === 'ignored',
+                })
+              }
+            >
+              {mailbox === 'ignored' ? t('Move to inbox') : t('Mark as Spam')}
+            </Button>
+          </ErrorBoundary>
+        )}
         <ErrorBoundary mini>
           <DropdownMenu
             position="bottom-end"

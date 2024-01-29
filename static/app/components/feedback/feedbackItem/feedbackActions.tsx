@@ -31,6 +31,7 @@ export default function FeedbackActions({
   style,
 }: Props) {
   const organization = useOrganization();
+  const hasSpamFeature = organization.features.includes('user-feedback-spam-filter-ui');
 
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: [feedbackItem.id],
@@ -47,6 +48,7 @@ export default function FeedbackActions({
   };
 
   const isResolved = feedbackItem.status === 'resolved';
+  const isSpam = feedbackItem.status === 'ignored';
 
   return (
     <Flex gap={space(0.5)} align="center" className={className} style={style}>
@@ -62,6 +64,18 @@ export default function FeedbackActions({
       >
         {feedbackItem.hasSeen ? t('Mark Unread') : t('Mark Read')}
       </Button>
+      {hasSpamFeature && (
+        <Button
+          priority="default"
+          onClick={() => {
+            addLoadingMessage(t('Updating feedback...'));
+            const newStatus = isSpam ? GroupStatus.UNRESOLVED : GroupStatus.IGNORED;
+            resolve(newStatus, mutationOptions);
+          }}
+        >
+          {isSpam ? t('Move to Inbox') : t('Mark as Spam')}
+        </Button>
+      )}
       <Button
         priority={isResolved ? 'danger' : 'primary'}
         onClick={() => {
