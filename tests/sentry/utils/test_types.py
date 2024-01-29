@@ -42,6 +42,10 @@ class OptionsTypesTest(TestCase):
             Bool("foo")
 
     def test_int(self):
+        with pytest.raises(InvalidTypeError):
+            Int(None)
+        assert Int.default == 0
+        assert Int(None) == 0  # None should now return default value
         assert Int(1) == 1
         assert Int("1") == 1
         assert Int("-1") == -1
