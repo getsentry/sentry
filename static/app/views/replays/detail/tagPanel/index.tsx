@@ -1,6 +1,7 @@
-import {ReactNode, useCallback, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {KeyValueTable} from 'sentry/components/keyValueTable';

@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
-import {Alert, AlertProps} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -15,13 +16,13 @@ import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   IntegrationFeature,
   IntegrationInstallationStatus,
   IntegrationType,
   Organization,
 } from 'sentry/types';
-import {
+import type {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
 } from 'sentry/utils/analytics/integrations';

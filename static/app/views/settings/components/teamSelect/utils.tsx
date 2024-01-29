@@ -5,7 +5,7 @@ import debounce from 'lodash/debounce';
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Link from 'sentry/components/links/link';
@@ -13,7 +13,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 export type TeamSelectProps = {

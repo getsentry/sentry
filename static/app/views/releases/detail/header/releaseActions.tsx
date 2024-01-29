@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {archiveRelease, restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
@@ -15,7 +15,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Release, ReleaseMeta} from 'sentry/types';
+import type {Organization, Release, ReleaseMeta} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatVersion} from 'sentry/utils/formatters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

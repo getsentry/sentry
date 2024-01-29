@@ -1,16 +1,18 @@
 import {Fragment, PureComponent} from 'react';
-import {browserHistory, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
-import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
+import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -26,10 +28,8 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import {
-  parseStatsPeriod,
-  StatsPeriodType,
-} from 'sentry/components/organizations/pageFilters/parse';
+import type {StatsPeriodType} from 'sentry/components/organizations/pageFilters/parse';
+import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
@@ -38,8 +38,8 @@ import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {DateString, Organization, Project} from 'sentry/types';
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {DateString, Organization, Project} from 'sentry/types';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDuration} from 'sentry/utils/formatters';
@@ -56,17 +56,17 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleTriggerType,
   Dataset,
-  MetricRule,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
-import {Incident} from '../../../types';
+import type {Incident} from '../../../types';
 import {
   alertDetailsLink,
   alertTooltipValueFormatter,
@@ -76,7 +76,7 @@ import {
 import {getMetricDatasetQueryExtras} from '../utils/getMetricDatasetQueryExtras';
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
-import {TimePeriodType} from './constants';
+import type {TimePeriodType} from './constants';
 import {
   getMetricAlertChartOption,
   transformSessionResponseToSeries,
@@ -425,8 +425,8 @@ class MetricChart extends PureComponent<Props, State> {
                           changeStatus === AlertRuleTriggerType.CRITICAL
                             ? theme.red300
                             : changeStatus === AlertRuleTriggerType.WARNING
-                            ? theme.yellow300
-                            : theme.green300;
+                              ? theme.yellow300
+                              : theme.green300;
 
                         return [
                           `<div class="tooltip-series">`,

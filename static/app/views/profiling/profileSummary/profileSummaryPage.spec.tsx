@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import {GlobalSelectionFixture} from 'sentry-fixture/globalSelection';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';

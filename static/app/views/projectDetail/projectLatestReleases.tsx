@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
@@ -15,7 +15,7 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Release} from 'sentry/types';
+import type {Organization, Release} from 'sentry/types';
 
 import MissingReleasesButtons from './missingFeatureButtons/missingReleasesButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';

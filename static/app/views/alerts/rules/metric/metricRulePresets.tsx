@@ -1,7 +1,8 @@
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import type {MRI, Project} from 'sentry/types';
-import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDdmUrl} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';

@@ -1,7 +1,8 @@
 import {convertDatasetEventTypesToSource} from 'sentry/views/alerts/utils';
 
 import {DATASET_EVENT_TYPE_FILTERS, DATASOURCE_EVENT_TYPE_FILTERS} from '../constants';
-import {Dataset, Datasource, EventTypes, MetricRule} from '../types';
+import type {EventTypes, MetricRule} from '../types';
+import {Dataset, Datasource} from '../types';
 
 export function extractEventTypeFilterFromRule(metricRule: MetricRule): string {
   const {dataset, eventTypes} = metricRule;

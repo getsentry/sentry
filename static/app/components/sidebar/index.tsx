@@ -38,7 +38,7 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -59,7 +59,8 @@ import ServiceIncidents from './serviceIncidents';
 import {SidebarAccordion} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
-import {SidebarOrientation, SidebarPanelKey} from './types';
+import type {SidebarOrientation} from './types';
+import {SidebarPanelKey} from './types';
 
 type Props = {
   organization?: Organization;

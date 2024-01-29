@@ -1,4 +1,4 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -9,7 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {MetricsProperty} from 'sentry/views/starfish/types';
+import type {MetricsProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');

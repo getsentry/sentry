@@ -1,4 +1,4 @@
-import {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/core';
 
 export type MetricsOperation =
   | 'sum'

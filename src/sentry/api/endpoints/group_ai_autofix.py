@@ -116,11 +116,14 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         base_commit: Commit | None = None
         for commit in commits:
             repo: Repository = Repository.objects.get(id=commit.repository_id)
-            # Hardcoded to only accept getsentry/sentry repo for now, when autofix on the seer side
-            # supports more than just getsentry/sentry, we can remove this, and instead feature flag by project
-            if repo.external_id == "getsentry/sentry":
-                base_commit = commit
-                break
+            provider = repo.get_provider()
+            if provider:
+                external_slug = provider.repository_external_slug(repo)
+                # Hardcoded to only accept getsentry/sentry repo for now, when autofix on the seer side
+                # supports more than just getsentry/sentry, we can remove this, and instead feature flag by project
+                if external_slug == "getsentry/sentry":
+                    base_commit = commit
+                    break
 
         if not base_commit:
             reason = "No valid base commit found for release; only getsentry/sentry repo is supported right now."

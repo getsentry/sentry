@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {GPUEventContext} from 'sentry/components/events/contexts/gpu';
-import {GPUData} from 'sentry/components/events/contexts/gpu/types';
+import type {GPUData} from 'sentry/components/events/contexts/gpu/types';
 
 export const gpuMockData: GPUData = {
   name: '',
