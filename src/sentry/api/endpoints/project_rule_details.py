@@ -44,7 +44,6 @@ from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
-from sentry.web.decorators import transaction_start
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +117,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
         examples=IssueAlertExamples.GET_PROJECT_RULE,
     )
-    @transaction_start("ProjectRuleDetailsEndpoint")
     def get(self, request: Request, project, rule) -> Response:
         """
         Return details on an individual issue alert rule.
@@ -220,7 +218,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
         examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
     )
-    @transaction_start("ProjectRuleDetailsEndpoint")
     def put(self, request: Request, project, rule) -> Response:
         """
         Updates an issue alert rule.
@@ -386,7 +383,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @transaction_start("ProjectRuleDetailsEndpoint")
     def delete(self, request: Request, project, rule) -> Response:
         """
         Delete a specific issue alert rule.
