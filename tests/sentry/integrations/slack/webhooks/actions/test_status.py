@@ -1303,7 +1303,9 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+        assert update_data["blocks"][1]["elements"][0]["elements"][0]["text"].endswith(
+            expect_status
+        )
 
     @responses.activate
     def test_resolve_issue_in_current_release_block_kit_through_unfurl(self):
@@ -1326,7 +1328,9 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+        assert update_data["blocks"][1]["elements"][0]["elements"][0]["text"].endswith(
+            expect_status
+        )
 
     @responses.activate
     def test_resolve_in_next_release_block_kit(self):
