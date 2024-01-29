@@ -3,12 +3,12 @@ import pytest
 from sentry.sentry_metrics.visibility import (
     MalformedBlockedMetricsPayloadError,
     block_metric,
-    get_blocked_metrics,
-    get_blocked_metrics_for_relay_config,
+    get_metrics_blocking_state,
+    get_metrics_blocking_state_for_relay_config,
 )
 from sentry.sentry_metrics.visibility.metrics_blocking import (
-    BLOCKED_METRICS_PROJECT_OPTION_KEY,
-    BlockedMetric,
+    METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY,
+    MetricBlocking,
     block_tags_of_metric,
     unblock_metric,
     unblock_tags_of_metric,
@@ -25,83 +25,99 @@ def test_apply_multiple_operations(default_project):
     # We block a single metric.
     block_metric(mri_1, [default_project])
 
-    blocked_metrics = sorted(
-        json.loads(default_project.get_option(BLOCKED_METRICS_PROJECT_OPTION_KEY)),
+    metrics_blocking_state = sorted(
+        json.loads(default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)),
         key=lambda v: v["metric_mri"],
     )
-    assert len(blocked_metrics) == 1
-    assert blocked_metrics[0]["metric_mri"] == mri_1
-    assert blocked_metrics[0]["is_blocked"] is True
-    assert blocked_metrics[0]["blocked_tags"] == []
+    assert len(metrics_blocking_state) == 1
+    assert metrics_blocking_state[0]["metric_mri"] == mri_1
+    assert metrics_blocking_state[0]["is_blocked"] is True
+    assert metrics_blocking_state[0]["blocked_tags"] == []
 
     # We block tags of a blocked metric.
     block_tags_of_metric(mri_1, {"release", "transaction", "release"}, [default_project])
 
-    blocked_metrics = json.loads(default_project.get_option(BLOCKED_METRICS_PROJECT_OPTION_KEY))
-    assert len(blocked_metrics) == 1
-    assert blocked_metrics[0]["metric_mri"] == mri_1
-    assert blocked_metrics[0]["is_blocked"] is True
-    assert sorted(blocked_metrics[0]["blocked_tags"]) == ["release", "transaction"]
+    metrics_blocking_state = json.loads(
+        default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
+    )
+    assert len(metrics_blocking_state) == 1
+    assert metrics_blocking_state[0]["metric_mri"] == mri_1
+    assert metrics_blocking_state[0]["is_blocked"] is True
+    assert sorted(metrics_blocking_state[0]["blocked_tags"]) == ["release", "transaction"]
 
     # We unblock a tag of a blocked metric.
     unblock_tags_of_metric(mri_1, {"transaction"}, [default_project])
 
-    blocked_metrics = json.loads(default_project.get_option(BLOCKED_METRICS_PROJECT_OPTION_KEY))
-    assert len(blocked_metrics) == 1
-    assert blocked_metrics[0]["metric_mri"] == mri_1
-    assert blocked_metrics[0]["is_blocked"]
-    assert sorted(blocked_metrics[0]["blocked_tags"]) == ["release"]
+    metrics_blocking_state = json.loads(
+        default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
+    )
+    assert len(metrics_blocking_state) == 1
+    assert metrics_blocking_state[0]["metric_mri"] == mri_1
+    assert metrics_blocking_state[0]["is_blocked"]
+    assert sorted(metrics_blocking_state[0]["blocked_tags"]) == ["release"]
 
     # We block tags of an unblocked metric.
     block_tags_of_metric(mri_2, {"environment", "transaction"}, [default_project])
 
-    blocked_metrics = json.loads(default_project.get_option(BLOCKED_METRICS_PROJECT_OPTION_KEY))
-    assert len(blocked_metrics) == 2
-    assert blocked_metrics[0]["metric_mri"] == mri_1
-    assert blocked_metrics[0]["is_blocked"] is True
-    assert sorted(blocked_metrics[0]["blocked_tags"]) == ["release"]
-    assert blocked_metrics[1]["metric_mri"] == mri_2
-    assert blocked_metrics[1]["is_blocked"] is False
-    assert sorted(blocked_metrics[1]["blocked_tags"]) == ["environment", "transaction"]
+    metrics_blocking_state = json.loads(
+        default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
+    )
+    assert len(metrics_blocking_state) == 2
+    assert metrics_blocking_state[0]["metric_mri"] == mri_1
+    assert metrics_blocking_state[0]["is_blocked"] is True
+    assert sorted(metrics_blocking_state[0]["blocked_tags"]) == ["release"]
+    assert metrics_blocking_state[1]["metric_mri"] == mri_2
+    assert metrics_blocking_state[1]["is_blocked"] is False
+    assert sorted(metrics_blocking_state[1]["blocked_tags"]) == ["environment", "transaction"]
 
     # We unblock all the tags of an unblocked metric.
     unblock_tags_of_metric(mri_2, {"environment", "transaction"}, [default_project])
 
-    blocked_metrics = json.loads(default_project.get_option(BLOCKED_METRICS_PROJECT_OPTION_KEY))
-    assert len(blocked_metrics) == 1
-    assert blocked_metrics[0]["metric_mri"] == mri_1
-    assert blocked_metrics[0]["is_blocked"] is True
-    assert sorted(blocked_metrics[0]["blocked_tags"]) == ["release"]
+    metrics_blocking_state = json.loads(
+        default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
+    )
+    assert len(metrics_blocking_state) == 1
+    assert metrics_blocking_state[0]["metric_mri"] == mri_1
+    assert metrics_blocking_state[0]["is_blocked"] is True
+    assert sorted(metrics_blocking_state[0]["blocked_tags"]) == ["release"]
 
     # We unblock a blocked metric with blocked tags.
     unblock_metric(mri_1, [default_project])
 
-    blocked_metrics = json.loads(default_project.get_option(BLOCKED_METRICS_PROJECT_OPTION_KEY))
-    assert len(blocked_metrics) == 1
-    assert blocked_metrics[0]["metric_mri"] == mri_1
-    assert blocked_metrics[0]["is_blocked"] is False
-    assert sorted(blocked_metrics[0]["blocked_tags"]) == ["release"]
+    metrics_blocking_state = json.loads(
+        default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
+    )
+    assert len(metrics_blocking_state) == 1
+    assert metrics_blocking_state[0]["metric_mri"] == mri_1
+    assert metrics_blocking_state[0]["is_blocked"] is False
+    assert sorted(metrics_blocking_state[0]["blocked_tags"]) == ["release"]
 
     # We unblock all the tags of an unblocked metric.
     unblock_tags_of_metric(mri_1, {"release", "transaction"}, [default_project])
 
-    blocked_metrics = json.loads(default_project.get_option(BLOCKED_METRICS_PROJECT_OPTION_KEY))
-    assert len(blocked_metrics) == 0
+    metrics_blocking_state = json.loads(
+        default_project.get_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY)
+    )
+    assert len(metrics_blocking_state) == 0
 
 
 @django_db_all
-def test_get_blocked_metrics(default_project):
+def test_get_metrics_blocking_state(default_project):
     mri_1 = "c:custom/page_click@none"
     mri_2 = "g:custom/page_load@millisecond"
+
+    # We test loading with no data stored in the options.
+    metrics_blocking_state = get_metrics_blocking_state([default_project])[default_project.id]
+    assert len(metrics_blocking_state.metrics) == 0
 
     block_metric(mri_1, [default_project])
     block_tags_of_metric(mri_2, {"release", "environment", "transaction"}, [default_project])
 
-    blocked_metrics = get_blocked_metrics([default_project])[default_project.id]
-    assert len(blocked_metrics.metrics) == 2
-    assert sorted(blocked_metrics.metrics.values(), key=lambda v: v.metric_mri) == [
-        BlockedMetric(metric_mri="c:custom/page_click@none", is_blocked=True, blocked_tags=set()),
-        BlockedMetric(
+    metrics_blocking_state = get_metrics_blocking_state([default_project])[default_project.id]
+    assert len(metrics_blocking_state.metrics) == 2
+    assert sorted(metrics_blocking_state.metrics.values(), key=lambda v: v.metric_mri) == [
+        MetricBlocking(metric_mri="c:custom/page_click@none", is_blocked=True, blocked_tags=set()),
+        MetricBlocking(
             metric_mri="g:custom/page_load@millisecond",
             is_blocked=False,
             blocked_tags={"environment", "transaction", "release"},
@@ -117,23 +133,35 @@ def test_get_blocked_metrics(default_project):
         "{}",
     ],
 )
-def test_get_blocked_metrics_with_invalid_payload(default_project, json_payload):
-    default_project.update_option(BLOCKED_METRICS_PROJECT_OPTION_KEY, json_payload)
+def test_get_metrics_blocking_state_with_invalid_payload(default_project, json_payload):
+    default_project.update_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY, json_payload)
 
     with pytest.raises(MalformedBlockedMetricsPayloadError):
-        get_blocked_metrics([default_project])
+        get_metrics_blocking_state([default_project])
 
 
 @django_db_all
-def test_get_blocked_metrics_for_relay_config(default_project):
+def test_get_metrics_blocking_state_for_relay_config(default_project):
     mri_1 = "c:custom/page_click@none"
     mri_2 = "g:custom/page_load@millisecond"
+    mri_3 = "d:custom/page_speed@millisecond"
 
     block_metric(mri_1, [default_project])
     block_tags_of_metric(mri_2, {"release", "environment", "transaction"}, [default_project])
+    block_metric(mri_3, [default_project])
+    block_tags_of_metric(mri_3, {"environment"}, [default_project])
 
-    blocked_metrics = get_blocked_metrics_for_relay_config(default_project)
-    # For now, no tags are emitted to Relay, thus we expect only the blocked metric to be there.
-    assert sorted(blocked_metrics["deniedNames"]) == [
-        "c:custom/page_click@none",
+    metrics_blocking_state = get_metrics_blocking_state_for_relay_config(default_project)
+    assert metrics_blocking_state
+    assert sorted(metrics_blocking_state["deniedNames"]) == [
+        mri_1,
+        # Since mri_3 is a blocked metric with blocked tags, we expect that we prioritize it and mark it only as
+        # blocked.
+        mri_3,
+    ]
+    assert metrics_blocking_state["deniedTags"][0]["name"] == [mri_2]
+    assert sorted(metrics_blocking_state["deniedTags"][0]["tags"]) == [
+        "environment",
+        "release",
+        "transaction",
     ]
