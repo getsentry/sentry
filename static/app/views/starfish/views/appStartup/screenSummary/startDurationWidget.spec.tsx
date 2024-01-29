@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {MultiSeriesEventsStats} from 'sentry/types';
+import type {MultiSeriesEventsStats} from 'sentry/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import StartDurationWidget, {transformData} from './startDurationWidget';
