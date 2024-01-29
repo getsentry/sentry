@@ -29,20 +29,24 @@ export const useBlockMetric = (mri: MRI, project: Project) => {
     },
     onSuccess: data => {
       queryClient.setQueryData(
-        [`/organizations/${slug}/metrics/meta/`, {query: {useCase, project: project.id}}],
-        (oldData: MetricMeta[] | undefined): MetricMeta[] => {
+        [
+          `/organizations/${slug}/metrics/meta/`,
+          {query: {useCase, project: [parseInt(project.id, 10)]}},
+        ],
+        (
+          oldData: [MetricMeta[], unknown, unknown] | undefined
+        ): [MetricMeta[], unknown, unknown] | undefined => {
           if (!oldData) {
-            return [];
+            return undefined;
           }
-
-          const index = oldData?.findIndex((metric: {mri: MRI}) => metric.mri === mri);
+          const oldMeta = oldData[0];
+          const index = oldMeta.findIndex((metric: {mri: MRI}) => metric.mri === mri);
 
           if (index !== undefined && index !== -1) {
-            return [
-              ...oldData.slice(0, index),
-              {...oldData[index], ...data},
-              ...oldData.slice(index + 1),
-            ];
+            const newMeta = [...oldMeta];
+            newMeta[index] = {...newMeta[index], ...data};
+
+            return [newMeta, oldData[1], oldData[2]];
           }
           return oldData;
         }
