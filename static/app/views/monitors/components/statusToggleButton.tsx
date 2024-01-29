@@ -49,4 +49,5 @@ const StatusToggleButton = HookOrDefault({
   defaultComponent: SimpleStatusToggle,
 });
 
-export {StatusToggleButton, StatusToggleButtonProps};
+export type {StatusToggleButtonProps};
+export {StatusToggleButton};
