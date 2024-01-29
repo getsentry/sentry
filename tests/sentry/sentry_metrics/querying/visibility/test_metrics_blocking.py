@@ -102,6 +102,31 @@ def test_apply_multiple_operations(default_project):
 
 
 @django_db_all
+def test_returns_patched_state(default_project):
+    mri = "c:custom/page_click@none"
+
+    metric_blocking = block_metric(mri, [default_project])[default_project.id]
+    assert metric_blocking == MetricBlocking(metric_mri=mri, is_blocked=True, blocked_tags=set())
+
+    metric_blocking = block_tags_of_metric(mri, {"release", "transaction"}, [default_project])[
+        default_project.id
+    ]
+    assert metric_blocking == MetricBlocking(
+        metric_mri=mri, is_blocked=True, blocked_tags={"release", "transaction"}
+    )
+
+    metric_blocking = unblock_metric(mri, [default_project])[default_project.id]
+    assert metric_blocking == MetricBlocking(
+        metric_mri=mri, is_blocked=False, blocked_tags={"release", "transaction"}
+    )
+
+    metric_blocking = unblock_tags_of_metric(mri, {"release", "transaction"}, [default_project])[
+        default_project.id
+    ]
+    assert metric_blocking == MetricBlocking(metric_mri=mri, is_blocked=False, blocked_tags=set())
+
+
+@django_db_all
 def test_get_metrics_blocking_state(default_project):
     mri_1 = "c:custom/page_click@none"
     mri_2 = "g:custom/page_load@millisecond"

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, Sequence, cast
+from typing import Mapping, Optional, Sequence, cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -59,7 +59,8 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
             raise InvalidParams("You must supply a valid metric mri")
 
         metric_mri = cast(str, metric_mri)
-        patched_metrics = {}
+        patched_metrics: Mapping[int, MetricBlocking] = {}
+
         if metric_operation_type == MetricOperationType.BLOCK_METRIC:
             patched_metrics = block_metric(metric_mri, [project])
         elif metric_operation_type == MetricOperationType.UNBLOCK_METRIC:
