@@ -492,6 +492,11 @@ class _RemoteSiloCall:
             "Authorization": f"Rpcsignature {signature}",
         }
 
+        metrics.distribution(
+            "hybrid_cloud.dispatch_rpc.request_size",
+            len(data),
+            tags=self._metrics_tags(),
+        )
         with self._open_request_context():
             if use_test_client:
                 response = self._fire_test_request(headers, data)
@@ -501,13 +506,13 @@ class _RemoteSiloCall:
                 "hybrid_cloud.dispatch_rpc.response_code",
                 tags=self._metrics_tags(status=response.status_code),
             )
+            metrics.distribution(
+                "hybrid_cloud.dispatch_rpc.response_size",
+                len(response.content),
+                tags=self._metrics_tags(status=response.status_code),
+            )
 
             if response.status_code == 200:
-                metrics.gauge(
-                    "hybrid_cloud.dispatch_rpc.response_size",
-                    len(response.content),
-                    tags=self._metrics_tags(),
-                )
                 return response.json()
             self._raise_from_response_status_error(response)
 
