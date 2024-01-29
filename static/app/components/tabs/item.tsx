@@ -1,6 +1,6 @@
 import {Item as _Item} from '@react-stately/collections';
-import {ItemProps} from '@react-types/shared';
-import {LocationDescriptor} from 'history';
+import type {ItemProps} from '@react-types/shared';
+import type {LocationDescriptor} from 'history';
 
 export interface TabListItemProps extends ItemProps<any> {
   key: React.Key;

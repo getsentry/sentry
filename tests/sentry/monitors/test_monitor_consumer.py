@@ -373,21 +373,28 @@ class MonitorConsumerTest(TestCase):
         assert closed_checkin.guid != uuid.UUID(int=0)
 
     def test_rate_limit(self):
+        now = datetime.now()
         monitor = self._create_monitor(slug="my-monitor")
 
         with mock.patch("sentry.monitors.consumers.monitor_consumer.CHECKIN_QUOTA_LIMIT", 1):
             # Try to ingest two the second will be rate limited
-            self.send_checkin("my-monitor")
-            self.send_checkin("my-monitor")
+            self.send_checkin("my-monitor", ts=now)
+            self.send_checkin("my-monitor", ts=now)
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 1
 
             # Same monitor, diff environments
-            self.send_checkin("my-monitor", environment="dev")
+            self.send_checkin("my-monitor", environment="dev", ts=now)
 
             checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
             assert len(checkins) == 2
+
+            # Same monitor same env but a minute later, shuld NOT be rate-limited
+            self.send_checkin("my-monitor", ts=now + timedelta(minutes=1))
+
+            checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+            assert len(checkins) == 3
 
     def test_invalid_guid_environment_match(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -696,24 +703,3 @@ class MonitorConsumerTest(TestCase):
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
         assign_monitor_seat.assert_called_with(monitor)
-
-    def test_monitor_create_disabled_new_monitors(self):
-        with self.feature("organizations:crons-disable-new-projects"):
-            self.send_checkin(
-                "my-new-monitor",
-                monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
-            )
-
-        assert not Monitor.objects.filter(slug="my-new-monitor").exists()
-
-    def test_monitor_create_disabled_existing_monitors(self):
-        self.project.flags.has_cron_monitors = True
-        self.project.save()
-
-        with self.feature("organizations:crons-disable-new-projects"):
-            self.send_checkin(
-                "my-new-monitor",
-                monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
-            )
-
-        assert Monitor.objects.filter(slug="my-new-monitor").exists()

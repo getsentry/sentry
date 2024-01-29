@@ -3,11 +3,11 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {logException} from 'sentry/utils/logging';
-import RequestError from 'sentry/utils/requestError/requestError';
-import {Monitor} from 'sentry/views/monitors/types';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import type {Monitor} from 'sentry/views/monitors/types';
 
 export async function deleteMonitor(api: Client, orgId: string, monitorSlug: string) {
   addLoadingMessage(t('Deleting Monitor...'));

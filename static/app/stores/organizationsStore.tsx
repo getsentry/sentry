@@ -1,8 +1,8 @@
 import {createStore} from 'reflux';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 interface State {
   loaded: boolean;

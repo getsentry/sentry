@@ -7,6 +7,7 @@ from typing import Any, Mapping, Sequence, Union
 from django.utils import timezone
 from django.utils.timesince import timesince
 from django.utils.translation import gettext as _
+from sentry_relay.processing import parse_release
 
 from sentry import features, tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
@@ -52,8 +53,9 @@ from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+from sentry.utils.committers import get_serialized_event_file_committers
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 logger = logging.getLogger(__name__)
@@ -142,6 +144,14 @@ def build_tag_fields(
     return fields
 
 
+def format_release_tag(value: str, event: GroupEvent | Group):
+    """Format the release tag using the short version and make it a link"""
+    path = f"/releases/{value}/"
+    url = event.project.organization.absolute_url(path)
+    release_description = parse_release(value).get("description")
+    return f"<{url}|{release_description}>"
+
+
 def get_tags(
     event_for_tags: Any,
     tags: set[str] | None = None,
@@ -156,15 +166,16 @@ def get_tags(
     if tags and isinstance(tags, list):
         tags = set(tags[0])
 
-    tags = tags | {"level", "release"}
+    tags = tags | {"level", "release", "handled", "environment"}
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
             std_key = tagstore.backend.get_standardized_key(key)
             if std_key not in tags:
                 continue
-
             labeled_value = tagstore.backend.get_tag_value_label(key, value)
+            if std_key == "release":
+                labeled_value = format_release_tag(labeled_value, event_for_tags)
             fields.append(
                 {
                     "title": std_key,
@@ -257,28 +268,68 @@ def get_suggested_assignees(
             if assignee.actor_type == ActorType.USER and not (
                 isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
             ):
-                # for user assignees, we first try to get their Slack identity; if it's not linked,
-                # we use their display name linked with their email
-                assignee_identity = None
-                assignee_identities = identity_service.get_user_identities_by_provider_type(
-                    user_id=assignee.id, provider_type=ExternalProviderEnum.SLACK.value
-                )
-                if len(assignee_identities) > 0:
-                    assignee_identity = assignee_identities[0]
-                if assignee_identity is None:
-                    assignee_as_user = assignee.resolve()
-                    assignee_text = (
-                        f"<mailto:{assignee_as_user.email}|{assignee_as_user.get_display_name()}>"
-                    )
-                else:
-                    assignee_text = f"<@{assignee_identity.external_id}>"
-                assignee_texts.append(assignee_text)
+                assignee_as_user = assignee.resolve()
+                assignee_texts.append(assignee_as_user.get_display_name())
             elif assignee.actor_type == ActorType.TEAM and not (
                 isinstance(current_assignee, Team) and assignee.id == current_assignee.id
             ):
                 assignee_texts.append(f"#{assignee.slug}")
         return assignee_texts
     return []
+
+
+def get_suspect_commit_block(project: Project, event: GroupEvent):
+    """Build up the suspect commit info for the given event"""
+    author = None
+    commit_id = None
+    commit_link = None
+    pr_link = None
+    pr_date = None
+    committers = None
+    repo_base = None
+
+    try:
+        committers = get_serialized_event_file_committers(project, event)
+    except (Release.DoesNotExist, Commit.DoesNotExist):
+        logger.info("Skipping suspect committers because release does not exist.")
+    except Exception:
+        logger.exception("Could not get suspect committers. Continuing execution.")
+    if not committers:
+        return None
+
+    if committers:
+        committer = committers[0]
+        author = committer.get("author", {})
+        commits = committer.get("commits")
+        if commits:
+            commit_id = commits[0].get("id")
+            pull_request = commits[0].get("pullRequest")
+            if pull_request:
+                pr_title = pull_request.get("title")
+                pr_link = pull_request.get("externalUrl")
+                repo_base = pull_request.get("repository", {}).get("url")
+                pr_date = pull_request.get("dateCreated")
+                pr_id = pull_request.get("id")
+                if pr_date:
+                    pr_date = time_since(pr_date)
+
+    if author and commit_id:
+        author_display = (
+            author.get("name") if author.get("name") is not None else author.get("email")
+        )
+
+        suspect_commit_text = "Suspect Commit: "
+        if repo_base:
+            commit_link = f"<{repo_base}/commits/{commit_id}|{commit_id[0:6]}>"
+            suspect_commit_text += f"{commit_link} by {author_display}"
+        else:
+            suspect_commit_text += f"{commit_id} by {author_display}"
+        if pull_request:
+            suspect_commit_text += (
+                f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
+            )
+        return suspect_commit_text
+    return None
 
 
 def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
@@ -309,9 +360,15 @@ def build_actions(
 
     status = group.get_status()
 
-    def _ignore_button() -> MessageAction:
+    def _ignore_button(use_block_kit) -> MessageAction | None:
         if group.issue_category == GroupCategory.FEEDBACK:
             return None
+        if use_block_kit:
+            if status == GroupStatus.IGNORED:
+                return MessageAction(
+                    name="status", label="Mark as Ongoing", value="unresolved:ongoing"
+                )
+            return MessageAction(name="status", label="Archive", value="archive_dialog")
 
         if status == GroupStatus.IGNORED:
             return MessageAction(
@@ -374,7 +431,11 @@ def build_actions(
 
     action_list = [
         a
-        for a in [_resolve_button(use_block_kit), _ignore_button(), _assign_button(use_block_kit)]
+        for a in [
+            _resolve_button(use_block_kit),
+            _ignore_button(use_block_kit),
+            _assign_button(use_block_kit),
+        ]
         if a is not None
     ]
 
@@ -398,7 +459,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         recipient: RpcActor | None = None,
         is_unfurl: bool = False,
         skip_fallback: bool = False,
-        mentions: str | None = None,
+        notes: str | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -413,7 +474,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.recipient = recipient
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
-        self.mentions = mentions
+        self.notes = notes
 
     @property
     def escape_text(self) -> bool:
@@ -530,7 +591,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         for k, v in context.items():
             if k and v:
                 context_text += f"{k}: *{v}*   "
-        blocks.append(self.get_markdown_block(context_text[:-3]))
+        blocks.append(self.get_context_block(context_text[:-3]))
 
         # build actions
         actions = []
@@ -571,10 +632,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 self.get_context_block(suggested_assignee_text[:-2])
             )  # get rid of comma at the end
 
-        # add mentions
-        if self.mentions:
-            mentions_text = f"Mentions: {self.mentions}"
-            blocks.append(self.get_markdown_block(mentions_text))
+        # add suspect commit info
+        suspect_commit_text = get_suspect_commit_block(project, event_for_tags)
+        if suspect_commit_text:
+            blocks.append(self.get_context_block(suspect_commit_text))
+
+        # add notes
+        if self.notes:
+            notes_text = f"notes: {self.notes}"
+            blocks.append(self.get_markdown_block(notes_text))
 
         # build footer block
         timestamp = None
@@ -584,8 +650,17 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if not self.notification:
             # the footer content differs if it's a workflow notification, so we must check for that
-            footer = f"Project: <{project.get_absolute_url()}|{escape_slack_text(project.slug)}>    Alert: {footer}"
-            blocks.append(self.get_context_block(text=footer))
+            footer_data = {
+                "Project": f"<{project.get_absolute_url()}|{escape_slack_text(project.slug)}>",
+                "Alert": footer,
+                "Short ID": self.group.qualified_short_id,
+            }
+            footer_text = ""
+            for k, v in footer_data.items():
+                footer_text += f"{k}: {v}    "
+
+            footer_text = footer_text[:-4]  # chop off the empty space
+            blocks.append(self.get_context_block(text=footer_text))
         else:
             blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
 
@@ -614,7 +689,7 @@ def build_group_attachment(
     issue_details: bool = False,
     is_unfurl: bool = False,
     notification_uuid: str | None = None,
-    mentions: str | None = None,
+    notes: str | None = None,
 ) -> Union[SlackBlock, SlackAttachment]:
 
     return SlackIssuesMessageBuilder(
@@ -627,5 +702,5 @@ def build_group_attachment(
         link_to_event,
         issue_details,
         is_unfurl=is_unfurl,
-        mentions=mentions,
+        notes=notes,
     ).build(notification_uuid=notification_uuid)

@@ -1,4 +1,4 @@
-import {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {colorComponentsToRGBA} from './colors/utils';

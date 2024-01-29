@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
-import {incrementalSnapshotEvent, IncrementalSource} from '@sentry-internal/rrweb';
+import type {incrementalSnapshotEvent} from '@sentry-internal/rrweb';
+import {IncrementalSource} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {duration} from 'moment';
 
@@ -20,9 +21,11 @@ import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
+  fullSnapshotEvent,
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
+  serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
@@ -311,6 +314,14 @@ export default class ReplayReader {
 
   getSDKOptions = () => this._optionFrame;
 
+  /**
+   * Checks the replay to see if user has any canvas elements in their
+   * application. Needed to inform them that we now support canvas in replays.
+   */
+  hasCanvasElementInReplay = memoize(() => {
+    return Boolean(this._sortedRRWebEvents.filter(findCanvas).length);
+  });
+
   isNetworkDetailsSetup = memoize(() => {
     const sdkOptions = this.getSDKOptions();
     if (sdkOptions) {
@@ -329,4 +340,42 @@ export default class ReplayReader {
         Object.keys(frame?.data?.response?.headers ?? {}).length
     );
   });
+}
+
+function findCanvas(event: RecordingFrame) {
+  if (event.type === EventType.FullSnapshot) {
+    return findCanvasInSnapshot(event);
+  }
+
+  if (event.type === EventType.IncrementalSnapshot) {
+    return findCanvasInMutation(event);
+  }
+
+  return false;
+}
+
+function findCanvasInMutation(event: incrementalSnapshotEvent) {
+  if (event.data.source !== IncrementalSource.Mutation) {
+    return false;
+  }
+
+  return event.data.adds.find(
+    add => add.node && add.node.type === 2 && add.node.tagName === 'canvas'
+  );
+}
+
+function findCanvasInChildNodes(nodes: serializedNodeWithId[]) {
+  return nodes.find(
+    node =>
+      node.type === 2 &&
+      (node.tagName === 'canvas' || findCanvasInChildNodes(node.childNodes || []))
+  );
+}
+
+function findCanvasInSnapshot(event: fullSnapshotEvent) {
+  if (event.data.node.type !== 0) {
+    return false;
+  }
+
+  return findCanvasInChildNodes(event.data.node.childNodes);
 }

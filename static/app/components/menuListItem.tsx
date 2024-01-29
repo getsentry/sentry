@@ -1,13 +1,14 @@
 import {forwardRef as reactForwardRef, memo, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 /**
  * Menu item priority. Determines the text and background color.

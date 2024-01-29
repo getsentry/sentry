@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
 
 import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
 
 from sentry import analytics, features
@@ -174,7 +174,7 @@ def process_commit_context(
             }
             # Delete old owners
             to_be_deleted = owners.filter(
-                date_added__lte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
+                date_added__lte=django_timezone.now() - PREFERRED_GROUP_OWNER_AGE
             )
 
             if len(to_be_deleted):
@@ -182,12 +182,12 @@ def process_commit_context(
                     record.delete()
 
             current_owners = owners.filter(
-                date_added__gte=timezone.now() - PREFERRED_GROUP_OWNER_AGE
+                date_added__gte=django_timezone.now() - PREFERRED_GROUP_OWNER_AGE
             ).order_by("-date_added")
 
             if len(current_owners) >= PREFERRED_GROUP_OWNERS:
                 # When there exists a Suspect Committer, we want to debounce this task until that Suspect Committer hits the TTL of PREFERRED_GROUP_OWNER_AGE
-                cache_duration = timezone.now() - current_owners[0].date_added
+                cache_duration = django_timezone.now() - current_owners[0].date_added
                 cache_duration = (
                     cache_duration
                     if cache_duration < PREFERRED_GROUP_OWNER_AGE
@@ -425,7 +425,7 @@ def process_commit_context(
                 organization_id=project.organization_id,
                 context={"commitId": commit.id},
                 defaults={
-                    "date_added": timezone.now()
+                    "date_added": django_timezone.now()
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
 

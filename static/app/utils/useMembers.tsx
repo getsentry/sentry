@@ -1,13 +1,13 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Member, User} from 'sentry/types';
+import type {Member, User} from 'sentry/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 type State = {

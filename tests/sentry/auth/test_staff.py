@@ -1,10 +1,10 @@
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.auth import staff
 from sentry.auth.staff import (
@@ -60,7 +60,7 @@ def override_org_id(new_org_id: int):
 class StaffTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        self.current_datetime = timezone.now()
+        self.current_datetime = django_timezone.now()
         self.default_token = "abcdefghijklmnog"
 
     def build_request(

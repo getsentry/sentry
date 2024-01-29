@@ -89,8 +89,10 @@ function Actions({
           !hasFeature
             ? undefined
             : !hasAccess
-            ? t('You do not have permission to edit custom repositories configurations.')
-            : undefined
+              ? t(
+                  'You do not have permission to edit custom repositories configurations.'
+                )
+              : undefined
         }
         disabled={actionsDisabled}
       >
@@ -105,10 +107,10 @@ function Actions({
             !hasFeature
               ? undefined
               : !hasAccess
-              ? t(
-                  'You do not have permission to delete custom repositories configurations.'
-                )
-              : undefined
+                ? t(
+                    'You do not have permission to delete custom repositories configurations.'
+                  )
+                : undefined
           }
           disabled={actionsDisabled}
         >
@@ -131,10 +133,10 @@ function Actions({
                 !hasFeature
                   ? undefined
                   : !hasAccess
-                  ? t(
-                      'You do not have permission to edit and delete custom repositories configurations.'
-                    )
-                  : undefined
+                    ? t(
+                        'You do not have permission to edit and delete custom repositories configurations.'
+                      )
+                    : undefined
               }
               icon={<IconEllipsis />}
             />

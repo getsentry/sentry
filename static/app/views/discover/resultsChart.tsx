@@ -1,10 +1,10 @@
 import {Component, Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
@@ -13,12 +13,12 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {Organization, SelectValue} from 'sentry/types';
+import type {Organization, SelectValue} from 'sentry/types';
 import {valueIsEqual} from 'sentry/utils';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {getAggregateArg, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
@@ -102,8 +102,8 @@ class ResultsChart extends Component<ResultsChartProps> {
       display === DisplayModes.BAR
         ? BarChart
         : customPerformanceMetricFieldType === 'size' && isTopEvents
-        ? AreaChart
-        : undefined;
+          ? AreaChart
+          : undefined;
     const interval =
       display === DisplayModes.BAR
         ? getInterval(

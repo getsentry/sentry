@@ -7,7 +7,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SelectValue, TagCollection} from 'sentry/types';
+import type {SelectValue, TagCollection} from 'sentry/types';
 import {
   EQUATION_PREFIX,
   explodeField,
@@ -18,8 +18,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
-import {SortDirection, sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {SortDirection} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 
@@ -127,8 +129,8 @@ export function SortBySelectors({
               widgetType === WidgetType.METRICS
                 ? {kind: 'field', field: values.sortBy}
                 : showCustomEquation
-                ? explodeField({field: CUSTOM_EQUATION_VALUE})
-                : explodeField({field: values.sortBy})
+                  ? explodeField({field: CUSTOM_EQUATION_VALUE})
+                  : explodeField({field: values.sortBy})
             }
             fieldOptions={datasetConfig.getTimeseriesSortOptions!(
               organization,

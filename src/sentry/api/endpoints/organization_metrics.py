@@ -18,11 +18,6 @@ from sentry.sentry_metrics.querying.errors import (
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
-from sentry.sentry_metrics.visibility import (
-    BlockedMetric,
-    MalformedBlockedMetricsPayloadError,
-    block_metric,
-)
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_all_tags,
@@ -55,7 +50,7 @@ def get_use_case_id(request: Request) -> UseCaseID:
 
 @region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL, "POST": ApiPublishStatus.EXPERIMENTAL}
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization) -> Response:
@@ -66,30 +61,6 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
         metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
 
         return Response(metrics, status=200)
-
-    def post(self, request: Request, organization) -> Response:
-        projects = self.get_projects(request, organization)
-        if not projects:
-            raise InvalidParams(
-                "You must supply at least one projects of which metrics will be blocked"
-            )
-
-        metrics = request.data.get("metrics", [])
-        if not metrics:
-            raise InvalidParams("You must supply at least one metric to block")
-
-        for metric in metrics:
-            try:
-                blocked_metric = BlockedMetric(metric_mri=metric, tags=request.GET.getlist("tag"))
-                block_metric(blocked_metric, projects)
-            except MalformedBlockedMetricsPayloadError:
-                # In case one metric fails to be inserted, we abort the entire insertion since the project options are
-                # likely to be corrupted.
-                return Response(
-                    {"detail": "The blocked metrics settings are corrupted, try again"}, status=500
-                )
-
-        return Response(status=200)
 
 
 @region_silo_endpoint

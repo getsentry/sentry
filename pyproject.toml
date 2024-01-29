@@ -34,9 +34,6 @@ filterwarnings = [
 
     # TODO: after upgrading to django 4.x
     "ignore:'index_together' is deprecated. Use 'Meta.indexes' in.*",
-    "ignore:Passing unsaved model instances to related filters is deprecated.",
-    "ignore:The django.utils.timezone.utc alias is deprecated.*",
-    "ignore:django.core.files.storage.get_storage_class is deprecated in favor of using django.core.files.storage.storages.",
 
     # a bunch of google packages use legacy namespace packages
     "ignore:pkg_resources is deprecated as an API",
@@ -54,7 +51,7 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
 files = ["."]
@@ -282,8 +279,6 @@ module = [
     "sentry.features.handler",
     "sentry.features.manager",
     "sentry.grouping.fingerprinting",
-    "sentry.grouping.strategies.base",
-    "sentry.grouping.strategies.configurations",
     "sentry.grouping.strategies.hierarchical",
     "sentry.grouping.strategies.legacy",
     "sentry.grouping.strategies.newstyle",

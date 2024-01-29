@@ -1,17 +1,18 @@
 import {Fragment, useMemo, useState} from 'react';
 
 import DropdownButton from 'sentry/components/dropdownButton';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import NotificationActionItem from 'sentry/components/notificationActions/notificationActionItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
-import {
+import type {Project} from 'sentry/types';
+import type {
   AvailableNotificationAction,
   NotificationAction,
-  NotificationActionService,
 } from 'sentry/types/notificationActions';
+import {NotificationActionService} from 'sentry/types/notificationActions';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 type NotificationActionManagerProps = {

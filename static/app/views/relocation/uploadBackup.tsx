@@ -15,7 +15,7 @@ import useApi from 'sentry/utils/useApi';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 type UploadWellProps = {
   centered: boolean;

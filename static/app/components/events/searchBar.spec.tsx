@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SearchBar from 'sentry/components/events/searchBar';
 import TagStore from 'sentry/stores/tagStore';
-import {Organization as TOrganization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types';
 
 const selectNthAutocompleteItem = async index => {
   await userEvent.click(screen.getByTestId('smart-search-input'), {delay: null});

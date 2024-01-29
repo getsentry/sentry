@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import pytest
 import responses
 from django.core import mail
-from django.test import override_settings
 
 from sentry import audit_log
 from sentry.constants import ObjectStatus
@@ -24,14 +23,7 @@ from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
-control_address = "http://controlserver"
-secret = "hush-hush-im-invisible"
 
-
-@override_settings(
-    SENTRY_SUBNET_SECRET=secret,
-    SENTRY_CONTROL_ADDRESS=control_address,
-)
 @region_silo_test
 class SlackClientDisable(TestCase):
     def setUp(self):
