@@ -70,10 +70,7 @@ class PullRequest(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_pull_request"
-        indexes = (
-            models.Index(fields=("repository_id", "date_added")),
-            models.Index(fields=("organization_id", "merge_commit_sha")),
-        )
+        index_together = (("repository_id", "date_added"), ("organization_id", "merge_commit_sha"))
         unique_together = (("repository_id", "key"),)
 
     __repr__ = sane_repr("organization_id", "repository_id", "key")

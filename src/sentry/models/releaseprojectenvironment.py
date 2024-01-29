@@ -40,9 +40,9 @@ class ReleaseProjectEnvironment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_releaseprojectenvironment"
-        indexes = (
-            models.Index(fields=("project", "adopted", "environment")),
-            models.Index(fields=("project", "unadopted", "environment")),
+        index_together = (
+            ("project", "adopted", "environment"),
+            ("project", "unadopted", "environment"),
         )
         unique_together = (("project", "release", "environment"),)
 
