@@ -14,7 +14,6 @@ from sentry.api.serializers.rest_framework.rule import RulePreviewSerializer
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.rules.history.preview import preview
-from sentry.web.decorators import transaction_start
 
 
 @region_silo_endpoint
@@ -27,7 +26,6 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     # a post endpoint because it's too hard to pass a list of objects from the frontend
-    @transaction_start("ProjectRulePreviewEndpoint")
     def post(self, request: Request, project) -> Response:
         """
         Get a list of alert triggers in past 2 weeks for given rules
