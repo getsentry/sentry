@@ -187,7 +187,6 @@ export function MetricWidgetChartContainer({
   return (
     <MetricWidgetBody
       widgetIndex={0}
-      focusArea={null}
       datetime={selection.datetime}
       projects={selection.projects}
       environments={selection.environments}

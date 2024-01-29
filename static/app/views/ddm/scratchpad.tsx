@@ -22,11 +22,9 @@ export function MetricScratchpad() {
     selectedWidgetIndex,
     widgets,
     updateWidget,
-    focusArea,
-    addFocusArea,
-    removeFocusArea,
     showQuerySymbols,
     highlightedSampleId,
+    focusArea,
   } = useDDMContext();
   const {selection} = usePageFilters();
 
@@ -84,10 +82,8 @@ export function MetricScratchpad() {
           datetime={selection.datetime}
           projects={selection.projects}
           environments={selection.environments}
-          addFocusArea={addFocusArea}
-          removeFocusArea={removeFocusArea}
-          showQuerySymbols={showQuerySymbols}
           focusArea={focusArea}
+          showQuerySymbols={showQuerySymbols}
           onSampleClick={handleSampleClick}
           highlightedSampleId={highlightedSampleId}
         />
