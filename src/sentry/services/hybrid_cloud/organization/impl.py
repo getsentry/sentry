@@ -45,12 +45,14 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcAuditLogEntryActor,
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
+    RpcOrganizationMemberSummary,
 )
 from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
     serialize_organization_summary,
     serialize_rpc_organization,
     serialize_rpc_team,
+    summarize_member,
 )
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
@@ -74,6 +76,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
         return serialize_member(member)
+
+    def get_member_summaries_by_ids(
+        self, *, organization_id: int, user_ids: List[int]
+    ) -> List[RpcOrganizationMemberSummary]:
+        members = OrganizationMember.objects.filter(
+            organization_id=organization_id, user_id__in=user_ids
+        )
+        return [summarize_member(m) for m in members]
 
     def serialize_organization(
         self, *, id: int, as_user: Optional[RpcUser] = None

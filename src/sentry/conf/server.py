@@ -800,6 +800,7 @@ CELERY_IMPORTS = (
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
+    "sentry.replays.usecases.ingest.issue_creation",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1949,6 +1950,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
+    # Enable User Feedback spam auto filtering feature UI
+    "organizations:user-feedback-spam-filter-ui": False,
+    # Enable User Feedback spam auto filtering feature ingest
+    "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
     # Enable view hierarchies options

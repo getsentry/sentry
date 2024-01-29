@@ -383,3 +383,19 @@ class MonitorCheckInValidator(serializers.Serializer):
             del attrs["monitor_config"]
 
         return attrs
+
+
+class MonitorBulkEditValidator(MonitorValidator):
+    slugs = serializers.ListField(
+        child=SentrySerializerSlugField(
+            max_length=MAX_SLUG_LENGTH,
+        ),
+        required=True,
+    )
+
+    def validate_slugs(self, value):
+        if Monitor.objects.filter(
+            slug__in=value, organization_id=self.context["organization"].id
+        ).count() != len(value):
+            raise ValidationError("Not all slugs are valid for this organization.")
+        return value
