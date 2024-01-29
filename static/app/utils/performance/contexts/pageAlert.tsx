@@ -7,10 +7,14 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 type PageAlertType = keyof Theme['alert'];
 
+export enum DismissId {
+  RESOURCE_SIZE_ALERT,
+}
+
 export type PageAlertOptions = {
   message: React.ReactNode | undefined;
   type: PageAlertType;
-  dismissId?: string;
+  dismissId?: DismissId;
 };
 
 const localStorageKey = 'sentry:page-alert';
