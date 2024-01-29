@@ -35,6 +35,9 @@ class ActivityManager(BaseManager["Activity"]):
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
 
+        if not features.has("projects:issue-priority", group.project):
+            activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
+
         prev_sig = None
         sig = None
         # we select excess so we can filter dupes
@@ -47,11 +50,10 @@ class ActivityManager(BaseManager["Activity"]):
                 continue
 
             if sig != prev_sig:
-                if item.type == ActivityType.SET_PRIORITY.value:
-                    if not features.has("projects:issue-priority", group.project):
-                        continue
-                    if not item.data or "priority" not in item.data:
-                        continue
+                if item.type == ActivityType.SET_PRIORITY.value and (
+                    not item.data or "priority" not in item.data
+                ):
+                    continue
                 activities.append(item)
 
         activities.append(
