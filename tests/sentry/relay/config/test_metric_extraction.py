@@ -216,7 +216,6 @@ def test_get_metric_extraction_config_multiple_alerts(default_project: Project) 
 @django_db_all
 @override_options({"on_demand.max_alert_specs": 1})
 def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
-    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature(ON_DEMAND_METRICS):
@@ -225,15 +224,19 @@ def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
 
         config = get_metric_extraction_config(default_project)
 
-        assert config
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+            assert config
+
+            assert capture_exception.call_count == 1
+            exception = capture_exception.call_args.args[0]
+            assert (
+                exception.args[0]
+                == "Spec version 1: Too many (2) on demand metric alerts for org baz"
+            )
+
         # Since we have set a maximum of 1 we will not get 2
         assert len(config["metrics"]) == 1
-
-        out, _ = capfd.readouterr()
-        assert out.splitlines()[0].split(": ")[1:3] == [
-            "Spec version 1",
-            "Too many (2) on demand metric alerts for project bar",
-        ]
 
 
 @django_db_all
@@ -573,55 +576,50 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 1})
 def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
-    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "transaction.duration:>=1100", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
-        config = get_metric_extraction_config(default_project)
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+            assert config
 
-        assert config
-        # Revert to 1 after {"include_environment_tag"} becomes the default
-        # Since we have set a maximum of 1 we will not get 2
-        assert len(config["metrics"]) == 2
-
-        out, _ = capfd.readouterr()
-        assert out.splitlines()[0].split(": ")[1:3] == [
-            "Spec version 1",
-            "Too many (2) on demand metric widgets for project bar",
-        ]
+            # Revert to 1 after {"include_environment_tag"} becomes the default
+            assert capture_exception.call_count == 2
+            exception = capture_exception.call_args.args[0]
+            assert (
+                exception.args[0]
+                == "Spec version 1: Too many (2) on demand metric widgets for org baz"
+            )
 
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 1, "on_demand.extended_max_widget_specs": 0})
 def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
-    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "transaction.duration:>=1100", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
-        config = get_metric_extraction_config(default_project)
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+            assert config
 
-        assert config
-        # Revert to 1 after {"include_environment_tag"} becomes the default
-        # Since we have set a maximum of 1 we will not get 2
-        assert len(config["metrics"]) == 2
-
-        out, _ = capfd.readouterr()
-        assert out.splitlines()[0].split(": ")[1:3] == [
-            "Spec version 1",
-            "Too many (2) on demand metric widgets for project bar",
-        ]
+            # Revert to 1 after {"include_environment_tag"} becomes the default
+            assert capture_exception.call_count == 2
+            exception = capture_exception.call_args.args[0]
+            assert (
+                exception.args[0]
+                == "Spec version 1: Too many (2) on demand metric widgets for org baz"
+            )
 
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 1})
 def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
-    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
@@ -630,18 +628,17 @@ def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
         create_widget(["count()"], "transaction.duration:>=1100", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
-        config = get_metric_extraction_config(default_project)
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+            assert config
 
-        assert config
-        # Revert to 1 after {"include_environment_tag"} becomes the default
-        # Since we have set a maximum of 1 we will not get 2
-        assert len(config["metrics"]) == 2
-
-        out, _ = capfd.readouterr()
-        assert out.splitlines()[0].split(": ")[1:3] == [
-            "Spec version 1",
-            "Too many (2) on demand metric widgets for project bar",
-        ]
+            # Revert to 1 after {"include_environment_tag"} becomes the default
+            assert capture_exception.call_count == 2
+            exception = capture_exception.call_args.args[0]
+            assert (
+                exception.args[0]
+                == "Spec version 1: Too many (2) on demand metric widgets for org baz"
+            )
 
 
 @django_db_all

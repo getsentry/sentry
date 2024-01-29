@@ -102,6 +102,7 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "bar.js", "changes": 100, "status": "modified"},
             {"filename": "baz.py", "changes": 100, "status": "added"},
             {"filename": "bee.py", "changes": 100, "status": "deleted"},
+            {"filename": "boo.py", "changes": 0, "status": "renamed"},
         ]
         responses.add(
             responses.GET,
@@ -124,6 +125,7 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "bar.js", "changes": 100, "status": "modified"},
             {"filename": "baz.py", "changes": 100, "status": "added"},
             {"filename": "bee.py", "changes": 100, "status": "deleted"},
+            {"filename": "boo.js", "changes": 0, "status": "renamed"},
         ]
         responses.add(
             responses.GET,
@@ -763,8 +765,10 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         self.groups.reverse()
 
     @responses.activate
+    @patch("sentry.analytics.record")
     def test_comment_workflow(
         self,
+        mock_analytics,
         mock_metrics,
         mock_safe_for_comment,
         mock_issues,
@@ -799,13 +803,24 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
-        assert pull_request_comment_query[0].external_id == 1
-        assert pull_request_comment_query[0].comment_type == CommentType.OPEN_PR
+        comment = pull_request_comment_query[0]
+        assert comment.external_id == 1
+        assert comment.comment_type == CommentType.OPEN_PR
+
         mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_created")
+        mock_analytics.assert_any_call(
+            "open_pr_comment.created",
+            comment_id=comment.id,
+            org_id=self.organization.id,
+            pr_id=comment.pull_request.id,
+            language="python",
+        )
 
     @responses.activate
+    @patch("sentry.analytics.record")
     def test_comment_workflow_comment_exists(
         self,
+        mock_analytics,
         mock_metrics,
         mock_safe_for_comment,
         mock_issues,
@@ -849,13 +864,17 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
         assert pr_comment.external_id == 1
         assert pr_comment.comment_type == CommentType.OPEN_PR
         assert pr_comment.created_at != pr_comment.updated_at
-        mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_updated")
 
+        mock_metrics.incr.assert_called_with("github_open_pr_comment.comment_updated")
+        assert not mock_analytics.called
+
+    @patch("sentry.analytics.record")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
     @responses.activate
     def test_comment_workflow_early_return(
         self,
         mock_metrics,
+        mock_analytics,
         _,
         mock_safe_for_comment,
         mock_issues,
@@ -902,13 +921,17 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 0
-        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
 
+        mock_metrics.incr.assert_called_with("github_open_pr_comment.no_issues")
+        assert not mock_analytics.called
+
+    @patch("sentry.analytics.record")
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
     @responses.activate
     def test_comment_workflow_api_error(
         self,
         mock_metrics,
+        mock_analytics,
         _,
         mock_safe_for_comment,
         mock_issues,
@@ -974,9 +997,11 @@ class TestOpenPRCommentWorkflow(IntegrationTestCase, CreateEventTestCase):
 
         # does not raise ApiError for rate limited error
         open_pr_comment_workflow(pr_3.id)
+
         mock_metrics.incr.assert_called_with(
             "github_open_pr_comment.error", tags={"type": "rate_limited_error"}
         )
+        assert not mock_analytics.called
 
     @patch("sentry.tasks.integrations.github.open_pr_comment.metrics")
     def test_comment_workflow_missing_pr(
