@@ -407,6 +407,9 @@ class Fixtures:
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
 
+    def create_user_option(self, *args, **kwargs):
+        return Factories.create_user_option(*args, **kwargs)
+
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
             user = self.user
