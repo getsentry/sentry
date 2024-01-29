@@ -87,7 +87,7 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
     return superuser_scopes
 
 
-def superuser_has_permission(request: HttpRequest | Request):
+def superuser_has_permission(request: HttpRequest | Request) -> bool:
     if not is_active_superuser(request):
         return False
 
