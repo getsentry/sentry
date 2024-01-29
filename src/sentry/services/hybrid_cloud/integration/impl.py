@@ -48,8 +48,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def send_message(
         self, *, integration_id: int, organization_id: int, channel: str, message: str
     ) -> bool:
-        integration = Integration.objects.filter(id=integration_id).first()
-        if integration is None:
+        try:
+            integration = Integration.objects.get(id=integration_id)
+        except Integration.DoesNotExist:
             return False
         install = integration.get_installation(organization_id=organization_id)
         if isinstance(install, NotifyBasicMixin):
@@ -341,8 +342,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
     def add_organization(
         self, *, integration_id: int, org_ids: List[int]
     ) -> Optional[RpcIntegration]:
-        integration = Integration.objects.filter(id=integration_id).first()
-        if not integration:
+        try:
+            integration = Integration.objects.get(id=integration_id)
+        except Integration.DoesNotExist:
             return None
         for org_id in org_ids:
             integration.add_organization(organization_id=org_id)
@@ -421,24 +423,38 @@ class DatabaseBackedIntegrationService(IntegrationService):
         return False
 
     def delete_integration(self, *, integration_id: int) -> None:
-        integration = Integration.objects.filter(id=integration_id).first()
-        if integration is None:
+        try:
+            integration = Integration.objects.get(id=integration_id)
+        except Integration.DoesNotExist:
             return
         integration.delete()
 
     def get_integration_external_project(
         self, *, organization_id: int, integration_id: int, external_id: str
     ) -> RpcIntegrationExternalProject | None:
-        external_project = IntegrationExternalProject.objects.filter(
+        external_projects = self.get_integration_external_projects(
+            organization_id=organization_id,
+            integration_id=integration_id,
             external_id=external_id,
-            organization_integration_id__in=OrganizationIntegration.objects.filter(
+        )
+        return external_projects[0] if len(external_projects) > 0 else None
+
+    def get_integration_external_projects(
+        self, *, organization_id: int, integration_id: int, external_id: str | None = None
+    ) -> List[RpcIntegrationExternalProject]:
+        try:
+            oi = OrganizationIntegration.objects.get(
                 organization_id=organization_id,
                 integration_id=integration_id,
-            ),
-        ).first()
-        if external_project is None:
-            return None
-        return serialize_integration_external_project(external_project)
+            )
+        except OrganizationIntegration.DoesNotExist:
+            return []
+
+        iep_kwargs = {"organization_integration_id": oi.id}
+        if external_id is not None:
+            iep_kwargs["external_id"] = external_id
+        external_projects = IntegrationExternalProject.objects.filter(**iep_kwargs)
+        return [serialize_integration_external_project(iep) for iep in external_projects]
 
     def get_integration_identity_context(
         self,

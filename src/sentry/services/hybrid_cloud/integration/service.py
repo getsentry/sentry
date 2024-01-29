@@ -276,6 +276,13 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def get_integration_external_projects(
+        self, *, organization_id: int, integration_id: int, external_id: str | None = None
+    ) -> List[RpcIntegrationExternalProject]:
+        pass
+
+    @rpc_method
+    @abstractmethod
     def get_integration_identity_context(
         self,
         *,

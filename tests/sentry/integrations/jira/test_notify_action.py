@@ -5,8 +5,10 @@ from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.rule import Rule
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
@@ -14,11 +16,14 @@ from sentry.utils import json
 pytestmark = [requires_snuba]
 
 
+@region_silo_test
 class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = JiraCreateTicketAction
 
     def setUp(self):
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            organization=self.organization,
+            user=self.user,
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -28,7 +33,6 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
         self.installation = self.integration.get_installation(self.organization.id)
 
         self.jira_rule = self.get_rule(
@@ -178,8 +182,9 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert rule.render_label() == """Create a Jira issue in Jira Cloud with these """
 
     def test_render_label_without_integration(self):
-        deleted_id = self.integration.id
-        self.integration.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            deleted_id = self.integration.id
+            self.integration.delete()
 
         rule = self.get_rule(data={"integration": deleted_id})
 
