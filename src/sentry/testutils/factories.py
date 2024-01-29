@@ -86,6 +86,7 @@ from sentry.models.notificationaction import (
     ActionTrigger,
     NotificationAction,
 )
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -1723,6 +1724,11 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_notification_settings_provider(*args, **kwargs) -> NotificationSettingProvider:
+        return NotificationSettingProvider.objects.create(*args, **kwargs)
 
     @staticmethod
     def create_basic_auth_header(username: str, password: str = "") -> str:

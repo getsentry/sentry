@@ -15,7 +15,7 @@ from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_H
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -139,25 +139,24 @@ def assert_proxy_request(request, is_proxy=True):
         assert request.headers[PROXY_OI_HEADER] is not None
 
 
-@override_settings(
-    SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
-    SENTRY_CONTROL_ADDRESS="http://controlserver",
-)
+@region_silo_test
 class PagerDutyProxyApiClientTest(APITestCase):
     def setUp(self):
         self.login_as(self.user)
-        self.integration = self.create_provider_integration(
+
+        self.integration = self.create_integration(
+            organization=self.organization,
             provider="pagerduty",
             name="Example PagerDuty",
             external_id=EXTERNAL_ID,
             metadata={"services": SERVICES},
         )
-        self.integration.add_organization(self.organization, self.user)
-        self.service = add_service(
-            self.integration.organizationintegration_set.first(),
-            service_name=SERVICES[0]["service_name"],
-            integration_key=SERVICES[0]["integration_key"],
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.service = add_service(
+                self.integration.organizationintegration_set.first(),
+                service_name=SERVICES[0]["service_name"],
+                integration_key=SERVICES[0]["integration_key"],
+            )
         self.installation = self.integration.get_installation(self.organization.id)
         self.min_ago = iso_format(before_now(minutes=1))
 
