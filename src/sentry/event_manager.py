@@ -62,7 +62,6 @@ from sentry.grouping.ingest import (
     get_hash_values,
     update_grouping_config_if_needed,
 )
-from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -509,22 +508,6 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
-        primary_hashes, secondary_hashes, all_hashes = get_hash_values(project, job, metric_tags)
-
-        # Because this logic is not complex enough we want to special case the situation where we
-        # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
-        # `_save_aggregate` needs special logic to not create orphaned hashes in migration cases
-        # but it wants a different logic to implement splitting of hierarchical hashes.
-        migrate_off_hierarchical = bool(
-            secondary_hashes
-            and secondary_hashes.hierarchical_hashes
-            and not primary_hashes.hierarchical_hashes
-        )
-
-        _materialize_metadata_many(jobs)
-
-        group_creation_kwargs = _get_group_creation_kwargs(job)
-
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
         # incremented for sure. Also wait for grouping to remove attachments
@@ -537,12 +520,10 @@ class EventManager:
             with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
                 group_info = _save_aggregate(
                     event=job["event"],
-                    hashes=all_hashes,
+                    job=job,
                     release=job["release"],
-                    metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
-                    migrate_off_hierarchical=migrate_off_hierarchical,
-                    **group_creation_kwargs,
+                    metric_tags=metric_tags,
                 )
                 job["groups"] = [group_info]
         except HashDiscarded as err:
@@ -656,10 +637,6 @@ class EventManager:
         _track_outcome_accepted_many(jobs)
 
         self._data = job["event"].data.data
-
-        # Check if the project is configured for auto upgrading and we need to upgrade
-        # to the latest grouping config.
-        update_grouping_config_if_needed(project)
 
         return job["event"]
 
@@ -1362,14 +1339,35 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 def _save_aggregate(
     event: Event,
-    hashes: CalculatedHashes,
+    job: Job,
     release: Optional[Release],
-    metadata: dict[str, Any],
     received_timestamp: Union[int, float],
-    migrate_off_hierarchical: Optional[bool] = False,
-    **group_creation_kwargs: Any,
+    metric_tags: MutableTags,
 ) -> Optional[GroupInfo]:
     project = event.project
+
+    primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
+
+    # Now that we've used the current and possibly secondary grouping config(s) to calculate the
+    # hashes, we're free to perform a config update if needed. Future events will use the new
+    # config, but will also be grandfathered into the current config for a week, so as not to
+    # erroneously create new groups.
+    update_grouping_config_if_needed(project)
+
+    _materialize_metadata_many([job])
+    metadata = dict(job["event_metadata"])
+
+    group_creation_kwargs = _get_group_creation_kwargs(job)
+
+    # Because this logic is not complex enough we want to special case the situation where we
+    # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
+    # there needs to be special logic to not create orphaned hashes in migration cases
+    # but it wants a different logic to implement splitting of hierarchical hashes.
+    migrate_off_hierarchical = bool(
+        secondary_hashes
+        and secondary_hashes.hierarchical_hashes
+        and not primary_hashes.hierarchical_hashes
+    )
 
     flat_grouphashes = [
         GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
