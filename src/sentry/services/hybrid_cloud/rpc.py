@@ -30,6 +30,7 @@ import pydantic
 import requests
 import sentry_sdk
 from django.conf import settings
+from requests.adapters import HTTPAdapter, Retry
 from typing_extensions import Self
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
@@ -571,6 +572,18 @@ class _RemoteSiloCall:
             return Client().post(self.path, data, headers["Content-Type"], **extra)
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
+        retry_adapter = HTTPAdapter(
+            max_retries=Retry(
+                total=3,
+                backoff_factor=0.1,
+                status_forcelist=[503],
+                allowed_methods=["POST"],
+            )
+        )
+        http = requests.Session()
+        http.mount("http://", retry_adapter)
+        http.mount("https://", retry_adapter)
+
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
@@ -580,7 +593,7 @@ class _RemoteSiloCall:
         if baggage := sentry_sdk.get_baggage():
             headers["Baggage"] = baggage
         try:
-            return requests.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
+            return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
         except requests.Timeout as e:
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
 
