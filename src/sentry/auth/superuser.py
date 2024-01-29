@@ -21,6 +21,7 @@ from django.core.signing import BadSignature
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
+from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.exceptions import SentryAPIException
@@ -85,7 +86,24 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
     return superuser_scopes
 
 
-def is_active_superuser(request):
+def superuser_has_permission(request: Request):
+    if not is_active_superuser(request):
+        return False
+
+    if is_self_hosted():
+        return True
+
+    if features.has("auth:enterprise-superuser-read-write", actor=request.user):
+        if "superuser.write" in request.access.permissions:
+            return True
+
+        # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
+        return request.method == "GET" or request.method == "OPTIONS"
+
+    return True
+
+
+def is_active_superuser(request: Request) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     su = getattr(request, "superuser", None) or Superuser(request)
