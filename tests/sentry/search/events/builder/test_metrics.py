@@ -2042,7 +2042,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
         # Because we call the builder with the feature flag we will get the environment to be included
         with Feature("organizations:on-demand-metrics-query-spec-version-two"):
-            query = TimeseriesMetricQueryBuilder(
+            query_builder = TimeseriesMetricQueryBuilder(
                 self.params,
                 dataset=Dataset.PerformanceMetrics,
                 interval=3600,
@@ -2053,11 +2053,16 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                     on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
                 ),
             )
-            spec = query._on_demand_metric_spec_map[field]
+            spec_in_use: Optional[OnDemandMetricSpec] = (
+                query_builder._on_demand_metric_spec_map[field]
+                if query_builder._on_demand_metric_spec_map
+                else None
+            )
+            assert spec_in_use
             # It does include the environment tag
-            assert spec._query_str_for_hash == f"{expected_str_hash};['environment']"
+            assert spec_in_use._query_str_for_hash == f"{expected_str_hash};['environment']"
             # This proves that we're picking up the new spec version
-            assert spec.spec_version.flags == {"include_environment_tag"}
+            assert spec_in_use.spec_version.flags == {"include_environment_tag"}
 
     def test_run_query_with_on_demand_distribution_and_environment(self):
         field = "p75(measurements.fp)"
