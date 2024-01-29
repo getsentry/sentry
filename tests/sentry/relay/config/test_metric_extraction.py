@@ -1286,8 +1286,8 @@ def _on_demand_spec_from_alert(alert: AlertRule) -> OnDemandMetricSpec:
 
 def _metric_spec(
     query_hash: str,
-    tags: Optional[list[dict[str, str]]] = None,
     condition: Optional[dict[str, Any]] = None,
+    tags: Optional[list[dict[str, str]]] = None,
 ) -> dict[str, Any]:
     tags = [{"key": "query_hash", "value": query_hash}] + (tags or [])
     return {
@@ -1314,8 +1314,8 @@ def test_widgets_with_without_environment_do_not_collide(default_project: Projec
 
         config = get_metric_extraction_config(default_project)
         assert config and config["metrics"] == [
-            _metric_spec("f1353b0f", [env_tag], condition=condition),
-            _metric_spec("4fb5a472", [env_tag], condition=condition),
+            _metric_spec("f1353b0f", condition, [env_tag]),
+            _metric_spec("4fb5a472", condition, [env_tag]),
         ]
 
         spec1 = _on_demand_spec_from_widget(widget1)
@@ -1328,34 +1328,23 @@ def test_widgets_with_without_environment_do_not_collide(default_project: Projec
 
 
 @django_db_all
-def test_alert_and_widget_colliding(
-    default_project: Project, default_environment: Environment
-) -> None:
+def test_alert_and_widget_colliding(default_project: Project) -> None:
     aggr = "count()"
     query = "transaction.duration:>=10"
     condition = {"name": "event.duration", "op": "gte", "value": 10.0}
     env_tag = {"field": "event.environment", "key": "environment"}
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        alert = create_alert(aggr, query, default_project, environment=default_environment)
         widget = create_widget([aggr], query, default_project)
 
         config = get_metric_extraction_config(default_project)
 
-        assert config and config["metrics"] == [
-            # The alert does not include the environment as part of the tags
-            _metric_spec(
-                query_hash="0af3eea3",
-                condition={
-                    "inner": [
-                        {"name": "event.environment", "op": "eq", "value": "development"},
-                        condition,
-                    ],
-                    "op": "and",
-                },
-            ),
-            _metric_spec("f1353b0f", [env_tag], condition=condition),
-        ]
+        assert config and config["metrics"] == [_metric_spec("f1353b0f", condition, [env_tag])]
+
+        alert = create_alert(aggr, query, default_project)
+        config = get_metric_extraction_config(default_project)
+        # Only one metric because they collide and the env tag is lost because we pick the alert spec
+        assert config and config["metrics"] == [_metric_spec("f1353b0f", condition)]
 
         widget_spec = _on_demand_spec_from_widget(widget)
         alert_spec = _on_demand_spec_from_alert(alert)
