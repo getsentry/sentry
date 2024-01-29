@@ -594,13 +594,5 @@ const Icon = styled('span')<IconProps>`
 
 const LinkButton = Button as React.ComponentType<LinkButtonProps>;
 
-export {
-  Button,
-  ButtonProps,
-  BaseButtonProps,
-  LinkButton,
-  LinkButtonProps,
-  // Also export these styled components so we can use them as selectors
-  StyledButton,
-  ButtonLabel,
-};
+export type {ButtonProps, BaseButtonProps, LinkButtonProps};
+export {Button, LinkButton, StyledButton, ButtonLabel};
