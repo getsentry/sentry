@@ -64,9 +64,10 @@ function MonitorIssues({orgSlug, monitor, monitorEnvs}: Props) {
 
   const [issuesType, setIssuesType] = useState<IssuesType>(IssuesType.UNRESOLVED);
 
-  const issueQuery = `monitor.slug:"${monitor.slug}" environment:[${monitorEnvs
-    .map(e => e.name)
-    .join(',')}] ${issuesType === IssuesType.UNRESOLVED ? 'is:unresolved' : ''}`;
+  const monitorFilter = `monitor.slug:${monitor.slug}`;
+  const envFilter = `environment:[${monitorEnvs.map(e => e.name).join(',')}]`;
+  const issueTypeFilter = issuesType === IssuesType.UNRESOLVED ? 'is:unresolved' : '';
+  const issueQuery = `${monitorFilter} ${envFilter} ${issueTypeFilter}`;
 
   const issueSearchLocation = {
     pathname: `/organizations/${orgSlug}/issues/`,
