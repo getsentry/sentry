@@ -642,6 +642,28 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert isinstance(msg, EmailMultiAlternatives)
         assert local_timestamp in str(msg.alternatives)
 
+    def _test_invalid_timezone(self, s: str) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserOption.objects.create(user=self.user, key="timezone", value=s)
+
+        event = self.store_event(
+            data={"message": "foobar", "level": "error"},
+            project_id=self.project.id,
+        )
+        notification = AlertRuleNotification(
+            Notification(event=event), ActionTargetType.ISSUE_OWNERS
+        )
+        recipient_context = notification.get_recipient_context(
+            RpcActor.from_orm_user(self.user), {}
+        )
+        assert recipient_context["timezone"] == timezone.utc
+
+    def test_context_invalid_timezone_empty_string(self):
+        self._test_invalid_timezone("")
+
+    def test_context_invalid_timezone_garbage_value(self):
+        self._test_invalid_timezone("not/a/real/timezone")
+
     def test_notify_with_suspect_commits(self):
         repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id

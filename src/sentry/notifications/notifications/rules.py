@@ -127,7 +127,7 @@ class AlertRuleNotification(ProjectNotification):
             user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
             try:
                 tz = zoneinfo.ZoneInfo(user_tz)
-            except zoneinfo.ZoneInfoNotFoundError:
+            except (ValueError, zoneinfo.ZoneInfoNotFoundError):
                 pass
         return {
             **super().get_recipient_context(recipient, extra_context),
