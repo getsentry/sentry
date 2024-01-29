@@ -438,13 +438,11 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   renderInviteMemberLink() {
-    const {loading} = this.state;
-
     return (
       <InviteMemberLink
         to="#invite-member"
         data-test-id="invite-member"
-        disabled={loading}
+        disabled={this.state.loading}
         onClick={event => {
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
@@ -619,21 +617,11 @@ const IconContainer = styled('div')`
   flex-shrink: 0;
 `;
 
-const MenuItemWrapper = styled('div')<{
-  disabled?: boolean;
-  py?: number;
-}>`
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+const MenuItemWrapper = styled('div')`
   display: flex;
   align-items: center;
   font-size: 13px;
   padding: ${space(0.5)} ${space(0.5)};
-  ${p =>
-    typeof p.py !== 'undefined' &&
-    `
-      padding-top: ${p.py};
-      padding-bottom: ${p.py};
-    `};
 `;
 
 const MenuItemFooterWrapper = styled('div')`
