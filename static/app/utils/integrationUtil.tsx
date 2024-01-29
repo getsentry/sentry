@@ -1,6 +1,6 @@
 import * as qs from 'query-string';
 
-import {Result} from 'sentry/components/forms/controls/selectAsyncControl';
+import type {Result} from 'sentry/components/forms/controls/selectAsyncControl';
 import {
   IconAsana,
   IconBitbucket,
@@ -28,11 +28,11 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
-import {Hooks} from 'sentry/types/hooks';
+import type {Hooks} from 'sentry/types/hooks';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-import {IconSize} from './theme';
+import type {IconSize} from './theme';
 
 /**
  * TODO: remove alias once all usages are updated

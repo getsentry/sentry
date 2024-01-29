@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 import {useMemo} from 'react';
-import {SerializedStyles, Theme} from '@emotion/react';
+import type {SerializedStyles, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 type TextProps = {

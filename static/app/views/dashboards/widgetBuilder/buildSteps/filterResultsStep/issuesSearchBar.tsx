@@ -1,10 +1,10 @@
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {SearchBarProps} from 'sentry/components/events/searchBar';
+import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {WidgetQuery} from 'sentry/views/dashboards/types';
+import type {Organization} from 'sentry/types';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   MAX_MENU_HEIGHT,
   MAX_SEARCH_ITEMS,

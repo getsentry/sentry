@@ -1,4 +1,4 @@
-import {EventGroupComponent} from 'sentry/types';
+import type {EventGroupComponent} from 'sentry/types';
 
 export function hasNonContributingComponent(component: EventGroupComponent | undefined) {
   if (component === undefined) {

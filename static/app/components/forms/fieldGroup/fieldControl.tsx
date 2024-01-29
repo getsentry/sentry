@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 
 import FieldControlState from './fieldControlState';
-import {FieldGroupProps} from './types';
+import type {FieldGroupProps} from './types';
 
 type FieldControlProps = Pick<
   FieldGroupProps,

@@ -13,10 +13,10 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 
 interface TraceNotFoundProps {
   location: any;

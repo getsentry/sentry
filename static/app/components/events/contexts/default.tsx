@@ -1,5 +1,5 @@
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 
 type Props = {
   alias: string;

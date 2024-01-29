@@ -2,14 +2,14 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {APIRequestMethod} from 'sentry/api';
+import type {APIRequestMethod} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import Input from 'sentry/components/input';
 import {IconAdd, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
@@ -25,7 +25,7 @@ import {
   TOTAL_ERROR_COUNT_STR,
   UNHANDLED_ISSUE_COUNT_STR as _UNHANDLED_ISSUE_COUNT_STR,
 } from '../utils/constants';
-import {EditingThreshold, Threshold} from '../utils/types';
+import type {EditingThreshold, Threshold} from '../utils/types';
 
 type Props = {
   allEnvironmentNames: string[];

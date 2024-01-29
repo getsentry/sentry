@@ -2,7 +2,16 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, Sequence
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    NamedTuple,
+    Optional,
+    Sequence,
+)
 
 import sentry_sdk
 
@@ -15,6 +24,9 @@ from sentry.utils.safe import get_path, safe_execute
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
+
+if TYPE_CHECKING:
+    from sentry.grouping.strategies.base import StrategyConfiguration
 
 
 class StacktraceInfo(NamedTuple):
@@ -290,7 +302,7 @@ def _normalize_in_app(stacktrace: Sequence[dict[str, str]]) -> str:
 
 
 def normalize_stacktraces_for_grouping(
-    data: MutableMapping[str, Any], grouping_config=None
+    data: MutableMapping[str, Any], grouping_config: StrategyConfiguration | None = None
 ) -> None:
     """
     Applies grouping enhancement rules and ensure in_app is set on all frames.
@@ -327,10 +339,11 @@ def normalize_stacktraces_for_grouping(
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
+            extra_fingerprint = f"{grouping_config.id}.{grouping_config.enhancements.dumps()}"
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_modifications_to_frame(
-                    frames, platform, stacktrace_container, extra_fingerprint=grouping_config.id
+                    frames, platform, stacktrace_container, extra_fingerprint=extra_fingerprint
                 )
 
     # normalize `in_app` values, noting and storing the event's mix of in-app and system frames, so
@@ -591,7 +604,6 @@ def process_stacktraces(data, make_processors=None, set_raw_stacktrace=True):
     # Build a new processing task
     processing_task = get_stacktrace_processing_task(infos, processors)
     try:
-
         # Preprocess step
         for processor in processing_task.iter_processors():
             with sentry_sdk.start_span(

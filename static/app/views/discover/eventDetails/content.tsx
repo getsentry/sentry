@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -23,19 +23,18 @@ import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
-import {Event, EventTag} from 'sentry/types/event';
+import type {Organization, Project} from 'sentry/types';
+import type {Event, EventTag} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {eventDetailsRoute} from 'sentry/utils/discover/urls';
 import {getMessage} from 'sentry/utils/events';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
-import TraceMetaQuery, {
-  TraceMetaQueryChildrenProps,
-} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import type {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
 import {
   getTraceTimeRangeFromEvent,
   isTransaction,

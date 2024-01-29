@@ -1,6 +1,6 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
-import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
-import {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
+import type {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
+import type {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
   'replay.accessibility-issue-clicked': {

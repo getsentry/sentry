@@ -20,11 +20,11 @@ import {
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
-import {Monitor} from '../../types';
+import type {Monitor} from '../../types';
 
 import {ResolutionSelector} from './resolutionSelector';
 import {TimelineTableRow} from './timelineTableRow';
-import {MonitorBucketData, TimeWindow} from './types';
+import type {MonitorBucketData, TimeWindow} from './types';
 import {getConfigFromTimeRange, getStartFromTimeWindow} from './utils';
 
 interface Props {

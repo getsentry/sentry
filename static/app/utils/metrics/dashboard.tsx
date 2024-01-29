@@ -1,12 +1,14 @@
 import {urlEncode} from '@sentry/utils';
 
-import {PageFilters} from 'sentry/types';
-import {emptyWidget, MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import type {PageFilters} from 'sentry/types';
+import {emptyWidget} from 'sentry/utils/metrics/constants';
 import {formatMRI, MRIToField} from 'sentry/utils/metrics/mri';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import type {Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 

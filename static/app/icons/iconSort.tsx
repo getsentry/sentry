@@ -1,7 +1,8 @@
 import {forwardRef} from 'react';
 import {css} from '@emotion/react';
 
-import {SvgIcon, SVGIconProps} from './svgIcon';
+import type {SVGIconProps} from './svgIcon';
+import {SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
   rotated?: boolean;
