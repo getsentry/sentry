@@ -97,6 +97,7 @@ export function TimelineTableRow({
             label: isMuted ? t('Unmute Environment') : t('Mute Environment'),
             details: monitor.isMuted ? t('Monitor is muted') : undefined,
             key: 'mute',
+            disabled: monitor.isMuted,
             onAction: () => onToggleMuteEnvironment(env, !isMuted),
           }),
         ]
