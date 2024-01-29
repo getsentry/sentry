@@ -23,67 +23,69 @@ def fast_save(default_project, task_runner):
             uuid.uuid4().hex,
             data=data,
         )
+        group_creation_kwargs = {"level": 10, "culprit": ""}
+        hashes = CalculatedHashes(
+            hashes=["a" * 32, "b" * 32],
+            hierarchical_hashes=["c" * 32, "d" * 32, "e" * 32, last_frame * 32],
+            tree_labels=[
+                [
+                    {
+                        "function": "foo",
+                        "package": "",
+                        "is_sentinel": False,
+                        "is_prefix": False,
+                        "datapath": "",
+                    }
+                ],
+                [
+                    {
+                        "function": "bar",
+                        "package": "",
+                        "is_sentinel": False,
+                        "is_prefix": False,
+                        "datapath": "",
+                    }
+                ],
+                [
+                    {
+                        "function": "baz",
+                        "package": "",
+                        "is_sentinel": False,
+                        "is_prefix": False,
+                        "datapath": "",
+                    }
+                ],
+                [
+                    {
+                        "function": "bam",
+                        "package": "",
+                        "is_sentinel": False,
+                        "is_prefix": False,
+                        "datapath": "",
+                    }
+                ],
+            ],
+        )
 
         with task_runner():
             return _save_aggregate(
                 evt,
-                hashes=CalculatedHashes(
-                    hashes=["a" * 32, "b" * 32],
-                    hierarchical_hashes=["c" * 32, "d" * 32, "e" * 32, last_frame * 32],
-                    tree_labels=[
-                        [
-                            {
-                                "function": "foo",
-                                "package": "",
-                                "is_sentinel": False,
-                                "is_prefix": False,
-                                "datapath": "",
-                            }
-                        ],
-                        [
-                            {
-                                "function": "bar",
-                                "package": "",
-                                "is_sentinel": False,
-                                "is_prefix": False,
-                                "datapath": "",
-                            }
-                        ],
-                        [
-                            {
-                                "function": "baz",
-                                "package": "",
-                                "is_sentinel": False,
-                                "is_prefix": False,
-                                "datapath": "",
-                            }
-                        ],
-                        [
-                            {
-                                "function": "bam",
-                                "package": "",
-                                "is_sentinel": False,
-                                "is_prefix": False,
-                                "datapath": "",
-                            }
-                        ],
-                    ],
-                ),
+                hashes=hashes,
                 release=None,
                 metadata={},
                 received_timestamp=0,
-                level=10,
-                culprit="",
+                migrate_off_hierarchical=False,
+                **group_creation_kwargs,
             )
 
     return inner
 
 
-def _group_hashes(group_id):
+def get_hash_values_for_group(group_id):
     return {gh.hash for gh in GroupHash.objects.filter(group_id=group_id)}
 
 
-def _assoc_hash(group, hash):
+def associate_group_with_hash(group, hash):
     gh = GroupHash.objects.get_or_create(project=group.project, hash=hash)[0]
     assert gh.group is None or gh.group.id != group.id
     gh.group = group
@@ -113,10 +115,10 @@ def test_move_all_events(default_project, fast_save):
     assert not new_group_info.is_regression
     assert new_group_info.group.id == group_info.group.id
 
-    _assoc_hash(group_info.group, "a" * 32)
-    _assoc_hash(group_info.group, "b" * 32)
+    associate_group_with_hash(group_info.group, "a" * 32)
+    associate_group_with_hash(group_info.group, "b" * 32)
 
-    assert _group_hashes(group_info.group.id) == {"a" * 32, "b" * 32, "c" * 32}
+    assert get_hash_values_for_group(group_info.group.id) == {"a" * 32, "b" * 32, "c" * 32}
     assert Group.objects.get(id=new_group_info.group.id).title == "foo"
 
     # simulate split operation where all events of group are moved into a more specific hash
@@ -142,7 +144,7 @@ def test_move_all_events(default_project, fast_save):
     assert not new_group_info.is_regression
     assert new_group_info.group.id != group_info.group.id
 
-    assert _group_hashes(new_group_info.group.id) == {"c" * 32}
+    assert get_hash_values_for_group(new_group_info.group.id) == {"c" * 32}
     assert Group.objects.get(id=new_group_info.group.id).title == "foo"
 
 
@@ -157,7 +159,7 @@ def test_partial_move(default_project, fast_save):
     assert not new_group_info.is_regression
     assert new_group_info.group.id == group_info.group.id
 
-    assert _group_hashes(group_info.group.id) == {"c" * 32}
+    assert get_hash_values_for_group(group_info.group.id) == {"c" * 32}
 
     # simulate split operation where event "f" of group is moved into a more specific hash
     group2 = Group.objects.create(project=default_project)
@@ -168,7 +170,7 @@ def test_partial_move(default_project, fast_save):
     assert not new_group_info.is_regression
     assert new_group_info.group.id == group2.id
 
-    assert _group_hashes(new_group_info.group.id) == {
+    assert get_hash_values_for_group(new_group_info.group.id) == {
         # one hierarchical hash associated
         # no flat hashes associated when sorting into split group!
         "f"
@@ -180,7 +182,7 @@ def test_partial_move(default_project, fast_save):
     assert not new_group_info.is_regression
     assert new_group_info.group.id == group_info.group.id
 
-    assert _group_hashes(new_group_info.group.id) == {
+    assert get_hash_values_for_group(new_group_info.group.id) == {
         "c" * 32,
     }
 
