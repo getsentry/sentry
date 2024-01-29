@@ -26,6 +26,10 @@ module.exports = {
     tick: true,
     jest: true,
   },
+  parserOptions: {
+    project: true,
+    tsConfigRootDir: __dirname,
+  },
   rules: {
     'react-hooks/exhaustive-deps': [
       'warn',
@@ -37,8 +41,20 @@ module.exports = {
       'error',
       {fixStyle: 'separate-type-imports', prefer: 'type-imports'},
     ],
+    '@typescript-eslint/consistent-type-exports': ['error'],
   },
   overrides: [
+    {
+      // Benchmarks are not compiled with the same tsconfig as the rest of the
+      // app, so we need to disable some rules.
+      files: ['static/app/**/*.benchmark.ts'],
+      parserOptions: {
+        project: false,
+      },
+      rules: {
+        '@typescript-eslint/consistent-type-exports': 'off',
+      },
+    },
     {
       files: ['tests/js/**/*.{ts,js}'],
       extends: ['plugin:testing-library/react', 'sentry-app/strict'],
