@@ -569,7 +569,7 @@ def augment_transactions_with_spans(
     # transaction id so we can link parent/child transactions in
     # a trace.
 
-    def load_results(chunked_project_ids):
+    def build_query(chunked_project_ids):
         spans_params = params.copy()
         spans_params["project_objects"] = [
             p for p in params["project_objects"] if p.id in chunked_project_ids
@@ -578,6 +578,7 @@ def augment_transactions_with_spans(
         return SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             spans_params,
+            # Send all span IDs since we can't match them back to the right project ID.
             query=f"trace:{trace_id} span_id:[{','.join(query_spans)}]",
             selected_columns=[
                 "transaction.id",
@@ -586,23 +587,21 @@ def augment_transactions_with_spans(
             ],
             orderby=["timestamp", "id"],
             limit=10000,
-        ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
+        )
+
+    chunk_size = math.ceil(len(projects) / MAX_PARALLEL_QUERIES)
+    spans_queries = [
+        build_query(chunked_projects) for chunked_projects in chunk(projects, chunk_size)
+    ]
+    parents_results = bulk_snql_query(
+        [query.get_snql_query() for query in spans_queries],
+        referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value,
+    )
 
     parent_map = {}
-    chunk_size = math.ceil(len(projects) / MAX_PARALLEL_QUERIES)
-    # Limit to 10 projects per query
-    if chunk_size > 10:
-        chunk_size = 10
-
-    with ThreadPoolExecutor(max_workers=MAX_PARALLEL_QUERIES) as executor:
-        futures = {
-            executor.submit(load_results, chunked_projects)
-            for chunked_projects in chunk(projects, chunk_size)
-        }
-        for future in as_completed(futures):
-            parents_results = future.result()
-            for parent in parents_results["data"]:
-                parent_map[parent["span_id"]] = parent
+    for result in parents_results:
+        for parent in result["data"]:
+            parent_map[parent["span_id"]] = parent
 
     for transaction in transactions:
         # For a given transaction, if parent span id exists in the tranaction (so this is
