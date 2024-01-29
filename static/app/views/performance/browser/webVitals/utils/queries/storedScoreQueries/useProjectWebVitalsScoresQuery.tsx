@@ -63,7 +63,7 @@ export const useProjectWebVitalsScoresQuery = ({
     pageFilters.selection
   );
 
-  return useDiscoverQuery({
+  const result = useDiscoverQuery({
     eventView: projectEventView,
     limit: 50,
     location,
@@ -76,4 +76,15 @@ export const useProjectWebVitalsScoresQuery = ({
     skipAbort: true,
     referrer: 'api.performance.browser.web-vitals.project-scores',
   });
+
+  if (result.status === 'success' && result.data) {
+    // Fake INP data with FID data
+    result.data.data[0]['avg(measurements.score.weight.inp)'] =
+      result.data?.data[0]['avg(measurements.score.weight.fid)'];
+    result.data.data[0]['count_scores(measurements.score.inp)'] =
+      result.data?.data[0]['count_scores(measurements.score.fid)'];
+    result.data.data[0]['performance_score(measurements.score.inp)'] =
+      result.data?.data[0]['performance_score(measurements.score.fid)'];
+  }
+  return result;
 };

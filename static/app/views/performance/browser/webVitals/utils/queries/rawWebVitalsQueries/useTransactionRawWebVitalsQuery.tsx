@@ -86,6 +86,7 @@ export const useTransactionRawWebVitalsQuery = ({
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
             'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
             'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
+            'p75(measurements.inp)': row['p75(measurements.fid)'] as number,
             'count()': row['count()'] as number,
             'count_web_vitals(measurements.lcp, any)': row[
               'count_web_vitals(measurements.lcp, any)'
@@ -114,6 +115,8 @@ export const useTransactionRawWebVitalsQuery = ({
               lcpScore: lcpScore ?? 0,
               ttfbScore: ttfbScore ?? 0,
               fidScore: fidScore ?? 0,
+              // Fake INP data using FID data
+              inpScore: fidScore ?? 0,
             };
           })
       : [];

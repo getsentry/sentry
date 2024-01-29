@@ -79,6 +79,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     count: SeriesDataUnit[];
     fcp: SeriesDataUnit[];
     fid: SeriesDataUnit[];
+    inp: SeriesDataUnit[];
     lcp: SeriesDataUnit[];
     ttfb: SeriesDataUnit[];
   } = {
@@ -87,6 +88,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     cls: [],
     ttfb: [],
     fid: [],
+    inp: [],
     count: [],
   };
 
@@ -108,6 +110,9 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       }
     });
   });
+
+  // Fake INP data with FID data
+  data.inp = data.fid;
 
   return {data, isLoading: result.isLoading};
 };

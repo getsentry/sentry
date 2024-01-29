@@ -22,6 +22,7 @@ export type UnweightedWebVitalsScoreBreakdown = {
   unweightedCls: SeriesDataUnit[];
   unweightedFcp: SeriesDataUnit[];
   unweightedFid: SeriesDataUnit[];
+  unweightedInp: SeriesDataUnit[];
   unweightedLcp: SeriesDataUnit[];
   unweightedTtfb: SeriesDataUnit[];
 };
@@ -96,10 +97,12 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     cls: [],
     ttfb: [],
     fid: [],
+    inp: [],
     total: [],
     unweightedCls: [],
     unweightedFcp: [],
     unweightedFid: [],
+    unweightedInp: [],
     unweightedLcp: [],
     unweightedTtfb: [],
   };
@@ -130,5 +133,8 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     }
   );
 
+  // Fake INP data with FID data
+  data.inp = data.fid;
+  data.unweightedInp = data.unweightedFid;
   return {data, isLoading: result.isLoading};
 };

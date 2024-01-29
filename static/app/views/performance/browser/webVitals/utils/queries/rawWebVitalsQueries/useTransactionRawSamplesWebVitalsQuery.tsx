@@ -134,6 +134,8 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
               lcpScore: lcpScore ?? 0,
               ttfbScore: ttfbScore ?? 0,
               fidScore: fidScore ?? 0,
+              // Fake INP data using FID data
+              inpScore: fidScore ?? 0,
             };
           })
       : [];
