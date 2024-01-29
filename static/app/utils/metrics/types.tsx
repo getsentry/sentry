@@ -100,9 +100,9 @@ export type MetricCorrelation = {
   }[];
 };
 
-export type SelectionRange = {
+export interface SelectionRange {
   end?: DateString;
   max?: number;
   min?: number;
   start?: DateString;
-};
+}

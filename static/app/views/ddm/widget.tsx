@@ -185,14 +185,14 @@ export const MetricWidget = memo(
   }
 );
 
-type MetricWidgetBodyProps = MetricWidgetQueryParams & {
+interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   widgetIndex: number;
   chartHeight?: number;
   focusArea?: FocusAreaProps;
   highlightedSampleId?: string;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   onSampleClick?: (sample: Sample) => void;
-};
+}
 
 export const MetricWidgetBody = memo(
   ({
