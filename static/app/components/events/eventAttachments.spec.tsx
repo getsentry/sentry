@@ -151,7 +151,7 @@ describe('EventAttachments', function () {
 
     await userEvent.click(screen.getByRole('button', {name: /preview/i}));
 
-    expect(screen.getByText('file contents')).toBeInTheDocument();
+    expect(await screen.findByText('file contents')).toBeInTheDocument();
   });
 
   it('can delete attachments', async function () {

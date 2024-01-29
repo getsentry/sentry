@@ -1,8 +1,13 @@
-import {Theme, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
-import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import type {
+  EChartClickHandler,
+  EChartHighlightHandler,
+  Series,
+} from 'sentry/types/echarts';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -10,8 +15,10 @@ import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {isNearAverage} from 'sentry/views/starfish/components/samplesTable/common';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
-import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
+import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {
   crossIconPath,
   downwardPlayIconPath,
@@ -72,7 +79,7 @@ function DurationChart({
   platform,
 }: Props) {
   const theme = useTheme();
-  const {setPageError} = usePageError();
+  const {setPageError} = usePageAlert();
   const pageFilter = usePageFilters();
 
   const filters: SpanMetricsQueryFilters = {
@@ -206,7 +213,7 @@ function DurationChart({
   };
 
   if (spanMetricsSeriesError || spanMetricsError) {
-    setPageError(t('An error has occured while loading chart data'));
+    setPageError(t('An error has occurred while loading chart data'));
   }
 
   const subtitle = pageFilter.selection.datetime.period

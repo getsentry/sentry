@@ -6,7 +6,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {InternalAppApiToken} from 'sentry/types';
+import type {InternalAppApiToken} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
@@ -16,8 +16,6 @@ type Props = {
   tokenPrefix?: string;
 };
 
-// TODO: After the BE portion of code changes have been released, remove the conditional rendering of the token.
-// We are currently doing the conditional logic to do safe blue/green deploys and handle contract changes.
 function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
   return (
     <StyledPanelItem>
@@ -33,6 +31,7 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
         </TokenPreview>
         <ButtonWrapper>
           <Button
+            data-test-id="token-delete"
             onClick={() => onRemove(token)}
             icon={<IconSubtract isCircled size="xs" />}
           >

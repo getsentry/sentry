@@ -55,12 +55,7 @@ export default function AccessibilityRefetchBanner({initialOffsetMs, refetch}: P
             ),
           })}
         </Flex>
-        <Button
-          size="xs"
-          priority="primary"
-          onClick={handleClickRefetch}
-          disabled={currentTime === lastOffsetMs}
-        >
+        <Button size="xs" priority="primary" onClick={handleClickRefetch}>
           {isPlaying
             ? tct('Pause and run validation for [now]', {now})
             : tct('Run validation for [now]', {now})}

@@ -14,7 +14,7 @@ import {NativeContent} from 'sentry/components/events/interfaces/crashContent/st
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture({});

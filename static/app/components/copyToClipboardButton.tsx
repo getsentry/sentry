@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 

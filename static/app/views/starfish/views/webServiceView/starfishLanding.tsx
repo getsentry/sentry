@@ -1,18 +1,15 @@
 import {Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import type {Organization, PageFilters} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {STARFISH_TYPE_FOR_PROJECT} from 'sentry/views/starfish/allowedProjects';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {ReleaseSelector} from 'sentry/views/starfish/components/releaseSelector';
@@ -86,7 +83,7 @@ export function StarfishLanding(props: Props) {
 
   return (
     <Layout.Page>
-      <PageErrorProvider>
+      <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>{getStarfishPageTitle()}</Layout.Title>
@@ -95,7 +92,7 @@ export function StarfishLanding(props: Props) {
 
         <Layout.Body>
           <Layout.Main fullWidth>
-            <PageErrorAlert />
+            <PageAlert />
             <Fragment>
               <SearchContainerWithFilterAndMetrics>
                 {pageFilters}
@@ -105,7 +102,7 @@ export function StarfishLanding(props: Props) {
             </Fragment>
           </Layout.Main>
         </Layout.Body>
-      </PageErrorProvider>
+      </PageAlertProvider>
     </Layout.Page>
   );
 }

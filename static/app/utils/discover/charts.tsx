@@ -1,11 +1,11 @@
 import {captureMessage} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import {LegendComponentOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined, formatBytesBase2} from 'sentry/utils';
-import {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {
   DAY,
   formatAbbreviatedNumber,

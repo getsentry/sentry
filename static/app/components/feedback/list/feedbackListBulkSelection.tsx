@@ -1,7 +1,7 @@
 import Button from 'sentry/components/actions/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
+import type decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import useBulkEditFeedbacks from 'sentry/components/feedback/list/useBulkEditFeedbacks';
 import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import {Flex} from 'sentry/components/profiling/flex';

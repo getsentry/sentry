@@ -5,12 +5,10 @@ import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/button';
+import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -18,9 +16,10 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconArrow, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/formatters';
+import type {MetricCorrelation, SelectionRange} from 'sentry/utils/metrics/types';
 import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -28,8 +27,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
-
-import {MetricCorrelation, MetricRange} from '../../utils/metrics/index';
 
 /**
  * Limits the number of spans to the top n + an "other" entry
@@ -51,12 +48,12 @@ function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: nu
   ]);
 }
 
-export type SamplesTableProps = MetricRange & {
+interface SamplesTableProps extends SelectionRange {
   highlightedRow?: string | null;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   query?: string;
-};
+}
 
 type Column = GridColumnHeader<keyof MetricCorrelation>;
 
@@ -67,6 +64,7 @@ const columnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
   {key: 'spansSummary', width: COL_WIDTH_UNDEFINED, name: 'Spans Summary'},
   {key: 'duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'},
   {key: 'traceId', width: COL_WIDTH_UNDEFINED, name: 'Trace ID'},
+  {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: 'Timestamp'},
   {key: 'profileId', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
 ];
 
@@ -130,8 +128,8 @@ export function SampleTable({
               organization.slug,
               eventSlug,
               undefined,
-              {referrer: 'metrics'},
-              row.spanId
+              {referrer: 'metrics', openPanel: 'open'},
+              row.spansDetails[0]?.spanId
             )}
             target="_blank"
           >
@@ -238,6 +236,17 @@ export function SampleTable({
             };
           })}
         />
+      );
+    }
+    if (key === 'timestamp') {
+      return (
+        <BodyCell
+          rowId={row.transactionId}
+          onHover={onRowHover}
+          highlighted={highlighted}
+        >
+          <DateTime date={row.timestamp} />
+        </BodyCell>
       );
     }
     if (key === 'profileId') {

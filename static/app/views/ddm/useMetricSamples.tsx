@@ -1,12 +1,14 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import type {XAXisOption} from 'echarts/types/dist/shared';
 import moment from 'moment';
 
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
-import {isCumulativeOp, MetricCorrelation} from 'sentry/utils/metrics';
-import {fitToValueRect, getValueRect} from 'sentry/views/ddm/rect';
-import {Sample} from 'sentry/views/ddm/widget';
+import {isCumulativeOp} from 'sentry/utils/metrics';
+import type {MetricCorrelation} from 'sentry/utils/metrics/types';
+import {fitToValueRect, getValueRect} from 'sentry/views/ddm/chartUtils';
+import type {Sample} from 'sentry/views/ddm/widget';
 
 type UseMetricSamplesProps = {
   timeseries: Series[];
@@ -58,7 +60,7 @@ export function useMetricSamples({
     setValueRect(getValueRect(chartRef));
   }, [chartRef, timeseries]);
 
-  const xAxis = useMemo(() => {
+  const xAxis: XAXisOption = useMemo(() => {
     const {min, max} = getDateRange(timeseries);
 
     return {
@@ -69,6 +71,9 @@ export function useMetricSamples({
         formatter: () => {
           return '';
         },
+      },
+      axisPointer: {
+        type: 'none',
       },
       min: Math.max(valueRect.xMin, min),
       max: Math.min(valueRect.xMax, max),
@@ -85,6 +90,7 @@ export function useMetricSamples({
           return '';
         },
       },
+
       min: valueRect.yMin,
       max: valueRect.yMax,
     };
@@ -144,13 +150,17 @@ export function useMetricSamples({
         projectId: sample.projectId,
         itemStyle: {
           color: theme.purple400,
-          opacity: isHighlighted ? 0.9 : 0.75,
+          opacity: 1,
         },
         yAxisIndex: 1,
         xAxisIndex: 1,
         xValue,
         yValue,
-
+        tooltip: {
+          axisPointer: {
+            type: 'none',
+          },
+        },
         data: [
           {
             name: xPosition,

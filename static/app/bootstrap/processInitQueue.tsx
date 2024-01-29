@@ -1,5 +1,6 @@
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
-import {OnSentryInitConfiguration, SentryInitRenderReactComponent} from 'sentry/types';
+import type {OnSentryInitConfiguration} from 'sentry/types';
+import {SentryInitRenderReactComponent} from 'sentry/types';
 
 import {renderDom} from './renderDom';
 import {renderOnDomReady} from './renderOnDomReady';

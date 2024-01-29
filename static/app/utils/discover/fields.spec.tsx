@@ -1,9 +1,9 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
-  ColumnValueType,
   explodeField,
   fieldAlignment,
   generateAggregateFields,

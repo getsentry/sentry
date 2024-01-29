@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -17,16 +17,16 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageFilters, Project} from 'sentry/types';
+import type {PageFilters, Project} from 'sentry/types';
 import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
 import {
-  formatMetricUsingFixedUnit,
   getDDMInterval,
   getFieldFromMetricsQuery as getAlertAggregate,
-  MetricDisplayType,
-  MetricsQuery,
 } from 'sentry/utils/metrics';
+import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRIField, getUseCaseFromMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricsData} from 'sentry/utils/metrics/useMetricsData';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';

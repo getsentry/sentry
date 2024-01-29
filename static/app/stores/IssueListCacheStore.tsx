@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 
 import type {Group} from 'sentry/types';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 /**
  * The type here doesn't really matter it just needs to be compared via isEqual

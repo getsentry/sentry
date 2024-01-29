@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -16,7 +17,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -62,31 +63,30 @@ function OrganizationGeneralSettings({projects}: Props) {
     </Fragment>
   );
 
-  const handleSaveForm: React.ComponentProps<
-    typeof OrganizationSettingsForm
-  >['onSave'] = (prevData: Organization, updated: Organization) => {
-    if (updated.slug && updated.slug !== prevData.slug) {
-      changeOrganizationSlug(prevData, updated);
+  const handleSaveForm: React.ComponentProps<typeof OrganizationSettingsForm>['onSave'] =
+    (prevData: Organization, updated: Organization) => {
+      if (updated.slug && updated.slug !== prevData.slug) {
+        changeOrganizationSlug(prevData, updated);
 
-      if (updated.features.includes('customer-domains')) {
-        const {organizationUrl} = updated.links;
-        window.location.replace(`${organizationUrl}/settings/organization/`);
+        if (updated.features.includes('customer-domains')) {
+          const {organizationUrl} = updated.links;
+          window.location.replace(`${organizationUrl}/settings/organization/`);
+        } else {
+          browserHistory.replace(`/settings/${updated.slug}/`);
+        }
       } else {
-        browserHistory.replace(`/settings/${updated.slug}/`);
-      }
-    } else {
-      if (prevData.codecovAccess !== updated.codecovAccess) {
-        trackAnalytics('organization_settings.codecov_access_updated', {
-          organization: updated,
-          has_access: updated.codecovAccess,
-        });
-      }
+        if (prevData.codecovAccess !== updated.codecovAccess) {
+          trackAnalytics('organization_settings.codecov_access_updated', {
+            organization: updated,
+            has_access: updated.codecovAccess,
+          });
+        }
 
-      // This will update OrganizationStore (as well as OrganizationsStore
-      // which is slightly incorrect because it has summaries vs a detailed org)
-      updateOrganization(updated);
-    }
-  };
+        // This will update OrganizationStore (as well as OrganizationsStore
+        // which is slightly incorrect because it has summaries vs a detailed org)
+        updateOrganization(updated);
+      }
+    };
 
   const handleConfirmRemoveOrg = () => {
     if (!organization) {

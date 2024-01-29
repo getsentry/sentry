@@ -400,6 +400,14 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     from sentry.app import env
     from sentry.runner.settings import get_sentry_conf
 
+    # Hacky workaround to dynamically set the CSRF_TRUSTED_ORIGINS for self hosted
+    if settings.SENTRY_SELF_HOSTED and not settings.CSRF_TRUSTED_ORIGINS:
+        from sentry import options
+
+        system_url_prefix = options.get("system.url-prefix")
+        if system_url_prefix:
+            settings.CSRF_TRUSTED_ORIGINS = [system_url_prefix]
+
     env.data["config"] = get_sentry_conf()
     env.data["start_date"] = timezone.now()
 
