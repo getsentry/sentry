@@ -32,6 +32,10 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         kwargs["config"] = config
         super().__init__(*args, **kwargs)
 
+    @property
+    def use_default_tags(self) -> bool:
+        return False
+
     def get_field_type(self, field: str) -> Optional[str]:
         if field in self.meta_resolver_map:
             return self.meta_resolver_map[field]

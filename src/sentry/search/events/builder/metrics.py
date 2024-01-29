@@ -26,6 +26,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
@@ -92,6 +93,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metrics_layer_functions: List[CurriedFunction] = []
         self.metric_ids: Set[int] = set()
         self._indexer_cache: Dict[str, Optional[int]] = {}
+        self._use_default_tags: Optional[bool] = None
         # always true if this is being called
         config.has_metrics = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -116,6 +118,17 @@ class MetricsQueryBuilder(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
+
+    @property
+    def use_default_tags(self) -> bool:
+        if self._use_default_tags is None:
+            if self.params.organization is not None:
+                self._use_default_tags = features.has(
+                    "organizations:mep-use-default-tags", self.params.organization, actor=None
+                )
+            else:
+                self._use_default_tags = False
+        return self._use_default_tags
 
     def are_columns_resolved(self) -> bool:
         # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
@@ -382,7 +395,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         if col in DATASETS[self.dataset]:
             return str(DATASETS[self.dataset][col])
-        tag_id = self.resolve_metric_index(col)
+        tag_id = self.resolve_tag_key(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
         if self.is_performance:
@@ -583,6 +596,15 @@ class MetricsQueryBuilder(QueryBuilder):
         if self.is_performance or self.use_metrics_layer:
             return value
         return self.resolve_metric_index(value)
+
+    def resolve_tag_key(self, value: str) -> Optional[Union[int, str]]:
+        if self.use_default_tags:
+            if value in constants.DEFAULT_METRIC_TAGS:
+                return self.resolve_metric_index(value)
+            else:
+                raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
+        else:
+            return self.resolve_metric_index(value)
 
     def default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name

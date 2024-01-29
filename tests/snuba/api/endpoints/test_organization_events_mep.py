@@ -3089,6 +3089,42 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["transaction"] == "foo_transaction"
         assert meta["dataset"] == "metricsEnhanced"
 
+    def test_on_demand_with_mep(self):
+        # Store faketag as an OnDemandMetricSpec, which will put faketag into the metrics indexer
+        spec = OnDemandMetricSpec(
+            field="count()",
+            query="user.email:blah@example.com",
+            environment="prod",
+            groupbys=["faketag"],
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+        self.store_on_demand_metric(123, spec=spec)
+
+        # This is the event that we should actually return
+        transaction_data = load_data("transaction", timestamp=self.min_ago)
+        transaction_data["tags"].append(("faketag", "foo"))
+        self.store_event(transaction_data, self.project.id)
+
+        with self.feature({"organizations:mep-use-default-tags": True}):
+            response = self.do_request(
+                {
+                    "field": [
+                        "faketag",
+                        "count()",
+                    ],
+                    "query": "event.type:transaction",
+                    "dataset": "metricsEnhanced",
+                    "per_page": 50,
+                }
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["faketag"] == "foo"
+        assert not meta["isMetricsData"]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -3248,3 +3284,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_timestamp_groupby(self):
         super().test_timestamp_groupby()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_on_demand_with_mep(self):
+        super().test_on_demand_with_mep()
