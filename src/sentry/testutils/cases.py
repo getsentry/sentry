@@ -2801,7 +2801,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             issue_link += issue_link_extra_params
         assert (
             blocks[1]["text"]["text"]
-            == f":chart_with_downwards_trend: <{issue_link}|*N+1 Query*>  \n```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
+            == f":chart_with_upwards_trend: <{issue_link}|*N+1 Query*>  \n```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
         )
         assert (
             blocks[4]["elements"][0]["text"]

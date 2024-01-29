@@ -4,7 +4,7 @@ import * as echarts from 'echarts/core';
 
 import {space} from 'sentry/styles/space';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {MetricWidgetQueryParams} from 'sentry/utils/metrics';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -13,7 +13,8 @@ import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from 'sentry/views/ddm/constants';
 import {useDDMContext} from 'sentry/views/ddm/context';
 
-import {MetricWidget, Sample} from './widget';
+import type {Sample} from './widget';
+import {MetricWidget} from './widget';
 
 export function MetricScratchpad() {
   const {

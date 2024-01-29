@@ -6,12 +6,13 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
-import {Client, ResponseMeta} from 'sentry/api';
+import type {ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
@@ -145,8 +146,8 @@ export function fetchOrganizationDetails(
           typeof err.responseJSON?.detail === 'string'
             ? err.responseJSON?.detail
             : typeof err.responseJSON?.detail?.message === 'string'
-            ? err.responseJSON?.detail.message
-            : null;
+              ? err.responseJSON?.detail.message
+              : null;
 
         if (errMessage) {
           addErrorMessage(errMessage);

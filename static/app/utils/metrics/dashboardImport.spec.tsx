@@ -1,10 +1,6 @@
-import {MetricMeta, MRI} from 'sentry/types';
-import {
-  ImportDashboard,
-  ImportWidget,
-  parseDashboard,
-  WidgetParser,
-} from 'sentry/utils/metrics/dashboardImport';
+import type {MetricMeta, MRI} from 'sentry/types';
+import type {ImportDashboard, ImportWidget} from 'sentry/utils/metrics/dashboardImport';
+import {parseDashboard, WidgetParser} from 'sentry/utils/metrics/dashboardImport';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 
 const mockRequests = (queryStrings: string[]) => {

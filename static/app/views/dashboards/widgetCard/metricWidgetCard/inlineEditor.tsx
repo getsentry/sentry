@@ -1,7 +1,8 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,18 +17,20 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricMeta, MRI} from 'sentry/types';
+import type {MetricMeta, MRI} from 'sentry/types';
 import {
-  getReadableMetricType,
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
   isTransactionDuration,
-  MetricDisplayType,
+} from 'sentry/utils/metrics';
+import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
+import type {
   MetricsQuery,
   MetricsQuerySubject,
   MetricWidgetQueryParams,
-} from 'sentry/utils/metrics';
+} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';

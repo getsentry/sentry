@@ -6,11 +6,11 @@ import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader'
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction, Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import toPercent from 'sentry/utils/number/toPercent';
 import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
-import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
+import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
 

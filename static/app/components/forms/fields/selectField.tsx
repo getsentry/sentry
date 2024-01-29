@@ -1,23 +1,18 @@
 import {Component} from 'react';
-import {
-  components as SelectComponents,
-  OptionsType,
-  OptionTypeBase,
-  ValueType,
-} from 'react-select';
+import type {OptionsType, OptionTypeBase, ValueType} from 'react-select';
+import {components as SelectComponents} from 'react-select';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import SelectControl, {
-  ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {Choices, SelectValue} from 'sentry/types';
+import type {Choices, SelectValue} from 'sentry/types';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps} from './inputField';
+import type {InputFieldProps} from './inputField';
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends InputFieldProps,

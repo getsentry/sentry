@@ -10,7 +10,7 @@ import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
-import {SentryServiceStatus} from 'sentry/types';
+import type {SentryServiceStatus} from 'sentry/types';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 

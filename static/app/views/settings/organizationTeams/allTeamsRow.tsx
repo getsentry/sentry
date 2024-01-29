@@ -5,7 +5,7 @@ import startCase from 'lodash/startCase';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
@@ -13,7 +13,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 

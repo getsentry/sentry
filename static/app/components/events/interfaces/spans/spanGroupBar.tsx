@@ -1,12 +1,5 @@
-import {
-  Fragment,
-  LegacyRef,
-  MutableRefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
+import type {LegacyRef, MutableRefObject} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import maxBy from 'lodash/maxBy';
 
@@ -15,10 +8,10 @@ import {
   FREQUENCY_BOX_WIDTH,
   SpanFrequencyBox,
 } from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   getSpanBarColours,
   ROW_HEIGHT,
-  SpanBarType,
 } from 'sentry/components/performance/waterfall/constants';
 import {
   Row,
@@ -40,11 +33,8 @@ import {
   TreeToggle,
   TreeToggleContainer,
 } from 'sentry/components/performance/waterfall/treeConnector';
-import {
-  AggregateEventTransaction,
-  EventOrGroupType,
-  EventTransaction,
-} from 'sentry/types/event';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
@@ -52,15 +42,9 @@ import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {AggregateSpanType, EnhancedSpan, ProcessedSpanType} from './types';
-import {
-  getMeasurementBounds,
-  getMeasurements,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-  spanTargetHash,
-  VerticalMark,
-} from './utils';
+import type {AggregateSpanType, EnhancedSpan, ProcessedSpanType} from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType, VerticalMark} from './utils';
+import {getMeasurementBounds, getMeasurements, spanTargetHash} from './utils';
 
 const MARGIN_LEFT = 0;
 
