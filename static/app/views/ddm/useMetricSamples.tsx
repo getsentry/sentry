@@ -150,7 +150,7 @@ export function useMetricSamples({
         projectId: sample.projectId,
         itemStyle: {
           color: theme.purple400,
-          opacity: isHighlighted ? 0.9 : 0.75,
+          opacity: 1,
         },
         yAxisIndex: 1,
         xAxisIndex: 1,
