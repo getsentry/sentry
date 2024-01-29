@@ -19,6 +19,7 @@ RAGE_CLICK_LEVEL = "warning"
 
 @instrumented_task(
     name="sentry.replays.usecases.ingest.issue_creation.report_rage_click_issue",
+    queue="replays.ingest_replay",
     default_retry_delay=5,
     max_retries=5,
     silo_mode=SiloMode.REGION,
