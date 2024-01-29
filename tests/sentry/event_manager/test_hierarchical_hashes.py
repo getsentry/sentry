@@ -1,6 +1,7 @@
 import logging
 import time
 import uuid
+from unittest.mock import patch
 
 import pytest
 
@@ -68,15 +69,22 @@ def fast_save(default_project, task_runner):
         )
 
         with task_runner():
-            return _save_aggregate(
-                evt,
-                hashes=hashes,
-                release=None,
-                metadata={},
-                received_timestamp=0,
-                migrate_off_hierarchical=False,
-                **group_creation_kwargs,
-            )
+            with patch(
+                "sentry.event_manager.get_hash_values",
+                return_value=(hashes, hashes, hashes),
+            ):
+                with patch(
+                    "sentry.event_manager._get_group_creation_kwargs",
+                    return_value=group_creation_kwargs,
+                ):
+                    with patch("sentry.event_manager._materialize_metadata_many"):
+                        return _save_aggregate(
+                            evt,
+                            job={"event_metadata": {}},
+                            release=None,
+                            received_timestamp=0,
+                            metric_tags={},
+                        )
 
     return inner
 
