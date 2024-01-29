@@ -1,4 +1,4 @@
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';

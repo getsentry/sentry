@@ -1,11 +1,10 @@
 import {useCallback, useRef} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import moment from 'moment';
 import * as qs from 'query-string';
 
+import type {DateTimeObject, Fidelity} from 'sentry/components/charts/utils';
 import {
-  DateTimeObject,
-  Fidelity,
   getDiffInMinutes,
   GranularityLadder,
   ONE_HOUR,
@@ -21,7 +20,7 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, PageFilters} from 'sentry/types';
+import type {MetricsApiResponse, PageFilters} from 'sentry/types';
 import type {
   MetricMeta,
   MetricsApiRequestMetric,

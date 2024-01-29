@@ -1,10 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {
-  AutoSizer,
-  CellMeasurer,
-  List as ReactVirtualizedList,
-  ListRowProps,
-} from 'react-virtualized';
+import type {ListRowProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -46,7 +42,7 @@ const cellMeasurer = {
 
 function Breadcrumbs() {
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
-  const {currentTime, replay} = useReplayContext();
+  const {currentTime, replay, startTimeOffsetMs, durationMs} = useReplayContext();
   const organization = useOrganization();
   const hasPerfTab = organization.features.includes('session-replay-trace-table');
 
@@ -55,8 +51,19 @@ function Breadcrumbs() {
     useExtractedDomNodes({replay});
   const {data: frameToTrace, isFetching: isFetchingTraces} = useReplayPerfData({replay});
 
-  const startTimestampMs = replay?.getReplay()?.started_at?.getTime() ?? 0;
-  const frames = replay?.getChapterFrames();
+  const startTimestampMs =
+    replay?.getReplay()?.started_at?.getTime() ?? 0 + startTimeOffsetMs;
+  const allFrames = replay?.getChapterFrames();
+
+  const frames = useMemo(
+    () =>
+      allFrames?.filter(
+        frame =>
+          frame.offsetMs >= startTimeOffsetMs &&
+          frame.offsetMs <= startTimeOffsetMs + durationMs
+      ),
+    [allFrames, durationMs, startTimeOffsetMs]
+  );
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 

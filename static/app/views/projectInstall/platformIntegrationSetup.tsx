@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -8,7 +9,7 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IntegrationProvider, Organization, Project} from 'sentry/types';
+import type {IntegrationProvider, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

@@ -1,6 +1,6 @@
+import type {ReactElement} from 'react';
 import {
   Fragment,
-  ReactElement,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -14,20 +14,17 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import {
-  FlamegraphThreadSelector,
-  FlamegraphThreadSelectorProps,
-} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
+import type {FlamegraphThreadSelectorProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
+import {FlamegraphThreadSelector} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
 import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphToolbar';
-import {
-  FlamegraphViewSelectMenu,
-  FlamegraphViewSelectMenuProps,
-} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
+import type {FlamegraphViewSelectMenuProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
+import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import {EntryType, EventTransaction, RequestState} from 'sentry/types';
-import {EntrySpans} from 'sentry/types/event';
+import type {EventTransaction, RequestState} from 'sentry/types';
+import {EntryType} from 'sentry/types';
+import type {EntrySpans} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
@@ -35,7 +32,7 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearch as FlamegraphSearchType} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphSearch as FlamegraphSearchType} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
@@ -43,11 +40,9 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {
-  FlamegraphChart as FlamegraphChartModel,
-  ProfileSeriesMeasurement,
-} from 'sentry/utils/profiling/flamegraphChart';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {ProfileSeriesMeasurement} from 'sentry/utils/profiling/flamegraphChart';
+import {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
@@ -55,18 +50,16 @@ import {
   initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
-import {
-  formatTo,
-  fromNanoJoulesToWatts,
-  ProfilingFormatterUnit,
-} from 'sentry/utils/profiling/units/units';
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
+import {formatTo, fromNanoJoulesToWatts} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -1406,10 +1399,10 @@ function Flamegraph(): ReactElement {
                       'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable memory usage collection'
                     )
                   : profileGroup.metadata.platform === 'node'
-                  ? t(
-                      'Upgrade to version 1.2.0 of @sentry/profiling-node to enable memory usage collection'
-                    )
-                  : ''
+                    ? t(
+                        'Upgrade to version 1.2.0 of @sentry/profiling-node to enable memory usage collection'
+                      )
+                    : ''
               }
             />
           ) : null
@@ -1430,10 +1423,10 @@ function Flamegraph(): ReactElement {
                       'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable CPU usage collection'
                     )
                   : profileGroup.metadata.platform === 'node'
-                  ? t(
-                      'Upgrade to version 1.2.0 of @sentry/profiling-node to enable CPU usage collection'
-                    )
-                  : ''
+                    ? t(
+                        'Upgrade to version 1.2.0 of @sentry/profiling-node to enable CPU usage collection'
+                      )
+                    : ''
               }
             />
           ) : null

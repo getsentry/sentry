@@ -16,7 +16,7 @@ import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
-import {PerformanceWidgetProps} from '../types';
+import type {PerformanceWidgetProps} from '../types';
 
 export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
@@ -33,8 +33,8 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
     (shouldUseStoredScores && isProjectScoresLoading) || isLoading || noTransactions
       ? undefined
       : shouldUseStoredScores
-      ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
-      : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+        ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
+        : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 

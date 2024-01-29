@@ -1,18 +1,21 @@
 import {useMemo, useRef} from 'react';
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AriaRadioProps, useRadio, useRadioGroup} from '@react-aria/radio';
+import type {AriaRadioProps} from '@react-aria/radio';
+import {useRadio, useRadioGroup} from '@react-aria/radio';
 import {Item, useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import {RadioGroupProps, RadioGroupState, useRadioGroupState} from '@react-stately/radio';
-import {CollectionBase, ItemProps, Node} from '@react-types/shared';
+import type {RadioGroupProps, RadioGroupState} from '@react-stately/radio';
+import {useRadioGroupState} from '@react-stately/radio';
+import type {CollectionBase, ItemProps, Node} from '@react-types/shared';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 export interface SegmentedControlItemProps<Value extends string>
   extends Omit<ItemProps<any>, 'children'> {

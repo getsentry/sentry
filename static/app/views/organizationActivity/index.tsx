@@ -6,13 +6,11 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Activity, Organization} from 'sentry/types';
+import type {Activity, Organization} from 'sentry/types';
 import routeTitle from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView, {
-  AsyncViewProps,
-  AsyncViewState,
-} from 'sentry/views/deprecatedAsyncView';
+import type {AsyncViewProps, AsyncViewState} from 'sentry/views/deprecatedAsyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import ActivityFeedItem from './activityFeedItem';
 
