@@ -1,0 +1,119 @@
+import {useMemo} from 'react';
+
+import type {Event} from 'sentry/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+
+export interface TimelineTransactionEvent {
+  id: string;
+  issue: string;
+  'issue.id': string;
+  'project.name': string;
+  timestamp: string;
+  title: string;
+}
+
+interface UseTraceTimelineEventsOptions {
+  event: Event;
+}
+
+export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions) {
+  const organization = useOrganization();
+  const {start, end} = getTraceTimeRangeFromEvent(event);
+
+  const traceId = event.contexts?.trace?.trace_id ?? '';
+  const {
+    data: issuePlatformData,
+    isLoading: isLoadingIssuePlatform,
+    isError: isErrorIssuePlatform,
+  } = useApiQuery<{
+    data: TimelineTransactionEvent[];
+    meta: unknown;
+  }>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          // Get performance issues
+          dataset: DiscoverDatasets.ISSUE_PLATFORM,
+          field: ['title', 'project.name', 'timestamp', 'issue.id', 'issue'],
+          per_page: 100,
+          query: `trace:${traceId}`,
+          referrer: 'api.issues.issue_events',
+          sort: '-timestamp',
+          start,
+          end,
+        },
+      },
+    ],
+    {staleTime: Infinity, retry: false}
+  );
+  const {
+    data: discoverData,
+    isLoading: isLoadingDiscover,
+    isError: isErrorDiscover,
+  } = useApiQuery<{
+    data: TimelineTransactionEvent[];
+    meta: unknown;
+  }>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: {
+          // Other events
+          dataset: DiscoverDatasets.DISCOVER,
+          field: ['title', 'project.name', 'timestamp', 'issue.id', 'issue'],
+          per_page: 100,
+          query: `trace:${traceId}`,
+          referrer: 'api.issues.issue_events',
+          sort: '-timestamp',
+          start,
+          end,
+        },
+      },
+    ],
+    {staleTime: Infinity, retry: false}
+  );
+
+  const eventData = useMemo(() => {
+    if (
+      isLoadingIssuePlatform ||
+      isLoadingDiscover ||
+      isErrorIssuePlatform ||
+      isErrorDiscover
+    ) {
+      return {
+        data: [],
+        startTimestamp: 0,
+        endTimestamp: 0,
+      };
+    }
+
+    const data = [...issuePlatformData.data, ...discoverData.data];
+    const timestamps = data.map(frame => new Date(frame.timestamp).getTime());
+    const startTimestamp = Math.min(...timestamps);
+    const endTimestamp = Math.max(...timestamps);
+    return {
+      data,
+      startTimestamp,
+      endTimestamp,
+    };
+  }, [
+    issuePlatformData,
+    discoverData,
+    isLoadingIssuePlatform,
+    isLoadingDiscover,
+    isErrorIssuePlatform,
+    isErrorDiscover,
+  ]);
+
+  return {
+    data: eventData.data,
+    startTimestamp: eventData.startTimestamp,
+    endTimestamp: eventData.endTimestamp,
+    isLoading: isLoadingIssuePlatform || isLoadingDiscover,
+    isError: isErrorIssuePlatform || isErrorDiscover,
+  };
+}
