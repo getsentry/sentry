@@ -280,15 +280,15 @@ def _trim_if_above_limit(
 
     for version, specs_for_version in specs_per_version.items():
         if len(specs_for_version) > max_specs:
-            # Do not log for Sentry
-            if project.organization.id != 1:
-                logger.error(
-                    "Spec version %s: Too many (%s) on demand metric %s for project %s",
-                    version,
-                    len(specs_for_version),
-                    widget_type,
-                    project.slug,
-                )
+            # Replacing the org in this variable rather than as part of logger.error
+            # will cause a different Sentry issue to be created per org
+            message = f"Spec version %s: Too many (%s) on demand metric %s for org {project.organization.slug}"
+            logger.error(
+                message,
+                version,
+                len(specs_for_version),
+                widget_type,
+            )
 
             return_specs += specs_for_version[:max_specs]
         else:
@@ -399,7 +399,8 @@ def _can_widget_query_use_stateful_extraction(
     widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
 ) -> bool:
     """Stateful extraction for metrics is not always used, in cases where a query has been recently modified.
-    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries."""
+    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries.
+    """
     spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]
     on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
 

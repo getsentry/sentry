@@ -232,7 +232,7 @@ def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
         out, _ = capfd.readouterr()
         assert out.splitlines()[0].split(": ")[1:3] == [
             "Spec version 1",
-            "Too many (2) on demand metric alerts for project bar",
+            "Too many (2) on demand metric alerts for org baz",
         ]
 
 
@@ -487,7 +487,7 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
         out, _ = capfd.readouterr()
         assert out.splitlines()[0].split(": ")[1:3] == [
             "Spec version 1",
-            "Too many (2) on demand metric widgets for project bar",
+            "Too many (2) on demand metric widgets for org baz",
         ]
 
 
@@ -510,7 +510,7 @@ def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
         out, _ = capfd.readouterr()
         assert out.splitlines()[0].split(": ")[1:3] == [
             "Spec version 1",
-            "Too many (2) on demand metric widgets for project bar",
+            "Too many (2) on demand metric widgets for org baz",
         ]
 
 
@@ -535,7 +535,7 @@ def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
         out, _ = capfd.readouterr()
         assert out.splitlines()[0].split(": ")[1:3] == [
             "Spec version 1",
-            "Too many (2) on demand metric widgets for project bar",
+            "Too many (2) on demand metric widgets for org baz",
         ]
 
 
