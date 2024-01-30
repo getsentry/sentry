@@ -303,6 +303,9 @@ class Fixtures:
     def create_sentry_app(self, *args, **kwargs):
         return Factories.create_sentry_app(*args, **kwargs)
 
+    def create_sentry_app_avatar(self, *args, **kwargs):
+        return Factories.create_sentry_app_avatar(*args, **kwargs)
+
     def create_internal_integration(self, *args, **kwargs):
         return Factories.create_internal_integration(*args, **kwargs)
 
