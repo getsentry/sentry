@@ -116,6 +116,7 @@ from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
+from sentry.models.userrole import UserRole
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -823,6 +824,11 @@ class Factories:
         useremail.save()
 
         return useremail
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_userrole(*args, **kwargs):
+        return UserRole.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
