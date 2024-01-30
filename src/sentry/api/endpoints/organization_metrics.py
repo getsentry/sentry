@@ -29,6 +29,7 @@ from sentry.snuba.metrics import (
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import parse_stats_period
 
@@ -177,6 +178,17 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     The data can be filtered and grouped by tags.
     Based on `OrganizationSessionsEndpoint`.
     """
+
+    # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
+    default_rate_limit = RateLimit(200, 5)
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: default_rate_limit,
+            RateLimitCategory.USER: default_rate_limit,
+            RateLimitCategory.ORGANIZATION: default_rate_limit,
+        },
+    }
 
     # Number of groups returned for each page (applies to old endpoint).
     default_per_page = 50
