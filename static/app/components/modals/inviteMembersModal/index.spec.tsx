@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
@@ -60,8 +60,10 @@ describe('InviteMembersModal', function () {
     jest.mocked(useOrganization).mockReturnValue(org);
     render(<InviteMembersModal {...modalProps} />);
 
-    // Starts with one invite row
-    expect(screen.getByRole('listitem')).toBeInTheDocument();
+    await waitFor(() => {
+      // Starts with one invite row
+      expect(screen.getByRole('listitem')).toBeInTheDocument();
+    });
 
     // We have two roles loaded from the members/me endpoint, defaulting to the
     // 'member' role.
@@ -70,19 +72,23 @@ describe('InviteMembersModal', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Member'})).toBeChecked();
   });
 
-  it('renders without organization.access', function () {
+  it('renders without organization.access', async function () {
     const organization = OrganizationFixture({access: undefined});
     jest.mocked(useOrganization).mockReturnValue(organization);
     render(<InviteMembersModal {...modalProps} />);
 
-    expect(screen.getByRole('listitem')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('listitem')).toBeInTheDocument();
+    });
   });
 
   it('can add a second row', async function () {
     jest.mocked(useOrganization).mockReturnValue(org);
     render(<InviteMembersModal {...modalProps} />);
 
-    expect(screen.getByRole('listitem')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('listitem')).toBeInTheDocument();
+    });
     await userEvent.click(screen.getByRole('button', {name: 'Add another'}));
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
   });
@@ -90,6 +96,10 @@ describe('InviteMembersModal', function () {
   it('errors on duplicate emails', async function () {
     jest.mocked(useOrganization).mockReturnValue(org);
     render(<InviteMembersModal {...modalProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Add another'})).toBeInTheDocument();
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Add another'}));
 
@@ -108,6 +118,10 @@ describe('InviteMembersModal', function () {
     jest.mocked(useOrganization).mockReturnValue(org);
     render(<InviteMembersModal {...modalProps} />);
 
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', {name: 'Email Addresses'})).toBeInTheDocument();
+    });
+
     const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
 
     await userEvent.type(emailInput, 'test@test.com');
@@ -125,6 +139,10 @@ describe('InviteMembersModal', function () {
 
     render(<InviteMembersModal {...modalProps} closeModal={close} />);
 
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
+    });
+
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(close).toHaveBeenCalled();
   });
@@ -137,6 +155,10 @@ describe('InviteMembersModal', function () {
     });
 
     render(<InviteMembersModal {...modalProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Add another'})).toBeInTheDocument();
+    });
 
     // Setup two rows, one email each, the first with a admin role.
     await userEvent.click(screen.getByRole('button', {name: 'Add another'}));
@@ -197,6 +219,10 @@ describe('InviteMembersModal', function () {
 
     render(<InviteMembersModal {...modalProps} />);
 
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', {name: 'Email Addresses'})).toBeInTheDocument();
+    });
+
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Email Addresses'}),
       'bademail'
@@ -223,7 +249,9 @@ describe('InviteMembersModal', function () {
 
     render(<InviteMembersModal {...modalProps} initialData={initialData} />);
 
-    expect(screen.getByText(initialEmail)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(initialEmail)).toBeInTheDocument();
+    });
 
     // Just immediately click send
     await userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
@@ -255,6 +283,9 @@ describe('InviteMembersModal', function () {
 
     render(<InviteMembersModal {...modalProps} initialData={initialData} />);
 
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Send invite'})).toBeInTheDocument();
+    });
     // Just immediately click send
     await userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
 
@@ -274,13 +305,15 @@ describe('InviteMembersModal', function () {
   });
 
   describe('member invite request mode', function () {
-    it('has adjusted wording', function () {
+    it('has adjusted wording', async function () {
       jest.mocked(useOrganization).mockReturnValue(noWriteOrg);
       render(<InviteMembersModal {...modalProps} />);
 
-      expect(
-        screen.getByRole('button', {name: 'Send invite request'})
-      ).toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', {name: 'Send invite request'})
+        ).toBeInTheDocument();
+      });
     });
 
     it('POSTS to the invite-request endpoint', async function () {
@@ -296,7 +329,9 @@ describe('InviteMembersModal', function () {
 
       render(<InviteMembersModal {...modalProps} initialData={initialData} />);
 
-      expect(screen.getByText(initialEmail)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(initialEmail)).toBeInTheDocument();
+      });
 
       await userEvent.click(screen.getByRole('button', {name: 'Send invite request'}));
 
