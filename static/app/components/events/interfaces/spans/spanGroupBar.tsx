@@ -144,7 +144,9 @@ function renderMeasurements(
 
   return (
     <Fragment>
-      {Array.from(barMeasurements).map(([timestamp, verticalMark]) => {
+      {Array.from(barMeasurements.values()).map(verticalMark => {
+        const mark = Object.values(verticalMark.marks)[0];
+        const {timestamp} = mark;
         const bounds = getMeasurementBounds(timestamp, generateBounds);
 
         const shouldDisplay = defined(bounds.left) && defined(bounds.width);

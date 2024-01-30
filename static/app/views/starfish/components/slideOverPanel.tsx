@@ -62,11 +62,11 @@ const _SlideOverPanel = styled(motion.div, {
   slidePosition?: 'right' | 'bottom';
 }>`
   ${p =>
-    p.slidePosition === 'bottom'
+    p.slidePosition === 'bottom' && !p.collapsed
       ? `
       width: 100%;
-      height: ${PANEL_HEIGHT};
       position: sticky;
+      height: ${PANEL_HEIGHT};
       border-top: 1px solid ${p.theme.border};
     `
       : `
