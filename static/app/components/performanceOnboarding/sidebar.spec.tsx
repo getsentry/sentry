@@ -26,16 +26,16 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   const apiMocks: any = {};
 
-  const getElement = (props: React.ComponentProps<typeof SidebarContainer>) => {
+  const getElement = () => {
     return (
       <OnboardingContextProvider>
-        <SidebarContainer organization={props.organization} {...props} />
+        <SidebarContainer />
       </OnboardingContextProvider>
     );
   };
 
   const renderSidebar = props =>
-    render(getElement(props), {organization: props.organization, context: routerContext});
+    render(getElement(), {organization: props.organization, context: routerContext});
 
   beforeEach(function () {
     jest.resetAllMocks();
