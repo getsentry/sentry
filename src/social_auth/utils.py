@@ -13,6 +13,9 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model
 
+from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.user import RpcUser
+
 LEAVE_CHARS = getattr(settings, "SOCIAL_AUTH_LOG_SANITIZE_LEAVE_CHARS", 4)
 
 
@@ -123,7 +126,9 @@ def model_to_ctype(val):
     """Converts values that are instance of Model to a dictionary
     with enough information to retrieve the instance back later."""
     if isinstance(val, Model):
-        val = {"pk": val.pk, "ctype": ContentType.objects.get_for_model(val).pk}
+        return {"pk": val.pk, "ctype": ContentType.objects.get_for_model(val).pk}
+    if isinstance(val, RpcModel):
+        return val.dict()
     return val
 
 
@@ -133,7 +138,10 @@ def ctype_to_model(val):
         ctype = ContentType.objects.get_for_id(val["ctype"])
         ModelClass = ctype.model_class()
         assert ModelClass is not None
-        val = ModelClass.objects.get(pk=val["pk"])
+        return ModelClass.objects.get(pk=val["pk"])
+
+    if isinstance(val, dict) and "username" in val and "name" in val:
+        return RpcUser.parse_obj(val)
     return val
 
 
