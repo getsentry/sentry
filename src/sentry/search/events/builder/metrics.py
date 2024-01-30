@@ -123,7 +123,7 @@ class MetricsQueryBuilder(QueryBuilder):
     def use_default_tags(self) -> bool:
         if self._use_default_tags is None:
             if self.params.organization is not None:
-                self._use_default_tags = features.has(
+                self._use_default_tags = True or features.has(
                     "organizations:mep-use-default-tags", self.params.organization, actor=None
                 )
             else:
