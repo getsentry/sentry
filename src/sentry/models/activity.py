@@ -50,10 +50,6 @@ class ActivityManager(BaseManager["Activity"]):
                 continue
 
             if sig != prev_sig:
-                if item.type == ActivityType.SET_PRIORITY.value and (
-                    not item.data or "priority" not in item.data
-                ):
-                    continue
                 activities.append(item)
 
         activities.append(
@@ -62,6 +58,7 @@ class ActivityManager(BaseManager["Activity"]):
                 project=group.project,
                 group=group,
                 type=ActivityType.FIRST_SEEN.value,
+                data={"priority": group.priority},
                 datetime=group.first_seen,
             )
         )
@@ -132,6 +129,9 @@ class Activity(Model):
             self.data["version"] = self.data["version"].version
         if self.type == ActivityType.ASSIGNED.value:
             self.data["assignee"] = str(self.data["assignee"])
+
+        if features.has("projects:issue-priority", self.group.project):
+            self.data["priority"] = self.group.priority
 
     def save(self, *args, **kwargs):
         created = bool(not self.id)
