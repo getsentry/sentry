@@ -208,11 +208,7 @@ function MonitorForm({
     : null;
 
   const isSuperuser = isActiveSuperuser();
-  const disableNewProjects = organization.features.includes('crons-disable-new-projects');
-  const filteredProjects = projects.filter(
-    project =>
-      (isSuperuser || project.isMember) && (!disableNewProjects || project.hasMonitors)
-  );
+  const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
   const alertRuleTarget = monitor?.alertRule?.targets.map(
     target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`

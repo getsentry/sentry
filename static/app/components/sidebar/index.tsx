@@ -393,8 +393,6 @@ function Sidebar() {
         label={t('Crons')}
         to={`/organizations/${organization.slug}/crons/`}
         id="crons"
-        // TODO(davidenwang): Remove isBeta completely after GA Jan 11th
-        isBeta={organization.features.includes('crons-disable-new-projects')}
       />
     </Feature>
   );
