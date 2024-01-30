@@ -1,4 +1,5 @@
 import logging
+import math
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -49,6 +50,15 @@ from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_TRACE_SIZE: int = 100
+MAX_PARALLEL_QUERIES: int = 3
+
+
+def chunk(input, chunk_size):
+    output = []
+    for i in range(0, len(input), chunk_size):
+        output.append(input[i : i + chunk_size])
+
+    return output
 
 
 _T = TypeVar("_T")
@@ -505,14 +515,17 @@ def augment_transactions_with_spans(
     issue_occurrences = []
     occurrence_spans = set()
     error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
+    projects = {e["project.id"] for e in errors if e["trace.span"]}
 
     for transaction in transactions:
         transaction["occurrence_spans"] = []
         transaction["issue_occurrences"] = []
 
+        project = transaction["project.id"]
+        projects.add(project)
+
         # Pull out occurrence data
         transaction_problem_map[transaction["id"]] = transaction
-        project = transaction["project.id"]
         if project not in problem_project_map:
             problem_project_map[project] = []
         problem_project_map[project].append(transaction["occurrence_id"])
@@ -541,6 +554,7 @@ def augment_transactions_with_spans(
                 ]
             )
 
+    projects = list(projects)
     for problem in issue_occurrences:
         occurrence_spans = occurrence_spans.union(set(problem.evidence_data["offender_span_ids"]))
 
@@ -554,20 +568,41 @@ def augment_transactions_with_spans(
     # Fetch parent span ids of segment spans and their corresponding
     # transaction id so we can link parent/child transactions in
     # a trace.
-    parents_results = SpansIndexedQueryBuilder(
-        Dataset.SpansIndexed,
-        params,
-        query=f"trace:{trace_id} span_id:[{','.join(query_spans)}]",
-        selected_columns=[
-            "transaction.id",
-            "span_id",
-            "timestamp",
-        ],
-        orderby=["timestamp", "id"],
-        limit=10000,
-    ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
 
-    parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
+    def build_query(chunked_project_ids):
+        spans_params = params.copy()
+        spans_params["project_objects"] = [
+            p for p in params["project_objects"] if p.id in chunked_project_ids
+        ]
+        spans_params["project_id"] = chunked_project_ids
+        return SpansIndexedQueryBuilder(
+            Dataset.SpansIndexed,
+            spans_params,
+            # Send all span IDs since we can't match them back to the right project ID.
+            query=f"trace:{trace_id} span_id:[{','.join(query_spans)}]",
+            selected_columns=[
+                "transaction.id",
+                "span_id",
+                "timestamp",
+            ],
+            orderby=["timestamp", "id"],
+            limit=10000,
+        )
+
+    chunk_size = math.ceil(len(projects) / MAX_PARALLEL_QUERIES)
+    spans_queries = [
+        build_query(chunked_projects) for chunked_projects in chunk(projects, chunk_size)
+    ]
+    parents_results = bulk_snql_query(
+        [query.get_snql_query() for query in spans_queries],
+        referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value,
+    )
+
+    parent_map = {}
+    for result in parents_results:
+        for parent in result["data"]:
+            parent_map[parent["span_id"]] = parent
+
     for transaction in transactions:
         # For a given transaction, if parent span id exists in the tranaction (so this is
         # not a root span), see if the indexed spans data can tell us what the parent

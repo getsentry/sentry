@@ -1,12 +1,12 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {RowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {RowWithScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Props = {
@@ -86,6 +86,7 @@ export const useTransactionRawWebVitalsQuery = ({
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
             'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
             'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
+            'p75(measurements.inp)': row['p75(measurements.fid)'] as number,
             'count()': row['count()'] as number,
             'count_web_vitals(measurements.lcp, any)': row[
               'count_web_vitals(measurements.lcp, any)'
@@ -114,6 +115,9 @@ export const useTransactionRawWebVitalsQuery = ({
               lcpScore: lcpScore ?? 0,
               ttfbScore: ttfbScore ?? 0,
               fidScore: fidScore ?? 0,
+              // Fake INP data using FID data
+              // TODO(edwardgou): Remove this once INP is queryable in discover
+              inpScore: fidScore ?? 0,
             };
           })
       : [];

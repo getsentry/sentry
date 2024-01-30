@@ -6,15 +6,22 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct} from 'sentry/locale';
-import {GroupStatus} from 'sentry/types';
+import type {GroupStatus} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
+const statusToButtonLabel: Record<string, string> = {
+  resolved: t('Resolve'),
+  unresolved: t('Unresolve'),
+  ignored: t('Mark as Spam'),
+};
+
 const statusToText: Record<string, string> = {
-  resolved: 'Resolve',
-  unresolved: 'Unresolve',
+  resolved: 'resolved',
+  unresolved: 'unresolved',
+  ignored: 'spam',
 };
 
 interface Props
@@ -31,7 +38,7 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
   });
 
   const onToggleResovled = useCallback(
-    (newMailbox: GroupStatus) => {
+    ({newMailbox, moveToInbox}: {newMailbox: GroupStatus; moveToInbox?: boolean}) => {
       openConfirmModal({
         bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
         onConfirm: () => {
@@ -46,10 +53,13 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
             },
           });
         },
-        message: tct('Are you sure you want to [status] these feedbacks?', {
-          status: statusToText[newMailbox].toLowerCase(),
-        }),
-        confirmText: statusToText[newMailbox],
+        message: moveToInbox
+          ? t('Are you sure you want to move these feedbacks to the inbox?')
+          : tct('Are you sure you want to mark these feedbacks as [status]?', {
+              status: statusToText[newMailbox],
+            }),
+        confirmText: moveToInbox ? t('Move to Inbox') : statusToButtonLabel[newMailbox],
+        withoutBold: true,
       });
     },
     [deselectAll, resolve, selectedIds]

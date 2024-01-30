@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -13,8 +13,8 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import type {Fidelity} from 'sentry/components/charts/utils';
 import {
-  Fidelity,
   getDiffInMinutes,
   getInterval,
   SIX_HOURS,
@@ -23,10 +23,10 @@ import {
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import {MRI, Organization, PageFilters} from 'sentry/types';
+import type {MRI, Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -41,29 +41,26 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {
-  getDdmUrl,
-  getMetricDisplayType,
-  MetricWidgetQueryParams,
-} from 'sentry/utils/metrics';
+import {getDdmUrl, getMetricDisplayType} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
-import {
+import type {
   DashboardDetails,
-  DashboardFilterKeys,
   DashboardFilters,
-  DisplayType,
   Widget,
   WidgetQuery,
+} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
 import ThresholdsHoverWrapper from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
-import {
-  ThresholdMaxKeys,
-  ThresholdsConfig,
-} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import {ThresholdMaxKeys} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -137,8 +134,8 @@ function normalizeUnit(value: number, unit: string, dataType: string): number {
     dataType === 'rate'
       ? RATE_UNIT_MULTIPLIERS[unit]
       : dataType === 'duration'
-      ? DURATION_UNITS[unit]
-      : 1;
+        ? DURATION_UNITS[unit]
+        : 1;
   return value * multiplier;
 }
 
@@ -628,8 +625,8 @@ export function getCurrentPageFilters(
       project === undefined || project === null
         ? []
         : typeof project === 'string'
-        ? [Number(project)]
-        : project.map(Number),
+          ? [Number(project)]
+          : project.map(Number),
     environment:
       typeof environment === 'string' ? [environment] : environment ?? undefined,
     period: statsPeriod as string | undefined,

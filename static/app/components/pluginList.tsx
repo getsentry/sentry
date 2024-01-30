@@ -5,7 +5,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Organization, Plugin, Project} from 'sentry/types';
 
 type Props = {
   organization: Organization;

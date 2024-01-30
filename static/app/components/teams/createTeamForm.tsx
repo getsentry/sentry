@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import slugify from 'sentry/utils/slugify';
 
 type Payload = {

@@ -2,21 +2,18 @@ import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {
   GridColumnHeader,
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/formatters';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
@@ -29,7 +26,7 @@ import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performa
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
-import {
+import type {
   Row,
   RowWithScoreAndOpportunity,
   WebVitals,
@@ -240,7 +237,7 @@ export function WebVitalsDetailPanel({
     | undefined;
 
   return (
-    <PageErrorProvider>
+    <PageAlertProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
         {webVital && (
           <WebVitalDescription
@@ -272,9 +269,9 @@ export function WebVitalsDetailPanel({
             location={location}
           />
         </TableContainer>
-        <PageErrorAlert />
+        <PageAlert />
       </DetailPanel>
-    </PageErrorProvider>
+    </PageAlertProvider>
   );
 }
 

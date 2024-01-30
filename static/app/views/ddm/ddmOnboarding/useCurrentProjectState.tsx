@@ -7,7 +7,7 @@ import {
 } from 'sentry/data/platformCategories';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import useProjects from 'sentry/utils/useProjects';
 
 export function useCurrentProjectState({isActive}: {isActive: boolean}) {

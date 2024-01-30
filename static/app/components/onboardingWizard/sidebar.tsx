@@ -5,16 +5,19 @@ import {AnimatePresence, motion} from 'framer-motion';
 import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
-import {
-  OnboardingContext,
-  OnboardingContextProps,
-} from 'sentry/components/onboarding/onboardingContext';
+import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
+import type {
+  OnboardingTask,
+  OnboardingTaskKey,
+  Organization,
+  Project,
+} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -181,14 +184,13 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
   );
 
   const customizedCards = customTasks
-    .map(
-      task =>
-        task.renderCard?.({
-          organization,
-          task,
-          onboardingContext,
-          projects,
-        })
+    .map(task =>
+      task.renderCard?.({
+        organization,
+        task,
+        onboardingContext,
+        projects,
+      })
     )
     .filter(card => !!card);
 

@@ -16,9 +16,9 @@ export default styled('div')<{size: number; status: MonitorStatus}>`
           p.status === MonitorStatus.ERROR || p.status === MonitorStatus.TIMEOUT
             ? p.theme.error
             : p.status === MonitorStatus.OK
-            ? p.theme.success
-            : p.status === MonitorStatus.MISSED_CHECKIN
-            ? p.theme.warning
-            : p.theme.disabled
+              ? p.theme.success
+              : p.status === MonitorStatus.MISSED_CHECKIN
+                ? p.theme.warning
+                : p.theme.disabled
         };`};
 `;

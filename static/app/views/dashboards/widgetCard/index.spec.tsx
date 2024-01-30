@@ -15,11 +15,12 @@ import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
-jest.mock('sentry/components/charts/simpleTableChart');
+jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
@@ -31,7 +32,7 @@ describe('Dashboards > WidgetCard', function () {
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
-  const renderWithProviders = component =>
+  const renderWithProviders = (component: React.ReactNode) =>
     render(
       <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
       {organization, router, context: routerContext}
@@ -99,7 +100,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={multipleQueryWidget}
         selection={selection}
         isEditingDashboard={false}
@@ -126,7 +126,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
         selection={selection}
         isEditingDashboard={false}
@@ -151,7 +150,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={multipleQueryWidget}
         selection={selection}
         isEditingDashboard={false}
@@ -171,7 +169,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           queries: [
@@ -210,7 +207,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
@@ -246,7 +242,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.LINE,
@@ -284,7 +279,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
@@ -312,7 +306,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
@@ -340,7 +333,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
@@ -368,7 +360,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
@@ -403,7 +394,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
@@ -438,7 +428,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
@@ -488,7 +477,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={tableWidget}
         selection={selection}
         isEditingDashboard={false}
@@ -521,7 +509,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={widget}
         selection={selection}
         isEditingDashboard={false}
@@ -549,7 +536,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={widget}
         selection={selection}
         isEditingDashboard={false}

@@ -1,5 +1,6 @@
-import {MouseEvent, RefObject, useCallback} from 'react';
-import {CellMeasurerCache, List} from 'react-virtualized';
+import type {MouseEvent, RefObject} from 'react';
+import {useCallback} from 'react';
+import type {CellMeasurerCache, List} from 'react-virtualized';
 
 import useVirtualListDimentionChange from 'sentry/views/replays/detail/useVirtualListDimentionChange';
 

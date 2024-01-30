@@ -1,6 +1,6 @@
 import type {AlertProps} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
-import {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey} from 'sentry/types/project';
 import type {
   DISABLED as DISABLED_STATUS,
   INSTALLED,
@@ -420,6 +420,16 @@ export type PlatformExternalIssue = {
   webUrl: string;
 };
 
+export type ExternalIssue = {
+  description: string;
+  displayName: string;
+  id: string;
+  integrationKey: string;
+  integrationName: string;
+  key: string;
+  title: string;
+};
+
 /**
  * The issue config form fields we get are basically the form fields we use in
  * the UI but with some extra information. Some fields marked optional in the
@@ -463,7 +473,6 @@ export type PluginNoProject = {
   name: string;
   shortName: string;
   slug: string;
-  // TODO(ts)
   status: string;
   type: string;
   altIsSentryApp?: boolean;
@@ -471,6 +480,7 @@ export type PluginNoProject = {
   deprecationDate?: string;
   description?: string;
   firstPartyAlternative?: string;
+  issue?: any; // TODO (ts)
   resourceLinks?: Array<{title: string; url: string}>;
   version?: string;
 };

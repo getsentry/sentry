@@ -3,11 +3,12 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
+import type {ObjectStatus} from 'sentry/types';
 import {logException} from 'sentry/utils/logging';
-import RequestError from 'sentry/utils/requestError/requestError';
-import {Monitor} from 'sentry/views/monitors/types';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import type {Monitor} from 'sentry/views/monitors/types';
 
 export async function deleteMonitor(api: Client, orgId: string, monitorSlug: string) {
   addLoadingMessage(t('Deleting Monitor...'));
@@ -97,6 +98,45 @@ export async function setEnvironmentIsMuted(
     addErrorMessage(
       isMuted ? t('Unable to mute environment.') : t('Unable to unmute environment.')
     );
+  }
+
+  return null;
+}
+
+export interface BulkEditOperation {
+  isMuted?: boolean;
+  status?: ObjectStatus;
+}
+
+interface BulkEditResponse {
+  errored: Monitor[];
+  updated: Monitor[];
+}
+
+export async function bulkEditMonitors(
+  api: Client,
+  orgId: string,
+  slugs: string[],
+  operation: BulkEditOperation
+): Promise<BulkEditResponse | null> {
+  addLoadingMessage();
+
+  try {
+    const resp: BulkEditResponse = await api.requestPromise(
+      `/organizations/${orgId}/monitors/`,
+      {
+        method: 'PUT',
+        data: {...operation, slugs},
+      }
+    );
+    clearIndicators();
+    if (resp.errored?.length > 0) {
+      addErrorMessage(t('Unable to apply the changes to all monitors'));
+    }
+    return resp;
+  } catch (err) {
+    logException(err);
+    addErrorMessage(t('Unable to apply the changes to all monitors'));
   }
 
   return null;

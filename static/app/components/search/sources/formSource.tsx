@@ -1,14 +1,16 @@
 import {Component} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 
 import {loadSearchMap} from 'sentry/actionCreators/formSearch';
-import FormSearchStore, {FormSearchField} from 'sentry/stores/formSearchStore';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import type {FormSearchField} from 'sentry/stores/formSearchStore';
+import FormSearchStore from 'sentry/stores/formSearchStore';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import {ChildProps, Result, ResultItem} from './types';
+import type {ChildProps, Result, ResultItem} from './types';
 import {strGetFn} from './utils';
 
 interface Props extends WithRouterProps<{}> {

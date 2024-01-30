@@ -34,6 +34,7 @@ from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
@@ -149,6 +150,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     statusDetails: GroupStatusDetailsResponseOptional
     isPublic: bool
     platform: str
+    priority: str
     project: GroupProjectResponse
     type: str
     metadata: GroupMetadataResponse
@@ -361,6 +363,10 @@ class GroupSerializerBase(Serializer, ABC):
             "issueType": obj.issue_type.slug,
             "issueCategory": obj.issue_category.name.lower(),
         }
+
+        if features.has("projects:issue-priority", obj.project, actor=None):
+            priority_label = PRIORITY_LEVEL_TO_STR[obj.priority] if obj.priority else None
+            group_dict["priority"] = priority_label
 
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
