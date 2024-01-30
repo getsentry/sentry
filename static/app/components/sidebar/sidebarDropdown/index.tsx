@@ -17,7 +17,9 @@ import {IconChevron, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Config, Organization, Project, User} from 'sentry/types';
+import type {Config, Project} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
 
@@ -27,29 +29,31 @@ import type {CommonSidebarProps} from '../types';
 import Divider from './divider.styled';
 import SwitchOrganization from './switchOrganization';
 
-// TODO: make org and user optional props
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
   config: Config;
   projects: Project[];
-  user: User;
   /**
    * Set to true to hide links within the organization
    */
   hideOrgLinks?: boolean;
-  org?: Organization;
+
+  // TODO(epurkihser): Remove once getsentry test is fixed
+  org?: any;
+  user?: any;
 };
 
 function SidebarDropdown({
   api,
-  org,
   projects,
   orientation,
   collapsed,
   config,
-  user,
   hideOrgLinks,
 }: Props) {
+  const org = useOrganization({allowNull: true});
+  const user = useUser();
+
   const handleLogout = async () => {
     await logout(api);
     window.location.assign('/auth/login/');
@@ -70,7 +74,7 @@ function SidebarDropdown({
     hasOrganization || hasUser ? (
       <StyledAvatar
         collapsed={collapsed}
-        organization={org}
+        organization={org ?? undefined}
         user={!org ? user : undefined}
         size={32}
         round={false}
