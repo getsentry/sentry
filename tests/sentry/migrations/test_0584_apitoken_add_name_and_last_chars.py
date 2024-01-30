@@ -9,6 +9,7 @@ from sentry.testutils.silo import control_silo_test
 class NameLastCharsApiTokenMigrationTest(TestMigrations):
     migrate_from = "0583_add_early_adopter_to_organization_mapping"
     migrate_to = "0584_apitoken_add_name_and_last_chars"
+    connection = "control"
 
     def setUp(self):
         from sentry.models.apitoken import ApiToken
