@@ -1555,6 +1555,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
+    # Enable only calculating a secondary hash when needed
+    "organizations:grouping-suppress-unnecessary-secondary-hash": False,
     # Enable tweaks to group title in relation to hierarchical grouping.
     "organizations:grouping-title-ui": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
