@@ -10,6 +10,8 @@ from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry import features, release_health, tsdb
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupSerializer,
@@ -17,13 +19,17 @@ from sentry.api.serializers.models.group import (
     SeenStats,
     snuba_tsdb,
 )
+from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import StatsPeriod
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
+from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
+from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
@@ -369,6 +375,26 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 plugin_issue_list = get_available_issue_plugins(request, item)
                 attrs[item].update({"pluginIssues": plugin_issue_list})
 
+        if self._expand("integrationIssues"):
+            for item in item_list:
+                external_issues = ExternalIssue.objects.filter(
+                    id__in=GroupLink.objects.filter(group_id__in=[item.id]).values_list(
+                        "linked_id", flat=True
+                    ),
+                )
+                integration_issues = serialize(
+                    list(external_issues), request, serializer=ExternalIssueSerializer()
+                )
+                attrs[item].update({"integrationIssues": integration_issues})
+
+        if self._expand("sentryAppIssues"):
+            for item in item_list:
+                external_issues = PlatformExternalIssue.objects.filter(group_id=item.id)
+                sentry_app_issues = serialize(
+                    list(external_issues), request, serializer=PlatformExternalIssueSerializer()
+                )
+                attrs[item].update({"sentryAppIssues": sentry_app_issues})
+
         return attrs
 
     def serialize(
@@ -420,6 +446,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("pluginIssues"):
             result["pluginIssues"] = attrs["pluginIssues"]
+
+        if self._expand("integrationIssues"):
+            result["integrationIssues"] = attrs["integrationIssues"]
+
+        if self._expand("sentryAppIssues"):
+            result["sentryAppIssues"] = attrs["sentryAppIssues"]
 
         return result
 

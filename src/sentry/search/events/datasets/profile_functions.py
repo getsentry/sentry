@@ -18,7 +18,6 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     Combinator,
-    IntArg,
     InvalidFunctionArgument,
     NumberRange,
     NumericColumn,
@@ -342,9 +341,6 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "unique_examples",
-                    optional_args=[
-                        with_default(5, IntArg("count", negative=False)),
-                    ],
                     snql_aggregate=lambda args, alias: Function(
                         "arrayMap",
                         [
@@ -355,9 +351,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                                     "replaceAll", [Function("toString", [Identifier("x")]), "-", ""]
                                 ),
                             ),
-                            Function(
-                                f"groupUniqArrayMerge({args['count']})", [SnQLColumn("examples")]
-                            ),
+                            Function("groupUniqArrayMerge(5)", [SnQLColumn("examples")]),
                         ],
                         alias,
                     ),

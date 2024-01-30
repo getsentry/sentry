@@ -20,11 +20,11 @@ import {
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
 
-import {Monitor} from '../../types';
+import type {Monitor} from '../../types';
 
 import {ResolutionSelector} from './resolutionSelector';
 import {TimelineTableRow} from './timelineTableRow';
-import {MonitorBucketData, TimeWindow} from './types';
+import type {MonitorBucketData, TimeWindow} from './types';
 import {getConfigFromTimeRange, getStartFromTimeWindow} from './utils';
 
 interface Props {
@@ -32,11 +32,11 @@ interface Props {
 }
 
 export function OverviewTimeline({monitorList}: Props) {
-  const {location} = useRouter();
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const location = router.location;
 
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
   const nowRef = useRef(new Date());
@@ -77,7 +77,7 @@ export function OverviewTimeline({monitorList}: Props) {
       return;
     }
 
-    const queryKey = makeMonitorListQueryKey(organization, router.location);
+    const queryKey = makeMonitorListQueryKey(organization, location.query);
     setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
       const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
       if (oldMonitorIdx < 0) {
@@ -116,7 +116,7 @@ export function OverviewTimeline({monitorList}: Props) {
       return;
     }
 
-    const queryKey = makeMonitorListQueryKey(organization, router.location);
+    const queryKey = makeMonitorListQueryKey(organization, location.query);
     setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
       const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
       // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
@@ -133,7 +133,7 @@ export function OverviewTimeline({monitorList}: Props) {
       return;
     }
 
-    const queryKey = makeMonitorListQueryKey(organization, router.location);
+    const queryKey = makeMonitorListQueryKey(organization, location.query);
     setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
       const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
       oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx], status: resp.status};

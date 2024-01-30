@@ -1,6 +1,7 @@
 import {shouldUse24Hours} from 'sentry/utils/dates';
 
-import {MonitorConfig, ScheduleType} from './types';
+import type {MonitorConfig} from './types';
+import {ScheduleType} from './types';
 import {crontabAsText, scheduleAsText} from './utils';
 
 jest.mock('sentry/utils/dates');

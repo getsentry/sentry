@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from django.db.models import prefetch_related_objects
 from typing_extensions import TypedDict
@@ -8,6 +8,7 @@ from typing_extensions import TypedDict
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.models.project import Project
 from sentry.monitors.utils import fetch_associated_groups
+from sentry.monitors.validators import IntervalNames
 
 from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
 
@@ -36,8 +37,29 @@ class MonitorEnvironmentSerializer(Serializer):
         }
 
 
+class MonitorConfigSerializerResponse(TypedDict):
+    schedule_type: Literal["crontab", "interval"]
+    schedule: str | Tuple[int, IntervalNames]
+    checkin_margin: Optional[int]
+    max_runtime: Optional[int]
+    timezone: Optional[str]
+    failure_issue_threshold: Optional[int]
+    recovery_threshold: Optional[int]
+    alert_rule_id: Optional[int]
+
+
+class MonitorAlertRuleTargetSerializerResponse(TypedDict):
+    targetIdentifier: int
+    targetType: str
+
+
+class MonitorAlertRuleSerializerResponse(TypedDict):
+    targets: List[MonitorAlertRuleTargetSerializerResponse]
+    environment: str
+
+
 class MonitorSerializerResponseOptional(TypedDict, total=False):
-    alertRule: Any  # TODO: Find out what type this is
+    alertRule: MonitorAlertRuleSerializerResponse
 
 
 class MonitorSerializerResponse(MonitorSerializerResponseOptional):
@@ -46,11 +68,16 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     slug: str
     status: str
     isMuted: bool
-    type: str
-    config: Any
+    type: Literal["cron_job", "unknown"]
+    config: MonitorConfigSerializerResponse
     dateCreated: datetime
     project: ProjectSerializerResponse
     environments: MonitorEnvironmentSerializerResponse
+
+
+class MonitorBulkEditResponse:
+    updated: List[MonitorSerializerResponse]
+    errored: List[MonitorSerializerResponse]
 
 
 @register(Monitor)

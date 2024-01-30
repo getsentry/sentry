@@ -30,6 +30,7 @@ import pydantic
 import requests
 import sentry_sdk
 from django.conf import settings
+from requests.adapters import HTTPAdapter, Retry
 from typing_extensions import Self
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
@@ -492,6 +493,11 @@ class _RemoteSiloCall:
             "Authorization": f"Rpcsignature {signature}",
         }
 
+        metrics.distribution(
+            "hybrid_cloud.dispatch_rpc.request_size",
+            len(data),
+            tags=self._metrics_tags(),
+        )
         with self._open_request_context():
             if use_test_client:
                 response = self._fire_test_request(headers, data)
@@ -501,13 +507,13 @@ class _RemoteSiloCall:
                 "hybrid_cloud.dispatch_rpc.response_code",
                 tags=self._metrics_tags(status=response.status_code),
             )
+            metrics.distribution(
+                "hybrid_cloud.dispatch_rpc.response_size",
+                len(response.content),
+                tags=self._metrics_tags(status=response.status_code),
+            )
 
             if response.status_code == 200:
-                metrics.gauge(
-                    "hybrid_cloud.dispatch_rpc.response_size",
-                    len(response.content),
-                    tags=self._metrics_tags(),
-                )
                 return response.json()
             self._raise_from_response_status_error(response)
 
@@ -529,6 +535,7 @@ class _RemoteSiloCall:
         with sentry_sdk.configure_scope() as scope:
             scope.set_tag("rpc_service", self.service_name)
             scope.set_tag("rpc_method", self.method_name)
+            scope.set_tag("rpc_status_code", response.status_code)
 
         if in_test_environment():
             if response.status_code == 500:
@@ -570,6 +577,18 @@ class _RemoteSiloCall:
             return Client().post(self.path, data, headers["Content-Type"], **extra)
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
+        retry_adapter = HTTPAdapter(
+            max_retries=Retry(
+                total=5,
+                backoff_factor=0.1,
+                status_forcelist=[503],
+                allowed_methods=["POST"],
+            )
+        )
+        http = requests.Session()
+        http.mount("http://", retry_adapter)
+        http.mount("https://", retry_adapter)
+
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
@@ -579,8 +598,12 @@ class _RemoteSiloCall:
         if baggage := sentry_sdk.get_baggage():
             headers["Baggage"] = baggage
         try:
-            return requests.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
-        except requests.Timeout as e:
+            return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
+        except requests.exceptions.ConnectionError as e:
+            raise self._remote_exception("RPC Connection failed") from e
+        except requests.exceptions.RetryError as e:
+            raise self._remote_exception("RPC failed, max retries reached.") from e
+        except requests.exceptions.Timeout as e:
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
 
 

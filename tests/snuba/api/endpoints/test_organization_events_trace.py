@@ -7,6 +7,7 @@ from django.urls import NoReverseMatch, reverse
 
 from sentry import options
 from sentry.issues.grouptype import NoiseConfig, PerformanceFileIOMainThreadGroupType
+from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -1524,6 +1525,46 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
             )
 
         assert response.status_code == 400, response.content
+
+    def test_indexed_spans_only_query_required_projects(self):
+        # Add a few more projects to the org
+        self.create_project(organization=self.organization)
+        self.create_project(organization=self.organization)
+
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            with mock.patch(
+                "sentry.api.endpoints.organization_events_trace.SpansIndexedQueryBuilder",
+                wraps=SpansIndexedQueryBuilder,
+            ) as mock_query_builder:
+                response = self.client_get(
+                    data={"project": -1},
+                )
+
+                assert mock_query_builder.call_count == 2
+
+                projects_to_be_queried = {
+                    self.project.id,
+                    self.gen1_project.id,
+                    self.gen2_project.id,
+                    self.gen3_project.id,
+                }
+
+                assert set(mock_query_builder.call_args_list[0].args[1]["project_id"]).issubset(
+                    projects_to_be_queried
+                )
+                assert {
+                    p.id for p in mock_query_builder.call_args_list[0].args[1]["project_objects"]
+                }.issubset(projects_to_be_queried)
+
+                assert set(mock_query_builder.call_args_list[1].args[1]["project_id"]).issubset(
+                    projects_to_be_queried
+                )
+                assert {
+                    p.id for p in mock_query_builder.call_args_list[1].args[1]["project_objects"]
+                }.issubset(projects_to_be_queried)
+
+            assert response.status_code == 200, response.content
 
 
 @region_silo_test

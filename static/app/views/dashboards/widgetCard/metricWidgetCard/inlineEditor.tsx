@@ -1,26 +1,36 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Tag from 'sentry/components/tag';
-import {IconCheckmark, IconClose, IconLightning, IconReleases} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconClose,
+  IconLightning,
+  IconReleases,
+  IconSliders,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricMeta, MRI} from 'sentry/types';
+import type {MetricMeta, MRI} from 'sentry/types';
 import {
-  getReadableMetricType,
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
   isTransactionDuration,
-  MetricDisplayType,
+} from 'sentry/utils/metrics';
+import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
+import type {
   MetricsQuery,
   MetricsQuerySubject,
   MetricWidgetQueryParams,
-} from 'sentry/utils/metrics';
+} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
@@ -35,6 +45,8 @@ type InlineEditorProps = {
   onChange: (data: Partial<MetricWidgetQueryParams>) => void;
   onSubmit: () => void;
   projects: number[];
+  title: string;
+  onTitleChange?: (title: string) => void;
   powerUserMode?: boolean;
   size?: 'xs' | 'sm';
 };
@@ -49,9 +61,12 @@ export const InlineEditor = memo(function InlineEditor({
   onChange,
   onCancel,
   onSubmit,
+  onTitleChange,
+  title,
   isEdit,
   size = 'sm',
 }: InlineEditorProps) {
+  const [editingName, setEditingName] = useState(false);
   const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
 
   const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
@@ -87,130 +102,150 @@ export const InlineEditor = memo(function InlineEditor({
 
   return (
     <InlineEditorWrapper>
-      <InlineEditorRowsWrapper>
-        <InlineEditorRow>
-          <WrapPageFilterBar>
-            <CompactSelect
-              size={size}
-              searchable
-              sizeLimit={100}
-              triggerProps={{prefix: t('Metric'), size}}
-              options={displayedMetrics.map(metric => ({
-                label: formatMRI(metric.mri),
-                // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
-                textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
-                value: metric.mri,
-                size,
-                trailingItems: () => (
-                  <Fragment>
-                    <TagWithSize size={size} tooltipText={t('Type')}>
-                      {getReadableMetricType(metric.type)}
-                    </TagWithSize>
-                    <TagWithSize size={size} tooltipText={t('Unit')}>
-                      {metric.unit}
-                    </TagWithSize>
-                  </Fragment>
-                ),
-              }))}
-              value={metricsQuery.mri}
-              onChange={option => {
-                const availableOps =
-                  meta
-                    .find(metric => metric.mri === option.value)
-                    ?.operations.filter(isAllowedOp) ?? [];
+      <QueryDefinitionWrapper>
+        <FirstRowWrapper>
+          <DropdownInputWrapper>
+            {editingName && (
+              <WidgetTitleInput
+                value={title}
+                size="sm"
+                onChange={e => {
+                  onTitleChange?.(e.target.value);
+                }}
+              />
+            )}
+            <Dropdowns hidden={editingName}>
+              <CompactSelect
+                size={size}
+                searchable
+                sizeLimit={100}
+                triggerProps={{prefix: t('Metric'), size}}
+                options={displayedMetrics.map(metric => ({
+                  label: formatMRI(metric.mri),
+                  // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+                  textValue: `${metric.mri}${getReadableMetricType(metric.type)}`,
+                  value: metric.mri,
+                  size,
+                  trailingItems: () => (
+                    <Fragment>
+                      <TagWithSize size={size} tooltipText={t('Type')}>
+                        {getReadableMetricType(metric.type)}
+                      </TagWithSize>
+                      <TagWithSize size={size} tooltipText={t('Unit')}>
+                        {metric.unit}
+                      </TagWithSize>
+                    </Fragment>
+                  ),
+                }))}
+                value={metricsQuery.mri}
+                onChange={option => {
+                  const availableOps =
+                    meta
+                      .find(metric => metric.mri === option.value)
+                      ?.operations.filter(isAllowedOp) ?? [];
 
-                // @ts-expect-error .op is an operation
-                const selectedOp = availableOps.includes(metricsQuery.op ?? '')
-                  ? metricsQuery.op
-                  : availableOps?.[0];
+                  // @ts-expect-error .op is an operation
+                  const selectedOp = availableOps.includes(metricsQuery.op ?? '')
+                    ? metricsQuery.op
+                    : availableOps?.[0];
 
-                onChange({
-                  mri: option.value,
-                  op: selectedOp,
-                  groupBy: undefined,
-                  focusedSeries: undefined,
-                  displayType: getWidgetDisplayType(option.value, selectedOp),
-                });
-              }}
+                  onChange({
+                    mri: option.value,
+                    op: selectedOp,
+                    groupBy: undefined,
+                    focusedSeries: undefined,
+                    displayType: getWidgetDisplayType(option.value, selectedOp),
+                  });
+                }}
+              />
+              <CompactSelect
+                size={size}
+                triggerProps={{prefix: t('Op'), size}}
+                options={
+                  selectedMeta?.operations.filter(isAllowedOp).map(op => ({
+                    label: op,
+                    value: op,
+                  })) ?? []
+                }
+                disabled={!metricsQuery.mri}
+                value={metricsQuery.op}
+                onChange={option => {
+                  onChange({
+                    op: option.value,
+                  });
+                }}
+              />
+              <CompactSelect
+                size={size}
+                multiple
+                triggerProps={{prefix: t('Group by'), size}}
+                options={tags.map(tag => ({
+                  label: tag.key,
+                  value: tag.key,
+                  size,
+                  trailingItems: (
+                    <Fragment>
+                      {tag.key === 'release' && <IconReleases size={size} />}
+                      {tag.key === 'transaction' && <IconLightning size={size} />}
+                    </Fragment>
+                  ),
+                }))}
+                disabled={!metricsQuery.mri}
+                value={metricsQuery.groupBy}
+                onChange={options => {
+                  onChange({
+                    groupBy: options.map(o => o.value),
+                    focusedSeries: undefined,
+                  });
+                }}
+              />
+              <CompactSelect
+                size={size}
+                triggerProps={{prefix: t('Display'), size}}
+                value={displayType}
+                options={[
+                  {
+                    value: MetricDisplayType.LINE,
+                    label: t('Line'),
+                  },
+                  {
+                    value: MetricDisplayType.AREA,
+                    label: t('Area'),
+                  },
+                  {
+                    value: MetricDisplayType.BAR,
+                    label: t('Bar'),
+                  },
+                ]}
+                onChange={({value}) => {
+                  onChange({displayType: value});
+                }}
+              />
+            </Dropdowns>
+          </DropdownInputWrapper>
+          <ActionButtonsWrapper>
+            <ToggleNameEditButton
+              onClick={() => setEditingName(curr => !curr)}
+              aria-label="edit name"
             />
-            <CompactSelect
-              size={size}
-              triggerProps={{prefix: t('Op'), size}}
-              options={
-                selectedMeta?.operations.filter(isAllowedOp).map(op => ({
-                  label: op,
-                  value: op,
-                })) ?? []
-              }
+          </ActionButtonsWrapper>
+        </FirstRowWrapper>
+        <MetricSearchBarWrapper>
+          {!editingName && (
+            <MetricSearchBar
+              projectIds={projects.map(id => id.toString())}
+              mri={metricsQuery.mri}
               disabled={!metricsQuery.mri}
-              value={metricsQuery.op}
-              onChange={option => {
-                onChange({
-                  op: option.value,
-                });
+              onChange={query => {
+                onChange({query});
               }}
+              query={metricsQuery.query}
             />
-            <CompactSelect
-              size={size}
-              multiple
-              triggerProps={{prefix: t('Group by'), size}}
-              options={tags.map(tag => ({
-                label: tag.key,
-                value: tag.key,
-                size,
-                trailingItems: (
-                  <Fragment>
-                    {tag.key === 'release' && <IconReleases size={size} />}
-                    {tag.key === 'transaction' && <IconLightning size={size} />}
-                  </Fragment>
-                ),
-              }))}
-              disabled={!metricsQuery.mri}
-              value={metricsQuery.groupBy}
-              onChange={options => {
-                onChange({
-                  groupBy: options.map(o => o.value),
-                  focusedSeries: undefined,
-                });
-              }}
-            />
-            <CompactSelect
-              size={size}
-              triggerProps={{prefix: t('Display'), size}}
-              value={displayType}
-              options={[
-                {
-                  value: MetricDisplayType.LINE,
-                  label: t('Line'),
-                },
-                {
-                  value: MetricDisplayType.AREA,
-                  label: t('Area'),
-                },
-                {
-                  value: MetricDisplayType.BAR,
-                  label: t('Bar'),
-                },
-              ]}
-              onChange={({value}) => {
-                onChange({displayType: value});
-              }}
-            />
-          </WrapPageFilterBar>
-        </InlineEditorRow>
-        <InlineEditorRow>
-          <MetricSearchBar
-            projectIds={projects.map(id => id.toString())}
-            mri={metricsQuery.mri}
-            disabled={!metricsQuery.mri}
-            onChange={query => {
-              onChange({query});
-            }}
-            query={metricsQuery.query}
-          />
-        </InlineEditorRow>
-      </InlineEditorRowsWrapper>
-      <InlineEditorRowsWrapper>
+          )}
+        </MetricSearchBarWrapper>
+      </QueryDefinitionWrapper>
+
+      <ActionButtonsWrapper>
         <SubmitButton
           size={size}
           loading={loading}
@@ -226,7 +261,7 @@ export const InlineEditor = memo(function InlineEditor({
           icon={<IconClose size="xs" />}
           aria-label="cancel"
         />
-      </InlineEditorRowsWrapper>
+      </ActionButtonsWrapper>
     </InlineEditorWrapper>
   );
 });
@@ -242,6 +277,18 @@ function SubmitButton({loading, ...buttonProps}: {loading: boolean} & ButtonProp
 
   return (
     <Button {...buttonProps} priority="primary" icon={<IconCheckmark size="xs" />} />
+  );
+}
+
+function ToggleNameEditButton(props: ButtonProps) {
+  return (
+    <StyledIconButton
+      {...props}
+      borderless
+      size="sm"
+      onClick={props.onClick}
+      icon={<IconSliders />}
+    />
   );
 }
 
@@ -285,28 +332,54 @@ const LoadingIndicatorButton = styled(Button)`
   }
 `;
 
+const EDITOR_ELEMENT_HEIGHT = `34px`;
+
 const InlineEditorWrapper = styled('div')`
   display: flex;
-  flex-grow: 1;
   flex-direction: row;
   padding: ${space(1)};
   gap: ${space(1)};
+  width: 100%;
+`;
+
+const QueryDefinitionWrapper = styled('div')`
+  display: grid;
+  gap: ${space(0.5)};
+  background: ${p => p.theme.background};
   z-index: 1;
 `;
 
-const InlineEditorRowsWrapper = styled('div')`
+const ActionButtonsWrapper = styled('div')`
   display: flex;
-  flex-direction: column;
+  align-content: flex-start;
+  flex-wrap: wrap;
   gap: ${space(0.5)};
 `;
 
-const InlineEditorRow = styled('div')`
-  padding-bottom: ${space(0.5)};
-  background: ${p => p.theme.background};
+const FirstRowWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
 `;
 
-const WrapPageFilterBar = styled(PageFilterBar)`
+const DropdownInputWrapper = styled('div')`
+  display: grid;
+`;
+
+const MetricSearchBarWrapper = styled('div')``;
+
+const Dropdowns = styled(PageFilterBar)<{hidden: boolean}>`
   max-width: max-content;
-  height: auto;
+  /* hide the dropdowns when the title is being edited, used to match title input width
+     and prevent layout shifts */
+  height: ${p => (p.hidden ? '0' : 'auto')};
+  overflow: ${p => (p.hidden ? 'hidden' : 'initial')};
   flex-wrap: wrap;
+`;
+
+const WidgetTitleInput = styled(Input)`
+  height: ${EDITOR_ELEMENT_HEIGHT};
+`;
+
+const StyledIconButton = styled(Button)`
+  height: ${EDITOR_ELEMENT_HEIGHT};
 `;

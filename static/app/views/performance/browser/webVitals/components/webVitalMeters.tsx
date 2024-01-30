@@ -8,14 +8,14 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/performance/browser/webVitals/utils/scoreToStatus';
-import {
+import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -214,7 +214,7 @@ const MeterBarFooterContainer = styled('div')<{status: string}>`
 
 const NoValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.headerFontSize};
 `;
 
 function NoValue() {
@@ -223,6 +223,7 @@ function NoValue() {
 
 const StyledTooltip = styled(Tooltip)`
   display: block;
+  width: 100%;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`

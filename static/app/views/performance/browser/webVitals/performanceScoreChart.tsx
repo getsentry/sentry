@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {
+import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -92,7 +92,7 @@ export function PerformanceScoreChart({
             projectScore={projectScore}
             text={score}
             width={220}
-            height={190}
+            height={200}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
             weights={weights}
@@ -116,6 +116,7 @@ const Flex = styled('div')`
   width: 100%;
   gap: ${space(1)};
   margin-top: ${space(1)};
+  flex-wrap: wrap;
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
@@ -126,6 +127,9 @@ const PerformanceScoreLabelContainer = styled('div')`
   display: flex;
   align-items: center;
   flex-direction: column;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-grow: 1;
+  }
 `;
 
 const PerformanceScoreLabel = styled('div')`

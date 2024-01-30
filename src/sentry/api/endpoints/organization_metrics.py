@@ -10,7 +10,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
-from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
@@ -29,6 +29,7 @@ from sentry.snuba.metrics import (
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import parse_stats_period
 
@@ -50,6 +51,21 @@ def get_use_case_id(request: Request) -> UseCaseID:
 
 @region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    def get(self, request: Request, organization) -> Response:
+        projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams("You must supply at least one projects to see its metrics")
+
+        metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
+
+        return Response(metrics, status=200)
+
+
+@region_silo_endpoint
+class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -58,9 +74,10 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
     def get(self, request: Request, organization) -> Response:
+        # TODO: fade out endpoint since the new metrics endpoint will be used.
         projects = self.get_projects(request, organization)
 
-        metrics = get_metrics_meta(projects, use_case_id=get_use_case_id(request))
+        metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
 
         return Response(metrics, status=200)
 
@@ -76,14 +93,15 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
+
         try:
             metric = get_single_metric_info(
                 projects,
                 metric_name,
                 use_case_id=get_use_case_id(request),
             )
-        except InvalidParams as e:
-            raise ResourceDoesNotExist(e)
+        except InvalidParams as exc:
+            raise ResourceDoesNotExist(detail=str(exc))
         except (InvalidField, DerivedMetricParseException) as exc:
             raise ParseError(detail=str(exc))
 
@@ -160,6 +178,17 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     The data can be filtered and grouped by tags.
     Based on `OrganizationSessionsEndpoint`.
     """
+
+    # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
+    default_rate_limit = RateLimit(200, 5)
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: default_rate_limit,
+            RateLimitCategory.USER: default_rate_limit,
+            RateLimitCategory.ORGANIZATION: default_rate_limit,
+        },
+    }
 
     # Number of groups returned for each page (applies to old endpoint).
     default_per_page = 50

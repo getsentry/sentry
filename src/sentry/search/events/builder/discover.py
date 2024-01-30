@@ -1260,7 +1260,9 @@ class BaseQueryBuilder:
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
-        is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
+        is_tag = isinstance(lhs, Column) and (
+            lhs.subscriptable == "tags" or lhs.subscriptable == "sentry_tags"
+        )
         is_context = isinstance(lhs, Column) and lhs.subscriptable == "contexts"
         if is_tag:
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):

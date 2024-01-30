@@ -72,13 +72,9 @@ describe('OrganizationGeneralSettings', function () {
       features: ['codecov-integration'],
       codecovAccess: false,
     });
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={organizationWithCodecovFeature}
-      />,
-      {organization: organizationWithCodecovFeature}
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: organizationWithCodecovFeature,
+    });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -132,7 +128,7 @@ describe('OrganizationGeneralSettings', function () {
       body: {...org, slug: 'acme', links: {organizationUrl: 'https://acme.sentry.io'}},
     });
 
-    render(<OrganizationGeneralSettings {...defaultProps} organization={org} />);
+    render(<OrganizationGeneralSettings {...defaultProps} />, {organization: org});
 
     const input = screen.getByRole('textbox', {name: /slug/i});
 
@@ -159,7 +155,7 @@ describe('OrganizationGeneralSettings', function () {
   it('disables the entire form if user does not have write access', function () {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
-    render(<OrganizationGeneralSettings {...defaultProps} organization={readOnlyOrg} />, {
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
       organization: readOnlyOrg,
     });
 
@@ -181,14 +177,11 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('does not have remove organization button without org:admin permission', function () {
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={OrganizationFixture({
-          access: ['org:write'],
-        })}
-      />
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: OrganizationFixture({
+        access: ['org:write'],
+      }),
+    });
 
     expect(
       screen.queryByRole('button', {name: /remove organization/i})
@@ -198,12 +191,9 @@ describe('OrganizationGeneralSettings', function () {
   it('can remove organization when org admin', async function () {
     act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={OrganizationFixture({access: ['org:admin']})}
-      />
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: OrganizationFixture({access: ['org:admin']}),
+    });
     renderGlobalModal();
 
     const mock = MockApiClient.addMockResponse({

@@ -1,11 +1,10 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import {PageFilters} from 'sentry/types';
-import {SeriesDataUnit} from 'sentry/types/echarts';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {PageFilters} from 'sentry/types';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -80,6 +79,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     count: SeriesDataUnit[];
     fcp: SeriesDataUnit[];
     fid: SeriesDataUnit[];
+    inp: SeriesDataUnit[];
     lcp: SeriesDataUnit[];
     ttfb: SeriesDataUnit[];
   } = {
@@ -88,6 +88,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     cls: [],
     ttfb: [],
     fid: [],
+    inp: [],
     count: [],
   };
 
@@ -109,6 +110,10 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       }
     });
   });
+
+  // Fake INP data with FID data
+  // TODO(edwardgou): Remove this once INP is queryable in discover
+  data.inp = data.fid;
 
   return {data, isLoading: result.isLoading};
 };

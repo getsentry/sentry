@@ -7,12 +7,18 @@ from django.urls import reverse
 
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.integrations.slack.webhooks.action import LINK_IDENTITY_MESSAGE, UNLINK_IDENTITY_MESSAGE
+from sentry.integrations.slack.webhooks.action import (
+    ARCHIVE_OPTIONS,
+    LINK_IDENTITY_MESSAGE,
+    UNLINK_IDENTITY_MESSAGE,
+)
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.identity import Identity
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
@@ -34,6 +40,7 @@ pytestmark = [requires_snuba]
 class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
+        self.notification_text = "Identity not found."
         self.event_data = {
             "event_id": "a" * 32,
             "message": "IntegrationError",
@@ -42,7 +49,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 "values": [
                     {
                         "type": "IntegrationError",
-                        "value": "Identity not found.",
+                        "value": self.notification_text,
                     }
                 ]
             },
@@ -55,13 +62,19 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                     "ts": 1681409875,
                     "color": "E03E2F",
                     "fallback": "[node] IntegrationError: Identity not found.",
-                    "text": "Identity not found.",
+                    "text": self.notification_text,
                     "title": "IntegrationError",
                     "footer": "NODE-F via <http://localhost:8000/organizations/sentry/alerts/rules/node/3/details/|New Issue in #critical channel>",
                     "mrkdwn_in": ["text"],
                 }
             ],
         }
+        event = self.store_event(
+            data=self.event_data,
+            project_id=self.project.id,
+        )
+        assert event.group
+        self.group = Group.objects.get(id=event.group.id)
 
     def get_original_message_block_kit(self, group_id):
         return {
@@ -89,16 +102,12 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             },
         }
 
-    def get_ignore_status_action(self, text, selection):
+    def get_archive_status_action(self):
         return {
-            "action_id": selection,
+            "action_id": "archive_dialog",
             "block_id": "bXwil",
-            "text": {
-                "type": "plain_text",
-                "text": text,
-                "emoji": True,
-            },
-            "value": selection,
+            "text": {"type": "plain_text", "text": "Archive", "emoji": True},
+            "value": "archive_dialog",
             "type": "button",
             "action_ts": "1702424387.108033",
         }
@@ -126,6 +135,109 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             "action_ts": "1702502121.403007",
         }
 
+    def get_mark_ongoing_action(self):
+        return {
+            "action_id": "unresolved:ongoing",
+            "block_id": "xPlAm",
+            "text": {"type": "plain_text", "text": "Mark as Ongoing", "emoji": True},
+            "value": "unresolved:ongoing",
+            "type": "button",
+            "action_ts": "1702502122.304116",
+        }
+
+    def archive_issue_block_kit(self, original_message, selected_option, payload_data=None):
+        assert selected_option in ARCHIVE_OPTIONS.values()
+        status_action = self.get_archive_status_action()
+
+        # Expect request to open dialog on slack
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/views.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message, data=payload_data
+            )
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = json.loads(responses.calls[0].request.body)
+        assert data["trigger_id"] == self.trigger_id
+        assert "view" in data
+
+        view = json.loads(data["view"])
+        private_metadata = json.loads(view["private_metadata"])
+        assert int(private_metadata["issue"]) == self.group.id
+        assert private_metadata["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                type="view_submission",
+                private_metadata=json.dumps(private_metadata),
+                selected_option=selected_option,
+            )
+
+        assert resp.status_code == 200, resp.content
+
+    def resolve_issue_block_kit(self, original_message, selected_option, payload_data=None):
+        status_action = self.get_resolve_status_action()
+        # Expect request to open dialog on slack
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/views.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message, data=payload_data
+            )
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = json.loads(responses.calls[0].request.body)
+        assert data["trigger_id"] == self.trigger_id
+        assert "view" in data
+
+        view = json.loads(data["view"])
+        private_metadata = json.loads(view["private_metadata"])
+        assert int(private_metadata["issue"]) == self.group.id
+        assert private_metadata["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                type="view_submission",
+                private_metadata=json.dumps(private_metadata),
+                selected_option=selected_option,
+            )
+
+        assert resp.status_code == 200, resp.content
+
     @freeze_time("2021-01-14T12:27:28.303Z")
     def test_ask_linking(self):
         """Freezing time to prevent flakiness from timestamp mismatch."""
@@ -139,102 +251,19 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["response_type"] == "ephemeral"
         assert resp.data["text"] == LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
 
-    def test_ignore_issue(self):
-        event = self.store_event(
-            data=self.event_data,
-            project_id=self.project.id,
-        )
-        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
-        assert event.group is not None
-        resp = self.post_webhook(
-            action_data=[status_action],
-            original_message=self.original_message,
-            type="interactive_message",
-            callback_id=json.dumps({"issue": event.group.id}),
-        )
-        self.group = Group.objects.get(id=event.group.id)
-
-        assert resp.status_code == 200, resp.content
-        assert self.group.get_status() == GroupStatus.IGNORED
-        assert self.group.substatus == GroupSubStatus.FOREVER
-
-        expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
-        assert resp.data["attachments"][0]["text"] == expect_status
-
-        with self.feature("organizations:slack-block-kit"):
-            # test backwards compatibility
-            resp = self.post_webhook(
-                action_data=[status_action],
-                original_message=self.original_message,
-                type="interactive_message",
-                callback_id=json.dumps({"issue": event.group.id}),
-            )
-            self.group = Group.objects.get(id=event.group.id)
-
-            assert resp.status_code == 200, resp.content
-            assert self.group.get_status() == GroupStatus.IGNORED
-            assert self.group.substatus == GroupSubStatus.FOREVER
-            assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
-
-    def test_ignore_issue_block_kit(self):
-        event = self.store_event(
-            data=self.event_data,
-            project_id=self.project.id,
-        )
-        assert event.group is not None
-        group = event.group
-        original_message = self.get_original_message_block_kit(group.id)
-        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
-
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                action_data=[status_action],
-                original_message=original_message,
-            )
-            self.group = Group.objects.get(id=event.group.id)
-
-            assert resp.status_code == 200, resp.content
-            assert self.group.get_status() == GroupStatus.IGNORED
-            assert self.group.substatus == GroupSubStatus.FOREVER
-            expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
-            assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
-
-    def test_ignore_issue_block_kit_through_unfurl(self):
-        event = self.store_event(
-            data=self.event_data,
-            project_id=self.project.id,
-        )
-        assert event.group is not None
-        group = event.group
-        original_message = self.get_original_message_block_kit(group.id)
-        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
-
-        data = self.get_block_kit_unfurl_data(original_message["blocks"])
-
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(action_data=[status_action], data=data)
-            self.group = Group.objects.get(id=event.group.id)
-
-            assert resp.status_code == 200, resp.content
-            assert self.group.get_status() == GroupStatus.IGNORED
-            assert self.group.substatus == GroupSubStatus.FOREVER
-            expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
-            assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
-
     def test_archive_issue(self):
-        event = self.store_event(
-            data=self.event_data,
-            project_id=self.project.id,
-        )
-        status_action = {"name": "status", "value": "ignored:until_escalating", "type": "button"}
-        assert event.group is not None
+        status_action = {
+            "name": "status",
+            "value": "ignored:archived_until_escalating",
+            "type": "button",
+        }
         resp = self.post_webhook(
             action_data=[status_action],
             original_message=self.original_message,
             type="interactive_message",
-            callback_id=json.dumps({"issue": event.group.id}),
+            callback_id=json.dumps({"issue": self.group.id}),
         )
-        self.group = Group.objects.get(id=event.group.id)
+        self.group = Group.objects.get(id=self.group.id)
 
         assert resp.status_code == 200, resp.content
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -249,61 +278,163 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 action_data=[status_action],
                 original_message=self.original_message,
                 type="interactive_message",
-                callback_id=json.dumps({"issue": event.group.id}),
+                callback_id=json.dumps({"issue": self.group.id}),
             )
-            self.group = Group.objects.get(id=event.group.id)
+            self.group = Group.objects.get(id=self.group.id)
 
             assert resp.status_code == 200, resp.content
             assert self.group.get_status() == GroupStatus.IGNORED
             assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
-            assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
-
-    def test_archive_issue_block_kit(self):
-        event = self.store_event(
-            data=self.event_data,
-            project_id=self.project.id,
-        )
-        assert event.group is not None
-        status_action = self.get_ignore_status_action("Archive", "ignored:until_escalating")
-        original_message = self.get_original_message_block_kit(event.group.id)
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                action_data=[status_action],
-                original_message=original_message,
+            expect_status = f"*Issue archived by <@{self.external_id}>*"
+            assert (
+                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
+                == self.notification_text
             )
-        self.group = Group.objects.get(id=event.group.id)
+            assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
 
-        assert resp.status_code == 200, resp.content
-        assert self.group.get_status() == GroupStatus.IGNORED
-        assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
-
-        expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
-
-    def test_archive_issue_block_kit_through_unfurl(self):
-        event = self.store_event(
-            data=self.event_data,
-            project_id=self.project.id,
-        )
-        assert event.group is not None
-        group = event.group
-        original_message = self.get_original_message_block_kit(group.id)
-        status_action = self.get_ignore_status_action("Archive", "ignored:until_escalating")
-
-        data = self.get_block_kit_unfurl_data(original_message["blocks"])
-
+    @responses.activate
+    def test_archive_issue_backwards_compat_block_kit(self):
+        """Test backwards compatibility of archiving an issue from a legacy Slack notification
+        with the block kit feature flag enabled"""
+        status_action = {
+            "name": "status",
+            "value": "ignored:archived_until_escalating",
+            "type": "button",
+        }
         with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(action_data=[status_action], data=data)
-        self.group = Group.objects.get(id=event.group.id)
+            resp = self.post_webhook(
+                action_data=[status_action],
+                original_message=self.original_message,
+                type="interactive_message",
+                callback_id=json.dumps({"issue": self.group.id}),
+            )
+            self.group = Group.objects.get(id=self.group.id)
 
-        assert resp.status_code == 200, resp.content
+            assert resp.status_code == 200, resp.content
+            assert self.group.get_status() == GroupStatus.IGNORED
+            assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
+
+            expect_status = f"*Issue archived by <@{self.external_id}>*"
+            assert (
+                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
+                == self.notification_text
+            )
+            assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_archive_issue_until_escalating_block_kit(self):
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.archive_issue_block_kit(original_message, "ignored:archived_until_escalating")
+
+        self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
+        update_data = json.loads(responses.calls[1].request.body)
 
-    def test_ignore_issue_with_additional_user_auth(self):
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_archive_issue_until_escalating_block_kit_through_unfurl(self):
+        original_message = self.get_original_message_block_kit(self.group.id)
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        self.archive_issue_block_kit(
+            original_message, "ignored:archived_until_escalating", payload_data
+        )
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_archive_issue_until_condition_met_block_kit(self):
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.archive_issue_block_kit(original_message, "ignored:archived_until_condition_met:10")
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.UNTIL_CONDITION_MET
+        group_snooze = GroupSnooze.objects.get(group=self.group)
+        assert group_snooze.count == 10
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_archive_issue_until_condition_met_block_kit_through_unfurl(self):
+        original_message = self.get_original_message_block_kit(self.group.id)
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        self.archive_issue_block_kit(
+            original_message, "ignored:archived_until_condition_met:100", payload_data
+        )
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.UNTIL_CONDITION_MET
+        group_snooze = GroupSnooze.objects.get(group=self.group)
+        assert group_snooze.count == 100
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_archive_issue_forever_block_kit(self):
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.archive_issue_block_kit(original_message, "ignored:archived_forever")
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_archive_issue_forever_block_kit_through_unfurl(self):
+        original_message = self.get_original_message_block_kit(self.group.id)
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        self.archive_issue_block_kit(original_message, "ignored:archived_forever", payload_data)
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    def test_archive_issue_with_additional_user_auth(self):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
         """
@@ -313,7 +444,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             )
             AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
-        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
+        status_action = {"name": "status", "value": "ignored:archived_forever", "type": "button"}
 
         resp = self.post_webhook(action_data=[status_action])
         self.group = Group.objects.get(id=self.group.id)
@@ -333,9 +464,14 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert resp.status_code == 200, resp.content
             assert self.group.get_status() == GroupStatus.IGNORED
             assert self.group.substatus == GroupSubStatus.FOREVER
-            assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
+            assert (
+                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
+                == self.notification_text
+            )
+            assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
 
-    def test_ignore_issue_with_additional_user_auth_block_kit(self):
+    @responses.activate
+    def test_archive_issue_with_additional_user_auth_block_kit(self):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
         """
@@ -344,55 +480,96 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 organization_id=self.organization.id, provider="dummy"
             )
             AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
-        event = self.store_event(
-            data=self.event_data,
-            project_id=self.project.id,
+
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.archive_issue_block_kit(original_message, "ignored:archived_forever")
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
         )
-        assert event.group is not None
-        original_message = self.get_original_message_block_kit(event.group.id)
-        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_archive_issue_with_additional_user_auth_block_kit_through_unfurl(self):
+        """
+        Ensure that we can act as a user even when the organization has SSO enabled
+        """
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_idp = AuthProvider.objects.create(
+                organization_id=self.organization.id, provider="dummy"
+            )
+            AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
+        original_message = self.get_original_message_block_kit(self.group.id)
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        self.archive_issue_block_kit(original_message, "ignored:archived_forever", payload_data)
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    def test_unarchive_issue_block_kit(self):
+        self.group.status = GroupStatus.IGNORED
+        self.group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        self.group.save(update_fields=["status", "substatus"])
+
+        status_action = self.get_mark_ongoing_action()
+        original_message = self.get_original_message_block_kit(self.group.id)
+
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
-                action_data=[status_action],
-                original_message=original_message,
+                action_data=[status_action], original_message=original_message
             )
-        self.group = Group.objects.get(id=event.group.id)
-
         assert resp.status_code == 200, resp.content
-        assert self.group.get_status() == GroupStatus.IGNORED
-        assert self.group.substatus == GroupSubStatus.FOREVER
 
-        expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
+        assert self.group.substatus == GroupSubStatus.NEW  # the issue is less than 7 days old
 
-    def test_ignore_issue_with_additional_user_auth_block_kit_through_unfurl(self):
-        """
-        Ensure that we can act as a user even when the organization has SSO enabled
-        """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            auth_idp = AuthProvider.objects.create(
-                organization_id=self.organization.id, provider="dummy"
-            )
-            AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
-        event = self.store_event(
-            data=self.event_data,
-            project_id=self.project.id,
+        expect_status = f"*Issue re-opened by <@{self.external_id}>*"
+        assert (
+            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
         )
-        assert event.group is not None
-        original_message = self.get_original_message_block_kit(event.group.id)
-        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
-        data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    def test_unarchive_issue_block_kit_through_unfurl(self):
+        self.group.status = GroupStatus.IGNORED
+        self.group.substatus = GroupSubStatus.UNTIL_ESCALATING
+        self.group.save(update_fields=["status", "substatus"])
+
+        status_action = self.get_mark_ongoing_action()
+        original_message = self.get_original_message_block_kit(self.group.id)
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
 
         with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(action_data=[status_action], data=data)
-        self.group = Group.objects.get(id=event.group.id)
-
+            resp = self.post_webhook_block_kit(
+                action_data=[status_action], original_message=original_message, data=payload_data
+            )
         assert resp.status_code == 200, resp.content
-        assert self.group.get_status() == GroupStatus.IGNORED
-        assert self.group.substatus == GroupSubStatus.FOREVER
 
-        expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status)
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
+        assert self.group.substatus == GroupSubStatus.NEW  # the issue is less than 7 days old
+
+        expect_status = f"*Issue re-opened by <@{self.external_id}>*"
+        assert (
+            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_assign_issue(self):
         user2 = self.create_user(is_superuser=False)
@@ -446,8 +623,12 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 "assigneeType": "user",
                 "integration": ActivityIntegration.SLACK.value,
             }
-
-            assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+            expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
+            assert (
+                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
+                == self.notification_text
+            )
+            assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue_block_kit(self):
         user2 = self.create_user(is_superuser=False)
@@ -464,7 +645,10 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
 
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert (
+            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
         # Assign to team
         status_action = self.get_assign_status_action("team", self.team.slug, self.team.id)
@@ -485,7 +669,10 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         }
 
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert (
+            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue_block_kit_through_unfurl(self):
         user2 = self.create_user(is_superuser=False)
@@ -502,7 +689,10 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
 
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert (
+            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
         # Assign to team
         status_action = self.get_assign_status_action("team", self.team.slug, self.team.id)
@@ -521,7 +711,10 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         }
 
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert (
+            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue_where_team_not_in_project(self):
         user2 = self.create_user(is_superuser=False)
@@ -618,7 +811,11 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook(action_data=[status_action])
             assert resp.status_code == 200, resp.content
             assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
-            assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+            assert (
+                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
+                == self.notification_text
+            )
+            assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue_user_has_identity_block_kit(self):
         user2 = self.create_user(is_superuser=False)
@@ -642,7 +839,10 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = (
             f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
         )
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert (
+            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_issue_user_has_identity_block_kit_through_unfurl(self):
         user2 = self.create_user(is_superuser=False)
@@ -665,11 +865,13 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = (
             f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
         )
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert (
+            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_response_differs_on_bot_message(self):
-        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
-
+        status_action = {"name": "status", "value": "ignored:archived_forever", "type": "button"}
         original_message = {"type": "message"}
 
         resp = self.post_webhook(action_data=[status_action], original_message=original_message)
@@ -679,7 +881,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert self.group.substatus == GroupSubStatus.FOREVER
         assert resp.status_code == 200, resp.content
         assert "attachments" in resp.data
-        assert resp.data["attachments"][0]["title"] == self.group.title
+        assert resp.data["attachments"][0]["title"] in self.group.title
 
         with self.feature("organizations:slack-block-kit"):
             # test backwards compatibility
@@ -689,21 +891,69 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             assert self.group.substatus == GroupSubStatus.FOREVER
             assert resp.status_code == 200, resp.content
             assert "blocks" in resp.data
-            assert self.group.title in resp.data["blocks"][0]["text"]["text"]
+            assert resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] in self.group.title
 
+    @responses.activate
     def test_response_differs_on_bot_message_block_kit(self):
-        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
+        status_action = self.get_archive_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
+
+        # Expect request to open dialog on slack
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/views.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
-                action_data=[status_action], original_message=original_message
+                action_data=[status_action],
+                original_message=original_message,
             )
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = json.loads(responses.calls[0].request.body)
+        assert data["trigger_id"] == self.trigger_id
+        assert "view" in data
+
+        view = json.loads(data["view"])
+        private_metadata = json.loads(view["private_metadata"])
+        assert int(private_metadata["issue"]) == self.group.id
+        assert private_metadata["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                type="view_submission",
+                private_metadata=json.dumps(private_metadata),
+                selected_option="ignored:archived_forever",
+            )
+        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
+
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
-        assert resp.status_code == 200, resp.content
-        assert "blocks" in resp.data
-        assert self.group.title in resp.data["blocks"][0]["text"]["text"]
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_assign_user_with_multiple_identities(self):
         org2 = self.create_organization(owner=None)
@@ -740,7 +990,11 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             resp = self.post_webhook(action_data=[status_action])
             assert resp.status_code == 200, resp.content
             assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
-            assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+            assert (
+                resp.data["blocks"][1]["elements"][0]["elements"][0]["text"]
+                == self.notification_text
+            )
+            assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_user_with_multiple_identities_block_kit(self):
         org2 = self.create_organization(owner=None)
@@ -769,7 +1023,10 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
             assignee=self.external_id
         )
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert (
+            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     def test_assign_user_with_multiple_identities_block_kit_through_unfurl(self):
         org2 = self.create_organization(owner=None)
@@ -797,7 +1054,10 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
             assignee=self.external_id
         )
-        assert resp.data["blocks"][0]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert (
+            resp.data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     @responses.activate
     def test_resolve_issue(self):
@@ -903,114 +1163,45 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     def test_resolve_issue_block_kit(self):
-        status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                action_data=[status_action], original_message=original_message
-            )
-        assert resp.status_code == 200, resp.content
+        self.resolve_issue_block_kit(original_message, "resolved")
 
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = json.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                type="view_submission",
-                private_metadata=json.dumps(private_metadata),
-                selected_option="resolved",
-            )
-
-        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
+        assert not GroupResolution.objects.filter(group=self.group)
 
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"] == expect_status
 
     @responses.activate
     def test_resolve_issue_block_kit_through_unfurl(self):
-        status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
         payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(action_data=[status_action], data=payload_data)
-        assert resp.status_code == 200, resp.content
+        self.resolve_issue_block_kit(original_message, "resolved", payload_data)
 
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = json.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                type="view_submission",
-                private_metadata=json.dumps(private_metadata),
-                selected_option="resolved",
-            )
-
-        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
+        assert not GroupResolution.objects.filter(group=self.group)
 
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"] == expect_status
 
     @responses.activate
     def test_resolve_issue_in_next_release(self):
@@ -1128,7 +1319,62 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
 
             update_data = json.loads(responses.calls[1].request.body)
             expect_status = f"*Issue resolved by <@{self.external_id}>*"
-            assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+            assert (
+                update_data["blocks"][1]["elements"][0]["elements"][0]["text"]
+                == self.notification_text
+            )
+            assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_resolve_issue_in_current_release_block_kit(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1.0",
+        )
+        release.add_project(self.project)
+
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.resolve_issue_block_kit(original_message, "resolved:inCurrentRelease")
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.release == release
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    def test_resolve_issue_in_current_release_block_kit_through_unfurl(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1.0",
+        )
+        release.add_project(self.project)
+
+        original_message = self.get_original_message_block_kit(self.group.id)
+        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        self.resolve_issue_block_kit(original_message, "resolved:inCurrentRelease", payload_data)
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.release == release
+
+        update_data = json.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     def test_resolve_in_next_release_block_kit(self):
@@ -1137,56 +1383,22 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             version="1.0",
         )
         release.add_project(self.project)
-        status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                action_data=[status_action], original_message=original_message
-            )
-        assert resp.status_code == 200, resp.content
+        self.resolve_issue_block_kit(original_message, "resolved:inNextRelease")
 
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = json.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                type="view_submission",
-                private_metadata=json.dumps(private_metadata),
-                selected_option="resolved:inNextRelease",
-            )
-
-        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.release == release
+
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     def test_resolve_in_next_release_block_kit_through_unfurl(self):
@@ -1195,55 +1407,23 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             version="1.0",
         )
         release.add_project(self.project)
-        status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
         payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(action_data=[status_action], data=payload_data)
-        assert resp.status_code == 200, resp.content
+        self.resolve_issue_block_kit(original_message, "resolved:inNextRelease", payload_data)
 
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = json.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = json.loads(data["view"])
-        private_metadata = json.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook_block_kit(
-                type="view_submission",
-                private_metadata=json.dumps(private_metadata),
-                selected_option="resolved:inNextRelease",
-            )
-
-        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.release == release
+
         update_data = json.loads(responses.calls[1].request.body)
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert update_data["blocks"][0]["text"]["text"].endswith(expect_status)
+        assert (
+            update_data["blocks"][1]["elements"][0]["elements"][0]["text"] == self.notification_text
+        )
+        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_permission_denied(self):
         user2 = self.create_user(is_superuser=False)
@@ -1254,7 +1434,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             user=user2,
         )
 
-        status_action = {"name": "status", "value": "ignored:forever", "type": "button"}
+        status_action = {"name": "status", "value": "ignored:archived_forever", "type": "button"}
 
         resp = self.post_webhook(
             action_data=[status_action], slack_user={"id": user2_identity.external_id}
@@ -1284,6 +1464,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
             )
 
+    @responses.activate
     def test_permission_denied_block_kit(self):
         user2 = self.create_user(is_superuser=False)
         user2_identity = self.create_identity(
@@ -1291,27 +1472,70 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             identity_provider=self.idp,
             user=user2,
         )
-        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
+        status_action = self.get_archive_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
+
+        # Expect request to open dialog on slack; will only get permission denied when trying to complete an action
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/views.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
                 action_data=[status_action],
                 original_message=original_message,
                 slack_user={"id": user2_identity.external_id},
             )
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = json.loads(responses.calls[0].request.body)
+        assert data["trigger_id"] == self.trigger_id
+        assert "view" in data
+
+        view = json.loads(data["view"])
+        private_metadata = json.loads(view["private_metadata"])
+        assert int(private_metadata["issue"]) == self.group.id
+        assert private_metadata["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                type="view_submission",
+                private_metadata=json.dumps(private_metadata),
+                selected_option="ignored:archived_forever",
+                slack_user={"id": user2_identity.external_id},
+            )
+
+        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
 
         associate_url = build_unlinking_url(
             self.integration.id, "slack_id2", "C065W1189", self.response_url
         )
 
-        assert resp.status_code == 200, resp.content
         assert resp.data["response_type"] == "ephemeral"
         assert not resp.data["replace_original"]
         assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
             associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
         )
 
+    @responses.activate
     def test_permission_denied_block_kit_through_unfurl(self):
         user2 = self.create_user(is_superuser=False)
         user2_identity = self.create_identity(
@@ -1319,8 +1543,18 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
             identity_provider=self.idp,
             user=user2,
         )
-        status_action = self.get_ignore_status_action("Ignore", "ignored:forever")
+        status_action = self.get_archive_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
+
+        # Expect request to open dialog on slack
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/views.open",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
         data = self.get_block_kit_unfurl_data(original_message["blocks"])
         with self.feature("organizations:slack-block-kit"):
             resp = self.post_webhook_block_kit(
@@ -1328,13 +1562,43 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 data=data,
                 slack_user={"id": user2_identity.external_id},
             )
+        assert resp.status_code == 200, resp.content
+
+        # Opening dialog should *not* cause the current message to be updated
+        assert resp.content == b""
+
+        data = json.loads(responses.calls[0].request.body)
+        assert data["trigger_id"] == self.trigger_id
+        assert "view" in data
+
+        view = json.loads(data["view"])
+        private_metadata = json.loads(view["private_metadata"])
+        assert int(private_metadata["issue"]) == self.group.id
+        assert private_metadata["orig_response_url"] == self.response_url
+
+        # Completing the dialog will update the message
+        responses.add(
+            method=responses.POST,
+            url=self.response_url,
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        with self.feature("organizations:slack-block-kit"):
+            resp = self.post_webhook_block_kit(
+                type="view_submission",
+                private_metadata=json.dumps(private_metadata),
+                selected_option="ignored:archived_until_escalating",
+                slack_user={"id": user2_identity.external_id},
+            )
+        assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
 
         associate_url = build_unlinking_url(
             self.integration.id, "slack_id2", "C065W1189", self.response_url
         )
 
-        assert resp.status_code == 200, resp.content
         assert resp.data["response_type"] == "ephemeral"
         assert not resp.data["replace_original"]
         assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(

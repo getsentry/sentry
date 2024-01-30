@@ -7,6 +7,7 @@ import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelin
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide, formatTime} from 'sentry/components/replays/utils';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import toPercent from 'sentry/utils/number/toPercent';
 
@@ -16,13 +17,17 @@ type Props = {
 };
 
 function Scrubber({className, showZoomIndicators = false}: Props) {
-  const {currentHoverTime, currentTime, replay, setCurrentTime, timelineScale} =
-    useReplayContext();
+  const {
+    currentHoverTime,
+    currentTime,
+    setCurrentTime,
+    timelineScale,
+    startTimeOffsetMs,
+    durationMs,
+  } = useReplayContext();
 
-  const durationMs = replay?.getDurationMs() ?? 0;
-
-  const percentComplete = divide(currentTime, durationMs);
-  const hoverPlace = divide(currentHoverTime || 0, durationMs);
+  const percentComplete = divide(currentTime - startTimeOffsetMs, durationMs);
+  const hoverPlace = divide(currentHoverTime || 0 - startTimeOffsetMs, durationMs);
 
   const initialTranslate = 0.5 / timelineScale;
 
@@ -75,11 +80,12 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
       <RangeWrapper>
         <Range
           name="replay-timeline"
-          min={0}
-          max={durationMs}
+          min={startTimeOffsetMs}
+          max={startTimeOffsetMs + durationMs}
           value={Math.round(currentTime)}
           onChange={value => setCurrentTime(value || 0)}
           showLabel={false}
+          aria-label={t('Seek slider')}
         />
       </RangeWrapper>
     </Wrapper>

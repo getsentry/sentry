@@ -2,7 +2,8 @@ import {useEffect} from 'react';
 
 import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AutoComplete, {AutoCompleteProps} from 'sentry/components/autoComplete';
+import type {AutoCompleteProps} from 'sentry/components/autoComplete';
+import AutoComplete from 'sentry/components/autoComplete';
 
 const items = [
   {

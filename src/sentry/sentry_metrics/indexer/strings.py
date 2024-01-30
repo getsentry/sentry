@@ -202,6 +202,12 @@ SPAN_METRICS_NAMES = {
     "d:spans/http.response_transfer_size@byte": PREFIX + 411,
     "c:spans/count_per_op@none": PREFIX + 412,
     "c:spans/count_per_segment@none": PREFIX + 413,
+    "d:spans/webvital.score.total@ratio": PREFIX + 414,
+    "d:spans/webvital.score.inp@ratio": PREFIX + 415,
+    "d:spans/webvital.score.weight.inp@ratio": PREFIX + 416,
+    "d:spans/webvital.inp@millisecond": PREFIX + 417,
+    "c:spans/usage@none": PREFIX + 418,
+    # Last possible index: 499
 }
 
 # 500-599

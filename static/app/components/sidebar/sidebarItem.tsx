@@ -1,8 +1,9 @@
 import {Fragment, isValidElement, useCallback, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -12,14 +13,14 @@ import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
+import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {SidebarOrientation} from './types';
+import type {SidebarOrientation} from './types';
 import {SIDEBAR_NAVIGATION_SOURCE} from './utils';
 
 const LabelHook = HookOrDefault({
@@ -91,10 +92,6 @@ export type SidebarItemProps = {
    */
   isNewSeenKeySuffix?: string;
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
-  /**
-   * The current organization. Useful for analytics.
-   */
-  organization?: Organization;
   search?: string;
   to?: string;
   /**
@@ -125,7 +122,6 @@ function SidebarItem({
   className,
   orientation,
   isNewSeenKeySuffix,
-  organization,
   onClick,
   trailingItems,
   variant,
@@ -149,12 +145,12 @@ function SidebarItem({
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
 
-  const recordAnalytics = useCallback(() => {
-    trackAnalytics('growth.clicked_sidebar', {
-      item: id,
-      organization: organization || null,
-    });
-  }, [id, organization]);
+  const organization = useOrganization({allowNull: true});
+
+  const recordAnalytics = useCallback(
+    () => trackAnalytics('growth.clicked_sidebar', {item: id, organization}),
+    [id, organization]
+  );
 
   const toProps: LocationDescriptor = useMemo(() => {
     return {
@@ -198,6 +194,7 @@ function SidebarItem({
         active={isActive ? 'true' : undefined}
         to={toProps}
         className={className}
+        aria-current={isActive ? 'page' : undefined}
         onClick={handleItemClick}
       >
         <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />

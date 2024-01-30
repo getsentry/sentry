@@ -49,6 +49,8 @@ from sentry.models.actor import Actor
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -67,6 +69,7 @@ from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.models.integrations.integration_feature import (
     Feature,
     IntegrationFeature,
@@ -75,17 +78,22 @@ from sentry.models.integrations.integration_feature import (
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
 from sentry.models.notificationaction import (
     ActionService,
     ActionTarget,
     ActionTrigger,
     NotificationAction,
 )
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
@@ -384,6 +392,16 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_auth_provider(**kwargs):
+        return AuthProvider.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_auth_identity(**kwargs):
+        return AuthIdentity.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_user_auth_token(user, scope_list: List[str] = None, **kwargs) -> ApiToken:
         if scope_list is None:
             scope_list = []
@@ -392,6 +410,11 @@ class Factories:
             scope_list=scope_list,
             **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_org_auth_token(*args, **kwargs) -> OrgAuthToken:
+        return OrgAuthToken.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1084,6 +1107,22 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_sentry_app_installation_for_provider(
+        sentry_app_id: int,
+        organization_id: int,
+        provider: str,
+    ) -> SentryAppInstallationForProvider:
+        installation = SentryAppInstallation.objects.get(
+            sentry_app_id=sentry_app_id, organization_id=organization_id
+        )
+        return SentryAppInstallationForProvider.objects.create(
+            organization_id=organization_id,
+            provider=provider,
+            sentry_app_installation=installation,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_stacktrace_link_schema():
         return {"type": "stacktrace-link", "uri": "/redirect/"}
 
@@ -1323,6 +1362,18 @@ class Factories:
         return external_issue
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_integration_external_project(
+        organization_id: int, integration_id: int, *args: Any, **kwargs: Any
+    ) -> IntegrationExternalProject:
+        oi = OrganizationIntegration.objects.get(
+            organization_id=organization_id, integration_id=integration_id
+        )
+        return IntegrationExternalProject.objects.create(
+            organization_integration_id=oi.id, *args, **kwargs
+        )
+
+    @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_incident(
         organization,
@@ -1543,6 +1594,29 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_identity_integration(
+        user: User | RpcUser,
+        organization: Organization | RpcOrganization,
+        integration_params: Mapping[Any, Any],
+        identity_params: Mapping[Any, Any],
+    ) -> tuple[Integration, OrganizationIntegration, Identity, IdentityProvider]:
+        # Avoid common pitfalls in tests
+        assert "provider" in integration_params
+        assert "external_id" in integration_params
+        assert "external_id" in identity_params
+
+        integration = Factories.create_provider_integration(**integration_params)
+        identity_provider = Factories.create_identity_provider(integration=integration)
+        identity = Factories.create_identity(
+            user=user, identity_provider=identity_provider, **identity_params
+        )
+        organization_integration = integration.add_organization(
+            organization_id=organization.id, user=user, default_auth_id=identity.id
+        )
+        return integration, organization_integration, identity, identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_organization_integration(**integration_params: Any) -> OrganizationIntegration:
         return OrganizationIntegration.objects.create(**integration_params)
 
@@ -1669,6 +1743,11 @@ class Factories:
         action.save()
 
         return action
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_notification_settings_provider(*args, **kwargs) -> NotificationSettingProvider:
+        return NotificationSettingProvider.objects.create(*args, **kwargs)
 
     @staticmethod
     def create_basic_auth_header(username: str, password: str = "") -> str:

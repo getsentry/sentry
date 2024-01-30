@@ -8,19 +8,17 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
-import {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
-  HybridFilter,
-  HybridFilterProps,
-} from 'sentry/components/organizations/hybridFilter';
+import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
+import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useOrganization from 'sentry/utils/useOrganization';

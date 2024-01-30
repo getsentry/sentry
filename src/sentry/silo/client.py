@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from typing import FrozenSet
 
 REQUEST_ATTEMPTS_LIMIT = 10
-CACHE_TIMEOUT = 600  # 10 minutes = 600 seconds
+CACHE_TIMEOUT = 43200  # 12 hours = 60 * 60 * 12 seconds
 
 
 class SiloClientError(Exception):
@@ -204,6 +204,16 @@ class RegionSiloClient(BaseSiloClient):
         if not isinstance(request_attempts, int):
             request_attempts = 0
 
+        self.logger.info(
+            "silo_client.check_request_attempts",
+            extra={
+                "path": path,
+                "method": method,
+                "request_hash": hash,
+                "request_attempts": request_attempts,
+                "configured_attempt_limit": REQUEST_ATTEMPTS_LIMIT,
+            },
+        )
         if request_attempts < REQUEST_ATTEMPTS_LIMIT:
             request_attempts += 1
             cache.set(cache_key, request_attempts, timeout=CACHE_TIMEOUT)
@@ -214,6 +224,8 @@ class RegionSiloClient(BaseSiloClient):
     def cleanup_request_attempts(self, hash: str | None) -> None:
         if hash is None:
             return
+
+        self.logger.info("silo_client.cleaning_request_attempts", extra={"request_hash": hash})
         cache_key = self._get_hash_cache_key(hash=hash)
         cache.delete(cache_key)
 

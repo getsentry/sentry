@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment-timezone';
 
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types';
 
 type TimezoneGroup =
   | null

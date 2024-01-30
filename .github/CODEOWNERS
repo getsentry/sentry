@@ -23,6 +23,7 @@
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/                              @getsentry/owners-snuba
+/src/sentry/sentry_metrics/metrics_correlations.py       @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
 /src/sentry/snuba/metrics/                               @getsentry/owners-snuba @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/query.py                       @getsentry/owners-snuba @getsentry/telemetry-experience
@@ -148,7 +149,8 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
 /src/sentry/middleware/integration/                      @getsentry/hybrid-cloud
-/src/sentry/api/endpoints/rpc.py                         @getsentry/hybrid-cloud
+/src/sentry/api/endpoints/internal/integration_proxy.py  @getsentry/hybrid-cloud
+/src/sentry/api/endpoints/internal/rpc.py                @getsentry/hybrid-cloud
 /src/sentry/models/outbox.py                             @getsentry/hybrid-cloud
 /src/sentry/tasks/deliver_from_outbox.py                 @getsentry/hybrid-cloud
 /src/sentry/tasks/deletion/hybrid_cloud.py               @getsentry/hybrid-cloud
@@ -397,25 +399,34 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 
 
 ## Enterprise
-/static/app/views/organizationStats                                     @getsentry/enterprise
-/src/sentry/api/endpoints/organization_stats*.py                        @getsentry/enterprise
-/src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/enterprise
-/static/app/views/settings/organizationAuth/                            @getsentry/enterprise
-/tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
-/tests/sentry/api/test_data_secrecy.py                                  @getsentry/enterprise
-/src/sentry/scim/                                                       @getsentry/enterprise
-/tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
-/static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
-/src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
-/tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
-/src/sentry/models/release_threshold                                    @getsentry/enterprise
-/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
-/src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
 /src/sentry/api/endpoints/oauth_userinfo.py                             @getsentry/enterprise
+/src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/enterprise
+/src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
+/src/sentry/api/endpoints/organization_stats*.py                        @getsentry/enterprise
+/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
 /src/sentry/api/endpoints/user_social_identity*                         @getsentry/enterprise
+/src/sentry/auth/staff.py                                               @getsentry/enterprise
+/src/sentry/auth/superuser.py                                           @getsentry/enterprise
+/src/sentry/middleware/staff.py                                         @getsentry/enterprise
+/src/sentry/middleware/superuser.py                                     @getsentry/enterprise
+/src/sentry/models/release_threshold                                    @getsentry/enterprise
+/src/sentry/scim/                                                       @getsentry/enterprise
 /src/sentry/tasks/integrations/github/                                  @getsentry/enterprise
-/tests/sentry/tasks/integrations/github/                                @getsentry/enterprise
+/src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
+/static/app/components/superuserStaffAccessForm.tsx                     @getsentry/enterprise
+/static/app/constants/superuserAccessErrors.tsx                         @getsentry/enterprise
+/static/app/views/organizationStats                                     @getsentry/enterprise
 /static/app/views/releases/thresholdsList/                              @getsentry/enterprise
+/static/app/views/settings/organizationAuth/                            @getsentry/enterprise
+/static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
+/tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
+/tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
+/tests/sentry/api/test_data_secrecy.py                                  @getsentry/enterprise
+/tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
+/tests/sentry/auth/test_staff.py                                        @getsentry/enterprise
+/tests/sentry/auth/test_superuser.py                                    @getsentry/enterprise
+/tests/sentry/middleware/test_staff.py                                  @getsentry/enterprise
+/tests/sentry/tasks/integrations/github/                                @getsentry/enterprise
 ## End of Enterprise
 
 

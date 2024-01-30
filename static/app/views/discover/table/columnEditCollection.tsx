@@ -12,11 +12,11 @@ import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils'
 import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MRI, Organization} from 'sentry/types';
+import type {MRI, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Column} from 'sentry/utils/discover/fields';
 import {
   AGGREGATIONS,
-  Column,
   generateFieldAsString,
   hasDuplicate,
   isLegalEquationColumn,
@@ -25,14 +25,16 @@ import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
+import type {UserSelectValues} from 'sentry/utils/userselect';
+import {setBodyUserSelect} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
-import {generateFieldOptions} from '../utils';
+import type {generateFieldOptions} from '../utils';
 
-import {FieldValueOption, QueryField} from './queryField';
+import type {FieldValueOption} from './queryField';
+import {QueryField} from './queryField';
 import {FieldValueKind} from './types';
 
 type Sources = WidgetType;
@@ -739,9 +741,11 @@ const RowContainer = styled('div')<{
       grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px`};
 
       @media (min-width: ${p.theme.breakpoints.small}) {
-        grid-template-columns: ${p.singleColumn
-          ? `1fr calc(200px + ${space(1)})`
-          : `${space(3)} 1fr calc(200px + ${space(1)}) 40px`};
+        grid-template-columns: ${
+          p.singleColumn
+            ? `1fr calc(200px + ${space(1)})`
+            : `${space(3)} 1fr calc(200px + ${space(1)}) 40px`
+        };
       }
     `};
 `;

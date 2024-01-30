@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, List
 
 import sentry_sdk
 from django.db import connection
-from django.utils import timezone
 from sentry_sdk.crons.decorator import monitor
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
@@ -16,7 +15,7 @@ from sentry.models.groupowner import GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.pullrequest import CommentType, PullRequestComment
+from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -130,13 +129,6 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
     ]
 
 
-def get_pr_comment(pr_id: int, comment_type: int) -> PullRequestComment | None:
-    pr_comment_query = PullRequestComment.objects.filter(
-        pull_request__id=pr_id, comment_type=comment_type
-    )
-    return pr_comment_query[0] if pr_comment_query.exists() else None
-
-
 @instrumented_task(
     name="sentry.tasks.integrations.github_comment_workflow", silo_mode=SiloMode.REGION
 )
@@ -160,8 +152,6 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     ):
         logger.info("github.pr_comment.option_missing", extra={"organization_id": org_id})
         return
-
-    pr_comment = get_pr_comment(pr_id=pullrequest_id, comment_type=CommentType.MERGED_PR)
 
     try:
         project = Project.objects.get_from_cache(id=project_id)
@@ -214,7 +204,6 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     try:
         create_or_update_comment(
-            pr_comment=pr_comment,
             client=client,
             repo=repo,
             pr_key=pr_key,
@@ -253,6 +242,8 @@ def github_comment_reactions():
     comments = PullRequestComment.objects.filter(
         created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
     ).select_related("pull_request")
+
+    comment_count = 0
 
     for comment in RangeQuerySetWrapper(comments):
         pr = comment.pull_request
@@ -294,4 +285,10 @@ def github_comment_reactions():
                 sentry_sdk.capture_exception(e)
             continue
 
+        comment_count += 1
+
         metrics.incr("github_pr_comment.comment_reactions.success")
+
+    logger.info(
+        "github_pr_comment.comment_reactions.total_collected", extra={"count": comment_count}
+    )

@@ -1,9 +1,10 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ConfigureReplayCard from 'sentry/components/replays/configureReplayCard';
 import DeleteButton from 'sentry/components/replays/header/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
@@ -39,6 +40,7 @@ function Page({children, orgSlug, replayRecord, projectSlug, replayErrors}: Prop
       <ButtonActionsWrapper>
         <ShareButton />
         <FeedbackButton />
+        <ConfigureReplayCard />
         {replayRecord?.id && projectSlug && (
           <DeleteButton replayId={replayRecord.id} projectSlug={projectSlug} />
         )}

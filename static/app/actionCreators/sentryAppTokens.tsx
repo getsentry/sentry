@@ -3,9 +3,9 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {InternalAppApiToken, SentryApp} from 'sentry/types';
+import type {NewInternalAppApiToken, SentryApp} from 'sentry/types';
 
 /**
  * Install a sentry application
@@ -16,7 +16,7 @@ import {InternalAppApiToken, SentryApp} from 'sentry/types';
 export async function addSentryAppToken(
   client: Client,
   app: SentryApp
-): Promise<InternalAppApiToken> {
+): Promise<NewInternalAppApiToken> {
   addLoadingMessage();
   try {
     const token = await client.requestPromise(`/sentry-apps/${app.slug}/api-tokens/`, {
@@ -35,16 +35,16 @@ export async function addSentryAppToken(
  *
  * @param {Object} client ApiClient
  * @param {Object} app SentryApp
- * @param {String} token Token string
+ * @param {String} tokenId Id of the token
  */
 export async function removeSentryAppToken(
   client: Client,
   app: SentryApp,
-  token: string
+  tokenId: string
 ): Promise<void> {
   addLoadingMessage();
   try {
-    await client.requestPromise(`/sentry-apps/${app.slug}/api-tokens/${token}/`, {
+    await client.requestPromise(`/sentry-apps/${app.slug}/api-tokens/${tokenId}/`, {
       method: 'DELETE',
     });
     addSuccessMessage(t('Token successfully deleted.'));

@@ -45,16 +45,40 @@ class NoPermission(BasePermission):
 
 
 class SuperuserPermission(BasePermission):
+    """
+    This permission class is used for endpoints that should ONLY be accessible
+    by superuser.
+    """
+
     def has_permission(self, request: Request, view: object) -> bool:
         return is_active_superuser(request)
 
 
 class StaffPermission(BasePermission):
+    """
+    This permission class is used for endpoints that should ONLY be accessible
+    by staff.
+    """
+
     def has_permission(self, request: Request, view: object) -> bool:
         return is_active_staff(request)
 
 
-# XXX(schew2381): This is a temporary permission that does NOT perform an OR
+class StaffPermissionMixin:
+    """
+    Sentry endpoints that should be accessible by staff but have an existing permission
+    class (that is not StaffPermission) require this mixin because staff does not give
+    any scopes. See 'OrganizationAndStaffPermission' for an example of this.
+    """
+
+    def has_permission(self, request, *args, **kwargs):
+        return super().has_permission(request, *args, **kwargs) or is_active_staff(request)
+
+    def has_object_permission(self, request, *args, **kwargs):
+        return super().has_object_permission(request, *args, **kwargs) or is_active_staff(request)
+
+
+# NOTE(schew2381): This is a temporary permission that does NOT perform an OR
 # between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
 # if the feature flag is enabled, and otherwise uses SuperuserPermission. We
 # need this to handle the transition for endpoints that will only be accessible to
@@ -64,12 +88,10 @@ class SuperuserOrStaffFeatureFlaggedPermission(BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         enforce_staff_permission = features.has("auth:enterprise-staff-cookie", actor=request.user)
 
-        active_superuser = not enforce_staff_permission and SuperuserPermission().has_permission(
-            request, view
-        )
-        active_staff = enforce_staff_permission and StaffPermission().has_permission(request, view)
+        if enforce_staff_permission:
+            return StaffPermission().has_permission(request, view)
 
-        return active_superuser or active_staff
+        return SuperuserPermission().has_permission(request, view)
 
 
 class ScopedPermission(BasePermission):

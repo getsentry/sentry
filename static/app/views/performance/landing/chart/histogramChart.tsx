@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {BarChart, BarChartProps} from 'sentry/components/charts/barChart';
+import type {BarChartProps} from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -13,13 +14,13 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import EventView from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
+import type EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
-import {HistogramData} from 'sentry/utils/performance/histogram/types';
+import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
   formatHistogramData,

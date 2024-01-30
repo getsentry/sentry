@@ -135,14 +135,30 @@ def get_profiles_with_function(
     conditions = [query, f"fingerprint:{function_fingerprint}"]
 
     result = functions.query(
-        selected_columns=["unique_examples(100)"],
+        selected_columns=["timestamp", "unique_examples()"],
         query=" ".join(cond for cond in conditions if cond),
         params=params,
-        limit=1,
+        limit=100,
+        orderby=["-timestamp"],
         referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
         auto_aggregations=True,
         use_aggregate_conditions=True,
         transform_alias_to_input_format=True,
     )
 
-    return {"profile_ids": result["data"][0]["unique_examples(100)"]}
+    def extract_profile_ids() -> List[str]:
+        max_profiles = options.get("profiling.flamegraph.profile-set.size")
+        profile_ids = []
+
+        for i in range(5):
+            for row in result["data"]:
+                examples = row["unique_examples()"]
+                if i < len(examples):
+                    profile_ids.append(examples[i])
+
+                    if len(profile_ids) >= max_profiles:
+                        return profile_ids
+
+        return profile_ids
+
+    return {"profile_ids": extract_profile_ids()}

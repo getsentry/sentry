@@ -1,9 +1,10 @@
 from typing import List
 
+from django.db import router, transaction
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 
-from sentry import audit_log, features, quotas
+from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -30,9 +31,13 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
+from sentry.monitors.serializers import (
+    MonitorBulkEditResponse,
+    MonitorSerializer,
+    MonitorSerializerResponse,
+)
 from sentry.monitors.utils import create_alert_rule, signal_monitor_created
-from sentry.monitors.validators import MonitorValidator
+from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.utils.outcomes import Outcome
 
@@ -72,6 +77,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
+        # TODO(davidenwang): After this is merged and good to go, make this public
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.CRONS
     permission_classes = (OrganizationMonitorPermission,)
@@ -217,15 +224,6 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
-        if (
-            features.has("organizations:crons-disable-new-projects", organization)
-            and not result["project"].flags.has_cron_monitors
-        ):
-            return self.respond(
-                "Creating monitors in projects without pre-existing monitors is temporarily disabled",
-                status=400,
-            )
-
         try:
             monitor = Monitor.objects.create(
                 project_id=result["project"].id,
@@ -265,3 +263,68 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 monitor.update(config=config)
 
         return self.respond(serialize(monitor, request.user), status=201)
+
+    @extend_schema(
+        operation_id="Bulk Edit Monitors",
+        parameters=[GlobalParams.ORG_SLUG],
+        request=MonitorBulkEditValidator,
+        responses={
+            200: inline_sentry_response_serializer(
+                "MonitorBulkEditResponse", MonitorBulkEditResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(self, request: Request, organization) -> Response:
+        """
+        Bulk edit the muted and disabled status of a list of monitors determined by slug
+        """
+        validator = MonitorBulkEditValidator(
+            data=request.data,
+            partial=True,
+            context={
+                "organization": organization,
+                "access": request.access,
+            },
+        )
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=400)
+
+        result = dict(validator.validated_data)
+        monitor_slugs = result.pop("slugs")
+        status = result.get("status")
+
+        monitors = Monitor.objects.filter(slug__in=monitor_slugs, organization_id=organization.id)
+        # If enabling monitors, ensure we can assign all before moving forward
+        if status == ObjectStatus.ACTIVE:
+            assign_result = quotas.backend.check_assign_monitor_seats(monitors)
+            if not assign_result.assignable:
+                return self.respond(assign_result.reason, status=400)
+
+        updated = []
+        errored = []
+        for monitor in monitors:
+            with transaction.atomic(router.db_for_write(Monitor)):
+                # Attempt to assign a monitor seat
+                if status == ObjectStatus.ACTIVE:
+                    outcome = quotas.backend.assign_monitor_seat(monitor)
+                    if outcome != Outcome.ACCEPTED:
+                        errored.append(monitor)
+                        continue
+
+                # Attempt to unassign the monitor seat
+                if status == ObjectStatus.DISABLED:
+                    quotas.backend.disable_monitor_seat(monitor)
+
+                monitor.update(**result)
+                updated.append(monitor)
+
+        return self.respond(
+            {
+                "updated": serialize(list(updated), request.user),
+                "errored": serialize(list(errored), request.user),
+            },
+        )

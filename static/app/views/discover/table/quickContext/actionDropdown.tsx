@@ -1,15 +1,17 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import toArray from 'sentry/utils/toArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 

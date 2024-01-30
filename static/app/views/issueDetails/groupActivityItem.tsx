@@ -10,16 +10,16 @@ import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import {
+import type {
   GroupActivity,
   GroupActivityAssigned,
   GroupActivitySetEscalating,
   GroupActivitySetIgnored,
-  GroupActivityType,
   Organization,
   Project,
   User,
 } from 'sentry/types';
+import {GroupActivityType} from 'sentry/types';
 import {isSemverRelease} from 'sentry/utils/formatters';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
@@ -551,7 +551,26 @@ function GroupActivityItem({
       case GroupActivityType.SET_ESCALATING: {
         return getEscalatingMessage(activity.data);
       }
-
+      case GroupActivityType.SET_PRIORITY: {
+        const {data} = activity;
+        switch (data.reason) {
+          case 'escalating':
+            return tct(
+              '[author] updated the priority value of this issue to be [priority] after it escalated',
+              {author, priority: data.priority}
+            );
+          case 'ongoing':
+            return tct(
+              '[author] updated the priority value of this issue to be [priority] after it was marked as ongoing',
+              {author, priority: data.priority}
+            );
+          default:
+            return tct(
+              '[author] updated the priority value of this issue to be [priority]',
+              {author, priority: data.priority}
+            );
+        }
+      }
       default:
         return ''; // should never hit (?)
     }

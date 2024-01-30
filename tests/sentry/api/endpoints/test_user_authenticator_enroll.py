@@ -108,35 +108,35 @@ class UserAuthenticatorEnrollTest(APITestCase):
 
     @mock.patch("sentry.auth.authenticators.SmsInterface.validate_otp", return_value=True)
     @mock.patch("sentry.auth.authenticators.SmsInterface.send_text", return_value=True)
+    @override_options({"sms.twilio-account": "twilio-account"})
     def test_sms_can_enroll(self, send_text, validate_otp):
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
 
-        with override_options({"sms.twilio-account": "twilio-account"}):
-            resp = self.get_success_response("me", "sms")
-            assert resp.data["form"]
-            assert resp.data["secret"]
+        resp = self.get_success_response("me", "sms")
+        assert resp.data["form"]
+        assert resp.data["secret"]
 
+        self.get_success_response(
+            "me", "sms", method="post", **{"secret": "secret12", "phone": "1231234"}
+        )
+        assert send_text.call_count == 1
+        assert validate_otp.call_count == 0
+
+        with self.tasks():
             self.get_success_response(
-                "me", "sms", method="post", **{"secret": "secret12", "phone": "1231234"}
+                "me",
+                "sms",
+                method="post",
+                **{"secret": "secret12", "phone": "1231234", "otp": "123123"},
             )
-            assert send_text.call_count == 1
-            assert validate_otp.call_count == 0
+        assert validate_otp.call_count == 1
+        assert validate_otp.call_args == mock.call("123123")
 
-            with self.tasks():
-                self.get_success_response(
-                    "me",
-                    "sms",
-                    method="post",
-                    **{"secret": "secret12", "phone": "1231234", "otp": "123123"},
-                )
-            assert validate_otp.call_count == 1
-            assert validate_otp.call_args == mock.call("123123")
+        interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
+        assert interface.phone_number == "1231234"
 
-            interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
-            assert interface.phone_number == "1231234"
-
-            assert_security_email_sent("mfa-added")
+        assert_security_email_sent("mfa-added")
 
     @override_options(
         {"sms.twilio-account": "test-twilio-account", "sms.disallow-new-enrollment": True}
@@ -145,58 +145,83 @@ class UserAuthenticatorEnrollTest(APITestCase):
         form_data = {"phone": "+12345678901"}
         self.get_error_response("me", "sms", method="post", status_code=403, **form_data)
 
+    @override_options({"sms.twilio-account": "twilio-account"})
     def test_sms_invalid_otp(self):
-        with override_options({"sms.twilio-account": "twilio-account"}):
-            self.get_error_response(
-                "me",
-                "sms",
-                method="post",
-                status_code=400,
-                **{"secret": "secret12", "phone": "1231234", "otp": None},
-            )
-            self.get_error_response(
-                "me",
-                "sms",
-                method="post",
-                status_code=400,
-                **{"secret": "secret12", "phone": "1231234", "otp": ""},
-            )
+        # OTP as None
+        self.get_error_response(
+            "me",
+            "sms",
+            method="post",
+            status_code=400,
+            **{"secret": "secret12", "phone": "1231234", "otp": None},
+        )
+        # OTP as empty string
+        self.get_error_response(
+            "me",
+            "sms",
+            method="post",
+            status_code=400,
+            **{"secret": "secret12", "phone": "1231234", "otp": ""},
+        )
 
+    @override_options({"sms.twilio-account": "twilio-account"})
     def test_sms_no_verified_email(self):
         user = self.create_user()
         UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
 
         self.login_as(user)
 
-        with override_options({"sms.twilio-account": "twilio-account"}):
-            resp = self.get_error_response(
-                "me",
-                "sms",
-                method="post",
-                status_code=401,
-                **{"secret": "secret12", "phone": "1231234", "otp": None},
-            )
-            assert resp.data == {
-                "detail": {
-                    "code": "email-verification-required",
-                    "message": "Email verification required.",
-                    "extra": {"username": user.email},
-                }
+        resp = self.get_error_response(
+            "me",
+            "sms",
+            method="post",
+            status_code=401,
+            **{"secret": "secret12", "phone": "1231234", "otp": None},
+        )
+        assert resp.data == {
+            "detail": {
+                "code": "email-verification-required",
+                "message": "Email verification required.",
+                "extra": {"username": user.email},
             }
+        }
 
     @mock.patch(
         "sentry.api.endpoints.user_authenticator_enroll.ratelimiter.backend.is_limited",
         return_value=True,
     )
-    @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
+    @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll")
+    @override_options({"system.url-prefix": "https://testserver"})
     def test_rate_limited(self, try_enroll, is_limited):
-        with override_options({"system.url-prefix": "https://testserver"}):
-            self.get_success_response("me", "u2f")
-            self.get_error_response(
+        self.get_success_response("me", "u2f")
+        self.get_error_response(
+            "me",
+            "u2f",
+            method="post",
+            status_code=429,
+            **{
+                "deviceName": "device name",
+                "challenge": "challenge",
+                "response": "response",
+            },
+        )
+
+        assert try_enroll.call_count == 0
+
+    @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
+    @override_options({"system.url-prefix": "https://testserver"})
+    def test_u2f_can_enroll(self, try_enroll):
+        resp = self.get_success_response("me", "u2f")
+        assert resp.data["form"]
+        assert "secret" not in resp.data
+        assert "qrcode" not in resp.data
+        assert resp.data["challenge"]
+
+        with self.tasks():
+            self.get_success_response(
                 "me",
                 "u2f",
                 method="post",
-                status_code=429,
                 **{
                     "deviceName": "device name",
                     "challenge": "challenge",
@@ -204,42 +229,19 @@ class UserAuthenticatorEnrollTest(APITestCase):
                 },
             )
 
-            assert try_enroll.call_count == 0
+        assert try_enroll.call_count == 1
+        mock_challenge = try_enroll.call_args.args[3]["challenge"]
+        assert try_enroll.call_args == mock.call(
+            "challenge",
+            "response",
+            "device name",
+            {
+                "challenge": mock_challenge,
+                "user_verification": "discouraged",
+            },
+        )
 
-    @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
-    def test_u2f_can_enroll(self, try_enroll):
-        with override_options({"system.url-prefix": "https://testserver"}):
-            resp = self.get_success_response("me", "u2f")
-            assert resp.data["form"]
-            assert "secret" not in resp.data
-            assert "qrcode" not in resp.data
-            assert resp.data["challenge"]
-
-            with self.tasks():
-                self.get_success_response(
-                    "me",
-                    "u2f",
-                    method="post",
-                    **{
-                        "deviceName": "device name",
-                        "challenge": "challenge",
-                        "response": "response",
-                    },
-                )
-
-            assert try_enroll.call_count == 1
-            mock_challenge = try_enroll.call_args.args[3]["challenge"]
-            assert try_enroll.call_args == mock.call(
-                "challenge",
-                "response",
-                "device name",
-                {
-                    "challenge": mock_challenge,
-                    "user_verification": "discouraged",
-                },
-            )
-
-            assert_security_email_sent("mfa-added")
+        assert_security_email_sent("mfa-added")
 
     @override_options({"u2f.disallow-new-enrollment": True})
     def test_u2f_disallow_new_enrollment(self):
@@ -253,6 +255,49 @@ class UserAuthenticatorEnrollTest(APITestCase):
                 "response": "response",
             },
         )
+
+    @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
+    @override_options({"system.url-prefix": "https://testserver"})
+    def test_u2f_superuser_and_staff_cannot_enroll_other_user(self, try_enroll):
+        elevated_user = self.create_user(is_superuser=True, is_staff=True)
+        self.login_as(user=elevated_user, superuser=True, staff=True)
+
+        resp = self.get_success_response(self.user.id, "u2f")
+        assert resp.data["form"]
+        assert "secret" not in resp.data
+        assert "qrcode" not in resp.data
+        assert resp.data["challenge"]
+
+        # check that the U2F device was enrolled for elevated_user
+        # and not self.user passed in the request body
+        assert not Authenticator.objects.filter(user=self.user).exists()
+        assert Authenticator.objects.get_interface(user=elevated_user, interface_id="u2f")
+
+        with self.tasks():
+            self.get_success_response(
+                self.user.id,
+                "u2f",
+                method="post",
+                **{
+                    "deviceName": "device name",
+                    "challenge": "challenge",
+                    "response": "response",
+                },
+            )
+
+        assert try_enroll.call_count == 1
+        mock_challenge = try_enroll.call_args.args[3]["challenge"]
+        assert try_enroll.call_args == mock.call(
+            "challenge",
+            "response",
+            "device name",
+            {
+                "challenge": mock_challenge,
+                "user_verification": "discouraged",
+            },
+        )
+
+        assert_security_email_sent("mfa-added")
 
 
 @control_silo_test(include_monolith_run=True)
@@ -323,23 +368,23 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert not self.client.session.get("invite_token")
         assert not self.client.session.get("invite_member_id")
 
+    @override_options({"system.url-prefix": "https://testserver"})
     def setup_u2f(self, om):
-        with override_options({"system.url-prefix": "https://testserver"}):
-            # We have to add the invite details back in to the session
-            # prior to .save_session() since this re-creates the session property
-            # when under test. See here for more details:
-            # https://docs.djangoproject.com/en/2.2/topics/testing/tools/#django.test.Client.session
-            self.session["webauthn_register_state"] = "state"
-            self.session["invite_token"] = self.client.session["invite_token"]
-            self.session["invite_member_id"] = self.client.session["invite_member_id"]
-            self.session["invite_organization_id"] = self.client.session["invite_organization_id"]
-            self.save_session()
-            return self.get_success_response(
-                "me",
-                "u2f",
-                method="post",
-                **{"deviceName": "device name", "challenge": "challenge", "response": "response"},
-            )
+        # We have to add the invite details back in to the session
+        # prior to .save_session() since this re-creates the session property
+        # when under test. See here for more details:
+        # https://docs.djangoproject.com/en/2.2/topics/testing/tools/#django.test.Client.session
+        self.session["webauthn_register_state"] = "state"
+        self.session["invite_token"] = self.client.session["invite_token"]
+        self.session["invite_member_id"] = self.client.session["invite_member_id"]
+        self.session["invite_organization_id"] = self.client.session["invite_organization_id"]
+        self.save_session()
+        return self.get_success_response(
+            "me",
+            "u2f",
+            method="post",
+            **{"deviceName": "device name", "challenge": "challenge", "response": "response"},
+        )
 
     def test_cannot_accept_invite_pending_invite__2fa_required(self):
         om = self.get_om_and_init_invite()
@@ -358,6 +403,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
     @mock.patch("sentry.auth.authenticators.SmsInterface.validate_otp", return_value=True)
     @mock.patch("sentry.auth.authenticators.SmsInterface.send_text", return_value=True)
+    @override_options({"sms.twilio-account": "twilio-account"})
     def test_accept_pending_invite__sms_enroll(self, send_text, validate_otp):
         # XXX: Pretend an unbound function exists.
         validate_otp.__func__ = None
@@ -365,28 +411,27 @@ class AcceptOrganizationInviteTest(APITestCase):
         om = self.get_om_and_init_invite()
 
         # setup sms
-        with override_options({"sms.twilio-account": "twilio-account"}):
-            self.get_success_response(
-                "me", "sms", method="post", **{"secret": "secret12", "phone": "1231234"}
-            )
-            resp = self.get_success_response(
-                "me",
-                "sms",
-                method="post",
-                **{
-                    "secret": "secret12",
-                    "phone": "1231234",
-                    "otp": "123123",
-                    "memberId": om.id,
-                    "token": om.token,
-                },
-            )
+        self.get_success_response(
+            "me", "sms", method="post", **{"secret": "secret12", "phone": "1231234"}
+        )
+        resp = self.get_success_response(
+            "me",
+            "sms",
+            method="post",
+            **{
+                "secret": "secret12",
+                "phone": "1231234",
+                "otp": "123123",
+                "memberId": om.id,
+                "token": om.token,
+            },
+        )
 
-            assert validate_otp.call_count == 1
-            assert validate_otp.call_args == mock.call("123123")
+        assert validate_otp.call_count == 1
+        assert validate_otp.call_args == mock.call("123123")
 
-            interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
-            assert interface.phone_number == "1231234"
+        interface = Authenticator.objects.get_interface(user=self.user, interface_id="sms")
+        assert interface.phone_number == "1231234"
 
         self.assert_invite_accepted(resp, om.id)
 
@@ -469,18 +514,19 @@ class AcceptOrganizationInviteTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
+    @override_options({"system.url-prefix": "https://testserver"})
     def test_enroll_without_pending_invite__no_error(self, try_enroll, log):
-        with override_options({"system.url-prefix": "https://testserver"}):
-            self.session["webauthn_register_state"] = "state"
-            self.save_session()
-            self.get_success_response(
-                "me",
-                "u2f",
-                method="post",
-                **{
-                    "deviceName": "device name",
-                    "challenge": "challenge",
-                    "response": "response",
-                },
-            )
+        self.session["webauthn_register_state"] = "state"
+        self.save_session()
+        self.get_success_response(
+            "me",
+            "u2f",
+            method="post",
+            **{
+                "deviceName": "device name",
+                "challenge": "challenge",
+                "response": "response",
+            },
+        )
+
         assert log.error.called is False
