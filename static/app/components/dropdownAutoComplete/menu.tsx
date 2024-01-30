@@ -22,6 +22,26 @@ export type MenuFooterChildProps = {
 
 type ListProps = React.ComponentProps<typeof List>;
 
+// autoFocus react attribute is sync called on render, this causes
+// layout thrashing and is bad for performance. This thin wrapper function
+// will defer the focus call until the next frame, after the browser and react
+// have had a chance to update the DOM, splitting the perf cost across frames.
+function focusElement(targetRef: HTMLElement | null) {
+  if (!targetRef) {
+    return;
+  }
+
+  if ('requestAnimationFrame' in window) {
+    window.requestAnimationFrame(() => {
+      targetRef.focus();
+    });
+  } else {
+    setTimeout(() => {
+      targetRef.focus();
+    }, 1);
+  }
+}
+
 export interface MenuProps
   extends Pick<
     ListProps,
@@ -121,7 +141,7 @@ export interface MenuProps
   /**
    * Props to pass to input/filter component
    */
-  inputProps?: {style: React.CSSProperties};
+  inputProps?: React.HTMLAttributes<HTMLInputElement>;
 
   /**
    * Used to control the input value (optional)
@@ -343,13 +363,18 @@ function Menu({
               <StyledDropdownBubble
                 className={className}
                 {...getMenuProps(menuProps)}
-                {...{style, css, blendCorner, detached, alignMenu, minWidth}}
+                style={style}
+                css={css}
+                blendCorner={blendCorner}
+                detached={detached}
+                alignMenu={alignMenu}
+                minWidth={minWidth}
               >
                 <DropdownMainContent minWidth={minWidth}>
                   {showInput && (
                     <InputWrapper>
                       <StyledInput
-                        autoFocus
+                        ref={focusElement}
                         placeholder={searchPlaceholder}
                         {...getInputProps({...inputProps, onChange})}
                       />
