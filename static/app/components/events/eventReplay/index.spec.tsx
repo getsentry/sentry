@@ -1,4 +1,3 @@
-import merge from 'lodash/merge';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -237,10 +236,12 @@ describe('EventReplay', function () {
         activateSidebar: jest.fn(),
       });
 
-      ConfigStore.set(
-        'user',
-        merge(ConfigStore.get('user'), {options: {issueDetailsNewExperienceQ42023: true}})
-      );
+      const user = ConfigStore.get('user');
+
+      ConfigStore.set('user', {
+        ...user,
+        options: {...user.options, issueDetailsNewExperienceQ42023: true},
+      });
     });
 
     it('adds event and issue information to breadcrumbs', async () => {
