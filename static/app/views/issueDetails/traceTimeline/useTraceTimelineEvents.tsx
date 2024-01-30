@@ -30,6 +30,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions) {
   const {start, end} = getTraceTimeRangeFromEvent(event);
 
   const traceId = event.contexts?.trace?.trace_id ?? '';
+  const enabled = !!traceId;
   const {
     data: issuePlatformData,
     isLoading: isLoadingIssuePlatform,
@@ -51,7 +52,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions) {
         },
       },
     ],
-    {staleTime: Infinity, retry: false}
+    {staleTime: Infinity, retry: false, enabled}
   );
   const {
     data: discoverData,
@@ -77,7 +78,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions) {
         },
       },
     ],
-    {staleTime: Infinity, retry: false}
+    {staleTime: Infinity, retry: false, enabled}
   );
 
   const eventData = useMemo(() => {
