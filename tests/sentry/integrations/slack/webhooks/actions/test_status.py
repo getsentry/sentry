@@ -40,6 +40,7 @@ pytestmark = [requires_snuba]
 class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
     def setUp(self):
         super().setUp()
+        self.notification_text = "Identity not found."
         self.event_data = {
             "event_id": "a" * 32,
             "message": "IntegrationError",
@@ -48,7 +49,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 "values": [
                     {
                         "type": "IntegrationError",
-                        "value": "Identity not found.",
+                        "value": self.notification_text,
                     }
                 ]
             },
@@ -61,7 +62,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                     "ts": 1681409875,
                     "color": "E03E2F",
                     "fallback": "[node] IntegrationError: Identity not found.",
-                    "text": "Identity not found.",
+                    "text": self.notification_text,
                     "title": "IntegrationError",
                     "footer": "NODE-F via <http://localhost:8000/organizations/sentry/alerts/rules/node/3/details/|New Issue in #critical channel>",
                     "mrkdwn_in": ["text"],
@@ -74,7 +75,6 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
         assert event.group
         self.group = Group.objects.get(id=event.group.id)
-        self.notification_text = self.event_data["exception"]["values"][0]["value"]
 
     def get_original_message_block_kit(self, group_id):
         return {
