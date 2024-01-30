@@ -200,7 +200,10 @@ class ExecutableQuery:
         intersected_projects: Set[int] = {project.id for project in projects}
 
         for queried_metric in QueriedMetricsVisitor().visit(self.metrics_query.query):
-            intersected_projects -= blocked_metrics_for_projects.get(queried_metric) or set()
+            blocked_for_projects = blocked_metrics_for_projects.get(queried_metric)
+            if blocked_for_projects:
+                metrics.incr(key="ddm.metrics_api.blocked_metric_queried", amount=1)
+                intersected_projects -= blocked_for_projects
 
         return replace(
             self,
