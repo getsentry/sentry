@@ -1,8 +1,17 @@
 from __future__ import annotations
 
+import logging
+from datetime import datetime, timedelta
 from typing import Any, Mapping, Sequence, Union
 
+from django.utils import timezone
+from django.utils.timesince import timesince
+from django.utils.translation import gettext as _
+from sentry_relay.processing import parse_release
+
 from sentry import features, tagstore
+from sentry.api.endpoints.group_details import get_group_global_count
+from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
@@ -15,24 +24,55 @@ from sentry.integrations.message_builder import (
     get_timestamp,
     get_title_link,
 )
-from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT, SlackAttachment, SlackBlock
+from sentry.integrations.slack.message_builder import (
+    CATEGORY_TO_EMOJI,
+    LEVEL_TO_EMOJI,
+    SLACK_URL_FORMAT,
+    SlackAttachment,
+    SlackBlock,
+)
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.actor import ActorTuple
+from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.participants import (
+    dedupe_suggested_assignees,
+    get_suspect_commit_users,
+)
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
-from sentry.types.integrations import ExternalProviders
+from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.types.group import SUBSTATUS_TO_STR
+from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+logger = logging.getLogger(__name__)
+
+
+def time_since(value: datetime):
+    """
+    Display the relative time
+    """
+    now = timezone.now()
+    if value < (now - timedelta(days=5)):
+        return value.date()
+    diff = timesince(value, now)
+    if diff == timesince(now, now):
+        return "Just now"
+    if diff == "1 day":
+        return _("Yesterday")
+    return f"{diff} ago"
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
@@ -103,20 +143,38 @@ def build_tag_fields(
     return fields
 
 
+def format_release_tag(value: str, event: GroupEvent | Group):
+    """Format the release tag using the short version and make it a link"""
+    path = f"/releases/{value}/"
+    url = event.project.organization.absolute_url(path)
+    release_description = parse_release(value).get("description")
+    return f"<{url}|{release_description}>"
+
+
 def get_tags(
     event_for_tags: Any,
     tags: set[str] | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
     """Get tag keys and values for block kit"""
     fields = []
+    if not tags:
+        tags = set()
+
+    # XXX(CEO): context is passing tags as a list of tuples from self.event.tags
+    # we should standardize but it might break other notifications
+    if tags and isinstance(tags, list):
+        tags = set(tags[0])
+
+    tags = tags | {"level", "release"}
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
             std_key = tagstore.backend.get_standardized_key(key)
             if std_key not in tags:
                 continue
-
             labeled_value = tagstore.backend.get_tag_value_label(key, value)
+            if std_key == "release":
+                labeled_value = format_release_tag(labeled_value, event_for_tags)
             fields.append(
                 {
                     "title": std_key,
@@ -180,18 +238,68 @@ def get_group_assignees(group: Group) -> Sequence[Mapping[str, Any]]:
     return option_groups
 
 
+def get_suggested_assignees(
+    project: Project, event: GroupEvent, current_assignee: RpcUser | Team | None
+) -> list[str]:
+    """Get suggested assignees as a list of formatted strings"""
+    suggested_assignees = []
+    issue_owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+    if (
+        issue_owners != ProjectOwnership.Everyone
+    ):  # we don't want every user in the project to be a suggested assignee
+        resolved_owners = ActorTuple.resolve_many(issue_owners)
+        suggested_assignees = RpcActor.many_from_object(resolved_owners)
+    if features.has("organizations:streamline-targeting-context", project.organization):
+        try:
+            suspect_commit_users = RpcActor.many_from_object(
+                get_suspect_commit_users(project, event)
+            )
+            suggested_assignees.extend(suspect_commit_users)
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            logger.info("Skipping suspect committers because release does not exist.")
+        except Exception:
+            logger.exception("Could not get suspect committers. Continuing execution.")
+    if suggested_assignees:
+        suggested_assignees = dedupe_suggested_assignees(suggested_assignees)
+        assignee_texts = []
+        for assignee in suggested_assignees:
+            # skip over any suggested assignees that are the current assignee of the issue, if there is any
+            if assignee.actor_type == ActorType.USER and not (
+                isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
+            ):
+                # for user assignees, we first try to get their Slack identity; if it's not linked,
+                # we use their display name linked with their email
+                assignee_identity = None
+                assignee_identities = identity_service.get_user_identities_by_provider_type(
+                    user_id=assignee.id, provider_type=ExternalProviderEnum.SLACK.value
+                )
+                if len(assignee_identities) > 0:
+                    assignee_identity = assignee_identities[0]
+                if assignee_identity is None:
+                    assignee_as_user = assignee.resolve()
+                    assignee_text = (
+                        f"<mailto:{assignee_as_user.email}|{assignee_as_user.get_display_name()}>"
+                    )
+                else:
+                    assignee_text = f"<@{assignee_identity.external_id}>"
+                assignee_texts.append(assignee_text)
+            elif assignee.actor_type == ActorType.TEAM and not (
+                isinstance(current_assignee, Team) and assignee.id == current_assignee.id
+            ):
+                assignee_texts.append(f"#{assignee.slug}")
+        return assignee_texts
+    return []
+
+
 def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
-    return (
-        text
-        + "\n"
-        + "\n".join(
-            [
-                action_text
-                for action_text in [build_action_text(identity, action) for action in actions]
-                if action_text
-            ]
-        )
+    action_text = "\n".join(
+        [
+            action_text
+            for action_text in [build_action_text(identity, action) for action in actions]
+            if action_text
+        ]
     )
+    return action_text
 
 
 def build_actions(
@@ -300,7 +408,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         recipient: RpcActor | None = None,
         is_unfurl: bool = False,
         skip_fallback: bool = False,
-        mentions: str | None = None,
+        notes: str | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -315,7 +423,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.recipient = recipient
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
-        self.mentions = mentions
+        self.notes = notes
 
     @property
     def escape_text(self) -> bool:
@@ -327,7 +435,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def build(self, notification_uuid: str | None = None) -> Union[SlackBlock, SlackAttachment]:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
-
         if self.escape_text:
             text = escape_slack_text(text)
             # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
@@ -337,7 +444,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # This link does not contain user input (it's a static label and a url), must not escape it.
         text += build_attachment_replay_link(self.group, self.event) or ""
-
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
@@ -350,10 +456,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
         )
         obj = self.event if self.event is not None else self.group
+        action_text = ""
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
-            payload_actions, text, color = build_actions(
+            payload_actions, action_text, color = build_actions(
                 self.group, project, text, color, self.actions, self.identity
             )
         else:
@@ -363,32 +470,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.rules:
             rule_id = self.rules[0].id
 
-        if not features.has("organizations:slack-block-kit", self.group.project.organization):
-            return self._build(
-                actions=payload_actions,
-                callback_id=json.dumps({"issue": self.group.id}),
-                color=color,
-                fallback=self.build_fallback_text(obj, project.slug),
-                fields=fields,
-                footer=footer,
-                text=text,
-                title=build_attachment_title(obj),
-                title_link=get_title_link(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.SLACK,
-                    rule_id,
-                    notification_uuid=notification_uuid,
-                ),
-                ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
-            )
-
-        # build up the blocks for newer issue alert formatting #
-        tags = get_tags(event_for_tags, self.tags)
-        # build title block
         title_link = get_title_link(
             self.group,
             self.event,
@@ -399,32 +480,71 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             rule_id,
             notification_uuid=notification_uuid,
         )
-        blocks = [
-            self.get_markdown_block(
-                text=f"<{title_link}|*{escape_slack_text(build_attachment_title(obj))}*>  \n{text}",
+        title = build_attachment_title(obj)
+
+        if not features.has("organizations:slack-block-kit", self.group.project.organization):
+            if action_text and self.identity:
+                text += "\n" + action_text
+
+            return self._build(
+                actions=payload_actions,
+                callback_id=json.dumps({"issue": self.group.id}),
+                color=color,
+                fallback=self.build_fallback_text(obj, project.slug),
+                fields=fields,
+                footer=footer,
+                text=text,
+                title=title,
+                title_link=title_link,
+                ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
             )
-        ]
+
+        # build up the blocks for newer issue alert formatting #
+
+        # build title block
+        if text:
+            text = f"```{text.lstrip(' ')}```"
+            if self.actions:
+                text += "\n" + action_text
+        if not text:
+            text = action_text
+        title_text = f"<{title_link}|*{escape_slack_text(title)}*>  \n{text}"
+
+        if self.group.issue_category == GroupCategory.ERROR:
+            level_text = None
+            for k, v in LOG_LEVELS_MAP.items():
+                if self.group.level == v:
+                    level_text = k
+
+            title_emoji = LEVEL_TO_EMOJI.get(level_text)
+        else:
+            title_emoji = CATEGORY_TO_EMOJI.get(self.group.issue_category)
+
+        if title_emoji:
+            title_text = f"{title_emoji} {title_text}"
+
+        blocks = [self.get_markdown_block(title_text)]
         # build tags block
+        tags = get_tags(event_for_tags, self.tags)
         if tags:
             blocks.append(self.get_tags_block(tags))
 
-        # add mentions
-        if (
-            features.has("organizations:slack-formatting-update", self.group.project.organization)
-            and self.mentions
-        ):
-            mentions_text = f"Mentions: {self.mentions}"
-            blocks.append(self.get_markdown_block(mentions_text))
-
-        # build footer block
-        timestamp = None
-        if not self.issue_details:
-            ts = self.group.last_seen
-            timestamp = max(ts, self.event.datetime) if self.event else ts
-        blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
+        # add event count, user count, substate, first seen
+        context = {
+            "Events": get_group_global_count(self.group),
+            "Users Affected": self.group.count_users_seen(),
+            "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
+            "First Seen": time_since(self.group.first_seen),
+        }
+        context_text = ""
+        for k, v in context.items():
+            if k and v:
+                context_text += f"{k}: *{v}*   "
+        blocks.append(self.get_context_block(context_text[:-3]))
 
         # build actions
         actions = []
+        assignee = self.group.get_assignee()
         for action in payload_actions:
             if action.label in (
                 "Archive",
@@ -437,7 +557,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             ):
                 actions.append(self.get_button_action(action))
             elif action.name == "assign":
-                assignee = self.group.get_assignee()
                 actions.append(
                     self.get_external_select_action(
                         action, format_actor_option(assignee, True) if assignee else None
@@ -448,10 +567,48 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
 
+        # suggested assignees
+        suggested_assignees = []
+        if event_for_tags:
+            suggested_assignees = get_suggested_assignees(
+                self.group.project, event_for_tags, assignee
+            )
+        if len(suggested_assignees) > 0:
+            suggested_assignee_text = "Suggested Assignees: "
+            for assignee in suggested_assignees:
+                suggested_assignee_text += assignee + ", "
+            blocks.append(
+                self.get_context_block(suggested_assignee_text[:-2])
+            )  # get rid of comma at the end
+
+        # add notes
+        if self.notes:
+            notes_text = f"notes: {self.notes}"
+            blocks.append(self.get_markdown_block(notes_text))
+
+        # build footer block
+        timestamp = None
+        if not self.issue_details:
+            ts = self.group.last_seen
+            timestamp = max(ts, self.event.datetime) if self.event else ts
+
+        if not self.notification:
+            # the footer content differs if it's a workflow notification, so we must check for that
+            footer = f"Project: <{project.get_absolute_url()}|{escape_slack_text(project.slug)}>    Alert: {footer}"
+            blocks.append(self.get_context_block(text=footer))
+        else:
+            blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
+
+        blocks.append(self.get_divider())
+
+        block_id = {"issue": self.group.id}
+        if rule_id:
+            block_id["rule"] = rule_id
+
         return self._build_blocks(
             *blocks,
             fallback_text=self.build_fallback_text(obj, project.slug),
-            block_id=json.dumps({"issue": self.group.id}),
+            block_id=json.dumps(block_id),
             skip_fallback=self.skip_fallback,
         )
 
@@ -467,7 +624,7 @@ def build_group_attachment(
     issue_details: bool = False,
     is_unfurl: bool = False,
     notification_uuid: str | None = None,
-    mentions: str | None = None,
+    notes: str | None = None,
 ) -> Union[SlackBlock, SlackAttachment]:
 
     return SlackIssuesMessageBuilder(
@@ -480,5 +637,5 @@ def build_group_attachment(
         link_to_event,
         issue_details,
         is_unfurl=is_unfurl,
-        mentions=mentions,
+        notes=notes,
     ).build(notification_uuid=notification_uuid)

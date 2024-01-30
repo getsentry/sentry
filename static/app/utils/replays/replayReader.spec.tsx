@@ -1,4 +1,4 @@
-import {EventType} from '@sentry-internal/rrweb';
+import {EventType, IncrementalSource} from '@sentry-internal/rrweb';
 import {
   ReplayClickEventFixture,
   ReplayConsoleEventFixture,
@@ -14,7 +14,10 @@ import {
   ReplaySpanFrameEventFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
 import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
-import {RRWebFullSnapshotFrameEventFixture} from 'sentry-fixture/replay/rrweb';
+import {
+  RRWebDOMFrameFixture,
+  RRWebFullSnapshotFrameEventFixture,
+} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
@@ -24,34 +27,25 @@ describe('ReplayReader', () => {
   const replayRecord = ReplayRecordFixture({});
 
   it('Should return null if there are missing arguments', () => {
-    const missingAttachments = ReplayReader.factory(
-      {
-        attachments: undefined,
-        errors: [],
-        replayRecord,
-      },
-      {}
-    );
+    const missingAttachments = ReplayReader.factory({
+      attachments: undefined,
+      errors: [],
+      replayRecord,
+    });
     expect(missingAttachments).toBeNull();
 
-    const missingErrors = ReplayReader.factory(
-      {
-        attachments: [],
-        errors: undefined,
-        replayRecord,
-      },
-      {}
-    );
+    const missingErrors = ReplayReader.factory({
+      attachments: [],
+      errors: undefined,
+      replayRecord,
+    });
     expect(missingErrors).toBeNull();
 
-    const missingRecord = ReplayReader.factory(
-      {
-        attachments: [],
-        errors: [],
-        replayRecord: undefined,
-      },
-      {}
-    );
+    const missingRecord = ReplayReader.factory({
+      attachments: [],
+      errors: [],
+      replayRecord: undefined,
+    });
     expect(missingRecord).toBeNull();
   });
 
@@ -59,21 +53,18 @@ describe('ReplayReader', () => {
     const minuteZero = new Date('2023-12-25T00:00:00');
     const minuteTen = new Date('2023-12-25T00:10:00');
 
-    const replay = ReplayReader.factory(
-      {
-        attachments: [
-          ReplayConsoleEventFixture({timestamp: minuteZero}),
-          ReplayConsoleEventFixture({timestamp: minuteTen}),
-        ],
-        errors: [],
-        replayRecord: ReplayRecordFixture({
-          started_at: new Date('2023-12-25T00:01:00'),
-          finished_at: new Date('2023-12-25T00:09:00'),
-          duration: undefined, // will be calculated
-        }),
-      },
-      {}
-    );
+    const replay = ReplayReader.factory({
+      attachments: [
+        ReplayConsoleEventFixture({timestamp: minuteZero}),
+        ReplayConsoleEventFixture({timestamp: minuteTen}),
+      ],
+      errors: [],
+      replayRecord: ReplayRecordFixture({
+        started_at: new Date('2023-12-25T00:01:00'),
+        finished_at: new Date('2023-12-25T00:09:00'),
+        duration: undefined, // will be calculated
+      }),
+    });
 
     const expectedDuration = 10 * 60 * 1000; // 10 minutes, in ms
     expect(replay?.getReplay().started_at).toEqual(minuteZero);
@@ -83,14 +74,11 @@ describe('ReplayReader', () => {
   });
 
   it('should make the replayRecord available through a getter method', () => {
-    const replay = ReplayReader.factory(
-      {
-        attachments: [],
-        errors: [],
-        replayRecord,
-      },
-      {}
-    );
+    const replay = ReplayReader.factory({
+      attachments: [],
+      errors: [],
+      replayRecord,
+    });
 
     expect(replay?.getReplay()).toEqual(replayRecord);
   });
@@ -222,14 +210,11 @@ describe('ReplayReader', () => {
         expected: optionsFrame,
       },
     ])('Calling $method will filter frames', ({method, expected}) => {
-      const replay = ReplayReader.factory(
-        {
-          attachments,
-          errors: [],
-          replayRecord,
-        },
-        {}
-      );
+      const replay = ReplayReader.factory({
+        attachments,
+        errors: [],
+        replayRecord,
+      });
 
       const exec = replay?.[method];
       expect(exec()).toStrictEqual(expected);
@@ -240,19 +225,16 @@ describe('ReplayReader', () => {
     const timestamp = new Date();
     const optionsFrame = ReplayOptionFrameFixture({});
 
-    const replay = ReplayReader.factory(
-      {
-        attachments: [
-          ReplayOptionFrameEventFixture({
-            timestamp,
-            data: {payload: optionsFrame},
-          }),
-        ],
-        errors: [],
-        replayRecord,
-      },
-      {}
-    );
+    const replay = ReplayReader.factory({
+      attachments: [
+        ReplayOptionFrameEventFixture({
+          timestamp,
+          data: {payload: optionsFrame},
+        }),
+      ],
+      errors: [],
+      replayRecord,
+    });
 
     expect(replay?.getSDKOptions()).toBe(optionsFrame);
   });
@@ -261,23 +243,20 @@ describe('ReplayReader', () => {
     it('should have isNetworkDetailsSetup=true if sdkConfig says so', () => {
       const timestamp = new Date();
 
-      const replay = ReplayReader.factory(
-        {
-          attachments: [
-            ReplayOptionFrameEventFixture({
-              timestamp,
-              data: {
-                payload: ReplayOptionFrameFixture({
-                  networkDetailHasUrls: true,
-                }),
-              },
-            }),
-          ],
-          errors: [],
-          replayRecord,
-        },
-        {}
-      );
+      const replay = ReplayReader.factory({
+        attachments: [
+          ReplayOptionFrameEventFixture({
+            timestamp,
+            data: {
+              payload: ReplayOptionFrameFixture({
+                networkDetailHasUrls: true,
+              }),
+            },
+          }),
+        ],
+        errors: [],
+        replayRecord,
+      });
 
       expect(replay?.isNetworkDetailsSetup()).toBeTruthy();
     });
@@ -299,29 +278,87 @@ describe('ReplayReader', () => {
     ])('should have isNetworkDetailsSetup=$expected', ({data, expected}) => {
       const startTimestamp = new Date();
       const endTimestamp = new Date();
-      const replay = ReplayReader.factory(
-        {
-          attachments: [
-            ReplaySpanFrameEventFixture({
-              timestamp: startTimestamp,
-              data: {
-                payload: ReplayRequestFrameFixture({
-                  op: 'resource.fetch',
-                  startTimestamp,
-                  endTimestamp,
-                  description: '/api/0/issues/',
-                  data,
-                }),
-              },
-            }),
-          ],
-          errors: [],
-          replayRecord,
-        },
-        {}
-      );
+      const replay = ReplayReader.factory({
+        attachments: [
+          ReplaySpanFrameEventFixture({
+            timestamp: startTimestamp,
+            data: {
+              payload: ReplayRequestFrameFixture({
+                op: 'resource.fetch',
+                startTimestamp,
+                endTimestamp,
+                description: '/api/0/issues/',
+                data,
+              }),
+            },
+          }),
+        ],
+        errors: [],
+        replayRecord,
+      });
 
       expect(replay?.isNetworkDetailsSetup()).toBe(expected);
     });
+  });
+
+  it('detects canvas element from full snapshot', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    const firstDiv = RRWebFullSnapshotFrameEventFixture({
+      timestamp,
+      childNodes: [
+        RRWebDOMFrameFixture({
+          tagName: 'div',
+          childNodes: [
+            RRWebDOMFrameFixture({
+              tagName: 'canvas',
+            }),
+          ],
+        }),
+      ],
+    });
+    const attachments = [firstDiv];
+
+    const replay = ReplayReader.factory({
+      attachments,
+      errors: [],
+      replayRecord,
+    });
+
+    expect(replay?.hasCanvasElementInReplay()).toBe(true);
+  });
+
+  it('detects canvas element from dom mutations', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    const snapshot = RRWebFullSnapshotFrameEventFixture({timestamp});
+    const attachments = [
+      snapshot,
+      {
+        type: EventType.IncrementalSnapshot,
+        timestamp,
+        data: {
+          source: IncrementalSource.Mutation,
+          adds: [
+            {
+              node: RRWebDOMFrameFixture({
+                tagName: 'canvas',
+              }),
+            },
+          ],
+          removes: [],
+          texts: [],
+          attributes: [],
+        },
+      },
+    ];
+
+    const replay = ReplayReader.factory({
+      attachments,
+      errors: [],
+      replayRecord,
+    });
+
+    expect(replay?.hasCanvasElementInReplay()).toBe(true);
   });
 });

@@ -7,6 +7,7 @@ export type ReplayEventParameters = {
     issue_description: string;
     issue_impact: string | undefined;
   };
+  'replay.canvas-detected-banner-clicked': {};
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
@@ -25,6 +26,7 @@ export type ReplayEventParameters = {
     chosen_layout: LayoutKey;
     default_layout: LayoutKey;
   };
+  'replay.details-mask-banner-link-clicked': {};
   'replay.details-network-panel-closed': {
     is_sdk_setup: boolean;
   };
@@ -45,6 +47,9 @@ export type ReplayEventParameters = {
   'replay.details-resized-panel': {
     layout: LayoutKey;
     slide_motion: 'toTop' | 'toBottom' | 'toLeft' | 'toRight';
+  };
+  'replay.details-resource-docs-clicked': {
+    title: string;
   };
   'replay.details-tab-changed': {
     tab: string;
@@ -109,13 +114,16 @@ export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.accessibility-issue-clicked': 'Clicked Replay Accessibility Issue',
+  'replay.canvas-detected-banner-clicked': 'Clicked Canvas Detected in Replay Banner',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-has-hydration-error': 'Replay Details Has Hydration Error',
   'replay.details-layout-changed': 'Changed Replay Details Layout',
+  'replay.details-mask-banner-link-clicked': 'Clicked Replay Details Masking Banner Link',
   'replay.details-network-panel-closed': 'Closed Replay Network Details Panel',
   'replay.details-network-panel-opened': 'Opened Replay Network Details Panel',
   'replay.details-network-tab-changed': 'Changed Replay Network Details Tab',
   'replay.details-resized-panel': 'Resized Replay Details Panel',
+  'replay.details-resource-docs-clicked': 'Replay Details Resource Docs Clicked',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
   'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',

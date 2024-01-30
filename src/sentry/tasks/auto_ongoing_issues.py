@@ -36,13 +36,16 @@ def log_error_if_queue_has_items(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
             assert backend is not None, "queues monitoring is not enabled"
-            queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
-            if queue_size > 0:
-                logger.info(
-                    "%s queue size greater than 0.",
-                    CELERY_ISSUE_STATES_QUEUE.name,
-                    extra={"size": queue_size, "task": func.__name__},
-                )
+            try:
+                queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
+                if queue_size > 0:
+                    logger.info(
+                        "%s queue size greater than 0.",
+                        CELERY_ISSUE_STATES_QUEUE.name,
+                        extra={"size": queue_size, "task": func.__name__},
+                    )
+            except Exception:
+                logger.exception("Failed to determine queue size")
 
             func(*args, **kwargs)
 
@@ -126,8 +129,6 @@ def schedule_auto_transition_issues_new_to_ongoing(
         "first_seen_lte": first_seen_lte,
         "first_seen_lte_datetime": first_seen_lte_datetime,
     }
-    if base_queryset:
-        logger_extra["issue_first_seen"] = base_queryset[0].first_seen
     logger.info(
         "auto_transition_issues_new_to_ongoing started",
         extra=logger_extra,

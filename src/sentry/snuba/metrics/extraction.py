@@ -294,8 +294,13 @@ _STANDARD_METRIC_FIELDS = [
     "geo.country_code",
 ]
 
-# Query fields that we do not consider for the extraction since they are not needed.
-_BLACKLISTED_METRIC_FIELDS = ["event.type", "project"]
+# Query fields that are not considered
+_IGNORED_METRIC_FIELDS = [
+    "event.type",  # on-demand extraction is enabled only for event.type:"transaction"
+    "project",  # on-demand extraction specs are emitted per project
+    "timestamp.to_day",  # relative time windows are not supported
+    "timestamp.to_hour",  # relative time windows are not supported
+]
 
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
@@ -791,8 +796,7 @@ def _is_standard_metrics_search_term(field: str) -> bool:
 
 
 def _is_on_demand_supported_field(field: str) -> bool:
-    # If it's a black listed field, we consider it as compatible with on demand.
-    if field in _BLACKLISTED_METRIC_FIELDS:
+    if field in _IGNORED_METRIC_FIELDS:
         return True
 
     try:
@@ -876,7 +880,7 @@ def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence
     ret_val: List[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
-            if token.key.name not in _BLACKLISTED_METRIC_FIELDS:
+            if token.key.name not in _IGNORED_METRIC_FIELDS:
                 ret_val.append(token)
         elif isinstance(token, ParenExpression):
             ret_val.append(ParenExpression(_remove_blacklisted_search_filters(token.children)))
@@ -905,7 +909,30 @@ def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]
 
 
 def are_specs_equal(spec_1: MetricSpec, spec_2: MetricSpec) -> bool:
-    return _deep_sorted(spec_1) == _deep_sorted(spec_2)
+    equal = True
+    if spec_1.keys() != spec_2.keys():
+        equal = False
+
+    if equal:
+        for key, value in spec_1.items():
+            if key == "tags":
+                return _compare_lists(spec_1["tags"], spec_2["tags"])
+
+            elif spec_2.get(key) != value:
+                equal = False
+
+    return equal
+
+
+def _compare_lists(list_1: Sequence[Any], list_2: Sequence[Any]) -> bool:
+    if len(list_1) != len(list_2):
+        return False
+
+    for _, value in enumerate(list_1):
+        if value not in list_2:
+            return False
+
+    return True
 
 
 TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
@@ -1162,7 +1189,7 @@ class OnDemandMetricSpec:
     @cached_property
     def query_hash(self) -> str:
         str_to_hash = self._query_str_for_hash
-        hash = hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
+        hash = hashlib.shake_128(bytes(str_to_hash, encoding="utf-8")).hexdigest(4)
         with sentry_sdk.start_span(op="OnDemandMetricSpec.query_hash", description=hash) as span:
             span.set_tag("str_to_hash", str_to_hash)
         return hash

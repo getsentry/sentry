@@ -1,4 +1,3 @@
-import capitalize from 'lodash/capitalize';
 import * as qs from 'query-string';
 
 import {Result} from 'sentry/components/forms/controls/selectAsyncControl';
@@ -31,6 +30,7 @@ import type {
 } from 'sentry/types';
 import {Hooks} from 'sentry/types/hooks';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 import {IconSize} from './theme';
 
@@ -208,6 +208,29 @@ export const getIntegrationIcon = (
       return <IconCodecov size={iconSize} />;
     default:
       return <IconGeneric size={iconSize} />;
+  }
+};
+
+export const getIntegrationDisplayName = (integrationType?: string) => {
+  switch (integrationType) {
+    case 'asana':
+      return 'Asana';
+    case 'bitbucket':
+      return 'Bitbucket';
+    case 'gitlab':
+      return 'GitLab';
+    case 'github':
+    case 'github_enterprise':
+      return 'GitHub';
+    case 'jira':
+    case 'jira_server':
+      return 'Jira';
+    case 'vsts':
+      return 'VSTS';
+    case 'codecov':
+      return 'Codeov';
+    default:
+      return '';
   }
 };
 

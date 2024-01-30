@@ -10,20 +10,19 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {
-  emptyWidget,
   getAbsoluteDateTimeRange,
   getDefaultMetricDisplayType,
-  MetricWidgetQueryParams,
   useInstantRef,
   useUpdateQuery,
 } from 'sentry/utils/metrics';
+import {DEFAULT_SORT_STATE, emptyWidget} from 'sentry/utils/metrics/constants';
+import {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {FocusArea} from 'sentry/views/ddm/chartBrush';
-import {DEFAULT_SORT_STATE} from 'sentry/views/ddm/constants';
+import {FocusArea} from 'sentry/views/ddm/focusArea';
 import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
 
 interface DDMContextValue {
@@ -38,10 +37,12 @@ interface DDMContextValue {
   removeWidget: (index: number) => void;
   selectedWidgetIndex: number;
   setDefaultQuery: (query: Record<string, any> | null) => void;
+  setHighlightedSampleId: (sample?: string) => void;
   setSelectedWidgetIndex: (index: number) => void;
   showQuerySymbols: boolean;
   updateWidget: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   widgets: MetricWidgetQueryParams[];
+  highlightedSampleId?: string;
 }
 
 export const DDMContext = createContext<DDMContextValue>({
@@ -60,6 +61,8 @@ export const DDMContext = createContext<DDMContextValue>({
   showQuerySymbols: false,
   updateWidget: () => {},
   widgets: [],
+  highlightedSampleId: undefined,
+  setHighlightedSampleId: () => {},
 });
 
 export function useDDMContext() {
@@ -162,7 +165,6 @@ export function useMetricWidgets() {
     widgets,
     updateWidget,
     addWidget,
-
     removeWidget,
     duplicateWidget,
   };
@@ -204,20 +206,24 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     useMetricWidgets();
   const [focusArea, setFocusArea] = useState<FocusArea | null>(null);
 
+  const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
+
   const pageFilters = usePageFilters().selection;
   const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
 
   const handleAddFocusArea = useCallback(
     (area: FocusArea) => {
-      const dateRange = getAbsoluteDateTimeRange(pageFilters.datetime);
       if (!area.range.start || !area.range.end) {
         Sentry.metrics.increment('ddm.enhance.range-undefined');
         return;
       }
 
-      if (area.range.start < dateRange.start || area.range.end > dateRange.end) {
-        Sentry.metrics.increment('ddm.enhance.range-overflow');
-        return;
+      const dateRange = getAbsoluteDateTimeRange(pageFilters.datetime);
+      if (area.range.start < dateRange.start) {
+        area.range.start = dateRange.start;
+      }
+      if (area.range.end > dateRange.end) {
+        area.range.end = dateRange.end;
       }
 
       Sentry.metrics.increment('ddm.enhance.add');
@@ -287,6 +293,8 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       setDefaultQuery,
       isDefaultQuery,
       showQuerySymbols: widgets.length > 1,
+      highlightedSampleId,
+      setHighlightedSampleId,
     }),
     [
       handleAddWidget,
@@ -302,6 +310,8 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       handleRemoveFocusArea,
       setDefaultQuery,
       isDefaultQuery,
+      highlightedSampleId,
+      setHighlightedSampleId,
     ]
   );
 

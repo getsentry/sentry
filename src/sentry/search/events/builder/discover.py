@@ -170,7 +170,8 @@ class BaseQueryBuilder:
             else:
                 environments = []
 
-        user = user_service.get_user(user_id=params["user_id"]) if "user_id" in params else None
+        user_id = params.get("user_id")
+        user = user_service.get_user(user_id=user_id) if user_id is not None else None
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
@@ -1259,7 +1260,9 @@ class BaseQueryBuilder:
         # Tags are never null, but promoted tags are columns and so can be null.
         # To handle both cases, use `ifNull` to convert to an empty string and
         # compare so we need to check for empty values.
-        is_tag = isinstance(lhs, Column) and lhs.subscriptable == "tags"
+        is_tag = isinstance(lhs, Column) and (
+            lhs.subscriptable == "tags" or lhs.subscriptable == "sentry_tags"
+        )
         is_context = isinstance(lhs, Column) and lhs.subscriptable == "contexts"
         if is_tag:
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):

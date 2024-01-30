@@ -2,14 +2,11 @@ import {
   initializeData as _initializeData,
   InitializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import WidgetContainer from 'sentry/views/performance/landing/widgets/components/widgetContainer';
@@ -266,17 +263,14 @@ describe('Performance > Widgets > WidgetContainer', function () {
     });
 
     wrapper = render(
-      <PageErrorProvider>
-        <PageErrorAlert />
+      <PageAlertProvider>
+        <PageAlert />
         <WrappedComponent
           data={data}
           defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
         />
-      </PageErrorProvider>
+      </PageAlertProvider>
     );
-
-    // Provider update is after request promise.
-    await act(async () => {});
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Transactions Per Minute'

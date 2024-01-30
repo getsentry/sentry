@@ -14,7 +14,7 @@ import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
+import {IconChat, IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -54,6 +54,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
+    const hasComments = feedbackItem.numComments > 0;
     const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;
 
     return (
@@ -124,6 +125,12 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
               <Row justify="flex-end" gap={space(1)}>
                 <IssueTrackingSignals group={feedbackItem as unknown as Group} />
+
+                {hasComments && (
+                  <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
+                    <IconChat color="gray500" size="sm" />
+                  </Tooltip>
+                )}
 
                 {isCrashReport && (
                   <Tooltip title={t('Linked Error')} containerDisplayMode="flex">

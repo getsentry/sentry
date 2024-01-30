@@ -4,3 +4,11 @@ class InvalidMetricsQueryError(Exception):
 
 class MetricsQueryExecutionError(Exception):
     pass
+
+
+class LatestReleaseNotFoundError(Exception):
+    pass
+
+
+class CorrelationsQueryExecutionError(Exception):
+    pass

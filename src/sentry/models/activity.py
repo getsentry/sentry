@@ -9,6 +9,7 @@ from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+from sentry import features, options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -33,6 +34,9 @@ class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
+
+        if not features.has("projects:issue-priority", group.project):
+            activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
 
         prev_sig = None
         sig = None
@@ -138,9 +142,10 @@ class Activity(Model):
             from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") + 1)
-            post_save.send_robust(
-                sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
-            )
+            if not options.get("groups.enable-post-update-signal"):
+                post_save.send_robust(
+                    sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
+                )
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
@@ -150,9 +155,10 @@ class Activity(Model):
             from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") - 1)
-            post_save.send_robust(
-                sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
-            )
+            if not options.get("groups.enable-post-update-signal"):
+                post_save.send_robust(
+                    sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
+                )
 
     def send_notification(self):
         activity.send_activity_notifications.delay(self.id)

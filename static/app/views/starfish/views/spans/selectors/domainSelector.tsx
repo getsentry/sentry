@@ -2,12 +2,11 @@ import {ReactNode, useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import debounce from 'lodash/debounce';
-import flatten from 'lodash/flatten';
 import omit from 'lodash/omit';
-import uniq from 'lodash/uniq';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
+import {uniq} from 'sentry/utils/array/uniq';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -76,7 +75,7 @@ export function DomainSelector({
   });
 
   const incomingDomains = uniq(
-    flatten(domainData?.map(row => row[SpanMetricsField.SPAN_DOMAIN]))
+    domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])
   );
 
   // Cache for all previously seen domains

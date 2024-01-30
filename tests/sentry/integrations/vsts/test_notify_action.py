@@ -6,11 +6,12 @@ from fixtures.vsts import GET_PROJECTS_RESPONSE, WORK_ITEM_RESPONSE
 from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models.grouplink import GroupLink
-from sentry.models.identity import Identity
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.rule import Rule
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
@@ -21,27 +22,29 @@ pytestmark = [requires_snuba]
 
 
 @freeze_time()
+@region_silo_test
 class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     rule_cls = AzureDevopsCreateTicketAction
 
     def setUp(self):
-        model = self.create_provider_integration(
-            provider="vsts",
-            external_id="vsts_external_id",
-            name="fabrikam-fiber-inc",
-            metadata={
-                "domain_name": "https://fabrikam-fiber-inc.visualstudio.com/",
-                "default_project": "0987654321",
+        integration, _, _, _ = self.create_identity_integration(
+            user=self.user,
+            organization=self.organization,
+            integration_params={
+                "provider": "vsts",
+                "external_id": "vsts_external_id",
+                "name": "fabrikam-fiber-inc",
+                "metadata": {
+                    "domain_name": "https://fabrikam-fiber-inc.visualstudio.com/",
+                    "default_project": "0987654321",
+                },
+            },
+            identity_params={
+                "external_id": "vsts",
+                "data": {"access_token": "123456789", "expires": time() + 1234567},
             },
         )
-        identity = Identity.objects.create(
-            idp=self.create_identity_provider(type="vsts"),
-            user=self.user,
-            external_id="vsts",
-            data={"access_token": "123456789", "expires": time() + 1234567},
-        )
-        model.add_organization(self.organization, self.user, identity.id)
-        self.integration = VstsIntegration(model, self.organization.id)
+        self.integration = VstsIntegration(integration, self.organization.id)
 
     @responses.activate
     def test_create_issue(self):
@@ -178,8 +181,14 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         )
 
     def test_render_label_without_integration(self):
-        deleted_id = self.integration.model.id
-        self.integration.model.delete()
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="vsts",
+            external_id="vsts:2",
+        )
+        deleted_id = integration.id
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.delete()
 
         rule = self.get_rule(data={"integration": deleted_id})
 

@@ -55,13 +55,14 @@ import {EntryBreadcrumbs, EntryType, EventTransaction, Organization} from 'sentr
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {PageErrorProvider} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
+import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -461,6 +462,12 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       )}
       <EventExtraData event={detail.event} />
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
+      {detail.event._metrics_summary ? (
+        <CustomMetricsEventData
+          metricsSummary={detail.event._metrics_summary}
+          startTimestamp={detail.event.startTimestamp}
+        />
+      ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
       {projectSlug && <EventAttachments event={detail.event} projectSlug={projectSlug} />}
       {project && <EventViewHierarchy event={detail.event} project={project} />}
@@ -534,8 +541,11 @@ function TraceViewDetailPanel({detail, onClose}: DetailPanelProps) {
   const organization = useOrganization();
   const location = useLocation();
   return (
-    <PageErrorProvider>
-      <DetailPanel detailKey={detail ? 'open' : undefined} onClose={onClose}>
+    <PageAlertProvider>
+      <DetailPanel
+        detailKey={detail && detail.openPanel === 'open' ? 'open' : undefined}
+        onClose={onClose}
+      >
         {detail &&
           (isEventDetail(detail) ? (
             <EventDetails
@@ -547,7 +557,7 @@ function TraceViewDetailPanel({detail, onClose}: DetailPanelProps) {
             <SpanDetailsBody organization={organization} detail={detail} />
           ))}
       </DetailPanel>
-    </PageErrorProvider>
+    </PageAlertProvider>
   );
 }
 

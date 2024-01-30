@@ -13,6 +13,7 @@ from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.api import run_metrics_query
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
+    LatestReleaseNotFoundError,
     MetricsQueryExecutionError,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -49,6 +50,21 @@ def get_use_case_id(request: Request) -> UseCaseID:
 
 @region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    def get(self, request: Request, organization) -> Response:
+        projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams("You must supply at least one projects to see its metrics")
+
+        metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
+
+        return Response(metrics, status=200)
+
+
+@region_silo_endpoint
+class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -57,9 +73,10 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
     """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
     def get(self, request: Request, organization) -> Response:
+        # TODO: fade out endpoint since the new metrics endpoint will be used.
         projects = self.get_projects(request, organization)
 
-        metrics = get_metrics_meta(projects, use_case_id=get_use_case_id(request))
+        metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
 
         return Response(metrics, status=200)
 
@@ -75,14 +92,15 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, metric_name) -> Response:
         projects = self.get_projects(request, organization)
+
         try:
             metric = get_single_metric_info(
                 projects,
                 metric_name,
                 use_case_id=get_use_case_id(request),
             )
-        except InvalidParams as e:
-            raise ResourceDoesNotExist(e)
+        except InvalidParams as exc:
+            raise ResourceDoesNotExist(detail=str(exc))
         except (InvalidField, DerivedMetricParseException) as exc:
             raise ParseError(detail=str(exc))
 
@@ -201,6 +219,8 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
             )
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
+        except LatestReleaseNotFoundError as e:
+            return Response(status=404, data={"detail": str(e)})
         except MetricsQueryExecutionError as e:
             return Response(status=500, data={"detail": str(e)})
 

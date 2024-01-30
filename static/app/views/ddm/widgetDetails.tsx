@@ -5,7 +5,8 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {isCustomMetric, MetricWidgetQueryParams} from 'sentry/utils/metrics';
+import {isCustomMetric} from 'sentry/utils/metrics';
+import {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {SampleTable} from 'sentry/views/ddm/sampleTable';
@@ -22,7 +23,13 @@ const constructQueryString = (queryObject: Record<string, string>) => {
 };
 
 export function WidgetDetails() {
-  const {selectedWidgetIndex, widgets, focusArea} = useDDMContext();
+  const {
+    selectedWidgetIndex,
+    widgets,
+    focusArea,
+    highlightedSampleId,
+    setHighlightedSampleId,
+  } = useDDMContext();
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
   // the tray is minimized when the main content is maximized
   const selectedWidget = widgets[selectedWidgetIndex] as
@@ -34,6 +41,10 @@ export function WidgetDetails() {
   if (isCodeLocationsDisabled && selectedTab === Tab.CODE_LOCATIONS) {
     setSelectedTab(Tab.SAMPLES);
   }
+
+  const handleSampleRowHover = (sampleId?: string) => {
+    setHighlightedSampleId(sampleId);
+  };
 
   return (
     <TrayWrapper>
@@ -68,6 +79,8 @@ export function WidgetDetails() {
                     : selectedWidget?.query
                 }
                 {...focusArea?.range}
+                highlightedRow={highlightedSampleId}
+                onRowHover={handleSampleRowHover}
               />
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>

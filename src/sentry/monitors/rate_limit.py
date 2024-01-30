@@ -47,7 +47,10 @@ QUOTA_WINDOW = 60
 # used when computing the QuotaConfig for the DataCategory.MONITOR (check-ins)
 #
 # These are the 'grace' check-ins as described above.
-ALLOWED_CHECK_INS_PER_MONITOR = 5
+#
+# XXX(epurkhiser): Remember a single check-in may often consist of two check-in
+# messages, one for IN_PROGRESS and another for OK.
+ALLOWED_CHECK_INS_PER_MONITOR = 6
 
 # The minimum rate-limit per project for the DataCategory.MONITOR. This value
 # should be high enough that it allows for a large number of monitors to be

@@ -17,7 +17,6 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.base import BaseApiResponse
@@ -25,6 +24,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.utils import json
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -36,15 +36,20 @@ GITHUB_CODEOWNERS = {
 }
 
 
+@region_silo_test
 class GitHubAppsClientTest(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def setUp(self, get_jwt):
-        integration = self.create_integration(
+        ten_days = datetime.utcnow() + timedelta(days=10)
+        self.integration = self.create_integration(
             organization=self.organization,
             provider="github",
             name="Github Test Org",
             external_id="1",
-            metadata={"access_token": None, "expires_at": None},
+            metadata={
+                "access_token": "12345token",
+                "expires_at": ten_days.strftime("%Y-%m-%dT%H:%M:%S"),
+            },
         )
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -52,19 +57,12 @@ class GitHubAppsClientTest(TestCase):
             url="https://github.com/Test-Organization/foo",
             provider="integrations:github",
             external_id=123,
-            integration_id=integration.id,
+            integration_id=self.integration.id,
         )
-        install = integration.get_installation(organization_id=self.organization.id)
+        install = self.integration.get_installation(organization_id=self.organization.id)
         assert isinstance(install, GitHubIntegration)
         self.install = install
         self.github_client = self.install.get_client()
-        responses.add(
-            method=responses.POST,
-            url="https://api.github.com/app/installations/1/access_tokens",
-            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
-            status=200,
-            content_type="application/json",
-        )
 
     @responses.activate
     def test_get_rate_limit(self):
@@ -131,7 +129,7 @@ class GitHubAppsClientTest(TestCase):
 
         with pytest.raises(ApiError):
             self.github_client.check_file(self.repo, path, version)
-        assert responses.calls[1].response.status_code == 404
+        assert responses.calls[0].response.status_code == 404
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -187,8 +185,8 @@ class GitHubAppsClientTest(TestCase):
             headers={"link": f'<{url}&page=1>; rel="first", <{url}&page=3>; rel="prev"'},
         )
         self.github_client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
-        assert len(responses.calls) == 5
-        assert responses.calls[1].response.status_code == 200
+        assert len(responses.calls) == 4
+        assert responses.calls[0].response.status_code == 200
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -198,9 +196,8 @@ class GitHubAppsClientTest(TestCase):
         # No link in the headers because there are no more pages
         responses.add(method=responses.GET, url=url, json={}, headers={})
         self.github_client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
-        # One call is for getting the token for the installation
-        assert len(responses.calls) == 2
-        assert responses.calls[1].response.status_code == 200
+        assert len(responses.calls) == 1
+        assert responses.calls[0].response.status_code == 200
 
     @mock.patch(
         "sentry.integrations.github.integration.GitHubIntegration.check_file",
@@ -223,9 +220,8 @@ class GitHubAppsClientTest(TestCase):
             self.config.repository, ref=self.config.default_branch
         )
         assert (
-            responses.calls[1].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+            responses.calls[0].request.headers["Content-Type"] == "application/raw; charset=utf-8"
         )
-        assert responses.calls[1].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITHUB_CODEOWNERS
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -267,7 +263,7 @@ class GitHubAppsClientTest(TestCase):
         )
         resp = self.github_client.get_blame_for_file(self.repo, path, ref, 1)
         assert (
-            responses.calls[1].request.body
+            responses.calls[0].request.body
             == b'{"query": "query {\\n            repository(name: \\"foo\\", owner: \\"Test-Organization\\") {\\n                ref(qualifiedName: \\"master\\") {\\n                    target {\\n                        ... on Commit {\\n                            blame(path: \\"src/sentry/integrations/github/client.py\\") {\\n                                ranges {\\n                                        commit {\\n                                            oid\\n                                            author {\\n                                                name\\n                                                email\\n                                            }\\n                                            message\\n                                            committedDate\\n                                        }\\n                                    startingLine\\n                                    endingLine\\n                                    age\\n                                }\\n                            }\\n                        }\\n                    }\\n                }\\n            }\\n        }"}'
         )
 
@@ -431,8 +427,8 @@ class GitHubAppsClientTest(TestCase):
         self.github_client.update_comment(
             repo=self.repo.name, comment_id="1", data={"body": "world"}
         )
-        assert responses.calls[2].response.status_code == 200
-        assert responses.calls[2].request.body == b'{"body": "world"}'
+        assert responses.calls[1].response.status_code == 200
+        assert responses.calls[1].request.body == b'{"body": "world"}'
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -456,22 +452,168 @@ class GitHubAppsClientTest(TestCase):
         del stored_reactions["url"]
         assert reactions == stored_reactions
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
+    @responses.activate
+    def test_fatal_and_disable_integration(self, get_jwt):
+        """
+        fatal fast shut off with disable flag on, integration should be broken and disabled
+        """
+        responses.add(
+            responses.POST,
+            status=403,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "This installation has been suspended",
+                "documentation_url": "https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app",
+            },
+        )
 
-control_address = "http://controlserver"
-secret = "hush-hush-im-invisible"
+        self.github_client.integration = None
+        with pytest.raises(Exception):
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+
+        buffer = IntegrationRequestBuffer(self.github_client._get_redis_key())
+        self.integration.refresh_from_db()
+        assert self.integration.status == ObjectStatus.DISABLED
+        assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
+        assert len(buffer._get_all_from_buffer()) == 0
+
+    @responses.activate
+    def test_disable_email(self):
+        with self.tasks():
+            notify_disable(
+                self.organization, self.integration.provider, self.github_client._get_redis_key()
+            )
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert msg.subject == "Action required: re-authenticate or fix your Github integration"
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}"
+            )
+            in msg.body
+        )
+        assert (
+            self.organization.absolute_url(
+                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}/?referrer=disabled-integration"
+            )
+            in msg.body
+        )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
+    @responses.activate
+    def test_fatal_integration(self, get_jwt):
+        """
+        fatal fast shut off with disable flag on, integration should be broken and disabled
+        """
+        responses.add(
+            responses.POST,
+            status=403,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "This installation has been suspended",
+                "documentation_url": "https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app",
+            },
+        )
+
+        self.github_client.integration = None
+        with pytest.raises(Exception):
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        self.integration.refresh_from_db()
+        assert self.integration.status == ObjectStatus.DISABLED
+
+    @responses.activate
+    def test_error_integration(self):
+        """
+        recieve two errors and errors are recorded, integration is not broken yet so no disable
+        """
+        responses.add(
+            responses.POST,
+            status=404,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "Not found",
+            },
+        )
+        responses.add(
+            responses.POST,
+            status=404,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "Not found",
+            },
+        )
+        self.github_client.integration = None
+        with pytest.raises(Exception):
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        with pytest.raises(Exception):
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        buffer = IntegrationRequestBuffer(self.github_client._get_redis_key())
+        assert int(buffer._get_all_from_buffer()[0]["error_count"]) == 2
+        assert buffer.is_integration_broken() is False
+
+    @responses.activate
+    @freeze_time("2022-01-01 03:30:00")
+    def test_slow_integration_is_not_broken_or_disabled(self):
+        """
+        slow test with disable flag on
+        put errors and success in buffer for 10 days, assert integration is not broken or disabled
+        """
+
+        responses.add(
+            responses.POST,
+            status=404,
+            url="https://api.github.com/graphql",
+            json={
+                "message": "Not found",
+            },
+        )
+        buffer = IntegrationRequestBuffer(self.github_client._get_redis_key())
+        now = datetime.now() - timedelta(hours=1)
+        for i in reversed(range(10)):
+            with freeze_time(now - timedelta(days=i)):
+                buffer.record_error()
+                buffer.record_success()
+        self.github_client.integration = None
+        with pytest.raises(Exception):
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        assert buffer.is_integration_broken() is False
+        self.integration.refresh_from_db()
+        assert self.integration.status == ObjectStatus.ACTIVE
+
+    @responses.activate
+    @freeze_time("2022-01-01 03:30:00")
+    def test_a_slow_integration_is_broken(self):
+        """
+        slow shut off with disable flag on
+        put errors in buffer for 10 days, assert integration is broken and disabled
+        """
+        responses.add(
+            responses.POST,
+            status=404,
+            url="https://api.github.com/graphql",
+            json={"message": "Not found"},
+        )
+        buffer = IntegrationRequestBuffer(self.github_client._get_redis_key())
+        now = datetime.now() - timedelta(hours=1)
+        for i in reversed(range(10)):
+            with freeze_time(now - timedelta(days=i)):
+                buffer.record_error()
+        self.github_client.integration = None
+        assert self.integration.status == ObjectStatus.ACTIVE
+        with pytest.raises(Exception):
+            self.github_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
+        self.integration.refresh_from_db()
+        assert self.integration.status == ObjectStatus.DISABLED
 
 
-@override_settings(
-    SENTRY_SUBNET_SECRET=secret,
-    SENTRY_CONTROL_ADDRESS=control_address,
-)
+@control_silo_test
 class GithubProxyClientTest(TestCase):
     jwt = "my_cool_jwt"
     access_token = "access_token"
 
     def setUp(self):
         self.integration = self.create_integration(
-            id=1,
             organization=self.organization,
             provider="github",
             name="github-test",
@@ -490,13 +632,13 @@ class GithubProxyClientTest(TestCase):
             match=[matchers.header_matcher({"Authorization": f"Bearer {self.jwt}"})],
             status=200,
         )
-        self.repo = Repository.objects.create(
-            organization_id=self.organization.id,
+        project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(
+            project=project,
             name="Test-Organization/foo",
-            url="https://github.com/Test-Organization/foo",
             provider="integrations:github",
-            external_id=123,
             integration_id=self.integration.id,
+            url="https://github.com/Test-Organization/foo",
         )
 
     @responses.activate
@@ -658,161 +800,8 @@ class GithubProxyClientTest(TestCase):
             assert client.base_url not in request.url
             client.assert_proxy_request(request, is_proxy=True)
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
-    @responses.activate
-    def test_fatal_and_disable_integration(self, get_jwt):
-        """
-        fatal fast shut off with disable flag on, integration should be broken and disabled
-        """
-        responses.add(
-            responses.POST,
-            status=403,
-            url="https://api.github.com/graphql",
-            json={
-                "message": "This installation has been suspended",
-                "documentation_url": "https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app",
-            },
-        )
 
-        self.gh_client.integration = None
-        with pytest.raises(Exception):
-            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-
-        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
-        integration = Integration.objects.get(id=self.integration.id)
-        assert integration.status == ObjectStatus.DISABLED
-        assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
-        assert len(buffer._get_all_from_buffer()) == 0
-
-    @responses.activate
-    def test_disable_email(self):
-        with self.tasks():
-            notify_disable(
-                self.organization, self.integration.provider, self.gh_client._get_redis_key()
-            )
-        assert len(mail.outbox) == 1
-        msg = mail.outbox[0]
-        assert msg.subject == "Action required: re-authenticate or fix your Github integration"
-        assert (
-            self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}"
-            )
-            in msg.body
-        )
-        assert (
-            self.organization.absolute_url(
-                f"/settings/{self.organization.slug}/integrations/{self.integration.provider}/?referrer=disabled-integration"
-            )
-            in msg.body
-        )
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
-    @responses.activate
-    def test_fatal_integration(self, get_jwt):
-        """
-        fatal fast shut off with disable flag on, integration should be broken and disabled
-        """
-        responses.add(
-            responses.POST,
-            status=403,
-            url="https://api.github.com/graphql",
-            json={
-                "message": "This installation has been suspended",
-                "documentation_url": "https://docs.github.com/rest/reference/apps#create-an-installation-access-token-for-an-app",
-            },
-        )
-
-        self.gh_client.integration = None
-        with pytest.raises(Exception):
-            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        integration = Integration.objects.get(id=self.integration.id)
-        assert integration.status == ObjectStatus.DISABLED
-
-    @responses.activate
-    def test_error_integration(self):
-        """
-        recieve two errors and errors are recorded, integration is not broken yet so no disable
-        """
-        responses.add(
-            responses.POST,
-            status=404,
-            url="https://api.github.com/graphql",
-            json={
-                "message": "Not found",
-            },
-        )
-        responses.add(
-            responses.POST,
-            status=404,
-            url="https://api.github.com/graphql",
-            json={
-                "message": "Not found",
-            },
-        )
-        self.gh_client.integration = None
-        with pytest.raises(Exception):
-            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        with pytest.raises(Exception):
-            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
-        assert int(buffer._get_all_from_buffer()[0]["error_count"]) == 2
-        assert buffer.is_integration_broken() is False
-
-    @responses.activate
-    @freeze_time("2022-01-01 03:30:00")
-    def test_slow_integration_is_not_broken_or_disabled(self):
-        """
-        slow test with disable flag on
-        put errors and success in buffer for 10 days, assert integration is not broken or disabled
-        """
-
-        responses.add(
-            responses.POST,
-            status=404,
-            url="https://api.github.com/graphql",
-            json={
-                "message": "Not found",
-            },
-        )
-        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
-        now = datetime.now() - timedelta(hours=1)
-        for i in reversed(range(10)):
-            with freeze_time(now - timedelta(days=i)):
-                buffer.record_error()
-                buffer.record_success()
-        self.gh_client.integration = None
-        with pytest.raises(Exception):
-            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        assert buffer.is_integration_broken() is False
-        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
-
-    @responses.activate
-    @freeze_time("2022-01-01 03:30:00")
-    def test_a_slow_integration_is_broken(self):
-        """
-        slow shut off with disable flag on
-        put errors in buffer for 10 days, assert integration is broken and disabled
-        """
-        responses.add(
-            responses.POST,
-            status=404,
-            url="https://api.github.com/graphql",
-            json={
-                "message": "Not found",
-            },
-        )
-        buffer = IntegrationRequestBuffer(self.gh_client._get_redis_key())
-        now = datetime.now() - timedelta(hours=1)
-        for i in reversed(range(10)):
-            with freeze_time(now - timedelta(days=i)):
-                buffer.record_error()
-        self.gh_client.integration = None
-        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
-        with pytest.raises(Exception):
-            self.gh_client.get_blame_for_file(self.repo, "foo.py", "main", 1)
-        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.DISABLED
-
-
+@region_silo_test
 class GitHubClientFileBlameBase(TestCase):
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     def setUp(self, get_jwt):
@@ -967,7 +956,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[2].request.body)["query"] == query
+        assert json.loads(responses.calls[1].request.body)["query"] == query
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -1074,7 +1063,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[2].request.body)["query"] == query
+        assert json.loads(responses.calls[1].request.body)["query"] == query
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -1163,7 +1152,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1, file2, file3], extra={})
-        assert json.loads(responses.calls[2].request.body)["query"] == query
+        assert json.loads(responses.calls[1].request.body)["query"] == query
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -1217,7 +1206,7 @@ class GitHubClientFileBlameQueryBuilderTest(GitHubClientFileBlameBase):
         )
 
         self.github_client.get_blame_for_files([file1], extra={})
-        assert json.loads(responses.calls[2].request.body)["query"] == query
+        assert json.loads(responses.calls[1].request.body)["query"] == query
 
 
 class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):

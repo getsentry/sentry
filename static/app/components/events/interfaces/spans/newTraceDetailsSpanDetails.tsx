@@ -40,6 +40,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
@@ -87,6 +88,7 @@ export type SpanDetailProps = {
   childTransactions: QuickTraceEvent[] | null;
   event: Readonly<EventTransaction>;
   isRoot: boolean;
+  openPanel: string | undefined;
   organization: Organization;
   relatedErrors: TraceErrorOrIssue[] | null;
   resetCellMeasureCache: () => void;
@@ -557,6 +559,12 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
               ))}
             </tbody>
           </table>
+          {span._metrics_summary ? (
+            <CustomMetricsEventData
+              metricsSummary={span._metrics_summary}
+              startTimestamp={span.start_timestamp}
+            />
+          ) : null}
         </SpanDetails>
       </Fragment>
     );
