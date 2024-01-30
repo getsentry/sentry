@@ -6,16 +6,14 @@ from enum import Enum
 from django.db import connection, migrations
 from psycopg2.extras import execute_values
 
-from sentry.issues.grouptype import (
-    PerformanceP95EndpointRegressionGroupType,
-    ProfileFunctionRegressionType,
-    get_group_type_by_type_id,
-)
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils import json
+from sentry.utils import json, redis
 from sentry.utils.query import RangeQuerySetWrapper
 
 # copied to ensure migraitons work if the enums change #
+
+logger = logging.getLogger(__name__)
 
 
 class GroupSubStatus:
@@ -48,6 +46,10 @@ class GroupCategory(Enum):
     FEEDBACK = 6
 
 
+PERFORMANCE_P95_ENDPOINT_REGRESSION_GROUPTYPE_ID = 1018
+PROFILE_FUNCTION_REGRESSION_TYPE_ID = 2011
+
+
 # end copy #
 
 BATCH_SIZE = 100
@@ -60,7 +62,21 @@ UPDATE_QUERY = """
     WHERE sentry_groupedmessage.id = new_data.id AND sentry_groupedmessage.priority IS NULL
 """
 
-logger = logging.getLogger(__name__)
+REDIS_KEY = "priority_backfill.last_processed_id"
+
+
+def _set_processing_state(row_id: int) -> None:
+    with redis.clusters.get("default").get_local_client_for_key(
+        "backfill_group_priority"
+    ) as client:
+        client.set(REDIS_KEY, row_id)
+
+
+def _get_last_processed_id() -> int | None:
+    with redis.clusters.get("default").get_local_client_for_key(
+        "backfill_group_priority"
+    ) as client:
+        return client.get(REDIS_KEY)
 
 
 def _get_priority_level(group_id, level, type_id, substatus):
@@ -82,7 +98,7 @@ def _get_priority_level(group_id, level, type_id, substatus):
         elif level in [logging.ERROR, logging.FATAL]:
             return PriorityLevel.HIGH
 
-        logger.warning('Unknown log level "%s" for group %s', level, group_id)
+        logging.warning('Unknown log level "%s" for group %s', level, group_id)
         return PriorityLevel.MEDIUM
 
     if group_type.category == GroupCategory.CRON.value:
@@ -95,8 +111,8 @@ def _get_priority_level(group_id, level, type_id, substatus):
     if group_type.category in [GroupCategory.PERFORMANCE.value, GroupCategory.PROFILE.value]:
         # Statistical detectors are medium priority
         if type_id in [
-            ProfileFunctionRegressionType.type_id,
-            PerformanceP95EndpointRegressionGroupType.type_id,
+            PROFILE_FUNCTION_REGRESSION_TYPE_ID,
+            PERFORMANCE_P95_ENDPOINT_REGRESSION_GROUPTYPE_ID,
         ]:
             return PriorityLevel.MEDIUM
         return PriorityLevel.LOW
@@ -111,9 +127,12 @@ def update_group_priority(apps, schema_editor):
     cursor = connection.cursor()
     batch = []
 
+    last_processed_id = _get_last_processed_id() or 0
+    logger.info("Starting group priority backfill from id %s", last_processed_id)
     for group_id, data, level, group_type, substatus, priority in RangeQuerySetWrapper(
-        # TODO: add a group_id key in redis to pickup from if this fails
-        Group.objects.all().values_list("id", "data", "level", "type", "substatus", "priority"),
+        Group.objects.filter(id__gte=last_processed_id).values_list(
+            "id", "data", "level", "type", "substatus", "priority"
+        ),
         result_value_getter=lambda item: item[0],
     ):
         if priority is not None:
@@ -125,7 +144,13 @@ def update_group_priority(apps, schema_editor):
         batch.append((group_id, priority, data))
 
         if len(batch) >= BATCH_SIZE:
+            logger.info(
+                "Processing batch for group priority backfill with %s items",
+                BATCH_SIZE,
+                extra={"group_id": group_id},
+            )
             execute_values(cursor, UPDATE_QUERY, batch, page_size=BATCH_SIZE)
+            _set_processing_state(group_id)
             batch = []
 
     if batch:

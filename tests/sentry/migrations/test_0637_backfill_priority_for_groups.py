@@ -12,6 +12,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.testutils.cases import TestMigrations
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.utils import redis
 
 
 class BackfillGroupPriority(TestMigrations):
@@ -20,6 +21,10 @@ class BackfillGroupPriority(TestMigrations):
 
     def setup_initial_state(self):
         self._create_groups_to_backfill(self.project)
+        with redis.clusters.get("default").get_local_client_for_key(
+            "backfill_group_priority"
+        ) as client:
+            client.set("priority_backfill.last_processed_id", 4)
 
     def test(self):
         for groups, expected_priority in (
@@ -29,14 +34,33 @@ class BackfillGroupPriority(TestMigrations):
         ):
             for desc, group in groups:
                 group.refresh_from_db()
-                assert group.priority == expected_priority, desc
-                if desc.startswith("existing"):
+                if desc == "skip me":
+                    # these groups should not have been backfilled because the group id is less than the redis cached ID
+                    assert not group.priority
                     continue
 
-                assert group.data.get("metadata")["initial_priority"] == expected_priority
+                assert group.priority == expected_priority, desc
+                if not desc.startswith("existing"):
+                    assert group.data.get("metadata")["initial_priority"] == expected_priority
 
     def _create_groups_to_backfill(self, project: Project) -> None:
         data = [
+            # three groups to skip to test the redis cache
+            (
+                "skip me",
+                {"type": FeedbackGroup.type_id},
+                PriorityLevel.MEDIUM,
+            ),
+            (
+                "skip me",
+                {"type": FeedbackGroup.type_id},
+                PriorityLevel.MEDIUM,
+            ),
+            (
+                "skip me",
+                {"type": FeedbackGroup.type_id},
+                PriorityLevel.MEDIUM,
+            ),
             # groups with priority remain unchanged, even if escalating.
             (
                 "existing low priority",
