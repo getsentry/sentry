@@ -36,12 +36,12 @@ class UserPermissionTest(TestCase):
 
     @patch("sentry.api.bases.user.is_active_superuser", return_value=True)
     def test_allows_active_superuser(self, mock_is_active_superuser):
-        user = Factories.create_user(is_superuser=True)
+        user = Factories.create_user(is_superuser=True, is_staff=False)
         assert self.user_permission.has_object_permission(get_request(), None, user)
 
     @patch("sentry.api.bases.user.is_active_staff", return_value=True)
     def test_allows_active_staff(self, mock_is_active_staff):
-        user = Factories.create_user()
+        user = Factories.create_user(is_staff=True, is_superuser=False)
         assert self.user_permission.has_object_permission(get_request(), None, user)
 
     def test_rejects_user_as_anonymous(self):
