@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import RequestError from 'sentry/utils/requestError/requestError';
