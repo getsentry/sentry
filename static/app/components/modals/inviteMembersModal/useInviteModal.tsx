@@ -1,15 +1,16 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
-import {
+import type {
   InviteRow,
   NormalizedInvite,
 } from 'sentry/components/modals/inviteMembersModal/types';
 import {t} from 'sentry/locale';
-import {Member, Organization} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 
 interface Props {
   organization: Organization;
@@ -46,6 +47,7 @@ function useLogInviteModalOpened({
 export default function useInviteModal({organization, initialData, source}: Props) {
   const api = useApi();
   const willInvite = organization.access?.includes('member:write');
+  const isMounted = useIsMountedRef();
 
   /**
    * Used for analytics tracking of the modals usage.
@@ -76,10 +78,10 @@ export default function useInviteModal({organization, initialData, source}: Prop
 
   const invites = useMemo(() => {
     return state.pendingInvites.reduce<NormalizedInvite[]>(
-      (acc, row) => [
-        ...acc,
-        ...[...row.emails].map(email => ({email, teams: row.teams, role: row.role})),
-      ],
+      (acc, row) =>
+        acc.concat(
+          Array.from(row.emails).map(email => ({email, teams: row.teams, role: row.role}))
+        ),
       []
     );
   }, [state.pendingInvites]);
@@ -120,6 +122,9 @@ export default function useInviteModal({organization, initialData, source}: Prop
       try {
         await api.requestPromise(endpoint, {method: 'POST', data});
       } catch (err) {
+        if (!isMounted) {
+          return;
+        }
         const errorResponse = err.responseJSON;
 
         // Use the email error message if available. This inconsistently is
@@ -128,8 +133,8 @@ export default function useInviteModal({organization, initialData, source}: Prop
           !errorResponse || !errorResponse.email
             ? false
             : Array.isArray(errorResponse.email)
-            ? errorResponse.email[0]
-            : errorResponse.email;
+              ? errorResponse.email[0]
+              : errorResponse.email;
 
         const error = emailError || t('Could not invite user');
 
@@ -140,12 +145,15 @@ export default function useInviteModal({organization, initialData, source}: Prop
         return;
       }
 
+      if (!isMounted) {
+        return;
+      }
       setState(prev => ({
         ...prev,
         inviteStatus: {...prev.inviteStatus, [invite.email]: {sent: true}},
       }));
     },
-    [api, organization, willInvite]
+    [api, isMounted, organization, willInvite]
   );
 
   const sendInvites = useCallback(async () => {
