@@ -213,10 +213,10 @@ class GroupHistory(Model):
     class Meta:
         db_table = "sentry_grouphistory"
         app_label = "sentry"
-        indexes = (
-            models.Index(fields=("project", "status", "release")),
-            models.Index(fields=("group", "status")),
-            models.Index(fields=("project", "date_added")),
+        index_together = (
+            ("project", "status", "release"),
+            ("group", "status"),
+            ("project", "date_added"),
         )
 
     __repr__ = sane_repr("group_id", "release_id")
