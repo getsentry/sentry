@@ -86,7 +86,7 @@ class IssueOccurrence:
     detection_time: datetime
     level: str
     culprit: str
-    initial_issue_priority: Optional[int]
+    initial_issue_priority: int | None = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
