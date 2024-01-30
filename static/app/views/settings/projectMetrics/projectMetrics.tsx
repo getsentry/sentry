@@ -29,7 +29,8 @@ import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMet
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
-import {BlockMetricButton} from 'sentry/views/settings/projectMetrics/blockButton';
+import {useAccess} from 'sentry/views/settings/projectMetrics/access';
+import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 
 type Props = {
   organization: Organization;
@@ -152,14 +153,22 @@ interface MetricsTableProps {
 
 function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   const blockMetricMutation = useBlockMetric(project);
+  const {hasAccess} = useAccess({access: ['project:write']});
 
   return (
     <StyledPanelTable
       headers={[
         t('Metric'),
-        <RightAligned key="type"> {t('Type')}</RightAligned>,
-        <RightAligned key="unit">{t('Unit')}</RightAligned>,
-        <RightAligned key="actions">{t('Actions')}</RightAligned>,
+        <Cell right key="type">
+          {' '}
+          {t('Type')}
+        </Cell>,
+        <Cell right key="unit">
+          {t('Unit')}
+        </Cell>,
+        <Cell right key="actions">
+          {t('Actions')}
+        </Cell>,
       ]}
       emptyMessage={
         query
@@ -169,36 +178,50 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
       isEmpty={metrics.length === 0}
       isLoading={isLoading}
     >
-      {metrics.map(({mri, type, unit, blockingStatus}) => (
-        <Fragment key={mri}>
-          <Link
-            to={`/settings/projects/${project.slug}/metrics/${encodeURIComponent(mri)}`}
-          >
-            {middleEllipsis(formatMRI(mri), 65, /\.|-|_/)}
-          </Link>
-          <RightAligned>
-            <Tag>{getReadableMetricType(type)}</Tag>
-          </RightAligned>
-          <RightAligned>
-            <Tag>{unit}</Tag>
-          </RightAligned>
-          <RightAligned>
-            <BlockMetricButton
-              size="xs"
-              isBlocked={blockingStatus[0]?.isBlocked}
-              aria-label={t('Block Metric')}
-              onConfirm={() => {
-                blockMetricMutation.mutate({
-                  mri,
-                  operationType: blockingStatus[0]?.isBlocked
-                    ? 'unblockMetric'
-                    : 'blockMetric',
-                });
-              }}
-            />
-          </RightAligned>
-        </Fragment>
-      ))}
+      {metrics.map(({mri, type, unit, blockingStatus}) => {
+        const isBlocked = blockingStatus[0]?.isBlocked;
+        return (
+          <Fragment key={mri}>
+            <Cell>
+              <Link
+                to={`/settings/projects/${project.slug}/metrics/${encodeURIComponent(
+                  mri
+                )}`}
+              >
+                {middleEllipsis(formatMRI(mri), 65, /\.|-|_/)}
+              </Link>
+            </Cell>
+            <Cell right>
+              <Tag>{getReadableMetricType(type)}</Tag>
+            </Cell>
+            <Cell right>
+              <Tag>{unit}</Tag>
+            </Cell>
+            <Cell right>
+              <BlockButton
+                size="xs"
+                hasAccess={hasAccess}
+                disabled={blockMetricMutation.isLoading}
+                isBlocked={isBlocked}
+                aria-label={t('Block Metric')}
+                message={
+                  isBlocked
+                    ? t('Are you sure you want to unblock this metric?')
+                    : t(
+                        'Are you sure you want to block this metric? It will no longer be ingested, and will not be available for use in Metrics, Alerts, or Dashboards.'
+                      )
+                }
+                onConfirm={() => {
+                  blockMetricMutation.mutate({
+                    mri,
+                    operationType: isBlocked ? 'unblockMetric' : 'blockMetric',
+                  });
+                }}
+              />
+            </Cell>
+          </Fragment>
+        );
+      })}
     </StyledPanelTable>
   );
 }
@@ -213,11 +236,14 @@ const SearchWrapper = styled('div')`
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr repeat(3, minmax(115px, min-content));
-  align-items: center;
+
 `;
 
-const RightAligned = styled('div')`
-  text-align: right;
+const Cell = styled('div')<{right?: boolean}>`
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  justify-content: ${p => (p.right ? 'flex-end' : 'flex-start')};
 `;
 
 export default ProjectMetrics;
