@@ -44,6 +44,16 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     poorThreshold: 300,
     type: measurementType(WebVital.FID),
   },
+  [WebVital.INP]: {
+    slug: 'inp',
+    name: t('Interaction to Next Paint'),
+    acronym: 'INP',
+    description: t(
+      'The duration of the longest interaction observed, ignoring outliers.'
+    ),
+    poorThreshold: 500,
+    type: measurementType(WebVital.INP),
+  },
   [WebVital.CLS]: {
     slug: 'cls',
     name: t('Cumulative Layout Shift'),
