@@ -280,17 +280,14 @@ def _trim_if_above_limit(
 
     for version, specs_for_version in specs_per_version.items():
         if len(specs_for_version) > max_specs:
-            # Do not log for Sentry
-            if project.organization.id != 1:
-
-                with sentry_sdk.push_scope() as scope:
-                    scope.set_tag("project_id", project.id)
-                    scope.set_extra("specs", [spec[0] for spec in specs_for_version])
-                    sentry_sdk.capture_exception(
-                        Exception(
-                            f"Spec version {version}: Too many ({len(specs_for_version)}) on demand metric {widget_type} for org {project.organization.slug}"
-                        )
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("project_id", project.id)
+                scope.set_context("specs", {"values": [spec[0] for spec in specs_for_version]})
+                sentry_sdk.capture_exception(
+                    Exception(
+                        f"Spec version {version}: Too many ({len(specs_for_version)}) on demand metric {widget_type} for org {project.organization.slug}"
                     )
+                )
 
             return_specs += specs_for_version[:max_specs]
         else:
