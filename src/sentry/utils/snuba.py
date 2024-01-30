@@ -839,7 +839,7 @@ def bulk_snuba_queries(
             request.tenant_ids = request.tenant_ids or dict()
             request.tenant_ids["referrer"] = referrer
 
-    params: SnubaQuery = [(request, lambda x: x, lambda x: x) for request in requests]
+    params = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
@@ -855,7 +855,11 @@ def bulk_raw_query(
     will be converted to SnQL queries before being sent to Snuba.
     """
     params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
-    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
+    request_bodies = [
+        (json_to_snql(query, query["dataset"]), forward, reverse)
+        for query, forward, reverse in params
+    ]
+    return _apply_cache_and_build_results(request_bodies, referrer=referrer, use_cache=use_cache)
 
 
 def get_cache_key(query: SnubaQuery) -> str:
@@ -869,7 +873,7 @@ def get_cache_key(query: SnubaQuery) -> str:
 
 
 def _apply_cache_and_build_results(
-    snuba_param_list: Sequence[LegacyQueryBody | RequestQueryBody],
+    snuba_param_list: Sequence[RequestQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
 ) -> ResultSet:
@@ -885,7 +889,7 @@ def _apply_cache_and_build_results(
     if use_cache:
         cache_keys = [get_cache_key(query_params[0]) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
-        to_query: list[tuple[int, LegacyQueryBody | RequestQueryBody, Optional[str]]] = []
+        to_query: list[tuple[int, RequestQueryBody, Optional[str]]] = []
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
             cached_result = cache_data.get(cache_key)
             metric_tags = {"referrer": referrer} if referrer else None
@@ -912,7 +916,7 @@ def _apply_cache_and_build_results(
 
 
 def _bulk_snuba_query(
-    snuba_param_list: Sequence[LegacyQueryBody | RequestQueryBody],
+    snuba_param_list: Sequence[RequestQueryBody],
     headers: Mapping[str, str],
 ) -> ResultSet:
     query_referrer = headers.get("referer", "<unknown>")
@@ -1009,16 +1013,14 @@ def _bulk_snuba_query(
 RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
-def _snql_query(
-    params: tuple[LegacyQueryBody | RequestQueryBody, Hub, Mapping[str, str], str]
-) -> RawResult:
+def _snql_query(params: tuple[RequestQueryBody, Hub, Mapping[str, str], str]) -> RawResult:
     # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
     return _snuba_query(params)
 
 
 def _snuba_query(
     params: tuple[
-        LegacyQueryBody | RequestQueryBody,
+        RequestQueryBody,
         Hub,
         Mapping[str, str],
         str,
@@ -1027,21 +1029,7 @@ def _snuba_query(
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function. (bc of thread .map)
     query_body, thread_hub, headers, parent_api = params
-    query, forward, reverse = query_body
-    if isinstance(query, Request):
-        request = query
-    else:  # legacy query
-        request = json_to_snql(query, query["dataset"])
-    return _request_query((request, forward, reverse), thread_hub, headers, parent_api)
-
-
-def _request_query(
-    body: RequestQueryBody,
-    thread_hub: Hub,
-    headers: Mapping[str, str],
-    parent_api: str,
-) -> RawResult:
-    request, forward, reverse = body
+    request, forward, reverse = query_body
     request.parent_api = parent_api
     try:
         referrer = headers.get("referer", "unknown")
