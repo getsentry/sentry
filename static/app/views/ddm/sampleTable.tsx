@@ -121,7 +121,7 @@ export function SampleTable({
             to={getMetricsCorrelationSpanUrl(
               organization,
               project?.slug,
-              row.spansDetails[0].spanId,
+              row.spansDetails[0]?.spanId,
               row.transactionId,
               row.transactionSpanId
             )}
