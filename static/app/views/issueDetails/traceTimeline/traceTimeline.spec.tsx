@@ -1,10 +1,12 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 import {TraceTimeline} from './traceTimeline';
 import type {TraceEventResponse} from './useTraceTimelineEvents';
@@ -12,14 +14,15 @@ import type {TraceEventResponse} from './useTraceTimelineEvents';
 describe('TraceTimeline', () => {
   const organization = OrganizationFixture({features: ['issues-trace-timeline']});
   const event = EventFixture();
+  const project = ProjectFixture();
 
   const issuePlatformBody: TraceEventResponse = {
     data: [
       {
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
-        project: 'sentry',
-        'project.name': 'sentry',
+        project: project.slug,
+        'project.name': project.name,
         title: 'Slow DB Query',
         id: 'abc',
         issue: 'SENTRY-ABC1',
@@ -32,8 +35,8 @@ describe('TraceTimeline', () => {
       {
         timestamp: '2024-01-23T22:11:42+00:00',
         'issue.id': 4909507143,
-        project: 'sentry',
-        'project.name': 'sentry',
+        project: project.slug,
+        'project.name': project.name,
         title: 'AttributeError: Something Failed',
         id: event.id,
         issue: 'SENTRY-2EYS',
@@ -44,6 +47,7 @@ describe('TraceTimeline', () => {
 
   beforeEach(() => {
     // Can be removed with issueDetailsNewExperienceQ42023
+    ProjectsStore.loadInitialData([project]);
     ConfigStore.set(
       'user',
       UserFixture({
