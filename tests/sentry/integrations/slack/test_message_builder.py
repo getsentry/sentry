@@ -540,6 +540,92 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             suspect_commit=suspect_commit,
         )
 
+    @patch(
+        "sentry.api.serializers.models.pullrequest.PullRequestSerializer._external_url",
+        return_value="https://github.com/meowmeow/cats/pull/1",
+    )
+    @with_feature("organizations:slack-block-kit")
+    def test_issue_alert_with_suspect_commits_unknown_provider(self, mock_external_url):
+        self.login_as(user=self.user)
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="example",
+            integration_id=self.integration.id,
+            url="http://www.github.com/meowmeow/cats",
+        )
+        commit_author = self.create_commit_author(project=self.project, user=self.user)
+        self.commit = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=commit_author,
+            key="asdfwreqr",
+            message="placeholder commit message",
+        )
+        pull_request = PullRequest.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="9",
+            author=commit_author,
+            message="waddap",
+            title="cool pr",
+            merge_commit_sha=self.commit.key,
+        )
+        event = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "timestamp": iso_format(before_now(minutes=1)),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "logentry": {"formatted": "bar"},
+                "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        assert event.group
+        group = event.group
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": self.commit.id},
+        )
+
+        suspect_commit = {
+            "commit_id": self.commit.key,
+            "author": {
+                "email": commit_author.email,
+                "name": commit_author.name,
+            },
+            "pull_request": {
+                "dateCreated": pull_request.date_added,
+                "title": pull_request.title,
+                "externalUrl": mock_external_url.return_value,
+                "id": pull_request.key,
+                "repository": {
+                    "url": self.repo.url,
+                },
+            },
+        }
+
+        commits = get_commits(self.project, event)
+
+        assert SlackIssuesMessageBuilder(
+            group,
+            event.for_group(group),
+            commits=commits,
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            suspect_commit=suspect_commit,
+        )
+
     @with_feature("organizations:slack-block-kit")
     @with_feature("organizations:streamline-targeting-context")
     def test_issue_alert_with_suggested_assignees(self):
@@ -587,6 +673,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             organization_id=self.organization.id,
             name="home-repo",
             integration_id=self.integration.id,
+            provider="bitbucket",
         )
         user2 = self.create_user()
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
