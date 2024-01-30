@@ -186,6 +186,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
             <BlockMetricButton
               size="xs"
               isBlocked={blockingStatus[0]?.isBlocked}
+              aria-label={t('Block Metric')}
               onConfirm={() => {
                 blockMetricMutation.mutate({
                   mri,
