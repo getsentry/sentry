@@ -234,7 +234,8 @@ def process_update_fields(updated_fields):
         # we'll need to assume any of the attributes are updated in that case
         updated_fields = {"all"}
     else:
-        updated_fields = {"status", "substatus", "num_comments"}.intersection(updated_fields or ())
+        VALID_FIELDS = {"status", "substatus", "num_comments"}
+        updated_fields = VALID_FIELDS.intersection(updated_fields or ())
     if updated_fields:
         _log_group_attributes_changed(Operation.UPDATED, "group", "-".join(sorted(updated_fields)))
     return updated_fields
