@@ -2,9 +2,15 @@ from __future__ import annotations
 
 import logging
 from enum import Enum, IntEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Type
 
 from sentry import features
+from sentry.issues.grouptype import (
+    GroupCategory,
+    GroupType,
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+)
 from sentry.models.activity import Activity
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.user import User
@@ -130,3 +136,27 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
 
     if new_priority is not None:
         update_priority(group, new_priority, reason)
+
+
+def get_default_priority_for_group_type(group_type: Type[GroupType], level: str) -> PriorityLevel:
+    if group_type.category in [GroupCategory.REPLAY.value, GroupCategory.FEEDBACK.value]:
+        return PriorityLevel.MEDIUM
+
+    if group_type.category == GroupCategory.CRON.value:
+        if level == "warning":
+            return PriorityLevel.MEDIUM
+
+        return PriorityLevel.HIGH
+
+    # Profiling issues should be treated the same as Performance issues since they are merging
+    if group_type.category in [GroupCategory.PERFORMANCE.value, GroupCategory.PROFILE.value]:
+        # Statistical detectors are medium priority
+        if group_type.id in [
+            ProfileFunctionRegressionType.type_id,
+            PerformanceP95EndpointRegressionGroupType.type_id,
+        ]:
+            return PriorityLevel.MEDIUM
+        return PriorityLevel.LOW
+
+    # All other issues are the default medium priority
+    return PriorityLevel.MEDIUM

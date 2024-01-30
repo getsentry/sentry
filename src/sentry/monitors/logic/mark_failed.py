@@ -13,6 +13,7 @@ from sentry.issues.grouptype import (
     MonitorCheckInMissed,
     MonitorCheckInTimeout,
 )
+from sentry.issues.priority import get_default_priority_for_group_type
 from sentry.models.organization import Organization
 from sentry.monitors.constants import SUBTITLE_DATETIME_FORMAT, TIMEOUT
 from sentry.monitors.models import (
@@ -273,6 +274,9 @@ def create_issue_platform_occurrence(
     if last_successful_checkin:
         last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
 
+    priority = get_default_priority_for_group_type(
+        group_type=occurrence_data["group_type"], level=occurrence_data["level"]
+    )
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,
         resource_id=None,
@@ -301,6 +305,7 @@ def create_issue_platform_occurrence(
         culprit=occurrence_data["reason"],
         detection_time=current_timestamp,
         level=occurrence_data["level"],
+        initial_issue_priority=priority,
     )
 
     if failed_checkin.trace_id:

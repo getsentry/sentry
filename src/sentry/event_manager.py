@@ -66,7 +66,7 @@ from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.priority import PriorityLevel
+from sentry.issues.priority import PriorityLevel, get_default_priority_for_group_type
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -2394,6 +2394,9 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
         performance_problems = job["performance_problems"]
         for problem in performance_problems:
+            priority = get_default_priority_for_group_type(
+                group_type=problem.type, level=job["level"]
+            )
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
                 resource_id=None,
@@ -2408,6 +2411,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                 evidence_display=problem.evidence_display,
                 detection_time=event.datetime,
                 level=job["level"],
+                initial_issue_priority=priority,
             )
 
             produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)

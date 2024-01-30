@@ -100,7 +100,7 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
     ensure_aware(datetime.now()),
     "info",
     "/api/123/",
-    initial_issue_priority=PriorityLevel.MEDIUM,
+    initial_issue_priority=PriorityLevel.LOW,
 )
 TEST_PERF_ISSUE_OCCURRENCE = IssueOccurrence(
     uuid.uuid4().hex,
@@ -122,7 +122,7 @@ TEST_PERF_ISSUE_OCCURRENCE = IssueOccurrence(
     ensure_aware(datetime.now()),
     "info",
     "/api/123/",
-    initial_issue_priority=PriorityLevel.MEDIUM,
+    initial_issue_priority=PriorityLevel.LOW,
 )
 
 SAMPLE_TO_OCCURRENCE_MAP = {
@@ -165,7 +165,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         ensure_aware(datetime.now()),
         "info",
         "/books/",
-        initial_issue_priority=PriorityLevel.MEDIUM,
+        initial_issue_priority=PriorityLevel.LOW,
     ),
     "transaction-n-plus-one": IssueOccurrence(
         uuid.uuid4().hex,
@@ -202,7 +202,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         ensure_aware(datetime.now()),
         "info",
         "/books/",
-        initial_issue_priority=PriorityLevel.MEDIUM,
+        initial_issue_priority=PriorityLevel.LOW,
     ),
     "transaction-render-blocking-asset": IssueOccurrence(
         uuid.uuid4().hex,
@@ -230,6 +230,6 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         ensure_aware(datetime.now()),
         "info",
         "/render-blocking-asset/",
-        initial_issue_priority=PriorityLevel.MEDIUM,
+        initial_issue_priority=PriorityLevel.LOW,
     ),
 }

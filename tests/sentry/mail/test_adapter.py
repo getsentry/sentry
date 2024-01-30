@@ -19,6 +19,7 @@ from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.grouptype import MonitorCheckInFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.priority import PriorityLevel
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
@@ -324,6 +325,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ensure_aware(datetime.now()),
             "info",
             "/api/123",
+            initial_issue_priority=PriorityLevel.HIGH,
         )
         occurrence.save()
         event.occurrence = occurrence
@@ -376,6 +378,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ensure_aware(datetime.now()),
             "info",
             "/api/123",
+            initial_issue_priority=PriorityLevel.HIGH,
         )
         occurrence.save()
         event.occurrence = occurrence
