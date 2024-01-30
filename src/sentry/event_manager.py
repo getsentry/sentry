@@ -2394,9 +2394,6 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
         performance_problems = job["performance_problems"]
         for problem in performance_problems:
-            priority = get_default_priority_for_group_type(
-                group_type=problem.type, level=job["level"]
-            )
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
                 resource_id=None,
@@ -2411,7 +2408,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                 evidence_display=problem.evidence_display,
                 detection_time=event.datetime,
                 level=job["level"],
-                initial_issue_priority=priority,
+                initial_issue_priority=problem.type.default_priority,
             )
 
             produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)

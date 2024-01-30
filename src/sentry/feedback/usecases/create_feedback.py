@@ -12,7 +12,6 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
-from sentry.issues.priority import get_default_priority_for_group_type
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
@@ -135,7 +134,6 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     event["event_id"] = event.get("event_id") or uuid4().hex
     evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
     level = event.get("level", "info")
-    priority = get_default_priority_for_group_type(group_type=FeedbackGroup, level=level)
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event.get("event_id") or uuid4().hex,
@@ -152,7 +150,7 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
         detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level=level,
-        initial_issue_priority=priority,
+        initial_issue_priority=FeedbackGroup.default_priority,
     )
     now = datetime.now()
 

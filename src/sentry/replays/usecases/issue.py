@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Sequence, Type
 
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.priority import get_default_priority_for_group_type
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 
 
@@ -27,7 +26,6 @@ def new_issue_occurrence(
     event_id = uuid.uuid4().hex
     extra_event_data["event_id"] = event_id
 
-    priority = get_default_priority_for_group_type(group_type=issue_type, level=level)
     occurrence = IssueOccurrence(
         id=uuid.uuid4().hex,
         project_id=project_id,
@@ -42,7 +40,7 @@ def new_issue_occurrence(
         detection_time=timestamp,
         culprit=culprit,
         level=level,
-        initial_issue_priority=priority,
+        initial_issue_priority=issue_type.default_priority,
     )
 
     event_data = {

@@ -11,6 +11,7 @@ from sentry.issues.grouptype import (
     ProfileFileIOGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.types.group import PriorityLevel
 from sentry.models.group import Group
 from sentry.models.team import Team
 from sentry.models.user import User
