@@ -21,9 +21,10 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const organization = useOrganization({allowNull: true});
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
-  const {isError, isLoading} = useTraceTimelineEvents({event});
+  const hasFeature = hasTraceTimelineFeature(organization, user);
+  const {isError, isLoading} = useTraceTimelineEvents({event}, hasFeature);
 
-  if (!hasTraceTimelineFeature(organization, user)) {
+  if (!hasFeature) {
     return null;
   }
 

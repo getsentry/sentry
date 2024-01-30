@@ -25,12 +25,15 @@ interface UseTraceTimelineEventsOptions {
   event: Event;
 }
 
-export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions) {
+export function useTraceTimelineEvents(
+  {event}: UseTraceTimelineEventsOptions,
+  isEnabled: boolean = true
+) {
   const organization = useOrganization();
   const {start, end} = getTraceTimeRangeFromEvent(event);
 
   const traceId = event.contexts?.trace?.trace_id ?? '';
-  const enabled = !!traceId;
+  const enabled = !!traceId && isEnabled;
   const {
     data: issuePlatformData,
     isLoading: isLoadingIssuePlatform,
