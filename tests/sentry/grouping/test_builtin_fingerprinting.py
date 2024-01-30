@@ -676,8 +676,8 @@ class BuiltInFingerprintingTest(TestCase):
     @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_hydration_rules_no_transactions(self):
         """
-        With the flag enabled, hydration errors with no transactions built-in
-        HydrationError rules should NOT be applied.
+        With the flag enabled, for hydration errors with no transactions
+        the built-in HydrationError rules should NOT be applied.
         """
 
         data_transaction_no_tx = self.hydration_error_trace
