@@ -15,7 +15,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.serializers.sessions import QuerySessionsResponse
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.session_examples import SessionExamples
@@ -28,6 +27,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
+from sentry.release_health.base import SessionsQueryResult
 from sentry.snuba.sessions_v2 import SNUBA_LIMIT, InvalidField, QueryDefinition
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -59,7 +59,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
             VisibilityParams.QUERY,
         ],
         responses={
-            200: inline_sentry_response_serializer("QuerySessionsResponse", QuerySessionsResponse),
+            200: inline_sentry_response_serializer("SessionsQueryResult", SessionsQueryResult),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
         },
@@ -77,7 +77,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         "`statsPeriod`."
         """
 
-        def data_fn(offset: int, limit: int):
+        def data_fn(offset: int, limit: int) -> SessionsQueryResult:
             with self.handle_query_errors():
                 with sentry_sdk.start_span(
                     op="sessions.endpoint", description="build_sessions_query"
