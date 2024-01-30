@@ -292,7 +292,7 @@ export const getPythonMetricsOnboarding = ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/metrics/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/python/metrics/" />
               ),
             }
           ),
@@ -381,7 +381,7 @@ export const getDotnetMetricsOnboarding = ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/php/metrics/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/metrics/" />
               ),
             }
           ),
