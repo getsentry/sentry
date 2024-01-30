@@ -4,6 +4,7 @@ import abc
 import contextlib
 import dataclasses
 import datetime
+import logging
 import threading
 from enum import IntEnum
 from typing import (
@@ -458,6 +459,15 @@ class OutboxBase(Model):
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
         try:
+            logging.info(
+                "outbox.preparing_messages_in_shard",
+                extra={
+                    "shard_id": cls.shard_identifier,
+                    "shard_scope": cls.shard_scope.value,
+                    "object_identifier": cls.object_identifier,
+                    "category": cls.category.value,
+                },
+            )
             with transaction.atomic(using=using, savepoint=False):
                 next_outbox: OutboxBase | None
                 next_outbox = (
@@ -624,8 +634,8 @@ class OutboxBase(Model):
     def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
         span.set_tag(tag_for_outbox, message.shard_identifier)
-        span.set_data("payload", message.payload)
         span.set_data("outbox_id", message.id)
+        span.set_data("outbox_shard_id", message.shard_identifier)
         span.set_tag("outbox_category", OutboxCategory(message.category).name)
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 
