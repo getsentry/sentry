@@ -114,7 +114,6 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "type": payload["type"],
                 "detection_time": payload["detection_time"],
                 "level": payload.get("level", DEFAULT_LEVEL),
-                "initial_issue_priority": payload.get("initial_issue_priority"),
             }
 
             process_occurrence_data(occurrence_data)
@@ -124,6 +123,12 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
             if payload.get("culprit"):
                 occurrence_data["culprit"] = payload["culprit"]
+
+            if payload.get("initial_issue_priority"):
+                occurrence_data["initial_issue_priority"] = payload["initial_issue_priority"]
+            else:
+                group_type = get_group_type_by_type_id(occurrence_data["type"])
+                occurrence_data["initial_issue_priority"] = group_type.default_priority
 
             if "event" in payload:
                 event_payload = payload["event"]
