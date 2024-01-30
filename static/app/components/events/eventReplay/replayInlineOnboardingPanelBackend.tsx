@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backend.svg';
@@ -14,11 +13,13 @@ import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import theme from 'sentry/utils/theme';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMedia from 'sentry/utils/useMedia';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
+  projectId: string;
 };
 
 const OnboardingCTAButton = HookOrDefault({
@@ -28,8 +29,12 @@ const OnboardingCTAButton = HookOrDefault({
 
 export default function ReplayInlineOnboardingPanelBackend({
   platform,
+  projectId,
 }: OnboardingCTAProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useLocalStorageState(
+    `${projectId}:issue-details-replay-cta-dismissed`,
+    true
+  );
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   const platformName = platforms.find(p => p.id === platform) ?? otherPlatform;
