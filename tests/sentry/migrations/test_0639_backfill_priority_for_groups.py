@@ -11,8 +11,14 @@ from sentry.issues.grouptype import (
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.testutils.cases import TestMigrations
-from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.types.group import GroupSubStatus
 from sentry.utils import redis
+
+
+class PriorityLevel:
+    LOW = 25
+    MEDIUM = 50
+    HIGH = 75
 
 
 class BackfillGroupPriority(TestMigrations):
@@ -24,7 +30,7 @@ class BackfillGroupPriority(TestMigrations):
         with redis.clusters.get("default").get_local_client_for_key(
             "backfill_group_priority"
         ) as client:
-            client.set("priority_backfill.last_processed_id", 4)
+            client.set("priority_backfill.last_processed_id", 3)
 
     def test(self):
         for groups, expected_priority in (

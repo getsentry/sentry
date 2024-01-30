@@ -130,7 +130,7 @@ def update_group_priority(apps, schema_editor):
     last_processed_id = _get_last_processed_id() or 0
     logger.info("Starting group priority backfill from id %s", last_processed_id)
     for group_id, data, level, group_type, substatus, priority in RangeQuerySetWrapper(
-        Group.objects.filter(id__gte=last_processed_id).values_list(
+        Group.objects.filter(id__gt=last_processed_id).values_list(
             "id", "data", "level", "type", "substatus", "priority"
         ),
         result_value_getter=lambda item: item[0],
