@@ -55,7 +55,7 @@ KEYWORD_MAP = BidirectionalMapping(
     }
 )
 
-SNUBA_COLUMN_COALASCE = {"ip_address_v4": "IPv4StringToNum", "ip_address_v6": "IPv6StringToNum"}
+SNUBA_COLUMN_COALASCE = {"ip_address_v4": "toIPv4", "ip_address_v6": "toIPv6"}
 MAX_QUERY_TRIES = 5
 OVERFETCH_FACTOR = 10
 MAX_FETCH_SIZE = 10_000
