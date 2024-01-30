@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import copy
-import inspect
 import logging
 import random
-from typing import TYPE_CHECKING, Any, List, Mapping, NamedTuple, Sequence
+import sys
+from types import FrameType
+from typing import TYPE_CHECKING, Any, Generator, List, Mapping, NamedTuple, Sequence
 
 import sentry_sdk
 from django.conf import settings
@@ -60,7 +61,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
-    "sentry.tasks.process_buffer.process_incr": settings.SENTRY_PROCESS_INCR_SAMPLE_RATE,
+    "sentry.tasks.process_buffer.process_incr": 0.01,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.weekly_reports.schedule_organizations": 1.0,
     "sentry.tasks.weekly_reports.prepare_organization_report": 0.1,
@@ -91,6 +92,13 @@ UNSAFE_TAG = "_unsafe"
 EXPERIMENT_TAG = "_experimental_event"
 
 
+def _current_stack_filenames() -> Generator[str, None, None]:
+    f: FrameType | None = sys._getframe()
+    while f is not None:
+        yield f.f_code.co_filename
+        f = f.f_back
+
+
 def is_current_event_safe():
     """
     Tests the current stack for unsafe locations that would likely cause
@@ -107,7 +115,7 @@ def is_current_event_safe():
         if project_id and project_id == settings.SENTRY_PROJECT:
             return False
 
-    for _, filename, _, _, _, _ in inspect.stack():
+    for filename in _current_stack_filenames():
         if filename.endswith(UNSAFE_FILES):
             return False
 

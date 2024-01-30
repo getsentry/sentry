@@ -1,13 +1,15 @@
 import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
@@ -430,8 +432,9 @@ const getColors = ({
       color: ${color};
     }
 
-    ${size !== 'zero' &&
-    `
+    ${
+      size !== 'zero' &&
+      `
       &:hover,
       &:active,
       &[aria-expanded="true"] {
@@ -443,7 +446,8 @@ const getColors = ({
         color: ${colorActive || color};
         border-color: ${borderActive};
       }
-    `}
+    `
+    }
 
     &.focus-visible {
       ${getFocusState()}
@@ -590,14 +594,5 @@ const Icon = styled('span')<IconProps>`
 
 const LinkButton = Button as React.ComponentType<LinkButtonProps>;
 
-export {
-  Button,
-  ButtonProps,
-  BaseButtonProps,
-  LinkButton,
-  LinkButtonProps,
-
-  // Also export these styled components so we can use them as selectors
-  StyledButton,
-  ButtonLabel,
-};
+export type {ButtonProps, BaseButtonProps, LinkButtonProps};
+export {Button, LinkButton, StyledButton, ButtonLabel};

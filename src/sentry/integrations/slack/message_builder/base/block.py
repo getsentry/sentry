@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence,
 
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.dates import to_timestamp
 
 
@@ -39,13 +40,29 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def get_rich_text_preformatted_block(text: str) -> SlackBlock:
+        return {
+            "type": "rich_text",
+            "elements": [
+                {
+                    "type": "rich_text_preformatted",
+                    "elements": [{"type": "text", "text": text}],
+                    "border": 0,
+                }
+            ],
+        }
+
+    @staticmethod
     def get_tags_block(tags) -> SlackBlock:
-        fields = []
+        text = ""
         for tag in tags:
             title = tag["title"]
             value = tag["value"]
-            fields.append({"type": "mrkdwn", "text": f"*{title}:*\n{value}"})
-        return {"type": "section", "fields": fields}
+            text += f"{title}: `{value}`  "
+        return {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": text},
+        }
 
     @staticmethod
     def get_divider() -> SlackBlock:
@@ -92,7 +109,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return button
 
     @staticmethod
-    def get_link_button(action):
+    def get_link_button(action: MessageAction) -> SlackBlock:
         return {
             "type": "section",
             "text": {

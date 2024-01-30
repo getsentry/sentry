@@ -1,8 +1,8 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
-import {FieldValue} from 'sentry/components/forms/model';
-import {IntegrationType} from 'sentry/types';
+import type {FieldValue} from 'sentry/components/forms/model';
+import type {IntegrationType} from 'sentry/types';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
-import {CommonGroupAnalyticsData} from 'sentry/utils/events';
+import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
 type IssueStream = {
   group_id: string;
@@ -172,6 +172,11 @@ export type IssueEventParameters = {
     did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
+  'issues_stream.merged': {
+    items_merged: number | 'all_in_query' | undefined;
+    platform: string | undefined;
+    project_id: string | undefined;
+  };
   'issues_stream.paginate': {
     direction: string;
   };
@@ -258,6 +263,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
+  'issues_stream.merged': 'Merged Issues from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',

@@ -16,6 +16,7 @@ from django.conf import settings
 from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
+from sentry.silo import SiloMode
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
@@ -49,7 +50,11 @@ def configure_split_db() -> None:
     settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
+DEFAULT_SILO_MODE_FOR_TEST_CASES = SiloMode.MONOLITH
+
+
 def _configure_test_env_regions() -> None:
+    settings.SILO_MODE = DEFAULT_SILO_MODE_FOR_TEST_CASES
 
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
@@ -103,12 +108,9 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # override docs which are typically synchronized from an upstream server
     # to ensure tests are consistent
-    os.environ.setdefault(
-        "INTEGRATION_DOC_FOLDER", os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
-    )
     from sentry.utils import integrationdocs
 
-    integrationdocs.DOC_FOLDER = os.environ["INTEGRATION_DOC_FOLDER"]
+    integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
     configure_split_db()
 

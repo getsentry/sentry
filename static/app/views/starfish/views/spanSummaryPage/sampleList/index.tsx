@@ -10,10 +10,7 @@ import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -119,7 +116,7 @@ export function SampleList({
   }
 
   return (
-    <PageErrorProvider>
+    <PageAlertProvider>
       <DetailPanel
         detailKey={detailKey}
         onClose={() => {
@@ -144,7 +141,7 @@ export function SampleList({
             </Title>
           </TitleContainer>
         </HeaderContainer>
-        <PageErrorAlert />
+        <PageAlert />
 
         <SampleInfo
           groupId={groupId}
@@ -180,7 +177,7 @@ export function SampleList({
           additionalFields={additionalFields}
         />
       </DetailPanel>
-    </PageErrorProvider>
+    </PageAlertProvider>
   );
 }
 

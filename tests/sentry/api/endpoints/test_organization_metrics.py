@@ -7,7 +7,7 @@ from django.urls import reverse
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.visibility import BlockedMetric, block_metric, get_blocked_metrics
+from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.silo import SiloMode
 from sentry.snuba.metrics import (
     DERIVED_METRICS,
@@ -131,7 +131,8 @@ class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
         project_1 = self.create_project()
         project_2 = self.create_project()
 
-        block_metric(BlockedMetric("s:custom/user@none", set()), [project_1])
+        block_metric("s:custom/user@none", [project_1])
+        block_tags_of_metric("d:custom/page_load@millisecond", {"release"}, [project_2])
 
         metrics = (
             ("s:custom/user@none", "set", project_1),
@@ -158,20 +159,15 @@ class OrganizationMetricsTest(OrganizationMetricsIntegrationTestCase):
 
         data = sorted(response.data, key=lambda d: d["mri"])
         assert data[0]["mri"] == "c:custom/clicks@none"
-        assert data[0]["project_ids"] == [project_1.id]
-        assert data[0]["blockedForProjects"] == []
+        assert data[0]["projectIds"] == [project_1.id]
+        assert data[0]["blockingStatus"] == []
         assert data[1]["mri"] == "d:custom/page_load@millisecond"
-        assert data[1]["project_ids"] == [project_2.id]
-        assert data[1]["blockedForProjects"] == []
+        assert data[1]["projectIds"] == [project_2.id]
+        assert data[1]["blockingStatus"] == [
+            {"isBlocked": False, "blockedTags": ["release"], "projectId": project_2.id}
+        ]
         assert data[2]["mri"] == "s:custom/user@none"
-        assert sorted(data[2]["project_ids"]) == sorted([project_1.id, project_2.id])
-        assert data[2]["blockedForProjects"] == [{"blockedTags": [], "projectId": project_1.id}]
-
-    def test_block_metric(self):
-        metrics = ["s:custom/user@none", "c:custom/clicks@none"]
-
-        response = self.get_success_response(
-            self.organization.slug, method="POST", project=[self.project.id], metrics=metrics
-        )
-        assert response.status_code == 200
-        assert len(get_blocked_metrics([self.project])[self.project.id].metrics) == 2
+        assert sorted(data[2]["projectIds"]) == sorted([project_1.id, project_2.id])
+        assert data[2]["blockingStatus"] == [
+            {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
+        ]

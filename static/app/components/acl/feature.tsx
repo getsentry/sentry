@@ -1,8 +1,8 @@
 import {Component} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
-import {Config, Organization, Project} from 'sentry/types';
-import {FeatureDisabledHooks} from 'sentry/types/hooks';
+import type {Config, Organization, Project} from 'sentry/types';
+import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -169,8 +169,8 @@ class Feature extends Component<Props> {
       renderDisabled === false
         ? false
         : typeof renderDisabled === 'function'
-        ? renderDisabled
-        : renderComingSoon;
+          ? renderDisabled
+          : renderComingSoon;
 
     // Override the renderDisabled function with a hook store function if there
     // is one registered for the feature.

@@ -49,7 +49,6 @@ _METRIC_EXTRACTION_VERSION = 2
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
 _MAX_ON_DEMAND_ALERTS = 50
-_MAX_ON_DEMAND_WIDGETS = 100
 
 # TTL for cardinality check
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
@@ -67,6 +66,16 @@ class MetricExtractionConfig(TypedDict):
 
     version: int
     metrics: List[MetricSpec]
+
+
+def get_max_widget_specs(organization: Organization) -> int:
+    if organization.id in options.get("on_demand.extended_widget_spec_orgs") and options.get(
+        "on_demand.extended_max_widget_specs"
+    ):
+        return options.get("on_demand.extended_max_widget_specs")
+
+    max_widget_specs = options.get("on_demand.max_widget_specs")
+    return max_widget_specs
 
 
 @metrics.wraps("on_demand_metrics.get_metric_extraction_config")
@@ -236,7 +245,7 @@ def _get_widget_metric_specs(
     metrics.incr("on_demand_metrics.widget_query_specs.pre_trim", amount=total_spec_count)
     specs = _trim_disabled_widgets(ignored_widget_ids, specs_for_widget)
     metrics.incr("on_demand_metrics.widget_query_specs.post_disabled_trim", amount=len(specs))
-    max_widget_specs = options.get("on_demand.max_widget_specs") or _MAX_ON_DEMAND_WIDGETS
+    max_widget_specs = get_max_widget_specs(project.organization)
     specs = _trim_if_above_limit(specs, max_widget_specs, project, "widgets")
 
     metrics.incr("on_demand_metrics.widget_query_specs", amount=len(specs))
@@ -271,14 +280,13 @@ def _trim_if_above_limit(
 
     for version, specs_for_version in specs_per_version.items():
         if len(specs_for_version) > max_specs:
-            # Do not log for Sentry
-            if project.organization.id != 1:
-                logger.error(
-                    "Spec version %s: Too many (%s) on demand metric %s for project %s",
-                    version,
-                    len(specs_for_version),
-                    widget_type,
-                    project.slug,
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("project_id", project.id)
+                scope.set_context("specs", {"values": [spec[0] for spec in specs_for_version]})
+                sentry_sdk.capture_exception(
+                    Exception(
+                        f"Spec version {version}: Too many ({len(specs_for_version)}) on demand metric {widget_type} for org {project.organization.slug}"
+                    )
                 )
 
             return_specs += specs_for_version[:max_specs]
@@ -295,7 +303,7 @@ def _merge_metric_specs(
     # We use a dict so that we can deduplicate metrics with the same hash.
     specs: dict[str, MetricSpec] = {}
     duplicated_specs = 0
-    for query_hash, spec, _ in alert_specs + widget_specs:
+    for query_hash, spec, _ in widget_specs + alert_specs:
         already_present = specs.get(query_hash)
         if already_present and not are_specs_equal(already_present, spec):
             logger.warning(
@@ -390,7 +398,8 @@ def _can_widget_query_use_stateful_extraction(
     widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
 ) -> bool:
     """Stateful extraction for metrics is not always used, in cases where a query has been recently modified.
-    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries."""
+    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries.
+    """
     spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]
     on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
 

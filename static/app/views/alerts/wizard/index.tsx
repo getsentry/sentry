@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -16,18 +16,17 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
+import type {AlertType, WizardRuleTemplate} from './options';
 import {
-  AlertType,
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
-  WizardRuleTemplate,
 } from './options';
 import {AlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
@@ -97,8 +96,8 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
           isTransactionDataset
             ? ['organizations:incidents', 'organizations:performance-view']
             : isMetricAlert
-            ? ['organizations:incidents']
-            : []
+              ? ['organizations:incidents']
+              : []
         }
         requireAll
         organization={organization}

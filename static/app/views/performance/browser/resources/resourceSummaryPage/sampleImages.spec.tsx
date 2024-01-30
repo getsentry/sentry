@@ -4,14 +4,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {DetailedOrganization} from 'sentry/types';
+import type {DetailedOrganization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
+const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
+  SpanIndexedField;
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -117,6 +118,7 @@ const setupMockRequests = (
           project: 'javascript',
           [SPAN_DESCRIPTION]: 'https://cdn.com/image.png',
           'any(id)': 'anyId123',
+          [RAW_DOMAIN]: '',
         },
       ],
     },

@@ -1,29 +1,26 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colours';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
-import {
-  COLD_START_COLOR,
-  WARM_START_COLOR,
-} from 'sentry/views/starfish/views/appStartup/screenSummary/appStartBreakdownWidget';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 const MAX_TABLE_RELEASE_CHARS = 15;

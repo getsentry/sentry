@@ -5,9 +5,8 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useTagFilters, {
-  FilterFields,
-} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
+import type {FilterFields} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
+import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');

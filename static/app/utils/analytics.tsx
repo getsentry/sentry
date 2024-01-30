@@ -1,82 +1,57 @@
 import * as Sentry from '@sentry/react';
-import {Transaction} from '@sentry/types';
+import type {Transaction} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
-import {Hooks} from 'sentry/types/hooks';
-import {ddmEventMap, DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
+import type {Hooks} from 'sentry/types/hooks';
+import type {DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
+import {ddmEventMap} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 
-import {
-  aiSuggestedSolutionEventMap,
-  AiSuggestedSolutionEventParameters,
-} from './analytics/aiSuggestedSolutionAnalyticsEvents';
-import {coreUIEventMap, CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
-import {
-  dashboardsEventMap,
-  DashboardsEventParameters,
-} from './analytics/dashboardsAnalyticsEvents';
-import {
-  discoverEventMap,
-  DiscoverEventParameters,
-} from './analytics/discoverAnalyticsEvents';
-import {
-  dynamicSamplingEventMap,
-  DynamicSamplingEventParameters,
-} from './analytics/dynamicSamplingAnalyticsEvents';
-import {
-  ecosystemEventMap,
-  EcosystemEventParameters,
-} from './analytics/ecosystemAnalyticsEvents';
-import {
-  feedbackEventMap,
-  FeedbackEventParameters,
-} from './analytics/feedbackAnalyticsEvents';
-import {growthEventMap, GrowthEventParameters} from './analytics/growthAnalyticsEvents';
-import {integrationEventMap, IntegrationEventParameters} from './analytics/integrations';
-import {issueEventMap, IssueEventParameters} from './analytics/issueAnalyticsEvents';
+import type {AiSuggestedSolutionEventParameters} from './analytics/aiSuggestedSolutionAnalyticsEvents';
+import {aiSuggestedSolutionEventMap} from './analytics/aiSuggestedSolutionAnalyticsEvents';
+import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
+import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
+import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
+import {dashboardsEventMap} from './analytics/dashboardsAnalyticsEvents';
+import type {DiscoverEventParameters} from './analytics/discoverAnalyticsEvents';
+import {discoverEventMap} from './analytics/discoverAnalyticsEvents';
+import type {DynamicSamplingEventParameters} from './analytics/dynamicSamplingAnalyticsEvents';
+import {dynamicSamplingEventMap} from './analytics/dynamicSamplingAnalyticsEvents';
+import type {EcosystemEventParameters} from './analytics/ecosystemAnalyticsEvents';
+import {ecosystemEventMap} from './analytics/ecosystemAnalyticsEvents';
+import type {FeedbackEventParameters} from './analytics/feedbackAnalyticsEvents';
+import {feedbackEventMap} from './analytics/feedbackAnalyticsEvents';
+import type {GrowthEventParameters} from './analytics/growthAnalyticsEvents';
+import {growthEventMap} from './analytics/growthAnalyticsEvents';
+import type {IntegrationEventParameters} from './analytics/integrations';
+import {integrationEventMap} from './analytics/integrations';
+import type {IssueEventParameters} from './analytics/issueAnalyticsEvents';
+import {issueEventMap} from './analytics/issueAnalyticsEvents';
 import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
-import {
-  monitorsEventMap,
-  MonitorsEventParameters,
-} from './analytics/monitorsAnalyticsEvents';
-import {
-  onboardingEventMap,
-  OnboardingEventParameters,
-} from './analytics/onboardingAnalyticsEvents';
-import {
-  performanceEventMap,
-  PerformanceEventParameters,
-} from './analytics/performanceAnalyticsEvents';
-import {
-  profilingEventMap,
-  ProfilingEventParameters,
-} from './analytics/profilingAnalyticsEvents';
-import {
-  projectCreationEventMap,
-  ProjectCreationEventParameters,
-} from './analytics/projectCreationAnalyticsEvents';
-import {
-  releasesEventMap,
-  ReleasesEventParameters,
-} from './analytics/releasesAnalyticsEvents';
-import {replayEventMap, ReplayEventParameters} from './analytics/replayAnalyticsEvents';
-import {searchEventMap, SearchEventParameters} from './analytics/searchAnalyticsEvents';
-import {
-  settingsEventMap,
-  SettingsEventParameters,
-} from './analytics/settingsAnalyticsEvents';
-import {
-  SignupAnalyticsParameters,
-  SignupEventMap,
-} from './analytics/signupAnalyticsEvents';
-import {
-  stackTraceEventMap,
-  StackTraceEventParameters,
-} from './analytics/stackTraceAnalyticsEvents';
+import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';
+import {monitorsEventMap} from './analytics/monitorsAnalyticsEvents';
+import type {OnboardingEventParameters} from './analytics/onboardingAnalyticsEvents';
+import {onboardingEventMap} from './analytics/onboardingAnalyticsEvents';
+import type {PerformanceEventParameters} from './analytics/performanceAnalyticsEvents';
+import {performanceEventMap} from './analytics/performanceAnalyticsEvents';
+import type {ProfilingEventParameters} from './analytics/profilingAnalyticsEvents';
+import {profilingEventMap} from './analytics/profilingAnalyticsEvents';
+import type {ProjectCreationEventParameters} from './analytics/projectCreationAnalyticsEvents';
+import {projectCreationEventMap} from './analytics/projectCreationAnalyticsEvents';
+import type {ReleasesEventParameters} from './analytics/releasesAnalyticsEvents';
+import {releasesEventMap} from './analytics/releasesAnalyticsEvents';
+import type {ReplayEventParameters} from './analytics/replayAnalyticsEvents';
+import {replayEventMap} from './analytics/replayAnalyticsEvents';
+import type {SearchEventParameters} from './analytics/searchAnalyticsEvents';
+import {searchEventMap} from './analytics/searchAnalyticsEvents';
+import type {SettingsEventParameters} from './analytics/settingsAnalyticsEvents';
+import {settingsEventMap} from './analytics/settingsAnalyticsEvents';
+import type {SignupAnalyticsParameters} from './analytics/signupAnalyticsEvents';
+import {SignupEventMap} from './analytics/signupAnalyticsEvents';
+import type {StackTraceEventParameters} from './analytics/stackTraceAnalyticsEvents';
+import {stackTraceEventMap} from './analytics/stackTraceAnalyticsEvents';
 import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
-import {
-  TeamInsightsEventParameters,
-  workflowEventMap,
-} from './analytics/workflowAnalyticsEvents';
+import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEvents';
+import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
   extends GrowthEventParameters,

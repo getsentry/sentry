@@ -5,7 +5,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {CodecovStatusCode, Coverage, Frame, LineCoverage} from 'sentry/types';
+import type {Frame, LineCoverage} from 'sentry/types';
+import {CodecovStatusCode, Coverage} from 'sentry/types';
 
 import Context, {getLineCoverage} from './context';
 

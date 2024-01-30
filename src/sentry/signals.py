@@ -195,6 +195,10 @@ user_signup = BetterSignal()  # ["user", "source"]
 
 # relocation
 relocated = BetterSignal()  # ["relocation_uuid"]
+relocation_link_promo_code = BetterSignal()  # ["relocation_uuid", "promo_code"]
+relocation_redeem_promo_code = BetterSignal()  # ["user_id", "relocation_uuid", "orgs"]
 
+# Fired after an update is performed on a `PostUpdateQuerySet`. Separate to a `.update` call on a model.
+post_update = BetterSignal()  # [sender: Model, updated_fields: list[str], model_ids: list[int]]
 # After `sentry upgrade` has completed.  Better than post_migrate because it won't run in tests.
 post_upgrade = BetterSignal()  # []

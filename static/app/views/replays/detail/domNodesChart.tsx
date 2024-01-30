@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import type {AreaChartProps} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import Grid from 'sentry/components/charts/components/grid';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
@@ -13,12 +14,13 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {useQuery} from 'sentry/utils/queryClient';
-import countDomNodes, {DomNodeChartDatapoint} from 'sentry/utils/replays/countDomNodes';
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import type {DomNodeChartDatapoint} from 'sentry/utils/replays/countDomNodes';
+import countDomNodes from 'sentry/utils/replays/countDomNodes';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 interface Props {

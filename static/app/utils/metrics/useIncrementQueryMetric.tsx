@@ -1,12 +1,10 @@
 import * as Sentry from '@sentry/react';
 
-import {MRI} from 'sentry/types';
-import {
-  getDefaultMetricDisplayType,
-  getReadableMetricType,
-  MetricDisplayType,
-} from 'sentry/utils/metrics';
+import type {MRI} from 'sentry/types';
+import {getDefaultMetricDisplayType} from 'sentry/utils/metrics';
+import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {parseMRI} from 'sentry/utils/metrics/mri';
+import type {MetricDisplayType} from 'sentry/utils/metrics/types';
 
 interface Options {
   displayType: MetricDisplayType;
