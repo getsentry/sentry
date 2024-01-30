@@ -608,10 +608,7 @@ function getNearestElementName(node: HTMLElement | undefined): string | undefine
   let current: HTMLElement | null = node;
   while (current && current !== document.body) {
     const elementName =
-      current.dataset?.testId ??
-      current.dataset?.component ??
-      current.dataset?.element ??
-      current.id;
+      current.dataset?.testId ?? current.dataset?.component ?? current.dataset?.element;
 
     if (elementName) {
       return elementName;
@@ -640,11 +637,10 @@ export function makeIssuesINPObserver(): PerformanceObserver | undefined {
           return;
         }
 
-        const el = getNearestElementName(entry.target);
         Sentry.metrics.distribution('issues-stream.inp', entry.duration, {
           unit: 'millisecond',
           tags: {
-            element: el,
+            element: getNearestElementName(entry.target),
             entryType: entry.entryType,
             interaction: entry.name,
           },
