@@ -58,6 +58,18 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+PROVIDER_TO_COMMIT_LINK_URL_FORMAT = {
+    "github": "{base_url}/commit/{commit_id}",
+    "integrations:github": "{base_url}/commit/{commit_id}",
+    "integrations:github_enterprise": "{base_url}/commit/{commit_id}",
+    "visualstudio": "{base_url}/commit/{commit_id}",
+    "integrations:vsts": "{base_url}/commit/{commit_id}",
+    "gitlab": "{base_url}/commit/{commit_id}",
+    "integrations:gitlab": "{base_url}/commit/{commit_id}",
+    "bitbucket": "{base_url}/commits/{commit_id}",
+    "integrations:bitbucket": "{base_url}/commits/{commit_id}",
+}
+
 logger = logging.getLogger(__name__)
 
 
@@ -300,9 +312,11 @@ def get_suspect_commit_text(
 
     author_display = author.get("name") if author.get("name") is not None else author.get("email")
     if pull_request:
-        repo_base = pull_request.get("repository", {}).get("url")
-        if repo_base:
-            commit_link = f"<{repo_base}/commit/{commit_id}|{commit_id[0:6]}>"
+        repo = pull_request.get("repository", {})
+        repo_base = repo.get("url")
+        provider = repo.get("provider", {}).get("name")
+        if repo_base and provider in PROVIDER_TO_COMMIT_LINK_URL_FORMAT:
+            commit_link = f"<{PROVIDER_TO_COMMIT_LINK_URL_FORMAT[provider].format(base_url=repo_base, commit_id=commit_id)}|{commit_id[:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
 
         pr_date = pull_request.get("dateCreated")

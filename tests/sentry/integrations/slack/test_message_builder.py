@@ -467,6 +467,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             name="example",
             integration_id=self.integration.id,
             url="http://www.github.com/meowmeow/cats",
+            provider="github",
         )
         commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
@@ -612,6 +613,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             "commit_id": commit.key,
             "author_email": commit.author.email,
         }
+
+        commits = get_commits(self.project, event)
         expected_blocks = build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -622,7 +625,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             suspect_commit=suspect_commit,
         )
         assert (
-            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
+            SlackIssuesMessageBuilder(
+                group, event.for_group(group), tags={"foo"}, commits=commits
+            ).build()
             == expected_blocks
         )
 
@@ -640,8 +645,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             initial_assignee=self.user,
             suspect_commit=suspect_commit,
         )
+        commits = get_commits(self.project, event)
         assert (
-            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
+            SlackIssuesMessageBuilder(
+                group, event.for_group(group), tags={"foo"}, commits=commits
+            ).build()
             == expected_blocks
         )
 
@@ -832,6 +840,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
 
+@region_silo_test
 class BuildGroupAttachmentReplaysTest(TestCase):
     @patch("sentry.models.group.Group.has_replays")
     def test_build_replay_issue(self, has_replays):
