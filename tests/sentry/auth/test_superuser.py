@@ -7,7 +7,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone as django_timezone
 
-from sentry.auth.access import RpcBackedAccess
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
     COOKIE_HTTPONLY,
@@ -33,7 +32,6 @@ from sentry.middleware.placeholder import placeholder_get_response
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
-from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -536,25 +534,12 @@ class SuperuserTestCase(TestCase):
         request.superuser = Superuser(request)
         request.superuser._is_active = True
 
-        auth_state = RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[])
-        auth_state_with_write = RpcAuthState(
-            sso_state=RpcMemberSsoState(), permissions=["superuser.write"]
-        )
-
         with self.settings(SENTRY_SELF_HOSTED=False):
             # all superusers have permission to hit GET
-            request.access = RpcBackedAccess(
-                rpc_user_organization_context=RpcUserOrganizationContext(),
-                auth_state=auth_state,
-                scopes_upper_bound=frozenset(),
-            )
+            request.access = self.create_request_access()
             assert superuser_has_permission(request)
 
-            request.access = RpcBackedAccess(
-                rpc_user_organization_context=RpcUserOrganizationContext(),
-                auth_state=auth_state_with_write,
-                scopes_upper_bound=frozenset(),
-            )
+            request.access = self.create_request_access(permissions=["superuser.write"])
             assert superuser_has_permission(request)
 
     @with_feature("auth:enterprise-superuser-read-write")
@@ -564,24 +549,11 @@ class SuperuserTestCase(TestCase):
         request.superuser = Superuser(request)
         request.superuser._is_active = True
 
-        auth_state = RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[])
-        auth_state_with_write = RpcAuthState(
-            sso_state=RpcMemberSsoState(), permissions=["superuser.write"]
-        )
-
         with self.settings(SENTRY_SELF_HOSTED=False):
             # superuser without superuser.write does not have permission
-            request.access = RpcBackedAccess(
-                rpc_user_organization_context=RpcUserOrganizationContext(),
-                auth_state=auth_state,
-                scopes_upper_bound=frozenset(),
-            )
+            request.access = self.create_request_access()
             assert not superuser_has_permission(request)
 
             # superuser with superuser.write has permission
-            request.access = RpcBackedAccess(
-                rpc_user_organization_context=RpcUserOrganizationContext(),
-                auth_state=auth_state_with_write,
-                scopes_upper_bound=frozenset(),
-            )
+            request.access = self.create_request_access(permissions=["superuser.write"])
             assert superuser_has_permission(request)
