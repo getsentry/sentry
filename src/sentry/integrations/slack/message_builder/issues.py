@@ -670,33 +670,3 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             block_id=json.dumps(block_id),
             skip_fallback=self.skip_fallback,
         )
-
-
-def build_group_attachment(
-    group: Group,
-    event: GroupEvent | None = None,
-    tags: set[str] | None = None,
-    identity: RpcIdentity | None = None,
-    actions: Sequence[MessageAction] | None = None,
-    rules: list[Rule] | None = None,
-    link_to_event: bool = False,
-    issue_details: bool = False,
-    is_unfurl: bool = False,
-    notification_uuid: str | None = None,
-    notes: str | None = None,
-    commits: Sequence[Mapping[str, Any]] | None = None,
-) -> Union[SlackBlock, SlackAttachment]:
-
-    return SlackIssuesMessageBuilder(
-        group,
-        event,
-        tags,
-        identity,
-        actions,
-        rules,
-        link_to_event,
-        issue_details,
-        is_unfurl=is_unfurl,
-        notes=notes,
-        commits=commits,
-    ).build(notification_uuid=notification_uuid)
