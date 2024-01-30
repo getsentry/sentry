@@ -396,7 +396,7 @@ export function isSupportedDisplayType(displayType: unknown) {
 export function getMetricsCorrelationSpanUrl(
   organization: Organization,
   projectSlug: string | undefined,
-  spanId: string,
+  spanId: string | undefined,
   transactionId: string,
   transactionSpanId: string
 ) {
