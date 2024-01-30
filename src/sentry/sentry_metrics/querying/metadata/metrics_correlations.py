@@ -20,7 +20,6 @@ from snuba_sdk.conditions import ConditionGroup
 from snuba_sdk.mql.mql import parse_mql
 from snuba_sdk.timeseries import Timeseries
 
-from sentry.exceptions import InvalidParams
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -683,7 +682,7 @@ def get_metric_correlations(
     """
     correlations_source = get_correlations_source(metric_mri, organization, projects)
     if not correlations_source:
-        raise InvalidParams(
+        raise CorrelationsQueryExecutionError(
             f"The supplied metric {metric_mri} does not support fetching correlated spans"
         )
 
