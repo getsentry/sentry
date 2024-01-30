@@ -273,12 +273,13 @@ def _trim_if_above_limit(
 ) -> list[HashedMetricSpec]:
     """Trim specs per version if above max limit"""
     return_specs = []
-    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    specs_per_version: dict[int, dict[str, HashedMetricSpec]] = {}
     for hash, spec, spec_version in specs:
-        specs_per_version.setdefault(spec_version.version, [])
-        specs_per_version[spec_version.version].append((hash, spec, spec_version))
+        specs_per_version.setdefault(spec_version.version, {})
+        specs_per_version[spec_version.version][hash] = (hash, spec, spec_version)
 
-    for version, specs_for_version in specs_per_version.items():
+    for version, _specs_for_version in specs_per_version.items():
+        specs_for_version = _specs_for_version.values()
         if len(specs_for_version) > max_specs:
             with sentry_sdk.push_scope() as scope:
                 scope.set_tag("project_id", project.id)
@@ -289,9 +290,9 @@ def _trim_if_above_limit(
                     )
                 )
 
-            return_specs += specs_for_version[:max_specs]
+            return_specs += list(specs_for_version)[:max_specs]
         else:
-            return_specs += specs_for_version
+            return_specs += list(specs_for_version)
 
     return return_specs
 
