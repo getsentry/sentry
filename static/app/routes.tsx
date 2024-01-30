@@ -21,7 +21,7 @@ import AuthLayout from 'sentry/views/auth/layout';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
-import OrganizationDetails from 'sentry/views/organizationDetails';
+import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
@@ -129,8 +129,9 @@ function buildRoutes() {
   // * `organizationRoutes`
   //
   //   This is where a majority of the app routes live. This is wrapped with
-  //   the <OrganizationDetails /> component, which provides the sidebar and
-  //   organization context.
+  //   the <OrganizationLayout /> component, which renders the sidebar and
+  //   loads the organiztion into context (though in some cases, there may be
+  //   no organiztion)
   //
   //   When adding new routes make sure you have both a route that starts
   //   with `/organizations/:orgId` and also 'customer-domains' route that
@@ -175,7 +176,7 @@ function buildRoutes() {
         path="/accept-transfer/"
         component={make(() => import('sentry/views/acceptProjectTransfer'))}
       />
-      <Route component={errorHandler(OrganizationLayout)}>
+      <Route component={errorHandler(OrganizationContainer)}>
         <Route
           path="/extensions/external-install/:integrationSlug/:installationId"
           component={make(() => import('sentry/views/integrationOrganizationLink'))}
@@ -240,7 +241,7 @@ function buildRoutes() {
         )}
         key="org-data-export"
       />
-      <Route component={errorHandler(OrganizationLayout)}>
+      <Route component={errorHandler(OrganizationContainer)}>
         {USING_CUSTOMER_DOMAIN && (
           <Route
             path="/disabled-member/"
@@ -295,7 +296,7 @@ function buildRoutes() {
       {USING_CUSTOMER_DOMAIN && (
         <Route
           path="/onboarding/"
-          component={errorHandler(withDomainRequired(OrganizationLayout))}
+          component={errorHandler(withDomainRequired(OrganizationContainer))}
           key="orgless-onboarding"
         >
           <IndexRedirect to="welcome/" />
@@ -307,7 +308,7 @@ function buildRoutes() {
       )}
       <Route
         path="/onboarding/:orgId/"
-        component={withDomainRedirect(errorHandler(OrganizationLayout))}
+        component={withDomainRedirect(errorHandler(OrganizationContainer))}
         key="org-onboarding"
       >
         <IndexRedirect to="welcome/" />
@@ -2312,7 +2313,7 @@ function buildRoutes() {
   // canonical URLs.
   //
   // XXX(epurkhiser): Can these be moved over to the legacyOrgRedirects routes,
-  // or do these need to be nested into the OrganizationDetails tree?
+  // or do these need to be nested into the OrganizationLayout tree?
   const legacyOrgRedirects = (
     <Route path="/:orgId/:projectId/">
       <IndexRoute
@@ -2397,7 +2398,7 @@ function buildRoutes() {
   );
 
   const organizationRoutes = (
-    <Route component={errorHandler(OrganizationDetails)}>
+    <Route component={errorHandler(OrganizationLayout)}>
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}

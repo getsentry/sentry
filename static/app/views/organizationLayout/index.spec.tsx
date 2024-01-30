@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import OrganizationDetails from 'sentry/views/organizationDetails';
+import OrganizationLayout from 'sentry/views/organizationLayout';
 
 jest.mock(
   'sentry/components/sidebar',
@@ -16,7 +16,7 @@ jest.mock(
     }
 );
 
-describe('OrganizationDetails', function () {
+describe('OrganizationLayout', function () {
   const {routerContext} = initializeOrg();
 
   beforeEach(function () {
@@ -46,9 +46,9 @@ describe('OrganizationDetails', function () {
       OrganizationStore.onUpdate(organization);
 
       render(
-        <OrganizationDetails>
+        <OrganizationLayout>
           <div />
-        </OrganizationDetails>,
+        </OrganizationLayout>,
         {context: routerContext, organization}
       );
 
@@ -72,9 +72,9 @@ describe('OrganizationDetails', function () {
       OrganizationStore.onUpdate(organization);
 
       render(
-        <OrganizationDetails>
+        <OrganizationLayout>
           <div />
-        </OrganizationDetails>,
+        </OrganizationLayout>,
         {context: routerContext, organization}
       );
 
@@ -99,9 +99,9 @@ describe('OrganizationDetails', function () {
     OrganizationStore.onUpdate(organization);
 
     render(
-      <OrganizationDetails>
+      <OrganizationLayout>
         <div />
-      </OrganizationDetails>,
+      </OrganizationLayout>,
       {context: routerContext, organization}
     );
 
