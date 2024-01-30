@@ -65,6 +65,7 @@ def send_regression_to_platform(regression: BreakpointData, released: bool):
         ],
         detection_time=current_timestamp,
         level="info",
+        initial_issue_priority=issue_type.default_priority,
     )
 
     event_data = {

@@ -149,6 +149,7 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
         detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level=event.get("level", "info"),
+        initial_issue_priority=FeedbackGroup.default_priority,
     )
     now = datetime.now()
 

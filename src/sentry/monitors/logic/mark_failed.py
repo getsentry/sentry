@@ -301,6 +301,7 @@ def create_issue_platform_occurrence(
         culprit=occurrence_data["reason"],
         detection_time=current_timestamp,
         level=occurrence_data["level"],
+        initial_issue_priority=occurrence_data["group_type"].default_priority,
     )
 
     if failed_checkin.trace_id:

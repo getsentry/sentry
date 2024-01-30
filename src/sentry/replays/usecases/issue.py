@@ -40,6 +40,7 @@ def new_issue_occurrence(
         detection_time=timestamp,
         culprit=culprit,
         level=level,
+        initial_issue_priority=issue_type.default_priority,
     )
 
     event_data = {
