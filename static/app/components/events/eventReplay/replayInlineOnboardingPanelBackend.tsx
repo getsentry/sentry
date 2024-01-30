@@ -34,9 +34,9 @@ export default function ReplayInlineOnboardingPanelBackend({
   return (
     <EventReplaySection
       actions={
-        <Button borderless onClick={() => setIsHidden(!isHidden)}>
+        <ToggleButton priority="link" onClick={() => setIsHidden(!isHidden)}>
           {isHidden ? t('Show Details') : t('Hide Details')}
-        </Button>
+        </ToggleButton>
       }
     >
       {isHidden ? null : (
@@ -71,4 +71,13 @@ export default function ReplayInlineOnboardingPanelBackend({
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
   font-weight: bold;
+`;
+
+const ToggleButton = styled(Button)`
+  font-weight: 700;
+  color: ${p => p.theme.subText};
+  &:hover,
+  &:focus {
+    color: ${p => p.theme.textColor};
+  }
 `;
