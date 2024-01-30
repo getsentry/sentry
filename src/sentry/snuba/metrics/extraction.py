@@ -1444,6 +1444,27 @@ class OnDemandMetricSpec:
             raise Exception(f"Invalid search query '{value}' in on demand spec: {e}")
 
 
+def fetch_on_demand_metric_spec(
+    org_id: int,
+    field: str,
+    query: str,
+    environment: Optional[str] = None,
+    groupbys: Optional[Sequence[str]] = None,
+    spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
+) -> OnDemandMetricSpec:
+    """Function to query the right spec based on the feature flags for an organization."""
+    # The spec version defines what OnDemandMetricSpec version is created
+    spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(org_id)
+    return OnDemandMetricSpec(
+        field=field,
+        query=query,
+        environment=environment,
+        groupbys=groupbys,
+        spec_type=spec_type,
+        spec_version=spec_version,
+    )
+
+
 def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
     """Maps ``count_if`` arguments to a ``RuleCondition``."""
     assert op in _COUNTIF_TO_RELAY_OPERATORS, f"Unsupported `count_if` operator {op}"

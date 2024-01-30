@@ -17,7 +17,11 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold, Tra
 from sentry.relay.config.metric_extraction import get_metric_extraction_config
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import (
+    MetricSpecType,
+    OnDemandMetricSpec,
+    fetch_on_demand_metric_spec,
+)
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -1594,10 +1598,12 @@ def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> 
         assert config["metrics"][0].get("condition") is None
 
 
-# XXX: This may have bugs, therefore, use with caution
-def _on_demand_spec_from_widget(widget: DashboardWidgetQuery) -> OnDemandMetricSpec:
+def _on_demand_spec_from_widget(
+    project: Project, widget: DashboardWidgetQuery
+) -> OnDemandMetricSpec:
     field = widget.aggregates[0] if widget.aggregates else ""
-    return OnDemandMetricSpec(
+    return fetch_on_demand_metric_spec(
+        project.organization.id,
         field=field,
         query=widget.conditions,
         groupbys=widget.columns,
@@ -1605,9 +1611,9 @@ def _on_demand_spec_from_widget(widget: DashboardWidgetQuery) -> OnDemandMetricS
     )
 
 
-# XXX: This may have bugs, therefore, use with caution
-def _on_demand_spec_from_alert(alert: AlertRule) -> OnDemandMetricSpec:
-    return OnDemandMetricSpec(
+def _on_demand_spec_from_alert(project: Project, alert: AlertRule) -> OnDemandMetricSpec:
+    return fetch_on_demand_metric_spec(
+        project.organization.id,
         field=alert.snuba_query.aggregate,
         query=alert.snuba_query.query,
         spec_type=MetricSpecType.SIMPLE_QUERY,
@@ -1631,15 +1637,13 @@ def _metric_spec(
 
 @django_db_all
 def test_include_environment_for_widgets(default_project: Project) -> None:
-    """This both tests that we have twice the number of specs and that our code handles
-    the collision of alerts and widgets."""
     aggr = "count()"
     query = "transaction.duration:>=10"
     condition = {"name": "event.duration", "op": "gte", "value": 10.0}
     env_tag = {"field": "event.environment", "key": "environment"}
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget1 = create_widget([aggr], query, default_project)
+        widget = create_widget([aggr], query, default_project)
         config = get_metric_extraction_config(default_project)
         # Because we have two specs we will have two metrics.
         # The second spec includes the environment tag as part of the query hash.
@@ -1648,25 +1652,21 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
             _metric_spec("4fb5a472", condition, [env_tag]),
         ]
 
-        # Since environment is part of columns, it becomes part of query hash
-        widget2 = create_widget([aggr], query, default_project, "foo", ["environment"])
-        config = get_metric_extraction_config(default_project)
-        assert config and config["metrics"] == [
-            _metric_spec("f1353b0f", condition, [env_tag]),
-            _metric_spec("4fb5a472", condition, [env_tag]),
-        ]
-
         # We now verify that the string used for hashing is what we expect
+        # Since we're using the current spec it will not include the environment tag
         expected_query_str_hash = f"None;{condition}"
-        spec1 = _on_demand_spec_from_widget(widget1)
-        spec2 = _on_demand_spec_from_widget(widget2)
+        spec = _on_demand_spec_from_widget(default_project, widget)
+        assert spec.query_hash == "f1353b0f"
+        assert spec._query_str_for_hash == expected_query_str_hash
+        assert spec.spec_version.version == 1
+        assert spec.spec_version.flags == set()
 
-        # Since we're using the current spec, only the second spec includes the environment
-        assert spec1._query_str_for_hash == expected_query_str_hash
-        # The environment is included because columns become groupbys which is included in the query hash
-        assert spec2._query_str_for_hash == f"{expected_query_str_hash};['environment']"
-
-        # XXX: Test with feature
+        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
+            spec = _on_demand_spec_from_widget(default_project, widget)
+            assert spec._query_str_for_hash == f"{expected_query_str_hash};['environment']"
+            assert spec.query_hash == "4fb5a472"
+            assert spec.spec_version.version == 2
+            assert spec.spec_version.flags == {"include_environment_tag"}
 
 
 # Remove this test once we drop the current spec version
@@ -1697,10 +1697,18 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
             _metric_spec("4fb5a472", condition, [env_tag]),
         ]
 
-        widget_spec = _on_demand_spec_from_widget(widget)
-        alert_spec = _on_demand_spec_from_alert(alert)
+        widget_spec = _on_demand_spec_from_widget(default_project, widget)
+        alert_spec = _on_demand_spec_from_alert(default_project, alert)
         expected_query_str_hash = f"None;{condition}"
         assert widget_spec._query_str_for_hash == expected_query_str_hash
         assert alert_spec._query_str_for_hash == expected_query_str_hash
 
-        # XXX: Test with feature
+        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
+            widget_spec = _on_demand_spec_from_widget(default_project, widget)
+            assert widget_spec._query_str_for_hash == f"{expected_query_str_hash};['environment']"
+            assert widget_spec.query_hash == "4fb5a472"
+            assert widget_spec.spec_version.version == 2
+            assert widget_spec.spec_version.flags == {"include_environment_tag"}
+
+            # With the new spec version they will not collide anymore
+            assert widget_spec.query_hash != alert_spec.query_hash
