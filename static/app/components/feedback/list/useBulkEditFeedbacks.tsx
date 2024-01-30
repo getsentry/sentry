@@ -54,13 +54,12 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
           });
         },
         message: moveToInbox
-          ? tct('Are you sure you want to move these feedbacks to the inbox?', {})
+          ? t('Are you sure you want to move these feedbacks to the inbox?')
           : tct('Are you sure you want to mark these feedbacks as [status]?', {
               status: statusToText[newMailbox],
             }),
-        confirmText: moveToInbox
-          ? t('Move to Inbox')
-          : tct('[confirm]', {confirm: statusToButtonLabel[newMailbox]}),
+        confirmText: moveToInbox ? t('Move to Inbox') : statusToButtonLabel[newMailbox],
+        withoutBold: true,
       });
     },
     [deselectAll, resolve, selectedIds]
