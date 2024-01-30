@@ -4,7 +4,6 @@ import abc
 import contextlib
 import dataclasses
 import datetime
-import logging
 import threading
 from enum import IntEnum
 from typing import (
@@ -459,15 +458,6 @@ class OutboxBase(Model):
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> Self | None:
         using = router.db_for_write(cls)
         try:
-            logging.info(
-                "outbox.preparing_messages_in_shard",
-                extra={
-                    "shard_id": cls.shard_identifier,
-                    "shard_scope": cls.shard_scope.value,
-                    "object_identifier": cls.object_identifier,
-                    "category": cls.category.value,
-                },
-            )
             with transaction.atomic(using=using, savepoint=False):
                 next_outbox: OutboxBase | None
                 next_outbox = (
