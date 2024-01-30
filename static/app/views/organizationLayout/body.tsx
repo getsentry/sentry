@@ -1,13 +1,12 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Footer from 'sentry/components/footer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -115,12 +114,7 @@ function OrganizationDetailsBody({children}: BodyProps) {
     return <DeletionInProgress organization={organization} />;
   }
 
-  return (
-    <Fragment>
-      <ErrorBoundary>{children}</ErrorBoundary>
-      <Footer />
-    </Fragment>
-  );
+  return <ErrorBoundary>{children}</ErrorBoundary>;
 }
 
 export default OrganizationDetailsBody;

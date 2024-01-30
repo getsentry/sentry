@@ -1,7 +1,7 @@
 import logging
+import zoneinfo
 from datetime import datetime
 
-import pytz
 from django.conf import settings
 from django.contrib.auth import logout
 from django.db import router, transaction
@@ -29,6 +29,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationDeleteState
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -36,8 +37,8 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 def _get_timezone_choices():
     results = []
-    for tz in pytz.all_timezones:
-        now = datetime.now(pytz.timezone(tz))
+    for tz in AVAILABLE_TIMEZONES:
+        now = datetime.now(zoneinfo.ZoneInfo(tz))
         offset = now.strftime("%z")
         results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
     results.sort()

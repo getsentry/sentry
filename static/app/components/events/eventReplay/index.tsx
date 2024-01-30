@@ -6,8 +6,8 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {replayBackendPlatforms} from 'sentry/data/platformCategories';
-import {Group} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
@@ -85,7 +85,7 @@ function EventReplayContent({
             replaySlug={replayId}
             orgSlug={organization.slug}
             eventTimestampMs={eventTimestampMs}
-            buttonProps={{
+            fullReplayButtonProps={{
               analyticsEventKey: 'issue_details.open_replay_details_clicked',
               analyticsEventName: 'Issue Details: Open Replay Details Clicked',
               analyticsParams: {

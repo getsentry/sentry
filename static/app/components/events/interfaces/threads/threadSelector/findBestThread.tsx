@@ -1,4 +1,4 @@
-import {Thread} from 'sentry/types';
+import type {Thread} from 'sentry/types';
 
 function findBestThread(threads: Thread[]) {
   // search the entire threads list for a crashed thread with stack trace

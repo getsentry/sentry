@@ -761,14 +761,26 @@ def capture_apple_symbol_stats(json):
 
     if eligible_symbols:
         metrics.incr(
-            "apple_symbol_availability", amount=neither_has_symbol, tags={"availability": "neither"}
+            "apple_symbol_availability",
+            amount=neither_has_symbol,
+            tags={"availability": "neither"},
+            sample_rate=1.0,
         )
         metrics.incr(
-            "apple_symbol_availability", amount=both_have_symbol, tags={"availability": "both"}
+            "apple_symbol_availability",
+            amount=both_have_symbol,
+            tags={"availability": "both"},
+            sample_rate=1.0,
         )
         metrics.incr(
-            "apple_symbol_availability", amount=old_has_symbol, tags={"availability": "old"}
+            "apple_symbol_availability",
+            amount=old_has_symbol,
+            tags={"availability": "old"},
+            sample_rate=1.0,
         )
         metrics.incr(
-            "apple_symbol_availability", amount=symx_has_symbol, tags={"availability": "symx"}
+            "apple_symbol_availability",
+            amount=symx_has_symbol,
+            tags={"availability": "symx"},
+            sample_rate=1.0,
         )

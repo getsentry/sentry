@@ -1,5 +1,6 @@
 import {getFullUrl} from 'sentry/components/events/interfaces/utils';
-import {EntryRequest, EntryType, Event} from 'sentry/types/event';
+import type {EntryRequest, Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {isUrl} from 'sentry/utils';
 
 function getUrlFromEvent(event: Event): string {

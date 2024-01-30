@@ -15,14 +15,15 @@ import {
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
   // Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',

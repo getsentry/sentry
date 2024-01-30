@@ -1,6 +1,7 @@
-import {ReactNode, useCallback, useEffect, useRef, useState} from 'react';
+import type {ReactNode} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Organization, Project, Scope, Team} from 'sentry/types';
+import type {Organization, Project, Scope, Team} from 'sentry/types';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import {useUser} from 'sentry/utils/useUser';
 import withOrganization from 'sentry/utils/withOrganization';

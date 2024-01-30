@@ -1,12 +1,12 @@
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
-import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
-import {ActiveOperationFilter} from './filter';
-import {
+import type {ActiveOperationFilter} from './filter';
+import type {
   DescendantGroup,
   EnhancedProcessedSpanType,
   EnhancedSpan,
@@ -19,6 +19,7 @@ import {
   TraceBound,
   TreeDepthType,
 } from './types';
+import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
 import {
   generateRootSpan,
   getSiblingGroupKey,
@@ -28,8 +29,6 @@ import {
   isEventFromBrowserJavaScriptSDK,
   isOrphanSpan,
   parseTrace,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
   SpanSubTimingMark,
   subTimingMarkToTime,
 } from './utils';
@@ -296,8 +295,8 @@ class SpanTreeModel {
         spanGroupingCriteria && toggleNestedSpanGroup && !isNestedSpanGroupExpanded
           ? toggleNestedSpanGroup
           : isFirstSpanOfGroup && this.isNestedSpanGroupExpanded && !hideSpanTree
-          ? this.toggleNestedSpanGroup
-          : undefined,
+            ? this.toggleNestedSpanGroup
+            : undefined,
       toggleSiblingSpanGroup: undefined,
       isEmbeddedTransactionTimeAdjusted: this.isEmbeddedTransactionTimeAdjusted,
     };

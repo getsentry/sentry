@@ -600,8 +600,8 @@ class OutboxBase(Model):
             # Apply the ID condition in python as filtering rows in postgres
             # leads to timeouts.
             while True:
-                batch = self.select_coalesced_messages()[:100]
-                delete_ids = [item.id for item in batch if item.id <= coalesced.id]
+                batch = self.select_coalesced_messages().values_list("id", flat=True)[:100]
+                delete_ids = [item_id for item_id in batch if item_id <= coalesced.id]
                 if not len(delete_ids):
                     break
                 self.objects.filter(id__in=delete_ids).delete()
@@ -624,8 +624,8 @@ class OutboxBase(Model):
     def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
         span.set_tag(tag_for_outbox, message.shard_identifier)
-        span.set_data("payload", message.payload)
         span.set_data("outbox_id", message.id)
+        span.set_data("outbox_shard_id", message.shard_identifier)
         span.set_tag("outbox_category", OutboxCategory(message.category).name)
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 
@@ -783,6 +783,8 @@ class ControlOutboxBase(OutboxBase):
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
             shard_scope=self.shard_scope,
+            date_added=self.date_added,
+            scheduled_for=self.scheduled_for,
         )
 
     class Meta:

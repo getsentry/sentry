@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {
   addErrorMessage,
@@ -17,17 +17,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Projects from 'sentry/utils/projects';
-import {
-  ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
@@ -36,7 +32,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import FilterBar from '../../filterBar';
-import {AlertRuleType, CombinedMetricIssueAlerts} from '../../types';
+import type {CombinedMetricIssueAlerts} from '../../types';
+import {AlertRuleType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 

@@ -1,5 +1,6 @@
-import {Entry, EntrySpans, EntryType} from 'sentry/types';
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Entry, EntrySpans} from 'sentry/types';
+import {EntryType} from 'sentry/types';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {useEventDetails} from 'sentry/views/starfish/queries/useEventDetails';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {SpanIndexedField} from 'sentry/views/starfish/types';

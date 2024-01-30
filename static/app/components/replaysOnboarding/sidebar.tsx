@@ -1,4 +1,5 @@
-import {Fragment, ReactNode, useEffect, useMemo, useState} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -21,7 +22,8 @@ import {
 } from 'sentry/components/replaysOnboarding/utils';
 import {DocumentationWrapper} from 'sentry/components/sidebar/onboardingStep';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
+import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {
   backend,
@@ -34,7 +36,7 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {PlatformKey, Project, SelectValue} from 'sentry/types';
+import type {PlatformKey, Project, SelectValue} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

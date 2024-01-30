@@ -1,4 +1,4 @@
-import {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/core';
 
 export type MetricsOperation =
   | 'sum'
@@ -74,12 +74,19 @@ export type MetricsTagValue = {
 };
 
 export type MetricMeta = {
+  blockingStatus: BlockingStatus[];
   mri: MRI;
   // name is returned by the API but should not be used, use parseMRI(mri).name instead
   // name: string;
   operations: MetricsOperation[];
   type: MetricType;
   unit: string;
+};
+
+export type BlockingStatus = {
+  blockedTags: string[];
+  isBlocked: boolean;
+  projectId: number;
 };
 
 export type MetricsMetaCollection = Record<string, MetricMeta>;

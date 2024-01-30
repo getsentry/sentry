@@ -3,11 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import App from 'sentry/views/app';
 
 describe('Docs Search Modal', function () {
   beforeEach(function () {
@@ -55,16 +53,7 @@ describe('Docs Search Modal', function () {
   });
 
   it('can open help search modal', async function () {
-    const {routerContext, routerProps} = initializeOrg();
-
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>,
-      {
-        context: routerContext,
-      }
-    );
+    renderGlobalModal();
 
     // No Modal
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

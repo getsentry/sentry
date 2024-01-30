@@ -38,15 +38,15 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import MetricsOnboardingSidebar from 'sentry/views/ddm/ddmOnboarding/sidebar';
 
@@ -59,11 +59,8 @@ import ServiceIncidents from './serviceIncidents';
 import {SidebarAccordion} from './sidebarAccordion';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
-import {SidebarOrientation, SidebarPanelKey} from './types';
-
-type Props = {
-  organization?: Organization;
-};
+import type {SidebarOrientation} from './types';
+import {SidebarPanelKey} from './types';
 
 function activatePanel(panel: SidebarPanelKey) {
   SidebarPanelStore.activatePanel(panel);
@@ -110,12 +107,11 @@ function useOpenOnboardingSidebar(organization?: Organization) {
   }, [openOnboardingSidebar]);
 }
 
-function Sidebar({organization}: Props) {
-  const user = useUser();
+function Sidebar() {
   const location = useLocation();
-  const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
+  const organization = useOrganization({allowNull: true});
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -397,8 +393,6 @@ function Sidebar({organization}: Props) {
         label={t('Crons')}
         to={`/organizations/${organization.slug}/crons/`}
         id="crons"
-        // TODO(davidenwang): Remove isBeta completely after GA Jan 11th
-        isBeta={organization.features.includes('crons-disable-new-projects')}
       />
     </Feature>
   );
@@ -499,13 +493,7 @@ function Sidebar({organization}: Props) {
     <SidebarWrapper aria-label={t('Primary Navigation')} collapsed={collapsed}>
       <SidebarSectionGroupPrimary>
         <DropdownSidebarSection isSuperuser={hasSuperuserSession}>
-          <SidebarDropdown
-            orientation={orientation}
-            collapsed={collapsed}
-            org={organization}
-            user={user}
-            config={config}
-          />
+          <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
           {hasSuperuserSession && <Hook name="component:superuser-warning" />}
         </DropdownSidebarSection>

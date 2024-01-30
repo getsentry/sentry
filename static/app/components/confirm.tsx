@@ -1,8 +1,10 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 
@@ -115,6 +117,10 @@ export type OpenConfirmOptions = {
    * Used to render a message instead of using the static `message` prop.
    */
   renderMessage?: (renderProps: ConfirmMessageRenderProps) => React.ReactNode;
+  /**
+   * Show the message without bold formatting
+   */
+  withoutBold?: boolean;
 };
 
 interface Props extends OpenConfirmOptions {
@@ -216,6 +222,7 @@ type ModalProps = ModalRenderProps &
     | 'onCancel'
     | 'disableConfirmButton'
     | 'onRender'
+    | 'withoutBold'
   >;
 
 type ModalState = {
@@ -268,7 +275,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
   };
 
   get confirmMessage() {
-    const {message, renderMessage} = this.props;
+    const {message, renderMessage, withoutBold} = this.props;
 
     if (typeof renderMessage === 'function') {
       return renderMessage({
@@ -281,7 +288,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
       });
     }
 
-    if (isValidElement(message)) {
+    if (isValidElement(message) || withoutBold) {
       return message;
     }
 

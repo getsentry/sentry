@@ -3,7 +3,7 @@ import upperFirst from 'lodash/upperFirst';
 import ClippedBox from 'sentry/components/clippedBox';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 
 type KeyValueListData = React.ComponentProps<typeof ContextBlock>['data'];
 

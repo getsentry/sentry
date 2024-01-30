@@ -1,14 +1,12 @@
 import {useTheme} from '@emotion/react';
 
-import {
-  getSpanBarColours,
-  SpanBarType,
-} from 'sentry/components/performance/waterfall/constants';
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import {getSpanBarColours} from 'sentry/components/performance/waterfall/constants';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import toPercent from 'sentry/utils/number/toPercent';
 
-import {EnhancedSpan} from './types';
-import {SpanViewBoundsType} from './utils';
+import type {EnhancedSpan} from './types';
+import type {SpanViewBoundsType} from './utils';
 
 export default function SpanRectangle({
   bounds,

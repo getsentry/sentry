@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Button} from 'sentry/components/button';
-import FormContext, {
-  FormContextData,
-} from 'sentry/components/deprecatedforms/formContext';
+import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
+import FormContext from 'sentry/components/deprecatedforms/formContext';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 

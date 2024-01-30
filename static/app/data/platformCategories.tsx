@@ -1,4 +1,4 @@
-import {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types';
 
 export enum PlatformCategory {
   FRONTEND,

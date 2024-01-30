@@ -1,6 +1,6 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor, Query} from 'history';
 
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
@@ -9,23 +9,22 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {
-  Alignments,
-  fieldAlignment,
-  getAggregateAlias,
-} from 'sentry/utils/discover/fields';
+import type {Alignments} from 'sentry/utils/discover/fields';
+import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
-import {TableColumn} from 'sentry/views/discover/table/types';
+import type {Actions} from 'sentry/views/discover/table/cellAction';
+import CellAction from 'sentry/views/discover/table/cellAction';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
-import {TrendsDataEvents} from 'sentry/views/performance/trends/types';
+import type {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
 type Props = {
   columnOrder: TableColumn<React.ReactText>[];

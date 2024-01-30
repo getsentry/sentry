@@ -1,4 +1,5 @@
-import {css, Global, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, Global} from '@emotion/react';
 
 import {prismStyles} from 'sentry/styles/prism';
 
@@ -66,8 +67,9 @@ const styles = (theme: Theme, isDark: boolean) => css`
   }
 
   /* Override css in LESS files here as we want to manually control dark mode for now */
-  ${isDark
-    ? css`
+  ${
+    isDark
+      ? css`
         .box,
         .box.box-modal {
           background: ${theme.background};
@@ -229,7 +231,8 @@ const styles = (theme: Theme, isDark: boolean) => css`
           }
         }
       `
-    : ''}
+      : ''
+  }
 `;
 
 /**

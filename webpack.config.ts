@@ -1,10 +1,8 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-import fs from 'fs';
-import path from 'path';
-
 import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
+import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
 import browserslist from 'browserslist';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
@@ -12,6 +10,8 @@ import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import lightningcss from 'lightningcss';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import fs from 'node:fs';
+import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
 import {Configuration as DevServerConfig} from 'webpack-dev-server';
@@ -87,6 +87,7 @@ const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_RUN_SPOTLIGHT = DEV_MODE && !env.NO_SPOTLIGHT; // Do not run spotlight sidecar
+const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -375,6 +376,8 @@ const appConfig: Configuration = {
           }),
         ]
       : []),
+
+    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
 
     /**
      * Restrict translation files that are pulled in through app/translations.jsx

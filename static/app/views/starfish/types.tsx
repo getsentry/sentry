@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import type {FieldDefinition} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 export enum StarfishType {
   BACKEND = 'backend',

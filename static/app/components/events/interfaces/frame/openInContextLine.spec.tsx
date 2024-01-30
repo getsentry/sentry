@@ -1,13 +1,11 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
-import ConfigStore from 'sentry/stores/configStore';
-import {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
+import type {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('OpenInContextLine', function () {
@@ -72,15 +70,6 @@ describe('OpenInContextLine', function () {
     });
 
     it('renders only app icons with issue-details-stacktrace-link-in-frame feature', function () {
-      ConfigStore.set(
-        'user',
-        UserFixture({
-          options: {
-            ...UserFixture().options,
-            issueDetailsNewExperienceQ42023: true,
-          },
-        })
-      );
       const organization = OrganizationFixture({
         features: ['issue-details-stacktrace-link-in-frame'],
       });
