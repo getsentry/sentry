@@ -52,7 +52,6 @@ function InviteMembersModal({
   }
 
   if (memberResult.isError) {
-    // TODO: deprecatedAsyncComponent had a few return types
     return (
       <LoadingError message={t('Failed to load foo')} onRetry={memberResult.refetch} />
     );
