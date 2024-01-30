@@ -94,12 +94,12 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions) {
       };
     }
 
-    const data = [...issuePlatformData.data, ...discoverData.data];
-    const timestamps = data.map(frame => new Date(frame.timestamp).getTime());
+    const events = [...issuePlatformData.data, ...discoverData.data];
+    const timestamps = events.map(e => new Date(e.timestamp).getTime());
     const startTimestamp = Math.min(...timestamps);
     const endTimestamp = Math.max(...timestamps);
     return {
-      data,
+      data: events,
       startTimestamp,
       endTimestamp,
     };

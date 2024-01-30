@@ -13,29 +13,31 @@ import type {TimelineEvent} from './useTraceTimelineEvents';
 
 export function TraceTimelineTooltip({
   event,
-  frames,
-}: {event: Event; frames: TimelineEvent[]}) {
+  timelineEvents,
+}: {event: Event; timelineEvents: TimelineEvent[]}) {
   const organization = useOrganization();
   const {projects} = useProjects({
-    slugs: [...frames.reduce((acc, cur) => acc.add(cur.project), new Set<string>())],
+    slugs: [
+      ...timelineEvents.reduce((acc, cur) => acc.add(cur.project), new Set<string>()),
+    ],
     orgId: organization.slug,
   });
   // TODO: should handling of current event + other events look different
-  if (frames.length === 1 && frames[0].id === event.id) {
+  if (timelineEvents.length === 1 && timelineEvents[0].id === event.id) {
     return <YouAreHere>{t('You are here')}</YouAreHere>;
   }
 
   return (
     <UnstyledUnorderedList>
       <EventItemsWrapper>
-        {frames.slice(0, 3).map(frame => {
-          const titleSplit = frame.title.split(':');
-          const project = projects.find(p => p.slug === frame.project);
+        {timelineEvents.slice(0, 3).map(timelineEvent => {
+          const titleSplit = timelineEvent.title.split(':');
+          const project = projects.find(p => p.slug === timelineEvent.project);
 
           return (
             <EventItem
-              key={frame.id}
-              to={`/organizations/${organization.slug}/issues/${frame['issue.id']}/events/${frame.id}/`}
+              key={timelineEvent.id}
+              to={`/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`}
             >
               <div>
                 {project && <ProjectBadge project={project} avatarSize={18} hideName />}
@@ -48,10 +50,10 @@ export function TraceTimelineTooltip({
           );
         })}
       </EventItemsWrapper>
-      {frames.length > 3 && (
+      {timelineEvents.length > 3 && (
         <TraceItem>
           <Link to={generateTraceTarget(event, organization)}>
-            {t('View trace for %s more', frames.length - 3)}
+            {t('View trace for %s more', timelineEvents.length - 3)}
           </Link>
         </TraceItem>
       )}

@@ -25,24 +25,33 @@ interface TraceTimelineEventsProps {
 export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
   const {startTimestamp, endTimestamp, data} = useTraceTimelineEvents({event});
   let durationMs = endTimestamp - startTimestamp;
+  const paddedStartTime = startTimestamp - 200;
+  let paddedEndTime = startTimestamp - 100;
   // Will need to figure out padding
   if (durationMs === 0) {
     durationMs = 1000;
+    // If the duration is 0, we need to pad the end time
+    paddedEndTime = startTimestamp + 1000;
   }
 
   const totalColumns = Math.floor(width / markerWidth);
-  const framesByCol = getEventsByColumn(durationMs, data, totalColumns, startTimestamp);
+  const eventsByColumn = getEventsByColumn(
+    durationMs,
+    data,
+    totalColumns,
+    paddedStartTime
+  );
   const columnSize = width / totalColumns;
 
   return (
     <Fragment>
       <TimelineColumns totalColumns={totalColumns}>
-        {Array.from(framesByCol.entries()).map(([column, colEvents]) => {
+        {Array.from(eventsByColumn.entries()).map(([column, colEvents]) => {
           // Calculate the timestamp range that this column represents
           const columnStartTimestamp =
-            (durationMs / totalColumns) * (column - 1) + startTimestamp;
+            (durationMs / totalColumns) * (column - 1) + paddedStartTime;
           const columnEndTimestamp =
-            (durationMs / totalColumns) * column + startTimestamp;
+            (durationMs / totalColumns) * column + paddedStartTime;
           return (
             <EventColumn
               key={column}
@@ -52,7 +61,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
                 event={event}
                 colEvents={colEvents}
                 columnSize={columnSize}
-                timerange={[columnStartTimestamp, columnEndTimestamp]}
+                timeRange={[columnStartTimestamp, columnEndTimestamp]}
                 currentEventId={event.id}
               />
             </EventColumn>
@@ -61,13 +70,13 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
       </TimelineColumns>
       <TimestampColumns>
         <TimestampItem style={{textAlign: 'left'}}>
-          <DateTime date={startTimestamp} timeOnly />
+          <DateTime date={paddedStartTime} timeOnly />
         </TimestampItem>
         <TimestampItem style={{textAlign: 'center'}}>
-          <DateTime date={startTimestamp + Math.floor(durationMs / 2)} timeOnly />
+          <DateTime date={paddedStartTime + Math.floor(durationMs / 2)} timeOnly />
         </TimestampItem>
         <TimestampItem style={{textAlign: 'right'}}>
-          <DateTime date={endTimestamp} timeOnly />
+          <DateTime date={paddedEndTime} timeOnly />
         </TimestampItem>
       </TimestampColumns>
     </Fragment>
@@ -113,7 +122,7 @@ const TimestampItem = styled('div')`
 
 function NodeGroup({
   event,
-  timerange,
+  timeRange,
   colEvents,
   columnSize,
   currentEventId,
@@ -122,20 +131,20 @@ function NodeGroup({
   columnSize: number;
   currentEventId: string;
   event: Event;
-  timerange: [number, number];
+  timeRange: [number, number];
 }) {
   const totalSubColumns = Math.floor(columnSize / subWidth);
-  const durationMs = timerange[1] - timerange[0];
-  const framesByCol = getEventsByColumn(
+  const durationMs = timeRange[1] - timeRange[0];
+  const eventsByColumn = getEventsByColumn(
     durationMs,
     colEvents,
     totalSubColumns,
-    timerange[1]
+    timeRange[1]
   );
 
   return (
     <Tooltip
-      title={<TraceTimelineTooltip event={event} frames={colEvents} />}
+      title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
       overlayStyle={{
         padding: `0 !important`,
         maxWidth: '250px !important',
@@ -147,15 +156,17 @@ function NodeGroup({
       skipWrapper
     >
       <TimelineColumns totalColumns={totalSubColumns}>
-        {Array.from(framesByCol.entries()).map(([column, groupFrames]) => (
+        {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => (
           <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
-            {groupFrames.map(frame => (
+            {groupEvents.map(groupEvent => (
               // TODO: use sentry colors and add the other styles
               <IconNode
-                key={frame.id}
-                aria-label={frame.id === currentEventId ? t('Current Event') : undefined}
+                key={groupEvent.id}
+                aria-label={
+                  groupEvent.id === currentEventId ? t('Current Event') : undefined
+                }
                 style={
-                  frame.id === currentEventId
+                  groupEvent.id === currentEventId
                     ? {
                         backgroundColor: 'rgb(181, 19, 7, 1)',
                         outline: '1px solid rgb(181, 19, 7, 0.5)',

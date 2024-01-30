@@ -8,37 +8,26 @@ function getEventTimestamp(start: number, event: TimelineEvent) {
 
 export function getEventsByColumn(
   durationMs: number,
-  frames: TimelineEvent[],
+  events: TimelineEvent[],
   totalColumns: number,
   start: number
 ) {
-  const safeDurationMs = isNaN(durationMs) ? 1 : durationMs;
-
-  const columnFramePairs = frames.map<[number, TimelineEvent]>(frame => {
+  const eventsByColumn = events.reduce((map, event) => {
     const columnPositionCalc =
-      // Not sure math.abs is doing what i want
-      Math.abs(
-        Math.floor(
-          (getEventTimestamp(start, frame) / safeDurationMs) * (totalColumns - 1)
-        )
-      ) + 1;
+      Math.floor((getEventTimestamp(start, event) / durationMs) * (totalColumns - 1)) + 1;
 
     // Should start at minimum in the first column
     const column = Math.max(1, columnPositionCalc);
 
-    return [column, frame];
-  });
-
-  const framesByColumn = columnFramePairs.reduce((map, [column, frame]) => {
     if (map.has(column)) {
-      map.get(column)?.push(frame);
+      map.get(column)!.push(event);
     } else {
-      map.set(column, [frame]);
+      map.set(column, [event]);
     }
     return map;
   }, new Map<number, TimelineEvent[]>());
 
-  return framesByColumn;
+  return eventsByColumn;
 }
 
 export function hasTraceTimelineFeature(
