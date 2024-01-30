@@ -10,6 +10,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {RELEASE_COMPARISON} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -20,9 +21,6 @@ import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQue
 const COLD_START_CONDITIONS = ['span.op:app.start.cold', 'span.description:"Cold Start"'];
 const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm Start"'];
 
-const PRIMARY_RELEASE_COLOR = '#444674';
-const SECONDARY_RELEASE_COLOR = '#e9626e';
-
 export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[releaseName: string]: Series} = {};
   if (defined(data)) {
@@ -31,8 +29,8 @@ export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: st
         seriesName: releaseName,
         color:
           releaseName === primaryRelease
-            ? PRIMARY_RELEASE_COLOR
-            : SECONDARY_RELEASE_COLOR,
+            ? RELEASE_COMPARISON.PRIMARY_RELEASE_COLOR
+            : RELEASE_COMPARISON.SECONDARY_RELEASE_COLOR,
         data:
           data[releaseName]?.data?.map(datum => {
             return {

@@ -17,12 +17,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colours';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
-import Breakdown, {
-  COLD_START_COLOR,
-  WARM_START_COLOR,
-} from 'sentry/views/starfish/views/appStartup/breakdown';
+import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
 
 const MAX_TABLE_RELEASE_CHARS = 15;
