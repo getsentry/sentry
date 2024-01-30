@@ -1,9 +1,8 @@
 from django.core.signing import BadSignature, SignatureExpired
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.integrations.utils.identities import get_identity_or_404
@@ -33,7 +32,7 @@ class DiscordLinkIdentityView(BaseView):
     """
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, signed_params: str) -> HttpResponse:
+    def handle(self, request: HttpRequest, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):
