@@ -137,13 +137,13 @@ const PerformanceScoreLabel = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
   font-weight: bold;
-  margin-bottom: ${space(1)};
 `;
 
 const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
+  margin-bottom: ${space(1)};
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
