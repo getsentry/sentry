@@ -34,7 +34,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
   return (
     <ErrorBoundary mini>
-      <VisiblePanel>
+      <div>
         <Stacked ref={timelineRef}>
           {isLoading ? (
             <Placeholder height="45px" />
@@ -46,16 +46,10 @@ export function TraceTimeline({event}: TraceTimelineProps) {
             </TimelineEventsContainer>
           )}
         </Stacked>
-      </VisiblePanel>
+      </div>
     </ErrorBoundary>
   );
 }
-
-const VisiblePanel = styled('div')`
-  margin: 0;
-  border: 0;
-  overflow: hidden;
-`;
 
 /**
  * Displays the container the dots appear inside of
