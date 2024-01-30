@@ -11,8 +11,8 @@ import sentry_sdk
 from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
-from sentry.utils import metrics
 from sentry.types.group import PriorityLevel
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization

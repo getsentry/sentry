@@ -11,12 +11,12 @@ from sentry.issues.grouptype import (
     ProfileFileIOGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.types.group import PriorityLevel
 from sentry.models.group import Group
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.types.group import PriorityLevel
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.dates import ensure_aware
 

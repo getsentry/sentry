@@ -9,9 +9,9 @@ from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.types.group import PriorityLevel
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.seer.utils import BreakpointData
+from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 
 
