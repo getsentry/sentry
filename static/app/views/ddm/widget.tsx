@@ -61,6 +61,7 @@ export type Sample = {
   projectId: number;
   spanId: string;
   transactionId: string;
+  transactionSpanId: string;
 };
 
 export const MetricWidget = memo(
