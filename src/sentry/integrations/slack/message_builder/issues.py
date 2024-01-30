@@ -295,14 +295,14 @@ def get_suspect_commit_text(
     pull_request = commit.get("pull_request")
     author = commit.get("author")
     commit_id = commit.get("id")
-    if not author and not commit_id:
+    if not (author and commit_id):  # we need both the author and commit id to continue
         return None
 
     author_display = author.get("name") if author.get("name") is not None else author.get("email")
     if pull_request:
         repo_base = pull_request.get("repository", {}).get("url")
         if repo_base:
-            commit_link = f"<{repo_base}/commits/{commit_id}|{commit_id[0:6]}>"
+            commit_link = f"<{repo_base}/commit/{commit_id}|{commit_id[0:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
 
         pr_date = pull_request.get("dateCreated")
