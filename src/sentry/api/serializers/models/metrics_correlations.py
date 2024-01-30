@@ -43,6 +43,7 @@ class MetricCorrelationsSerializer(Serializer):
         return {
             "projectId": segment_payload.get("project_id"),
             "transactionId": segment_payload.get("segment_id"),
+            "transactionSpanId": segment_payload.get("segment_span_id"),
             "traceId": segment_payload.get("trace_id"),
             "profileId": segment_payload.get("profile_id"),
             "segmentName": segment_payload.get("segment_name"),

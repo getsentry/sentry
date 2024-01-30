@@ -1,6 +1,7 @@
 import contextlib
 import time
 from threading import Thread
+from unittest.mock import patch
 
 import pytest
 from django.db import router, transaction
@@ -67,18 +68,25 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
                 tree_labels=[],
             )
 
-            ret = _save_aggregate(
-                evt,
-                hashes=hashes,
-                release=None,
-                metadata={},
-                received_timestamp=0,
-                migrate_off_hierarchical=False,
-                **group_creation_kwargs,
-            )
+            with patch(
+                "sentry.event_manager.get_hash_values",
+                return_value=(hashes, hashes, hashes),
+            ):
+                with patch(
+                    "sentry.event_manager._get_group_creation_kwargs",
+                    return_value=group_creation_kwargs,
+                ):
+                    with patch("sentry.event_manager._materialize_metadata_many"):
+                        ret = _save_aggregate(
+                            evt,
+                            job={"event_metadata": {}},
+                            release=None,
+                            received_timestamp=0,
+                            metric_tags={},
+                        )
 
-            assert ret is not None
-            return_values.append(ret)
+                        assert ret is not None
+                        return_values.append(ret)
         finally:
             transaction.get_connection(router.db_for_write(GroupHash)).close()
 
