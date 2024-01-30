@@ -63,6 +63,7 @@ const LinkSection = styled('div')`
   a {
     display: flex;
     align-items: center;
+    width: max-content;
   }
 
   svg {
