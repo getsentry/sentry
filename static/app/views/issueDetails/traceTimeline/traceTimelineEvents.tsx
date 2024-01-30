@@ -26,7 +26,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
   const {startTimestamp, endTimestamp, data} = useTraceTimelineEvents({event});
   let durationMs = endTimestamp - startTimestamp;
   const paddedStartTime = startTimestamp - 200;
-  let paddedEndTime = startTimestamp - 100;
+  let paddedEndTime = endTimestamp + 100;
   // Will need to figure out padding
   if (durationMs === 0) {
     durationMs = 1000;
