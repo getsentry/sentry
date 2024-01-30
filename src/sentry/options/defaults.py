@@ -820,11 +820,6 @@ register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMAT
 # Fraction of events that will pass through background grouping
 register("store.background-grouping-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# True if background grouping should run before secondary and primary grouping
-register(
-    "store.background-grouping-before", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # TODO: remove, no longer used
-
 # Store release files bundled as zip files
 register(
     "processing.save-release-archives", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
