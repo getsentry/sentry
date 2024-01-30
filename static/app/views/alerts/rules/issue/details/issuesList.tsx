@@ -11,7 +11,7 @@ import Pagination from 'sentry/components/pagination';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import {Group, Project} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -26,7 +26,6 @@ type GroupHistory = {
 };
 
 type Props = DateTimeObject & {
-  organization: Organization;
   project: Project;
   rule: IssueAlertRule;
   cursor?: string;
@@ -83,9 +82,9 @@ function AlertRuleIssuesList({project, rule, period, start, end, utc, cursor}: P
               <TitleWrapper>
                 <Link
                   to={{
-                    pathname:
-                      `/organizations/${organization.slug}/issues/${issue.id}/` +
-                      (eventId ? `events/${eventId}` : ''),
+                    pathname: `/organizations/${organization.slug}/issues/${issue.id}/${
+                      eventId ? `events/${eventId}` : ''
+                    }`,
                     query: {
                       referrer: 'alert-rule-issue-list',
                       ...(rule.environment ? {environment: rule.environment} : {}),
