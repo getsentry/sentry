@@ -1771,7 +1771,7 @@ class Factories:
 
         auth_state = RpcAuthState(sso_state=sso_state, permissions=permissions)
         return RpcBackedAccess(
-            rpc_user_organization_context=RpcUserOrganizationContext(),
+            rpc_user_organization_context=org_context,
             auth_state=auth_state,
             scopes_upper_bound=scopes_upper_bound,
         )
