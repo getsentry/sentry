@@ -130,9 +130,6 @@ class Activity(Model):
         if self.type == ActivityType.ASSIGNED.value:
             self.data["assignee"] = str(self.data["assignee"])
 
-        if features.has("projects:issue-priority", self.group.project):
-            self.data["priority"] = self.group.priority
-
     def save(self, *args, **kwargs):
         created = bool(not self.id)
 
