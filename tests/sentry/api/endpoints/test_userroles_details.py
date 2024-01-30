@@ -16,7 +16,7 @@ class UserRolesDetailsTest(APITestCase):
     def test_fails_without_superuser(self):
         self.user = self.create_user(is_superuser=False)
         self.login_as(self.user)
-        self.create_userrole(name="test-role")
+        self.create_user_role(name="test-role")
         resp = self.get_response("test-role")
         assert resp.status_code == 403
 
@@ -33,8 +33,8 @@ class UserRolesDetailsTest(APITestCase):
 
 class UserRolesDetailsGetTest(UserRolesDetailsTest):
     def test_simple(self):
-        self.create_userrole(name="test-role")
-        self.create_userrole(name="test-role2")
+        self.create_user_role(name="test-role")
+        self.create_user_role(name="test-role2")
         resp = self.get_response("test-role")
         assert resp.status_code == 200
         assert resp.data["name"] == "test-role"
@@ -44,8 +44,8 @@ class UserRolesDetailsPutTest(UserRolesDetailsTest):
     method = "PUT"
 
     def test_simple(self):
-        role1 = self.create_userrole(name="test-role", permissions=["users.edit"])
-        role2 = self.create_userrole(name="test-role2", permissions=["users.edit"])
+        role1 = self.create_user_role(name="test-role", permissions=["users.edit"])
+        role2 = self.create_user_role(name="test-role2", permissions=["users.edit"])
         resp = self.get_response("test-role", permissions=["users.admin"])
         assert resp.status_code == 200
 
@@ -59,8 +59,8 @@ class UserRolesDetailsDeleteTest(UserRolesDetailsTest):
     method = "DELETE"
 
     def test_simple(self):
-        role1 = self.create_userrole(name="test-role")
-        role2 = self.create_userrole(name="test-role2")
+        role1 = self.create_user_role(name="test-role")
+        role2 = self.create_user_role(name="test-role2")
         resp = self.get_response("test-role")
         assert resp.status_code == 204
 
