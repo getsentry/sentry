@@ -22,7 +22,8 @@ const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
 
-const mockEventTimestampMs = new Date('2022-09-22T16:59:41Z').getTime();
+const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
+const mockEventTimestampMs = mockEventTimestamp.getTime();
 
 const mockButtonHref = `/organizations/${mockOrgSlug}/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=57&t_main=errors`;
 
@@ -102,6 +103,11 @@ jest.mock('screenfull', () => ({
 describe('ReplayClipPreview', () => {
   beforeEach(() => {
     mockIsFullscreen.mockReturnValue(false);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry-emerging-tech/projects/',
+      body: [],
+    });
   });
 
   it('Should render a placeholder when is fetching the replay data', () => {
