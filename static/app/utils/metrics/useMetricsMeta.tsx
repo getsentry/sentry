@@ -1,12 +1,23 @@
 import type {PageFilters} from 'sentry/types';
 import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
 
 const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
+
+export function getMetricsMetaQueryKey(
+  orgSlug: string,
+  projects: PageFilters['projects'],
+  useCase: UseCase
+): ApiQueryKey {
+  return [
+    `/organizations/${orgSlug}/metrics/meta/`,
+    {query: {useCase, project: projects}},
+  ];
+}
 
 function useMetaUseCase(
   useCase: UseCase,
@@ -16,7 +27,7 @@ function useMetaUseCase(
   const {slug} = useOrganization();
 
   const apiQueryResult = useApiQuery<MetricMeta[]>(
-    [`/organizations/${slug}/metrics/meta/`, {query: {useCase, project: projects}}],
+    getMetricsMetaQueryKey(slug, projects, useCase),
     {
       ...options,
       staleTime: 2000, // 2 seconds to cover page load
