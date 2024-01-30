@@ -13,7 +13,13 @@ import type {TraceEventResponse} from './useTraceTimelineEvents';
 
 describe('TraceTimeline', () => {
   const organization = OrganizationFixture({features: ['issues-trace-timeline']});
-  const event = EventFixture();
+  const event = EventFixture({
+    contexts: {
+      trace: {
+        trace_id: '123',
+      },
+    },
+  });
   const project = ProjectFixture();
 
   const issuePlatformBody: TraceEventResponse = {
