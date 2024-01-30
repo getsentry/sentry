@@ -117,6 +117,10 @@ export type OpenConfirmOptions = {
    * Used to render a message instead of using the static `message` prop.
    */
   renderMessage?: (renderProps: ConfirmMessageRenderProps) => React.ReactNode;
+  /**
+   * Show the message without bold formatting
+   */
+  withoutBold?: boolean;
 };
 
 interface Props extends OpenConfirmOptions {
@@ -218,6 +222,7 @@ type ModalProps = ModalRenderProps &
     | 'onCancel'
     | 'disableConfirmButton'
     | 'onRender'
+    | 'withoutBold'
   >;
 
 type ModalState = {
@@ -270,7 +275,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
   };
 
   get confirmMessage() {
-    const {message, renderMessage} = this.props;
+    const {message, renderMessage, withoutBold} = this.props;
 
     if (typeof renderMessage === 'function') {
       return renderMessage({
@@ -283,7 +288,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
       });
     }
 
-    if (isValidElement(message)) {
+    if (isValidElement(message) || withoutBold) {
       return message;
     }
 
