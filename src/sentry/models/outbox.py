@@ -54,7 +54,7 @@ from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
 
-THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.timezone.utc)
+THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 
 _T = TypeVar("_T")
 
@@ -583,7 +583,7 @@ class OutboxBase(Model):
             assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             metrics.timing(
                 "outbox.coalesced_net_queue_time",
-                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
@@ -610,13 +610,13 @@ class OutboxBase(Model):
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
-                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
                 - first_coalesced.scheduled_from.timestamp(),
                 tags=tags,
             )
             metrics.timing(
                 "outbox.coalesced_net_processing_time",
-                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
