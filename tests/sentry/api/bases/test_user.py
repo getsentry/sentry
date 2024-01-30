@@ -71,7 +71,7 @@ class UserAndStaffPermissionTest(DRFPermissionTestCase):
         assert mock_is_active_staff.call_count == 1
 
 
-class BaseUserEndpointTest:
+class BaseUserEndpointTest(TestCase):
     endpoint: RegionSiloUserEndpoint | UserEndpoint = UserEndpoint()
 
     def test_retrieves_me_anonymous(self):
@@ -90,10 +90,10 @@ class BaseUserEndpointTest:
 
 
 @control_silo_test
-class UserEndpointTest(BaseUserEndpointTest, TestCase):
+class UserEndpointTest(BaseUserEndpointTest):
     endpoint = UserEndpoint()
 
 
 @region_silo_test
-class RegionSiloUserEndpointTest(BaseUserEndpointTest, TestCase):
+class RegionSiloUserEndpointTest(BaseUserEndpointTest):
     endpoint = RegionSiloUserEndpoint()
