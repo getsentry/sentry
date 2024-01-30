@@ -20,6 +20,7 @@ import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 
 import SearchBarAction from '../searchBarAction';
 
@@ -530,9 +531,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     );
 
     const actions = (
-      <ToggleButton onClick={this.toggleImagesLoaded} priority="link">
-        {isOpen ? t('Hide Details') : t('Show Details')}
-      </ToggleButton>
+      <SectionToggleButton isExpanded={isOpen} onExpandChange={this.toggleImagesLoaded} />
     );
 
     return (
@@ -609,13 +608,4 @@ const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
 const StyledSearchBarAction = styled(SearchBarAction)`
   z-index: 1;
   margin-bottom: ${space(1)};
-`;
-
-const ToggleButton = styled(Button)`
-  font-weight: 700;
-  color: ${p => p.theme.subText};
-  &:hover,
-  &:focus {
-    color: ${p => p.theme.textColor};
-  }
 `;
