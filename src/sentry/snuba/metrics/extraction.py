@@ -300,7 +300,6 @@ _STANDARD_METRIC_FIELDS = [
 
 # Query fields that are not considered
 _IGNORED_METRIC_FIELDS = [
-    "event.type",  # on-demand extraction is enabled only for event.type:"transaction"
     "project",  # on-demand extraction specs are emitted per project
     "timestamp.to_day",  # relative time windows are not supported
     "timestamp.to_hour",  # relative time windows are not supported

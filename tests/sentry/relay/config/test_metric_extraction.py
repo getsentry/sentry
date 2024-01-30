@@ -23,6 +23,7 @@ from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     RuleCondition,
     TagSpec,
+    _deep_sorted,
     fetch_on_demand_metric_spec,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -1716,3 +1717,23 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
 
             # With the new spec version they will not collide anymore
             assert widget_spec.query_hash != alert_spec.query_hash
+
+
+@django_db_all
+def test_not_event_type_error(default_project: Project) -> None:
+    aggr = "count()"
+    query = "!event.type:error"
+    condition: RuleCondition = {
+        "inner": {"op": "eq", "name": "event.tags.event.type", "value": "error"},
+        "op": "not",
+    }
+
+    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
+        widget = create_widget([aggr], query, default_project)
+        config = get_metric_extraction_config(default_project)
+        assert config and config["metrics"] == [
+            widget_to_metric_spec("578e7911", condition),
+            widget_to_metric_spec("91f78a80", condition),
+        ]
+        widget_spec = _on_demand_spec_from_widget(default_project, widget)
+        assert widget_spec._query_str_for_hash == f"None;{_deep_sorted(condition)}"
