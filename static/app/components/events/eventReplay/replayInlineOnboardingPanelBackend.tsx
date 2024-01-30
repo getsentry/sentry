@@ -13,6 +13,8 @@ import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import theme from 'sentry/utils/theme';
+import useMedia from 'sentry/utils/useMedia';
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
@@ -30,6 +32,7 @@ export default function ReplayInlineOnboardingPanelBackend({
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   const platformName = platforms.find(p => p.id === platform) ?? otherPlatform;
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   return (
     <EventReplaySection
@@ -43,7 +46,7 @@ export default function ReplayInlineOnboardingPanelBackend({
         <PageBanner
           button={
             <ButtonBar gap={1}>
-              <OnboardingCTAButton />
+              {!isScreenSmall && <OnboardingCTAButton />}
               <Button
                 priority="primary"
                 analyticsEventName="Clicked Replay Onboarding Backend CTA Button in Issue Details"
