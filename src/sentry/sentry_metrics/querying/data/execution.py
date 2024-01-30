@@ -197,7 +197,7 @@ class ExecutableQuery:
         Returns a new `ExecutableQuery` with the projects for which all the queries are not blocked. In case no projects
         exist, the query will be returned with empty projects, signaling the executor to not run the query.
         """
-        intersected_projects = projects
+        intersected_projects: Set[int] = {project.id for project in projects}
 
         for queried_metric in QueriedMetricsVisitor().visit(self.metrics_query.query):
             intersected_projects -= blocked_metrics_for_projects.get(queried_metric) or set()
@@ -207,7 +207,7 @@ class ExecutableQuery:
             metrics_query=self.metrics_query.set_scope(
                 MetricsScope(
                     org_ids=[organization.id],
-                    project_ids=[project.id for project in intersected_projects],
+                    project_ids=list(intersected_projects),
                 )
             ),
         )
@@ -228,8 +228,8 @@ class QueryResult:
             series_executable_query=executable_query,
             totals_executable_query=executable_query,
             result={
-                "series": {"data": {}},
-                "totals": {"data": {}},
+                "series": {"data": {}, "meta": {}},
+                "totals": {"data": {}, "meta": {}},
                 # We want to honor the date ranges of the supplied query.
                 "modified_start": executable_query.metrics_query.start,
                 "modified_end": executable_query.metrics_query.end,
@@ -333,6 +333,8 @@ class QueryResult:
             self.totals, reference_query_result.totals, alignment_keys, indexed_totals
         )
 
+        # We only mutate with the aligned data, only if we have data, since if it's empty it could be that we are
+        # trying to align on a query that has no data, and we want to avoid deleting the data of this query.
         if aligned_series:
             self.result["series"]["data"] = aligned_series
         if aligned_totals:
