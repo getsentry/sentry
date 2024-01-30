@@ -1,7 +1,6 @@
 import logging
 from typing import Any, Mapping
 
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -50,19 +49,14 @@ def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> st
     return "\n".join(output)
 
 
-class SimilarIssuesEmbeddingsSerializer(serializers.Serializer):
-    k = serializers.IntegerField(required=False)
-    threshold = serializers.DecimalField(max_digits=5, decimal_places=4, required=False)
-
-
 @region_silo_endpoint
-class GroupSimiarIssuesEmbeddingsEndpoint(GroupEndpoint):
+class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, group) -> Response:
+    def get(self, request: Request, group) -> Response:
         if not features.has("organizations:issues-similarity-embeddings", group.organization):
             return Response(status=404)
 
@@ -74,11 +68,11 @@ class GroupSimiarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "stacktrace": stacktrace_string,
             "message": group.message,
         }
-        if request.data and request.data.get("query"):
-            data = request.data["query"]
-            serializer = SimilarIssuesEmbeddingsSerializer(data=data)
-            if serializer.is_valid():
-                similar_issues_params.update(data)
+        # Add optional parameters
+        if request.GET.get("k"):
+            similar_issues_params.update({"k": int(request.GET["k"])})
+        if request.GET.get("threshold"):
+            similar_issues_params.update({"threshold": float(request.GET["threshold"])})
 
         results = get_similar_issues_embeddings(similar_issues_params)
         return Response(results)

@@ -48,7 +48,7 @@ def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
 
 class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
     k: int
-    threshold: int
+    threshold: float
 
 
 class SimilarIssuesEmbeddingsRequest(SimilarIssuesEmbeddingsRequestNotRequired):

@@ -1,9 +1,12 @@
 from unittest import mock
 
+from urllib3.response import HTTPResponse
+
 from sentry.api.endpoints.group_similar_issues_embeddings import get_stacktrace_string
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.utils import json
 
 EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", line 20, in divide_by_zero_another\n    divide_by_zero_another()'
 
@@ -53,16 +56,14 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert stacktrace_string == ""
 
     def test_no_feature_flag(self):
-        response = self.client.post(self.path)
+        response = self.client.get(self.path)
 
         assert response.status_code == 404, response.content
 
     @with_feature("organizations:issues-similarity-embeddings")
-    @mock.patch(
-        "sentry.api.endpoints.group_similar_issues_embeddings.get_similar_issues_embeddings"
-    )
-    def test_simple(self, mock_get_similar_issues_embeddings):
-        similar_data = {
+    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    def test_simple(self, mock_seer_request):
+        expected_return_value = {
             "responses": [
                 {
                     "message_similarity": 0.95,
@@ -72,33 +73,38 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 }
             ]
         }
-        mock_get_similar_issues_embeddings.return_value = similar_data
-        response = self.client.post(
-            self.path,
-            data={
-                "query": {"k": 1, "threshold": 0.98},
-            },
+        mock_seer_request.return_value = HTTPResponse(
+            json.dumps(expected_return_value).encode("utf-8")
         )
-        assert response.data == similar_data
-        mock_get_similar_issues_embeddings.assert_called_with(
-            {
-                "group_id": self.group.id,
-                "stacktrace": EXPECTED_STACKTRACE_STRING,
-                "message": self.group.message,
-                "k": 1,
-                "threshold": 0.98,
-            }
+
+        response = self.client.get(
+            self.path,
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == expected_return_value
+        mock_seer_request.assert_called_with(
+            "POST",
+            "/v0/issues/similar-issues",
+            body=json.dumps(
+                {
+                    "group_id": self.group.id,
+                    "stacktrace": EXPECTED_STACKTRACE_STRING,
+                    "message": self.group.message,
+                    "k": 1,
+                    "threshold": 0.98,
+                },
+            ),
+            headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
     @with_feature("organizations:issues-similarity-embeddings")
-    @mock.patch(
-        "sentry.api.endpoints.group_similar_issues_embeddings.get_similar_issues_embeddings"
-    )
-    def test_no_optional_params(self, mock_get_similar_issues_embeddings):
+    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    def test_no_optional_params(self, mock_seer_request):
         """
         Test that optional parameters, k and threshold, can not be included.
         """
-        similar_data = {
+        expected_return_value = {
             "responses": [
                 {
                     "message_similarity": 0.95,
@@ -108,50 +114,63 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 }
             ]
         }
-        mock_get_similar_issues_embeddings.return_value = similar_data
+        mock_seer_request.return_value = HTTPResponse(
+            json.dumps(expected_return_value).encode("utf-8")
+        )
 
         # Include no optional parameters
-        response = self.client.post(self.path)
+        response = self.client.get(self.path)
 
-        assert response.data == similar_data
-        mock_get_similar_issues_embeddings.assert_called_with(
-            {
-                "group_id": self.group.id,
-                "stacktrace": EXPECTED_STACKTRACE_STRING,
-                "message": self.group.message,
-            }
+        assert response.data == expected_return_value
+        mock_seer_request.assert_called_with(
+            "POST",
+            "/v0/issues/similar-issues",
+            body=json.dumps(
+                {
+                    "group_id": self.group.id,
+                    "stacktrace": EXPECTED_STACKTRACE_STRING,
+                    "message": self.group.message,
+                },
+            ),
+            headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
         # Include k
-        response = self.client.post(
+        response = self.client.get(
             self.path,
-            data={
-                "query": {"k": 1},
-            },
+            data={"k": 1},
         )
-        assert response.data == similar_data
-        mock_get_similar_issues_embeddings.assert_called_with(
-            {
-                "group_id": self.group.id,
-                "stacktrace": EXPECTED_STACKTRACE_STRING,
-                "message": self.group.message,
-                "k": 1,
-            }
+        assert response.data == expected_return_value
+        mock_seer_request.assert_called_with(
+            "POST",
+            "/v0/issues/similar-issues",
+            body=json.dumps(
+                {
+                    "group_id": self.group.id,
+                    "stacktrace": EXPECTED_STACKTRACE_STRING,
+                    "message": self.group.message,
+                    "k": 1,
+                },
+            ),
+            headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
         # Include threshold
-        response = self.client.post(
+        response = self.client.get(
             self.path,
-            data={
-                "query": {"threshold": 0.98},
-            },
+            data={"threshold": "0.98"},
         )
-        assert response.data == similar_data
-        mock_get_similar_issues_embeddings.assert_called_with(
-            {
-                "group_id": self.group.id,
-                "stacktrace": EXPECTED_STACKTRACE_STRING,
-                "message": self.group.message,
-                "threshold": 0.98,
-            }
+        assert response.data == expected_return_value
+        mock_seer_request.assert_called_with(
+            "POST",
+            "/v0/issues/similar-issues",
+            body=json.dumps(
+                {
+                    "group_id": self.group.id,
+                    "stacktrace": EXPECTED_STACKTRACE_STRING,
+                    "message": self.group.message,
+                    "threshold": 0.98,
+                },
+            ),
+            headers={"Content-Type": "application/json;charset=utf-8"},
         )
