@@ -19,7 +19,6 @@ from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.grouptype import MonitorCheckInFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.priority import PriorityLevel
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
@@ -50,7 +49,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses

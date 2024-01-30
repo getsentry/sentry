@@ -29,7 +29,6 @@ from sentry.issues.grouptype import (
     ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
-from sentry.issues.priority import PriorityLevel
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -72,7 +71,7 @@ from sentry.testutils.performance_issues.store_transaction import PerfIssueTrans
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
