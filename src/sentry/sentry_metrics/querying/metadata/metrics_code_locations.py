@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Generator, List, Optional, Sequence, Set
 
-from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.errors import TooManyCodeLocationsRequestedError
 from sentry.sentry_metrics.querying.utils import fnv1a_32, get_redis_client_for_metrics_meta
 from sentry.utils import json, metrics
 
@@ -97,8 +97,8 @@ class CodeLocationsFetcher:
     def _validate(self):
         total_combinations = len(self._projects) * len(self._metric_mris) * len(self._timestamps)
         if total_combinations >= self.MAXIMUM_KEYS:
-            raise InvalidParams(
-                "The request results in too many keys to be fetched, try to reduce the number of "
+            raise TooManyCodeLocationsRequestedError(
+                "The request results in too many code locations to be fetched, try to reduce the number of "
                 "metrics, projects or the time interval"
             )
 
@@ -114,20 +114,17 @@ class CodeLocationsFetcher:
                     )
 
     def _parse_code_location_payload(self, encoded_location: str) -> CodeLocationPayload:
-        try:
-            decoded_location = json.loads(encoded_location)
-            return CodeLocationPayload(
-                function=decoded_location.get("function"),
-                module=decoded_location.get("module"),
-                filename=decoded_location.get("filename"),
-                abs_path=decoded_location.get("abs_path"),
-                lineno=decoded_location.get("lineno"),
-                pre_context=decoded_location.get("pre_context", []),
-                context_line=decoded_location.get("context_line"),
-                post_context=decoded_location.get("post_context", []),
-            )
-        except Exception:
-            raise InvalidParams("Invalid code location payload encountered")
+        decoded_location = json.loads(encoded_location)
+        return CodeLocationPayload(
+            function=decoded_location.get("function"),
+            module=decoded_location.get("module"),
+            filename=decoded_location.get("filename"),
+            abs_path=decoded_location.get("abs_path"),
+            lineno=decoded_location.get("lineno"),
+            pre_context=decoded_location.get("pre_context", []),
+            context_line=decoded_location.get("context_line"),
+            post_context=decoded_location.get("post_context", []),
+        )
 
     @metrics.wraps("ddm.code_locations.load_from_redis", tags={"batch_size": BATCH_SIZE})
     def _get_code_locations(

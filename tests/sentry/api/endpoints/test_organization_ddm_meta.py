@@ -328,7 +328,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             metric=[mri],
             project=[project.id],
             statsPeriod="90d",
-            status_code=500,
+            status_code=400,
             codeLocations="true",
         )
 
