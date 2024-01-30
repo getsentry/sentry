@@ -543,12 +543,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build up the blocks for newer issue alert formatting #
 
         # build title block
-        if text:
-            text = text.lstrip(" ")
-            if self.actions:
-                text += "\n" + action_text
-        if not text:
-            text = action_text
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
         if self.group.issue_category == GroupCategory.ERROR:
@@ -564,8 +558,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"
         blocks = [self.get_markdown_block(title_text)]
+
+        # build up text block
         if text:
+            text = text.lstrip(" ")
             blocks.append(self.get_rich_text_preformatted_block(text))
+
+        # build up actions text
+        if self.actions:
+            blocks.append(self.get_markdown_block(action_text))
 
         # build tags block
         tags = get_tags(event_for_tags, self.tags)
