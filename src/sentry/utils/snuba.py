@@ -1005,7 +1005,7 @@ def _snql_query(
     ]
 ) -> RawResult:
     # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
-    return _snuba_query(tuple([*params, False]))
+    return _snuba_query(params)
 
 
 def _snuba_query(
