@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
@@ -12,6 +11,7 @@ import type {EventGroupInfo, Group, Organization} from 'sentry/types';
 import {IssueCategory} from 'sentry/types';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
+import ToggleButton from 'sentry/views/issueDetails/toggleButton';
 
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
@@ -209,11 +209,7 @@ class GroupingInfo extends DeprecatedAsyncComponent<Props, State> {
       <EventDataSection
         type="grouping-info"
         title={t('Event Grouping Information')}
-        actions={
-          <ToggleButton onClick={this.toggle} priority="link">
-            {isOpen ? t('Hide Details') : t('Show Details')}
-          </ToggleButton>
-        }
+        actions={<ToggleButton isShown={isOpen} setShownState={this.toggle} />}
       >
         {isOpen ? this.renderGroupInfo() : this.renderGroupInfoSummary()}
       </EventDataSection>
@@ -227,15 +223,6 @@ const ConfigHeader = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
-`;
-
-const ToggleButton = styled(Button)`
-  font-weight: 700;
-  color: ${p => p.theme.subText};
-  &:hover,
-  &:focus {
-    color: ${p => p.theme.textColor};
-  }
 `;
 
 export const GroupingConfigItem = styled('span')<{

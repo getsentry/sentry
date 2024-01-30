@@ -13,6 +13,7 @@ import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import ToggleButton from 'sentry/views/issueDetails/toggleButton';
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
@@ -26,20 +27,16 @@ const OnboardingCTAButton = HookOrDefault({
 export default function ReplayInlineOnboardingPanelBackend({
   platform,
 }: OnboardingCTAProps) {
-  const [isHidden, setIsHidden] = useState(false);
+  const [isShown, setIsShown] = useState(true);
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   const platformName = platforms.find(p => p.id === platform) ?? otherPlatform;
 
   return (
     <EventReplaySection
-      actions={
-        <ToggleButton priority="link" onClick={() => setIsHidden(!isHidden)}>
-          {isHidden ? t('Show Details') : t('Hide Details')}
-        </ToggleButton>
-      }
+      actions={<ToggleButton isShown={isShown} setShownState={setIsShown} />}
     >
-      {isHidden ? null : (
+      {isShown ? (
         <PageBanner
           button={
             <ButtonBar gap={1}>
@@ -63,7 +60,7 @@ export default function ReplayInlineOnboardingPanelBackend({
           image={replaysInlineOnboarding}
           title={<PurpleText>{t('What’s new')}</PurpleText>}
         />
-      )}
+      ) : null}
     </EventReplaySection>
   );
 }
@@ -71,13 +68,4 @@ export default function ReplayInlineOnboardingPanelBackend({
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
   font-weight: bold;
-`;
-
-const ToggleButton = styled(Button)`
-  font-weight: 700;
-  color: ${p => p.theme.subText};
-  &:hover,
-  &:focus {
-    color: ${p => p.theme.textColor};
-  }
 `;
