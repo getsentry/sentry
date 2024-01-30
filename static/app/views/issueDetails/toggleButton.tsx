@@ -5,15 +5,15 @@ import {t} from 'sentry/locale';
 
 interface IssueDetailsToggleButtonProps {
   isShown: boolean;
-  setShownState: (boolean) => void;
+  onShownChange: (state: boolean) => void;
 }
 
 function IssueDetailsToggleButton({
   isShown,
-  setShownState,
+  onShownChange,
 }: IssueDetailsToggleButtonProps) {
   return (
-    <ToggleButton priority="link" onClick={() => setShownState(!isShown)}>
+    <ToggleButton priority="link" onClick={() => onShownChange(!isShown)}>
       {isShown ? t('Hide Details') : t('Show Details')}
     </ToggleButton>
   );

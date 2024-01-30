@@ -34,7 +34,7 @@ export default function ReplayInlineOnboardingPanelBackend({
 
   return (
     <EventReplaySection
-      actions={<ToggleButton isShown={isShown} setShownState={setIsShown} />}
+      actions={<ToggleButton isShown={isShown} onShownChange={setIsShown} />}
     >
       {isShown ? (
         <PageBanner
