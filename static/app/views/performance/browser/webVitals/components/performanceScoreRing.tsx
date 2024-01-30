@@ -87,7 +87,7 @@ function PerformanceScoreRing({
       currentRotate += (360 * maxValue) / sumMaxValues;
 
       const cx = radius + barWidth / 2;
-      const key = `${cx}-${backgroundColors[index]}`;
+      const key = `${index}-${cx}-${backgroundColors[index]}`;
 
       return [
         <RingBackground
