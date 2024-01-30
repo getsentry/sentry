@@ -24,6 +24,7 @@ from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -405,3 +406,14 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message["culprit"] = "i did it"
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["culprit"] == "i did it"
+
+    def test_priority(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+
+    def test_priority_defaults_to_grouptype(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["initial_issue_priority"] = None
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW

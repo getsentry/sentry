@@ -31,6 +31,7 @@ class OccurrenceTestMixin:
         assert o1.evidence_display == o2.evidence_display
         assert o1.type == o2.type
         assert o1.detection_time == o2.detection_time
+        assert o1.initial_issue_priority == o2.initial_issue_priority
 
     def build_occurrence_data(self, **overrides: Any) -> IssueOccurrenceData:
         kwargs: IssueOccurrenceData = {
