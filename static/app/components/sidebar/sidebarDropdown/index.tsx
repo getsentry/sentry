@@ -31,16 +31,10 @@ import SwitchOrganization from './switchOrganization';
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   projects: Project[];
-  // TODO(epurkihser): Remove once getsentry test is fixed
-  config?: any;
-
   /**
    * Set to true to hide links within the organization
    */
   hideOrgLinks?: boolean;
-  // TODO(epurkihser): Remove once getsentry test is fixed
-  org?: any;
-  user?: any;
 };
 
 function SidebarDropdown({projects, orientation, collapsed, hideOrgLinks}: Props) {
