@@ -85,6 +85,7 @@ class IssueArgs(TypedDict):
     type: int
     data: OccurrenceMetadata
     first_release: Optional[Release]
+    priority: Optional[int]
 
 
 def _create_issue_kwargs(
@@ -103,6 +104,7 @@ def _create_issue_kwargs(
         "type": occurrence.type.type_id,
         "first_release": release,
         "data": materialize_metadata(occurrence, event),
+        "priority": occurrence.initial_issue_priority,
     }
     kwargs["data"]["last_received"] = json.datetime_to_str(event.datetime)
     return kwargs
@@ -146,6 +148,7 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
         "metadata": event_metadata,
         "location": event.location,
         "last_received": json.datetime_to_str(event.datetime),
+        "initial_priority": occurrence.initial_issue_priority,
     }
 
 

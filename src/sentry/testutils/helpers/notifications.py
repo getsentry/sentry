@@ -11,6 +11,7 @@ from sentry.issues.grouptype import (
     ProfileFileIOGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.priority import PriorityLevel
 from sentry.models.group import Group
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -99,6 +100,7 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
     ensure_aware(datetime.now()),
     "info",
     "/api/123/",
+    initial_issue_priority=PriorityLevel.MEDIUM,
 )
 TEST_PERF_ISSUE_OCCURRENCE = IssueOccurrence(
     uuid.uuid4().hex,
@@ -120,6 +122,7 @@ TEST_PERF_ISSUE_OCCURRENCE = IssueOccurrence(
     ensure_aware(datetime.now()),
     "info",
     "/api/123/",
+    initial_issue_priority=PriorityLevel.MEDIUM,
 )
 
 SAMPLE_TO_OCCURRENCE_MAP = {
@@ -162,6 +165,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         ensure_aware(datetime.now()),
         "info",
         "/books/",
+        initial_issue_priority=PriorityLevel.MEDIUM,
     ),
     "transaction-n-plus-one": IssueOccurrence(
         uuid.uuid4().hex,
@@ -198,6 +202,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         ensure_aware(datetime.now()),
         "info",
         "/books/",
+        initial_issue_priority=PriorityLevel.MEDIUM,
     ),
     "transaction-render-blocking-asset": IssueOccurrence(
         uuid.uuid4().hex,
@@ -225,5 +230,6 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         ensure_aware(datetime.now()),
         "info",
         "/render-blocking-asset/",
+        initial_issue_priority=PriorityLevel.MEDIUM,
     ),
 }
