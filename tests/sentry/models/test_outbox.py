@@ -56,7 +56,6 @@ def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @pytest.fixture(autouse=True, scope="function")
-@pytest.mark.django_db(transaction=True)
 def setup_clear_fixture_outbox_messages():
     with outbox_runner():
         pass
