@@ -79,7 +79,7 @@ function EventReplayContent({
     replaySlug: replayId,
     orgSlug: organization.slug,
     eventTimestampMs,
-    buttonProps: {
+    fullReplayButtonProps: {
       analyticsEventKey: 'issue_details.open_replay_details_clicked',
       analyticsEventName: 'Issue Details: Open Replay Details Clicked',
       analyticsParams: {

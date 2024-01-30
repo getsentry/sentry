@@ -38,7 +38,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviderEnum
 from sentry.utils import json
-from sentry.web.decorators import transaction_start
 
 from ..utils import logger
 
@@ -732,7 +731,6 @@ class SlackActionEndpoint(Endpoint):
             if "name" in action_data
         ]
 
-    @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)

@@ -1555,6 +1555,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
+    # Enable only calculating a secondary hash when needed
+    "organizations:grouping-suppress-unnecessary-secondary-hash": False,
     # Enable tweaks to group title in relation to hierarchical grouping.
     "organizations:grouping-title-ui": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1686,6 +1688,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
+    # This spec version includes the environment in the query hash
+    "organizations:on-demand-metrics-query-spec-version-two": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable the setting of org roles for team
@@ -1950,6 +1954,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
+    # Enable User Feedback spam auto filtering feature UI
+    "organizations:user-feedback-spam-filter-ui": False,
+    # Enable User Feedback spam auto filtering feature ingest
+    "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
     # Enable view hierarchies options

@@ -15,6 +15,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
@@ -63,6 +64,9 @@ export function MetricQueryContextMenu({
         key: 'duplicate',
         label: t('Duplicate'),
         onAction: () => {
+          trackAnalytics('ddm.widget.duplicate', {
+            organization,
+          });
           Sentry.metrics.increment('ddm.widget.duplicate');
           duplicateWidget(widgetIndex);
         },
@@ -73,6 +77,10 @@ export function MetricQueryContextMenu({
         label: t('Create Alert'),
         disabled: !createAlert,
         onAction: () => {
+          trackAnalytics('ddm.create-alert', {
+            organization,
+            source: 'widget',
+          });
           Sentry.metrics.increment('ddm.widget.alert');
           createAlert?.();
         },
@@ -83,6 +91,10 @@ export function MetricQueryContextMenu({
         label: t('Add to Dashboard'),
         disabled: !createDashboardWidget,
         onAction: () => {
+          trackAnalytics('ddm.add-to-dashboard', {
+            organization,
+            source: 'widget',
+          });
           Sentry.metrics.increment('ddm.widget.dashboard');
           createDashboardWidget?.();
         },
@@ -93,6 +105,9 @@ export function MetricQueryContextMenu({
         label: t('Metric Settings'),
         disabled: !isCustomMetric({mri: metricsQuery.mri}),
         onAction: () => {
+          trackAnalytics('ddm.widget.settings', {
+            organization,
+          });
           Sentry.metrics.increment('ddm.widget.settings');
           navigateTo(
             `/settings/projects/:projectId/metrics/${encodeURIComponent(
@@ -116,12 +131,13 @@ export function MetricQueryContextMenu({
     [
       createAlert,
       createDashboardWidget,
-      duplicateWidget,
-      removeWidget,
-      widgetIndex,
-      canDelete,
       metricsQuery.mri,
+      canDelete,
+      organization,
+      duplicateWidget,
+      widgetIndex,
       router,
+      removeWidget,
     ]
   );
 

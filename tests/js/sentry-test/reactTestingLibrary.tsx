@@ -26,9 +26,9 @@ type ProviderOptions = {
    */
   context?: Record<string, any>;
   /**
-   * Sets the OrganizationContext
+   * Sets the OrganizationContext. You may pass null to provide no organization
    */
-  organization?: Partial<Organization>;
+  organization?: Partial<Organization> | null;
   /**
    * Sets the RouterContext
    */
@@ -59,6 +59,10 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
     ? createProvider(context)
     : createProvider(routerContext);
 
+  // In some cases we may want to not provide an organization at all
+  const optionalOrganization =
+    initializeOrgOptions.organization === null ? null : organization;
+
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <ContextProvider>
@@ -73,7 +77,7 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
                   routes: router.routes,
                 }}
               >
-                <OrganizationContext.Provider value={organization}>
+                <OrganizationContext.Provider value={optionalOrganization}>
                   {children}
                 </OrganizationContext.Provider>
               </RouteContext.Provider>
