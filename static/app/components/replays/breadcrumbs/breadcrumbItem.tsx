@@ -7,6 +7,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
+import {useBreadcrumbCustomizationContext} from 'sentry/components/replays/breadcrumbs/breadcrumbCustomizationContext';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -66,11 +67,23 @@ function BreadcrumbItem({
   style,
   traces,
 }: Props) {
-  const {color, description, projectSlug, title, icon, timestampMs} =
-    getCrumbOrFrameData(frame);
+  const {
+    color,
+    description,
+    projectSlug,
+    title: defaultTitle,
+    icon,
+    timestampMs,
+  } = getCrumbOrFrameData(frame);
   const {replay, startTimeOffsetMs} = useReplayContext();
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
+
+  const customizations = useBreadcrumbCustomizationContext();
+  const title = customizations?.renderTitle?.({frame}) ?? defaultTitle;
+  const project =
+    customizations?.renderProjectInfo?.({frame}) ??
+    (projectSlug ? <CrumbProject projectSlug={projectSlug} /> : null);
 
   return (
     <CrumbItem
@@ -142,7 +155,7 @@ function BreadcrumbItem({
           />
         ))}
 
-        {projectSlug ? <CrumbProject projectSlug={projectSlug} /> : null}
+        {project}
       </CrumbDetails>
     </CrumbItem>
   );

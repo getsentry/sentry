@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
+import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -10,6 +11,7 @@ import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import type {ReplayError} from 'sentry/views/replays/types';
 import {RouteContext} from 'sentry/views/routeContext';
 
 import ReplayClipPreview from './replayClipPreview';
@@ -22,9 +24,33 @@ const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
 
-const mockEventTimestampMs = new Date('2022-09-22T16:59:41Z').getTime();
+const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
+const mockEventTimestampMs = mockEventTimestamp.getTime();
 
 const mockButtonHref = `/organizations/${mockOrgSlug}/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=57&t_main=errors`;
+
+const mockErrors: ReplayError[] = [
+  ReplayErrorFixture({
+    id: '456',
+    issue: 'JAVASCRIPT-123',
+    'issue.id': 123,
+    'error.value': ['Something bad happened.'],
+    'error.type': ['error'],
+    'project.name': 'javascript',
+    timestamp: mockEventTimestamp.toISOString(),
+    title: 'Something bad happened.',
+  }),
+  ReplayErrorFixture({
+    id: '987',
+    issue: 'JAVASCRIPT-654',
+    'issue.id': 654,
+    'error.value': ['Something bad happened 2.'],
+    'error.type': ['error'],
+    'project.name': 'javascript',
+    timestamp: mockEventTimestamp.toISOString(),
+    title: 'Something bad happened 2.',
+  }),
+];
 
 // Get replay data with the mocked replay reader params
 const mockReplay = ReplayReader.factory({
@@ -34,7 +60,7 @@ const mockReplay = ReplayReader.factory({
       version: '110.0.0',
     },
   }),
-  errors: [],
+  errors: mockErrors,
   attachments: RRWebInitFrameEventsFixture({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
@@ -43,7 +69,7 @@ const mockReplay = ReplayReader.factory({
 mockUseReplayReader.mockImplementation(() => {
   return {
     attachments: [],
-    errors: [],
+    errors: mockErrors,
     fetchError: undefined,
     fetching: false,
     onRetry: jest.fn(),
@@ -102,6 +128,11 @@ jest.mock('screenfull', () => ({
 describe('ReplayClipPreview', () => {
   beforeEach(() => {
     mockIsFullscreen.mockReturnValue(false);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry-emerging-tech/projects/',
+      body: [],
+    });
   });
 
   it('Should render a placeholder when is fetching the replay data', () => {
@@ -212,13 +243,34 @@ describe('ReplayClipPreview', () => {
     // Breadcrumbs sidebar should be open
     expect(screen.getByTestId('replay-details-breadcrumbs-tab')).toBeInTheDocument();
 
-    // Should filter out breadcrumbs that aren't part of the clip
-    expect(screen.getByText('No breadcrumbs recorded')).toBeInTheDocument();
-
     // Can close the breadcrumbs sidebar
     await userEvent.click(screen.getByRole('button', {name: 'Collapse Sidebar'}));
     expect(
       screen.queryByTestId('replay-details-breadcrumbs-tab')
     ).not.toBeInTheDocument();
+  });
+
+  it('Adds event and issue information to breadcrumbs', async () => {
+    mockIsFullscreen.mockReturnValue(true);
+
+    render(
+      <ReplayClipPreview
+        orgSlug={mockOrgSlug}
+        replaySlug={mockReplaySlug}
+        eventTimestampMs={mockEventTimestampMs}
+        groupId="123"
+        eventId="456"
+      />
+    );
+
+    // Event that mathces ID 456 should be shown as "This Event"
+    expect(await screen.findByText('Error: This Event')).toBeInTheDocument();
+    expect(screen.getByText('JAVASCRIPT-123')).toBeInTheDocument();
+
+    // Other events should link to the event and issue
+    expect(screen.getByRole('link', {name: '987'})).toHaveAttribute(
+      'href',
+      '/organizations/sentry-emerging-tech/issues/654/events/987/#replay'
+    );
   });
 });

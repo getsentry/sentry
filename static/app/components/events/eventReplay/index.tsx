@@ -74,27 +74,35 @@ function EventReplayContent({
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
-  const replayComponent = hasReplayClipFeature ? replayClipPreview : replayPreview;
+  const commonProps = {
+    replaySlug: replayId,
+    orgSlug: organization.slug,
+    eventTimestampMs,
+    buttonProps: {
+      analyticsEventKey: 'issue_details.open_replay_details_clicked',
+      analyticsEventName: 'Issue Details: Open Replay Details Clicked',
+      analyticsParams: {
+        ...getAnalyticsDataForEvent(event),
+        ...getAnalyticsDataForGroup(group),
+        organization,
+      },
+    },
+  };
 
   return (
     <ReplaySectionMinHeight>
       <ErrorBoundary mini>
         <ReactLazyLoad debounce={50} height={448} offset={0} once>
-          <LazyLoad
-            component={replayComponent}
-            replaySlug={replayId}
-            orgSlug={organization.slug}
-            eventTimestampMs={eventTimestampMs}
-            buttonProps={{
-              analyticsEventKey: 'issue_details.open_replay_details_clicked',
-              analyticsEventName: 'Issue Details: Open Replay Details Clicked',
-              analyticsParams: {
-                ...getAnalyticsDataForEvent(event),
-                ...getAnalyticsDataForGroup(group),
-                organization,
-              },
-            }}
-          />
+          {hasReplayClipFeature ? (
+            <LazyLoad
+              {...commonProps}
+              component={replayClipPreview}
+              groupId={group?.id}
+              eventId={event.id}
+            />
+          ) : (
+            <LazyLoad {...commonProps} component={replayPreview} />
+          )}
         </ReactLazyLoad>
       </ErrorBoundary>
     </ReplaySectionMinHeight>
