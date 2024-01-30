@@ -139,7 +139,12 @@ function Event({
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
-      <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
+      <Tooltip
+        title={title}
+        overlayStyle={overlayStyle}
+        containerDisplayMode="grid"
+        isHoverable
+      >
         <IconNode
           colors={sortedUniqueColors}
           frameCount={frameCount}
@@ -149,16 +154,10 @@ function Event({
             }
           }}
         />
-      </IconNodeTooltip>
+      </Tooltip>
     </IconPosition>
   );
 }
-
-const IconNodeTooltip = styled(Tooltip)`
-  display: grid;
-  justify-items: center;
-  align-items: center;
-`;
 
 const IconPosition = styled('div')`
   position: absolute;
