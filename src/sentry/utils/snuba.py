@@ -1042,7 +1042,7 @@ def _snuba_query(
 
 def _legacy_snql_query(params: tuple[SnubaQuery, Hub, Mapping[str, str], str, bool]) -> RawResult:
     # Convert the JSON query to SnQL and run it
-    query_data, thread_hub, headers, parent_api, _ = params
+    query_data, thread_hub, headers, parent_api = params
     query_params, forward, reverse = query_data
 
     try:
@@ -1063,7 +1063,7 @@ def _raw_mql_query(
     with thread_hub, timer("mql_query"):
         referrer = headers.get("referer", "unknown")
         # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
-        serialized_req = request.serialize_mql()
+        serialized_req = request.serialize()
         with thread_hub.start_span(op="snuba_mql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
