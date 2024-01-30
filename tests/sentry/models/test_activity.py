@@ -62,6 +62,52 @@ class ActivityTest(TestCase):
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
         assert act_for_group[-1].data["priority"] is None
 
+    @with_feature("projects:issue-priority")
+    def test_get_activities_for_group_simple_priority_ff_on_dups(self):
+        project = self.create_project(name="test_activities_group")
+        group = Group.objects.create(project=project, priority=PriorityLevel.LOW)
+        user1 = self.create_user()
+
+        activities = [
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_UNRESOLVED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_IGNORED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_UNRESOLVED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+            Activity.objects.create_group_activity(
+                group=group,
+                type=ActivityType.SET_RESOLVED,
+                user=user1,
+                data=None,
+                send_notification=False,
+            ),
+        ]
+
+        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        assert len(act_for_group) == 5
+        assert act_for_group[0] == activities[-1]
+        assert act_for_group[1] == activities[-2]
+        assert act_for_group[2] == activities[-3]
+        assert act_for_group[3] == activities[-4]
+        assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
+        assert act_for_group[-1].data["priority"] == PriorityLevel.LOW
+
     def test_get_activities_for_group_simple_priority_ff_off(self):
         project = self.create_project(name="test_activities_group")
         group = self.create_group(project)

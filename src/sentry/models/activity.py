@@ -43,7 +43,7 @@ class ActivityManager(BaseManager["Activity"]):
         # we select excess so we can filter dupes
         for item in activity_qs[: num * 2]:
             prev_sig = sig
-            sig = (item.type, item.ident, item.user_id, item.data)
+            sig = (item.type, item.ident, item.user_id)
 
             if item.type == ActivityType.NOTE.value:
                 activities.append(item)
