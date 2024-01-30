@@ -23,7 +23,7 @@ export default function ReplaySection({eventTimestampMs, organization, replayId}
       focusTab={TabKey.BREADCRUMBS}
       orgSlug={organization.slug}
       replaySlug={replayId}
-      buttonProps={{
+      fullReplayButtonProps={{
         analyticsEventKey: 'feedback_details.open_replay_details_clicked',
         analyticsEventName: 'Feedback Details: Open Replay Details Clicked',
         analyticsParams: {
