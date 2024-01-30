@@ -5,7 +5,8 @@ import {
   analyzeFrameForRootCause,
   analyzeFramesForRootCause,
 } from 'sentry/components/events/interfaces/analyzeFrames';
-import {EntryType, Event, EventOrGroupType, Frame, LockType} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
+import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
 
 const makeEventWithFrames = (frames: Frame[]): Event => {
   const event: Event = {

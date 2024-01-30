@@ -1,4 +1,4 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
@@ -22,15 +22,15 @@ const cellColor = (p: CellProps & {theme: Theme}) => {
     const color = p.isStatusError
       ? p.theme.red300
       : p.isStatusWarning
-      ? p.theme.yellow300
-      : p.theme.white;
+        ? p.theme.yellow300
+        : p.theme.white;
     return `color: ${color};`;
   }
   const colors = p.isStatusError
     ? [p.theme.red300, p.theme.red400]
     : p.isStatusWarning
-    ? [p.theme.textColor, p.theme.subText]
-    : ['inherit', p.theme.subText];
+      ? [p.theme.textColor, p.theme.subText]
+      : ['inherit', p.theme.subText];
 
   return `color: ${p.hasOccurred !== false ? colors[0] : colors[1]};`;
 };

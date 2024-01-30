@@ -1,8 +1,7 @@
-import {ReactElement} from 'react';
+import type {ReactElement} from 'react';
 
-import SelectControl, {
-  ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 
 export type Option = {
   label: string | ReactElement;

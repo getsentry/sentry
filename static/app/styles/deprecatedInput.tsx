@@ -1,4 +1,5 @@
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 
 /**
  * Inner padding for inputs. This is deprecated. If necessary, use the values
@@ -50,11 +51,13 @@ const inputStyles = (props: Props) => css`
 
   ${props.monospace ? `font-family: ${props.theme.text.familyMono}` : ''};
 
-  ${props.readOnly
-    ? css`
+  ${
+    props.readOnly
+      ? css`
         cursor: default;
       `
-    : ''};
+      : ''
+  };
 
   &::placeholder {
     color: ${props.theme.formPlaceholder};

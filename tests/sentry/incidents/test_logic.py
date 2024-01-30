@@ -1220,13 +1220,13 @@ class DeleteAlertRuleTriggerTest(TestCase):
         )
         trigger_id = trigger.id
         assert AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger=trigger, query_subscription__project=self.project
+            alert_rule_trigger=trigger_id, query_subscription__project=self.project
         ).exists()
         delete_alert_rule_trigger(trigger)
 
         assert not AlertRuleTrigger.objects.filter(id=trigger_id).exists()
         assert not AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger=trigger, query_subscription__project=self.project
+            alert_rule_trigger=trigger_id, query_subscription__project=self.project
         ).exists()
 
 
@@ -2455,6 +2455,19 @@ class TestCustomMetricAlertRule(TestCase):
                 projects=[self.project],
                 dataset=Dataset.PerformanceMetrics,
                 query="transaction.duration:>=100",
+            )
+
+            mocked_schedule_invalidate_project_config.assert_called_once_with(
+                trigger="alerts:create-on-demand-metric", project_id=self.project.id
+            )
+
+        mocked_schedule_invalidate_project_config.reset_mock()
+
+        with self.feature({"organizations:on-demand-metrics-prefill": True}):
+            self.create_alert_rule(
+                projects=[self.project],
+                dataset=Dataset.PerformanceMetrics,
+                query="transaction.duration:>=50",
             )
 
             mocked_schedule_invalidate_project_config.assert_called_once_with(

@@ -130,8 +130,17 @@ class Fixtures:
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
 
+    def create_auth_provider(self, *args, **kwargs):
+        return Factories.create_auth_provider(*args, **kwargs)
+
+    def create_auth_identity(self, *args, **kwargs):
+        return Factories.create_auth_identity(*args, **kwargs)
+
     def create_user_auth_token(self, *args, **kwargs):
         return Factories.create_user_auth_token(*args, **kwargs)
+
+    def create_org_auth_token(self, *args, **kwargs):
+        return Factories.create_org_auth_token(*args, **kwargs)
 
     def create_team_membership(self, *args, **kwargs):
         return Factories.create_team_membership(*args, **kwargs)
@@ -339,6 +348,9 @@ class Fixtures:
     def create_integration_external_issue(self, *args, **kwargs):
         return Factories.create_integration_external_issue(*args, **kwargs)
 
+    def create_integration_external_project(self, *args, **kwargs):
+        return Factories.create_integration_external_project(*args, **kwargs)
+
     def create_incident(self, organization=None, projects=None, *args, **kwargs):
         if not organization:
             organization = self.organization
@@ -397,6 +409,9 @@ class Fixtures:
         return Factories.create_notification_action(
             organization=organization, projects=projects, **kwargs
         )
+
+    def create_notification_settings_provider(self, *args, **kwargs):
+        return Factories.create_notification_settings_provider(*args, **kwargs)
 
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:

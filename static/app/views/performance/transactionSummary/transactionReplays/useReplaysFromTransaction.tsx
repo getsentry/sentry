@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';

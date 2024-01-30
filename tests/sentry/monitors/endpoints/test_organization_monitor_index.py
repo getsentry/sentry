@@ -5,10 +5,12 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.test.utils import override_settings
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -345,34 +347,108 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert response.data["status"] == "disabled"
         assert monitor.status == ObjectStatus.DISABLED
 
-    def test_disabled_creating_new_monitor(self):
-        data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "slug": "my-monitor",
-            "type": "cron_job",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
-        }
-        with self.feature("organizations:crons-disable-new-projects"):
-            response = self.get_error_response(self.organization.slug, **data, status_code=400)
 
-        assert (
-            response.data
-            == "Creating monitors in projects without pre-existing monitors is temporarily disabled"
+@region_silo_test
+class BulkEditOrganizationMonitorTest(MonitorTestCase):
+    endpoint = "sentry-api-0-organization-monitor-index"
+    method = "put"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+
+    def test_valid_slugs(self):
+        self._create_monitor(slug="monitor_one")
+        self._create_monitor(slug="monitor_two")
+
+        data = {
+            "slugs": ["monitor_three", "monitor_two"],
+            "isMuted": True,
+        }
+        response = self.get_error_response(self.organization.slug, **data)
+        assert response.status_code == 400
+        assert response.data == {
+            "slugs": [
+                ErrorDetail(string="Not all slugs are valid for this organization.", code="invalid")
+            ]
+        }
+
+    def test_bulk_mute_unmute(self):
+        monitor_one = self._create_monitor(slug="monitor_one")
+        monitor_two = self._create_monitor(slug="monitor_two")
+
+        data = {
+            "slugs": ["monitor_one", "monitor_two"],
+            "isMuted": True,
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.is_muted
+        assert monitor_two.is_muted
+
+        data = {
+            "slugs": ["monitor_one", "monitor_two"],
+            "isMuted": False,
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert not monitor_one.is_muted
+        assert not monitor_two.is_muted
+
+    def test_bulk_disable_enable(self):
+        monitor_one = self._create_monitor(slug="monitor_one")
+        monitor_two = self._create_monitor(slug="monitor_two")
+        data = {
+            "slugs": ["monitor_one", "monitor_two"],
+            "status": "disabled",
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.status == ObjectStatus.DISABLED
+        assert monitor_two.status == ObjectStatus.DISABLED
+
+        data = {
+            "slugs": ["monitor_one", "monitor_two"],
+            "status": "active",
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.status == ObjectStatus.ACTIVE
+        assert monitor_two.status == ObjectStatus.ACTIVE
+
+    @patch("sentry.quotas.backend.check_assign_monitor_seats")
+    def test_enable_no_quota(self, check_assign_monitor_seats):
+        monitor_one = self._create_monitor(slug="monitor_one", status=ObjectStatus.DISABLED)
+        monitor_two = self._create_monitor(slug="monitor_two", status=ObjectStatus.DISABLED)
+        result = SeatAssignmentResult(
+            assignable=False,
+            reason="Over quota",
         )
+        check_assign_monitor_seats.return_value = result
 
-    def test_disabled_creating_with_existing_monitors(self):
         data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "slug": "my-monitor",
-            "type": "cron_job",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "slugs": ["monitor_one", "monitor_two"],
+            "status": "active",
         }
-        self.project.flags.has_cron_monitors = True
-        self.project.save()
+        response = self.get_error_response(self.organization.slug, **data)
+        assert response.status_code == 400
+        assert response.data == "Over quota"
 
-        with self.feature("organizations:crons-disable-new-projects"):
-            response = self.get_success_response(self.organization.slug, **data)
-
-        assert response.data["slug"] == "my-monitor"
+        # Verify monitors are still disabled
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.status == ObjectStatus.DISABLED
+        assert monitor_two.status == ObjectStatus.DISABLED

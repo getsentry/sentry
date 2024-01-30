@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
+import zoneinfo
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
 from uuid import uuid4
 
 import jsonschema
-import pytz
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -270,7 +270,7 @@ class Monitor(Model):
 
     @property
     def timezone(self):
-        return pytz.timezone(self.config.get("timezone") or "UTC")
+        return zoneinfo.ZoneInfo(self.config.get("timezone") or "UTC")
 
     def get_schedule_type_display(self):
         return ScheduleType.get_name(self.config["schedule_type"])

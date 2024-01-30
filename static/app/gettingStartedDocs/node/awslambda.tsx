@@ -1,5 +1,5 @@
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -7,10 +7,10 @@ import {
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
+import type {ProductSelectionMap} from 'sentry/utils/gettingStartedDocs/node';
 import {
   getDefaulServerlessImports,
   getInstallConfig,
-  ProductSelectionMap,
 } from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;

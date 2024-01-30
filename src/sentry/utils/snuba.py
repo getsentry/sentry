@@ -11,18 +11,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -129,6 +118,12 @@ SPAN_COLUMN_MAP = {
     "transaction.op": "transaction_op",
     "user": "user",
     "profile_id": "profile_id",
+    "transaction.method": "sentry_tags[transaction.method]",
+    "system": "sentry_tags[system]",
+    "release": "sentry_tags[release]",
+    "environment": "sentry_tags[environment]",
+    "device.class": "sentry_tags[device.class]",
+    "category": "sentry_tags[category]",
 }
 
 SPAN_COLUMN_MAP.update(
@@ -175,7 +170,7 @@ METRICS_COLUMN_MAP = {
 }
 
 
-DATASETS: Dict[Dataset, Dict[str, str]] = {
+DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
@@ -515,7 +510,7 @@ def get_organization_id_from_project_ids(project_ids: Sequence[int]) -> int:
     return organization_id
 
 
-def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int]]) -> List[int]:
+def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int]]) -> list[int]:
     ids = [set(get_related_project_ids(k, filter_keys[k])) for k in filter_keys]
     return list(set.union(*ids))
 
@@ -586,7 +581,7 @@ def _prepare_start_end(
     end: Optional[datetime],
     organization_id: int,
     group_ids: Optional[Sequence[int]],
-) -> Tuple[datetime, datetime]:
+) -> tuple[datetime, datetime]:
     if not start:
         start = datetime(2008, 5, 8)
     if not end:
@@ -790,8 +785,8 @@ def raw_query(
 
 SnubaQuery = Union[Request, MutableMapping[str, Any]]
 Translator = Callable[[Any], Any]
-SnubaQueryBody = Tuple[SnubaQuery, Translator, Translator]
-ResultSet = List[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
+SnubaQueryBody = tuple[SnubaQuery, Translator, Translator]
+ResultSet = list[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
 
 
 def raw_snql_query(
@@ -809,7 +804,7 @@ def raw_snql_query(
 
 
 def bulk_snql_query(
-    requests: List[Request],
+    requests: list[Request],
     referrer: Optional[str] = None,
     use_cache: bool = False,
 ) -> ResultSet:
@@ -820,7 +815,7 @@ def bulk_snql_query(
 
 
 def bulk_snuba_queries(
-    requests: List[Request],
+    requests: list[Request],
     referrer: Optional[str] = None,
     use_cache: bool = False,
     use_mql: bool = False,
@@ -889,7 +884,7 @@ def _apply_cache_and_build_results(
     if use_cache:
         cache_keys = [get_cache_key(query_params[0]) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
-        to_query: List[Tuple[int, SnubaQueryBody, Optional[str]]] = []
+        to_query: list[tuple[int, SnubaQueryBody, Optional[str]]] = []
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
             cached_result = cache_data.get(cache_key)
             metric_tags = {"referrer": referrer} if referrer else None
@@ -984,10 +979,12 @@ def _bulk_snuba_query(
 
         if response.status != 200:
             if use_mql:
-                error_request = snuba_param_list[index][0]
-                error_request = (
-                    error_request.serialize_mql()
-                )  # never used, only for sentry visibility
+                sentry_sdk.add_breadcrumb(
+                    category="query_info",
+                    level="info",
+                    message="mql_query",
+                    data={"mql": snuba_param_list[index][0].serialize_mql()},
+                )
 
             if body.get("error"):
                 error = body["error"]
@@ -1011,7 +1008,7 @@ def _bulk_snuba_query(
     return results
 
 
-RawResult = Tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
+RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
 def _snql_query(
@@ -1056,7 +1053,7 @@ def _snuba_query(
         raise SnubaError(err)
 
 
-def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str, bool]) -> RawResult:
+def _legacy_snql_query(params: tuple[SnubaQuery, Hub, Mapping[str, str], str, bool]) -> RawResult:
     # Convert the JSON query to SnQL and run it
     query_data, thread_hub, headers, parent_api, _ = params
     query_params, forward, reverse = query_data
@@ -1198,6 +1195,12 @@ def resolve_column(dataset) -> Callable[[str], str]:
         if dataset == Dataset.Discover:
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
+        elif (
+            dataset == Dataset.SpansIndexed
+            and isinstance(col, str)
+            and col.startswith("sentry_tags[")
+        ):
+            return col
         else:
             if (
                 col in DATASET_FIELDS[dataset]

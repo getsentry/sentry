@@ -21,6 +21,7 @@ from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry import options
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
@@ -241,8 +242,8 @@ def is_member_disabled_from_limit(
     if getattr(user, "is_sentry_app", False):
         return False
 
-    # don't limit super users
-    if is_active_superuser(request):
+    # don't limit superuser or staff
+    if is_active_superuser(request) or is_active_staff(request):
         return False
 
     # must be a simple user at this point

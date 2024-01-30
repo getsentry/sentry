@@ -5,14 +5,14 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {EventsStats} from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {EventsStats} from 'sentry/types';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
@@ -22,12 +22,13 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/cons
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {SpanGroupBar} from 'sentry/views/starfish/views/webServiceView/spanGroupBar';
-import {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
+import type {BaseStarfishViewProps} from 'sentry/views/starfish/views/webServiceView/starfishLanding';
 
 import EndpointList from './endpointList';
 
 export function StarfishView(props: BaseStarfishViewProps) {
   const pageFilter = usePageFilters();
+  const {setPageError} = usePageAlert();
   const {selection} = pageFilter;
   const [activeSpanGroup, setActiveSpanGroup] = useState<string | null>(null);
   const [transactionsList, setTransactionsList] = useState<string[]>([]);
@@ -219,7 +220,7 @@ export function StarfishView(props: BaseStarfishViewProps) {
         {...props}
         transactionsList={transactionsList}
         setTransactionsList={setTransactionsList}
-        setError={usePageError().setPageError}
+        setError={setPageError}
         inactiveTransactions={inactiveTransactions}
         setInactiveTransactions={setInactiveTransactions}
       />

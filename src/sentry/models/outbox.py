@@ -593,9 +593,19 @@ class OutboxBase(Model):
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
             assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
-            deleted_count, _ = (
-                self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
-            )
+            deleted_count = 0
+
+            # Use a fetch and delete loop as doing cleanup in a single query
+            # causes timeouts with large datasets. Fetch in batches of 100 and
+            # Apply the ID condition in python as filtering rows in postgres
+            # leads to timeouts.
+            while True:
+                batch = self.select_coalesced_messages().values_list("id", flat=True)[:100]
+                delete_ids = [item_id for item_id in batch if item_id <= coalesced.id]
+                if not len(delete_ids):
+                    break
+                self.objects.filter(id__in=delete_ids).delete()
+                deleted_count += len(delete_ids)
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
@@ -614,8 +624,8 @@ class OutboxBase(Model):
     def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
         span.set_tag(tag_for_outbox, message.shard_identifier)
-        span.set_data("payload", message.payload)
         span.set_data("outbox_id", message.id)
+        span.set_data("outbox_shard_id", message.shard_identifier)
         span.set_tag("outbox_category", OutboxCategory(message.category).name)
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 
@@ -773,6 +783,8 @@ class ControlOutboxBase(OutboxBase):
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
             shard_scope=self.shard_scope,
+            date_added=self.date_added,
+            scheduled_for=self.scheduled_for,
         )
 
     class Meta:

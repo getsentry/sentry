@@ -3,15 +3,13 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {
-  useResizableDrawer,
-  UseResizableDrawerOptions,
-} from 'sentry/utils/useResizableDrawer';
+import type {UseResizableDrawerOptions} from 'sentry/utils/useResizableDrawer';
+import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 import {CollapsibleTimeline, CollapsibleTimelineLabel} from './collapsibleTimeline';
 
@@ -150,14 +148,14 @@ const DifferentialFlamegraphGrid = styled('div')<{
     layout === 'table bottom'
       ? 'auto 1fr auto'
       : layout === 'table right'
-      ? 'min-content 1fr'
-      : 'min-content 1fr'};
+        ? 'min-content 1fr'
+        : 'min-content 1fr'};
   grid-template-columns: ${({layout}) =>
     layout === 'table bottom'
       ? '100%'
       : layout === 'table left'
-      ? `min-content min-content auto`
-      : `auto min-content min-content`};
+        ? `min-content min-content auto`
+        : `auto min-content min-content`};
 
   /* false positive for grid layout */
   /* stylelint-disable */
@@ -169,16 +167,16 @@ const DifferentialFlamegraphGrid = styled('div')<{
         'frame-stack'
         `
       : layout === 'table right'
-      ? `
+        ? `
         'minimap        frame-stack'
         'flamegraph     frame-stack'
       `
-      : layout === 'table left'
-      ? `
+        : layout === 'table left'
+          ? `
         'frame-stack minimap'
         'frame-stack flamegraph'
     `
-      : ''};
+          : ''};
 `;
 
 const MinimapContainer = styled('div')<{

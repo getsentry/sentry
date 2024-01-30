@@ -1,6 +1,6 @@
-import {MRI, PageFilters} from 'sentry/types';
-import {MetricTag} from 'sentry/utils/metrics';
+import type {MRI, PageFilters} from 'sentry/types';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
+import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
