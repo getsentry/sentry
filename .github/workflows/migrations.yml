@@ -46,7 +46,7 @@ jobs:
       - uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0 # v6.3.3
         with:
           script: |
-            const {check} = require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/migrations-approval-check`);
+            const {check} = require('.github/workflows/scripts/migrations-approval-check');
             await check({ github, context, core });
 
   modified-migration:
