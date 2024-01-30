@@ -2,9 +2,8 @@ import {Fragment, useCallback} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Panel from 'sentry/components/panels/panel';
@@ -14,7 +13,6 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {IconNot, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -34,10 +32,8 @@ import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {
-  type BlockButtonProps,
-  BlockMetricButton,
-} from 'sentry/views/settings/projectMetrics/blockButton';
+import {useAccess} from 'sentry/views/settings/projectMetrics/access';
+import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 
 import {useProjectMetric} from '../../../utils/metrics/useMetricsMeta';
@@ -75,6 +71,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
 
   const isBlockedMetric = blockingStatus?.isBlocked ?? false;
   const blockMetricMutation = useBlockMetric(project);
+  const {hasAccess} = useAccess({access: ['project:write']});
 
   const {type, name, unit} = parseMRI(mri) ?? {};
   const operation = getSettingsOperationForType(type ?? 'c');
@@ -133,8 +130,9 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
         title={t('Metric Details')}
         action={
           <Controls>
-            <BlockMetricButton
+            <BlockButton
               size="sm"
+              hasAccess={hasAccess}
               disabled={blockMetricMutation.isLoading}
               isBlocked={isBlockedMetric}
               onConfirm={handleMetricBlockToggle}
@@ -232,12 +230,20 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
             <Fragment key={key}>
               <div key={key}>{key}</div>
               <TextAlignRight key={key}>
-                <BlockTagButton
+                <BlockButton
                   size="xs"
+                  hasAccess={hasAccess}
                   disabled={blockMetricMutation.isLoading || isBlockedMetric}
                   isBlocked={isBlockedTag}
                   onConfirm={() => handleMetricTagBlockToggle(key)}
                   aria-label={t('Block tag')}
+                  message={
+                    isBlockedTag
+                      ? t('Are you sure you want to unblock this tag?')
+                      : t(
+                          'Are you sure you want to block this tag? It will no longer be ingested, and will not be available for use in Metrics, Alerts, or Dashboards.'
+                        )
+                  }
                 />
               </TextAlignRight>
             </Fragment>
@@ -252,28 +258,6 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
         </PanelBody>
       </Panel>
     </Fragment>
-  );
-}
-
-function BlockTagButton({isBlocked, onConfirm, ...props}: BlockButtonProps) {
-  return (
-    <Confirm
-      priority="danger"
-      onConfirm={onConfirm}
-      confirmText={isBlocked ? t('Unblock Tag') : t('Block Tag')}
-      message={
-        isBlocked
-          ? t('Are you sure you want to unblock this tag?')
-          : t('Are you sure you want to block this tag?')
-      }
-    >
-      <Button
-        icon={isBlocked ? <IconPlay size="xs" /> : <IconNot size="xs" />}
-        {...props}
-      >
-        {isBlocked ? t('Unblock') : t('Block')}
-      </Button>
-    </Confirm>
   );
 }
 
