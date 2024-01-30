@@ -1638,6 +1638,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-stream-performance-cache": False,
     # Enable issue similarity embeddings
     "organizations:issues-similarity-embeddings": False,
+    # Enable the trace timeline on issue details
+    "organizations:issues-trace-timeline": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
     # Enable updated legacy browser settings

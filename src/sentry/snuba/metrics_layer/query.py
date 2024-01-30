@@ -212,7 +212,6 @@ def mql_query(request: Request, start: datetime, end: datetime) -> Mapping[str, 
             [request],
             request.tenant_ids["referrer"],
             use_cache=True,
-            use_mql=True,
         )[0]
     except Exception:
         metrics.incr(
