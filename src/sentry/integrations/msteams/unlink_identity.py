@@ -8,7 +8,6 @@ from rest_framework.request import Request
 from sentry.models.identity import Identity
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
-from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -32,7 +31,6 @@ def build_unlinking_url(conversation_id, service_url, teams_user_id):
 
 @control_silo_view
 class MsTeamsUnlinkIdentityView(BaseView):
-    @transaction_start("MsTeamsUnlinkIdentityView")
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params) -> HttpResponse:
         try:
