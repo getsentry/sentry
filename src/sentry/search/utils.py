@@ -568,9 +568,22 @@ def get_numeric_field_value(
                 return function(field, type(str(raw_value[len(modifier) :])))
         else:
             return {field: type(raw_value)}
+
+
+        raw_value_no_modifier = raw_value.lstrip("><=")
+        if all(c.isdigit() for c in raw_value_no_modifier):
+            return {field: int(raw_value)}
+        else:
+            from sentry.utils.numbers import base36_decode
+            try:
+                return {field: base36_decode(raw_value)}
+            except ValueError:
+                # Log the actual exception here?
+                raise InvalidQuery(f'"{raw_value}" is not valid identifier.')
     except ValueError:
         msg = f'"{raw_value}" could not be converted to a number.'
         raise InvalidQuery(msg)
+        logger.info('get_numeric_field_value.invalid_value', extra={'raw_value': raw_value, 'field': field})
 
 
 def tokenize_query(query: str) -> dict[str, list[str]]:
