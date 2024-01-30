@@ -378,17 +378,21 @@ def is_root(item: SnubaTransaction) -> bool:
     return item.get("root", "0") == "1"
 
 
-def child_sort_key(item: TraceEvent) -> List[int]:
-    if item.fetched_nodestore and item.nodestore_event is not None:
-        return [
-            item.nodestore_event.data["start_timestamp"],
-            item.nodestore_event.data["timestamp"],
-        ]
-    else:
-        return [
-            item.event["transaction"],
-            item.event["id"],
-        ]
+def child_sort_key(item: TraceEvent) -> Any:
+    try:
+        # If `transaction` attribute is numeric, we handle it as a float
+        if item.event["transaction"].replace('.', '', 1).isdigit() and not item.event["transaction"].isalpha():
+            return float(item.event["transaction"])
+        # If `id` attribute is numeric, we use it as an integer
+        elif item.event["id"].isdigit():
+            return int(item.event["id"])
+        # Otherwise, we handle them as strings
+        else:
+            return str(item.event["transaction"])
+    except (ValueError, TypeError):
+        # Fallback in case of any unexpected type issues
+        return str(item.event["transaction"])
+
 
 
 def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
