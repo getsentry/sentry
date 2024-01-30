@@ -174,7 +174,7 @@ const customMetricsOnboarding: OnboardingConfig = {
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-javascript/discussions/9973" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/bun/metrics/" />
               ),
             }
           ),

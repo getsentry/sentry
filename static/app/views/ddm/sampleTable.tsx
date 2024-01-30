@@ -17,11 +17,11 @@ import {IconArrow, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MRI} from 'sentry/types';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/formatters';
+import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
 import type {MetricCorrelation, SelectionRange} from 'sentry/utils/metrics/types';
 import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -87,6 +87,13 @@ export function SampleTable({
     // We only want to show the first 10 correlations
     .slice(0, 10) as MetricCorrelation[];
 
+  function trackClick(target: 'event-id' | 'transaction' | 'trace-id' | 'profile') {
+    trackAnalytics('ddm.sample-table-interaction', {
+      organization,
+      target,
+    });
+  }
+
   function renderHeadCell(col: Column) {
     if (col.key === 'profileId') {
       return <AlignCenter>{col.name}</AlignCenter>;
@@ -109,11 +116,6 @@ export function SampleTable({
     }
 
     const project = projects.find(p => parseInt(p.id, 10) === row.projectId);
-    const eventSlug = generateEventSlug({
-      id: row.transactionId,
-      project: project?.slug,
-    });
-
     const highlighted = row.transactionId === highlightedRow;
 
     if (key === 'transactionId') {
@@ -124,13 +126,14 @@ export function SampleTable({
           highlighted={highlighted}
         >
           <Link
-            to={getTransactionDetailsUrl(
-              organization.slug,
-              eventSlug,
-              undefined,
-              {referrer: 'metrics', openPanel: 'open'},
-              row.spansDetails[0]?.spanId
+            to={getMetricsCorrelationSpanUrl(
+              organization,
+              project?.slug,
+              row.spansDetails[0]?.spanId,
+              row.transactionId,
+              row.transactionSpanId
             )}
+            onClick={() => trackClick('event-id')}
             target="_blank"
           >
             {row.transactionId.slice(0, 8)}
@@ -158,6 +161,7 @@ export function SampleTable({
                   referrer: 'metrics',
                 })}`
               )}
+              onClick={() => trackClick('transaction')}
             >
               {row.segmentName}
             </Link>
@@ -188,6 +192,7 @@ export function SampleTable({
             to={normalizeUrl(
               `/organizations/${organization.slug}/performance/trace/${row.traceId}/`
             )}
+            onClick={() => trackClick('trace-id')}
           >
             {row.traceId.slice(0, 8)}
           </Link>
@@ -257,6 +262,7 @@ export function SampleTable({
               to={normalizeUrl(
                 `/organizations/${organization.slug}/profiling/profile/${project?.slug}/${row.profileId}/flamegraph/`
               )}
+              onClick={() => trackClick('profile')}
               size="xs"
             >
               <IconProfiling size="xs" />
