@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -15,7 +17,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -51,6 +53,7 @@ export default function Monitors() {
     data: monitorList,
     getResponseHeader: monitorListHeaders,
     isLoading,
+    refetch,
   } = useApiQuery<Monitor[]>(queryKey, {
     staleTime: 0,
   });
@@ -89,6 +92,17 @@ export default function Monitors() {
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
               <FeedbackWidgetButton />
+              <Button
+                icon={<IconList />}
+                size="sm"
+                onClick={() =>
+                  openBulkEditMonitorsModal({
+                    onClose: refetch,
+                  })
+                }
+              >
+                {t('Manage Monitors')}
+              </Button>
               {showAddMonitor && (
                 <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
                   {t('Add Monitor')}
