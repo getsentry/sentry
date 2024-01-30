@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
 
@@ -16,6 +16,10 @@ export function TraceTimelineTooltip({
   frames,
 }: {event: Event; frames: TimelineEvent[]}) {
   const organization = useOrganization();
+  const {projects} = useProjects({
+    slugs: [...frames.reduce((acc, cur) => acc.add(cur.project), new Set<string>())],
+    orgId: organization.slug,
+  });
   // TODO: should handling of current event + other events look different
   if (frames.length === 1 && frames[0].id === event.id) {
     return <YouAreHere>{t('You are here')}</YouAreHere>;
@@ -26,7 +30,7 @@ export function TraceTimelineTooltip({
       <EventItemsWrapper>
         {frames.slice(0, 3).map(frame => {
           const titleSplit = frame.title.split(':');
-          const project = ProjectsStore.getBySlug(frame.project);
+          const project = projects.find(p => p.slug === frame.project);
 
           return (
             <EventItem

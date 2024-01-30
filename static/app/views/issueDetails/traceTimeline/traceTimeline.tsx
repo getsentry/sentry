@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import type {Event} from 'sentry/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -32,19 +33,21 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   }
 
   return (
-    <VisiblePanel>
-      <Stacked ref={timelineRef}>
-        {isLoading ? (
-          <Placeholder height="20px" />
-        ) : (
-          <TimelineEventsContainer>
-            <TimelineOutline />
-            {/* Sets a min width of 200 for testing */}
-            <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
-          </TimelineEventsContainer>
-        )}
-      </Stacked>
-    </VisiblePanel>
+    <ErrorBoundary mini>
+      <VisiblePanel>
+        <Stacked ref={timelineRef}>
+          {isLoading ? (
+            <Placeholder height="45px" />
+          ) : (
+            <TimelineEventsContainer>
+              <TimelineOutline />
+              {/* Sets a min width of 200 for testing */}
+              <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
+            </TimelineEventsContainer>
+          )}
+        </Stacked>
+      </VisiblePanel>
+    </ErrorBoundary>
   );
 }
 
@@ -86,6 +89,7 @@ const Stacked = styled('div')`
 
 const TimelineEventsContainer = styled('div')`
   position: relative;
+  height: 45px;
   padding-top: 10px;
   padding-bottom: 10px;
 `;
