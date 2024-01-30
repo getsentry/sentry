@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Generic, Mapping, Optional, Sequence, TypeVar
+from typing import Generic, Mapping, Optional, Sequence, Set, TypeVar
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
@@ -7,7 +7,10 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
+from sentry.sentry_metrics.querying.errors import (
+    InvalidMetricsQueryError,
+    LatestReleaseNotFoundError,
+)
 from sentry.sentry_metrics.querying.types import QueryCondition, QueryExpression
 
 TVisited = TypeVar("TVisited")
@@ -228,3 +231,22 @@ class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
             op=condition.op,
             rhs=condition.rhs,
         )
+
+
+class QueriedMetricsVisitor(QueryExpressionVisitor[Set[str]]):
+    """
+    Visitor that recursively computes all the metrics MRI that have been queried.
+    """
+
+    def _visit_formula(self, formula: Formula) -> Set[str]:
+        metrics = set()
+        for parameter in formula.parameters:
+            metrics.union(self.visit(parameter))
+
+        return metrics
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> Set[str]:
+        if timeseries.metric.mri is None:
+            raise InvalidMetricsQueryError("Can't determine queried metrics without a MRI")
+
+        return {timeseries.metric.mri}
