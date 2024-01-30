@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {duration} from 'moment';
 import {
   ReplayConsoleEventFixture,
@@ -8,13 +9,14 @@ import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
+import {QueryClientProvider} from 'sentry/utils/queryClient';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-jest.useFakeTimers();
 jest.mock('sentry/utils/useProjects');
 
 const {organization, project} = initializeOrg();
@@ -28,6 +30,12 @@ jest.mocked(useProjects).mockReturnValue({
   onSearch: () => Promise.resolve(),
   placeholders: [],
 });
+
+function wrapper({children}: {children?: ReactNode}) {
+  return (
+    <QueryClientProvider client={makeTestQueryClient()}>{children}</QueryClientProvider>
+  );
+}
 
 function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
   const HYDRATED_REPLAY = ReplayRecordFixture({
@@ -59,6 +67,10 @@ describe('useReplayData', () => {
       error_ids: [],
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
+      body: {data: mockReplayResponse},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays-events-meta/`,
       body: {
         data: [],
@@ -77,6 +89,7 @@ describe('useReplayData', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+      wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -149,6 +162,7 @@ describe('useReplayData', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+      wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -156,7 +170,6 @@ describe('useReplayData', () => {
       },
     });
 
-    jest.runAllTimers();
     await waitForNextUpdate();
 
     expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1);
@@ -237,6 +250,7 @@ describe('useReplayData', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+      wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -244,7 +258,6 @@ describe('useReplayData', () => {
       },
     });
 
-    jest.runAllTimers();
     await waitForNextUpdate();
 
     expect(mockedErrorsCall1).toHaveBeenCalledTimes(1);
@@ -302,6 +315,7 @@ describe('useReplayData', () => {
     });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
+      wrapper,
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
@@ -324,7 +338,6 @@ describe('useReplayData', () => {
     expect(mockedSegmentsCall).not.toHaveBeenCalledTimes(1);
     expect(result.current).toEqual(expectedReplayData);
 
-    jest.advanceTimersByTime(10);
     await waitForNextUpdate();
 
     // Afterwards we see the attachments & errors requests are made
@@ -340,7 +353,6 @@ describe('useReplayData', () => {
       })
     );
 
-    jest.advanceTimersByTime(100);
     await waitForNextUpdate();
 
     // Next we see that some rrweb data has arrived
@@ -352,7 +364,6 @@ describe('useReplayData', () => {
       })
     );
 
-    jest.advanceTimersByTime(250);
     await waitForNextUpdate();
 
     // Finally we see fetching is complete, errors are here too
