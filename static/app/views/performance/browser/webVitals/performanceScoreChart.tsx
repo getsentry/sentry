@@ -92,7 +92,7 @@ export function PerformanceScoreChart({
             projectScore={projectScore}
             text={score}
             width={220}
-            height={190}
+            height={200}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
             weights={weights}
@@ -116,6 +116,7 @@ const Flex = styled('div')`
   width: 100%;
   gap: ${space(1)};
   margin-top: ${space(1)};
+  flex-wrap: wrap;
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
@@ -139,7 +140,6 @@ const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
-  margin-bottom: ${space(1)};
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
