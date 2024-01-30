@@ -2,10 +2,10 @@ from django.test import RequestFactory
 
 from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.testutils.cases import TestMigrations
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import no_silo_test
 
 
-@control_silo_test
+@no_silo_test
 class TestBackfillGithubWebhookOutboxShardIds(TestMigrations):
     migrate_from = "0633_add_priority_locked_at_to_groupedmessage"
     migrate_to = "0634_backfill_github_webhook_outbox_shard_ids"
