@@ -52,6 +52,14 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
+    def _get_sanitized_tags(self, request: Request) -> Sequence[str]:
+        tags = request.data.get("tags")
+        if not tags:
+            raise InvalidParams("You must supply at least one tag to block")
+
+        # For now, we want to disallow any glob in the tags, since it might cause issues in Relay.
+        return [tag.replace("*", "") for tag in tags]
+
     def _create_audit_log_entry(
         self, event_id: str, metric_mri: str, tags: Optional[Sequence[str]], project: Project
     ):
@@ -84,17 +92,11 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
             patched_metrics = unblock_metric(metric_mri, [project])
             self._create_audit_log_entry("METRIC_UNBLOCK", metric_mri, None, project)
         elif metric_operation_type == MetricOperationType.BLOCK_TAGS:
-            tags = request.data.get("tags")
-            if not tags:
-                raise InvalidParams("You must supply at least one tag to block")
-
+            tags = self._get_sanitized_tags(request)
             patched_metrics = block_tags_of_metric(metric_mri, set(tags), [project])
             self._create_audit_log_entry("METRIC_TAGS_BLOCK", metric_mri, tags, project)
         elif metric_operation_type == MetricOperationType.UNBLOCK_TAGS:
-            tags = request.data.get("tags")
-            if not tags:
-                raise InvalidParams("You must supply at least one tag to unblock")
-
+            tags = self._get_sanitized_tags(request)
             patched_metrics = unblock_tags_of_metric(metric_mri, set(tags), [project])
             self._create_audit_log_entry("METRIC_TAGS_UNBLOCK", metric_mri, tags, project)
 
