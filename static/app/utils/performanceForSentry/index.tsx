@@ -600,7 +600,7 @@ function isINPEntity(entry: PerformanceEntry): entry is INPPerformanceEntry {
   return entry.entryType === 'first-input';
 }
 
-function getNearestElementName(node: HTMLElement | undefined): string | undefined {
+function getNearestElementName(node: HTMLElement | undefined | null): string | undefined {
   if (!node) {
     return 'no-element';
   }
