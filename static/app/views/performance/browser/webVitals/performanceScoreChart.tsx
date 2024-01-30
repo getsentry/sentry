@@ -127,6 +127,9 @@ const PerformanceScoreLabelContainer = styled('div')`
   display: flex;
   align-items: center;
   flex-direction: column;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-grow: 1;
+  }
 `;
 
 const PerformanceScoreLabel = styled('div')`
@@ -134,6 +137,7 @@ const PerformanceScoreLabel = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
   font-weight: bold;
+  margin-bottom: ${space(1)};
 `;
 
 const PerformanceScoreSubtext = styled('div')`
