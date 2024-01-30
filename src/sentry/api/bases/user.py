@@ -7,6 +7,7 @@ from typing_extensions import override
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organization import OrganizationStatus
@@ -26,8 +27,9 @@ class UserPermission(SentryPermission):
             return True
         if request.auth:
             return False
-        if is_active_superuser(request):
+        if is_active_superuser(request) or is_active_staff(request):
             return True
+
         return False
 
 
@@ -36,8 +38,7 @@ class OrganizationUserPermission(UserPermission):
 
     def has_org_permission(self, request: Request, user):
         """
-        Org can act on a user account,
-        if the user is a member of only one org
+        Org can act on a user account, if the user is a member of only one org
         e.g. reset org member's 2FA
         """
 

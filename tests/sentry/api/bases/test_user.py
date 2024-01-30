@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 from django.http import HttpRequest
 from rest_framework.request import Request
@@ -31,6 +33,16 @@ class UserPermissionTest(TestCase):
     def test_allows_current_user(self):
         user = Factories.create_user()
         assert self.user_permission.has_object_permission(get_request(user), None, user)
+
+    @patch("sentry.api.bases.user.is_active_superuser", return_value=True)
+    def test_allows_active_superuser(self, mock_is_active_superuser):
+        user = Factories.create_user(is_superuser=True)
+        assert self.user_permission.has_object_permission(get_request(), None, user)
+
+    @patch("sentry.api.bases.user.is_active_staff", return_value=True)
+    def test_allows_active_staff(self, mock_is_active_staff):
+        user = Factories.create_user()
+        assert self.user_permission.has_object_permission(get_request(), None, user)
 
     def test_rejects_user_as_anonymous(self):
         user = Factories.create_user()

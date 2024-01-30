@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint, UserPermission
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organizationmapping import OrganizationMapping
@@ -18,7 +19,7 @@ from sentry.types.region import get_region_by_name
 
 # Grants access to the list of regions where a user has organizations.
 # This should only be accessible for the current user or
-# system/superuser requests.
+# system/superuser/staff requests.
 #
 # This will also grant access via user auth tokens assuming the
 # user ID matches the user that is being queried.
@@ -30,7 +31,7 @@ class UserRegionEndpointPermissions(UserPermission):
             return True
         if is_system_auth(request.auth):
             return True
-        if is_active_superuser(request):
+        if is_active_superuser(request) or is_active_staff(request):
             return True
 
         return False

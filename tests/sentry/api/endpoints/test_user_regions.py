@@ -80,6 +80,31 @@ class UserUserRolesTest(APITestCase):
         assert response.data["regions"] == []
 
     @override_regions(region_config)
+    def test_allow_staff_to_query_all(self):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
+
+        test_user_1 = self.create_user()
+        self.create_organization(region="us", owner=test_user_1)
+        self.create_organization(region="de", owner=test_user_1)
+        self.create_organization(region="acme", owner=test_user_1)
+
+        test_user_2 = self.create_user()
+        response = self.get_response(test_user_1.id)
+        assert response.status_code == 200
+        assert "regions" in response.data
+        assert response.data["regions"] == [
+            st.api_serialize(),
+            de.api_serialize(),
+            us.api_serialize(),
+        ]
+
+        response = self.get_response(test_user_2.id)
+        assert response.status_code == 200
+        assert "regions" in response.data
+        assert response.data["regions"] == []
+
+    @override_regions(region_config)
     def test_get_for_user_with_auth_token(self):
         self.create_organization(region="us", owner=self.user)
         self.create_organization(region="de", owner=self.user)
