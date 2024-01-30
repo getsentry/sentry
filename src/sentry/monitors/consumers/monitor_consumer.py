@@ -810,6 +810,12 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
         )
         checkin_mapping[item.processing_key].append(item)
 
+    # Number of check-ins that are being processed in this batch
+    metrics.gauge("monitors.checkin.parallel_batch_count", len(batch))
+
+    # Number of check-in groups we've collected to be processed in parallel
+    metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
+
     # Submit check-in groups for processing
     with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
