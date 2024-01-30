@@ -579,7 +579,7 @@ class _RemoteSiloCall:
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_adapter = HTTPAdapter(
             max_retries=Retry(
-                total=3,
+                total=5,
                 backoff_factor=0.1,
                 status_forcelist=[503],
                 allowed_methods=["POST"],
