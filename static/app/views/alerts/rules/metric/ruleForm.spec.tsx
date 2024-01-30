@@ -36,7 +36,7 @@ describe('Incident Rules Form', () => {
         project={project}
         {...props}
       />,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
 
   beforeEach(() => {

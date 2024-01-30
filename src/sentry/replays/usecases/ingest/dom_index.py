@@ -198,7 +198,7 @@ def get_user_actions(
                                 "organizations:session-replay-rage-click-issue-creation",
                                 Project.objects.get(id=project_id).organization,
                             ):
-                                report_rage_click_issue(
+                                report_rage_click_issue.delay(
                                     project_id, replay_id, cast(SentryEvent, event)
                                 )
 

@@ -40,6 +40,19 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def get_rich_text_preformatted_block(text: str) -> SlackBlock:
+        return {
+            "type": "rich_text",
+            "elements": [
+                {
+                    "type": "rich_text_preformatted",
+                    "elements": [{"type": "text", "text": text}],
+                    "border": 0,
+                }
+            ],
+        }
+
+    @staticmethod
     def get_tags_block(tags) -> SlackBlock:
         text = ""
         for tag in tags:
