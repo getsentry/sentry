@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import color from 'color';
 import type {EChartsOption} from 'echarts';
+import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
@@ -248,7 +249,7 @@ function BrushRectOverlay({
       height: resultHeight,
     };
 
-    if (JSON.stringify(newPosition) !== JSON.stringify(position)) {
+    if (!isEqual(newPosition, position)) {
       setPosition(newPosition);
     }
   }, [rect, chartInstance, position, useFullYAxis]);
