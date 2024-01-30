@@ -33,6 +33,26 @@ import usePrevious from 'sentry/utils/usePrevious';
 import type {SingleListProps} from './list';
 import type {SelectOption} from './types';
 
+// autoFocus react attribute is sync called on render, this causes
+// layout thrashing and is bad for performance. This thin wrapper function
+// will defer the focus call until the next frame, after the browser and react
+// have had a chance to update the DOM, splitting the perf cost across frames.
+function focusElement(targetRef: HTMLElement | undefined | null) {
+  if (!targetRef) {
+    return;
+  }
+
+  if ('requestAnimationFrame' in window) {
+    window.requestAnimationFrame(() => {
+      targetRef.focus();
+    });
+  } else {
+    setTimeout(() => {
+      targetRef.focus();
+    }, 1);
+  }
+}
+
 export interface SelectContextValue {
   overlayIsOpen: boolean;
   /**
@@ -272,9 +292,11 @@ export function Control({
       // we should move the focus to the menu items list.
       if (e.key === 'ArrowDown') {
         e.preventDefault(); // Prevent scroll action
-        overlayRef.current
-          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
-          ?.focus();
+        focusElement(
+          overlayRef.current?.querySelector<HTMLLIElement>(
+            `li[role="${grid ? 'row' : 'option'}"]`
+          )
+        );
       }
 
       // Continue propagation, otherwise the overlay won't close on Esc key press
@@ -311,15 +333,12 @@ export function Control({
     shouldCloseOnBlur,
     preventOverflowOptions,
     flipOptions,
-    onOpenChange: async open => {
+    onOpenChange: open => {
       // On open
       if (open) {
-        // Wait for overlay to appear/disappear
-        await new Promise(resolve => resolve(null));
-
         // Focus on search box if present
         if (searchable) {
-          searchRef.current?.focus();
+          focusElement(searchRef.current);
           return;
         }
 
@@ -329,14 +348,16 @@ export function Control({
 
         // Focus on first selected item
         if (firstSelectedOption) {
-          firstSelectedOption.focus();
+          focusElement(firstSelectedOption);
           return;
         }
 
         // If no item is selected, focus on first item instead
-        overlayRef.current
-          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
-          ?.focus();
+        focusElement(
+          overlayRef.current?.querySelector<HTMLLIElement>(
+            `li[role="${grid ? 'row' : 'option'}"]`
+          )
+        );
         return;
       }
 
@@ -347,9 +368,7 @@ export function Control({
       setSearchInputValue('');
       setSearch('');
 
-      // Wait for overlay to appear/disappear
-      await new Promise(resolve => resolve(null));
-      triggerRef.current?.focus();
+      focusElement(triggerRef.current);
     },
   });
 
