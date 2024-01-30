@@ -27,8 +27,8 @@ type Props = {
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
-  buttonProps?: Partial<ComponentProps<typeof LinkButton>>;
   focusTab?: TabKey;
+  fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
 
 function getReplayAnalyticsStatus({
@@ -54,7 +54,7 @@ function getReplayAnalyticsStatus({
 }
 
 function ReplayPreview({
-  buttonProps,
+  fullReplayButtonProps,
   eventTimestampMs,
   focusTab,
   orgSlug,
@@ -130,7 +130,7 @@ function ReplayPreview({
 
             <CTAOverlay>
               <LinkButton
-                {...buttonProps}
+                {...fullReplayButtonProps}
                 icon={<IconPlay />}
                 priority="primary"
                 to={fullReplayUrl}

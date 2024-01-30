@@ -50,7 +50,9 @@ export const DDMLayout = memo(() => {
             {t('Metrics')}
             <PageHeadingQuestionTooltip
               docsUrl={METRICS_DOCS_URL}
-              title={t('Delightful Developer Metrics.')}
+              title={t(
+                'Metrics help you track and visualize the data points you care about, making it easier to monitor your application health and identify issues.'
+              )}
             />
             <FeatureBadge type="alpha" />
           </Layout.Title>

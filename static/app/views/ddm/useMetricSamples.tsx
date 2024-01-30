@@ -146,6 +146,7 @@ export function useMetricSamples({
         // TODO: for now we just pass these ids through, but we should probably index
         // samples by an id and then just pass that reference
         transactionId: sample.transactionId,
+        transactionSpanId: sample.transactionSpanId,
         spanId: sample.spanId,
         projectId: sample.projectId,
         itemStyle: {
