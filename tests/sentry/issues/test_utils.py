@@ -16,6 +16,7 @@ from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.helpers.datetime import iso_format
+from sentry.types.group import PriorityLevel
 
 
 class OccurrenceTestMixin:
@@ -49,6 +50,7 @@ class OccurrenceTestMixin:
             "type": ProfileFileIOGroupType.type_id,
             "detection_time": datetime.now().timestamp(),
             "level": "warning",
+            "initial_issue_priority": PriorityLevel.LOW,
         }
         kwargs.update(overrides)  # type: ignore
 

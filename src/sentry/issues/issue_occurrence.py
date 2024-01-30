@@ -34,7 +34,7 @@ class IssueOccurrenceData(TypedDict):
     detection_time: float
     level: Optional[str]
     culprit: Optional[str]
-    initial_issue_priority: Optional[int]
+    initial_issue_priority: int | None
 
 
 @dataclass(frozen=True)
@@ -86,7 +86,7 @@ class IssueOccurrence:
     detection_time: datetime
     level: str
     culprit: str
-    initial_issue_priority: Optional[int] = None
+    initial_issue_priority: int | None = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -139,7 +139,7 @@ class IssueOccurrence:
             cast(datetime, parse_timestamp(data["detection_time"])),
             level,
             culprit,
-            data["initial_issue_priority"],
+            data.get("initial_issue_priority"),
         )
 
     @property
