@@ -378,17 +378,15 @@ def is_root(item: SnubaTransaction) -> bool:
     return item.get("root", "0") == "1"
 
 
-def child_sort_key(item: TraceEvent) -> List[int]:
+def child_sort_key(item: TraceEvent) -> Tuple:
     if item.fetched_nodestore and item.nodestore_event is not None:
-        return [
-            item.nodestore_event.data["start_timestamp"],
-            item.nodestore_event.data["timestamp"],
-        ]
+        # Use 'start_timestamp' and 'timestamp' if available, with a fallback to None
+        start_timestamp = item.nodestore_event.data.get('start_timestamp')
+        timestamp = item.nodestore_event.data.get('timestamp')
+        return (start_timestamp if start_timestamp is not None else datetime.min, timestamp if timestamp is not None else datetime.min)
     else:
-        return [
-            item.event["transaction"],
-            item.event["id"],
-        ]
+        # Use 'transaction' and 'id' if they are not None; these are strings and should always be available, but fallback to empty strings just in case
+        return (item.event.get('transaction', ''), item.event.get('id', ''))
 
 
 def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
