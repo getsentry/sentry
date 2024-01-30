@@ -624,8 +624,8 @@ class OutboxBase(Model):
     def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
         span.set_tag(tag_for_outbox, message.shard_identifier)
-        span.set_data("payload", message.payload)
         span.set_data("outbox_id", message.id)
+        span.set_data("outbox_shard_id", message.shard_identifier)
         span.set_tag("outbox_category", OutboxCategory(message.category).name)
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 

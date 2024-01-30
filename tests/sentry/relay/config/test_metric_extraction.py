@@ -604,6 +604,22 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
 
 
 @django_db_all
+@override_options({"on_demand.max_widget_specs": 1})
+def test_get_metric_extraction_config_multiple_widgets_not_above_max_limit_identical_hashes(
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(["count()"], "transaction.duration:>=1000", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+            assert config
+
+            assert capture_exception.call_count == 0
+
+
+@django_db_all
 @override_options({"on_demand.max_widget_specs": 1, "on_demand.extended_max_widget_specs": 0})
 def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
     default_project: Project,

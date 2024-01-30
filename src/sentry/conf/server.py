@@ -1555,6 +1555,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
     "organizations:grouping-stacktrace-ui": False,
+    # Enable only calculating a secondary hash when needed
+    "organizations:grouping-suppress-unnecessary-secondary-hash": False,
     # Enable tweaks to group title in relation to hierarchical grouping.
     "organizations:grouping-title-ui": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1636,6 +1638,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-stream-performance-cache": False,
     # Enable issue similarity embeddings
     "organizations:issues-similarity-embeddings": False,
+    # Enable the trace timeline on issue details
+    "organizations:issues-trace-timeline": False,
     # Enabled latest adopted release filter for issue alerts
     "organizations:latest-adopted-release-filter": False,
     # Enable updated legacy browser settings
