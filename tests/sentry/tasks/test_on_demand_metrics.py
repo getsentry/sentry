@@ -363,34 +363,37 @@ def test_process_widget_specs(
         )
 
     if 1 in widget_query_ids:
-        widget_model = DashboardWidgetQueryOnDemand.objects.get(dashboard_widget_query_id=1)
-        assert_on_demand_model(
-            widget_model,
-            is_low_cardinality=expected_low_cardinality,
-            has_features=bool(feature_flags),
-            expected_applicable=True,
-            expected_hashes=["43adeb86", "851922a4"],
-        )
+        widget_models = DashboardWidgetQueryOnDemand.objects.filter(dashboard_widget_query_id=1)
+        for widget_model in widget_models:
+            assert_on_demand_model(
+                widget_model,
+                is_low_cardinality=expected_low_cardinality,
+                has_features=bool(feature_flags),
+                expected_applicable=True,
+                expected_hashes={1: ["43adeb86"], 2: ["851922a4"]},
+            )
 
     if 2 in widget_query_ids:
-        widget_model = DashboardWidgetQueryOnDemand.objects.get(dashboard_widget_query_id=2)
-        assert_on_demand_model(
-            widget_model,
-            is_low_cardinality=expected_low_cardinality,
-            has_features=bool(feature_flags),
-            expected_applicable=True,
-            expected_hashes=["8f74e5da", "581c3968"],
-        )
+        widget_models = DashboardWidgetQueryOnDemand.objects.filter(dashboard_widget_query_id=2)
+        for widget_model in widget_models:
+            assert_on_demand_model(
+                widget_model,
+                is_low_cardinality=expected_low_cardinality,
+                has_features=bool(feature_flags),
+                expected_applicable=True,
+                expected_hashes={1: ["8f74e5da"], 2: ["581c3968"]},
+            )
 
     if 3 in widget_query_ids:
-        widget_model = DashboardWidgetQueryOnDemand.objects.get(dashboard_widget_query_id=3)
-        assert_on_demand_model(
-            widget_model,
-            is_low_cardinality=expected_low_cardinality,
-            has_features=bool(feature_flags),
-            expected_applicable=False,
-            expected_hashes=[],
-        )
+        widget_models = DashboardWidgetQueryOnDemand.objects.filter(dashboard_widget_query_id=3)
+        for widget_model in widget_models:
+            assert_on_demand_model(
+                widget_model,
+                is_low_cardinality=expected_low_cardinality,
+                has_features=bool(feature_flags),
+                expected_applicable=False,
+                expected_hashes=[],
+            )
 
 
 def assert_on_demand_model(
@@ -398,8 +401,10 @@ def assert_on_demand_model(
     is_low_cardinality: bool,
     has_features: bool,
     expected_applicable: bool,
-    expected_hashes: Sequence[str],
+    expected_hashes: dict[int, str],
 ) -> None:
+    assert model.spec_version
+
     if not expected_applicable:
         assert model.extraction_state == OnDemandExtractionState.DISABLED_NOT_APPLICABLE
         assert model.spec_hashes == []
@@ -407,7 +412,7 @@ def assert_on_demand_model(
 
     if not has_features:
         assert model.extraction_state == OnDemandExtractionState.DISABLED_PREROLLOUT
-        assert model.spec_hashes == expected_hashes  # Still include hashes
+        assert model.spec_hashes == expected_hashes[model.spec_version]  # Still include hashes
         return
 
     expected_state = (
@@ -416,4 +421,4 @@ def assert_on_demand_model(
         else OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
     )
     assert model.extraction_state == expected_state
-    assert model.spec_hashes == expected_hashes
+    assert model.spec_hashes == expected_hashes[model.spec_version]  # Still include hashes
