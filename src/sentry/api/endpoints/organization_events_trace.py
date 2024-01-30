@@ -1,1380 +1,1264 @@
-import logging
-from collections import defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
-from typing import (
-    Any,
-    Callable,
-    Deque,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    cast,
-)
-
-import sentry_sdk
-from django.http import Http404, HttpRequest, HttpResponse
-from rest_framework.exceptions import ParseError
-from rest_framework.response import Response
-from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from snuba_sdk import Column, Function
-
-from sentry import constants, eventstore, features
-from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.serializers.models.event import get_tags_with_meta
-from sentry.api.utils import handle_query_errors
-from sentry.eventstore.models import Event
-from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.group import Group
-from sentry.models.organization import Organization
-from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
-from sentry.snuba import discover
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.referrer import Referrer
-from sentry.utils.dates import to_timestamp_from_iso_format
-from sentry.utils.numbers import base32_encode, format_grouped_length
-from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import bulk_snql_query
-from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
-
-logger: logging.Logger = logging.getLogger(__name__)
-MAX_TRACE_SIZE: int = 100
-
-
-_T = TypeVar("_T")
-NodeSpans = List[Dict[str, Any]]
-SnubaTransaction = TypedDict(
-    "SnubaTransaction",
-    {
-        "id": str,
-        "transaction.status": int,
-        "transaction.op": str,
-        "transaction.duration": int,
-        "transaction": str,
-        "timestamp": str,
-        "trace.span": str,
-        "trace.parent_span": str,
-        "trace.parent_transaction": Optional[str],
-        "root": str,
-        "project.id": int,
-        "project": str,
-        "issue.ids": List[int],
-    },
-)
-SnubaError = TypedDict(
-    "SnubaError",
-    {
-        "id": str,
-        "timestamp": str,
-        "trace.span": str,
-        "transaction": str,
-        "issue.id": int,
-        "title": str,
-        "tags[level]": str,
-        "project.id": int,
-        "project": str,
-    },
-)
-
-
-class TraceError(TypedDict):
-    event_id: str
-    issue_id: int
-    span: str
-    project_id: int
-    project_slug: str
-    title: str
-    level: str
-    timestamp: str
-    event_type: str
-    generation: int
-
-
-class TracePerformanceIssue(TypedDict):
-    event_id: str
-    issue_id: int
-    issue_short_id: Optional[str]
-    span: List[str]
-    suspect_spans: List[str]
-    project_id: int
-    project_slug: str
-    title: str
-    level: str
-    culprit: str
-    type: int
-    start: Optional[float]
-    end: Optional[float]
-
-
-LightResponse = TypedDict(
-    "LightResponse",
-    {
-        "event_id": str,
-        "span_id": str,
-        "transaction": str,
-        "transaction.duration": int,
-        "transaction.op": str,
-        "project_id": int,
-        "project_slug": str,
-        "parent_span_id": Optional[str],
-        "parent_event_id": Optional[str],
-        "generation": Optional[int],
-        "errors": List[TraceError],
-        "performance_issues": List[TracePerformanceIssue],
-    },
-)
-FullResponse = TypedDict(
-    "FullResponse",
-    {
-        "event_id": str,
-        "span_id": str,
-        "transaction": str,
-        "transaction.duration": int,
-        "transaction.op": str,
-        "project_id": int,
-        "project_slug": str,
-        "parent_span_id": Optional[str],
-        "parent_event_id": Optional[str],
-        "profile_id": Optional[str],
-        "generation": Optional[int],
-        "errors": List[TraceError],
-        "performance_issues": List[TracePerformanceIssue],
-        "timestamp": str,
-        "start_timestamp": str,
-        # Any because children are more FullResponse objects
-        "children": List[Any],
-        # Only on the detailed response
-        "measurements": Dict[str, int],
-        "tags": List[Tuple[str, str]],
-        "_meta": Dict[str, Any],
-        "transaction.status": str,
-    },
-)
-
-
-class TraceEvent:
-    def __init__(
-        self,
-        event: SnubaTransaction,
-        parent: Optional[str],
-        generation: Optional[int],
-        light: bool = False,
-        snuba_params: Optional[ParamsType] = None,
-        span_serialized: bool = False,
-    ) -> None:
-        self.event: SnubaTransaction = event
-        self.errors: List[TraceError] = []
-        self.children: List[TraceEvent] = []
-        self.performance_issues: List[TracePerformanceIssue] = []
-
-        # Can be None on the light trace when we don't know the parent
-        self.parent_event_id: Optional[str] = parent
-        self.generation: Optional[int] = generation
-
-        # Added as required because getting the nodestore_event is expensive
-        self._nodestore_event: Optional[Event] = None
-        self.fetched_nodestore: bool = span_serialized
-        self.span_serialized = span_serialized
-        if span_serialized:
-            self.fetched_nodestore = True
-        self.load_performance_issues(light, snuba_params)
-
-    @property
-    def nodestore_event(self) -> Optional[Event]:
-        with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
-            if self._nodestore_event is None and not self.fetched_nodestore:
-                self.fetched_nodestore = True
-                self._nodestore_event = eventstore.backend.get_event_by_id(
-                    self.event["project.id"], self.event["id"]
-                )
-        return self._nodestore_event
-
-    def load_performance_issues(self, light: bool, snuba_params: ParamsType) -> None:
-        """Doesn't get suspect spans, since we don't need that for the light view"""
-        for group_id in self.event["issue.ids"]:
-            group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
-            if group is None:
-                continue
-
-            suspect_spans: List[str] = []
-            unique_spans: Set[str] = set()
-            start: Optional[float] = None
-            end: Optional[float] = None
-            if light:
-                # This value doesn't matter for the light view
-                span = [self.event["trace.span"]]
-            elif "occurrence_spans" in self.event:
-                for problem in self.event["issue_occurrences"]:
-                    parent_span_ids = problem.evidence_data.get("parent_span_ids")
-                    if parent_span_ids is not None:
-                        unique_spans = unique_spans.union(parent_span_ids)
-                span = list(unique_spans)
-                for event_span in self.event["occurrence_spans"]:
-                    for problem in self.event["issue_occurrences"]:
-                        offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
-                        if event_span.get("span_id") in offender_span_ids:
-                            try:
-                                end_timestamp = float(event_span.get("timestamp"))
-                                if end is None:
-                                    end = end_timestamp
-                                else:
-                                    end = max(end, end_timestamp)
-                                if end_timestamp is not None:
-                                    start_timestamp = float(
-                                        end_timestamp - event_span.get("span.duration")
-                                    )
-                                    if start is None:
-                                        start = start_timestamp
-                                    else:
-                                        start = min(start, start_timestamp)
-                            except ValueError:
-                                pass
-                            suspect_spans.append(event_span.get("span_id"))
-            else:
-                if self.nodestore_event is not None or self.span_serialized:
-                    occurrence_query = QueryBuilder(
-                        Dataset.IssuePlatform,
-                        snuba_params,
-                        query=f"event_id:{self.event['id']}",
-                        selected_columns=["occurrence_id"],
-                    )
-                    occurrence_ids = occurrence_query.process_results(
-                        occurrence_query.run_query("api.trace-view.get-occurrence-ids")
-                    )["data"]
-
-                    issue_occurrences = IssueOccurrence.fetch_multi(
-                        [occurrence.get("occurrence_id") for occurrence in occurrence_ids],
-                        self.event["project.id"],
-                    )
-                    for problem in issue_occurrences:
-                        parent_span_ids = problem.evidence_data.get("parent_span_ids")
-                        if parent_span_ids is not None:
-                            unique_spans = unique_spans.union(parent_span_ids)
-                    span = list(unique_spans)
-                    for event_span in self.nodestore_event.data.get("spans", []):
-                        for problem in issue_occurrences:
-                            offender_span_ids = problem.evidence_data.get("offender_span_ids", [])
-                            if event_span.get("span_id") in offender_span_ids:
-                                try:
-                                    start_timestamp = float(event_span.get("start_timestamp"))
-                                    if start is None:
-                                        start = start_timestamp
-                                    else:
-                                        start = min(start, start_timestamp)
-                                except ValueError:
-                                    pass
-                                try:
-                                    end_timestamp = float(event_span.get("timestamp"))
-                                    if end is None:
-                                        end = end_timestamp
-                                    else:
-                                        end = max(end, end_timestamp)
-                                except ValueError:
-                                    pass
-                                suspect_spans.append(event_span.get("span_id"))
-                else:
-                    span = [self.event["trace.span"]]
-
-            # Logic for qualified_short_id is copied from property on the Group model
-            # to prevent an N+1 query from accessing project.slug everytime
-            qualified_short_id = None
-            project_slug = self.event["project"]
-            if group.short_id is not None:
-                qualified_short_id = f"{project_slug.upper()}-{base32_encode(group.short_id)}"
-
-            self.performance_issues.append(
-                {
-                    "event_id": self.event["id"],
-                    "issue_id": group_id,
-                    "issue_short_id": qualified_short_id,
-                    "span": span,
-                    "suspect_spans": suspect_spans,
-                    "project_id": self.event["project.id"],
-                    "project_slug": self.event["project"],
-                    "title": group.title,
-                    "level": constants.LOG_LEVELS[group.level],
-                    "culprit": group.culprit,
-                    "type": group.type,
-                    "start": start,
-                    "end": end,
-                }
-            )
-
-    def to_dict(self) -> LightResponse:
-        timestamp = datetime.fromisoformat(self.event["timestamp"]).timestamp()
-        return {
-            "event_id": self.event["id"],
-            "span_id": self.event["trace.span"],
-            "timestamp": timestamp,
-            "transaction": self.event["transaction"],
-            "transaction.duration": self.event["transaction.duration"],
-            "transaction.op": self.event["transaction.op"],
-            "project_id": self.event["project.id"],
-            "project_slug": self.event["project"],
-            # Avoid empty string for root self.events
-            "parent_span_id": self.event["trace.parent_span"] or None,
-            "parent_event_id": self.parent_event_id,
-            "generation": self.generation,
-            "errors": self.errors,
-            "performance_issues": self.performance_issues,
-        }
-
-    def full_dict(self, detailed: bool = False) -> FullResponse:
-        result = cast(FullResponse, self.to_dict())
-        if detailed and "transaction.status" in self.event:
-            result.update(
-                {
-                    "transaction.status": SPAN_STATUS_CODE_TO_NAME.get(
-                        self.event["transaction.status"], "unknown"
-                    ),
-                }
-            )
-        if self.span_serialized:
-            result["timestamp"] = datetime.fromisoformat(self.event["timestamp"]).timestamp()
-            result["start_timestamp"] = (
-                datetime.fromisoformat(self.event["timestamp"]).timestamp()
-                - self.event["transaction.duration"]
-            )
-        if self.nodestore_event:
-            result["timestamp"] = self.nodestore_event.data.get("timestamp")
-            result["start_timestamp"] = self.nodestore_event.data.get("start_timestamp")
-
-            contexts = self.nodestore_event.data.get("contexts", {})
-            profile_id = contexts.get("profile", {}).get("profile_id")
-            if profile_id is not None:
-                result["profile_id"] = profile_id
-
-            if detailed:
-                if "measurements" in self.nodestore_event.data:
-                    result["measurements"] = self.nodestore_event.data.get("measurements")
-                result["_meta"] = {}
-                result["tags"], result["_meta"]["tags"] = get_tags_with_meta(self.nodestore_event)
-        # Only add children that have nodestore events, which may be missing if we're pruning for trace navigator
-        result["children"] = [
-            child.full_dict(detailed) for child in self.children if child.fetched_nodestore
-        ]
-        return result
-
-
-def find_event(
-    items: Iterable[Optional[_T]],
-    function: Callable[[Optional[_T]], Any],
-    default: Optional[_T] = None,
-) -> Optional[_T]:
-    return next(filter(function, items), default)
-
-
-def is_root(item: SnubaTransaction) -> bool:
-    return item.get("root", "0") == "1"
-
-
-def child_sort_key(item: TraceEvent) -> List[int]:
-    if item.fetched_nodestore and item.nodestore_event is not None:
-        return [
-            item.nodestore_event.data["start_timestamp"],
-            item.nodestore_event.data["timestamp"],
-        ]
-    else:
-        return [
-            item.event["transaction"],
-            item.event["id"],
-        ]
-
-
-def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
-    transaction_query = QueryBuilder(
-        Dataset.IssuePlatform,
-        params,
-        query=f"trace:{trace_id}",
-        selected_columns=[],
-        limit=MAX_TRACE_SIZE,
-    )
-    transaction_query.columns.append(Function("count()", alias="total_groups"))
-    count = transaction_query.run_query("api.trace-view.count-performance-issues")
-    return cast(int, count["data"][0].get("total_groups", 0))
-
-
-def query_trace_data(
-    trace_id: str, params: Mapping[str, str], limit: int
-) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
-    transaction_query = QueryBuilder(
-        Dataset.Transactions,
-        params,
-        query=f"trace:{trace_id}",
-        selected_columns=[
-            "id",
-            "transaction.status",
-            "transaction.op",
-            "transaction.duration",
-            "transaction",
-            "timestamp",
-            "project",
-            "project.id",
-            "trace.span",
-            "trace.parent_span",
-            'to_other(trace.parent_span, "", 0, 1) AS root',
-        ],
-        # We want to guarantee at least getting the root, and hopefully events near it with timestamp
-        # id is just for consistent results
-        orderby=["-root", "timestamp", "id"],
-        limit=limit,
-    )
-    occurrence_query = QueryBuilder(
-        Dataset.IssuePlatform,
-        params,
-        query=f"trace:{trace_id}",
-        selected_columns=["event_id", "occurrence_id"],
-        config=QueryBuilderConfig(
-            functions_acl=["groupArray"],
-        ),
-    )
-    occurrence_query.columns.append(
-        Function("groupArray", parameters=[Column("group_id")], alias="issue.ids")
-    )
-    occurrence_query.groupby = [Column("event_id"), Column("occurrence_id")]
-
-    error_query = QueryBuilder(
-        Dataset.Events,
-        params,
-        query=f"trace:{trace_id}",
-        selected_columns=[
-            "id",
-            "project",
-            "project.id",
-            "timestamp",
-            "trace.span",
-            "transaction",
-            "issue",
-            "title",
-            "tags[level]",
-        ],
-        # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
-        orderby=["id"],
-        limit=limit,
-        config=QueryBuilderConfig(
-            auto_fields=False,
-        ),
-    )
-    results = bulk_snql_query(
-        [
-            transaction_query.get_snql_query(),
-            error_query.get_snql_query(),
-            occurrence_query.get_snql_query(),
-        ],
-        referrer="api.trace-view.get-events",
-    )
-
-    transformed_results = [
-        query.process_results(result)["data"]
-        for result, query in zip(results, [transaction_query, error_query, occurrence_query])
-    ]
-
-    # Join group IDs from the occurrence dataset to transactions data
-    occurrence_issue_ids = {row["event_id"]: row["issue.ids"] for row in transformed_results[2]}
-    occurrence_ids = {row["event_id"]: row["occurrence_id"] for row in transformed_results[2]}
-    for result in transformed_results[0]:
-        result["issue.ids"] = occurrence_issue_ids.get(result["id"], {})
-        result["occurrence_id"] = occurrence_ids.get(result["id"])
-        result["trace.parent_transaction"] = None
-
-    return cast(Sequence[SnubaTransaction], transformed_results[0]), cast(
-        Sequence[SnubaError], transformed_results[1]
-    )
-
-
-def augment_transactions_with_spans(
-    transactions: Sequence[SnubaTransaction],
-    errors: Sequence[SnubaError],
-    trace_id: str,
-    params: Mapping[str, str],
-) -> Sequence[SnubaTransaction]:
-    """Augment the list of transactions with parent, error and problem data"""
-    trace_parent_spans = set()  # parent span ids of segment spans
-    transaction_problem_map = {}
-    problem_project_map = {}
-    issue_occurrences = []
-    occurrence_spans = set()
-    error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
-    projects = set()
-
-    for transaction in transactions:
-        transaction["occurrence_spans"] = []
-        transaction["issue_occurrences"] = []
-
-        project = transaction["project.id"]
-        projects.add(project)
-
-        # Pull out occurrence data
-        transaction_problem_map[transaction["id"]] = transaction
-        if project not in problem_project_map:
-            problem_project_map[project] = []
-        problem_project_map[project].append(transaction["occurrence_id"])
-
-        # Need to strip the leading "0"s to match our query to the spans table
-        # This is cause spans are stored as UInt64, so a span like 0011
-        # converted to an int then converted to a hex will become 11
-        # so when we query snuba we need to remove the 00s ourselves as well
-        if not transaction["trace.parent_span"]:
-            continue
-        transaction["trace.parent_span.stripped"] = (
-            str(hex(int(transaction["trace.parent_span"], 16))).lstrip("0x")
-            if transaction["trace.parent_span"].startswith("00")
-            else transaction["trace.parent_span"]
-        )
-        # parent span ids of the segment spans
-        trace_parent_spans.add(transaction["trace.parent_span.stripped"])
-
-    for project, occurrences in problem_project_map.items():
-        if occurrences:
-            issue_occurrences.extend(
-                [
-                    occurrence
-                    for occurrence in IssueOccurrence.fetch_multi(occurrences, project)
-                    if occurrence is not None
-                ]
-            )
-
-    for problem in issue_occurrences:
-        occurrence_spans = occurrence_spans.union(set(problem.evidence_data["offender_span_ids"]))
-
-    query_spans = {*trace_parent_spans, *error_spans, *occurrence_spans}
-    if "" in query_spans:
-        query_spans.remove("")
-    # If there are no spans to query just return transactions as is
-    if len(query_spans) == 0:
-        return transactions
-
-    # Fetch parent span ids of segment spans and their corresponding
-    # transaction id so we can link parent/child transactions in
-    # a trace.
-    spans_params = params.copy()
-    spans_params["project_objects"] = [p for p in params["project_objects"] if p.id in projects]
-    spans_params["project_id"] = list(projects.union(set(problem_project_map.keys())))
-
-    parents_results = SpansIndexedQueryBuilder(
-        Dataset.SpansIndexed,
-        spans_params,
-        query=f"trace:{trace_id} span_id:[{','.join(query_spans)}]",
-        selected_columns=[
-            "transaction.id",
-            "span_id",
-            "timestamp",
-        ],
-        orderby=["timestamp", "id"],
-        limit=10000,
-    ).run_query(referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value)
-
-    parent_map = {parent["span_id"]: parent for parent in parents_results["data"]}
-    for transaction in transactions:
-        # For a given transaction, if parent span id exists in the tranaction (so this is
-        # not a root span), see if the indexed spans data can tell us what the parent
-        # transaction id is.
-        if "trace.parent_span.stripped" in transaction:
-            if parent := parent_map.get(transaction["trace.parent_span.stripped"]):
-                transaction["trace.parent_transaction"] = parent["transaction.id"]
-    for problem in issue_occurrences:
-        for span_id in problem.evidence_data["offender_span_ids"]:
-            if parent := parent_map.get(span_id):
-                transaction = transaction_problem_map[problem.event_id]
-                transaction["occurrence_spans"].append(parent)
-                transaction["issue_occurrences"].append(problem)
-    for error in errors:
-        if parent := parent_map.get(error["trace.span"]):
-            error["trace.transaction"] = parent["transaction.id"]
-    return transactions
-
-
-class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-
-    def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
-        return bool(
-            features.has("organizations:performance-view", organization, actor=request.user)
-        )
-
-    @staticmethod
-    def serialize_error(event: SnubaError) -> TraceError:
-        return {
-            "event_id": event["id"],
-            "issue_id": event["issue.id"],
-            "span": event["trace.span"],
-            "project_id": event["project.id"],
-            "project_slug": event["project"],
-            "title": event["title"],
-            "level": event["tags[level]"],
-            "timestamp": to_timestamp_from_iso_format(event["timestamp"]),
-            "event_type": "error",
-            "generation": 0,
-        }
-
-    @staticmethod
-    def construct_parent_map(
-        events: Sequence[SnubaTransaction],
-    ) -> Dict[str, List[SnubaTransaction]]:
-        """A mapping of span ids to their transactions
-
-        - Transactions are associated to each other via parent_span_id
-        """
-        parent_map: Dict[str, List[SnubaTransaction]] = defaultdict(list)
-        for item in events:
-            if not is_root(item):
-                parent_map[item["trace.parent_span"]].append(item)
-        return parent_map
-
-    @staticmethod
-    def construct_error_map(events: Sequence[SnubaError]) -> Dict[str, List[SnubaError]]:
-        """A mapping of span ids to their errors
-
-        key depends on the event type:
-        - Errors are associated to transactions via span_id
-        """
-        parent_map: Dict[str, List[SnubaError]] = defaultdict(list)
-        for item in events:
-            parent_map[item["trace.span"]].append(item)
-        return parent_map
-
-    @staticmethod
-    def record_analytics(
-        transactions: Sequence[SnubaTransaction], trace_id: str, user_id: int, org_id: int
-    ) -> None:
-        with sentry_sdk.start_span(op="recording.analytics"):
-            len_transactions = len(transactions)
-
-            sentry_sdk.set_tag("trace_view.trace", trace_id)
-            sentry_sdk.set_tag("trace_view.transactions", len_transactions)
-            sentry_sdk.set_tag(
-                "trace_view.transactions.grouped", format_grouped_length(len_transactions)
-            )
-            set_measurement("trace_view.transactions", len_transactions)
-            projects: Set[int] = set()
-            for transaction in transactions:
-                projects.add(transaction["project.id"])
-
-            len_projects = len(projects)
-            sentry_sdk.set_tag("trace_view.projects", len_projects)
-            sentry_sdk.set_tag("trace_view.projects.grouped", format_grouped_length(len_projects))
-            set_measurement("trace_view.projects", len_projects)
-
-    def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
-        try:
-            # The trace view isn't useful without global views, so skipping the check here
-            params = self.get_snuba_params(request, organization, check_global_views=False)
-        except NoProjects:
-            return Response(status=404)
-
-        trace_view_load_more_enabled = features.has(
-            "organizations:trace-view-load-more",
-            organization,
-            actor=request.user,
-        )
-
-        # Detailed is deprecated now that we want to use spans instead
-        detailed: bool = request.GET.get("detailed", "0") == "1"
-        use_spans: bool = request.GET.get("useSpans", "0") == "1"
-        if detailed and use_spans:
-            raise ParseError("Cannot return a detailed response while using spans")
-        limit: int = (
-            min(int(request.GET.get("limit", MAX_TRACE_SIZE)), 2000)
-            if trace_view_load_more_enabled
-            else MAX_TRACE_SIZE
-        )
-        event_id: Optional[str] = request.GET.get("event_id")
-
-        # Only need to validate event_id as trace_id is validated in the URL
-        if event_id and not is_event_id(event_id):
-            return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
-
-        tracing_without_performance_enabled = features.has(
-            "organizations:performance-tracing-without-performance",
-            organization,
-            actor=request.user,
-        )
-        with handle_query_errors():
-            transactions, errors = query_trace_data(trace_id, params, limit)
-            if use_spans:
-                transactions = augment_transactions_with_spans(
-                    transactions, errors, trace_id, params
-                )
-            if len(transactions) == 0 and not tracing_without_performance_enabled:
-                return Response(status=404)
-            self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
-
-        warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization.slug}
-
-        # Look for all root transactions in the trace (i.e., transactions
-        # that explicitly have no parent span id)
-        roots: List[SnubaTransaction] = []
-        for item in transactions:
-            if is_root(item):
-                roots.append(item)
-            else:
-                # This is okay because the query does an order by on -root
-                break
-        if len(roots) > 1:
-            sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
-            logger.warning(
-                "discover.trace-view.root.extra-found",
-                extra={"extra_roots": len(roots), **warning_extra},
-            )
-
-        return Response(
-            self.serialize(
-                limit,
-                transactions,
-                errors,
-                roots,
-                warning_extra,
-                event_id,
-                detailed,
-                tracing_without_performance_enabled,
-                trace_view_load_more_enabled,
-                use_spans,
-            )
-        )
-
-
-@region_silo_endpoint
-class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-
-    @staticmethod
-    def get_current_transaction(
-        transactions: Sequence[SnubaTransaction],
-        errors: Sequence[SnubaError],
-        event_id: str,
-        allow_orphan_errors: bool,
-    ) -> Tuple[SnubaTransaction, Event]:
-        """Given an event_id return the related transaction event
-
-        The event_id could be for an error, since we show the quick-trace
-        for both event types
-        We occasionally have to get the nodestore data, so this function returns
-        the nodestore event as well so that we're doing that in one location.
-        """
-        transaction_event = find_event(
-            transactions, lambda item: item is not None and item["id"] == event_id
-        )
-        if transaction_event is not None:
-            return transaction_event, eventstore.backend.get_event_by_id(
-                transaction_event["project.id"], transaction_event["id"]
-            )
-
-        # The event couldn't be found, it might be an error
-        error_event = find_event(errors, lambda item: item is not None and item["id"] == event_id)
-        # Alright so we're looking at an error, time to see if we can find its transaction
-        if error_event is not None:
-            # Unfortunately the only association from an event back to its transaction is name & span_id
-            # First maybe we got lucky and the error happened on the transaction's "span"
-            error_span = error_event["trace.span"]
-            transaction_event = find_event(
-                transactions, lambda item: item is not None and item["trace.span"] == error_span
-            )
-            if transaction_event is not None:
-                return transaction_event, eventstore.backend.get_event_by_id(
-                    transaction_event["project.id"], transaction_event["id"]
-                )
-            # We didn't get lucky, time to talk to nodestore...
-            for transaction_event in transactions:
-                if transaction_event["transaction"] != error_event["transaction"]:
-                    continue
-
-                nodestore_event = eventstore.backend.get_event_by_id(
-                    transaction_event["project.id"], transaction_event["id"]
-                )
-                transaction_spans: NodeSpans = nodestore_event.data.get("spans", [])
-                for span in transaction_spans:
-                    if span["span_id"] == error_event["trace.span"]:
-                        return transaction_event, nodestore_event
-
-        if allow_orphan_errors:
-            return None, None
-
-        # The current event couldn't be found in errors or transactions
-        raise Http404()
-
-    def serialize(
-        self,
-        limit: int,
-        transactions: Sequence[SnubaTransaction],
-        errors: Sequence[SnubaError],
-        roots: Sequence[SnubaTransaction],
-        warning_extra: Dict[str, str],
-        event_id: Optional[str],
-        detailed: bool = False,
-        allow_orphan_errors: bool = False,
-        allow_load_more: bool = False,
-        use_spans: bool = False,
-    ) -> Sequence[LightResponse]:
-        """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
-        if use_spans:
-            raise ParseError(detail="useSpans isn't supported on the trace-light")
-        if event_id is None:
-            raise ParseError(detail="An event_id is required for the light trace")
-        snuba_event, nodestore_event = self.get_current_transaction(
-            transactions, errors, event_id, allow_orphan_errors
-        )
-        parent_map = self.construct_parent_map(transactions)
-        error_map = self.construct_error_map(errors)
-        trace_results: List[TraceEvent] = []
-        current_generation: Optional[int] = None
-        root_id: Optional[str] = None
-
-        with sentry_sdk.start_span(op="building.trace", description="light trace"):
-            # Check if the event is an orphan_error
-            if not snuba_event and not nodestore_event and allow_orphan_errors:
-                orphan_error = find_event(
-                    errors, lambda item: item is not None and item["id"] == event_id
-                )
-                if orphan_error:
-                    return {
-                        "transactions": [],
-                        "orphan_errors": [self.serialize_error(orphan_error)],
-                    }
-                else:
-                    # The current event couldn't be found in errors or transactions
-                    raise Http404()
-
-            # Going to nodestore is more expensive than looping twice so check if we're on the root first
-            for root in roots:
-                if root["id"] == snuba_event["id"]:
-                    current_generation = 0
-                    break
-
-            params = self.get_snuba_params(
-                self.request, self.request.organization, check_global_views=False
-            )
-            if current_generation is None:
-                for root in roots:
-                    # We might not be necessarily connected to the root if we're on an orphan event
-                    if root["id"] != snuba_event["id"]:
-                        # Get the root event and see if the current event's span is in the root event
-                        root_event = eventstore.backend.get_event_by_id(
-                            root["project.id"], root["id"]
-                        )
-                        root_spans: NodeSpans = root_event.data.get("spans", [])
-                        root_span = find_event(
-                            root_spans,
-                            lambda item: item is not None
-                            and item["span_id"] == snuba_event["trace.parent_span"],
-                        )
-
-                        # We only know to add the root if its the direct parent
-                        if root_span is not None:
-                            # For the light response, the parent will be unknown unless it is a direct descendent of the root
-                            root_id = root["id"]
-                            trace_results.append(
-                                TraceEvent(
-                                    root,
-                                    None,
-                                    0,
-                                    True,
-                                    snuba_params=params,
-                                )
-                            )
-                            current_generation = 1
-                            break
-
-            current_event = TraceEvent(
-                snuba_event, root_id, current_generation, True, snuba_params=params
-            )
-            trace_results.append(current_event)
-
-            spans: NodeSpans = nodestore_event.data.get("spans", [])
-            # Need to include the transaction as a span as well
-            #
-            # Important that we left pad the span id with 0s because
-            # the span id is stored as an UInt64 and converted into
-            # a hex string when quering. However, the conversion does
-            # not ensure that the final span id is 16 chars long since
-            # it's a naive base 10 to base 16 conversion.
-            spans.append({"span_id": snuba_event["trace.span"].rjust(16, "0")})
-
-            for span in spans:
-                if span["span_id"] in error_map:
-                    current_event.errors.extend(
-                        [self.serialize_error(error) for error in error_map.pop(span["span_id"])]
-                    )
-                if span["span_id"] in parent_map:
-                    child_events = parent_map.pop(span["span_id"])
-                    trace_results.extend(
-                        [
-                            TraceEvent(
-                                child_event,
-                                snuba_event["id"],
-                                (
-                                    current_event.generation + 1
-                                    if current_event.generation is not None
-                                    else None
-                                ),
-                                True,
-                                snuba_params=params,
-                            )
-                            for child_event in child_events
-                        ]
-                    )
-
-        if allow_orphan_errors:
-            return {
-                "transactions": [result.to_dict() for result in trace_results],
-                "orphan_errors": [],
-            }
-
-        return [result.to_dict() for result in trace_results]
-
-
-@region_silo_endpoint
-class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
-    @staticmethod
-    def update_children(event: TraceEvent, limit: int) -> None:
-        """Updates the children of subtraces
-
-        - Generation could be incorrect from orphans where we've had to reconnect back to an orphan event that's
-          already been encountered
-        - Sorting children events by timestamp
-        """
-        parents = [event]
-        iteration = 0
-        while parents and iteration < limit:
-            iteration += 1
-            parent = parents.pop()
-            parent.children.sort(key=child_sort_key)
-            for child in parent.children:
-                child.generation = parent.generation + 1 if parent.generation is not None else None
-                parents.append(child)
-
-    # Concurrently fetches nodestore data to construct and return a dict mapping eventid of a txn
-    # to the associated nodestore event.
-    @staticmethod
-    def nodestore_event_map(events: Sequence[SnubaTransaction]) -> Dict[str, Optional[Event]]:
-        map = {}
-        with ThreadPoolExecutor(max_workers=20) as executor:
-            future_to_event = {
-                executor.submit(
-                    eventstore.backend.get_event_by_id, event["project.id"], event["id"]
-                ): event
-                for event in events
-            }
-
-            for future in as_completed(future_to_event):
-                event_id = future_to_event[future]["id"]
-                nodestore_event = future.result()
-                map[event_id] = nodestore_event
-
-        return map
-
-    def serialize(
-        self,
-        limit: int,
-        transactions: Sequence[SnubaTransaction],
-        errors: Sequence[SnubaError],
-        roots: Sequence[SnubaTransaction],
-        warning_extra: Dict[str, str],
-        event_id: Optional[str],
-        detailed: bool = False,
-        allow_orphan_errors: bool = False,
-        allow_load_more: bool = False,
-        use_spans: bool = False,
-    ) -> Sequence[FullResponse]:
-        """For the full event trace, we return the results as a graph instead of a flattened list
-
-        if event_id is passed, we prune any potential branches of the trace to make as few nodestore calls as
-        possible
-        """
-        if use_spans:
-            results = self.serialize_with_spans(
-                limit,
-                transactions,
-                errors,
-                roots,
-                warning_extra,
-                event_id,
-                detailed,
-                allow_orphan_errors,
-                allow_load_more,
-            )
-            return results
-        event_id_to_nodestore_event = (
-            self.nodestore_event_map(transactions) if allow_load_more else {}
-        )
-        parent_map = self.construct_parent_map(transactions)
-        error_map = self.construct_error_map(errors)
-        parent_events: Dict[str, TraceEvent] = {}
-        results_map: Dict[Optional[str], List[TraceEvent]] = defaultdict(list)
-        to_check: Deque[SnubaTransaction] = deque()
-        params = self.get_snuba_params(
-            self.request, self.request.organization, check_global_views=False
-        )
-        # The root of the orphan tree we're currently navigating through
-        orphan_root: Optional[SnubaTransaction] = None
-        if roots:
-            results_map[None] = []
-        for root in roots:
-            root_event = TraceEvent(root, None, 0, snuba_params=params)
-            parent_events[root["id"]] = root_event
-            results_map[None].append(root_event)
-            to_check.append(root)
-
-        iteration = 0
-        with sentry_sdk.start_span(op="building.trace", description="full trace"):
-            has_orphans = False
-
-            while parent_map or to_check:
-                if len(to_check) == 0:
-                    has_orphans = True
-                    # Grab any set of events from the parent map
-                    parent_span_id, current_events = parent_map.popitem()
-
-                    current_event, *siblings = current_events
-                    # If there were any siblings put them back
-                    if siblings:
-                        parent_map[parent_span_id] = siblings
-
-                    previous_event = parent_events[current_event["id"]] = TraceEvent(
-                        current_event, None, 0, snuba_params=params
-                    )
-
-                    # Used to avoid removing the orphan from results entirely if we loop
-                    orphan_root = current_event
-                    results_map[parent_span_id].append(previous_event)
-                else:
-                    current_event = to_check.popleft()
-                    previous_event = parent_events[current_event["id"]]
-
-                # We've found the event for the trace navigator so we can remove everything in the deque
-                # As they're unrelated ancestors now
-                if event_id and current_event["id"] == event_id:
-                    # Remove any remaining events so we don't think they're orphans
-                    while to_check:
-                        to_remove = to_check.popleft()
-                        if to_remove["trace.parent_span"] in parent_map:
-                            del parent_map[to_remove["trace.parent_span"]]
-                    to_check = deque()
-
-                spans: NodeSpans = []
-                if allow_load_more:
-                    previous_event_id = previous_event.event["id"]
-                    if previous_event_id in event_id_to_nodestore_event:
-                        previous_event.fetched_nodestore = True
-                        nodestore_event = event_id_to_nodestore_event[previous_event_id]
-                        previous_event._nodestore_event = nodestore_event
-                        spans = nodestore_event.data.get("spans", [])
-                else:
-                    if previous_event.nodestore_event:
-                        spans = previous_event.nodestore_event.data.get("spans", [])
-
-                # Need to include the transaction as a span as well
-                #
-                # Important that we left pad the span id with 0s because
-                # the span id is stored as an UInt64 and converted into
-                # a hex string when quering. However, the conversion does
-                # not ensure that the final span id is 16 chars long since
-                # it's a naive base 10 to base 16 conversion.
-                spans.append({"span_id": previous_event.event["trace.span"].rjust(16, "0")})
-
-                for child in spans:
-                    if child["span_id"] in error_map:
-                        previous_event.errors.extend(
-                            [
-                                self.serialize_error(error)
-                                for error in error_map.pop(child["span_id"])
-                            ]
-                        )
-                    # We need to connect back to an existing orphan trace
-                    if (
-                        has_orphans
-                        and
-                        # The child event has already been checked
-                        child["span_id"] in results_map
-                        and orphan_root is not None
-                        and
-                        # In the case of a span loop popping the current root removes the orphan subtrace
-                        child["span_id"] != orphan_root["trace.parent_span"]
-                    ):
-                        orphan_subtraces = results_map.pop(child["span_id"])
-                        for orphan_subtrace in orphan_subtraces:
-                            orphan_subtrace.parent_event_id = previous_event.event["id"]
-                        previous_event.children.extend(orphan_subtraces)
-                    if child["span_id"] not in parent_map:
-                        continue
-                    # Avoid potential span loops by popping, so we don't traverse the same nodes twice
-                    child_events = parent_map.pop(child["span_id"])
-
-                    for child_event in child_events:
-                        parent_events[child_event["id"]] = TraceEvent(
-                            child_event,
-                            current_event["id"],
-                            previous_event.generation + 1
-                            if previous_event.generation is not None
-                            else None,
-                            snuba_params=params,
-                        )
-                        # Add this event to its parent's children
-                        previous_event.children.append(parent_events[child_event["id"]])
-
-                        to_check.append(child_event)
-                # Limit iterations just to be safe
-                iteration += 1
-                if iteration > limit:
-                    sentry_sdk.set_tag("discover.trace-view.warning", "surpassed-trace-limit")
-                    logger.warning(
-                        "discover.trace-view.surpassed-trace-limit",
-                        extra=warning_extra,
-                    )
-                    break
-
-        # We are now left with orphan errors in the error_map,
-        # that we need to serialize and return with our results.
-        orphan_errors: List[TraceError] = []
-        if allow_orphan_errors and iteration < limit:
-            for errors in error_map.values():
-                for error in errors:
-                    orphan_errors.append(self.serialize_error(error))
-                    iteration += 1
-                    if iteration > limit:
-                        break
-                if iteration > limit:
-                    break
-
-        trace_roots: List[TraceEvent] = []
-        orphans: List[TraceEvent] = []
-        for index, result in enumerate(results_map.values()):
-            for subtrace in result:
-                self.update_children(subtrace, limit)
-            if index > 0 or len(roots) == 0:
-                orphans.extend(result)
-            elif len(roots) > 0:
-                trace_roots = result
-        # We sort orphans and roots separately because we always want the root(s) as the first element(s)
-        trace_roots.sort(key=child_sort_key)
-        orphans.sort(key=child_sort_key)
-        orphan_errors = sorted(orphan_errors, key=lambda k: k["timestamp"])
-
-        if len(orphans) > 0:
-            sentry_sdk.set_tag("discover.trace-view.contains-orphans", "yes")
-            logger.warning("discover.trace-view.contains-orphans", extra=warning_extra)
-
-        if allow_orphan_errors:
-            return {
-                "transactions": [trace.full_dict(detailed) for trace in trace_roots]
-                + [orphan.full_dict(detailed) for orphan in orphans],
-                "orphan_errors": [orphan for orphan in orphan_errors],
-            }
-
-        return (
-            [trace.full_dict(detailed) for trace in trace_roots]
-            + [orphan.full_dict(detailed) for orphan in orphans]
-            + [orphan for orphan in orphan_errors]
-        )
-
-    def serialize_with_spans(
-        self,
-        limit: int,
-        transactions: Sequence[SnubaTransaction],
-        errors: Sequence[SnubaError],
-        roots: Sequence[SnubaTransaction],
-        warning_extra: Dict[str, str],
-        event_id: Optional[str],
-        detailed: bool = False,
-        allow_orphan_errors: bool = False,
-        allow_load_more: bool = False,
-    ) -> Sequence[FullResponse]:
-        root_traces: List[TraceEvent] = []
-        orphans: List[TraceEvent] = []
-        visited_transactions: Set[str] = set()
-        visited_errors: Set[str] = set()
-        if not allow_orphan_errors:
-            raise ParseError("Must allow orphan errors to useSpans")
-        if detailed:
-            raise ParseError("Cannot return a detailed response using Spans")
-
-        # A trace can have multiple roots, so we want to visit
-        # all roots in a trace and build their children.
-        # A root segment is one that doesn't have a parent span id
-        # but here is identified by the attribute "root" = 1 on
-        # a SnubaTransaction object.
-        root_traces = self.visit_transactions(
-            roots,
-            transactions,
-            errors,
-            visited_transactions,
-            visited_errors,
-        )
-
-        # At this point all the roots have their tree built. Remaining
-        # transactions are either orphan transactions or children of
-        # orphan transactions. Orphan transactions (unlike roots) have
-        # a parent_id but the parent_id wasn't found (dropped span).
-        # We get a sorted list of these transactions by start timestamp.
-        remaining_transactions = self.calculate_remaining_transactions(
-            transactions, visited_transactions
-        )
-
-        # Determine orphan transactions. `trace.parent_transaction` on a
-        # transaction is set when the indexed spans dataset has a row for
-        # the parent span id for this transaction. Since we already considered
-        # the root spans cases, the remaining spans with no parent transaction
-        # id are orphan transactions.
-        orphan_roots = [
-            orphan
-            for orphan in remaining_transactions
-            if orphan["trace.parent_transaction"] is None
-        ]
-
-        # Build the trees for all the orphan transactions.
-        orphans = self.visit_transactions(
-            orphan_roots,
-            remaining_transactions,
-            errors,
-            visited_transactions,
-            visited_errors,
-        )
-
-        # Remaining are transactions with parent transactions but those
-        # parents don't map to any of the existing transactions.
-        remaining_transactions = self.calculate_remaining_transactions(
-            transactions, visited_transactions
-        )
-        orphans.extend(
-            self.visit_transactions(
-                remaining_transactions,
-                remaining_transactions,
-                errors,
-                visited_transactions,
-                visited_errors,
-            )
-        )
-
-        # Sort the results so they're consistent
-        orphan_errors = sorted(
-            [error for error in errors if error["id"] not in visited_errors],
-            key=lambda k: k["timestamp"],
-        )
-        root_traces.sort(key=child_sort_key)
-        orphans.sort(key=child_sort_key)
-
-        return {
-            "transactions": [trace.full_dict(detailed) for trace in root_traces]
-            + [orphan.full_dict(detailed) for orphan in orphans],
-            "orphan_errors": [self.serialize_error(error) for error in orphan_errors],
-        }
-
-    def calculate_remaining_transactions(self, transactions, visited_transactions):
-        return sorted(
-            [
-                transaction
-                for transaction in transactions
-                if transaction["id"] not in visited_transactions
-            ],
-            key=lambda k: -datetime.fromisoformat(k["timestamp"]).timestamp(),
-        )
-
-    def visit_transactions(
-        self, to_visit, transactions, errors, visited_transactions, visited_errors
-    ):
-        serialized_events: List[TraceEvent] = []
-        for transaction in to_visit:
-            if transaction["id"] in visited_transactions:
-                continue
-            visited_transactions.add(transaction["id"])
-            root_event = TraceEvent(transaction, None, 0, span_serialized=True)
-            self.add_children(
-                root_event, transactions, visited_transactions, errors, visited_errors, 1
-            )
-            serialized_events.append(root_event)
-        return serialized_events
-
-    def add_children(
-        self, parent, transactions, visited_transactions, errors, visited_errors, generation
-    ):
-        for error in errors:
-            if error["id"] in visited_errors:
-                continue
-            if "trace.transaction" in error and error["trace.transaction"] == parent.event["id"]:
-                visited_errors.add(error["id"])
-                parent.errors.append(self.serialize_error(error))
-
-        # Loop through all the transactions to see if any of them are
-        # children.
-        for transaction in transactions:
-            if transaction["id"] in visited_transactions:
-                continue
-            if transaction["trace.parent_transaction"] == parent.event["id"]:
-                # If transaction is a child, establish that relationship and add it
-                # to visited_transactions.
-                visited_transactions.add(transaction["id"])
-                new_child = TraceEvent(
-                    transaction, parent.event["id"], generation, span_serialized=True
-                )
-                # Repeat adding children until there are none.
-                self.add_children(
-                    new_child,
-                    transactions,
-                    visited_transactions,
-                    errors,
-                    visited_errors,
-                    generation + 1,
-                )
-                parent.children.append(new_child)
-        parent.children.sort(key=child_sort_key)
-
-
-@region_silo_endpoint
-class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-
-    def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
-        try:
-            # The trace meta isn't useful without global views, so skipping the check here
-            params = self.get_snuba_params(request, organization, check_global_views=False)
-        except NoProjects:
-            return Response(status=404)
-
-        with handle_query_errors():
-            result = discover.query(
-                selected_columns=[
-                    "count_unique(project_id) as projects",
-                    "count_if(event.type, equals, transaction) as transactions",
-                    "count_if(event.type, notEquals, transaction) as errors",
-                ],
-                params=params,
-                query=f"trace:{trace_id}",
-                limit=1,
-                referrer="api.trace-view.get-meta",
-            )
-            if len(result["data"]) == 0:
-                return Response(status=404)
-            # Merge the result back into the first query
-            result["data"][0]["performance_issues"] = count_performance_issues(trace_id, params)
-        return Response(self.serialize(result["data"][0]))
-
-    @staticmethod
-    def serialize(results: Mapping[str, int]) -> Mapping[str, int]:
-        return {
-            # Values can be null if there's no result
-            "projects": results.get("projects") or 0,
-            "transactions": results.get("transactions") or 0,
-            "errors": results.get("errors") or 0,
-            "performance_issues": results.get("performance_issues") or 0,
-        }
+aW1wb3J0IGxvZ2dpbmcKZnJvbSBjb2xsZWN0aW9ucyBpbXBvcnQgZGVmYXVs
+dGRpY3QsIGRlcXVlCmZyb20gY29uY3VycmVudC5mdXR1cmVzIGltcG9ydCBU
+aHJlYWRQb29sRXhlY3V0b3IsIGFzX2NvbXBsZXRlZApmcm9tIGRhdGV0aW1l
+IGltcG9ydCBkYXRldGltZQpmcm9tIHR5cGluZyBpbXBvcnQgKAogICAgQW55
+LAogICAgQ2FsbGFibGUsCiAgICBEZXF1ZSwKICAgIERpY3QsCiAgICBJdGVy
+YWJsZSwKICAgIExpc3QsCiAgICBNYXBwaW5nLAogICAgT3B0aW9uYWwsCiAg
+ICBTZXF1ZW5jZSwKICAgIFNldCwKICAgIFR1cGxlLAogICAgVHlwZWREaWN0
+LAogICAgVHlwZVZhciwKICAgIGNhc3QsCikKCmltcG9ydCBzZW50cnlfc2Rr
+CmZyb20gZGphbmdvLmh0dHAgaW1wb3J0IEh0dHA0MDQsIEh0dHBSZXF1ZXN0
+LCBIdHRwUmVzcG9uc2UKZnJvbSByZXN0X2ZyYW1ld29yay5leGNlcHRpb25z
+IGltcG9ydCBQYXJzZUVycm9yCmZyb20gcmVzdF9mcmFtZXdvcmsucmVzcG9u
+c2UgaW1wb3J0IFJlc3BvbnNlCmZyb20gc2VudHJ5X3JlbGF5LmNvbnN0cyBp
+bXBvcnQgU1BBTl9TVEFUVVNfQ09ERV9UT19OQU1FCmZyb20gc251YmFfc2Rr
+IGltcG9ydCBDb2x1bW4sIEZ1bmN0aW9uCgpmcm9tIHNlbnRyeSBpbXBvcnQg
+Y29uc3RhbnRzLCBldmVudHN0b3JlLCBmZWF0dXJlcwpmcm9tIHNlbnRyeS5h
+cGkuYXBpX3B1Ymxpc2hfc3RhdHVzIGltcG9ydCBBcGlQdWJsaXNoU3RhdHVz
+CmZyb20gc2VudHJ5LmFwaS5iYXNlIGltcG9ydCByZWdpb25fc2lsb19lbmRw
+b2ludApmcm9tIHNlbnRyeS5hcGkuYmFzZXMgaW1wb3J0IE5vUHJvamVjdHMs
+IE9yZ2FuaXphdGlvbkV2ZW50c1YyRW5kcG9pbnRCYXNlCmZyb20gc2VudHJ5
+LmFwaS5zZXJpYWxpemVycy5tb2RlbHMuZXZlbnQgaW1wb3J0IGdldF90YWdz
+X3dpdGhfbWV0YQpmcm9tIHNlbnRyeS5hcGkudXRpbHMgaW1wb3J0IGhhbmRs
+ZV9xdWVyeV9lcnJvcnMKZnJvbSBzZW50cnkuZXZlbnRzdG9yZS5tb2RlbHMg
+aW1wb3J0IEV2ZW50CmZyb20gc2VudHJ5Lmlzc3Vlcy5pc3N1ZV9vY2N1cnJl
+bmNlIGltcG9ydCBJc3N1ZU9jY3VycmVuY2UKZnJvbSBzZW50cnkubW9kZWxz
+Lmdyb3VwIGltcG9ydCBHcm91cApmcm9tIHNlbnRyeS5tb2RlbHMub3JnYW5p
+emF0aW9uIGltcG9ydCBPcmdhbml6YXRpb24KZnJvbSBzZW50cnkuc2VhcmNo
+LmV2ZW50cy5idWlsZGVyIGltcG9ydCBRdWVyeUJ1aWxkZXIsIFNwYW5zSW5k
+ZXhlZFF1ZXJ5QnVpbGRlcgpmcm9tIHNlbnRyeS5zZWFyY2guZXZlbnRzLnR5
+cGVzIGltcG9ydCBQYXJhbXNUeXBlLCBRdWVyeUJ1aWxkZXJDb25maWcKZnJv
+bSBzZW50cnkuc251YmEgaW1wb3J0IGRpc2NvdmVyCmZyb20gc2VudHJ5LnNu
+dWJhLmRhdGFzZXQgaW1wb3J0IERhdGFzZXQKZnJvbSBzZW50cnkuc251YmEu
+cmVmZXJyZXIgaW1wb3J0IFJlZmVycmVyCmZyb20gc2VudHJ5LnV0aWxzLmRh
+dGVzIGltcG9ydCB0b190aW1lc3RhbXBfZnJvbV9pc29fZm9ybWF0CmZyb20g
+c2VudHJ5LnV0aWxzLm51bWJlcnMgaW1wb3J0IGJhc2UzMl9lbmNvZGUsIGZv
+cm1hdF9ncm91cGVkX2xlbmd0aApmcm9tIHNlbnRyeS51dGlscy5zZGsgaW1w
+b3J0IHNldF9tZWFzdXJlbWVudApmcm9tIHNlbnRyeS51dGlscy5zbnViYSBp
+bXBvcnQgYnVsa19zbnFsX3F1ZXJ5CmZyb20gc2VudHJ5LnV0aWxzLnZhbGlk
+YXRvcnMgaW1wb3J0IElOVkFMSURfSURfREVUQUlMUywgaXNfZXZlbnRfaWQK
+CmxvZ2dlcjogbG9nZ2luZy5Mb2dnZXIgPSBsb2dnaW5nLmdldExvZ2dlcihf
+X25hbWVfXykKTUFYX1RSQUNFX1NJWkU6IGludCA9IDEwMAoKCl9UID0gVHlw
+ZVZhcigiX1QiKQpOb2RlU3BhbnMgPSBMaXN0W0RpY3Rbc3RyLCBBbnldXQpT
+bnViYVRyYW5zYWN0aW9uID0gVHlwZWREaWN0KAogICAgIlNudWJhVHJhbnNh
+Y3Rpb24iLAogICAgewogICAgICAgICJpZCI6IHN0ciwKICAgICAgICAidHJh
+bnNhY3Rpb24uc3RhdHVzIjogaW50LAogICAgICAgICJ0cmFuc2FjdGlvbi5v
+cCI6IHN0ciwKICAgICAgICAidHJhbnNhY3Rpb24uZHVyYXRpb24iOiBpbnQs
+CiAgICAgICAgInRyYW5zYWN0aW9uIjogc3RyLAogICAgICAgICJ0aW1lc3Rh
+bXAiOiBzdHIsCiAgICAgICAgInRyYWNlLnNwYW4iOiBzdHIsCiAgICAgICAg
+InRyYWNlLnBhcmVudF9zcGFuIjogc3RyLAogICAgICAgICJ0cmFjZS5wYXJl
+bnRfdHJhbnNhY3Rpb24iOiBPcHRpb25hbFtzdHJdLAogICAgICAgICJyb290
+Ijogc3RyLAogICAgICAgICJwcm9qZWN0LmlkIjogaW50LAogICAgICAgICJw
+cm9qZWN0Ijogc3RyLAogICAgICAgICJpc3N1ZS5pZHMiOiBMaXN0W2ludF0s
+CiAgICB9LAopClNudWJhRXJyb3IgPSBUeXBlZERpY3QoCiAgICAiU251YmFF
+cnJvciIsCiAgICB7CiAgICAgICAgImlkIjogc3RyLAogICAgICAgICJ0aW1l
+c3RhbXAiOiBzdHIsCiAgICAgICAgInRyYWNlLnNwYW4iOiBzdHIsCiAgICAg
+ICAgInRyYW5zYWN0aW9uIjogc3RyLAogICAgICAgICJpc3N1ZS5pZCI6IGlu
+dCwKICAgICAgICAidGl0bGUiOiBzdHIsCiAgICAgICAgInRhZ3NbbGV2ZWxd
+Ijogc3RyLAogICAgICAgICJwcm9qZWN0LmlkIjogaW50LAogICAgICAgICJw
+cm9qZWN0Ijogc3RyLAogICAgfSwKKQoKCmNsYXNzIFRyYWNlRXJyb3IoVHlw
+ZWREaWN0KToKICAgIGV2ZW50X2lkOiBzdHIKICAgIGlzc3VlX2lkOiBpbnQK
+ICAgIHNwYW46IHN0cgogICAgcHJvamVjdF9pZDogaW50CiAgICBwcm9qZWN0
+X3NsdWc6IHN0cgogICAgdGl0bGU6IHN0cgogICAgbGV2ZWw6IHN0cgogICAg
+dGltZXN0YW1wOiBzdHIKICAgIGV2ZW50X3R5cGU6IHN0cgogICAgZ2VuZXJh
+dGlvbjogaW50CgoKY2xhc3MgVHJhY2VQZXJmb3JtYW5jZUlzc3VlKFR5cGVk
+RGljdCk6CiAgICBldmVudF9pZDogc3RyCiAgICBpc3N1ZV9pZDogaW50CiAg
+ICBpc3N1ZV9zaG9ydF9pZDogT3B0aW9uYWxbc3RyXQogICAgc3BhbjogTGlz
+dFtzdHJdCiAgICBzdXNwZWN0X3NwYW5zOiBMaXN0W3N0cl0KICAgIHByb2pl
+Y3RfaWQ6IGludAogICAgcHJvamVjdF9zbHVnOiBzdHIKICAgIHRpdGxlOiBz
+dHIKICAgIGxldmVsOiBzdHIKICAgIGN1bHByaXQ6IHN0cgogICAgdHlwZTog
+aW50CiAgICBzdGFydDogT3B0aW9uYWxbZmxvYXRdCiAgICBlbmQ6IE9wdGlv
+bmFsW2Zsb2F0XQoKCkxpZ2h0UmVzcG9uc2UgPSBUeXBlZERpY3QoCiAgICAi
+TGlnaHRSZXNwb25zZSIsCiAgICB7CiAgICAgICAgImV2ZW50X2lkIjogc3Ry
+LAogICAgICAgICJzcGFuX2lkIjogc3RyLAogICAgICAgICJ0cmFuc2FjdGlv
+biI6IHN0ciwKICAgICAgICAidHJhbnNhY3Rpb24uZHVyYXRpb24iOiBpbnQs
+CiAgICAgICAgInRyYW5zYWN0aW9uLm9wIjogc3RyLAogICAgICAgICJwcm9q
+ZWN0X2lkIjogaW50LAogICAgICAgICJwcm9qZWN0X3NsdWciOiBzdHIsCiAg
+ICAgICAgInBhcmVudF9zcGFuX2lkIjogT3B0aW9uYWxbc3RyXSwKICAgICAg
+ICAicGFyZW50X2V2ZW50X2lkIjogT3B0aW9uYWxbc3RyXSwKICAgICAgICAi
+Z2VuZXJhdGlvbiI6IE9wdGlvbmFsW2ludF0sCiAgICAgICAgImVycm9ycyI6
+IExpc3RbVHJhY2VFcnJvcl0sCiAgICAgICAgInBlcmZvcm1hbmNlX2lzc3Vl
+cyI6IExpc3RbVHJhY2VQZXJmb3JtYW5jZUlzc3VlXSwKICAgIH0sCikKRnVs
+bFJlc3BvbnNlID0gVHlwZWREaWN0KAogICAgIkZ1bGxSZXNwb25zZSIsCiAg
+ICB7CiAgICAgICAgImV2ZW50X2lkIjogc3RyLAogICAgICAgICJzcGFuX2lk
+Ijogc3RyLAogICAgICAgICJ0cmFuc2FjdGlvbiI6IHN0ciwKICAgICAgICAi
+dHJhbnNhY3Rpb24uZHVyYXRpb24iOiBpbnQsCiAgICAgICAgInRyYW5zYWN0
+aW9uLm9wIjogc3RyLAogICAgICAgICJwcm9qZWN0X2lkIjogaW50LAogICAg
+ICAgICJwcm9qZWN0X3NsdWciOiBzdHIsCiAgICAgICAgInBhcmVudF9zcGFu
+X2lkIjogT3B0aW9uYWxbc3RyXSwKICAgICAgICAicGFyZW50X2V2ZW50X2lk
+IjogT3B0aW9uYWxbc3RyXSwKICAgICAgICAicHJvZmlsZV9pZCI6IE9wdGlv
+bmFsW3N0cl0sCiAgICAgICAgImdlbmVyYXRpb24iOiBPcHRpb25hbFtpbnRd
+LAogICAgICAgICJlcnJvcnMiOiBMaXN0W1RyYWNlRXJyb3JdLAogICAgICAg
+ICJwZXJmb3JtYW5jZV9pc3N1ZXMiOiBMaXN0W1RyYWNlUGVyZm9ybWFuY2VJ
+c3N1ZV0sCiAgICAgICAgInRpbWVzdGFtcCI6IHN0ciwKICAgICAgICAic3Rh
+cnRfdGltZXN0YW1wIjogc3RyLAogICAgICAgICMgQW55IGJlY2F1c2UgY2hp
+bGRyZW4gYXJlIG1vcmUgRnVsbFJlc3BvbnNlIG9iamVjdHMKICAgICAgICAi
+Y2hpbGRyZW4iOiBMaXN0W0FueV0sCiAgICAgICAgIyBPbmx5IG9uIHRoZSBk
+ZXRhaWxlZCByZXNwb25zZQogICAgICAgICJtZWFzdXJlbWVudHMiOiBEaWN0
+W3N0ciwgaW50XSwKICAgICAgICAidGFncyI6IExpc3RbVHVwbGVbc3RyLCBz
+dHJdXSwKICAgICAgICAiX21ldGEiOiBEaWN0W3N0ciwgQW55XSwKICAgICAg
+ICAidHJhbnNhY3Rpb24uc3RhdHVzIjogc3RyLAogICAgfSwKKQoKCmNsYXNz
+IFRyYWNlRXZlbnQ6CiAgICBkZWYgX19pbml0X18oCiAgICAgICAgc2VsZiwK
+ICAgICAgICBldmVudDogU251YmFUcmFuc2FjdGlvbiwKICAgICAgICBwYXJl
+bnQ6IE9wdGlvbmFsW3N0cl0sCiAgICAgICAgZ2VuZXJhdGlvbjogT3B0aW9u
+YWxbaW50XSwKICAgICAgICBsaWdodDogYm9vbCA9IEZhbHNlLAogICAgICAg
+IHNudWJhX3BhcmFtczogT3B0aW9uYWxbUGFyYW1zVHlwZV0gPSBOb25lLAog
+ICAgICAgIHNwYW5fc2VyaWFsaXplZDogYm9vbCA9IEZhbHNlLAogICAgKSAt
+PiBOb25lOgogICAgICAgIHNlbGYuZXZlbnQ6IFNudWJhVHJhbnNhY3Rpb24g
+PSBldmVudAogICAgICAgIHNlbGYuZXJyb3JzOiBMaXN0W1RyYWNlRXJyb3Jd
+ID0gW10KICAgICAgICBzZWxmLmNoaWxkcmVuOiBMaXN0W1RyYWNlRXZlbnRd
+ID0gW10KICAgICAgICBzZWxmLnBlcmZvcm1hbmNlX2lzc3VlczogTGlzdFtU
+cmFjZVBlcmZvcm1hbmNlSXNzdWVdID0gW10KCiAgICAgICAgIyBDYW4gYmUg
+Tm9uZSBvbiB0aGUgbGlnaHQgdHJhY2Ugd2hlbiB3ZSBkb24ndCBrbm93IHRo
+ZSBwYXJlbnQKICAgICAgICBzZWxmLnBhcmVudF9ldmVudF9pZDogT3B0aW9u
+YWxbc3RyXSA9IHBhcmVudAogICAgICAgIHNlbGYuZ2VuZXJhdGlvbjogT3B0
+aW9uYWxbaW50XSA9IGdlbmVyYXRpb24KCiAgICAgICAgIyBBZGRlZCBhcyBy
+ZXF1aXJlZCBiZWNhdXNlIGdldHRpbmcgdGhlIG5vZGVzdG9yZV9ldmVudCBp
+cyBleHBlbnNpdmUKICAgICAgICBzZWxmLl9ub2Rlc3RvcmVfZXZlbnQ6IE9w
+dGlvbmFsW0V2ZW50XSA9IE5vbmUKICAgICAgICBzZWxmLmZldGNoZWRfbm9k
+ZXN0b3JlOiBib29sID0gc3Bhbl9zZXJpYWxpemVkCiAgICAgICAgc2VsZi5z
+cGFuX3NlcmlhbGl6ZWQgPSBzcGFuX3NlcmlhbGl6ZWQKICAgICAgICBpZiBz
+cGFuX3NlcmlhbGl6ZWQ6CiAgICAgICAgICAgIHNlbGYuZmV0Y2hlZF9ub2Rl
+c3RvcmUgPSBUcnVlCiAgICAgICAgc2VsZi5sb2FkX3BlcmZvcm1hbmNlX2lz
+c3VlcyhsaWdodCwgc251YmFfcGFyYW1zKQoKICAgIEBwcm9wZXJ0eQogICAg
+ZGVmIG5vZGVzdG9yZV9ldmVudChzZWxmKSAtPiBPcHRpb25hbFtFdmVudF06
+CiAgICAgICAgd2l0aCBzZW50cnlfc2RrLnN0YXJ0X3NwYW4ob3A9Im5vZGVz
+dG9yZSIsIGRlc2NyaXB0aW9uPSJnZXRfZXZlbnRfYnlfaWQiKToKICAgICAg
+ICAgICAgaWYgc2VsZi5fbm9kZXN0b3JlX2V2ZW50IGlzIE5vbmUgYW5kIG5v
+dCBzZWxmLmZldGNoZWRfbm9kZXN0b3JlOgogICAgICAgICAgICAgICAgc2Vs
+Zi5mZXRjaGVkX25vZGVzdG9yZSA9IFRydWUKICAgICAgICAgICAgICAgIHNl
+bGYuX25vZGVzdG9yZV9ldmVudCA9IGV2ZW50c3RvcmUuYmFja2VuZC5nZXRf
+ZXZlbnRfYnlfaWQoCiAgICAgICAgICAgICAgICAgICAgc2VsZi5ldmVudFsi
+cHJvamVjdC5pZCJdLCBzZWxmLmV2ZW50WyJpZCJdCiAgICAgICAgICAgICAg
+ICApCiAgICAgICAgcmV0dXJuIHNlbGYuX25vZGVzdG9yZV9ldmVudAoKICAg
+IGRlZiBsb2FkX3BlcmZvcm1hbmNlX2lzc3VlcyhzZWxmLCBsaWdodDogYm9v
+bCwgc251YmFfcGFyYW1zOiBQYXJhbXNUeXBlKSAtPiBOb25lOgogICAgICAg
+ICIiIkRvZXNuJ3QgZ2V0IHN1c3BlY3Qgc3BhbnMsIHNpbmNlIHdlIGRvbid0
+IG5lZWQgdGhhdCBmb3IgdGhlIGxpZ2h0IHZpZXciIiIKICAgICAgICBmb3Ig
+Z3JvdXBfaWQgaW4gc2VsZi5ldmVudFsiaXNzdWUuaWRzIl06CiAgICAgICAg
+ICAgIGdyb3VwID0gR3JvdXAub2JqZWN0cy5maWx0ZXIoaWQ9Z3JvdXBfaWQs
+IHByb2plY3Q9c2VsZi5ldmVudFsicHJvamVjdC5pZCJdKS5maXJzdCgpCiAg
+ICAgICAgICAgIGlmIGdyb3VwIGlzIE5vbmU6CiAgICAgICAgICAgICAgICBj
+b250aW51ZQoKICAgICAgICAgICAgc3VzcGVjdF9zcGFuczogTGlzdFtzdHJd
+ID0gW10KICAgICAgICAgICAgdW5pcXVlX3NwYW5zOiBTZXRbc3RyXSA9IHNl
+dCgpCiAgICAgICAgICAgIHN0YXJ0OiBPcHRpb25hbFtmbG9hdF0gPSBOb25l
+CiAgICAgICAgICAgIGVuZDogT3B0aW9uYWxbZmxvYXRdID0gTm9uZQogICAg
+ICAgICAgICBpZiBsaWdodDoKICAgICAgICAgICAgICAgICMgVGhpcyB2YWx1
+ZSBkb2Vzbid0IG1hdHRlciBmb3IgdGhlIGxpZ2h0IHZpZXcKICAgICAgICAg
+ICAgICAgIHNwYW4gPSBbc2VsZi5ldmVudFsidHJhY2Uuc3BhbiJdXQogICAg
+ICAgICAgICBlbGlmICJvY2N1cnJlbmNlX3NwYW5zIiBpbiBzZWxmLmV2ZW50
+OgogICAgICAgICAgICAgICAgZm9yIHByb2JsZW0gaW4gc2VsZi5ldmVudFsi
+aXNzdWVfb2NjdXJyZW5jZXMiXToKICAgICAgICAgICAgICAgICAgICBwYXJl
+bnRfc3Bhbl9pZHMgPSBwcm9ibGVtLmV2aWRlbmNlX2RhdGEuZ2V0KCJwYXJl
+bnRfc3Bhbl9pZHMiKQogICAgICAgICAgICAgICAgICAgIGlmIHBhcmVudF9z
+cGFuX2lkcyBpcyBub3QgTm9uZToKICAgICAgICAgICAgICAgICAgICAgICAg
+dW5pcXVlX3NwYW5zID0gdW5pcXVlX3NwYW5zLnVuaW9uKHBhcmVudF9zcGFu
+X2lkcykKICAgICAgICAgICAgICAgIHNwYW4gPSBsaXN0KHVuaXF1ZV9zcGFu
+cykKICAgICAgICAgICAgICAgIGZvciBldmVudF9zcGFuIGluIHNlbGYuZXZl
+bnRbIm9jY3VycmVuY2Vfc3BhbnMiXToKICAgICAgICAgICAgICAgICAgICBm
+b3IgcHJvYmxlbSBpbiBzZWxmLmV2ZW50WyJpc3N1ZV9vY2N1cnJlbmNlcyJd
+OgogICAgICAgICAgICAgICAgICAgICAgICBvZmZlbmRlcl9zcGFuX2lkcyA9
+IHByb2JsZW0uZXZpZGVuY2VfZGF0YS5nZXQoIm9mZmVuZGVyX3NwYW5faWRz
+IiwgW10pCiAgICAgICAgICAgICAgICAgICAgICAgIGlmIGV2ZW50X3NwYW4u
+Z2V0KCJzcGFuX2lkIikgaW4gb2ZmZW5kZXJfc3Bhbl9pZHM6CiAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICB0cnk6CiAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgZW5kX3RpbWVzdGFtcCA9IGZsb2F0KGV2ZW50X3NwYW4u
+Z2V0KCJ0aW1lc3RhbXAiKSkKICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICBpZiBlbmQgaXMgTm9uZToKICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgZW5kID0gZW5kX3RpbWVzdGFtcAogICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgIGVuZCA9IG1heChlbmQsIGVuZF90aW1lc3RhbXAp
+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgaWYgZW5kX3RpbWVz
+dGFtcCBpcyBub3QgTm9uZToKICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgc3RhcnRfdGltZXN0YW1wID0gZmxvYXQoCiAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICBlbmRfdGltZXN0YW1wIC0g
+ZXZlbnRfc3Bhbi5nZXQoInNwYW4uZHVyYXRpb24iKQogICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICApCiAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgIGlmIHN0YXJ0IGlzIE5vbmU6CiAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzdGFydCA9IHN0YXJ0X3Rp
+bWVzdGFtcAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBl
+bHNlOgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+c3RhcnQgPSBtaW4oc3RhcnQsIHN0YXJ0X3RpbWVzdGFtcCkKICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgIGV4Y2VwdCBWYWx1ZUVycm9yOgogICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgIHBhc3MKICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgIHN1c3BlY3Rfc3BhbnMuYXBwZW5kKGV2ZW50X3NwYW4u
+Z2V0KCJzcGFuX2lkIikpCiAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAg
+ICAgICBpZiBzZWxmLm5vZGVzdG9yZV9ldmVudCBpcyBub3QgTm9uZSBvciBz
+ZWxmLnNwYW5fc2VyaWFsaXplZDoKICAgICAgICAgICAgICAgICAgICBvY2N1
+cnJlbmNlX3F1ZXJ5ID0gUXVlcnlCdWlsZGVyKAogICAgICAgICAgICAgICAg
+ICAgICAgICBEYXRhc2V0Lklzc3VlUGxhdGZvcm0sCiAgICAgICAgICAgICAg
+ICAgICAgICAgIHNudWJhX3BhcmFtcywKICAgICAgICAgICAgICAgICAgICAg
+ICAgcXVlcnk9ZiJldmVudF9pZDp7c2VsZi5ldmVudFsnaWQnXX0iLAogICAg
+ICAgICAgICAgICAgICAgICAgICBzZWxlY3RlZF9jb2x1bW5zPVsib2NjdXJy
+ZW5jZV9pZCJdLAogICAgICAgICAgICAgICAgICAgICkKICAgICAgICAgICAg
+ICAgICAgICBvY2N1cnJlbmNlX2lkcyA9IG9jY3VycmVuY2VfcXVlcnkucHJv
+Y2Vzc19yZXN1bHRzKAogICAgICAgICAgICAgICAgICAgICAgICBvY2N1cnJl
+bmNlX3F1ZXJ5LnJ1bl9xdWVyeSgiYXBpLnRyYWNlLXZpZXcuZ2V0LW9jY3Vy
+cmVuY2UtaWRzIikKICAgICAgICAgICAgICAgICAgICApWyJkYXRhIl0KCiAg
+ICAgICAgICAgICAgICAgICAgaXNzdWVfb2NjdXJyZW5jZXMgPSBJc3N1ZU9j
+Y3VycmVuY2UuZmV0Y2hfbXVsdGkoCiAgICAgICAgICAgICAgICAgICAgICAg
+IFtvY2N1cnJlbmNlLmdldCgib2NjdXJyZW5jZV9pZCIpIGZvciBvY2N1cnJl
+bmNlIGluIG9jY3VycmVuY2VfaWRzXSwKICAgICAgICAgICAgICAgICAgICAg
+ICAgc2VsZi5ldmVudFsicHJvamVjdC5pZCJdLAogICAgICAgICAgICAgICAg
+ICAgICkKICAgICAgICAgICAgICAgICAgICBmb3IgcHJvYmxlbSBpbiBpc3N1
+ZV9vY2N1cnJlbmNlczoKICAgICAgICAgICAgICAgICAgICAgICAgcGFyZW50
+X3NwYW5faWRzID0gcHJvYmxlbS5ldmlkZW5jZV9kYXRhLmdldCgicGFyZW50
+X3NwYW5faWRzIikKICAgICAgICAgICAgICAgICAgICAgICAgaWYgcGFyZW50
+X3NwYW5faWRzIGlzIG5vdCBOb25lOgogICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgdW5pcXVlX3NwYW5zID0gdW5pcXVlX3NwYW5zLnVuaW9uKHBhcmVu
+dF9zcGFuX2lkcykKICAgICAgICAgICAgICAgICAgICBzcGFuID0gbGlzdCh1
+bmlxdWVfc3BhbnMpCiAgICAgICAgICAgICAgICAgICAgZm9yIGV2ZW50X3Nw
+YW4gaW4gc2VsZi5ub2Rlc3RvcmVfZXZlbnQuZGF0YS5nZXQoInNwYW5zIiwg
+W10pOgogICAgICAgICAgICAgICAgICAgICAgICBmb3IgcHJvYmxlbSBpbiBp
+c3N1ZV9vY2N1cnJlbmNlczoKICAgICAgICAgICAgICAgICAgICAgICAgICAg
+IG9mZmVuZGVyX3NwYW5faWRzID0gcHJvYmxlbS5ldmlkZW5jZV9kYXRhLmdl
+dCgib2ZmZW5kZXJfc3Bhbl9pZHMiLCBbXSkKICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgIGlmIGV2ZW50X3NwYW4uZ2V0KCJzcGFuX2lkIikgaW4gb2Zm
+ZW5kZXJfc3Bhbl9pZHM6CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgdHJ5OgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBz
+dGFydF90aW1lc3RhbXAgPSBmbG9hdChldmVudF9zcGFuLmdldCgic3RhcnRf
+dGltZXN0YW1wIikpCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgIGlmIHN0YXJ0IGlzIE5vbmU6CiAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICBzdGFydCA9IHN0YXJ0X3RpbWVzdGFtcAogICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBlbHNlOgogICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgc3RhcnQgPSBtaW4o
+c3RhcnQsIHN0YXJ0X3RpbWVzdGFtcCkKICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICBleGNlcHQgVmFsdWVFcnJvcjoKICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgcGFzcwogICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgIHRyeToKICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgZW5kX3RpbWVzdGFtcCA9IGZsb2F0KGV2ZW50X3NwYW4uZ2V0
+KCJ0aW1lc3RhbXAiKSkKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgaWYgZW5kIGlzIE5vbmU6CiAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICBlbmQgPSBlbmRfdGltZXN0YW1wCiAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICBlbmQgPSBtYXgoZW5kLCBl
+bmRfdGltZXN0YW1wKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+IGV4Y2VwdCBWYWx1ZUVycm9yOgogICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICBwYXNzCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgc3VzcGVjdF9zcGFucy5hcHBlbmQoZXZlbnRfc3Bhbi5nZXQoInNwYW5f
+aWQiKSkKICAgICAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAgICAgICAg
+ICAgc3BhbiA9IFtzZWxmLmV2ZW50WyJ0cmFjZS5zcGFuIl1dCgogICAgICAg
+ICAgICAjIExvZ2ljIGZvciBxdWFsaWZpZWRfc2hvcnRfaWQgaXMgY29waWVk
+IGZyb20gcHJvcGVydHkgb24gdGhlIEdyb3VwIG1vZGVsCiAgICAgICAgICAg
+ICMgdG8gcHJldmVudCBhbiBOKzEgcXVlcnkgZnJvbSBhY2Nlc3NpbmcgcHJv
+amVjdC5zbHVnIGV2ZXJ5dGltZQogICAgICAgICAgICBxdWFsaWZpZWRfc2hv
+cnRfaWQgPSBOb25lCiAgICAgICAgICAgIHByb2plY3Rfc2x1ZyA9IHNlbGYu
+ZXZlbnRbInByb2plY3QiXQogICAgICAgICAgICBpZiBncm91cC5zaG9ydF9p
+ZCBpcyBub3QgTm9uZToKICAgICAgICAgICAgICAgIHF1YWxpZmllZF9zaG9y
+dF9pZCA9IGYie3Byb2plY3Rfc2x1Zy51cHBlcigpfS17YmFzZTMyX2VuY29k
+ZShncm91cC5zaG9ydF9pZCl9IgoKICAgICAgICAgICAgc2VsZi5wZXJmb3Jt
+YW5jZV9pc3N1ZXMuYXBwZW5kKAogICAgICAgICAgICAgICAgewogICAgICAg
+ICAgICAgICAgICAgICJldmVudF9pZCI6IHNlbGYuZXZlbnRbImlkIl0sCiAg
+ICAgICAgICAgICAgICAgICAgImlzc3VlX2lkIjogZ3JvdXBfaWQsCiAgICAg
+ICAgICAgICAgICAgICAgImlzc3VlX3Nob3J0X2lkIjogcXVhbGlmaWVkX3No
+b3J0X2lkLAogICAgICAgICAgICAgICAgICAgICJzcGFuIjogc3BhbiwKICAg
+ICAgICAgICAgICAgICAgICAic3VzcGVjdF9zcGFucyI6IHN1c3BlY3Rfc3Bh
+bnMsCiAgICAgICAgICAgICAgICAgICAgInByb2plY3RfaWQiOiBzZWxmLmV2
+ZW50WyJwcm9qZWN0LmlkIl0sCiAgICAgICAgICAgICAgICAgICAgInByb2pl
+Y3Rfc2x1ZyI6IHNlbGYuZXZlbnRbInByb2plY3QiXSwKICAgICAgICAgICAg
+ICAgICAgICAidGl0bGUiOiBncm91cC50aXRsZSwKICAgICAgICAgICAgICAg
+ICAgICAibGV2ZWwiOiBjb25zdGFudHMuTE9HX0xFVkVMU1tncm91cC5sZXZl
+bF0sCiAgICAgICAgICAgICAgICAgICAgImN1bHByaXQiOiBncm91cC5jdWxw
+cml0LAogICAgICAgICAgICAgICAgICAgICJ0eXBlIjogZ3JvdXAudHlwZSwK
+ICAgICAgICAgICAgICAgICAgICAic3RhcnQiOiBzdGFydCwKICAgICAgICAg
+ICAgICAgICAgICAiZW5kIjogZW5kLAogICAgICAgICAgICAgICAgfQogICAg
+ICAgICAgICApCgogICAgZGVmIHRvX2RpY3Qoc2VsZikgLT4gTGlnaHRSZXNw
+b25zZToKICAgICAgICB0aW1lc3RhbXAgPSBkYXRldGltZS5mcm9taXNvZm9y
+bWF0KHNlbGYuZXZlbnRbInRpbWVzdGFtcCJdKS50aW1lc3RhbXAoKQogICAg
+ICAgIHJldHVybiB7CiAgICAgICAgICAgICJldmVudF9pZCI6IHNlbGYuZXZl
+bnRbImlkIl0sCiAgICAgICAgICAgICJzcGFuX2lkIjogc2VsZi5ldmVudFsi
+dHJhY2Uuc3BhbiJdLAogICAgICAgICAgICAidGltZXN0YW1wIjogdGltZXN0
+YW1wLAogICAgICAgICAgICAidHJhbnNhY3Rpb24iOiBzZWxmLmV2ZW50WyJ0
+cmFuc2FjdGlvbiJdLAogICAgICAgICAgICAidHJhbnNhY3Rpb24uZHVyYXRp
+b24iOiBzZWxmLmV2ZW50WyJ0cmFuc2FjdGlvbi5kdXJhdGlvbiJdLAogICAg
+ICAgICAgICAidHJhbnNhY3Rpb24ub3AiOiBzZWxmLmV2ZW50WyJ0cmFuc2Fj
+dGlvbi5vcCJdLAogICAgICAgICAgICAicHJvamVjdF9pZCI6IHNlbGYuZXZl
+bnRbInByb2plY3QuaWQiXSwKICAgICAgICAgICAgInByb2plY3Rfc2x1ZyI6
+IHNlbGYuZXZlbnRbInByb2plY3QiXSwKICAgICAgICAgICAgIyBBdm9pZCBl
+bXB0eSBzdHJpbmcgZm9yIHJvb3Qgc2VsZi5ldmVudHMKICAgICAgICAgICAg
+InBhcmVudF9zcGFuX2lkIjogc2VsZi5ldmVudFsidHJhY2UucGFyZW50X3Nw
+YW4iXSBvciBOb25lLAogICAgICAgICAgICAicGFyZW50X2V2ZW50X2lkIjog
+c2VsZi5wYXJlbnRfZXZlbnRfaWQsCiAgICAgICAgICAgICJnZW5lcmF0aW9u
+Ijogc2VsZi5nZW5lcmF0aW9uLAogICAgICAgICAgICAiZXJyb3JzIjogc2Vs
+Zi5lcnJvcnMsCiAgICAgICAgICAgICJwZXJmb3JtYW5jZV9pc3N1ZXMiOiBz
+ZWxmLnBlcmZvcm1hbmNlX2lzc3VlcywKICAgICAgICB9CgogICAgZGVmIGZ1
+bGxfZGljdChzZWxmLCBkZXRhaWxlZDogYm9vbCA9IEZhbHNlKSAtPiBGdWxs
+UmVzcG9uc2U6CiAgICAgICAgcmVzdWx0ID0gY2FzdChGdWxsUmVzcG9uc2Us
+IHNlbGYudG9fZGljdCgpKQogICAgICAgIGlmIGRldGFpbGVkIGFuZCAidHJh
+bnNhY3Rpb24uc3RhdHVzIiBpbiBzZWxmLmV2ZW50OgogICAgICAgICAgICBy
+ZXN1bHQudXBkYXRlKAogICAgICAgICAgICAgICAgewogICAgICAgICAgICAg
+ICAgICAgICJ0cmFuc2FjdGlvbi5zdGF0dXMiOiBTUEFOX1NUQVRVU19DT0RF
+X1RPX05BTUUuZ2V0KAogICAgICAgICAgICAgICAgICAgICAgICBzZWxmLmV2
+ZW50WyJ0cmFuc2FjdGlvbi5zdGF0dXMiXSwgInVua25vd24iCiAgICAgICAg
+ICAgICAgICAgICAgKSwKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAg
+KQogICAgICAgIGlmIHNlbGYuc3Bhbl9zZXJpYWxpemVkOgogICAgICAgICAg
+ICByZXN1bHRbInRpbWVzdGFtcCJdID0gZGF0ZXRpbWUuZnJvbWlzb2Zvcm1h
+dChzZWxmLmV2ZW50WyJ0aW1lc3RhbXAiXSkudGltZXN0YW1wKCkKICAgICAg
+ICAgICAgcmVzdWx0WyJzdGFydF90aW1lc3RhbXAiXSA9ICgKICAgICAgICAg
+ICAgICAgIGRhdGV0aW1lLmZyb21pc29mb3JtYXQoc2VsZi5ldmVudFsidGlt
+ZXN0YW1wIl0pLnRpbWVzdGFtcCgpCiAgICAgICAgICAgICAgICAtIHNlbGYu
+ZXZlbnRbInRyYW5zYWN0aW9uLmR1cmF0aW9uIl0KICAgICAgICAgICAgKQog
+ICAgICAgIGlmIHNlbGYubm9kZXN0b3JlX2V2ZW50OgogICAgICAgICAgICBy
+ZXN1bHRbInRpbWVzdGFtcCJdID0gc2VsZi5ub2Rlc3RvcmVfZXZlbnQuZGF0
+YS5nZXQoInRpbWVzdGFtcCIpCiAgICAgICAgICAgIHJlc3VsdFsic3RhcnRf
+dGltZXN0YW1wIl0gPSBzZWxmLm5vZGVzdG9yZV9ldmVudC5kYXRhLmdldCgi
+c3RhcnRfdGltZXN0YW1wIikKCiAgICAgICAgICAgIGNvbnRleHRzID0gc2Vs
+Zi5ub2Rlc3RvcmVfZXZlbnQuZGF0YS5nZXQoImNvbnRleHRzIiwge30pCiAg
+ICAgICAgICAgIHByb2ZpbGVfaWQgPSBjb250ZXh0cy5nZXQoInByb2ZpbGUi
+LCB7fSkuZ2V0KCJwcm9maWxlX2lkIikKICAgICAgICAgICAgaWYgcHJvZmls
+ZV9pZCBpcyBub3QgTm9uZToKICAgICAgICAgICAgICAgIHJlc3VsdFsicHJv
+ZmlsZV9pZCJdID0gcHJvZmlsZV9pZAoKICAgICAgICAgICAgaWYgZGV0YWls
+ZWQ6CiAgICAgICAgICAgICAgICBpZiAibWVhc3VyZW1lbnRzIiBpbiBzZWxm
+Lm5vZGVzdG9yZV9ldmVudC5kYXRhOgogICAgICAgICAgICAgICAgICAgIHJl
+c3VsdFsibWVhc3VyZW1lbnRzIl0gPSBzZWxmLm5vZGVzdG9yZV9ldmVudC5k
+YXRhLmdldCgibWVhc3VyZW1lbnRzIikKICAgICAgICAgICAgICAgIHJlc3Vs
+dFsiX21ldGEiXSA9IHt9CiAgICAgICAgICAgICAgICByZXN1bHRbInRhZ3Mi
+XSwgcmVzdWx0WyJfbWV0YSJdWyJ0YWdzIl0gPSBnZXRfdGFnc193aXRoX21l
+dGEoc2VsZi5ub2Rlc3RvcmVfZXZlbnQpCiAgICAgICAgIyBPbmx5IGFkZCBj
+aGlsZHJlbiB0aGF0IGhhdmUgbm9kZXN0b3JlIGV2ZW50cywgd2hpY2ggbWF5
+IGJlIG1pc3NpbmcgaWYgd2UncmUgcHJ1bmluZyBmb3IgdHJhY2UgbmF2aWdh
+dG9yCiAgICAgICAgcmVzdWx0WyJjaGlsZHJlbiJdID0gWwogICAgICAgICAg
+ICBjaGlsZC5mdWxsX2RpY3QoZGV0YWlsZWQpIGZvciBjaGlsZCBpbiBzZWxm
+LmNoaWxkcmVuIGlmIGNoaWxkLmZldGNoZWRfbm9kZXN0b3JlCiAgICAgICAg
+XQogICAgICAgIHJldHVybiByZXN1bHQKCgpkZWYgZmluZF9ldmVudCgKICAg
+IGl0ZW1zOiBJdGVyYWJsZVtPcHRpb25hbFtfVF1dLAogICAgZnVuY3Rpb246
+IENhbGxhYmxlW1tPcHRpb25hbFtfVF1dLCBBbnldLAogICAgZGVmYXVsdDog
+T3B0aW9uYWxbX1RdID0gTm9uZSwKKSAtPiBPcHRpb25hbFtfVF06CiAgICBy
+ZXR1cm4gbmV4dChmaWx0ZXIoZnVuY3Rpb24sIGl0ZW1zKSwgZGVmYXVsdCkK
+CgpkZWYgaXNfcm9vdChpdGVtOiBTbnViYVRyYW5zYWN0aW9uKSAtPiBib29s
+OgogICAgcmV0dXJuIGl0ZW0uZ2V0KCJyb290IiwgIjAiKSA9PSAiMSIKCgpk
+ZWYgY2hpbGRfc29ydF9rZXkoaXRlbTogVHJhY2VFdmVudCkgLT4gTGlzdFtp
+bnRdOgogICAgaWYgaXRlbS5mZXRjaGVkX25vZGVzdG9yZSBhbmQgaXRlbS5u
+b2Rlc3RvcmVfZXZlbnQgaXMgbm90IE5vbmU6CiAgICAgICAgcmV0dXJuIFsK
+ICAgICAgICAgICAgaXRlbS5ub2Rlc3RvcmVfZXZlbnQuZGF0YVsic3RhcnRf
+dGltZXN0YW1wIl0sCiAgICAgICAgICAgIGl0ZW0ubm9kZXN0b3JlX2V2ZW50
+LmRhdGFbInRpbWVzdGFtcCJdLAogICAgICAgIF0KICAgIGVsc2U6CiAgICAg
+ICAgcmV0dXJuIFsKICAgICAgICAgICAgaXRlbS5ldmVudFsidHJhbnNhY3Rp
+b24iXSwKICAgICAgICAgICAgaXRlbS5ldmVudFsiaWQiXSwKICAgICAgICBd
+CgoKZGVmIGNvdW50X3BlcmZvcm1hbmNlX2lzc3Vlcyh0cmFjZV9pZDogc3Ry
+LCBwYXJhbXM6IE1hcHBpbmdbc3RyLCBzdHJdKSAtPiBpbnQ6CiAgICB0cmFu
+c2FjdGlvbl9xdWVyeSA9IFF1ZXJ5QnVpbGRlcigKICAgICAgICBEYXRhc2V0
+Lklzc3VlUGxhdGZvcm0sCiAgICAgICAgcGFyYW1zLAogICAgICAgIHF1ZXJ5
+PWYidHJhY2U6e3RyYWNlX2lkfSIsCiAgICAgICAgc2VsZWN0ZWRfY29sdW1u
+cz1bXSwKICAgICAgICBsaW1pdD1NQVhfVFJBQ0VfU0laRSwKICAgICkKICAg
+IHRyYW5zYWN0aW9uX3F1ZXJ5LmNvbHVtbnMuYXBwZW5kKEZ1bmN0aW9uKCJj
+b3VudCgpIiwgYWxpYXM9InRvdGFsX2dyb3VwcyIpKQogICAgY291bnQgPSB0
+cmFuc2FjdGlvbl9xdWVyeS5ydW5fcXVlcnkoImFwaS50cmFjZS12aWV3LmNv
+dW50LXBlcmZvcm1hbmNlLWlzc3VlcyIpCiAgICByZXR1cm4gY2FzdChpbnQs
+IGNvdW50WyJkYXRhIl1bMF0uZ2V0KCJ0b3RhbF9ncm91cHMiLCAwKSkKCgpk
+ZWYgcXVlcnlfdHJhY2VfZGF0YSgKICAgIHRyYWNlX2lkOiBzdHIsIHBhcmFt
+czogTWFwcGluZ1tzdHIsIHN0cl0sIGxpbWl0OiBpbnQKKSAtPiBUdXBsZVtT
+ZXF1ZW5jZVtTbnViYVRyYW5zYWN0aW9uXSwgU2VxdWVuY2VbU251YmFFcnJv
+cl1dOgogICAgdHJhbnNhY3Rpb25fcXVlcnkgPSBRdWVyeUJ1aWxkZXIoCiAg
+ICAgICAgRGF0YXNldC5UcmFuc2FjdGlvbnMsCiAgICAgICAgcGFyYW1zLAog
+ICAgICAgIHF1ZXJ5PWYidHJhY2U6e3RyYWNlX2lkfSIsCiAgICAgICAgc2Vs
+ZWN0ZWRfY29sdW1ucz1bCiAgICAgICAgICAgICJpZCIsCiAgICAgICAgICAg
+ICJ0cmFuc2FjdGlvbi5zdGF0dXMiLAogICAgICAgICAgICAidHJhbnNhY3Rp
+b24ub3AiLAogICAgICAgICAgICAidHJhbnNhY3Rpb24uZHVyYXRpb24iLAog
+ICAgICAgICAgICAidHJhbnNhY3Rpb24iLAogICAgICAgICAgICAidGltZXN0
+YW1wIiwKICAgICAgICAgICAgInByb2plY3QiLAogICAgICAgICAgICAicHJv
+amVjdC5pZCIsCiAgICAgICAgICAgICJ0cmFjZS5zcGFuIiwKICAgICAgICAg
+ICAgInRyYWNlLnBhcmVudF9zcGFuIiwKICAgICAgICAgICAgJ3RvX290aGVy
+KHRyYWNlLnBhcmVudF9zcGFuLCAiIiwgMCwgMSkgQVMgcm9vdCcsCiAgICAg
+ICAgXSwKICAgICAgICAjIFdlIHdhbnQgdG8gZ3VhcmFudGVlIGF0IGxlYXN0
+IGdldHRpbmcgdGhlIHJvb3QsIGFuZCBob3BlZnVsbHkgZXZlbnRzIG5lYXIg
+aXQgd2l0aCB0aW1lc3RhbXAKICAgICAgICAjIGlkIGlzIGp1c3QgZm9yIGNv
+bnNpc3RlbnQgcmVzdWx0cwogICAgICAgIG9yZGVyYnk9WyItcm9vdCIsICJ0
+aW1lc3RhbXAiLCAiaWQiXSwKICAgICAgICBsaW1pdD1saW1pdCwKICAgICkK
+ICAgIG9jY3VycmVuY2VfcXVlcnkgPSBRdWVyeUJ1aWxkZXIoCiAgICAgICAg
+RGF0YXNldC5Jc3N1ZVBsYXRmb3JtLAogICAgICAgIHBhcmFtcywKICAgICAg
+ICBxdWVyeT1mInRyYWNlOnt0cmFjZV9pZH0iLAogICAgICAgIHNlbGVjdGVk
+X2NvbHVtbnM9WyJldmVudF9pZCIsICJvY2N1cnJlbmNlX2lkIl0sCiAgICAg
+ICAgY29uZmlnPVF1ZXJ5QnVpbGRlckNvbmZpZygKICAgICAgICAgICAgZnVu
+Y3Rpb25zX2FjbD1bImdyb3VwQXJyYXkiXSwKICAgICAgICApLAogICAgKQog
+ICAgb2NjdXJyZW5jZV9xdWVyeS5jb2x1bW5zLmFwcGVuZCgKICAgICAgICBG
+dW5jdGlvbigiZ3JvdXBBcnJheSIsIHBhcmFtZXRlcnM9W0NvbHVtbigiZ3Jv
+dXBfaWQiKV0sIGFsaWFzPSJpc3N1ZS5pZHMiKQogICAgKQogICAgb2NjdXJy
+ZW5jZV9xdWVyeS5ncm91cGJ5ID0gW0NvbHVtbigiZXZlbnRfaWQiKSwgQ29s
+dW1uKCJvY2N1cnJlbmNlX2lkIildCgogICAgZXJyb3JfcXVlcnkgPSBRdWVy
+eUJ1aWxkZXIoCiAgICAgICAgRGF0YXNldC5FdmVudHMsCiAgICAgICAgcGFy
+YW1zLAogICAgICAgIHF1ZXJ5PWYidHJhY2U6e3RyYWNlX2lkfSIsCiAgICAg
+ICAgc2VsZWN0ZWRfY29sdW1ucz1bCiAgICAgICAgICAgICJpZCIsCiAgICAg
+ICAgICAgICJwcm9qZWN0IiwKICAgICAgICAgICAgInByb2plY3QuaWQiLAog
+ICAgICAgICAgICAidGltZXN0YW1wIiwKICAgICAgICAgICAgInRyYWNlLnNw
+YW4iLAogICAgICAgICAgICAidHJhbnNhY3Rpb24iLAogICAgICAgICAgICAi
+aXNzdWUiLAogICAgICAgICAgICAidGl0bGUiLAogICAgICAgICAgICAidGFn
+c1tsZXZlbF0iLAogICAgICAgIF0sCiAgICAgICAgIyBEb24ndCBhZGQgdGlt
+ZXN0YW1wIHRvIHRoaXMgb3JkZXJieSBhcyBzbnViYSB3aWxsIGhhdmUgdG8g
+c3BsaXQgdGhlIHRpbWUgcmFuZ2UgdXAgYW5kIG1ha2UgbXVsdGlwbGUgcXVl
+cmllcwogICAgICAgIG9yZGVyYnk9WyJpZCJdLAogICAgICAgIGxpbWl0PWxp
+bWl0LAogICAgICAgIGNvbmZpZz1RdWVyeUJ1aWxkZXJDb25maWcoCiAgICAg
+ICAgICAgIGF1dG9fZmllbGRzPUZhbHNlLAogICAgICAgICksCiAgICApCiAg
+ICByZXN1bHRzID0gYnVsa19zbnFsX3F1ZXJ5KAogICAgICAgIFsKICAgICAg
+ICAgICAgdHJhbnNhY3Rpb25fcXVlcnkuZ2V0X3NucWxfcXVlcnkoKSwKICAg
+ICAgICAgICAgZXJyb3JfcXVlcnkuZ2V0X3NucWxfcXVlcnkoKSwKICAgICAg
+ICAgICAgb2NjdXJyZW5jZV9xdWVyeS5nZXRfc25xbF9xdWVyeSgpLAogICAg
+ICAgIF0sCiAgICAgICAgcmVmZXJyZXI9ImFwaS50cmFjZS12aWV3LmdldC1l
+dmVudHMiLAogICAgKQoKICAgIHRyYW5zZm9ybWVkX3Jlc3VsdHMgPSBbCiAg
+ICAgICAgcXVlcnkucHJvY2Vzc19yZXN1bHRzKHJlc3VsdClbImRhdGEiXQog
+ICAgICAgIGZvciByZXN1bHQsIHF1ZXJ5IGluIHppcChyZXN1bHRzLCBbdHJh
+bnNhY3Rpb25fcXVlcnksIGVycm9yX3F1ZXJ5LCBvY2N1cnJlbmNlX3F1ZXJ5
+XSkKICAgIF0KCiAgICAjIEpvaW4gZ3JvdXAgSURzIGZyb20gdGhlIG9jY3Vy
+cmVuY2UgZGF0YXNldCB0byB0cmFuc2FjdGlvbnMgZGF0YQogICAgb2NjdXJy
+ZW5jZV9pc3N1ZV9pZHMgPSB7cm93WyJldmVudF9pZCJdOiByb3dbImlzc3Vl
+LmlkcyJdIGZvciByb3cgaW4gdHJhbnNmb3JtZWRfcmVzdWx0c1syXX0KICAg
+IG9jY3VycmVuY2VfaWRzID0ge3Jvd1siZXZlbnRfaWQiXTogcm93WyJvY2N1
+cnJlbmNlX2lkIl0gZm9yIHJvdyBpbiB0cmFuc2Zvcm1lZF9yZXN1bHRzWzJd
+fQogICAgZm9yIHJlc3VsdCBpbiB0cmFuc2Zvcm1lZF9yZXN1bHRzWzBdOgog
+ICAgICAgIHJlc3VsdFsiaXNzdWUuaWRzIl0gPSBvY2N1cnJlbmNlX2lzc3Vl
+X2lkcy5nZXQocmVzdWx0WyJpZCJdLCB7fSkKICAgICAgICByZXN1bHRbIm9j
+Y3VycmVuY2VfaWQiXSA9IG9jY3VycmVuY2VfaWRzLmdldChyZXN1bHRbImlk
+Il0pCiAgICAgICAgcmVzdWx0WyJ0cmFjZS5wYXJlbnRfdHJhbnNhY3Rpb24i
+XSA9IE5vbmUKCiAgICByZXR1cm4gY2FzdChTZXF1ZW5jZVtTbnViYVRyYW5z
+YWN0aW9uXSwgdHJhbnNmb3JtZWRfcmVzdWx0c1swXSksIGNhc3QoCiAgICAg
+ICAgU2VxdWVuY2VbU251YmFFcnJvcl0sIHRyYW5zZm9ybWVkX3Jlc3VsdHNb
+MV0KICAgICkKCgpkZWYgYXVnbWVudF90cmFuc2FjdGlvbnNfd2l0aF9zcGFu
+cygKICAgIHRyYW5zYWN0aW9uczogU2VxdWVuY2VbU251YmFUcmFuc2FjdGlv
+bl0sCiAgICBlcnJvcnM6IFNlcXVlbmNlW1NudWJhRXJyb3JdLAogICAgdHJh
+Y2VfaWQ6IHN0ciwKICAgIHBhcmFtczogTWFwcGluZ1tzdHIsIHN0cl0sCikg
+LT4gU2VxdWVuY2VbU251YmFUcmFuc2FjdGlvbl06CiAgICAiIiJBdWdtZW50
+IHRoZSBsaXN0IG9mIHRyYW5zYWN0aW9ucyB3aXRoIHBhcmVudCwgZXJyb3Ig
+YW5kIHByb2JsZW0gZGF0YSIiIgogICAgdHJhY2VfcGFyZW50X3NwYW5zID0g
+c2V0KCkgICMgcGFyZW50IHNwYW4gaWRzIG9mIHNlZ21lbnQgc3BhbnMKICAg
+IHRyYW5zYWN0aW9uX3Byb2JsZW1fbWFwID0ge30KICAgIHByb2JsZW1fcHJv
+amVjdF9tYXAgPSB7fQogICAgaXNzdWVfb2NjdXJyZW5jZXMgPSBbXQogICAg
+b2NjdXJyZW5jZV9zcGFucyA9IHNldCgpCiAgICBlcnJvcl9zcGFucyA9IHtl
+WyJ0cmFjZS5zcGFuIl0gZm9yIGUgaW4gZXJyb3JzIGlmIGVbInRyYWNlLnNw
+YW4iXX0KICAgIHByb2plY3RzID0gc2V0KCkKCiAgICBmb3IgdHJhbnNhY3Rp
+b24gaW4gdHJhbnNhY3Rpb25zOgogICAgICAgIHRyYW5zYWN0aW9uWyJvY2N1
+cnJlbmNlX3NwYW5zIl0gPSBbXQogICAgICAgIHRyYW5zYWN0aW9uWyJpc3N1
+ZV9vY2N1cnJlbmNlcyJdID0gW10KCiAgICAgICAgcHJvamVjdCA9IHRyYW5z
+YWN0aW9uWyJwcm9qZWN0LmlkIl0KICAgICAgICBwcm9qZWN0cy5hZGQocHJv
+amVjdCkKCiAgICAgICAgIyBQdWxsIG91dCBvY2N1cnJlbmNlIGRhdGEKICAg
+ICAgICB0cmFuc2FjdGlvbl9wcm9ibGVtX21hcFt0cmFuc2FjdGlvblsiaWQi
+XV0gPSB0cmFuc2FjdGlvbgogICAgICAgIGlmIHByb2plY3Qgbm90IGluIHBy
+b2JsZW1fcHJvamVjdF9tYXA6CiAgICAgICAgICAgIHByb2JsZW1fcHJvamVj
+dF9tYXBbcHJvamVjdF0gPSBbXQogICAgICAgIHByb2JsZW1fcHJvamVjdF9t
+YXBbcHJvamVjdF0uYXBwZW5kKHRyYW5zYWN0aW9uWyJvY2N1cnJlbmNlX2lk
+Il0pCgogICAgICAgICMgTmVlZCB0byBzdHJpcCB0aGUgbGVhZGluZyAiMCJz
+IHRvIG1hdGNoIG91ciBxdWVyeSB0byB0aGUgc3BhbnMgdGFibGUKICAgICAg
+ICAjIFRoaXMgaXMgY2F1c2Ugc3BhbnMgYXJlIHN0b3JlZCBhcyBVSW50NjQs
+IHNvIGEgc3BhbiBsaWtlIDAwMTEKICAgICAgICAjIGNvbnZlcnRlZCB0byBh
+biBpbnQgdGhlbiBjb252ZXJ0ZWQgdG8gYSBoZXggd2lsbCBiZWNvbWUgMTEK
+ICAgICAgICAjIHNvIHdoZW4gd2UgcXVlcnkgc251YmEgd2UgbmVlZCB0byBy
+ZW1vdmUgdGhlIDAwcyBvdXJzZWx2ZXMgYXMgd2VsbAogICAgICAgIGlmIG5v
+dCB0cmFuc2FjdGlvblsidHJhY2UucGFyZW50X3NwYW4iXToKICAgICAgICAg
+ICAgY29udGludWUKICAgICAgICB0cmFuc2FjdGlvblsidHJhY2UucGFyZW50
+X3NwYW4uc3RyaXBwZWQiXSA9ICgKICAgICAgICAgICAgc3RyKGhleChpbnQo
+dHJhbnNhY3Rpb25bInRyYWNlLnBhcmVudF9zcGFuIl0sIDE2KSkpLmxzdHJp
+cCgiMHgiKQogICAgICAgICAgICBpZiB0cmFuc2FjdGlvblsidHJhY2UucGFy
+ZW50X3NwYW4iXS5zdGFydHN3aXRoKCIwMCIpCiAgICAgICAgICAgIGVsc2Ug
+dHJhbnNhY3Rpb25bInRyYWNlLnBhcmVudF9zcGFuIl0KICAgICAgICApCiAg
+ICAgICAgIyBwYXJlbnQgc3BhbiBpZHMgb2YgdGhlIHNlZ21lbnQgc3BhbnMK
+ICAgICAgICB0cmFjZV9wYXJlbnRfc3BhbnMuYWRkKHRyYW5zYWN0aW9uWyJ0
+cmFjZS5wYXJlbnRfc3Bhbi5zdHJpcHBlZCJdKQoKICAgIGZvciBwcm9qZWN0
+LCBvY2N1cnJlbmNlcyBpbiBwcm9ibGVtX3Byb2plY3RfbWFwLml0ZW1zKCk6
+CiAgICAgICAgaWYgb2NjdXJyZW5jZXM6CiAgICAgICAgICAgIGlzc3VlX29j
+Y3VycmVuY2VzLmV4dGVuZCgKICAgICAgICAgICAgICAgIFsKICAgICAgICAg
+ICAgICAgICAgICBvY2N1cnJlbmNlCiAgICAgICAgICAgICAgICAgICAgZm9y
+IG9jY3VycmVuY2UgaW4gSXNzdWVPY2N1cnJlbmNlLmZldGNoX211bHRpKG9j
+Y3VycmVuY2VzLCBwcm9qZWN0KQogICAgICAgICAgICAgICAgICAgIGlmIG9j
+Y3VycmVuY2UgaXMgbm90IE5vbmUKICAgICAgICAgICAgICAgIF0KICAgICAg
+ICAgICAgKQoKICAgIGZvciBwcm9ibGVtIGluIGlzc3VlX29jY3VycmVuY2Vz
+OgogICAgICAgIG9jY3VycmVuY2Vfc3BhbnMgPSBvY2N1cnJlbmNlX3NwYW5z
+LnVuaW9uKHNldChwcm9ibGVtLmV2aWRlbmNlX2RhdGFbIm9mZmVuZGVyX3Nw
+YW5faWRzIl0pKQoKICAgIHF1ZXJ5X3NwYW5zID0geyp0cmFjZV9wYXJlbnRf
+c3BhbnMsICplcnJvcl9zcGFucywgKm9jY3VycmVuY2Vfc3BhbnN9CiAgICBp
+ZiAiIiBpbiBxdWVyeV9zcGFuczoKICAgICAgICBxdWVyeV9zcGFucy5yZW1v
+dmUoIiIpCiAgICAjIElmIHRoZXJlIGFyZSBubyBzcGFucyB0byBxdWVyeSBq
+dXN0IHJldHVybiB0cmFuc2FjdGlvbnMgYXMgaXMKICAgIGlmIGxlbihxdWVy
+eV9zcGFucykgPT0gMDoKICAgICAgICByZXR1cm4gdHJhbnNhY3Rpb25zCgog
+ICAgIyBGZXRjaCBwYXJlbnQgc3BhbiBpZHMgb2Ygc2VnbWVudCBzcGFucyBh
+bmQgdGhlaXIgY29ycmVzcG9uZGluZwogICAgIyB0cmFuc2FjdGlvbiBpZCBz
+byB3ZSBjYW4gbGluayBwYXJlbnQvY2hpbGQgdHJhbnNhY3Rpb25zIGluCiAg
+ICAjIGEgdHJhY2UuCiAgICBzcGFuc19wYXJhbXMgPSBwYXJhbXMuY29weSgp
+CiAgICBzcGFuc19wYXJhbXNbInByb2plY3Rfb2JqZWN0cyJdID0gW3AgZm9y
+IHAgaW4gcGFyYW1zWyJwcm9qZWN0X29iamVjdHMiXSBpZiBwLmlkIGluIHBy
+b2plY3RzXQogICAgc3BhbnNfcGFyYW1zWyJwcm9qZWN0X2lkIl0gPSBsaXN0
+KHByb2plY3RzLnVuaW9uKHNldChwcm9ibGVtX3Byb2plY3RfbWFwLmtleXMo
+KSkpKQoKICAgIHBhcmVudHNfcmVzdWx0cyA9IFNwYW5zSW5kZXhlZFF1ZXJ5
+QnVpbGRlcigKICAgICAgICBEYXRhc2V0LlNwYW5zSW5kZXhlZCwKICAgICAg
+ICBzcGFuc19wYXJhbXMsCiAgICAgICAgcXVlcnk9ZiJ0cmFjZTp7dHJhY2Vf
+aWR9IHNwYW5faWQ6W3snLCcuam9pbihxdWVyeV9zcGFucyl9XSIsCiAgICAg
+ICAgc2VsZWN0ZWRfY29sdW1ucz1bCiAgICAgICAgICAgICJ0cmFuc2FjdGlv
+bi5pZCIsCiAgICAgICAgICAgICJzcGFuX2lkIiwKICAgICAgICAgICAgInRp
+bWVzdGFtcCIsCiAgICAgICAgXSwKICAgICAgICBvcmRlcmJ5PVsidGltZXN0
+YW1wIiwgImlkIl0sCiAgICAgICAgbGltaXQ9MTAwMDAsCiAgICApLnJ1bl9x
+dWVyeShyZWZlcnJlcj1SZWZlcnJlci5BUElfVFJBQ0VfVklFV19HRVRfUEFS
+RU5UUy52YWx1ZSkKCiAgICBwYXJlbnRfbWFwID0ge3BhcmVudFsic3Bhbl9p
+ZCJdOiBwYXJlbnQgZm9yIHBhcmVudCBpbiBwYXJlbnRzX3Jlc3VsdHNbImRh
+dGEiXX0KICAgIGZvciB0cmFuc2FjdGlvbiBpbiB0cmFuc2FjdGlvbnM6CiAg
+ICAgICAgIyBGb3IgYSBnaXZlbiB0cmFuc2FjdGlvbiwgaWYgcGFyZW50IHNw
+YW4gaWQgZXhpc3RzIGluIHRoZSB0cmFuYWN0aW9uIChzbyB0aGlzIGlzCiAg
+ICAgICAgIyBub3QgYSByb290IHNwYW4pLCBzZWUgaWYgdGhlIGluZGV4ZWQg
+c3BhbnMgZGF0YSBjYW4gdGVsbCB1cyB3aGF0IHRoZSBwYXJlbnQKICAgICAg
+ICAjIHRyYW5zYWN0aW9uIGlkIGlzLgogICAgICAgIGlmICJ0cmFjZS5wYXJl
+bnRfc3Bhbi5zdHJpcHBlZCIgaW4gdHJhbnNhY3Rpb246CiAgICAgICAgICAg
+IGlmIHBhcmVudCA6PSBwYXJlbnRfbWFwLmdldCh0cmFuc2FjdGlvblsidHJh
+Y2UucGFyZW50X3NwYW4uc3RyaXBwZWQiXSk6CiAgICAgICAgICAgICAgICB0
+cmFuc2FjdGlvblsidHJhY2UucGFyZW50X3RyYW5zYWN0aW9uIl0gPSBwYXJl
+bnRbInRyYW5zYWN0aW9uLmlkIl0KICAgIGZvciBwcm9ibGVtIGluIGlzc3Vl
+X29jY3VycmVuY2VzOgogICAgICAgIGZvciBzcGFuX2lkIGluIHByb2JsZW0u
+ZXZpZGVuY2VfZGF0YVsib2ZmZW5kZXJfc3Bhbl9pZHMiXToKICAgICAgICAg
+ICAgaWYgcGFyZW50IDo9IHBhcmVudF9tYXAuZ2V0KHNwYW5faWQpOgogICAg
+ICAgICAgICAgICAgdHJhbnNhY3Rpb24gPSB0cmFuc2FjdGlvbl9wcm9ibGVt
+X21hcFtwcm9ibGVtLmV2ZW50X2lkXQogICAgICAgICAgICAgICAgdHJhbnNh
+Y3Rpb25bIm9jY3VycmVuY2Vfc3BhbnMiXS5hcHBlbmQocGFyZW50KQogICAg
+ICAgICAgICAgICAgdHJhbnNhY3Rpb25bImlzc3VlX29jY3VycmVuY2VzIl0u
+YXBwZW5kKHByb2JsZW0pCiAgICBmb3IgZXJyb3IgaW4gZXJyb3JzOgogICAg
+ICAgIGlmIHBhcmVudCA6PSBwYXJlbnRfbWFwLmdldChlcnJvclsidHJhY2Uu
+c3BhbiJdKToKICAgICAgICAgICAgZXJyb3JbInRyYWNlLnRyYW5zYWN0aW9u
+Il0gPSBwYXJlbnRbInRyYW5zYWN0aW9uLmlkIl0KICAgIHJldHVybiB0cmFu
+c2FjdGlvbnMKCgpjbGFzcyBPcmdhbml6YXRpb25FdmVudHNUcmFjZUVuZHBv
+aW50QmFzZShPcmdhbml6YXRpb25FdmVudHNWMkVuZHBvaW50QmFzZSk6CiAg
+ICBwdWJsaXNoX3N0YXR1cyA9IHsKICAgICAgICAiR0VUIjogQXBpUHVibGlz
+aFN0YXR1cy5QUklWQVRFLAogICAgfQoKICAgIGRlZiBoYXNfZmVhdHVyZShz
+ZWxmLCBvcmdhbml6YXRpb246IE9yZ2FuaXphdGlvbiwgcmVxdWVzdDogSHR0
+cFJlcXVlc3QpIC0+IGJvb2w6CiAgICAgICAgcmV0dXJuIGJvb2woCiAgICAg
+ICAgICAgIGZlYXR1cmVzLmhhcygib3JnYW5pemF0aW9uczpwZXJmb3JtYW5j
+ZS12aWV3Iiwgb3JnYW5pemF0aW9uLCBhY3Rvcj1yZXF1ZXN0LnVzZXIpCiAg
+ICAgICAgKQoKICAgIEBzdGF0aWNtZXRob2QKICAgIGRlZiBzZXJpYWxpemVf
+ZXJyb3IoZXZlbnQ6IFNudWJhRXJyb3IpIC0+IFRyYWNlRXJyb3I6CiAgICAg
+ICAgcmV0dXJuIHsKICAgICAgICAgICAgImV2ZW50X2lkIjogZXZlbnRbImlk
+Il0sCiAgICAgICAgICAgICJpc3N1ZV9pZCI6IGV2ZW50WyJpc3N1ZS5pZCJd
+LAogICAgICAgICAgICAic3BhbiI6IGV2ZW50WyJ0cmFjZS5zcGFuIl0sCiAg
+ICAgICAgICAgICJwcm9qZWN0X2lkIjogZXZlbnRbInByb2plY3QuaWQiXSwK
+ICAgICAgICAgICAgInByb2plY3Rfc2x1ZyI6IGV2ZW50WyJwcm9qZWN0Il0s
+CiAgICAgICAgICAgICJ0aXRsZSI6IGV2ZW50WyJ0aXRsZSJdLAogICAgICAg
+ICAgICAibGV2ZWwiOiBldmVudFsidGFnc1tsZXZlbF0iXSwKICAgICAgICAg
+ICAgInRpbWVzdGFtcCI6IHRvX3RpbWVzdGFtcF9mcm9tX2lzb19mb3JtYXQo
+ZXZlbnRbInRpbWVzdGFtcCJdKSwKICAgICAgICAgICAgImV2ZW50X3R5cGUi
+OiAiZXJyb3IiLAogICAgICAgICAgICAiZ2VuZXJhdGlvbiI6IDAsCiAgICAg
+ICAgfQoKICAgIEBzdGF0aWNtZXRob2QKICAgIGRlZiBjb25zdHJ1Y3RfcGFy
+ZW50X21hcCgKICAgICAgICBldmVudHM6IFNlcXVlbmNlW1NudWJhVHJhbnNh
+Y3Rpb25dLAogICAgKSAtPiBEaWN0W3N0ciwgTGlzdFtTbnViYVRyYW5zYWN0
+aW9uXV06CiAgICAgICAgIiIiQSBtYXBwaW5nIG9mIHNwYW4gaWRzIHRvIHRo
+ZWlyIHRyYW5zYWN0aW9ucwoKICAgICAgICAtIFRyYW5zYWN0aW9ucyBhcmUg
+YXNzb2NpYXRlZCB0byBlYWNoIG90aGVyIHZpYSBwYXJlbnRfc3Bhbl9pZAog
+ICAgICAgICIiIgogICAgICAgIHBhcmVudF9tYXA6IERpY3Rbc3RyLCBMaXN0
+W1NudWJhVHJhbnNhY3Rpb25dXSA9IGRlZmF1bHRkaWN0KGxpc3QpCiAgICAg
+ICAgZm9yIGl0ZW0gaW4gZXZlbnRzOgogICAgICAgICAgICBpZiBub3QgaXNf
+cm9vdChpdGVtKToKICAgICAgICAgICAgICAgIHBhcmVudF9tYXBbaXRlbVsi
+dHJhY2UucGFyZW50X3NwYW4iXV0uYXBwZW5kKGl0ZW0pCiAgICAgICAgcmV0
+dXJuIHBhcmVudF9tYXAKCiAgICBAc3RhdGljbWV0aG9kCiAgICBkZWYgY29u
+c3RydWN0X2Vycm9yX21hcChldmVudHM6IFNlcXVlbmNlW1NudWJhRXJyb3Jd
+KSAtPiBEaWN0W3N0ciwgTGlzdFtTbnViYUVycm9yXV06CiAgICAgICAgIiIi
+QSBtYXBwaW5nIG9mIHNwYW4gaWRzIHRvIHRoZWlyIGVycm9ycwoKICAgICAg
+ICBrZXkgZGVwZW5kcyBvbiB0aGUgZXZlbnQgdHlwZToKICAgICAgICAtIEVy
+cm9ycyBhcmUgYXNzb2NpYXRlZCB0byB0cmFuc2FjdGlvbnMgdmlhIHNwYW5f
+aWQKICAgICAgICAiIiIKICAgICAgICBwYXJlbnRfbWFwOiBEaWN0W3N0ciwg
+TGlzdFtTbnViYUVycm9yXV0gPSBkZWZhdWx0ZGljdChsaXN0KQogICAgICAg
+IGZvciBpdGVtIGluIGV2ZW50czoKICAgICAgICAgICAgcGFyZW50X21hcFtp
+dGVtWyJ0cmFjZS5zcGFuIl1dLmFwcGVuZChpdGVtKQogICAgICAgIHJldHVy
+biBwYXJlbnRfbWFwCgogICAgQHN0YXRpY21ldGhvZAogICAgZGVmIHJlY29y
+ZF9hbmFseXRpY3MoCiAgICAgICAgdHJhbnNhY3Rpb25zOiBTZXF1ZW5jZVtT
+bnViYVRyYW5zYWN0aW9uXSwgdHJhY2VfaWQ6IHN0ciwgdXNlcl9pZDogaW50
+LCBvcmdfaWQ6IGludAogICAgKSAtPiBOb25lOgogICAgICAgIHdpdGggc2Vu
+dHJ5X3Nkay5zdGFydF9zcGFuKG9wPSJyZWNvcmRpbmcuYW5hbHl0aWNzIik6
+CiAgICAgICAgICAgIGxlbl90cmFuc2FjdGlvbnMgPSBsZW4odHJhbnNhY3Rp
+b25zKQoKICAgICAgICAgICAgc2VudHJ5X3Nkay5zZXRfdGFnKCJ0cmFjZV92
+aWV3LnRyYWNlIiwgdHJhY2VfaWQpCiAgICAgICAgICAgIHNlbnRyeV9zZGsu
+c2V0X3RhZygidHJhY2Vfdmlldy50cmFuc2FjdGlvbnMiLCBsZW5fdHJhbnNh
+Y3Rpb25zKQogICAgICAgICAgICBzZW50cnlfc2RrLnNldF90YWcoCiAgICAg
+ICAgICAgICAgICAidHJhY2Vfdmlldy50cmFuc2FjdGlvbnMuZ3JvdXBlZCIs
+IGZvcm1hdF9ncm91cGVkX2xlbmd0aChsZW5fdHJhbnNhY3Rpb25zKQogICAg
+ICAgICAgICApCiAgICAgICAgICAgIHNldF9tZWFzdXJlbWVudCgidHJhY2Vf
+dmlldy50cmFuc2FjdGlvbnMiLCBsZW5fdHJhbnNhY3Rpb25zKQogICAgICAg
+ICAgICBwcm9qZWN0czogU2V0W2ludF0gPSBzZXQoKQogICAgICAgICAgICBm
+b3IgdHJhbnNhY3Rpb24gaW4gdHJhbnNhY3Rpb25zOgogICAgICAgICAgICAg
+ICAgcHJvamVjdHMuYWRkKHRyYW5zYWN0aW9uWyJwcm9qZWN0LmlkIl0pCgog
+ICAgICAgICAgICBsZW5fcHJvamVjdHMgPSBsZW4ocHJvamVjdHMpCiAgICAg
+ICAgICAgIHNlbnRyeV9zZGsuc2V0X3RhZygidHJhY2Vfdmlldy5wcm9qZWN0
+cyIsIGxlbl9wcm9qZWN0cykKICAgICAgICAgICAgc2VudHJ5X3Nkay5zZXRf
+dGFnKCJ0cmFjZV92aWV3LnByb2plY3RzLmdyb3VwZWQiLCBmb3JtYXRfZ3Jv
+dXBlZF9sZW5ndGgobGVuX3Byb2plY3RzKSkKICAgICAgICAgICAgc2V0X21l
+YXN1cmVtZW50KCJ0cmFjZV92aWV3LnByb2plY3RzIiwgbGVuX3Byb2plY3Rz
+KQoKICAgIGRlZiBnZXQoc2VsZiwgcmVxdWVzdDogSHR0cFJlcXVlc3QsIG9y
+Z2FuaXphdGlvbjogT3JnYW5pemF0aW9uLCB0cmFjZV9pZDogc3RyKSAtPiBI
+dHRwUmVzcG9uc2U6CiAgICAgICAgaWYgbm90IHNlbGYuaGFzX2ZlYXR1cmUo
+b3JnYW5pemF0aW9uLCByZXF1ZXN0KToKICAgICAgICAgICAgcmV0dXJuIFJl
+c3BvbnNlKHN0YXR1cz00MDQpCgogICAgICAgIHRyeToKICAgICAgICAgICAg
+IyBUaGUgdHJhY2UgdmlldyBpc24ndCB1c2VmdWwgd2l0aG91dCBnbG9iYWwg
+dmlld3MsIHNvIHNraXBwaW5nIHRoZSBjaGVjayBoZXJlCiAgICAgICAgICAg
+IHBhcmFtcyA9IHNlbGYuZ2V0X3NudWJhX3BhcmFtcyhyZXF1ZXN0LCBvcmdh
+bml6YXRpb24sIGNoZWNrX2dsb2JhbF92aWV3cz1GYWxzZSkKICAgICAgICBl
+eGNlcHQgTm9Qcm9qZWN0czoKICAgICAgICAgICAgcmV0dXJuIFJlc3BvbnNl
+KHN0YXR1cz00MDQpCgogICAgICAgIHRyYWNlX3ZpZXdfbG9hZF9tb3JlX2Vu
+YWJsZWQgPSBmZWF0dXJlcy5oYXMoCiAgICAgICAgICAgICJvcmdhbml6YXRp
+b25zOnRyYWNlLXZpZXctbG9hZC1tb3JlIiwKICAgICAgICAgICAgb3JnYW5p
+emF0aW9uLAogICAgICAgICAgICBhY3Rvcj1yZXF1ZXN0LnVzZXIsCiAgICAg
+ICAgKQoKICAgICAgICAjIERldGFpbGVkIGlzIGRlcHJlY2F0ZWQgbm93IHRo
+YXQgd2Ugd2FudCB0byB1c2Ugc3BhbnMgaW5zdGVhZAogICAgICAgIGRldGFp
+bGVkOiBib29sID0gcmVxdWVzdC5HRVQuZ2V0KCJkZXRhaWxlZCIsICIwIikg
+PT0gIjEiCiAgICAgICAgdXNlX3NwYW5zOiBib29sID0gcmVxdWVzdC5HRVQu
+Z2V0KCJ1c2VTcGFucyIsICIwIikgPT0gIjEiCiAgICAgICAgaWYgZGV0YWls
+ZWQgYW5kIHVzZV9zcGFuczoKICAgICAgICAgICAgcmFpc2UgUGFyc2VFcnJv
+cigiQ2Fubm90IHJldHVybiBhIGRldGFpbGVkIHJlc3BvbnNlIHdoaWxlIHVz
+aW5nIHNwYW5zIikKICAgICAgICBsaW1pdDogaW50ID0gKAogICAgICAgICAg
+ICBtaW4oaW50KHJlcXVlc3QuR0VULmdldCgibGltaXQiLCBNQVhfVFJBQ0Vf
+U0laRSkpLCAyMDAwKQogICAgICAgICAgICBpZiB0cmFjZV92aWV3X2xvYWRf
+bW9yZV9lbmFibGVkCiAgICAgICAgICAgIGVsc2UgTUFYX1RSQUNFX1NJWkUK
+ICAgICAgICApCiAgICAgICAgZXZlbnRfaWQ6IE9wdGlvbmFsW3N0cl0gPSBy
+ZXF1ZXN0LkdFVC5nZXQoImV2ZW50X2lkIikKCiAgICAgICAgIyBPbmx5IG5l
+ZWQgdG8gdmFsaWRhdGUgZXZlbnRfaWQgYXMgdHJhY2VfaWQgaXMgdmFsaWRh
+dGVkIGluIHRoZSBVUkwKICAgICAgICBpZiBldmVudF9pZCBhbmQgbm90IGlz
+X2V2ZW50X2lkKGV2ZW50X2lkKToKICAgICAgICAgICAgcmV0dXJuIFJlc3Bv
+bnNlKHsiZGV0YWlsIjogSU5WQUxJRF9JRF9ERVRBSUxTLmZvcm1hdCgiRXZl
+bnQgSUQiKX0sIHN0YXR1cz00MDApCgogICAgICAgIHRyYWNpbmdfd2l0aG91
+dF9wZXJmb3JtYW5jZV9lbmFibGVkID0gZmVhdHVyZXMuaGFzKAogICAgICAg
+ICAgICAib3JnYW5pemF0aW9uczpwZXJmb3JtYW5jZS10cmFjaW5nLXdpdGhv
+dXQtcGVyZm9ybWFuY2UiLAogICAgICAgICAgICBvcmdhbml6YXRpb24sCiAg
+ICAgICAgICAgIGFjdG9yPXJlcXVlc3QudXNlciwKICAgICAgICApCiAgICAg
+ICAgd2l0aCBoYW5kbGVfcXVlcnlfZXJyb3JzKCk6CiAgICAgICAgICAgIHRy
+YW5zYWN0aW9ucywgZXJyb3JzID0gcXVlcnlfdHJhY2VfZGF0YSh0cmFjZV9p
+ZCwgcGFyYW1zLCBsaW1pdCkKICAgICAgICAgICAgaWYgdXNlX3NwYW5zOgog
+ICAgICAgICAgICAgICAgdHJhbnNhY3Rpb25zID0gYXVnbWVudF90cmFuc2Fj
+dGlvbnNfd2l0aF9zcGFucygKICAgICAgICAgICAgICAgICAgICB0cmFuc2Fj
+dGlvbnMsIGVycm9ycywgdHJhY2VfaWQsIHBhcmFtcwogICAgICAgICAgICAg
+ICAgKQogICAgICAgICAgICBpZiBsZW4odHJhbnNhY3Rpb25zKSA9PSAwIGFu
+ZCBub3QgdHJhY2luZ193aXRob3V0X3BlcmZvcm1hbmNlX2VuYWJsZWQ6CiAg
+ICAgICAgICAgICAgICByZXR1cm4gUmVzcG9uc2Uoc3RhdHVzPTQwNCkKICAg
+ICAgICAgICAgc2VsZi5yZWNvcmRfYW5hbHl0aWNzKHRyYW5zYWN0aW9ucywg
+dHJhY2VfaWQsIHNlbGYucmVxdWVzdC51c2VyLmlkLCBvcmdhbml6YXRpb24u
+aWQpCgogICAgICAgIHdhcm5pbmdfZXh0cmE6IERpY3Rbc3RyLCBzdHJdID0g
+eyJ0cmFjZSI6IHRyYWNlX2lkLCAib3JnYW5pemF0aW9uIjogb3JnYW5pemF0
+aW9uLnNsdWd9CgogICAgICAgICMgTG9vayBmb3IgYWxsIHJvb3QgdHJhbnNh
+Y3Rpb25zIGluIHRoZSB0cmFjZSAoaS5lLiwgdHJhbnNhY3Rpb25zCiAgICAg
+ICAgIyB0aGF0IGV4cGxpY2l0bHkgaGF2ZSBubyBwYXJlbnQgc3BhbiBpZCkK
+ICAgICAgICByb290czogTGlzdFtTbnViYVRyYW5zYWN0aW9uXSA9IFtdCiAg
+ICAgICAgZm9yIGl0ZW0gaW4gdHJhbnNhY3Rpb25zOgogICAgICAgICAgICBp
+ZiBpc19yb290KGl0ZW0pOgogICAgICAgICAgICAgICAgcm9vdHMuYXBwZW5k
+KGl0ZW0pCiAgICAgICAgICAgIGVsc2U6CiAgICAgICAgICAgICAgICAjIFRo
+aXMgaXMgb2theSBiZWNhdXNlIHRoZSBxdWVyeSBkb2VzIGFuIG9yZGVyIGJ5
+IG9uIC1yb290CiAgICAgICAgICAgICAgICBicmVhawogICAgICAgIGlmIGxl
+bihyb290cykgPiAxOgogICAgICAgICAgICBzZW50cnlfc2RrLnNldF90YWco
+ImRpc2NvdmVyLnRyYWNlLXZpZXcud2FybmluZyIsICJyb290LmV4dHJhLWZv
+dW5kIikKICAgICAgICAgICAgbG9nZ2VyLndhcm5pbmcoCiAgICAgICAgICAg
+ICAgICAiZGlzY292ZXIudHJhY2Utdmlldy5yb290LmV4dHJhLWZvdW5kIiwK
+ICAgICAgICAgICAgICAgIGV4dHJhPXsiZXh0cmFfcm9vdHMiOiBsZW4ocm9v
+dHMpLCAqKndhcm5pbmdfZXh0cmF9LAogICAgICAgICAgICApCgogICAgICAg
+IHJldHVybiBSZXNwb25zZSgKICAgICAgICAgICAgc2VsZi5zZXJpYWxpemUo
+CiAgICAgICAgICAgICAgICBsaW1pdCwKICAgICAgICAgICAgICAgIHRyYW5z
+YWN0aW9ucywKICAgICAgICAgICAgICAgIGVycm9ycywKICAgICAgICAgICAg
+ICAgIHJvb3RzLAogICAgICAgICAgICAgICAgd2FybmluZ19leHRyYSwKICAg
+ICAgICAgICAgICAgIGV2ZW50X2lkLAogICAgICAgICAgICAgICAgZGV0YWls
+ZWQsCiAgICAgICAgICAgICAgICB0cmFjaW5nX3dpdGhvdXRfcGVyZm9ybWFu
+Y2VfZW5hYmxlZCwKICAgICAgICAgICAgICAgIHRyYWNlX3ZpZXdfbG9hZF9t
+b3JlX2VuYWJsZWQsCiAgICAgICAgICAgICAgICB1c2Vfc3BhbnMsCiAgICAg
+ICAgICAgICkKICAgICAgICApCgoKQHJlZ2lvbl9zaWxvX2VuZHBvaW50CmNs
+YXNzIE9yZ2FuaXphdGlvbkV2ZW50c1RyYWNlTGlnaHRFbmRwb2ludChPcmdh
+bml6YXRpb25FdmVudHNUcmFjZUVuZHBvaW50QmFzZSk6CiAgICBwdWJsaXNo
+X3N0YXR1cyA9IHsKICAgICAgICAiR0VUIjogQXBpUHVibGlzaFN0YXR1cy5Q
+UklWQVRFLAogICAgfQoKICAgIEBzdGF0aWNtZXRob2QKICAgIGRlZiBnZXRf
+Y3VycmVudF90cmFuc2FjdGlvbigKICAgICAgICB0cmFuc2FjdGlvbnM6IFNl
+cXVlbmNlW1NudWJhVHJhbnNhY3Rpb25dLAogICAgICAgIGVycm9yczogU2Vx
+dWVuY2VbU251YmFFcnJvcl0sCiAgICAgICAgZXZlbnRfaWQ6IHN0ciwKICAg
+ICAgICBhbGxvd19vcnBoYW5fZXJyb3JzOiBib29sLAogICAgKSAtPiBUdXBs
+ZVtTbnViYVRyYW5zYWN0aW9uLCBFdmVudF06CiAgICAgICAgIiIiR2l2ZW4g
+YW4gZXZlbnRfaWQgcmV0dXJuIHRoZSByZWxhdGVkIHRyYW5zYWN0aW9uIGV2
+ZW50CgogICAgICAgIFRoZSBldmVudF9pZCBjb3VsZCBiZSBmb3IgYW4gZXJy
+b3IsIHNpbmNlIHdlIHNob3cgdGhlIHF1aWNrLXRyYWNlCiAgICAgICAgZm9y
+IGJvdGggZXZlbnQgdHlwZXMKICAgICAgICBXZSBvY2Nhc2lvbmFsbHkgaGF2
+ZSB0byBnZXQgdGhlIG5vZGVzdG9yZSBkYXRhLCBzbyB0aGlzIGZ1bmN0aW9u
+IHJldHVybnMKICAgICAgICB0aGUgbm9kZXN0b3JlIGV2ZW50IGFzIHdlbGwg
+c28gdGhhdCB3ZSdyZSBkb2luZyB0aGF0IGluIG9uZSBsb2NhdGlvbi4KICAg
+ICAgICAiIiIKICAgICAgICB0cmFuc2FjdGlvbl9ldmVudCA9IGZpbmRfZXZl
+bnQoCiAgICAgICAgICAgIHRyYW5zYWN0aW9ucywgbGFtYmRhIGl0ZW06IGl0
+ZW0gaXMgbm90IE5vbmUgYW5kIGl0ZW1bImlkIl0gPT0gZXZlbnRfaWQKICAg
+ICAgICApCiAgICAgICAgaWYgdHJhbnNhY3Rpb25fZXZlbnQgaXMgbm90IE5v
+bmU6CiAgICAgICAgICAgIHJldHVybiB0cmFuc2FjdGlvbl9ldmVudCwgZXZl
+bnRzdG9yZS5iYWNrZW5kLmdldF9ldmVudF9ieV9pZCgKICAgICAgICAgICAg
+ICAgIHRyYW5zYWN0aW9uX2V2ZW50WyJwcm9qZWN0LmlkIl0sIHRyYW5zYWN0
+aW9uX2V2ZW50WyJpZCJdCiAgICAgICAgICAgICkKCiAgICAgICAgIyBUaGUg
+ZXZlbnQgY291bGRuJ3QgYmUgZm91bmQsIGl0IG1pZ2h0IGJlIGFuIGVycm9y
+CiAgICAgICAgZXJyb3JfZXZlbnQgPSBmaW5kX2V2ZW50KGVycm9ycywgbGFt
+YmRhIGl0ZW06IGl0ZW0gaXMgbm90IE5vbmUgYW5kIGl0ZW1bImlkIl0gPT0g
+ZXZlbnRfaWQpCiAgICAgICAgIyBBbHJpZ2h0IHNvIHdlJ3JlIGxvb2tpbmcg
+YXQgYW4gZXJyb3IsIHRpbWUgdG8gc2VlIGlmIHdlIGNhbiBmaW5kIGl0cyB0
+cmFuc2FjdGlvbgogICAgICAgIGlmIGVycm9yX2V2ZW50IGlzIG5vdCBOb25l
+OgogICAgICAgICAgICAjIFVuZm9ydHVuYXRlbHkgdGhlIG9ubHkgYXNzb2Np
+YXRpb24gZnJvbSBhbiBldmVudCBiYWNrIHRvIGl0cyB0cmFuc2FjdGlvbiBp
+cyBuYW1lICYgc3Bhbl9pZAogICAgICAgICAgICAjIEZpcnN0IG1heWJlIHdl
+IGdvdCBsdWNreSBhbmQgdGhlIGVycm9yIGhhcHBlbmVkIG9uIHRoZSB0cmFu
+c2FjdGlvbidzICJzcGFuIgogICAgICAgICAgICBlcnJvcl9zcGFuID0gZXJy
+b3JfZXZlbnRbInRyYWNlLnNwYW4iXQogICAgICAgICAgICB0cmFuc2FjdGlv
+bl9ldmVudCA9IGZpbmRfZXZlbnQoCiAgICAgICAgICAgICAgICB0cmFuc2Fj
+dGlvbnMsIGxhbWJkYSBpdGVtOiBpdGVtIGlzIG5vdCBOb25lIGFuZCBpdGVt
+WyJ0cmFjZS5zcGFuIl0gPT0gZXJyb3Jfc3BhbgogICAgICAgICAgICApCiAg
+ICAgICAgICAgIGlmIHRyYW5zYWN0aW9uX2V2ZW50IGlzIG5vdCBOb25lOgog
+ICAgICAgICAgICAgICAgcmV0dXJuIHRyYW5zYWN0aW9uX2V2ZW50LCBldmVu
+dHN0b3JlLmJhY2tlbmQuZ2V0X2V2ZW50X2J5X2lkKAogICAgICAgICAgICAg
+ICAgICAgIHRyYW5zYWN0aW9uX2V2ZW50WyJwcm9qZWN0LmlkIl0sIHRyYW5z
+YWN0aW9uX2V2ZW50WyJpZCJdCiAgICAgICAgICAgICAgICApCiAgICAgICAg
+ICAgICMgV2UgZGlkbid0IGdldCBsdWNreSwgdGltZSB0byB0YWxrIHRvIG5v
+ZGVzdG9yZS4uLgogICAgICAgICAgICBmb3IgdHJhbnNhY3Rpb25fZXZlbnQg
+aW4gdHJhbnNhY3Rpb25zOgogICAgICAgICAgICAgICAgaWYgdHJhbnNhY3Rp
+b25fZXZlbnRbInRyYW5zYWN0aW9uIl0gIT0gZXJyb3JfZXZlbnRbInRyYW5z
+YWN0aW9uIl06CiAgICAgICAgICAgICAgICAgICAgY29udGludWUKCiAgICAg
+ICAgICAgICAgICBub2Rlc3RvcmVfZXZlbnQgPSBldmVudHN0b3JlLmJhY2tl
+bmQuZ2V0X2V2ZW50X2J5X2lkKAogICAgICAgICAgICAgICAgICAgIHRyYW5z
+YWN0aW9uX2V2ZW50WyJwcm9qZWN0LmlkIl0sIHRyYW5zYWN0aW9uX2V2ZW50
+WyJpZCJdCiAgICAgICAgICAgICAgICApCiAgICAgICAgICAgICAgICB0cmFu
+c2FjdGlvbl9zcGFuczogTm9kZVNwYW5zID0gbm9kZXN0b3JlX2V2ZW50LmRh
+dGEuZ2V0KCJzcGFucyIsIFtdKQogICAgICAgICAgICAgICAgZm9yIHNwYW4g
+aW4gdHJhbnNhY3Rpb25fc3BhbnM6CiAgICAgICAgICAgICAgICAgICAgaWYg
+c3Bhblsic3Bhbl9pZCJdID09IGVycm9yX2V2ZW50WyJ0cmFjZS5zcGFuIl06
+CiAgICAgICAgICAgICAgICAgICAgICAgIHJldHVybiB0cmFuc2FjdGlvbl9l
+dmVudCwgbm9kZXN0b3JlX2V2ZW50CgogICAgICAgIGlmIGFsbG93X29ycGhh
+bl9lcnJvcnM6CiAgICAgICAgICAgIHJldHVybiBOb25lLCBOb25lCgogICAg
+ICAgICMgVGhlIGN1cnJlbnQgZXZlbnQgY291bGRuJ3QgYmUgZm91bmQgaW4g
+ZXJyb3JzIG9yIHRyYW5zYWN0aW9ucwogICAgICAgIHJhaXNlIEh0dHA0MDQo
+KQoKICAgIGRlZiBzZXJpYWxpemUoCiAgICAgICAgc2VsZiwKICAgICAgICBs
+aW1pdDogaW50LAogICAgICAgIHRyYW5zYWN0aW9uczogU2VxdWVuY2VbU251
+YmFUcmFuc2FjdGlvbl0sCiAgICAgICAgZXJyb3JzOiBTZXF1ZW5jZVtTbnVi
+YUVycm9yXSwKICAgICAgICByb290czogU2VxdWVuY2VbU251YmFUcmFuc2Fj
+dGlvbl0sCiAgICAgICAgd2FybmluZ19leHRyYTogRGljdFtzdHIsIHN0cl0s
+CiAgICAgICAgZXZlbnRfaWQ6IE9wdGlvbmFsW3N0cl0sCiAgICAgICAgZGV0
+YWlsZWQ6IGJvb2wgPSBGYWxzZSwKICAgICAgICBhbGxvd19vcnBoYW5fZXJy
+b3JzOiBib29sID0gRmFsc2UsCiAgICAgICAgYWxsb3dfbG9hZF9tb3JlOiBi
+b29sID0gRmFsc2UsCiAgICAgICAgdXNlX3NwYW5zOiBib29sID0gRmFsc2Us
+CiAgICApIC0+IFNlcXVlbmNlW0xpZ2h0UmVzcG9uc2VdOgogICAgICAgICIi
+IkJlY2F1c2UgdGhlIGxpZ2h0IGVuZHBvaW50IGNvdWxkIHBvdGVudGlhbGx5
+IGhhdmUgZ2FwcyBiZXR3ZWVuIHJvb3QgYW5kIGV2ZW50IHdlIHJldHVybiBh
+IGZsYXR0ZW5lZCBsaXN0IiIiCiAgICAgICAgaWYgdXNlX3NwYW5zOgogICAg
+ICAgICAgICByYWlzZSBQYXJzZUVycm9yKGRldGFpbD0idXNlU3BhbnMgaXNu
+J3Qgc3VwcG9ydGVkIG9uIHRoZSB0cmFjZS1saWdodCIpCiAgICAgICAgaWYg
+ZXZlbnRfaWQgaXMgTm9uZToKICAgICAgICAgICAgcmFpc2UgUGFyc2VFcnJv
+cihkZXRhaWw9IkFuIGV2ZW50X2lkIGlzIHJlcXVpcmVkIGZvciB0aGUgbGln
+aHQgdHJhY2UiKQogICAgICAgIHNudWJhX2V2ZW50LCBub2Rlc3RvcmVfZXZl
+bnQgPSBzZWxmLmdldF9jdXJyZW50X3RyYW5zYWN0aW9uKAogICAgICAgICAg
+ICB0cmFuc2FjdGlvbnMsIGVycm9ycywgZXZlbnRfaWQsIGFsbG93X29ycGhh
+bl9lcnJvcnMKICAgICAgICApCiAgICAgICAgcGFyZW50X21hcCA9IHNlbGYu
+Y29uc3RydWN0X3BhcmVudF9tYXAodHJhbnNhY3Rpb25zKQogICAgICAgIGVy
+cm9yX21hcCA9IHNlbGYuY29uc3RydWN0X2Vycm9yX21hcChlcnJvcnMpCiAg
+ICAgICAgdHJhY2VfcmVzdWx0czogTGlzdFtUcmFjZUV2ZW50XSA9IFtdCiAg
+ICAgICAgY3VycmVudF9nZW5lcmF0aW9uOiBPcHRpb25hbFtpbnRdID0gTm9u
+ZQogICAgICAgIHJvb3RfaWQ6IE9wdGlvbmFsW3N0cl0gPSBOb25lCgogICAg
+ICAgIHdpdGggc2VudHJ5X3Nkay5zdGFydF9zcGFuKG9wPSJidWlsZGluZy50
+cmFjZSIsIGRlc2NyaXB0aW9uPSJsaWdodCB0cmFjZSIpOgogICAgICAgICAg
+ICAjIENoZWNrIGlmIHRoZSBldmVudCBpcyBhbiBvcnBoYW5fZXJyb3IKICAg
+ICAgICAgICAgaWYgbm90IHNudWJhX2V2ZW50IGFuZCBub3Qgbm9kZXN0b3Jl
+X2V2ZW50IGFuZCBhbGxvd19vcnBoYW5fZXJyb3JzOgogICAgICAgICAgICAg
+ICAgb3JwaGFuX2Vycm9yID0gZmluZF9ldmVudCgKICAgICAgICAgICAgICAg
+ICAgICBlcnJvcnMsIGxhbWJkYSBpdGVtOiBpdGVtIGlzIG5vdCBOb25lIGFu
+ZCBpdGVtWyJpZCJdID09IGV2ZW50X2lkCiAgICAgICAgICAgICAgICApCiAg
+ICAgICAgICAgICAgICBpZiBvcnBoYW5fZXJyb3I6CiAgICAgICAgICAgICAg
+ICAgICAgcmV0dXJuIHsKICAgICAgICAgICAgICAgICAgICAgICAgInRyYW5z
+YWN0aW9ucyI6IFtdLAogICAgICAgICAgICAgICAgICAgICAgICAib3JwaGFu
+X2Vycm9ycyI6IFtzZWxmLnNlcmlhbGl6ZV9lcnJvcihvcnBoYW5fZXJyb3Ip
+XSwKICAgICAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgICAgICBlbHNl
+OgogICAgICAgICAgICAgICAgICAgICMgVGhlIGN1cnJlbnQgZXZlbnQgY291
+bGRuJ3QgYmUgZm91bmQgaW4gZXJyb3JzIG9yIHRyYW5zYWN0aW9ucwogICAg
+ICAgICAgICAgICAgICAgIHJhaXNlIEh0dHA0MDQoKQoKICAgICAgICAgICAg
+IyBHb2luZyB0byBub2Rlc3RvcmUgaXMgbW9yZSBleHBlbnNpdmUgdGhhbiBs
+b29waW5nIHR3aWNlIHNvIGNoZWNrIGlmIHdlJ3JlIG9uIHRoZSByb290IGZp
+cnN0CiAgICAgICAgICAgIGZvciByb290IGluIHJvb3RzOgogICAgICAgICAg
+ICAgICAgaWYgcm9vdFsiaWQiXSA9PSBzbnViYV9ldmVudFsiaWQiXToKICAg
+ICAgICAgICAgICAgICAgICBjdXJyZW50X2dlbmVyYXRpb24gPSAwCiAgICAg
+ICAgICAgICAgICAgICAgYnJlYWsKCiAgICAgICAgICAgIHBhcmFtcyA9IHNl
+bGYuZ2V0X3NudWJhX3BhcmFtcygKICAgICAgICAgICAgICAgIHNlbGYucmVx
+dWVzdCwgc2VsZi5yZXF1ZXN0Lm9yZ2FuaXphdGlvbiwgY2hlY2tfZ2xvYmFs
+X3ZpZXdzPUZhbHNlCiAgICAgICAgICAgICkKICAgICAgICAgICAgaWYgY3Vy
+cmVudF9nZW5lcmF0aW9uIGlzIE5vbmU6CiAgICAgICAgICAgICAgICBmb3Ig
+cm9vdCBpbiByb290czoKICAgICAgICAgICAgICAgICAgICAjIFdlIG1pZ2h0
+IG5vdCBiZSBuZWNlc3NhcmlseSBjb25uZWN0ZWQgdG8gdGhlIHJvb3QgaWYg
+d2UncmUgb24gYW4gb3JwaGFuIGV2ZW50CiAgICAgICAgICAgICAgICAgICAg
+aWYgcm9vdFsiaWQiXSAhPSBzbnViYV9ldmVudFsiaWQiXToKICAgICAgICAg
+ICAgICAgICAgICAgICAgIyBHZXQgdGhlIHJvb3QgZXZlbnQgYW5kIHNlZSBp
+ZiB0aGUgY3VycmVudCBldmVudCdzIHNwYW4gaXMgaW4gdGhlIHJvb3QgZXZl
+bnQKICAgICAgICAgICAgICAgICAgICAgICAgcm9vdF9ldmVudCA9IGV2ZW50
+c3RvcmUuYmFja2VuZC5nZXRfZXZlbnRfYnlfaWQoCiAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICByb290WyJwcm9qZWN0LmlkIl0sIHJvb3RbImlkIl0K
+ICAgICAgICAgICAgICAgICAgICAgICAgKQogICAgICAgICAgICAgICAgICAg
+ICAgICByb290X3NwYW5zOiBOb2RlU3BhbnMgPSByb290X2V2ZW50LmRhdGEu
+Z2V0KCJzcGFucyIsIFtdKQogICAgICAgICAgICAgICAgICAgICAgICByb290
+X3NwYW4gPSBmaW5kX2V2ZW50KAogICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgcm9vdF9zcGFucywKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGxh
+bWJkYSBpdGVtOiBpdGVtIGlzIG5vdCBOb25lCiAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICBhbmQgaXRlbVsic3Bhbl9pZCJdID09IHNudWJhX2V2ZW50
+WyJ0cmFjZS5wYXJlbnRfc3BhbiJdLAogICAgICAgICAgICAgICAgICAgICAg
+ICApCgogICAgICAgICAgICAgICAgICAgICAgICAjIFdlIG9ubHkga25vdyB0
+byBhZGQgdGhlIHJvb3QgaWYgaXRzIHRoZSBkaXJlY3QgcGFyZW50CiAgICAg
+ICAgICAgICAgICAgICAgICAgIGlmIHJvb3Rfc3BhbiBpcyBub3QgTm9uZToK
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICMgRm9yIHRoZSBsaWdodCBy
+ZXNwb25zZSwgdGhlIHBhcmVudCB3aWxsIGJlIHVua25vd24gdW5sZXNzIGl0
+IGlzIGEgZGlyZWN0IGRlc2NlbmRlbnQgb2YgdGhlIHJvb3QKICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgIHJvb3RfaWQgPSByb290WyJpZCJdCiAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICB0cmFjZV9yZXN1bHRzLmFwcGVuZCgK
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBUcmFjZUV2ZW50KAog
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICByb290LAogICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBOb25lLAogICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAwLAogICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICBUcnVlLAogICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICBzbnViYV9wYXJhbXM9cGFyYW1zLAogICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICkKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGN1
+cnJlbnRfZ2VuZXJhdGlvbiA9IDEKICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgIGJyZWFrCgogICAgICAgICAgICBjdXJyZW50X2V2ZW50ID0gVHJhY2VF
+dmVudCgKICAgICAgICAgICAgICAgIHNudWJhX2V2ZW50LCByb290X2lkLCBj
+dXJyZW50X2dlbmVyYXRpb24sIFRydWUsIHNudWJhX3BhcmFtcz1wYXJhbXMK
+ICAgICAgICAgICAgKQogICAgICAgICAgICB0cmFjZV9yZXN1bHRzLmFwcGVu
+ZChjdXJyZW50X2V2ZW50KQoKICAgICAgICAgICAgc3BhbnM6IE5vZGVTcGFu
+cyA9IG5vZGVzdG9yZV9ldmVudC5kYXRhLmdldCgic3BhbnMiLCBbXSkKICAg
+ICAgICAgICAgIyBOZWVkIHRvIGluY2x1ZGUgdGhlIHRyYW5zYWN0aW9uIGFz
+IGEgc3BhbiBhcyB3ZWxsCiAgICAgICAgICAgICMKICAgICAgICAgICAgIyBJ
+bXBvcnRhbnQgdGhhdCB3ZSBsZWZ0IHBhZCB0aGUgc3BhbiBpZCB3aXRoIDBz
+IGJlY2F1c2UKICAgICAgICAgICAgIyB0aGUgc3BhbiBpZCBpcyBzdG9yZWQg
+YXMgYW4gVUludDY0IGFuZCBjb252ZXJ0ZWQgaW50bwogICAgICAgICAgICAj
+IGEgaGV4IHN0cmluZyB3aGVuIHF1ZXJpbmcuIEhvd2V2ZXIsIHRoZSBjb252
+ZXJzaW9uIGRvZXMKICAgICAgICAgICAgIyBub3QgZW5zdXJlIHRoYXQgdGhl
+IGZpbmFsIHNwYW4gaWQgaXMgMTYgY2hhcnMgbG9uZyBzaW5jZQogICAgICAg
+ICAgICAjIGl0J3MgYSBuYWl2ZSBiYXNlIDEwIHRvIGJhc2UgMTYgY29udmVy
+c2lvbi4KICAgICAgICAgICAgc3BhbnMuYXBwZW5kKHsic3Bhbl9pZCI6IHNu
+dWJhX2V2ZW50WyJ0cmFjZS5zcGFuIl0ucmp1c3QoMTYsICIwIil9KQoKICAg
+ICAgICAgICAgZm9yIHNwYW4gaW4gc3BhbnM6CiAgICAgICAgICAgICAgICBp
+ZiBzcGFuWyJzcGFuX2lkIl0gaW4gZXJyb3JfbWFwOgogICAgICAgICAgICAg
+ICAgICAgIGN1cnJlbnRfZXZlbnQuZXJyb3JzLmV4dGVuZCgKICAgICAgICAg
+ICAgICAgICAgICAgICAgW3NlbGYuc2VyaWFsaXplX2Vycm9yKGVycm9yKSBm
+b3IgZXJyb3IgaW4gZXJyb3JfbWFwLnBvcChzcGFuWyJzcGFuX2lkIl0pXQog
+ICAgICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgICAgIGlmIHNwYW5b
+InNwYW5faWQiXSBpbiBwYXJlbnRfbWFwOgogICAgICAgICAgICAgICAgICAg
+IGNoaWxkX2V2ZW50cyA9IHBhcmVudF9tYXAucG9wKHNwYW5bInNwYW5faWQi
+XSkKICAgICAgICAgICAgICAgICAgICB0cmFjZV9yZXN1bHRzLmV4dGVuZCgK
+ICAgICAgICAgICAgICAgICAgICAgICAgWwogICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgVHJhY2VFdmVudCgKICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICBjaGlsZF9ldmVudCwKICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICBzbnViYV9ldmVudFsiaWQiXSwKICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAoCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgIGN1cnJlbnRfZXZlbnQuZ2VuZXJhdGlvbiArIDEKICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgaWYgY3VycmVudF9ldmVudC5n
+ZW5lcmF0aW9uIGlzIG5vdCBOb25lCiAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgIGVsc2UgTm9uZQogICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+VHJ1ZSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBzbnViYV9w
+YXJhbXM9cGFyYW1zLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgKQog
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgZm9yIGNoaWxkX2V2ZW50IGlu
+IGNoaWxkX2V2ZW50cwogICAgICAgICAgICAgICAgICAgICAgICBdCiAgICAg
+ICAgICAgICAgICAgICAgKQoKICAgICAgICBpZiBhbGxvd19vcnBoYW5fZXJy
+b3JzOgogICAgICAgICAgICByZXR1cm4gewogICAgICAgICAgICAgICAgInRy
+YW5zYWN0aW9ucyI6IFtyZXN1bHQudG9fZGljdCgpIGZvciByZXN1bHQgaW4g
+dHJhY2VfcmVzdWx0c10sCiAgICAgICAgICAgICAgICAib3JwaGFuX2Vycm9y
+cyI6IFtdLAogICAgICAgICAgICB9CgogICAgICAgIHJldHVybiBbcmVzdWx0
+LnRvX2RpY3QoKSBmb3IgcmVzdWx0IGluIHRyYWNlX3Jlc3VsdHNdCgoKQHJl
+Z2lvbl9zaWxvX2VuZHBvaW50CmNsYXNzIE9yZ2FuaXphdGlvbkV2ZW50c1Ry
+YWNlRW5kcG9pbnQoT3JnYW5pemF0aW9uRXZlbnRzVHJhY2VFbmRwb2ludEJh
+c2UpOgogICAgQHN0YXRpY21ldGhvZAogICAgZGVmIHVwZGF0ZV9jaGlsZHJl
+bihldmVudDogVHJhY2VFdmVudCwgbGltaXQ6IGludCkgLT4gTm9uZToKICAg
+ICAgICAiIiJVcGRhdGVzIHRoZSBjaGlsZHJlbiBvZiBzdWJ0cmFjZXMKCiAg
+ICAgICAgLSBHZW5lcmF0aW9uIGNvdWxkIGJlIGluY29ycmVjdCBmcm9tIG9y
+cGhhbnMgd2hlcmUgd2UndmUgaGFkIHRvIHJlY29ubmVjdCBiYWNrIHRvIGFu
+IG9ycGhhbiBldmVudCB0aGF0J3MKICAgICAgICAgIGFscmVhZHkgYmVlbiBl
+bmNvdW50ZXJlZAogICAgICAgIC0gU29ydGluZyBjaGlsZHJlbiBldmVudHMg
+YnkgdGltZXN0YW1wCiAgICAgICAgIiIiCiAgICAgICAgcGFyZW50cyA9IFtl
+dmVudF0KICAgICAgICBpdGVyYXRpb24gPSAwCiAgICAgICAgd2hpbGUgcGFy
+ZW50cyBhbmQgaXRlcmF0aW9uIDwgbGltaXQ6CiAgICAgICAgICAgIGl0ZXJh
+dGlvbiArPSAxCiAgICAgICAgICAgIHBhcmVudCA9IHBhcmVudHMucG9wKCkK
+ICAgICAgICAgICAgcGFyZW50LmNoaWxkcmVuLnNvcnQoa2V5PWNoaWxkX3Nv
+cnRfa2V5KQogICAgICAgICAgICBmb3IgY2hpbGQgaW4gcGFyZW50LmNoaWxk
+cmVuOgogICAgICAgICAgICAgICAgY2hpbGQuZ2VuZXJhdGlvbiA9IHBhcmVu
+dC5nZW5lcmF0aW9uICsgMSBpZiBwYXJlbnQuZ2VuZXJhdGlvbiBpcyBub3Qg
+Tm9uZSBlbHNlIE5vbmUKICAgICAgICAgICAgICAgIHBhcmVudHMuYXBwZW5k
+KGNoaWxkKQoKICAgICMgQ29uY3VycmVudGx5IGZldGNoZXMgbm9kZXN0b3Jl
+IGRhdGEgdG8gY29uc3RydWN0IGFuZCByZXR1cm4gYSBkaWN0IG1hcHBpbmcg
+ZXZlbnRpZCBvZiBhIHR4bgogICAgIyB0byB0aGUgYXNzb2NpYXRlZCBub2Rl
+c3RvcmUgZXZlbnQuCiAgICBAc3RhdGljbWV0aG9kCiAgICBkZWYgbm9kZXN0
+b3JlX2V2ZW50X21hcChldmVudHM6IFNlcXVlbmNlW1NudWJhVHJhbnNhY3Rp
+b25dKSAtPiBEaWN0W3N0ciwgT3B0aW9uYWxbRXZlbnRdXToKICAgICAgICBt
+YXAgPSB7fQogICAgICAgIHdpdGggVGhyZWFkUG9vbEV4ZWN1dG9yKG1heF93
+b3JrZXJzPTIwKSBhcyBleGVjdXRvcjoKICAgICAgICAgICAgZnV0dXJlX3Rv
+X2V2ZW50ID0gewogICAgICAgICAgICAgICAgZXhlY3V0b3Iuc3VibWl0KAog
+ICAgICAgICAgICAgICAgICAgIGV2ZW50c3RvcmUuYmFja2VuZC5nZXRfZXZl
+bnRfYnlfaWQsIGV2ZW50WyJwcm9qZWN0LmlkIl0sIGV2ZW50WyJpZCJdCiAg
+ICAgICAgICAgICAgICApOiBldmVudAogICAgICAgICAgICAgICAgZm9yIGV2
+ZW50IGluIGV2ZW50cwogICAgICAgICAgICB9CgogICAgICAgICAgICBmb3Ig
+ZnV0dXJlIGluIGFzX2NvbXBsZXRlZChmdXR1cmVfdG9fZXZlbnQpOgogICAg
+ICAgICAgICAgICAgZXZlbnRfaWQgPSBmdXR1cmVfdG9fZXZlbnRbZnV0dXJl
+XVsiaWQiXQogICAgICAgICAgICAgICAgbm9kZXN0b3JlX2V2ZW50ID0gZnV0
+dXJlLnJlc3VsdCgpCiAgICAgICAgICAgICAgICBtYXBbZXZlbnRfaWRdID0g
+bm9kZXN0b3JlX2V2ZW50CgogICAgICAgIHJldHVybiBtYXAKCiAgICBkZWYg
+c2VyaWFsaXplKAogICAgICAgIHNlbGYsCiAgICAgICAgbGltaXQ6IGludCwK
+ICAgICAgICB0cmFuc2FjdGlvbnM6IFNlcXVlbmNlW1NudWJhVHJhbnNhY3Rp
+b25dLAogICAgICAgIGVycm9yczogU2VxdWVuY2VbU251YmFFcnJvcl0sCiAg
+ICAgICAgcm9vdHM6IFNlcXVlbmNlW1NudWJhVHJhbnNhY3Rpb25dLAogICAg
+ICAgIHdhcm5pbmdfZXh0cmE6IERpY3Rbc3RyLCBzdHJdLAogICAgICAgIGV2
+ZW50X2lkOiBPcHRpb25hbFtzdHJdLAogICAgICAgIGRldGFpbGVkOiBib29s
+ID0gRmFsc2UsCiAgICAgICAgYWxsb3dfb3JwaGFuX2Vycm9yczogYm9vbCA9
+IEZhbHNlLAogICAgICAgIGFsbG93X2xvYWRfbW9yZTogYm9vbCA9IEZhbHNl
+LAogICAgICAgIHVzZV9zcGFuczogYm9vbCA9IEZhbHNlLAogICAgKSAtPiBT
+ZXF1ZW5jZVtGdWxsUmVzcG9uc2VdOgogICAgICAgICIiIkZvciB0aGUgZnVs
+bCBldmVudCB0cmFjZSwgd2UgcmV0dXJuIHRoZSByZXN1bHRzIGFzIGEgZ3Jh
+cGggaW5zdGVhZCBvZiBhIGZsYXR0ZW5lZCBsaXN0CgogICAgICAgIGlmIGV2
+ZW50X2lkIGlzIHBhc3NlZCwgd2UgcHJ1bmUgYW55IHBvdGVudGlhbCBicmFu
+Y2hlcyBvZiB0aGUgdHJhY2UgdG8gbWFrZSBhcyBmZXcgbm9kZXN0b3JlIGNh
+bGxzIGFzCiAgICAgICAgcG9zc2libGUKICAgICAgICAiIiIKICAgICAgICBp
+ZiB1c2Vfc3BhbnM6CiAgICAgICAgICAgIHJlc3VsdHMgPSBzZWxmLnNlcmlh
+bGl6ZV93aXRoX3NwYW5zKAogICAgICAgICAgICAgICAgbGltaXQsCiAgICAg
+ICAgICAgICAgICB0cmFuc2FjdGlvbnMsCiAgICAgICAgICAgICAgICBlcnJv
+cnMsCiAgICAgICAgICAgICAgICByb290cywKICAgICAgICAgICAgICAgIHdh
+cm5pbmdfZXh0cmEsCiAgICAgICAgICAgICAgICBldmVudF9pZCwKICAgICAg
+ICAgICAgICAgIGRldGFpbGVkLAogICAgICAgICAgICAgICAgYWxsb3dfb3Jw
+aGFuX2Vycm9ycywKICAgICAgICAgICAgICAgIGFsbG93X2xvYWRfbW9yZSwK
+ICAgICAgICAgICAgKQogICAgICAgICAgICByZXR1cm4gcmVzdWx0cwogICAg
+ICAgIGV2ZW50X2lkX3RvX25vZGVzdG9yZV9ldmVudCA9ICgKICAgICAgICAg
+ICAgc2VsZi5ub2Rlc3RvcmVfZXZlbnRfbWFwKHRyYW5zYWN0aW9ucykgaWYg
+YWxsb3dfbG9hZF9tb3JlIGVsc2Uge30KICAgICAgICApCiAgICAgICAgcGFy
+ZW50X21hcCA9IHNlbGYuY29uc3RydWN0X3BhcmVudF9tYXAodHJhbnNhY3Rp
+b25zKQogICAgICAgIGVycm9yX21hcCA9IHNlbGYuY29uc3RydWN0X2Vycm9y
+X21hcChlcnJvcnMpCiAgICAgICAgcGFyZW50X2V2ZW50czogRGljdFtzdHIs
+IFRyYWNlRXZlbnRdID0ge30KICAgICAgICByZXN1bHRzX21hcDogRGljdFtP
+cHRpb25hbFtzdHJdLCBMaXN0W1RyYWNlRXZlbnRdXSA9IGRlZmF1bHRkaWN0
+KGxpc3QpCiAgICAgICAgdG9fY2hlY2s6IERlcXVlW1NudWJhVHJhbnNhY3Rp
+b25dID0gZGVxdWUoKQogICAgICAgIHBhcmFtcyA9IHNlbGYuZ2V0X3NudWJh
+X3BhcmFtcygKICAgICAgICAgICAgc2VsZi5yZXF1ZXN0LCBzZWxmLnJlcXVl
+c3Qub3JnYW5pemF0aW9uLCBjaGVja19nbG9iYWxfdmlld3M9RmFsc2UKICAg
+ICAgICApCiAgICAgICAgIyBUaGUgcm9vdCBvZiB0aGUgb3JwaGFuIHRyZWUg
+d2UncmUgY3VycmVudGx5IG5hdmlnYXRpbmcgdGhyb3VnaAogICAgICAgIG9y
+cGhhbl9yb290OiBPcHRpb25hbFtTbnViYVRyYW5zYWN0aW9uXSA9IE5vbmUK
+ICAgICAgICBpZiByb290czoKICAgICAgICAgICAgcmVzdWx0c19tYXBbTm9u
+ZV0gPSBbXQogICAgICAgIGZvciByb290IGluIHJvb3RzOgogICAgICAgICAg
+ICByb290X2V2ZW50ID0gVHJhY2VFdmVudChyb290LCBOb25lLCAwLCBzbnVi
+YV9wYXJhbXM9cGFyYW1zKQogICAgICAgICAgICBwYXJlbnRfZXZlbnRzW3Jv
+b3RbImlkIl1dID0gcm9vdF9ldmVudAogICAgICAgICAgICByZXN1bHRzX21h
+cFtOb25lXS5hcHBlbmQocm9vdF9ldmVudCkKICAgICAgICAgICAgdG9fY2hl
+Y2suYXBwZW5kKHJvb3QpCgogICAgICAgIGl0ZXJhdGlvbiA9IDAKICAgICAg
+ICB3aXRoIHNlbnRyeV9zZGsuc3RhcnRfc3BhbihvcD0iYnVpbGRpbmcudHJh
+Y2UiLCBkZXNjcmlwdGlvbj0iZnVsbCB0cmFjZSIpOgogICAgICAgICAgICBo
+YXNfb3JwaGFucyA9IEZhbHNlCgogICAgICAgICAgICB3aGlsZSBwYXJlbnRf
+bWFwIG9yIHRvX2NoZWNrOgogICAgICAgICAgICAgICAgaWYgbGVuKHRvX2No
+ZWNrKSA9PSAwOgogICAgICAgICAgICAgICAgICAgIGhhc19vcnBoYW5zID0g
+VHJ1ZQogICAgICAgICAgICAgICAgICAgICMgR3JhYiBhbnkgc2V0IG9mIGV2
+ZW50cyBmcm9tIHRoZSBwYXJlbnQgbWFwCiAgICAgICAgICAgICAgICAgICAg
+cGFyZW50X3NwYW5faWQsIGN1cnJlbnRfZXZlbnRzID0gcGFyZW50X21hcC5w
+b3BpdGVtKCkKCiAgICAgICAgICAgICAgICAgICAgY3VycmVudF9ldmVudCwg
+KnNpYmxpbmdzID0gY3VycmVudF9ldmVudHMKICAgICAgICAgICAgICAgICAg
+ICAjIElmIHRoZXJlIHdlcmUgYW55IHNpYmxpbmdzIHB1dCB0aGVtIGJhY2sK
+ICAgICAgICAgICAgICAgICAgICBpZiBzaWJsaW5nczoKICAgICAgICAgICAg
+ICAgICAgICAgICAgcGFyZW50X21hcFtwYXJlbnRfc3Bhbl9pZF0gPSBzaWJs
+aW5ncwoKICAgICAgICAgICAgICAgICAgICBwcmV2aW91c19ldmVudCA9IHBh
+cmVudF9ldmVudHNbY3VycmVudF9ldmVudFsiaWQiXV0gPSBUcmFjZUV2ZW50
+KAogICAgICAgICAgICAgICAgICAgICAgICBjdXJyZW50X2V2ZW50LCBOb25l
+LCAwLCBzbnViYV9wYXJhbXM9cGFyYW1zCiAgICAgICAgICAgICAgICAgICAg
+KQoKICAgICAgICAgICAgICAgICAgICAjIFVzZWQgdG8gYXZvaWQgcmVtb3Zp
+bmcgdGhlIG9ycGhhbiBmcm9tIHJlc3VsdHMgZW50aXJlbHkgaWYgd2UgbG9v
+cAogICAgICAgICAgICAgICAgICAgIG9ycGhhbl9yb290ID0gY3VycmVudF9l
+dmVudAogICAgICAgICAgICAgICAgICAgIHJlc3VsdHNfbWFwW3BhcmVudF9z
+cGFuX2lkXS5hcHBlbmQocHJldmlvdXNfZXZlbnQpCiAgICAgICAgICAgICAg
+ICBlbHNlOgogICAgICAgICAgICAgICAgICAgIGN1cnJlbnRfZXZlbnQgPSB0
+b19jaGVjay5wb3BsZWZ0KCkKICAgICAgICAgICAgICAgICAgICBwcmV2aW91
+c19ldmVudCA9IHBhcmVudF9ldmVudHNbY3VycmVudF9ldmVudFsiaWQiXV0K
+CiAgICAgICAgICAgICAgICAjIFdlJ3ZlIGZvdW5kIHRoZSBldmVudCBmb3Ig
+dGhlIHRyYWNlIG5hdmlnYXRvciBzbyB3ZSBjYW4gcmVtb3ZlIGV2ZXJ5dGhp
+bmcgaW4gdGhlIGRlcXVlCiAgICAgICAgICAgICAgICAjIEFzIHRoZXkncmUg
+dW5yZWxhdGVkIGFuY2VzdG9ycyBub3cKICAgICAgICAgICAgICAgIGlmIGV2
+ZW50X2lkIGFuZCBjdXJyZW50X2V2ZW50WyJpZCJdID09IGV2ZW50X2lkOgog
+ICAgICAgICAgICAgICAgICAgICMgUmVtb3ZlIGFueSByZW1haW5pbmcgZXZl
+bnRzIHNvIHdlIGRvbid0IHRoaW5rIHRoZXkncmUgb3JwaGFucwogICAgICAg
+ICAgICAgICAgICAgIHdoaWxlIHRvX2NoZWNrOgogICAgICAgICAgICAgICAg
+ICAgICAgICB0b19yZW1vdmUgPSB0b19jaGVjay5wb3BsZWZ0KCkKICAgICAg
+ICAgICAgICAgICAgICAgICAgaWYgdG9fcmVtb3ZlWyJ0cmFjZS5wYXJlbnRf
+c3BhbiJdIGluIHBhcmVudF9tYXA6CiAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICBkZWwgcGFyZW50X21hcFt0b19yZW1vdmVbInRyYWNlLnBhcmVudF9z
+cGFuIl1dCiAgICAgICAgICAgICAgICAgICAgdG9fY2hlY2sgPSBkZXF1ZSgp
+CgogICAgICAgICAgICAgICAgc3BhbnM6IE5vZGVTcGFucyA9IFtdCiAgICAg
+ICAgICAgICAgICBpZiBhbGxvd19sb2FkX21vcmU6CiAgICAgICAgICAgICAg
+ICAgICAgcHJldmlvdXNfZXZlbnRfaWQgPSBwcmV2aW91c19ldmVudC5ldmVu
+dFsiaWQiXQogICAgICAgICAgICAgICAgICAgIGlmIHByZXZpb3VzX2V2ZW50
+X2lkIGluIGV2ZW50X2lkX3RvX25vZGVzdG9yZV9ldmVudDoKICAgICAgICAg
+ICAgICAgICAgICAgICAgcHJldmlvdXNfZXZlbnQuZmV0Y2hlZF9ub2Rlc3Rv
+cmUgPSBUcnVlCiAgICAgICAgICAgICAgICAgICAgICAgIG5vZGVzdG9yZV9l
+dmVudCA9IGV2ZW50X2lkX3RvX25vZGVzdG9yZV9ldmVudFtwcmV2aW91c19l
+dmVudF9pZF0KICAgICAgICAgICAgICAgICAgICAgICAgcHJldmlvdXNfZXZl
+bnQuX25vZGVzdG9yZV9ldmVudCA9IG5vZGVzdG9yZV9ldmVudAogICAgICAg
+ICAgICAgICAgICAgICAgICBzcGFucyA9IG5vZGVzdG9yZV9ldmVudC5kYXRh
+LmdldCgic3BhbnMiLCBbXSkKICAgICAgICAgICAgICAgIGVsc2U6CiAgICAg
+ICAgICAgICAgICAgICAgaWYgcHJldmlvdXNfZXZlbnQubm9kZXN0b3JlX2V2
+ZW50OgogICAgICAgICAgICAgICAgICAgICAgICBzcGFucyA9IHByZXZpb3Vz
+X2V2ZW50Lm5vZGVzdG9yZV9ldmVudC5kYXRhLmdldCgic3BhbnMiLCBbXSkK
+CiAgICAgICAgICAgICAgICAjIE5lZWQgdG8gaW5jbHVkZSB0aGUgdHJhbnNh
+Y3Rpb24gYXMgYSBzcGFuIGFzIHdlbGwKICAgICAgICAgICAgICAgICMKICAg
+ICAgICAgICAgICAgICMgSW1wb3J0YW50IHRoYXQgd2UgbGVmdCBwYWQgdGhl
+IHNwYW4gaWQgd2l0aCAwcyBiZWNhdXNlCiAgICAgICAgICAgICAgICAjIHRo
+ZSBzcGFuIGlkIGlzIHN0b3JlZCBhcyBhbiBVSW50NjQgYW5kIGNvbnZlcnRl
+ZCBpbnRvCiAgICAgICAgICAgICAgICAjIGEgaGV4IHN0cmluZyB3aGVuIHF1
+ZXJpbmcuIEhvd2V2ZXIsIHRoZSBjb252ZXJzaW9uIGRvZXMKICAgICAgICAg
+ICAgICAgICMgbm90IGVuc3VyZSB0aGF0IHRoZSBmaW5hbCBzcGFuIGlkIGlz
+IDE2IGNoYXJzIGxvbmcgc2luY2UKICAgICAgICAgICAgICAgICMgaXQncyBh
+IG5haXZlIGJhc2UgMTAgdG8gYmFzZSAxNiBjb252ZXJzaW9uLgogICAgICAg
+ICAgICAgICAgc3BhbnMuYXBwZW5kKHsic3Bhbl9pZCI6IHByZXZpb3VzX2V2
+ZW50LmV2ZW50WyJ0cmFjZS5zcGFuIl0ucmp1c3QoMTYsICIwIil9KQoKICAg
+ICAgICAgICAgICAgIGZvciBjaGlsZCBpbiBzcGFuczoKICAgICAgICAgICAg
+ICAgICAgICBpZiBjaGlsZFsic3Bhbl9pZCJdIGluIGVycm9yX21hcDoKICAg
+ICAgICAgICAgICAgICAgICAgICAgcHJldmlvdXNfZXZlbnQuZXJyb3JzLmV4
+dGVuZCgKICAgICAgICAgICAgICAgICAgICAgICAgICAgIFsKICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICBzZWxmLnNlcmlhbGl6ZV9lcnJvcihl
+cnJvcikKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBmb3IgZXJy
+b3IgaW4gZXJyb3JfbWFwLnBvcChjaGlsZFsic3Bhbl9pZCJdKQogICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgXQogICAgICAgICAgICAgICAgICAgICAg
+ICApCiAgICAgICAgICAgICAgICAgICAgIyBXZSBuZWVkIHRvIGNvbm5lY3Qg
+YmFjayB0byBhbiBleGlzdGluZyBvcnBoYW4gdHJhY2UKICAgICAgICAgICAg
+ICAgICAgICBpZiAoCiAgICAgICAgICAgICAgICAgICAgICAgIGhhc19vcnBo
+YW5zCiAgICAgICAgICAgICAgICAgICAgICAgIGFuZAogICAgICAgICAgICAg
+ICAgICAgICAgICAjIFRoZSBjaGlsZCBldmVudCBoYXMgYWxyZWFkeSBiZWVu
+IGNoZWNrZWQKICAgICAgICAgICAgICAgICAgICAgICAgY2hpbGRbInNwYW5f
+aWQiXSBpbiByZXN1bHRzX21hcAogICAgICAgICAgICAgICAgICAgICAgICBh
+bmQgb3JwaGFuX3Jvb3QgaXMgbm90IE5vbmUKICAgICAgICAgICAgICAgICAg
+ICAgICAgYW5kCiAgICAgICAgICAgICAgICAgICAgICAgICMgSW4gdGhlIGNh
+c2Ugb2YgYSBzcGFuIGxvb3AgcG9wcGluZyB0aGUgY3VycmVudCByb290IHJl
+bW92ZXMgdGhlIG9ycGhhbiBzdWJ0cmFjZQogICAgICAgICAgICAgICAgICAg
+ICAgICBjaGlsZFsic3Bhbl9pZCJdICE9IG9ycGhhbl9yb290WyJ0cmFjZS5w
+YXJlbnRfc3BhbiJdCiAgICAgICAgICAgICAgICAgICAgKToKICAgICAgICAg
+ICAgICAgICAgICAgICAgb3JwaGFuX3N1YnRyYWNlcyA9IHJlc3VsdHNfbWFw
+LnBvcChjaGlsZFsic3Bhbl9pZCJdKQogICAgICAgICAgICAgICAgICAgICAg
+ICBmb3Igb3JwaGFuX3N1YnRyYWNlIGluIG9ycGhhbl9zdWJ0cmFjZXM6CiAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICBvcnBoYW5fc3VidHJhY2UucGFy
+ZW50X2V2ZW50X2lkID0gcHJldmlvdXNfZXZlbnQuZXZlbnRbImlkIl0KICAg
+ICAgICAgICAgICAgICAgICAgICAgcHJldmlvdXNfZXZlbnQuY2hpbGRyZW4u
+ZXh0ZW5kKG9ycGhhbl9zdWJ0cmFjZXMpCiAgICAgICAgICAgICAgICAgICAg
+aWYgY2hpbGRbInNwYW5faWQiXSBub3QgaW4gcGFyZW50X21hcDoKICAgICAg
+ICAgICAgICAgICAgICAgICAgY29udGludWUKICAgICAgICAgICAgICAgICAg
+ICAjIEF2b2lkIHBvdGVudGlhbCBzcGFuIGxvb3BzIGJ5IHBvcHBpbmcsIHNv
+IHdlIGRvbid0IHRyYXZlcnNlIHRoZSBzYW1lIG5vZGVzIHR3aWNlCiAgICAg
+ICAgICAgICAgICAgICAgY2hpbGRfZXZlbnRzID0gcGFyZW50X21hcC5wb3Ao
+Y2hpbGRbInNwYW5faWQiXSkKCiAgICAgICAgICAgICAgICAgICAgZm9yIGNo
+aWxkX2V2ZW50IGluIGNoaWxkX2V2ZW50czoKICAgICAgICAgICAgICAgICAg
+ICAgICAgcGFyZW50X2V2ZW50c1tjaGlsZF9ldmVudFsiaWQiXV0gPSBUcmFj
+ZUV2ZW50KAogICAgICAgICAgICAgICAgICAgICAgICAgICAgY2hpbGRfZXZl
+bnQsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBjdXJyZW50X2V2ZW50
+WyJpZCJdLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgcHJldmlvdXNf
+ZXZlbnQuZ2VuZXJhdGlvbiArIDEKICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgIGlmIHByZXZpb3VzX2V2ZW50LmdlbmVyYXRpb24gaXMgbm90IE5vbmUK
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgIGVsc2UgTm9uZSwKICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgIHNudWJhX3BhcmFtcz1wYXJhbXMsCiAg
+ICAgICAgICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgICAgICAgICAg
+ICAgIyBBZGQgdGhpcyBldmVudCB0byBpdHMgcGFyZW50J3MgY2hpbGRyZW4K
+ICAgICAgICAgICAgICAgICAgICAgICAgcHJldmlvdXNfZXZlbnQuY2hpbGRy
+ZW4uYXBwZW5kKHBhcmVudF9ldmVudHNbY2hpbGRfZXZlbnRbImlkIl1dKQoK
+ICAgICAgICAgICAgICAgICAgICAgICAgdG9fY2hlY2suYXBwZW5kKGNoaWxk
+X2V2ZW50KQogICAgICAgICAgICAgICAgIyBMaW1pdCBpdGVyYXRpb25zIGp1
+c3QgdG8gYmUgc2FmZQogICAgICAgICAgICAgICAgaXRlcmF0aW9uICs9IDEK
+ICAgICAgICAgICAgICAgIGlmIGl0ZXJhdGlvbiA+IGxpbWl0OgogICAgICAg
+ICAgICAgICAgICAgIHNlbnRyeV9zZGsuc2V0X3RhZygiZGlzY292ZXIudHJh
+Y2Utdmlldy53YXJuaW5nIiwgInN1cnBhc3NlZC10cmFjZS1saW1pdCIpCiAg
+ICAgICAgICAgICAgICAgICAgbG9nZ2VyLndhcm5pbmcoCiAgICAgICAgICAg
+ICAgICAgICAgICAgICJkaXNjb3Zlci50cmFjZS12aWV3LnN1cnBhc3NlZC10
+cmFjZS1saW1pdCIsCiAgICAgICAgICAgICAgICAgICAgICAgIGV4dHJhPXdh
+cm5pbmdfZXh0cmEsCiAgICAgICAgICAgICAgICAgICAgKQogICAgICAgICAg
+ICAgICAgICAgIGJyZWFrCgogICAgICAgICMgV2UgYXJlIG5vdyBsZWZ0IHdp
+dGggb3JwaGFuIGVycm9ycyBpbiB0aGUgZXJyb3JfbWFwLAogICAgICAgICMg
+dGhhdCB3ZSBuZWVkIHRvIHNlcmlhbGl6ZSBhbmQgcmV0dXJuIHdpdGggb3Vy
+IHJlc3VsdHMuCiAgICAgICAgb3JwaGFuX2Vycm9yczogTGlzdFtUcmFjZUVy
+cm9yXSA9IFtdCiAgICAgICAgaWYgYWxsb3dfb3JwaGFuX2Vycm9ycyBhbmQg
+aXRlcmF0aW9uIDwgbGltaXQ6CiAgICAgICAgICAgIGZvciBlcnJvcnMgaW4g
+ZXJyb3JfbWFwLnZhbHVlcygpOgogICAgICAgICAgICAgICAgZm9yIGVycm9y
+IGluIGVycm9yczoKICAgICAgICAgICAgICAgICAgICBvcnBoYW5fZXJyb3Jz
+LmFwcGVuZChzZWxmLnNlcmlhbGl6ZV9lcnJvcihlcnJvcikpCiAgICAgICAg
+ICAgICAgICAgICAgaXRlcmF0aW9uICs9IDEKICAgICAgICAgICAgICAgICAg
+ICBpZiBpdGVyYXRpb24gPiBsaW1pdDoKICAgICAgICAgICAgICAgICAgICAg
+ICAgYnJlYWsKICAgICAgICAgICAgICAgIGlmIGl0ZXJhdGlvbiA+IGxpbWl0
+OgogICAgICAgICAgICAgICAgICAgIGJyZWFrCgogICAgICAgIHRyYWNlX3Jv
+b3RzOiBMaXN0W1RyYWNlRXZlbnRdID0gW10KICAgICAgICBvcnBoYW5zOiBM
+aXN0W1RyYWNlRXZlbnRdID0gW10KICAgICAgICBmb3IgaW5kZXgsIHJlc3Vs
+dCBpbiBlbnVtZXJhdGUocmVzdWx0c19tYXAudmFsdWVzKCkpOgogICAgICAg
+ICAgICBmb3Igc3VidHJhY2UgaW4gcmVzdWx0OgogICAgICAgICAgICAgICAg
+c2VsZi51cGRhdGVfY2hpbGRyZW4oc3VidHJhY2UsIGxpbWl0KQogICAgICAg
+ICAgICBpZiBpbmRleCA+IDAgb3IgbGVuKHJvb3RzKSA9PSAwOgogICAgICAg
+ICAgICAgICAgb3JwaGFucy5leHRlbmQocmVzdWx0KQogICAgICAgICAgICBl
+bGlmIGxlbihyb290cykgPiAwOgogICAgICAgICAgICAgICAgdHJhY2Vfcm9v
+dHMgPSByZXN1bHQKICAgICAgICAjIFdlIHNvcnQgb3JwaGFucyBhbmQgcm9v
+dHMgc2VwYXJhdGVseSBiZWNhdXNlIHdlIGFsd2F5cyB3YW50IHRoZSByb290
+KHMpIGFzIHRoZSBmaXJzdCBlbGVtZW50KHMpCiAgICAgICAgdHJhY2Vfcm9v
+dHMuc29ydChrZXk9Y2hpbGRfc29ydF9rZXkpCiAgICAgICAgb3JwaGFucy5z
+b3J0KGtleT1jaGlsZF9zb3J0X2tleSkKICAgICAgICBvcnBoYW5fZXJyb3Jz
+ID0gc29ydGVkKG9ycGhhbl9lcnJvcnMsIGtleT1sYW1iZGEgazoga1sidGlt
+ZXN0YW1wIl0pCgogICAgICAgIGlmIGxlbihvcnBoYW5zKSA+IDA6CiAgICAg
+ICAgICAgIHNlbnRyeV9zZGsuc2V0X3RhZygiZGlzY292ZXIudHJhY2Utdmll
+dy5jb250YWlucy1vcnBoYW5zIiwgInllcyIpCiAgICAgICAgICAgIGxvZ2dl
+ci53YXJuaW5nKCJkaXNjb3Zlci50cmFjZS12aWV3LmNvbnRhaW5zLW9ycGhh
+bnMiLCBleHRyYT13YXJuaW5nX2V4dHJhKQoKICAgICAgICBpZiBhbGxvd19v
+cnBoYW5fZXJyb3JzOgogICAgICAgICAgICByZXR1cm4gewogICAgICAgICAg
+ICAgICAgInRyYW5zYWN0aW9ucyI6IFt0cmFjZS5mdWxsX2RpY3QoZGV0YWls
+ZWQpIGZvciB0cmFjZSBpbiB0cmFjZV9yb290c10KICAgICAgICAgICAgICAg
+ICsgW29ycGhhbi5mdWxsX2RpY3QoZGV0YWlsZWQpIGZvciBvcnBoYW4gaW4g
+b3JwaGFuc10sCiAgICAgICAgICAgICAgICAib3JwaGFuX2Vycm9ycyI6IFtv
+cnBoYW4gZm9yIG9ycGhhbiBpbiBvcnBoYW5fZXJyb3JzXSwKICAgICAgICAg
+ICAgfQoKICAgICAgICByZXR1cm4gKAogICAgICAgICAgICBbdHJhY2UuZnVs
+bF9kaWN0KGRldGFpbGVkKSBmb3IgdHJhY2UgaW4gdHJhY2Vfcm9vdHNdCiAg
+ICAgICAgICAgICsgW29ycGhhbi5mdWxsX2RpY3QoZGV0YWlsZWQpIGZvciBv
+cnBoYW4gaW4gb3JwaGFuc10KICAgICAgICAgICAgKyBbb3JwaGFuIGZvciBv
+cnBoYW4gaW4gb3JwaGFuX2Vycm9yc10KICAgICAgICApCgogICAgZGVmIHNl
+cmlhbGl6ZV93aXRoX3NwYW5zKAogICAgICAgIHNlbGYsCiAgICAgICAgbGlt
+aXQ6IGludCwKICAgICAgICB0cmFuc2FjdGlvbnM6IFNlcXVlbmNlW1NudWJh
+VHJhbnNhY3Rpb25dLAogICAgICAgIGVycm9yczogU2VxdWVuY2VbU251YmFF
+cnJvcl0sCiAgICAgICAgcm9vdHM6IFNlcXVlbmNlW1NudWJhVHJhbnNhY3Rp
+b25dLAogICAgICAgIHdhcm5pbmdfZXh0cmE6IERpY3Rbc3RyLCBzdHJdLAog
+ICAgICAgIGV2ZW50X2lkOiBPcHRpb25hbFtzdHJdLAogICAgICAgIGRldGFp
+bGVkOiBib29sID0gRmFsc2UsCiAgICAgICAgYWxsb3dfb3JwaGFuX2Vycm9y
+czogYm9vbCA9IEZhbHNlLAogICAgICAgIGFsbG93X2xvYWRfbW9yZTogYm9v
+bCA9IEZhbHNlLAogICAgKSAtPiBTZXF1ZW5jZVtGdWxsUmVzcG9uc2VdOgog
+ICAgICAgIHJvb3RfdHJhY2VzOiBMaXN0W1RyYWNlRXZlbnRdID0gW10KICAg
+ICAgICBvcnBoYW5zOiBMaXN0W1RyYWNlRXZlbnRdID0gW10KICAgICAgICB2
+aXNpdGVkX3RyYW5zYWN0aW9uczogU2V0W3N0cl0gPSBzZXQoKQogICAgICAg
+IHZpc2l0ZWRfZXJyb3JzOiBTZXRbc3RyXSA9IHNldCgpCiAgICAgICAgaWYg
+bm90IGFsbG93X29ycGhhbl9lcnJvcnM6CiAgICAgICAgICAgIHJhaXNlIFBh
+cnNlRXJyb3IoIk11c3QgYWxsb3cgb3JwaGFuIGVycm9ycyB0byB1c2VTcGFu
+cyIpCiAgICAgICAgaWYgZGV0YWlsZWQ6CiAgICAgICAgICAgIHJhaXNlIFBh
+cnNlRXJyb3IoIkNhbm5vdCByZXR1cm4gYSBkZXRhaWxlZCByZXNwb25zZSB1
+c2luZyBTcGFucyIpCgogICAgICAgICMgQSB0cmFjZSBjYW4gaGF2ZSBtdWx0
+aXBsZSByb290cywgc28gd2Ugd2FudCB0byB2aXNpdAogICAgICAgICMgYWxs
+IHJvb3RzIGluIGEgdHJhY2UgYW5kIGJ1aWxkIHRoZWlyIGNoaWxkcmVuLgog
+ICAgICAgICMgQSByb290IHNlZ21lbnQgaXMgb25lIHRoYXQgZG9lc24ndCBo
+YXZlIGEgcGFyZW50IHNwYW4gaWQKICAgICAgICAjIGJ1dCBoZXJlIGlzIGlk
+ZW50aWZpZWQgYnkgdGhlIGF0dHJpYnV0ZSAicm9vdCIgPSAxIG9uCiAgICAg
+ICAgIyBhIFNudWJhVHJhbnNhY3Rpb24gb2JqZWN0LgogICAgICAgIHJvb3Rf
+dHJhY2VzID0gc2VsZi52aXNpdF90cmFuc2FjdGlvbnMoCiAgICAgICAgICAg
+IHJvb3RzLAogICAgICAgICAgICB0cmFuc2FjdGlvbnMsCiAgICAgICAgICAg
+IGVycm9ycywKICAgICAgICAgICAgdmlzaXRlZF90cmFuc2FjdGlvbnMsCiAg
+ICAgICAgICAgIHZpc2l0ZWRfZXJyb3JzLAogICAgICAgICkKCiAgICAgICAg
+IyBBdCB0aGlzIHBvaW50IGFsbCB0aGUgcm9vdHMgaGF2ZSB0aGVpciB0cmVl
+IGJ1aWx0LiBSZW1haW5pbmcKICAgICAgICAjIHRyYW5zYWN0aW9ucyBhcmUg
+ZWl0aGVyIG9ycGhhbiB0cmFuc2FjdGlvbnMgb3IgY2hpbGRyZW4gb2YKICAg
+ICAgICAjIG9ycGhhbiB0cmFuc2FjdGlvbnMuIE9ycGhhbiB0cmFuc2FjdGlv
+bnMgKHVubGlrZSByb290cykgaGF2ZQogICAgICAgICMgYSBwYXJlbnRfaWQg
+YnV0IHRoZSBwYXJlbnRfaWQgd2Fzbid0IGZvdW5kIChkcm9wcGVkIHNwYW4p
+LgogICAgICAgICMgV2UgZ2V0IGEgc29ydGVkIGxpc3Qgb2YgdGhlc2UgdHJh
+bnNhY3Rpb25zIGJ5IHN0YXJ0IHRpbWVzdGFtcC4KICAgICAgICByZW1haW5p
+bmdfdHJhbnNhY3Rpb25zID0gc2VsZi5jYWxjdWxhdGVfcmVtYWluaW5nX3Ry
+YW5zYWN0aW9ucygKICAgICAgICAgICAgdHJhbnNhY3Rpb25zLCB2aXNpdGVk
+X3RyYW5zYWN0aW9ucwogICAgICAgICkKCiAgICAgICAgIyBEZXRlcm1pbmUg
+b3JwaGFuIHRyYW5zYWN0aW9ucy4gYHRyYWNlLnBhcmVudF90cmFuc2FjdGlv
+bmAgb24gYQogICAgICAgICMgdHJhbnNhY3Rpb24gaXMgc2V0IHdoZW4gdGhl
+IGluZGV4ZWQgc3BhbnMgZGF0YXNldCBoYXMgYSByb3cgZm9yCiAgICAgICAg
+IyB0aGUgcGFyZW50IHNwYW4gaWQgZm9yIHRoaXMgdHJhbnNhY3Rpb24uIFNp
+bmNlIHdlIGFscmVhZHkgY29uc2lkZXJlZAogICAgICAgICMgdGhlIHJvb3Qg
+c3BhbnMgY2FzZXMsIHRoZSByZW1haW5pbmcgc3BhbnMgd2l0aCBubyBwYXJl
+bnQgdHJhbnNhY3Rpb24KICAgICAgICAjIGlkIGFyZSBvcnBoYW4gdHJhbnNh
+Y3Rpb25zLgogICAgICAgIG9ycGhhbl9yb290cyA9IFsKICAgICAgICAgICAg
+b3JwaGFuCiAgICAgICAgICAgIGZvciBvcnBoYW4gaW4gcmVtYWluaW5nX3Ry
+YW5zYWN0aW9ucwogICAgICAgICAgICBpZiBvcnBoYW5bInRyYWNlLnBhcmVu
+dF90cmFuc2FjdGlvbiJdIGlzIE5vbmUKICAgICAgICBdCgogICAgICAgICMg
+QnVpbGQgdGhlIHRyZWVzIGZvciBhbGwgdGhlIG9ycGhhbiB0cmFuc2FjdGlv
+bnMuCiAgICAgICAgb3JwaGFucyA9IHNlbGYudmlzaXRfdHJhbnNhY3Rpb25z
+KAogICAgICAgICAgICBvcnBoYW5fcm9vdHMsCiAgICAgICAgICAgIHJlbWFp
+bmluZ190cmFuc2FjdGlvbnMsCiAgICAgICAgICAgIGVycm9ycywKICAgICAg
+ICAgICAgdmlzaXRlZF90cmFuc2FjdGlvbnMsCiAgICAgICAgICAgIHZpc2l0
+ZWRfZXJyb3JzLAogICAgICAgICkKCiAgICAgICAgIyBSZW1haW5pbmcgYXJl
+IHRyYW5zYWN0aW9ucyB3aXRoIHBhcmVudCB0cmFuc2FjdGlvbnMgYnV0IHRo
+b3NlCiAgICAgICAgIyBwYXJlbnRzIGRvbid0IG1hcCB0byBhbnkgb2YgdGhl
+IGV4aXN0aW5nIHRyYW5zYWN0aW9ucy4KICAgICAgICByZW1haW5pbmdfdHJh
+bnNhY3Rpb25zID0gc2VsZi5jYWxjdWxhdGVfcmVtYWluaW5nX3RyYW5zYWN0
+aW9ucygKICAgICAgICAgICAgdHJhbnNhY3Rpb25zLCB2aXNpdGVkX3RyYW5z
+YWN0aW9ucwogICAgICAgICkKICAgICAgICBvcnBoYW5zLmV4dGVuZCgKICAg
+ICAgICAgICAgc2VsZi52aXNpdF90cmFuc2FjdGlvbnMoCiAgICAgICAgICAg
+ICAgICByZW1haW5pbmdfdHJhbnNhY3Rpb25zLAogICAgICAgICAgICAgICAg
+cmVtYWluaW5nX3RyYW5zYWN0aW9ucywKICAgICAgICAgICAgICAgIGVycm9y
+cywKICAgICAgICAgICAgICAgIHZpc2l0ZWRfdHJhbnNhY3Rpb25zLAogICAg
+ICAgICAgICAgICAgdmlzaXRlZF9lcnJvcnMsCiAgICAgICAgICAgICkKICAg
+ICAgICApCgogICAgICAgICMgU29ydCB0aGUgcmVzdWx0cyBzbyB0aGV5J3Jl
+IGNvbnNpc3RlbnQKICAgICAgICBvcnBoYW5fZXJyb3JzID0gc29ydGVkKAog
+ICAgICAgICAgICBbZXJyb3IgZm9yIGVycm9yIGluIGVycm9ycyBpZiBlcnJv
+clsiaWQiXSBub3QgaW4gdmlzaXRlZF9lcnJvcnNdLAogICAgICAgICAgICBr
+ZXk9bGFtYmRhIGs6IGtbInRpbWVzdGFtcCJdLAogICAgICAgICkKICAgICAg
+ICByb290X3RyYWNlcy5zb3J0KGtleT1jaGlsZF9zb3J0X2tleSkKICAgICAg
+ICBvcnBoYW5zLnNvcnQoa2V5PWNoaWxkX3NvcnRfa2V5KQoKICAgICAgICBy
+ZXR1cm4gewogICAgICAgICAgICAidHJhbnNhY3Rpb25zIjogW3RyYWNlLmZ1
+bGxfZGljdChkZXRhaWxlZCkgZm9yIHRyYWNlIGluIHJvb3RfdHJhY2VzXQog
+ICAgICAgICAgICArIFtvcnBoYW4uZnVsbF9kaWN0KGRldGFpbGVkKSBmb3Ig
+b3JwaGFuIGluIG9ycGhhbnNdLAogICAgICAgICAgICAib3JwaGFuX2Vycm9y
+cyI6IFtzZWxmLnNlcmlhbGl6ZV9lcnJvcihlcnJvcikgZm9yIGVycm9yIGlu
+IG9ycGhhbl9lcnJvcnNdLAogICAgICAgIH0KCiAgICBkZWYgY2FsY3VsYXRl
+X3JlbWFpbmluZ190cmFuc2FjdGlvbnMoc2VsZiwgdHJhbnNhY3Rpb25zLCB2
+aXNpdGVkX3RyYW5zYWN0aW9ucyk6CiAgICAgICAgcmV0dXJuIHNvcnRlZCgK
+ICAgICAgICAgICAgWwogICAgICAgICAgICAgICAgdHJhbnNhY3Rpb24KICAg
+ICAgICAgICAgICAgIGZvciB0cmFuc2FjdGlvbiBpbiB0cmFuc2FjdGlvbnMK
+ICAgICAgICAgICAgICAgIGlmIHRyYW5zYWN0aW9uWyJpZCJdIG5vdCBpbiB2
+aXNpdGVkX3RyYW5zYWN0aW9ucwogICAgICAgICAgICBdLAogICAgICAgICAg
+ICBrZXk9bGFtYmRhIGs6IC1kYXRldGltZS5mcm9taXNvZm9ybWF0KGtbInRp
+bWVzdGFtcCJdKS50aW1lc3RhbXAoKSwKICAgICAgICApCgogICAgZGVmIHZp
+c2l0X3RyYW5zYWN0aW9ucygKICAgICAgICBzZWxmLCB0b192aXNpdCwgdHJh
+bnNhY3Rpb25zLCBlcnJvcnMsIHZpc2l0ZWRfdHJhbnNhY3Rpb25zLCB2aXNp
+dGVkX2Vycm9ycwogICAgKToKICAgICAgICBzZXJpYWxpemVkX2V2ZW50czog
+TGlzdFtUcmFjZUV2ZW50XSA9IFtdCiAgICAgICAgZm9yIHRyYW5zYWN0aW9u
+IGluIHRvX3Zpc2l0OgogICAgICAgICAgICBpZiB0cmFuc2FjdGlvblsiaWQi
+XSBpbiB2aXNpdGVkX3RyYW5zYWN0aW9uczoKICAgICAgICAgICAgICAgIGNv
+bnRpbnVlCiAgICAgICAgICAgIHZpc2l0ZWRfdHJhbnNhY3Rpb25zLmFkZCh0
+cmFuc2FjdGlvblsiaWQiXSkKICAgICAgICAgICAgcm9vdF9ldmVudCA9IFRy
+YWNlRXZlbnQodHJhbnNhY3Rpb24sIE5vbmUsIDAsIHNwYW5fc2VyaWFsaXpl
+ZD1UcnVlKQogICAgICAgICAgICBzZWxmLmFkZF9jaGlsZHJlbigKICAgICAg
+ICAgICAgICAgIHJvb3RfZXZlbnQsIHRyYW5zYWN0aW9ucywgdmlzaXRlZF90
+cmFuc2FjdGlvbnMsIGVycm9ycywgdmlzaXRlZF9lcnJvcnMsIDEKICAgICAg
+ICAgICAgKQogICAgICAgICAgICBzZXJpYWxpemVkX2V2ZW50cy5hcHBlbmQo
+cm9vdF9ldmVudCkKICAgICAgICByZXR1cm4gc2VyaWFsaXplZF9ldmVudHMK
+CiAgICBkZWYgYWRkX2NoaWxkcmVuKAogICAgICAgIHNlbGYsIHBhcmVudCwg
+dHJhbnNhY3Rpb25zLCB2aXNpdGVkX3RyYW5zYWN0aW9ucywgZXJyb3JzLCB2
+aXNpdGVkX2Vycm9ycywgZ2VuZXJhdGlvbgogICAgKToKICAgICAgICBmb3Ig
+ZXJyb3IgaW4gZXJyb3JzOgogICAgICAgICAgICBpZiBlcnJvclsiaWQiXSBp
+biB2aXNpdGVkX2Vycm9yczoKICAgICAgICAgICAgICAgIGNvbnRpbnVlCiAg
+ICAgICAgICAgIGlmICJ0cmFjZS50cmFuc2FjdGlvbiIgaW4gZXJyb3IgYW5k
+IGVycm9yWyJ0cmFjZS50cmFuc2FjdGlvbiJdID09IHBhcmVudC5ldmVudFsi
+aWQiXToKICAgICAgICAgICAgICAgIHZpc2l0ZWRfZXJyb3JzLmFkZChlcnJv
+clsiaWQiXSkKICAgICAgICAgICAgICAgIHBhcmVudC5lcnJvcnMuYXBwZW5k
+KHNlbGYuc2VyaWFsaXplX2Vycm9yKGVycm9yKSkKCiAgICAgICAgIyBMb29w
+IHRocm91Z2ggYWxsIHRoZSB0cmFuc2FjdGlvbnMgdG8gc2VlIGlmIGFueSBv
+ZiB0aGVtIGFyZQogICAgICAgICMgY2hpbGRyZW4uCiAgICAgICAgZm9yIHRy
+YW5zYWN0aW9uIGluIHRyYW5zYWN0aW9uczoKICAgICAgICAgICAgaWYgdHJh
+bnNhY3Rpb25bImlkIl0gaW4gdmlzaXRlZF90cmFuc2FjdGlvbnM6CiAgICAg
+ICAgICAgICAgICBjb250aW51ZQogICAgICAgICAgICBpZiB0cmFuc2FjdGlv
+blsidHJhY2UucGFyZW50X3RyYW5zYWN0aW9uIl0gPT0gcGFyZW50LmV2ZW50
+WyJpZCJdOgogICAgICAgICAgICAgICAgIyBJZiB0cmFuc2FjdGlvbiBpcyBh
+IGNoaWxkLCBlc3RhYmxpc2ggdGhhdCByZWxhdGlvbnNoaXAgYW5kIGFkZCBp
+dAogICAgICAgICAgICAgICAgIyB0byB2aXNpdGVkX3RyYW5zYWN0aW9ucy4K
+ICAgICAgICAgICAgICAgIHZpc2l0ZWRfdHJhbnNhY3Rpb25zLmFkZCh0cmFu
+c2FjdGlvblsiaWQiXSkKICAgICAgICAgICAgICAgIG5ld19jaGlsZCA9IFRy
+YWNlRXZlbnQoCiAgICAgICAgICAgICAgICAgICAgdHJhbnNhY3Rpb24sIHBh
+cmVudC5ldmVudFsiaWQiXSwgZ2VuZXJhdGlvbiwgc3Bhbl9zZXJpYWxpemVk
+PVRydWUKICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgICAgICMgUmVw
+ZWF0IGFkZGluZyBjaGlsZHJlbiB1bnRpbCB0aGVyZSBhcmUgbm9uZS4KICAg
+ICAgICAgICAgICAgIHNlbGYuYWRkX2NoaWxkcmVuKAogICAgICAgICAgICAg
+ICAgICAgIG5ld19jaGlsZCwKICAgICAgICAgICAgICAgICAgICB0cmFuc2Fj
+dGlvbnMsCiAgICAgICAgICAgICAgICAgICAgdmlzaXRlZF90cmFuc2FjdGlv
+bnMsCiAgICAgICAgICAgICAgICAgICAgZXJyb3JzLAogICAgICAgICAgICAg
+ICAgICAgIHZpc2l0ZWRfZXJyb3JzLAogICAgICAgICAgICAgICAgICAgIGdl
+bmVyYXRpb24gKyAxLAogICAgICAgICAgICAgICAgKQogICAgICAgICAgICAg
+ICAgcGFyZW50LmNoaWxkcmVuLmFwcGVuZChuZXdfY2hpbGQpCiAgICAgICAg
+cGFyZW50LmNoaWxkcmVuLnNvcnQoa2V5PWNoaWxkX3NvcnRfa2V5KQoKCkBy
+ZWdpb25fc2lsb19lbmRwb2ludApjbGFzcyBPcmdhbml6YXRpb25FdmVudHNU
+cmFjZU1ldGFFbmRwb2ludChPcmdhbml6YXRpb25FdmVudHNUcmFjZUVuZHBv
+aW50QmFzZSk6CiAgICBwdWJsaXNoX3N0YXR1cyA9IHsKICAgICAgICAiR0VU
+IjogQXBpUHVibGlzaFN0YXR1cy5QUklWQVRFLAogICAgfQoKICAgIGRlZiBn
+ZXQoc2VsZiwgcmVxdWVzdDogSHR0cFJlcXVlc3QsIG9yZ2FuaXphdGlvbjog
+T3JnYW5pemF0aW9uLCB0cmFjZV9pZDogc3RyKSAtPiBIdHRwUmVzcG9uc2U6
+CiAgICAgICAgaWYgbm90IHNlbGYuaGFzX2ZlYXR1cmUob3JnYW5pemF0aW9u
+LCByZXF1ZXN0KToKICAgICAgICAgICAgcmV0dXJuIFJlc3BvbnNlKHN0YXR1
+cz00MDQpCgogICAgICAgIHRyeToKICAgICAgICAgICAgIyBUaGUgdHJhY2Ug
+bWV0YSBpc24ndCB1c2VmdWwgd2l0aG91dCBnbG9iYWwgdmlld3MsIHNvIHNr
+aXBwaW5nIHRoZSBjaGVjayBoZXJlCiAgICAgICAgICAgIHBhcmFtcyA9IHNl
+bGYuZ2V0X3NudWJhX3BhcmFtcyhyZXF1ZXN0LCBvcmdhbml6YXRpb24sIGNo
+ZWNrX2dsb2JhbF92aWV3cz1GYWxzZSkKICAgICAgICBleGNlcHQgTm9Qcm9q
+ZWN0czoKICAgICAgICAgICAgcmV0dXJuIFJlc3BvbnNlKHN0YXR1cz00MDQp
+CgogICAgICAgIHdpdGggaGFuZGxlX3F1ZXJ5X2Vycm9ycygpOgogICAgICAg
+ICAgICByZXN1bHQgPSBkaXNjb3Zlci5xdWVyeSgKICAgICAgICAgICAgICAg
+IHNlbGVjdGVkX2NvbHVtbnM9WwogICAgICAgICAgICAgICAgICAgICJjb3Vu
+dF91bmlxdWUocHJvamVjdF9pZCkgYXMgcHJvamVjdHMiLAogICAgICAgICAg
+ICAgICAgICAgICJjb3VudF9pZihldmVudC50eXBlLCBlcXVhbHMsIHRyYW5z
+YWN0aW9uKSBhcyB0cmFuc2FjdGlvbnMiLAogICAgICAgICAgICAgICAgICAg
+ICJjb3VudF9pZihldmVudC50eXBlLCBub3RFcXVhbHMsIHRyYW5zYWN0aW9u
+KSBhcyBlcnJvcnMiLAogICAgICAgICAgICAgICAgXSwKICAgICAgICAgICAg
+ICAgIHBhcmFtcz1wYXJhbXMsCiAgICAgICAgICAgICAgICBxdWVyeT1mInRy
+YWNlOnt0cmFjZV9pZH0iLAogICAgICAgICAgICAgICAgbGltaXQ9MSwKICAg
+ICAgICAgICAgICAgIHJlZmVycmVyPSJhcGkudHJhY2Utdmlldy5nZXQtbWV0
+YSIsCiAgICAgICAgICAgICkKICAgICAgICAgICAgaWYgbGVuKHJlc3VsdFsi
+ZGF0YSJdKSA9PSAwOgogICAgICAgICAgICAgICAgcmV0dXJuIFJlc3BvbnNl
+KHN0YXR1cz00MDQpCiAgICAgICAgICAgICMgTWVyZ2UgdGhlIHJlc3VsdCBi
+YWNrIGludG8gdGhlIGZpcnN0IHF1ZXJ5CiAgICAgICAgICAgIHJlc3VsdFsi
+ZGF0YSJdWzBdWyJwZXJmb3JtYW5jZV9pc3N1ZXMiXSA9IGNvdW50X3BlcmZv
+cm1hbmNlX2lzc3Vlcyh0cmFjZV9pZCwgcGFyYW1zKQogICAgICAgIHJldHVy
+biBSZXNwb25zZShzZWxmLnNlcmlhbGl6ZShyZXN1bHRbImRhdGEiXVswXSkp
+CgogICAgQHN0YXRpY21ldGhvZAogICAgZGVmIHNlcmlhbGl6ZShyZXN1bHRz
+OiBNYXBwaW5nW3N0ciwgaW50XSkgLT4gTWFwcGluZ1tzdHIsIGludF06CiAg
+ICAgICAgcmV0dXJuIHsKICAgICAgICAgICAgIyBWYWx1ZXMgY2FuIGJlIG51
+bGwgaWYgdGhlcmUncyBubyByZXN1bHQKICAgICAgICAgICAgInByb2plY3Rz
+IjogcmVzdWx0cy5nZXQoInByb2plY3RzIikgb3IgMCwKICAgICAgICAgICAg
+InRyYW5zYWN0aW9ucyI6IHJlc3VsdHMuZ2V0KCJ0cmFuc2FjdGlvbnMiKSBv
+ciAwLAogICAgICAgICAgICAiZXJyb3JzIjogcmVzdWx0cy5nZXQoImVycm9y
+cyIpIG9yIDAsCiAgICAgICAgICAgICJwZXJmb3JtYW5jZV9pc3N1ZXMiOiBy
+ZXN1bHRzLmdldCgicGVyZm9ybWFuY2VfaXNzdWVzIikgb3IgMCwKICAgICAg
+ICB9Cg==
