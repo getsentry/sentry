@@ -1,4 +1,3 @@
-from django.conf import settings
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,6 +11,7 @@ from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
+from sentry.features.exceptions import FeatureNotRegistered
 from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
@@ -64,11 +64,13 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         is_feature_enabled = {}
         for feature in app_features:
             feature_flag_name = "organizations:%s" % feature.feature_str()
-            is_feature_enabled[feature_flag_name] = True
-            if feature_flag_name in settings.SENTRY_FEATURES:
+            try:
+                features.get(feature_flag_name, None)
                 is_feature_enabled[feature_flag_name] = features.has(
                     feature_flag_name, organization
                 )
+            except FeatureNotRegistered:
+                is_feature_enabled[feature_flag_name] = True
 
         if not any(is_feature_enabled.values()):
             return Response(
