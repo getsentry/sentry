@@ -242,8 +242,6 @@ def _get_widget_metric_specs(
                     metrics.incr("on_demand_metrics.widget_query.high_cardinality", sample_rate=1.0)
                     ignored_widget_ids[widget_query.widget.id] = True
 
-    sentry_sdk.set_context("ignored_widget_ids", ignored_widget_ids)
-
     metrics.incr("on_demand_metrics.widget_query_specs.pre_trim", amount=total_spec_count)
     specs = _trim_disabled_widgets(ignored_widget_ids, specs_for_widget)
     metrics.incr("on_demand_metrics.widget_query_specs.post_disabled_trim", amount=len(specs))
@@ -275,7 +273,7 @@ def _trim_if_above_limit(
 ) -> list[HashedMetricSpec]:
     """Trim specs per version if above max limit"""
     return_specs = []
-    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    specs_per_version: dict[int, dict[str, HashedMetricSpec]] = {}
     for hash, spec, spec_version in specs:
         specs_per_version.setdefault(spec_version.version, {})
         specs_per_version[spec_version.version][hash] = (hash, spec, spec_version)
