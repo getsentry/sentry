@@ -12,7 +12,6 @@ from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
-from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -52,7 +51,6 @@ class SlackUnlinkTeamView(BaseView):
     Django view for unlinking team from slack channel. Deletes from ExternalActor table.
     """
 
-    @transaction_start("SlackUnlinkIdentityView")
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         if request.method not in ALLOWED_METHODS:

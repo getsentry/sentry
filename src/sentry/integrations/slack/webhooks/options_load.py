@@ -16,7 +16,6 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.options_load import SlackOptionsLoadRequest
 from sentry.models.group import Group
 from sentry.utils import json
-from sentry.web.decorators import transaction_start
 
 from ..utils import logger
 
@@ -78,7 +77,6 @@ class SlackOptionsLoadEndpoint(Endpoint):
         return option_groups
 
     # XXX(isabella): atm this endpoint is used only for the assignment dropdown on issue alerts
-    @transaction_start("SlackOptionsLoadEndpoint")
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)
