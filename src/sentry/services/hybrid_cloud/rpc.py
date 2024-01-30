@@ -599,6 +599,8 @@ class _RemoteSiloCall:
             headers["Baggage"] = baggage
         try:
             return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
+        except requests.ConnectionError as e:
+            raise self._remote_exception("RPC Connection failed") from e
         except requests.Timeout as e:
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
 
