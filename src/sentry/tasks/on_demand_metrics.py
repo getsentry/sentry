@@ -268,24 +268,30 @@ def _set_widget_on_demand_state(
     is_low_cardinality: bool | None,
     enabled_features: Set[str],
 ):
-    extraction_state = _determine_extraction_state(
-        widget_query, specs, is_low_cardinality, enabled_features
-    )
-    spec_hashes = [hashed_spec[0] for hashed_spec in specs]
 
-    on_demand = DashboardWidgetQueryOnDemand.objects.get_or_create(
-        dashboard_widget_query=widget_query,
-        defaults={
-            "spec_hashes": spec_hashes,
-            "extraction_state": extraction_state,
-        },
-    )
+    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    for hash, spec, spec_version in specs:
+        specs_per_version.setdefault(spec_version.version, [])
+        specs_per_version[spec_version.version].append((hash, spec, spec_version))
 
-    if on_demand.can_extraction_be_auto_overriden():
-        on_demand.extraction_state = extraction_state
+    for version, specs_for_version in specs_per_version.items():
+        extraction_state = _determine_extraction_state(specs, is_low_cardinality, enabled_features)
+        spec_hashes = [hashed_spec[0] for hashed_spec in specs_for_version]
 
-    on_demand.spec_hashes = spec_hashes
-    on_demand.save()
+        on_demand = DashboardWidgetQueryOnDemand.objects.get_or_create(
+            dashboard_widget_query=widget_query,
+            spec_version=version,
+            defaults={
+                "spec_hashes": spec_hashes,
+                "extraction_state": extraction_state,
+            },
+        )
+
+        if on_demand.can_extraction_be_auto_overriden():
+            on_demand.extraction_state = extraction_state
+
+        on_demand.spec_hashes = spec_hashes
+        on_demand.asave()
 
 
 def _determine_extraction_state(
