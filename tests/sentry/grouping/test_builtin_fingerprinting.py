@@ -515,10 +515,8 @@ class BuiltInFingerprintingTest(TestCase):
         }
         assert "built-in-fingerprint" in variants
 
-        # ignore hash as it's not relevant for this test
-        variants["built-in-fingerprint"].pop("hash", None)
-
         assert variants["built-in-fingerprint"] == {
+            "hash": mock.ANY,  # ignore hash as it can change for unrelated reasons
             "type": "built-in-fingerprint",
             "description": "Sentry defined fingerprint",
             "values": ["chunkloaderror"],
@@ -657,7 +655,7 @@ class BuiltInFingerprintingTest(TestCase):
         With the flag enabled, hydration errors with no transactions should work as expected.
         """
 
-        data_transaction_no_tx = self.hydration_error_trace.copy()
+        data_transaction_no_tx = self.hydration_error_trace
         del data_transaction_no_tx["tags"]["transaction"]  # type: ignore[attr-defined]
         event_transaction_no_tx = self.store_event(
             data=data_transaction_no_tx, project_id=self.project
@@ -669,10 +667,8 @@ class BuiltInFingerprintingTest(TestCase):
             ).items()
         }
 
-        # ignore hash as it's not relevant for this test
-        variants["built-in-fingerprint"].pop("hash", None)
-
         assert variants["built-in-fingerprint"] == {
+            "hash": mock.ANY,  # ignore hash as it can change for unrelated reasons
             "type": "built-in-fingerprint",
             "description": "Sentry defined fingerprint",
             "values": ["hydrationerror", "<no-value-for-tag-transaction>"],
