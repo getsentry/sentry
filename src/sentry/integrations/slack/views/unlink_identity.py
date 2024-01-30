@@ -8,7 +8,6 @@ from sentry.integrations.utils import get_identity_or_404
 from sentry.models.identity import Identity
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
-from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -37,7 +36,6 @@ class SlackUnlinkIdentityView(BaseView):
     Django view for unlinking user from slack account. Deletes from Identity table.
     """
 
-    @transaction_start("SlackUnlinkIdentityView")
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
