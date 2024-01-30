@@ -528,7 +528,7 @@ describe('PageFiltersContainer', function () {
       act(() => OrganizationStore.onUpdate(updatedOrganization));
 
       initialData.router.location.query = {};
-      rerender(<PageFiltersContainer organization={updatedOrganization} />);
+      rerender(<PageFiltersContainer />);
 
       act(() => ProjectsStore.loadInitialData(updatedOrganization.projects));
 
