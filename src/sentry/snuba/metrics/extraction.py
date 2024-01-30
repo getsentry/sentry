@@ -1268,7 +1268,10 @@ class OnDemandMetricSpec:
         tag_from_groupbys = self.tags_groupbys(self.groupbys)
         extended_tags_conditions.extend(tag_from_groupbys)
 
-        if self.spec_type == MetricSpecType.DYNAMIC_QUERY:
+        if (
+            self.spec_type == MetricSpecType.DYNAMIC_QUERY
+            and self._tag_for_field("environment") not in extended_tags_conditions
+        ):
             extended_tags_conditions.append(self._tag_for_field("environment"))
 
         metric_spec: MetricSpec = {

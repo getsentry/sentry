@@ -306,7 +306,7 @@ def _merge_metric_specs(
     # We use a dict so that we can deduplicate metrics with the same hash.
     specs: dict[str, MetricSpec] = {}
     duplicated_specs = 0
-    for query_hash, spec, _ in alert_specs + widget_specs:
+    for query_hash, spec, _ in widget_specs + alert_specs:
         already_present = specs.get(query_hash)
         if already_present and not are_specs_equal(already_present, spec):
             logger.warning(
@@ -401,7 +401,8 @@ def _can_widget_query_use_stateful_extraction(
     widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
 ) -> bool:
     """Stateful extraction for metrics is not always used, in cases where a query has been recently modified.
-    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries."""
+    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries.
+    """
     spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]
     on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
 
