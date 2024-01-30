@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
 import LazyLoad from 'sentry/components/lazyLoad';
+import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
 import {replayBackendPlatforms} from 'sentry/data/platformCategories';
 import type {Group} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
@@ -92,18 +93,15 @@ function EventReplayContent({
   return (
     <ReplaySectionMinHeight>
       <ErrorBoundary mini>
-        <ReactLazyLoad debounce={50} height={448} offset={0} once>
-          {hasReplayClipFeature ? (
-            <LazyLoad
-              {...commonProps}
-              component={replayClipPreview}
-              groupId={group?.id}
-              eventId={event.id}
-            />
-          ) : (
-            <LazyLoad {...commonProps} component={replayPreview} />
-          )}
-        </ReactLazyLoad>
+        <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
+          <ReactLazyLoad debounce={50} height={448} offset={0} once>
+            {hasReplayClipFeature ? (
+              <LazyLoad {...commonProps} component={replayClipPreview} />
+            ) : (
+              <LazyLoad {...commonProps} component={replayPreview} />
+            )}
+          </ReactLazyLoad>
+        </ReplayGroupContextProvider>
       </ErrorBoundary>
     </ReplaySectionMinHeight>
   );

@@ -249,28 +249,4 @@ describe('ReplayClipPreview', () => {
       screen.queryByTestId('replay-details-breadcrumbs-tab')
     ).not.toBeInTheDocument();
   });
-
-  it('Adds event and issue information to breadcrumbs', async () => {
-    mockIsFullscreen.mockReturnValue(true);
-
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-        groupId="123"
-        eventId="456"
-      />
-    );
-
-    // Event that mathces ID 456 should be shown as "This Event"
-    expect(await screen.findByText('Error: This Event')).toBeInTheDocument();
-    expect(screen.getByText('JAVASCRIPT-123')).toBeInTheDocument();
-
-    // Other events should link to the event and issue
-    expect(screen.getByRole('link', {name: '987'})).toHaveAttribute(
-      'href',
-      '/organizations/sentry-emerging-tech/issues/654/events/987/#replay'
-    );
-  });
 });

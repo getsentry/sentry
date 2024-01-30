@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import screenfull from 'screenfull';
 
@@ -7,13 +7,10 @@ import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
-import {BreadcrumbCustomizationProvider} from 'sentry/components/replays/breadcrumbs/breadcrumbCustomizationContext';
 import {
   Provider as ReplayContextProvider,
   useReplayContext,
@@ -28,16 +25,12 @@ import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getShortEventId} from 'sentry/utils/events';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
-import type {ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame} from 'sentry/utils/replays/types';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
@@ -51,10 +44,8 @@ type Props = {
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
-  eventId?: string;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
-  groupId?: string;
 };
 
 const CLIP_DURATION_BEFORE_EVENT = 5_000;
@@ -82,76 +73,14 @@ function getReplayAnalyticsStatus({
   return 'none';
 }
 
-function CustomBreadcrumbTitle({frame, eventId}: {frame: ErrorFrame; eventId?: string}) {
-  const organization = useOrganization();
-
-  if (frame.data.eventId === eventId) {
-    return <Fragment>Error: This Event</Fragment>;
-  }
-
-  return (
-    <Fragment>
-      Error:{' '}
-      <Link
-        to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/events/${frame.data.eventId}/#replay`}
-      >
-        {getShortEventId(frame.data.eventId)}
-      </Link>
-    </Fragment>
-  );
-}
-
-function CustomBreadcrumbIssueInfo({
-  frame,
-  groupId,
-}: {
-  frame: ErrorFrame;
-  groupId?: string;
-}) {
-  const organization = useOrganization();
-
-  const project = useProjectFromSlug({
-    organization,
-    projectSlug: frame.data.projectSlug,
-  });
-
-  const projectBadge = project ? (
-    <ProjectBadge project={project} avatarSize={16} disableLink displayName={false} />
-  ) : null;
-
-  if (`${frame.data.groupId}` === groupId) {
-    return (
-      <BreadcrumbIssueShortCode>
-        {projectBadge}
-        {frame.data.groupShortId}
-      </BreadcrumbIssueShortCode>
-    );
-  }
-
-  return (
-    <BreadcrumbIssueShortCode>
-      {projectBadge}
-      <Link
-        to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/events/${frame.data.eventId}/#replay`}
-      >
-        {frame.data.groupShortId}
-      </Link>
-    </BreadcrumbIssueShortCode>
-  );
-}
-
 function ReplayPreviewPlayer({
   toggleFullscreen,
   replayId,
   fullReplayButtonProps,
-  groupId,
-  eventId,
 }: {
   replayId: string;
   toggleFullscreen: () => void;
-  eventId?: string;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
-  groupId?: string;
 }) {
   const routes = useRoutes();
   const organization = useOrganization();
@@ -172,68 +101,43 @@ function ReplayPreviewPlayer({
     },
   };
 
-  const renderBreadcrumbTitle = useCallback(
-    ({frame}: {frame: ReplayFrame}) => {
-      if (!isErrorFrame(frame)) {
-        return null;
-      }
-      return <CustomBreadcrumbTitle frame={frame} eventId={eventId} />;
-    },
-    [eventId]
-  );
-
-  const renderBreadcrumbProject = useCallback(
-    ({frame}: {frame: ReplayFrame}) => {
-      if (!isErrorFrame(frame)) {
-        return null;
-      }
-      return <CustomBreadcrumbIssueInfo frame={frame} groupId={groupId} />;
-    },
-    [groupId]
-  );
-
   return (
-    <BreadcrumbCustomizationProvider
-      renderTitle={renderBreadcrumbTitle}
-      renderProjectInfo={renderBreadcrumbProject}
-    >
-      <PlayerPanel>
-        <PlayerBreadcrumbContainer>
-          <PlayerContextContainer>
-            {isFullscreen ? (
-              <ContextContainer>
-                <ReplayCurrentUrl />
-                <BrowserOSIcons />
-                <ReplaySidebarToggleButton
-                  isOpen={isSidebarOpen}
-                  setIsOpen={setIsSidebarOpen}
-                />
-              </ContextContainer>
+    <PlayerPanel>
+      <PlayerBreadcrumbContainer>
+        <PlayerContextContainer>
+          {isFullscreen ? (
+            <ContextContainer>
+              <ReplayCurrentUrl />
+              <BrowserOSIcons />
+              <ReplaySidebarToggleButton
+                isOpen={isSidebarOpen}
+                setIsOpen={setIsSidebarOpen}
+              />
+            </ContextContainer>
+          ) : null}
+          <StaticPanel>
+            <ReplayPlayer />
+          </StaticPanel>
+        </PlayerContextContainer>
+        {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
+      </PlayerBreadcrumbContainer>
+      <ErrorBoundary mini>
+        <ButtonGrid>
+          <ReplayPlayPauseButton priority="default" />
+          <Container>
+            <TimeAndScrubberGrid />
+          </Container>
+          <ButtonBar gap={1}>
+            <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
+              {t('See Full Replay')}
+            </LinkButton>
+            {showFullscreenButton ? (
+              <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
             ) : null}
-            <StaticPanel>
-              <ReplayPlayer />
-            </StaticPanel>
-          </PlayerContextContainer>
-          {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
-        </PlayerBreadcrumbContainer>
-        <ErrorBoundary mini>
-          <ButtonGrid>
-            <ReplayPlayPauseButton priority="default" />
-            <Container>
-              <TimeAndScrubberGrid />
-            </Container>
-            <ButtonBar gap={1}>
-              <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
-                {t('See Full Replay')}
-              </LinkButton>
-              {showFullscreenButton ? (
-                <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-              ) : null}
-            </ButtonBar>
-          </ButtonGrid>
-        </ErrorBoundary>
-      </PlayerPanel>
-    </BreadcrumbCustomizationProvider>
+          </ButtonBar>
+        </ButtonGrid>
+      </ErrorBoundary>
+    </PlayerPanel>
   );
 }
 
@@ -242,8 +146,6 @@ function ReplayClipPreview({
   orgSlug,
   replaySlug,
   fullReplayButtonProps,
-  eventId,
-  groupId,
 }: Props) {
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
@@ -323,8 +225,6 @@ function ReplayClipPreview({
             toggleFullscreen={toggleFullscreen}
             replayId={replayId}
             fullReplayButtonProps={fullReplayButtonProps}
-            eventId={eventId}
-            groupId={groupId}
           />
         )}
       </PlayerContainer>
@@ -401,14 +301,6 @@ const ContextContainer = styled('div')`
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const BreadcrumbIssueShortCode = styled('div')`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  margin-top: ${space(0.25)};
 `;
 
 export default ReplayClipPreview;
