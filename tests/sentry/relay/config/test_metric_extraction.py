@@ -1631,65 +1631,45 @@ def _metric_spec(
 
 @django_db_all
 def test_include_environment_for_widgets(default_project: Project) -> None:
-    aggr = "count()"
-    env_tag = {"field": "event.environment", "key": "environment"}
-    query = "transaction.duration:>=10"
-
-    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        create_widget([aggr], query, default_project)
-        config = get_metric_extraction_config(default_project)
-        # Because we have two specs we will have two metrics.
-        # The second spec includes the environment tag as part of the query hash.
-        assert config and config["metrics"] == [
-            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}, env_tag]),
-            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
-        ]
-
-        # Using environment in the columns will turn into a groupbys
-        create_widget([aggr], query, default_project, columns=["environment"], title="foo")
-        config = get_metric_extraction_config(default_project)
-        assert config and config["metrics"] == [
-            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}, env_tag]),
-            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
-        ]
-
-        create_alert(aggr, query, default_project)
-        config = get_metric_extraction_config(default_project)
-        # We loose the env in the tags because the alert spec is preferred over the widget spec
-        assert config and config["metrics"] == [
-            _metric_spec([{"key": "query_hash", "value": "f1353b0f"}]),
-            _metric_spec([{"key": "query_hash", "value": "4fb5a472"}, env_tag]),
-        ]
-
-
-@django_db_all
-def test_widgets_with_without_environment_do_not_collide(default_project: Project) -> None:
+    """This both tests that we have twice the number of specs and that our code handles
+    the collision of alerts and widgets."""
     aggr = "count()"
     query = "transaction.duration:>=10"
     condition = {"name": "event.duration", "op": "gte", "value": 10.0}
     env_tag = {"field": "event.environment", "key": "environment"}
 
-    with Feature([ON_DEMAND_METRICS_WIDGETS]):
+    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
         widget1 = create_widget([aggr], query, default_project)
-        widget2 = create_widget(
-            [aggr], query, default_project, columns=["environment"], title="foo"
-        )
+        config = get_metric_extraction_config(default_project)
+        # Because we have two specs we will have two metrics.
+        # The second spec includes the environment tag as part of the query hash.
+        assert config and config["metrics"] == [
+            _metric_spec("f1353b0f", condition, [env_tag]),
+            _metric_spec("4fb5a472", condition, [env_tag]),
+        ]
 
+        # Since environment is part of columns, it becomes part of query hash
+        widget2 = create_widget([aggr], query, default_project, "foo", ["environment"])
         config = get_metric_extraction_config(default_project)
         assert config and config["metrics"] == [
             _metric_spec("f1353b0f", condition, [env_tag]),
             _metric_spec("4fb5a472", condition, [env_tag]),
         ]
 
+        # We now verify that the string used for hashing is what we expect
+        expected_query_str_hash = f"None;{condition}"
         spec1 = _on_demand_spec_from_widget(widget1)
         spec2 = _on_demand_spec_from_widget(widget2)
 
-        expected_query_str_hash = f"None;{condition}"
+        # Since we're using the current spec, only the second spec includes the environment
         assert spec1._query_str_for_hash == expected_query_str_hash
         # The environment is included because columns become groupbys which is included in the query hash
         assert spec2._query_str_for_hash == f"{expected_query_str_hash};['environment']"
 
+        # XXX: Test with feature
 
+
+# Remove this test once we drop the current spec version
 @django_db_all
 def test_alert_and_widget_colliding(default_project: Project) -> None:
     aggr = "count()"
@@ -1699,19 +1679,28 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
         widget = create_widget([aggr], query, default_project)
-
         config = get_metric_extraction_config(default_project)
+        # Because we have two specs we will have two metrics.
+        assert config and config["metrics"] == [
+            _metric_spec("f1353b0f", condition, [env_tag]),
+            _metric_spec("4fb5a472", condition, [env_tag]),
+        ]
 
-        assert config and config["metrics"] == [_metric_spec("f1353b0f", condition, [env_tag])]
-
+        # Once we deprecate the current spec version, the widget will not create
+        # the f1353b0f, thus, there will be no more duplicated specs
         alert = create_alert(aggr, query, default_project)
         config = get_metric_extraction_config(default_project)
         # Now that we iterate over the widgets first, we will pick the spec generated by the widget
         # which includes the environment as a tag
-        assert config and config["metrics"] == [_metric_spec("f1353b0f", condition, [env_tag])]
+        assert config and config["metrics"] == [
+            _metric_spec("f1353b0f", condition, [env_tag]),
+            _metric_spec("4fb5a472", condition, [env_tag]),
+        ]
 
         widget_spec = _on_demand_spec_from_widget(widget)
         alert_spec = _on_demand_spec_from_alert(alert)
         expected_query_str_hash = f"None;{condition}"
         assert widget_spec._query_str_for_hash == expected_query_str_hash
         assert alert_spec._query_str_for_hash == expected_query_str_hash
+
+        # XXX: Test with feature
