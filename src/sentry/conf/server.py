@@ -800,6 +800,7 @@ CELERY_IMPORTS = (
     "sentry.debug_files.tasks",
     "sentry.tasks.on_demand_metrics",
     "sentry.middleware.integrations.tasks",
+    "sentry.replays.usecases.ingest.issue_creation",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -1685,6 +1686,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:on-demand-metrics-prefill": False,
     # Display on demand metrics related UI elements
     "organizations:on-demand-metrics-ui": False,
+    # This spec version includes the environment in the query hash
+    "organizations:on-demand-metrics-query-spec-version-two": False,
     # Enable the SDK selection feature in the onboarding
     "organizations:onboarding-sdk-selection": False,
     # Enable the setting of org roles for team
@@ -1949,6 +1952,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:use-metrics-layer-in-alerts": False,
     # Enable User Feedback v2 ingest
     "organizations:user-feedback-ingest": False,
+    # Enable User Feedback spam auto filtering feature UI
+    "organizations:user-feedback-spam-filter-ui": False,
+    # Enable User Feedback spam auto filtering feature ingest
+    "organizations:user-feedback-spam-filter-ingest": False,
     # Enable User Feedback v2 UI
     "organizations:user-feedback-ui": False,
     # Enable view hierarchies options

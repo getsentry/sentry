@@ -121,7 +121,7 @@ phonenumberslite==8.12.55
 pillow==10.0.1
 pip-tools==7.1.0
 platformdirs==2.5.2
-pluggy==0.13.1
+pluggy==1.4.0
 pre-commit==3.3.2
 progressbar2==3.41.0
 prompt-toolkit==3.0.41
@@ -140,9 +140,9 @@ pyjwt==2.4.0
 pymemcache==4.0.0
 pyparsing==3.0.9
 pysocks==1.7.1
-pytest==7.2.1
+pytest==8.0.0
 pytest-cov==4.0.0
-pytest-django==4.7.0
+pytest-django==4.8.0
 pytest-fail-slow==0.3.0
 pytest-rerunfailures==11.0
 pytest-sentry==0.1.11
@@ -174,7 +174,7 @@ s3transfer==0.10.0
 selenium==4.16.0
 sentry-arroyo==2.16.0
 sentry-cli==2.16.0
-sentry-devenv==1.2.1
+sentry-devenv==1.2.2
 sentry-forked-django-stubs==4.2.7.post1
 sentry-forked-djangorestframework-stubs==3.14.5.post1
 sentry-kafka-schemas==0.1.38

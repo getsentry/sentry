@@ -139,6 +139,9 @@ class Fixtures:
     def create_user_auth_token(self, *args, **kwargs):
         return Factories.create_user_auth_token(*args, **kwargs)
 
+    def create_org_auth_token(self, *args, **kwargs):
+        return Factories.create_org_auth_token(*args, **kwargs)
+
     def create_team_membership(self, *args, **kwargs):
         return Factories.create_team_membership(*args, **kwargs)
 
@@ -344,6 +347,9 @@ class Fixtures:
 
     def create_integration_external_issue(self, *args, **kwargs):
         return Factories.create_integration_external_issue(*args, **kwargs)
+
+    def create_integration_external_project(self, *args, **kwargs):
+        return Factories.create_integration_external_project(*args, **kwargs)
 
     def create_incident(self, organization=None, projects=None, *args, **kwargs):
         if not organization:

@@ -288,6 +288,29 @@ METRICS_MAP = {
     "transaction.duration": "d:transactions/duration@millisecond",
     "user": "s:transactions/user@none",
 }
+# The assumed list of tags that all metrics have, some won't because we remove tags to reduce cardinality
+# Use the public api aliases here
+DEFAULT_METRIC_TAGS = {
+    "environment",
+    "release",
+    "transaction",
+    "transaction.status",
+    "transaction.op",
+    "http.method",
+    "browser.name",
+    "os.name",
+    "satisfaction",
+    "histogram_outlier",
+    "sdk",
+    "measurement_rating",
+    "http.status_code",
+    "geo.country_code",
+    "transaction.method",
+    "device.class",
+    "resource.render_blocking_status",
+    "has_profile",
+    "query_hash",
+}
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
     "span.self_time": "d:spans/exclusive_time@millisecond",

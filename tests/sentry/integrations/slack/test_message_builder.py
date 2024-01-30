@@ -18,6 +18,7 @@ from sentry.integrations.slack.message_builder.issues import (
     format_release_tag,
     get_option_groups,
     get_option_groups_block_kit,
+    get_suspect_commit_text,
     time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
@@ -34,6 +35,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -75,7 +77,7 @@ def build_test_message_blocks(
         if link_to_event:
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
-    title_text = f":exclamation: <{title_link}|*{formatted_title}*>  \n"
+    title_text = f":exclamation: <{title_link}|*{formatted_title}*>"
 
     blocks: list[dict[str, Any]] = [
         {
@@ -156,28 +158,8 @@ def build_test_message_blocks(
         }
         blocks.append(suggested_assignees_section)
 
-    if suspect_commit:
-        suspect_commit_text = "Suspect Commit: "
-        if suspect_commit.get("repo_base"):
-            commit_link = f"<{suspect_commit['repo_base']}/commits/{suspect_commit['commit_id']}|{suspect_commit['commit_id'][0:6]}>"
-            suspect_commit_text += f"{commit_link}"
-        else:
-            suspect_commit_text += f"{suspect_commit['commit_id']}"
-        suspect_commit_name = (
-            suspect_commit["author_name"]
-            if suspect_commit.get("author_name")
-            else suspect_commit["author_email"]
-        )
-        suspect_commit_text += f" by {suspect_commit_name}"
-
-        if suspect_commit.get("time_since"):
-            suspect_commit_text += f" {suspect_commit['time_since']}"
-
-        if suspect_commit.get("pr_link") and suspect_commit.get("pr_id"):
-            pr_link = f"<{suspect_commit['pr_link']}|View Pull Request>"
-            pr_title_text = f"'{suspect_commit['pr_title']} (#{suspect_commit['pr_id']})'"
-
-            suspect_commit_text += f" \n{pr_title_text} {pr_link}"
+    if suspect_commit and event:
+        suspect_commit_text = get_suspect_commit_text(project, event.for_group(group))
         suspect_commit_section = {
             "type": "context",
             "elements": [{"type": "mrkdwn", "text": suspect_commit_text}],
@@ -525,17 +507,30 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             context={"commitId": self.commit.id},
         )
+
         suspect_commit = {
             "commit_id": self.commit.key,
-            "author_email": commit_author.email,
-            "time_since": "Just now",
-            "pr_title": pull_request.title,
-            "pr_link": mock_external_url.return_value,
-            "pr_id": pull_request.key,
-            "repo_base": self.repo.url,
+            "author": {
+                "email": commit_author.email,
+                "name": commit_author.name,
+            },
+            "pull_request": {
+                "dateCreated": pull_request.date_added,
+                "title": pull_request.title,
+                "externalUrl": mock_external_url.return_value,
+                "id": pull_request.key,
+                "repository": {
+                    "url": self.repo.url,
+                },
+            },
         }
+
+        commits = get_commits(self.project, event)
+
         assert SlackIssuesMessageBuilder(
-            group, event.for_group(group)
+            group,
+            event.for_group(group),
+            commits=commits,
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -755,7 +750,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         for section in blocks["blocks"]:
             if section["type"] == "text":
                 assert occurrence.issue_title in section["text"]["text"]
-        assert occurrence.evidence_display[0].value in blocks["blocks"][0]["text"]["text"]
+
+        assert (
+            occurrence.evidence_display[0].value
+            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
+        )
         assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
 
     def test_build_error_issue_fallback_text(self):
@@ -795,7 +794,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert "N+1 Query" in blocks["blocks"][0]["text"]["text"]
         assert (
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in blocks["blocks"][0]["text"]["text"]
+            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
@@ -827,7 +826,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         ret = SlackIssuesMessageBuilder(group, None).build()
         assert isinstance(ret, dict)
-        assert "&lt;https://example.com/|*Click Here*&gt;" in ret["blocks"][0]["text"]["text"]
+        assert (
+            "&lt;https://example.com/|*Click Here*&gt;"
+            in ret["blocks"][1]["elements"][0]["elements"][0]["text"]
+        )
 
 
 class BuildGroupAttachmentReplaysTest(TestCase):
@@ -885,7 +887,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
         assert isinstance(blocks, dict)
         assert (
             f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
-            in blocks["blocks"][0]["text"]["text"]
+            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
         )
 
 
