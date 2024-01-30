@@ -591,16 +591,16 @@ class Group(Model):
         verbose_name_plural = _("grouped messages")
         verbose_name = _("grouped message")
         permissions = (("can_view", "Can view"),)
-        indexes = [
-            models.Index(fields=("project", "first_release")),
-            models.Index(fields=("project", "id")),
-            models.Index(fields=("project", "status", "last_seen", "id")),
-            models.Index(fields=("project", "status", "type", "last_seen", "id")),
-            models.Index(fields=("project", "status", "substatus", "last_seen", "id")),
-            models.Index(fields=("project", "status", "substatus", "type", "last_seen", "id")),
-            models.Index(fields=("project", "status", "substatus", "id")),
-            models.Index(fields=("status", "substatus", "id")),  # TODO: Remove this
-            models.Index(fields=("status", "substatus", "first_seen")),
+        index_together = [
+            ("project", "first_release"),
+            ("project", "id"),
+            ("project", "status", "last_seen", "id"),
+            ("project", "status", "type", "last_seen", "id"),
+            ("project", "status", "substatus", "last_seen", "id"),
+            ("project", "status", "substatus", "type", "last_seen", "id"),
+            ("project", "status", "substatus", "id"),
+            ("status", "substatus", "id"),  # TODO: Remove this
+            ("status", "substatus", "first_seen"),
         ]
         unique_together = (
             ("project", "short_id"),

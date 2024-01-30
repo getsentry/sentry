@@ -152,10 +152,7 @@ class ProjectDebugFile(Model):
     difcache: ClassVar[DIFCache]
 
     class Meta:
-        indexes = (
-            models.Index(fields=("project_id", "debug_id")),
-            models.Index(fields=("project_id", "code_id")),
-        )
+        index_together = (("project_id", "debug_id"), ("project_id", "code_id"))
         db_table = "sentry_projectdsymfile"
         app_label = "sentry"
 
