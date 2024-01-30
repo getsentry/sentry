@@ -1,7 +1,6 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import type {Event} from 'sentry/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -19,30 +18,40 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const {isError, isLoading} = useTraceTimelineEvents({event});
 
   if (isError) {
-    // TODO: display placeholder to reduce layout shift
-    return null;
+    // display placeholder to reduce layout shift
+    return <div style={{height: 20}} />;
   }
 
   return (
     <VisiblePanel>
       <Stacked ref={timelineRef}>
-        <TimelineEventsContainer>
-          {isLoading ? (
-            <Placeholder />
-          ) : (
+        {isLoading ? (
+          <Placeholder height="20px" />
+        ) : (
+          <TimelineEventsContainer>
+            <TimelineOutline />
             <TraceTimelineEvents event={event} width={width} />
-          )}
-        </TimelineEventsContainer>
+          </TimelineEventsContainer>
+        )}
       </Stacked>
     </VisiblePanel>
   );
 }
 
-const VisiblePanel = styled(Panel)`
+const VisiblePanel = styled('div')`
   margin: 0;
   border: 0;
   overflow: hidden;
-  background: ${p => p.theme.translucentInnerBorder};
+`;
+
+const TimelineOutline = styled('div')`
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 100%;
+  height: 6px;
+  border: 1px solid ${p => p.theme.innerBorder};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 /**
@@ -63,6 +72,7 @@ const Stacked = styled('div')`
 `;
 
 const TimelineEventsContainer = styled('div')`
+  position: relative;
   padding-top: 10px;
   padding-bottom: 10px;
 `;
