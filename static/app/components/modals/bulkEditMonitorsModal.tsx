@@ -65,10 +65,11 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
     );
     setSelectedMonitors([]);
 
-    if (resp) {
+    if (resp?.updated) {
       setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
         return oldMonitorList.map(
-          monitor => resp.find(newMonitor => newMonitor.slug === monitor.slug) ?? monitor
+          monitor =>
+            resp.updated.find(newMonitor => newMonitor.slug === monitor.slug) ?? monitor
         );
       });
     }

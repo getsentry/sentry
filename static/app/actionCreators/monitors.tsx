@@ -108,20 +108,31 @@ export interface BulkEditOperation {
   status?: ObjectStatus;
 }
 
+interface BulkEditResponse {
+  errored: Monitor[];
+  updated: Monitor[];
+}
+
 export async function bulkEditMonitors(
   api: Client,
   orgId: string,
   slugs: string[],
   operation: BulkEditOperation
-): Promise<Monitor[] | null> {
+): Promise<BulkEditResponse | null> {
   addLoadingMessage();
 
   try {
-    const resp = await api.requestPromise(`/organizations/${orgId}/monitors/`, {
-      method: 'PUT',
-      data: {...operation, slugs},
-    });
+    const resp: BulkEditResponse = await api.requestPromise(
+      `/organizations/${orgId}/monitors/`,
+      {
+        method: 'PUT',
+        data: {...operation, slugs},
+      }
+    );
     clearIndicators();
+    if (resp.errored?.length > 0) {
+      addErrorMessage(t('Unable to apply the changes to all monitors'));
+    }
     return resp;
   } catch (err) {
     logException(err);
