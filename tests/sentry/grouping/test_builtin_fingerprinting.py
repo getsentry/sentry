@@ -515,10 +515,8 @@ class BuiltInFingerprintingTest(TestCase):
         }
         assert "built-in-fingerprint" in variants
 
-        # ignore hash as it's not relevant for this test
-        variants["built-in-fingerprint"].pop("hash", None)
-
         assert variants["built-in-fingerprint"] == {
+            "hash": mock.ANY,  # ignore hash as it can change for unrelated reasons
             "type": "built-in-fingerprint",
             "description": "Sentry defined fingerprint",
             "values": ["chunkloaderror"],
@@ -609,7 +607,7 @@ class BuiltInFingerprintingTest(TestCase):
             data=self.hydration_error_trace, project_id=self.project
         )
         data_transaction_text = self.hydration_error_trace.copy()
-        data_transaction_text["transaction"] = "/text/"
+        data_transaction_text["tags"]["transaction"] = "/text/"  # type: ignore[index]
         event_transaction_text = self.store_event(
             data=data_transaction_text, project_id=self.project
         )
@@ -650,3 +648,30 @@ class BuiltInFingerprintingTest(TestCase):
         event = self.store_event(data=self.hydration_error_trace, project_id=self.project)
         assert event.data.data["fingerprint"] == ["my-route", "{{ default }}"]
         assert event.data.data.get("_fingerprint_info") is None
+
+    @with_feature("organizations:grouping-built-in-fingerprint-rules")
+    def test_built_in_hydration_rules_no_transactions(self):
+        """
+        With the flag enabled, hydration errors with no transactions should work as expected.
+        """
+
+        data_transaction_no_tx = self.hydration_error_trace
+        del data_transaction_no_tx["tags"]["transaction"]  # type: ignore[attr-defined]
+        event_transaction_no_tx = self.store_event(
+            data=data_transaction_no_tx, project_id=self.project
+        )
+        variants = {
+            k: v.as_dict()
+            for k, v in event_transaction_no_tx.get_grouping_variants(
+                force_config=GROUPING_CONFIG
+            ).items()
+        }
+
+        assert variants["built-in-fingerprint"] == {
+            "hash": mock.ANY,  # ignore hash as it can change for unrelated reasons
+            "type": "built-in-fingerprint",
+            "description": "Sentry defined fingerprint",
+            "values": ["hydrationerror", "<no-value-for-tag-transaction>"],
+            "client_values": ["my-route", "{{ default }}"],
+            "matched_rule": 'sdk:"sentry.javascript.nextjs" message:"Text content does not match server-rendered HTML." -> "hydrationerror{{tags.transaction}}"',
+        }
