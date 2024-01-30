@@ -371,3 +371,10 @@ export async function openNavigateToExternalLinkModal(
 
   openModal(deps => <Modal {...deps} {...options} />);
 }
+
+export async function openProjectCreationModal(options: {organization: Organization}) {
+  const mod = await import('sentry/components/modals/projectCreationModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+}

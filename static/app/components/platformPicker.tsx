@@ -20,11 +20,12 @@ import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration, PlatformKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-const PlatformList = styled('div')`
+const PlatformList = styled('div')<{modal?: boolean}>`
   display: grid;
   gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
   margin-bottom: ${space(2)};
+  justify-content: ${p => p.modal && 'center'};
 `;
 
 const selectablePlatforms = platforms.filter(platform =>
@@ -42,6 +43,7 @@ interface PlatformPickerProps {
   defaultCategory?: Category;
   listClassName?: string;
   listProps?: React.HTMLAttributes<HTMLDivElement>;
+  modal?: boolean;
   noAutoFilter?: boolean;
   organization?: Organization;
   platform?: string | null;
@@ -100,12 +102,12 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   render() {
     const platformList = this.platformList;
-    const {setPlatform, listProps, listClassName} = this.props;
+    const {setPlatform, listProps, listClassName, modal} = this.props;
     const {filter, category} = this.state;
 
     return (
       <Fragment>
-        <NavContainer>
+        <NavContainer modal={modal}>
           <CategoryNav>
             {categoryList.map(({id, name}) => (
               <ListLink
@@ -126,14 +128,16 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
               </ListLink>
             ))}
           </CategoryNav>
-          <StyledSearchBar
-            size="sm"
-            query={filter}
-            placeholder={t('Filter Platforms')}
-            onChange={val => this.setState({filter: val}, this.logSearch)}
-          />
+          {!modal && (
+            <StyledSearchBar
+              size="sm"
+              query={filter}
+              placeholder={t('Filter Platforms')}
+              onChange={val => this.setState({filter: val}, this.logSearch)}
+            />
+          )}
         </NavContainer>
-        <PlatformList className={listClassName} {...listProps}>
+        <PlatformList className={listClassName} modal={modal} {...listProps}>
           {platformList.map(platform => {
             return (
               <PlatformCard
@@ -184,11 +188,12 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
   }
 }
 
-const NavContainer = styled('div')`
+const NavContainer = styled('div')<{modal?: boolean}>`
   margin-bottom: ${space(2)};
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: 1fr minmax(0, 300px);
+  grid-template-columns: ${p => (!p.modal ? '1fr minmax(0, 300px)' : '')};
+  justify-content: ${p => p.modal && 'center'};
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
