@@ -239,7 +239,8 @@ class QueriedMetricsVisitor(QueryExpressionVisitor[Set[str]]):
     """
 
     def _visit_formula(self, formula: Formula) -> Set[str]:
-        metrics = set()
+        metrics: Set[str] = set()
+
         for parameter in formula.parameters:
             metrics.union(self.visit(parameter))
 

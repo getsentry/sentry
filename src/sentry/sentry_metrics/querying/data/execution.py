@@ -394,7 +394,7 @@ class QueryExecutor:
         Load the blocked metrics for the supplied projects and stores them in the executor in an efficient way that
         speeds up the determining of the projects to exclude from the query.
         """
-        blocked_metrics_for_projects = {}
+        blocked_metrics_for_projects: Dict[str, Set[int]] = {}
 
         for project_id, metrics_blocking_state in get_metrics_blocking_state(
             self._projects
