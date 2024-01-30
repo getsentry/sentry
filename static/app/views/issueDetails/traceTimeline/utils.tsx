@@ -1,18 +1,20 @@
-import type {TimelineTransactionEvent} from './useTraceTimelineEvents';
+import type {Organization, User} from 'sentry/types';
 
-function getEventTimestamp(start: number, event: TimelineTransactionEvent) {
+import type {TimelineEvent} from './useTraceTimelineEvents';
+
+function getEventTimestamp(start: number, event: TimelineEvent) {
   return new Date(event.timestamp).getTime() - start;
 }
 
 export function getEventsByColumn(
   durationMs: number,
-  frames: TimelineTransactionEvent[],
+  frames: TimelineEvent[],
   totalColumns: number,
   start: number
 ) {
   const safeDurationMs = isNaN(durationMs) ? 1 : durationMs;
 
-  const columnFramePairs = frames.map<[number, TimelineTransactionEvent]>(frame => {
+  const columnFramePairs = frames.map<[number, TimelineEvent]>(frame => {
     const columnPositionCalc =
       // Not sure math.abs is doing what i want
       Math.abs(
@@ -34,7 +36,17 @@ export function getEventsByColumn(
       map.set(column, [frame]);
     }
     return map;
-  }, new Map<number, TimelineTransactionEvent[]>());
+  }, new Map<number, TimelineEvent[]>());
 
   return framesByColumn;
+}
+
+export function hasTraceTimelineFeature(
+  organization: Organization | null,
+  user: User | undefined
+) {
+  const newIssueExperienceEnabled = user?.options?.issueDetailsNewExperienceQ42023;
+  const hasFeature = organization?.features?.includes('issues-trace-timeline');
+
+  return !!(newIssueExperienceEnabled && hasFeature);
 }

@@ -4,6 +4,9 @@ import styled from '@emotion/styled';
 import Placeholder from 'sentry/components/placeholder';
 import type {Event} from 'sentry/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
 
 import {TraceTimelineEvents} from './traceTimelineEvents';
 import {useTraceTimelineEvents} from './useTraceTimelineEvents';
@@ -13,9 +16,15 @@ interface TraceTimelineProps {
 }
 
 export function TraceTimeline({event}: TraceTimelineProps) {
+  const user = useUser();
+  const organization = useOrganization({allowNull: true});
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
   const {isError, isLoading} = useTraceTimelineEvents({event});
+
+  if (!hasTraceTimelineFeature(organization, user)) {
+    return null;
+  }
 
   if (isError) {
     // display placeholder to reduce layout shift
@@ -30,7 +39,8 @@ export function TraceTimeline({event}: TraceTimelineProps) {
         ) : (
           <TimelineEventsContainer>
             <TimelineOutline />
-            <TraceTimelineEvents event={event} width={width} />
+            {/* Sets a min width of 200 for testing */}
+            <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
           </TimelineEventsContainer>
         )}
       </Stacked>
@@ -44,6 +54,9 @@ const VisiblePanel = styled('div')`
   overflow: hidden;
 `;
 
+/**
+ * Displays the container the dots appear inside of
+ */
 const TimelineOutline = styled('div')`
   position: absolute;
   left: 0;

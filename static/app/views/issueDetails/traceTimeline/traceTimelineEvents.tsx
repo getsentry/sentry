@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import {TraceTimelineTooltip} from 'sentry/views/issueDetails/traceTimeline/traceTimelineTooltip';
 
-import type {TimelineTransactionEvent} from './useTraceTimelineEvents';
+import type {TimelineEvent} from './useTraceTimelineEvents';
 import {useTraceTimelineEvents} from './useTraceTimelineEvents';
 import {getEventsByColumn} from './utils';
 
@@ -117,7 +118,7 @@ function NodeGroup({
   columnSize,
   currentEventId,
 }: {
-  colEvents: TimelineTransactionEvent[];
+  colEvents: TimelineEvent[];
   columnSize: number;
   currentEventId: string;
   event: Event;
@@ -149,10 +150,11 @@ function NodeGroup({
         {Array.from(framesByCol.entries()).map(([column, groupFrames]) => (
           <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
             {groupFrames.map(frame => (
+              // TODO: use sentry colors and add the other styles
               <IconNode
                 key={frame.id}
+                aria-label={frame.id === currentEventId ? t('Current Event') : undefined}
                 style={
-                  // TODO: use sentry colors
                   frame.id === currentEventId
                     ? {
                         backgroundColor: 'rgb(181, 19, 7, 1)',

@@ -9,12 +9,12 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import type {TimelineTransactionEvent} from './useTraceTimelineEvents';
+import type {TimelineEvent} from './useTraceTimelineEvents';
 
 export function TraceTimelineTooltip({
   event,
   frames,
-}: {event: Event; frames: TimelineTransactionEvent[]}) {
+}: {event: Event; frames: TimelineEvent[]}) {
   const organization = useOrganization();
   // TODO: should handling of current event + other events look different
   if (frames.length === 1 && frames[0].id === event.id) {

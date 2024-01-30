@@ -6,14 +6,19 @@ import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/ut
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export interface TimelineTransactionEvent {
+export interface TimelineEvent {
   id: string;
   issue: string;
-  'issue.id': string;
+  'issue.id': number;
   project: string;
   'project.name': string;
   timestamp: string;
   title: string;
+}
+
+export interface TraceEventResponse {
+  data: TimelineEvent[];
+  meta: unknown;
 }
 
 interface UseTraceTimelineEventsOptions {
@@ -29,10 +34,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions) {
     data: issuePlatformData,
     isLoading: isLoadingIssuePlatform,
     isError: isErrorIssuePlatform,
-  } = useApiQuery<{
-    data: TimelineTransactionEvent[];
-    meta: unknown;
-  }>(
+  } = useApiQuery<TraceEventResponse>(
     [
       `/organizations/${organization.slug}/events/`,
       {
@@ -56,7 +58,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions) {
     isLoading: isLoadingDiscover,
     isError: isErrorDiscover,
   } = useApiQuery<{
-    data: TimelineTransactionEvent[];
+    data: TimelineEvent[];
     meta: unknown;
   }>(
     [
