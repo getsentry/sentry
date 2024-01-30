@@ -28,8 +28,7 @@ type Props = RouteComponentProps<{}, {}>;
 
 function TeamStatsHealth({location, router}: Props) {
   const organization = useOrganization();
-  const isOrgOwner = organization.access.includes('org:admin');
-  const {teams, isLoading, isError} = useUserTeams(isOrgOwner);
+  const {teams, isLoading, isError} = useUserTeams();
 
   useRouteAnalyticsEventNames('team_insights.viewed', 'Team Insights: Viewed');
 

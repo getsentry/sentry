@@ -23,7 +23,9 @@ const queryClient = new QueryClient({
 });
 
 describe('useUserTeams', () => {
-  const org = OrganizationFixture();
+  const org = OrganizationFixture({
+    access: [],
+  });
   const wrapper = ({children}: {children?: any}) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
@@ -88,15 +90,19 @@ describe('useUserTeams', () => {
     expect(teams).toEqual(userTeams.concat(nonUserTeams));
   });
 
-  it('Org owner can load all teams', function () {
+  it('org owner loads all teams', function () {
     const userTeams = [TeamFixture({id: '1', isMember: true})];
     const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     // User teams marked loaded because hasMore is false
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
     expect(TeamStore.getState().loadedUserTeams).toBe(true);
 
-    // Pass isOrgOwner as true
-    const {result} = reactHooks.renderHook(() => useUserTeams(true), {wrapper});
+    const organization = OrganizationFixture({
+      access: ['org:admin'],
+    });
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    const {result} = reactHooks.renderHook(() => useUserTeams(), {wrapper});
     const {teams} = result.current;
 
     expect(teams.length).toBe(2);
