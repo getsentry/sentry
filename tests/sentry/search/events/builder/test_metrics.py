@@ -24,15 +24,11 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.extraction import (
-    QUERY_HASH_KEY,
-    MetricSpecType,
-    OnDemandMetricSpec,
-    OnDemandMetricSpecVersioning,
-)
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, MetricSpecType, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.helpers import Feature
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -2035,6 +2031,39 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    # Once we delete the current spec version this test will fail and we can delete it
+    def test_on_demand_builder_with_new_spec(self):
+        field = "count()"
+        query = "transaction.duration:>0"
+        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
+        # As expected, it does not include the environment tag
+        expected_str_hash = "None;{'name': 'event.duration', 'op': 'gt', 'value': 0.0}"
+        assert spec._query_str_for_hash == expected_str_hash
+
+        # Because we call the builder with the feature flag we will get the environment to be included
+        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
+            query_builder = TimeseriesMetricQueryBuilder(
+                self.params,
+                dataset=Dataset.PerformanceMetrics,
+                interval=3600,
+                query=query,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
+                ),
+            )
+            spec_in_use: Optional[OnDemandMetricSpec] = (
+                query_builder._on_demand_metric_spec_map[field]
+                if query_builder._on_demand_metric_spec_map
+                else None
+            )
+            assert spec_in_use
+            # It does include the environment tag
+            assert spec_in_use._query_str_for_hash == f"{expected_str_hash};['environment']"
+            # This proves that we're picking up the new spec version
+            assert spec_in_use.spec_version.flags == {"include_environment_tag"}
+
     def test_run_query_with_on_demand_distribution_and_environment(self):
         field = "p75(measurements.fp)"
         query_s = "transaction.duration:>0"
@@ -3062,7 +3091,6 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                     query=query_s,
                     environment=environment,
                     spec_type=MetricSpecType.SIMPLE_QUERY,
-                    spec_version=OnDemandMetricSpecVersioning.get_default_spec_version(),
                 )
             }
 
