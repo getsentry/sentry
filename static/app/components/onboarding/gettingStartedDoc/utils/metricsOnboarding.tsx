@@ -96,7 +96,7 @@ export const getJSMetricsOnboarding = ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-javascript/discussions/9938" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/metrics/" />
               ),
             }
           ),
@@ -188,7 +188,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-javascript/discussions/9973" />
+                <ExternalLink href="https://docs.sentry.io/platforms/node/metrics/" />
               ),
             }
           ),
@@ -292,7 +292,7 @@ export const getPythonMetricsOnboarding = ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://develop.sentry.dev/delightful-developer-metrics/sending-metrics-sdk/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/metrics/" />
               ),
             }
           ),
@@ -381,7 +381,7 @@ export const getDotnetMetricsOnboarding = ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-laravel/discussions/823" />
+                <ExternalLink href="https://docs.sentry.io/platforms/php/metrics/" />
               ),
             }
           ),
