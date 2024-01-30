@@ -112,6 +112,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   });
 
   // Fake INP data with FID data
+  // TODO(edwardgou): Remove this once INP is queryable in discover
   data.inp = data.fid;
 
   return {data, isLoading: result.isLoading};

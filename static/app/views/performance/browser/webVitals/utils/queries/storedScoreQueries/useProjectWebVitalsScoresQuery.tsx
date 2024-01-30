@@ -84,6 +84,7 @@ export const useProjectWebVitalsScoresQuery = ({
     result.data?.data?.[0]?.['performance_score(measurements.score.fid)']
   ) {
     // Fake INP data with FID data
+    // TODO(edwardgou): Remove this once INP is queryable in discover
     result.data.data[0]['avg(measurements.score.weight.inp)'] =
       result.data.data[0]['avg(measurements.score.weight.fid)'];
     result.data.data[0]['count_scores(measurements.score.inp)'] =

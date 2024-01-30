@@ -134,6 +134,7 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   );
 
   // Fake INP data with FID data
+  // TODO(edwardgou): Remove this once INP is queryable in discover
   data.inp = data.fid;
   data.unweightedInp = data.unweightedFid;
   return {data, isLoading: result.isLoading};

@@ -58,6 +58,7 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
     referrer: 'api.performance.browser.web-vitals.project',
   });
   // Fake INP data with FID data
+  // TODO(edwardgou): Remove this once INP is queryable in discover
   if (result.data?.data[0]) {
     result.data.data[0]['count_web_vitals(measurements.inp, any)'] =
       result.data.data[0]['count_web_vitals(measurements.fid, any)'];

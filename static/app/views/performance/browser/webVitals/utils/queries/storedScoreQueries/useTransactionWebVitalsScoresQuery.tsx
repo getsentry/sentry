@@ -100,6 +100,7 @@ export const useTransactionWebVitalsScoresQuery = ({
             'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
             'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
             // Fake INP data using FID data
+            // TODO(edwardgou): Remove this once INP is queryable in discover
             'p75(measurements.inp)': row['p75(measurements.fid)'] as number,
             'count()': row['count()'] as number,
             'count_scores(measurements.score.lcp)': row[
@@ -126,6 +127,8 @@ export const useTransactionWebVitalsScoresQuery = ({
             lcpScore: lcpScore ?? 0,
             ttfbScore: ttfbScore ?? 0,
             fidScore: fidScore ?? 0,
+            // Fake INP data using FID data
+            // TODO(edwardgou): Remove this once INP is queryable in discover
             inpScore: fidScore ?? 0,
             opportunity: row[
               `opportunity_score(measurements.score.${opportunityWebVital})`
