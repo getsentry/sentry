@@ -609,7 +609,7 @@ class BuiltInFingerprintingTest(TestCase):
             data=self.hydration_error_trace, project_id=self.project
         )
         data_transaction_text = self.hydration_error_trace.copy()
-        data_transaction_text["tags"]["transaction"] = "/text/"
+        data_transaction_text["tags"]["transaction"] = "/text/"  # type: ignore[index]
         event_transaction_text = self.store_event(
             data=data_transaction_text, project_id=self.project
         )
@@ -658,7 +658,7 @@ class BuiltInFingerprintingTest(TestCase):
         """
 
         data_transaction_no_tx = self.hydration_error_trace.copy()
-        del data_transaction_no_tx["tags"]["transaction"]
+        del data_transaction_no_tx["tags"]["transaction"]  # type: ignore[attr-defined]
         event_transaction_no_tx = self.store_event(
             data=data_transaction_no_tx, project_id=self.project
         )
