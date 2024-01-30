@@ -1,7 +1,4 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-import {TextDecoder, TextEncoder} from 'util';
-
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
