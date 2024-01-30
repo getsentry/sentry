@@ -26,7 +26,6 @@ from sentry.silo import SiloMode
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
-from sentry.web.decorators import transaction_start
 
 from .card_builder.block import AdaptiveCard
 from .card_builder.help import (
@@ -199,7 +198,6 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
-    @transaction_start("MsTeamsWebhookEndpoint")
     def post(self, request: HttpRequest) -> HttpResponse:
         # verify_signature will raise the exception corresponding to the error
         self.verify_webhook_request(request)
