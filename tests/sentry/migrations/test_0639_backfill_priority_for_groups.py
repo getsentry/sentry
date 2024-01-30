@@ -16,8 +16,8 @@ from sentry.utils import redis
 
 
 class BackfillGroupPriority(TestMigrations):
-    migrate_from = "0636_monitor_incident_env_resolving_index"
-    migrate_to = "0637_backfill_priority_for_groups"
+    migrate_from = "0638_add_date_added_to_dashboard_widget_on_demand"
+    migrate_to = "0639_backfill_priority_for_groups"
 
     def setup_initial_state(self):
         self._create_groups_to_backfill(self.project)

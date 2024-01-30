@@ -171,7 +171,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0636_monitor_incident_env_resolving_index"),
+        ("sentry", "0638_add_date_added_to_dashboard_widget_on_demand"),
     ]
 
     operations = [
