@@ -378,16 +378,18 @@ def is_root(item: SnubaTransaction) -> bool:
     return item.get("root", "0") == "1"
 
 
-def child_sort_key(item: TraceEvent) -> List[int]:
+def child_sort_key(item: TraceEvent) -> List[Union[str, float]]:
     if item.fetched_nodestore and item.nodestore_event is not None:
+        # Cast timestamps to float for comparison
         return [
-            item.nodestore_event.data["start_timestamp"],
-            item.nodestore_event.data["timestamp"],
+            float(item.nodestore_event.data["start_timestamp"]),
+            float(item.nodestore_event.data["timestamp"]),
         ]
     else:
+        # Use transaction timestamp and event ID for comparison
         return [
-            item.event["transaction"],
-            item.event["id"],
+            float(item.event["timestamp"]),
+            str(item.event["id"]),
         ]
 
 
@@ -1301,6 +1303,12 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         return serialized_events
 
     def add_children(
+
+def child_sort_key(child_event):
+    # Assuming child_event has attributes which could be strings or floats.
+    # Forcing all values to strings could work, but using a tuple comparison takes care of mixed types.
+    return (str(child_event.attribute1), float(child_event.attribute2)) if isinstance(child_event.attribute2, float) else (str(child_event.attribute1), str(child_event.attribute2))
+
         self, parent, transactions, visited_transactions, errors, visited_errors, generation
     ):
         for error in errors:
