@@ -56,7 +56,7 @@ from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpecType,
     OnDemandMetricSpec,
-    OnDemandMetricSpecVersioning,
+    fetch_on_demand_metric_spec,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -166,17 +166,13 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Must include on demand metrics type when querying on demand"
                 )
 
-            # Instead of calling OnDemandMetricSpec without a spec_version (defaulting to the least),
-            # we keep this logic here to make future spec versions easier to roll out since it will
-            # save us to look where to add this logic again
-            spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
-            return OnDemandMetricSpec(
+            return fetch_on_demand_metric_spec(
+                self.organization_id,
                 field=field,
                 query=self.query,
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
-                spec_version=spec_version,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -1714,6 +1710,13 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 # Ensure the project id fields stay as numbers, clickhouse 20 can't handle it, but 21 can
                 if field in {"project_id", "project.id"}:
                     value = int(value)
+                if field == constants.PROJECT_ALIAS:
+                    # These will be strings so lets turn them back to ints
+                    project_map = {project.slug: project.id for project in self.params.projects}
+                    if isinstance(value, list):
+                        value = {project_map.get(val) for val in value}
+                    else:
+                        value = project_map.get(value)
                 # TODO: Handle potential None case
                 elif value is not None:
                     value = self.resolve_tag_value(str(value))
@@ -1722,9 +1725,12 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
             values_list = list(values)
 
             if values_list:
-                conditions.append(
-                    Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)
+                lhs = (
+                    resolved_field.exp
+                    if isinstance(resolved_field, AliasedExpression)
+                    else resolved_field
                 )
+                conditions.append(Condition(lhs, Op.IN if not other else Op.NOT_IN, values_list))
 
         if len(conditions) > 1:
             final_function = And if not other else Or

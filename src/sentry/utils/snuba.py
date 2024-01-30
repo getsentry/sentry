@@ -971,8 +971,12 @@ def _bulk_snuba_query(
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
-            error_request = snuba_param_list[index][0]
-            error_request = error_request.serialize()  # never used, only for sentry visibility
+            sentry_sdk.add_breadcrumb(
+                category="query_info",
+                level="info",
+                message="mql_query",
+                data={"mql": snuba_param_list[index][0].serialize()},
+            )
 
             if body.get("error"):
                 error = body["error"]

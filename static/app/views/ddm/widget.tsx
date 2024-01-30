@@ -61,6 +61,7 @@ export type Sample = {
   projectId: number;
   spanId: string;
   transactionId: string;
+  transactionSpanId: string;
 };
 
 export const MetricWidget = memo(
@@ -229,6 +230,7 @@ export const MetricWidgetBody = memo(
 
     const {data: samplesData} = useCorrelatedSamples(mri, {
       ...focusArea?.selection?.range,
+      query,
     });
 
     const chartRef = useRef<ReactEchartsRef>(null);
