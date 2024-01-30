@@ -13,7 +13,6 @@ from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
-from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -33,7 +32,6 @@ class DiscordLinkIdentityView(BaseView):
     Django view for linking user to Discord account.
     """
 
-    @transaction_start("DiscordLinkIdentityView")
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
