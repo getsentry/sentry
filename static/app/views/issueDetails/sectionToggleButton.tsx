@@ -8,9 +8,13 @@ interface SectionToggleButtonProps {
   onExpandChange: (state: boolean) => void;
 }
 
-function SectionToggleButton({isExpanded, onExpandChange}: SectionToggleButtonProps) {
+function SectionToggleButton({
+  isExpanded,
+  onExpandChange,
+  ...props
+}: SectionToggleButtonProps) {
   return (
-    <ToggleButton priority="link" onClick={() => onExpandChange(!isExpanded)}>
+    <ToggleButton priority="link" onClick={() => onExpandChange(!isExpanded)} {...props}>
       {isExpanded ? t('Hide Details') : t('Show Details')}
     </ToggleButton>
   );
