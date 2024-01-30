@@ -3,8 +3,7 @@ import type {MRI} from 'sentry/types';
 import type {MetricWidgetQueryParams, SortState} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 
-export const METRICS_DOCS_URL =
-  'https://develop.sentry.dev/delightful-developer-metrics/';
+export const METRICS_DOCS_URL = 'https://docs.sentry.io/product/metrics/';
 
 export const metricDisplayTypeOptions = [
   {

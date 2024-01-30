@@ -17,6 +17,7 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
+    RpcOrganizationMemberSummary,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
@@ -130,6 +131,16 @@ class OrganizationService(RpcService):
     ) -> Optional[RpcOrganizationMember]:
         """
         Used to look up an organization membership by a user id
+        """
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_member_summaries_by_ids(
+        self, *, organization_id: int, user_ids: List[int]
+    ) -> List[RpcOrganizationMemberSummary]:
+        """
+        Used to look up multiple membership summaries by users' id.
         """
         pass
 

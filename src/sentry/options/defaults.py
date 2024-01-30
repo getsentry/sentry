@@ -503,7 +503,6 @@ register("snuba.search.max-chunk-size", default=2000, flags=FLAG_AUTOMATOR_MODIF
 register("snuba.search.max-total-chunk-time-seconds", default=30.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("snuba.use-mql-endpoint", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
@@ -820,11 +819,6 @@ register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMAT
 
 # Fraction of events that will pass through background grouping
 register("store.background-grouping-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# True if background grouping should run before secondary and primary grouping
-register(
-    "store.background-grouping-before", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # TODO: remove, no longer used
 
 # Store release files bundled as zip files
 register(
@@ -1607,24 +1601,6 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
-
-# Globally enables the check_accept_monitor_checkin method to be run during
-# monitor check-ins. This is temporarily in support of billing in getsentry.
-register(
-    "crons.check-accept-monitor-checkin-enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# A list of monitor slugs that should have the check_accept_monitor_checkin
-# method run, even when check-accept-monitor-checkin-enabled is False.
-register(
-    "crons.check-accept-monitor-checkin-slug-overrides",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Turns on and off the running for dynamic sampling collect_orgs.
 register("dynamic-sampling.tasks.collect_orgs", default=False, flags=FLAG_MODIFIABLE_BOOL)
