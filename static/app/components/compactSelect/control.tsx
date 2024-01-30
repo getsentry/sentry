@@ -37,18 +37,12 @@ import type {SelectOption} from './types';
 // layout thrashing and is bad for performance. This thin wrapper function
 // will defer the focus call until the next frame, after the browser and react
 // have had a chance to update the DOM, splitting the perf cost across frames.
-function focusElement(targetRef: HTMLElement | undefined | null) {
-  if (!targetRef) {
-    return;
-  }
-
+function nextFrameCallback(cb: () => void) {
   if ('requestAnimationFrame' in window) {
-    window.requestAnimationFrame(() => {
-      targetRef.focus();
-    });
+    window.requestAnimationFrame(() => cb());
   } else {
     setTimeout(() => {
-      targetRef.focus();
+      cb();
     }, 1);
   }
 }
@@ -292,11 +286,9 @@ export function Control({
       // we should move the focus to the menu items list.
       if (e.key === 'ArrowDown') {
         e.preventDefault(); // Prevent scroll action
-        focusElement(
-          overlayRef.current?.querySelector<HTMLLIElement>(
-            `li[role="${grid ? 'row' : 'option'}"]`
-          )
-        );
+        overlayRef.current
+          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+          ?.focus();
       }
 
       // Continue propagation, otherwise the overlay won't close on Esc key press
@@ -334,41 +326,40 @@ export function Control({
     preventOverflowOptions,
     flipOptions,
     onOpenChange: open => {
-      // On open
-      if (open) {
-        // Focus on search box if present
-        if (searchable) {
-          focusElement(searchRef.current);
+      nextFrameCallback(() => {
+        if (open) {
+          // Focus on search box if present
+          if (searchable) {
+            searchRef.current?.focus();
+            return;
+          }
+
+          const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
+            `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
+          );
+
+          // Focus on first selected item
+          if (firstSelectedOption) {
+            firstSelectedOption.focus();
+            return;
+          }
+
+          // If no item is selected, focus on first item instead
+          overlayRef.current
+            ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+            ?.focus();
           return;
         }
 
-        const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
-          `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
-        );
+        // On close
+        onClose?.();
 
-        // Focus on first selected item
-        if (firstSelectedOption) {
-          focusElement(firstSelectedOption);
-          return;
-        }
+        // Clear search string
+        setSearchInputValue('');
+        setSearch('');
 
-        // If no item is selected, focus on first item instead
-        focusElement(
-          overlayRef.current?.querySelector<HTMLLIElement>(
-            `li[role="${grid ? 'row' : 'option'}"]`
-          )
-        );
-        return;
-      }
-
-      // On close
-      onClose?.();
-
-      // Clear search string
-      setSearchInputValue('');
-      setSearch('');
-
-      focusElement(triggerRef.current);
+        triggerRef.current?.focus();
+      });
     },
   });
 
