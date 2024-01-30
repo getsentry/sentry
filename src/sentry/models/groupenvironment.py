@@ -1,4 +1,4 @@
-from django.db.models import DO_NOTHING, DateTimeField
+from django.db.models import DO_NOTHING, DateTimeField, Index
 from django.db.models.signals import post_delete
 from django.utils import timezone
 
@@ -26,8 +26,8 @@ class GroupEnvironment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupenvironment"
-        index_together = [
-            ("environment", "first_release", "first_seen"),
+        indexes = [
+            Index(fields=("environment", "first_release", "first_seen")),
         ]
         unique_together = [("group", "environment")]
 
