@@ -22,9 +22,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
 
-export type CommitsByRepository = {
-  [key: string]: Commit[];
-};
+type CommitsByRepository = Record<string, Commit[]>;
 
 /**
  * Convert list of individual file changes into a per-file summary grouped by repository
@@ -58,7 +56,7 @@ export function getFilesByRepository(fileList: CommitFile[]) {
  * Convert list of individual commits into a summary grouped by repository
  */
 export function getCommitsByRepository(commitList: Commit[]): CommitsByRepository {
-  return commitList.reduce((commitsByRepository, commit) => {
+  return commitList.reduce<CommitsByRepository>((commitsByRepository, commit) => {
     const repositoryName = commit.repository?.name ?? t('unknown');
 
     if (!commitsByRepository.hasOwnProperty(repositoryName)) {
