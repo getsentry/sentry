@@ -1,3 +1,4 @@
+import Footer from 'sentry/components/footer';
 import Sidebar from 'sentry/components/sidebar';
 import useRouteAnalyticsHookSetup from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,6 +18,7 @@ function OrganizationDetails({children}: Props) {
     <OrganizationLayout>
       <Sidebar organization={organization ?? undefined} />
       <Body>{children}</Body>
+      <Footer />
     </OrganizationLayout>
   );
 }
