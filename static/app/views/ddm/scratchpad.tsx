@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 import * as echarts from 'echarts/core';
 
 import {space} from 'sentry/styles/space';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -47,22 +46,17 @@ export function MetricScratchpad() {
   const handleSampleClick = useCallback(
     (sample: Sample) => {
       const project = projects.find(p => parseInt(p.id, 10) === sample.projectId);
-      const eventSlug = generateEventSlug({
-        id: sample.transactionId,
-        project: project?.slug,
-      });
-
       router.push(
-        getTransactionDetailsUrl(
-          organization.slug,
-          eventSlug,
-          undefined,
-          {referrer: 'metrics'},
-          sample.spanId
+        getMetricsCorrelationSpanUrl(
+          organization,
+          project?.slug,
+          sample.spanId,
+          sample.transactionId,
+          sample.transactionSpanId
         )
       );
     },
-    [router, organization.slug, projects]
+    [projects, router, organization]
   );
 
   const Wrapper =
