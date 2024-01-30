@@ -108,6 +108,7 @@ class Segment:
     project_id: int
     trace_id: str
     segment_id: str
+    segment_span_id: str
     segment_name: str
     profile_id: Optional[str]
     spans_number: int
@@ -512,6 +513,12 @@ def _get_segments_aggregates_query(
                 [Column("span_id"), Function("equals", [Column("is_segment"), 0])],
                 alias="spans_number",
             ),
+            # Returns the span id of the transaction.
+            Function(
+                "anyIf",
+                [Column("span_id"), Function("equals", [Column("is_segment"), 1])],
+                alias="transaction_span_id",
+            ),
             # Returns the duration of the transaction.
             Function(
                 "sumIf",
@@ -620,6 +627,7 @@ def _get_segments(
             project_id=row["project_id"],
             # For now, we still use the old transaction_id.
             segment_id=row["transaction_id"],
+            segment_span_id=row["transaction_span_id"],
             trace_id=row["trace_id"],
             profile_id=row["profile_id"],
             segment_name=row["segment_name"],
