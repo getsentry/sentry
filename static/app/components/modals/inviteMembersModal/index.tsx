@@ -53,7 +53,10 @@ function InviteMembersModal({
 
   if (memberResult.isError) {
     return (
-      <LoadingError message={t('Failed to load foo')} onRetry={memberResult.refetch} />
+      <LoadingError
+        message={t('Failed to load members')}
+        onRetry={memberResult.refetch}
+      />
     );
   }
 
