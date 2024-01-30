@@ -300,6 +300,7 @@ const ChartContainer = styled('div')`
   border: 1px solid ${p => p.theme.gray200};
   border-radius: ${p => p.theme.borderRadius};
   position: relative;
+  min-width: 320px;
 `;
 
 const PerformanceScoreLabel = styled('div')`
