@@ -112,11 +112,6 @@ class SentryCelery(Celery):
     task_cls = SentryTask
 
 
-@signals.worker_process_init.connect
-def record_worker_init(*args, **kwargs):
-    metrics.incr("jobs.process.start")
-
-
 app = SentryCelery("sentry")
 app.config_from_object(settings)
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)

@@ -5,7 +5,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Request} from 'sentry/components/events/interfaces/request';
-import {EntryRequest, EntryType} from 'sentry/types/event';
+import type {EntryRequest} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
 jest.unmock('prismjs');
 

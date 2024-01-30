@@ -1,11 +1,10 @@
 import {useCallback, useRef} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import moment from 'moment';
 import * as qs from 'query-string';
 
+import type {DateTimeObject, Fidelity} from 'sentry/components/charts/utils';
 import {
-  DateTimeObject,
-  Fidelity,
   getDiffInMinutes,
   GranularityLadder,
   ONE_HOUR,
@@ -21,7 +20,7 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, PageFilters} from 'sentry/types';
+import type {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
 import type {
   MetricMeta,
   MetricsApiRequestMetric,
@@ -33,6 +32,7 @@ import type {
   UseCase,
 } from 'sentry/types/metrics';
 import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   formatMRI,
@@ -49,6 +49,7 @@ import type {
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useRouter from 'sentry/utils/useRouter';
 
 export function getDefaultMetricDisplayType(
@@ -390,4 +391,27 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
 
 export function isSupportedDisplayType(displayType: unknown) {
   return Object.values(MetricDisplayType).includes(displayType as MetricDisplayType);
+}
+
+export function getMetricsCorrelationSpanUrl(
+  organization: Organization,
+  projectSlug: string | undefined,
+  spanId: string | undefined,
+  transactionId: string,
+  transactionSpanId: string
+) {
+  const isTransaction = spanId === transactionSpanId;
+
+  const eventSlug = generateEventSlug({
+    id: transactionId,
+    project: projectSlug,
+  });
+
+  return getTransactionDetailsUrl(
+    organization.slug,
+    eventSlug,
+    isTransaction ? transactionId : undefined,
+    {referrer: 'metrics', openPanel: 'open'},
+    isTransaction ? undefined : spanId
+  );
 }

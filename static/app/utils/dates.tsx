@@ -2,7 +2,7 @@ import moment from 'moment';
 
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import ConfigStore from 'sentry/stores/configStore';
-import {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types';
 
 // TODO(billy): Move to TimeRangeSelector specific utils
 export const DEFAULT_DAY_START_TIME = '00:00:00';

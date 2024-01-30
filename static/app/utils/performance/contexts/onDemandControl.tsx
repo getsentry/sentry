@@ -1,18 +1,20 @@
-import {ReactNode, useCallback, useState} from 'react';
+import type {ReactNode} from 'react';
+import {useCallback, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import {AggregationKey} from 'sentry/utils/fields';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Widget, WidgetType} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 
 export interface OnDemandControlContext {
   setForceOnDemand: (value: boolean) => void;
@@ -41,8 +43,8 @@ export function OnDemandControlProvider({
     _forceOnDemandQuery === 'true'
       ? true
       : _forceOnDemandQuery === 'false'
-      ? false
-      : undefined;
+        ? false
+        : undefined;
   const [isControlEnabled, setIsControlEnabled] = useState(_forceOnDemand !== undefined);
   const [forceOnDemand, _setForceOnDemand] = useState(_forceOnDemand || false);
 

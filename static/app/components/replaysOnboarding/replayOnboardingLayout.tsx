@@ -2,9 +2,9 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';

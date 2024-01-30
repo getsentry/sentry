@@ -1,10 +1,10 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
-import {Group, Organization, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import {ReprocessingStatus} from '../utils';
+import type {ReprocessingStatus} from '../utils';
 
 import GroupEventDetails from './groupEventDetails';
 

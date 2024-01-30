@@ -1,11 +1,12 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import {EventOccurrence, IssueCategory} from 'sentry/types';
+import type {EventOccurrence} from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useReplaysForRegressionIssue from 'sentry/views/issueDetails/groupReplays/useReplaysForRegressionIssue';
 

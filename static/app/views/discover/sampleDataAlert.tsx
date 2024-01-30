@@ -32,8 +32,8 @@ export function SampleDataAlert({query}: {query?: string}) {
     key: `${slug}-${user.id}:sample-data-alert-dismissed`,
   });
 
-  const isQueryingErrors = EXCLUDED_CONDITIONS.some(
-    condition => query?.includes(condition)
+  const isQueryingErrors = EXCLUDED_CONDITIONS.some(condition =>
+    query?.includes(condition)
   );
 
   if (isDismissed || !isDynamicallySampled || isQueryingErrors) {

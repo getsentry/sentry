@@ -151,8 +151,10 @@ class DashboardWidgetQueryOnDemand(Model):
         ENABLED_MANUAL = "enabled:manual", gettext_lazy("enabled:manual")
         """ This widget query was enabled manually post creation or otherwise. """
 
+    spec_version = models.IntegerField(null=True)
     extraction_state = models.CharField(max_length=30, choices=OnDemandExtractionState.choices)
     date_modified = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
 
     def extraction_enabled(self):
         """Whether on-demand is enabled or disabled for this widget.

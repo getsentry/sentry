@@ -1,7 +1,8 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, ButtonLabel, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonLabel} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 

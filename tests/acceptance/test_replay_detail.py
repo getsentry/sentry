@@ -59,7 +59,7 @@ class ReplayDetailTest(ReplaysAcceptanceTestCase):
                 seq2_timestamp + timedelta(seconds=2), hrefFrom="/home/", hrefTo="/profile/"
             ),
         ]
-        for (segment_id, segment) in enumerate(segments):
+        for segment_id, segment in enumerate(segments):
             self.store_replay_segments(replay_id, self.project.id, segment_id, segment)
 
         self.login_as(self.user)
