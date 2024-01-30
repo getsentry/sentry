@@ -192,7 +192,7 @@ const customMetricsOnboarding: OnboardingConfig = {
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-php/discussions/1666" />
+                <ExternalLink href="https://docs.sentry.io/platforms/php/metrics/" />
               ),
             }
           ),
