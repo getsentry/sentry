@@ -11,7 +11,7 @@ import type {EventGroupInfo, Group, Organization} from 'sentry/types';
 import {IssueCategory} from 'sentry/types';
 import type {Event, EventOccurrence} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
-import ToggleButton from 'sentry/views/issueDetails/toggleButton';
+import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
@@ -209,7 +209,7 @@ class GroupingInfo extends DeprecatedAsyncComponent<Props, State> {
       <EventDataSection
         type="grouping-info"
         title={t('Event Grouping Information')}
-        actions={<ToggleButton isShown={isOpen} setShownState={this.toggle} />}
+        actions={<SectionToggleButton isExpanded={isOpen} onExpandChange={this.toggle} />}
       >
         {isOpen ? this.renderGroupInfo() : this.renderGroupInfoSummary()}
       </EventDataSection>

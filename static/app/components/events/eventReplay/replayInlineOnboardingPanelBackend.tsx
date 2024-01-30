@@ -13,7 +13,7 @@ import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-import ToggleButton from 'sentry/views/issueDetails/toggleButton';
+import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
@@ -27,16 +27,18 @@ const OnboardingCTAButton = HookOrDefault({
 export default function ReplayInlineOnboardingPanelBackend({
   platform,
 }: OnboardingCTAProps) {
-  const [isShown, setIsShown] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(true);
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   const platformName = platforms.find(p => p.id === platform) ?? otherPlatform;
 
   return (
     <EventReplaySection
-      actions={<ToggleButton isShown={isShown} onShownChange={setIsShown} />}
+      actions={
+        <SectionToggleButton isExpanded={isExpanded} onExpandChange={setIsExpanded} />
+      }
     >
-      {isShown ? (
+      {isExpanded ? (
         <PageBanner
           button={
             <ButtonBar gap={1}>

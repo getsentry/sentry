@@ -20,7 +20,7 @@ import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-import ToggleButton from 'sentry/views/issueDetails/toggleButton';
+import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 
 import SearchBarAction from '../searchBarAction';
 
@@ -531,7 +531,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     );
 
     const actions = (
-      <ToggleButton isShown={isOpen} setShownState={this.toggleImagesLoaded} />
+      <SectionToggleButton isExpanded={isOpen} onExpandChange={this.toggleImagesLoaded} />
     );
 
     return (
