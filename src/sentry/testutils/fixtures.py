@@ -255,8 +255,11 @@ class Fixtures:
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
 
-    def create_userrole(self, *args, **kwargs):
-        return Factories.create_userrole(*args, **kwargs)
+    def create_user_avatar(self, *args, **kwargs):
+        return Factories.create_user_avatar(*args, **kwargs)
+
+    def create_user_role(self, *args, **kwargs):
+        return Factories.create_user_role(*args, **kwargs)
 
     def create_usersocialauth(
         self,

@@ -53,6 +53,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -827,7 +828,12 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_userrole(*args, **kwargs):
+    def create_user_avatar(*args, **kwargs):
+        return UserAvatar.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_role(*args, **kwargs):
         return UserRole.objects.create(*args, **kwargs)
 
     @staticmethod
