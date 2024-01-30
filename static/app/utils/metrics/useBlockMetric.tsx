@@ -6,13 +6,26 @@ import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export type BlockOperationType =
-  | 'blockMetric'
-  | 'unblockMetric'
-  | 'blockTags'
-  | 'unblockTags';
+import {getMetricsMetaQueryKey} from './useMetricsMeta';
 
-type BlockMetricData = [MetricMeta[], unknown, unknown] | undefined;
+type BlockMetricResponse = [MetricMeta[], unknown, unknown] | undefined;
+
+interface MetricMetricMutationData {
+  mri: MRI;
+  operationType: 'blockMetric' | 'unblockMetric';
+}
+
+interface MetricTagsMutationData {
+  mri: MRI;
+  operationType: 'blockTags' | 'unblockTags';
+  tags: string[];
+}
+
+type BlockMutationData = MetricMetricMutationData | MetricTagsMutationData;
+
+function isTagOp(opts: BlockMutationData): opts is MetricTagsMutationData {
+  return 'tags' in opts;
+}
 
 export const useBlockMetric = (project: Project) => {
   const api = useApi();
@@ -20,30 +33,28 @@ export const useBlockMetric = (project: Project) => {
   const queryClient = useQueryClient();
 
   const options = {
-    mutationFn: (data: {
-      mri: MRI;
-      operationType: BlockOperationType;
-      tags?: string[];
-    }) => {
+    mutationFn: (data: BlockMutationData) => {
       return api.requestPromise(`/projects/${slug}/${project.slug}/metrics/visibility/`, {
         method: 'PUT',
         query: {project: project.id},
         data: {
           metricMri: data.mri,
           project: project.id,
-          tags: data.tags,
           operationType: data.operationType,
+          tags: isTagOp(data) ? data.tags : undefined,
         },
       });
     },
     onSuccess: data => {
       const useCase = getUseCaseFromMRI(data.metricMri);
+      const metaQueryKey = getMetricsMetaQueryKey(
+        slug,
+        [parseInt(project.id, 10)],
+        useCase ?? 'custom'
+      );
       queryClient.setQueryData(
-        [
-          `/organizations/${slug}/metrics/meta/`,
-          {query: {useCase, project: [parseInt(project.id, 10)]}},
-        ],
-        (oldData: BlockMetricData): BlockMetricData => {
+        metaQueryKey,
+        (oldData: BlockMetricResponse): BlockMetricResponse => {
           if (!oldData) {
             return undefined;
           }
@@ -66,6 +77,8 @@ export const useBlockMetric = (project: Project) => {
       );
 
       addSuccessMessage(t('Metric updated'));
+
+      queryClient.invalidateQueries(metaQueryKey);
     },
     onError: () => {
       addErrorMessage(t('An error occurred while updating the metric'));
