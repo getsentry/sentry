@@ -70,7 +70,7 @@ function BreadcrumbItem({
   traces,
 }: Props) {
   const {color, description, title, icon, timestampMs} = getCrumbOrFrameData(frame);
-  const {replay, startTimeOffsetMs} = useReplayContext();
+  const {replay} = useReplayContext();
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
 
@@ -96,7 +96,7 @@ function BreadcrumbItem({
           {onClick ? (
             <TimestampButton
               startTimestampMs={startTimestampMs}
-              timestampMs={timestampMs - startTimeOffsetMs}
+              timestampMs={timestampMs}
             />
           ) : null}
         </TitleContainer>
@@ -123,7 +123,7 @@ function BreadcrumbItem({
           <div>
             <OpenReplayComparisonButton
               replay={replay}
-              leftTimestamp={frame.offsetMs - startTimeOffsetMs}
+              leftTimestamp={frame.offsetMs}
               rightTimestamp={
                 (frame.data.mutations.next.timestamp as number) -
                 (replay?.getReplay().started_at.getTime() ?? 0)

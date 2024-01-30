@@ -7,6 +7,7 @@ import {duration} from 'moment';
 import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
+import clamp from 'sentry/utils/number/clamp';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -39,6 +40,11 @@ import {
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
+interface ClipWindow {
+  endTimestamp: number;
+  startTimestamp: number;
+}
+
 interface ReplayReaderParams {
   /**
    * Loaded segment data
@@ -60,6 +66,11 @@ interface ReplayReaderParams {
    * The root Replay event, created at the start of the browser session.
    */
   replayRecord: ReplayRecord | undefined;
+
+  /**
+   * If provided, the replay will be clipped to this window.
+   */
+  clipWindow?: ClipWindow;
 }
 
 type RequiredNotNull<T> = {
@@ -95,13 +106,13 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
 }
 
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
+  static factory({attachments, errors, replayRecord, clipWindow}: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord});
+      return new ReplayReader({attachments, errors, replayRecord, clipWindow});
     } catch (err) {
       Sentry.captureException(err);
 
@@ -113,6 +124,7 @@ export default class ReplayReader {
         attachments: [],
         errors: [],
         replayRecord,
+        clipWindow,
       });
     }
   }
@@ -121,6 +133,7 @@ export default class ReplayReader {
     attachments,
     errors,
     replayRecord,
+    clipWindow,
   }: RequiredNotNull<ReplayReaderParams>) {
     this._cacheKey = domId('replayReader-');
 
@@ -186,6 +199,10 @@ export default class ReplayReader {
     this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
     this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
+
+    if (clipWindow) {
+      this._applyClipWindow(clipWindow);
+    }
   }
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
@@ -197,6 +214,73 @@ export default class ReplayReader {
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
   private _sortedRRWebEvents: RecordingFrame[] = [];
   private _sortedSpanFrames: SpanFrame[] = [];
+
+  private _startOffsetMs = 0;
+
+  private _applyClipWindow = (clipWindow: ClipWindow) => {
+    const startedAtMs = clamp(
+      clipWindow.startTimestamp,
+      this._replayRecord.started_at.getTime(),
+      this._replayRecord.finished_at.getTime()
+    );
+    const finishedAtMs = clamp(
+      clipWindow.endTimestamp,
+      startedAtMs,
+      this._replayRecord.finished_at.getTime()
+    );
+
+    // For RRWeb frames we only trim from the end because playback will
+    // not work otherwise. The start offset is used to begin playback at
+    // the correct time.
+    this._sortedRRWebEvents = this._sortedRRWebEvents.filter(
+      frame =>
+        frame.timestamp >= this._replayRecord.started_at.getTime() &&
+        frame.timestamp <= finishedAtMs
+    );
+    this._replayRecord.finished_at = new Date(finishedAtMs);
+    this._replayRecord.duration = duration(
+      finishedAtMs - this._replayRecord.started_at.getTime()
+    );
+
+    // We also only trim from the back for breadcrumbs/spans to keep
+    // historical information about the replay, such as the current URL.
+    this._sortedBreadcrumbFrames = this._trimFramesToClipWindow(
+      this._sortedBreadcrumbFrames,
+      this._replayRecord.started_at.getTime(),
+      finishedAtMs
+    );
+    this._sortedSpanFrames = this._trimFramesToClipWindow(
+      this._sortedSpanFrames,
+      this._replayRecord.started_at.getTime(),
+      finishedAtMs
+    );
+
+    this._startOffsetMs = startedAtMs - this._replayRecord.started_at.getTime();
+  };
+
+  /**
+   * Filters out frames that are outside of the clip window, and adjusts
+   * any offset timestamps to be relative to the start offset.
+   */
+  _trimFramesToClipWindow = <T extends {timestampMs: number}>(
+    frames: Array<T>,
+    startTimestampMs: number = this.getStartTimestampMs(),
+    endTimestampMs: number = startTimestampMs + this.getDurationMs(),
+    startOffsetMs: number = this.getStartOffsetMs()
+  ) => {
+    return frames
+      .filter(frame => {
+        return (
+          frame.timestampMs >= startTimestampMs && frame.timestampMs <= endTimestampMs
+        );
+      })
+      .map(frame => {
+        if ('offsetMs' in frame && typeof frame.offsetMs === 'number') {
+          return {...frame, offsetMs: frame.offsetMs - startOffsetMs};
+        }
+        return frame;
+      });
+  };
 
   toJSON = () => this._cacheKey;
 
@@ -210,7 +294,6 @@ export default class ReplayReader {
         : null,
     ].filter(defined);
   });
-
   hasProcessingErrors = () => {
     return this.processingErrors().length;
   };
@@ -219,8 +302,13 @@ export default class ReplayReader {
    * @returns Duration of Replay (milliseonds)
    */
   getDurationMs = () => {
-    return this._replayRecord.duration.asMilliseconds();
+    return this._replayRecord.duration.asMilliseconds() - this.getStartOffsetMs();
   };
+
+  getStartOffsetMs = () => this._startOffsetMs;
+
+  getStartTimestampMs = () =>
+    this._replayRecord.started_at.getTime() + this._startOffsetMs;
 
   getReplay = () => {
     return this._replayRecord;
@@ -282,7 +370,7 @@ export default class ReplayReader {
   );
 
   getChapterFrames = memoize(() =>
-    [
+    this._trimFramesToClipWindow([
       ...this.getPerfFrames(),
       ...this._sortedBreadcrumbFrames.filter(frame =>
         ['replay.init', 'replay.mutations', 'replay.hydrate-error'].includes(
@@ -290,7 +378,7 @@ export default class ReplayReader {
         )
       ),
       ...this._errors,
-    ].sort(sortFrames)
+    ]).sort(sortFrames)
   );
 
   getPerfFrames = memoize(() =>
