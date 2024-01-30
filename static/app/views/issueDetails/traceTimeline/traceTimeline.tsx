@@ -85,5 +85,4 @@ const TimelineEventsContainer = styled('div')`
   position: relative;
   height: 45px;
   padding-top: 10px;
-  padding-bottom: 10px;
 `;
