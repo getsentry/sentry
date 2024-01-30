@@ -304,6 +304,9 @@ _IGNORED_METRIC_FIELDS = [
     "timestamp.to_day",  # relative time windows are not supported
     "timestamp.to_hour",  # relative time windows are not supported
 ]
+_IGNORED_METRIC_CONDITION = [
+    "event.type=transaction",
+]
 
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
@@ -883,7 +886,10 @@ def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence
     ret_val: List[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
-            if token.key.name not in _IGNORED_METRIC_FIELDS:
+            if (
+                token.key.name not in _IGNORED_METRIC_FIELDS
+                and str(token) not in _IGNORED_METRIC_CONDITION
+            ):
                 ret_val.append(token)
         elif isinstance(token, ParenExpression):
             ret_val.append(ParenExpression(_remove_blacklisted_search_filters(token.children)))
