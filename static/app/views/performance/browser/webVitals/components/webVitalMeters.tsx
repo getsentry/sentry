@@ -214,7 +214,7 @@ const MeterBarFooterContainer = styled('div')<{status: string}>`
 
 const NoValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.headerFontSize};
 `;
 
 function NoValue() {
@@ -223,6 +223,7 @@ function NoValue() {
 
 const StyledTooltip = styled(Tooltip)`
   display: block;
+  width: 100%;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`
