@@ -214,6 +214,7 @@ class AggregateIndexedSpans(BaseAggregateSpans):
                 parent_id = span_.get("parent_span_id", None)
                 if parent_id in span_tree:
                     parent_span = span_tree[parent_id]
+                if parent_id is not None and parent_id in span_tree:
                     children = parent_span["children"]
                     children.append(span_)
 
@@ -281,6 +282,7 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                 parent_id = span_.get("parent_span_id", None)
                 if parent_id in span_tree:
                     parent_span = span_tree[parent_id]
+                if parent_id is not None and parent_id in span_tree:
                     children = parent_span["children"]
                     children.append(span_)
 
