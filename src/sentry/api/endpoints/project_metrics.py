@@ -22,6 +22,7 @@ from sentry.sentry_metrics.visibility import (
 )
 from sentry.sentry_metrics.visibility.metrics_blocking import MetricBlocking
 from sentry.snuba.metrics.naming_layer.mri import is_mri
+from sentry.utils import metrics
 
 
 class MetricOperationType(Enum):
@@ -99,6 +100,12 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
             tags = self._get_sanitized_tags(request)
             patched_metrics = unblock_tags_of_metric(metric_mri, set(tags), [project])
             self._create_audit_log_entry("METRIC_TAGS_UNBLOCK", metric_mri, tags, project)
+
+        metrics.incr(
+            key="ddm.metrics_visibility.apply_operation",
+            amount=1,
+            tags={"operation_type": metric_operation_type.value},
+        )
 
         return patched_metrics[project.id]
 
