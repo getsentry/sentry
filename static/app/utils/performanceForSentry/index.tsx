@@ -602,22 +602,25 @@ function isINPEntity(entry: PerformanceEntry): entry is INPPerformanceEntry {
 
 function getNearestElementName(node: HTMLElement | undefined): string | undefined {
   if (!node) {
-    return 'unknown';
+    return 'no-element';
   }
 
   let current: HTMLElement | null = node;
   while (current && current !== document.body) {
     const elementName =
-      current.dataset?.testId ?? current.dataset?.component ?? current.dataset?.element;
+      current.dataset?.testId ??
+      current.dataset?.component ??
+      current.dataset?.element ??
+      current.id;
 
-    if (elementName !== undefined) {
+    if (elementName) {
       return elementName;
     }
 
     current = current.parentElement;
   }
 
-  return 'unknown';
+  return `${node.tagName.toLowerCase()}.${node.className ?? ''}`;
 }
 
 export function makeIssuesINPObserver(): PerformanceObserver | undefined {
@@ -636,10 +639,12 @@ export function makeIssuesINPObserver(): PerformanceObserver | undefined {
         if (entry.duration < 16) {
           return;
         }
+
+        const el = getNearestElementName(entry.target);
         Sentry.metrics.distribution('issues-stream.inp', entry.duration, {
           unit: 'millisecond',
           tags: {
-            element: getNearestElementName(entry.target),
+            element: el,
             entryType: entry.entryType,
             interaction: entry.name,
           },
