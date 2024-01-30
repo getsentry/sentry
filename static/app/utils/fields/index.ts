@@ -144,6 +144,7 @@ export enum WebVital {
   FID = 'measurements.fid',
   CLS = 'measurements.cls',
   TTFB = 'measurements.ttfb',
+  INP = 'measurements.inp',
   REQUEST_TIME = 'measurements.ttfb.requesttime',
 }
 
@@ -467,6 +468,11 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
   },
   [MobileVital.TIME_TO_INITIAL_DISPLAY]: {
     desc: t('The time it takes for an application to produce its first frame'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [WebVital.INP]: {
+    desc: t('Web Vital Interaction to Next Paint'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
