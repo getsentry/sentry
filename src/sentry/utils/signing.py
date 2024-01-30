@@ -28,9 +28,10 @@ def unsign(data, max_age=60 * 60 * 24 * 2):
     """
     Unsign a signed base64 string. Accepts the base64 value as a string or bytes
     """
-    return loads(
-        TimestampSigner(salt=SALT).unsign(urlsafe_b64decode(data).decode("utf-8"), max_age=max_age)
-    )
+decoded_data = urlsafe_b64decode(data)
+return loads(
+    TimestampSigner(salt=SALT).unsign(decoded_data, max_age=max_age)
+)
 
 
 def urlsafe_b64decode(b64string):
