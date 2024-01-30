@@ -746,19 +746,23 @@ class RegionOutbox(RegionOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
-        index_together = (
-            (
-                "shard_scope",
-                "shard_identifier",
-                "category",
-                "object_identifier",
+        indexes = (
+            models.Index(
+                fields=(
+                    "shard_scope",
+                    "shard_identifier",
+                    "category",
+                    "object_identifier",
+                )
             ),
-            (
-                "shard_scope",
-                "shard_identifier",
-                "scheduled_for",
+            models.Index(
+                fields=(
+                    "shard_scope",
+                    "shard_identifier",
+                    "scheduled_for",
+                )
             ),
-            ("shard_scope", "shard_identifier", "id"),
+            models.Index(fields=("shard_scope", "shard_identifier", "id")),
         )
 
 
@@ -838,21 +842,25 @@ class ControlOutbox(ControlOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_controloutbox"
-        index_together = (
-            (
-                "region_name",
-                "shard_scope",
-                "shard_identifier",
-                "category",
-                "object_identifier",
+        indexes = (
+            models.Index(
+                fields=(
+                    "region_name",
+                    "shard_scope",
+                    "shard_identifier",
+                    "category",
+                    "object_identifier",
+                )
             ),
-            (
-                "region_name",
-                "shard_scope",
-                "shard_identifier",
-                "scheduled_for",
+            models.Index(
+                fields=(
+                    "region_name",
+                    "shard_scope",
+                    "shard_identifier",
+                    "scheduled_for",
+                )
             ),
-            ("region_name", "shard_scope", "shard_identifier", "id"),
+            models.Index(fields=("region_name", "shard_scope", "shard_identifier", "id")),
         )
 
 

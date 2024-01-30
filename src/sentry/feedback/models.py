@@ -27,6 +27,6 @@ class Feedback(Model):
     class Meta:
         app_label = "feedback"
         db_table = "feedback_feedback"
-        index_together = [("project_id", "date_added")]
+        indexes = [models.Index(fields=("project_id", "date_added"))]
 
     __repr__ = sane_repr("project_id", "feedback_id")
