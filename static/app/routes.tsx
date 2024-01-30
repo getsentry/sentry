@@ -240,20 +240,24 @@ function buildRoutes() {
         )}
         key="org-data-export"
       />
-      {USING_CUSTOMER_DOMAIN && (
+      <Route component={errorHandler(OrganizationLayout)}>
+        {USING_CUSTOMER_DOMAIN && (
+          <Route
+            path="/disabled-member/"
+            component={withDomainRequired(
+              make(() => import('sentry/views/disabledMember'))
+            )}
+            key="orgless-disabled-member-route"
+          />
+        )}
         <Route
-          path="/disabled-member/"
-          component={withDomainRequired(
+          path="/organizations/:orgId/disabled-member/"
+          component={withDomainRedirect(
             make(() => import('sentry/views/disabledMember'))
           )}
-          key="orgless-disabled-member-route"
+          key="org-disabled-member"
         />
-      )}
-      <Route
-        path="/organizations/:orgId/disabled-member/"
-        component={withDomainRedirect(make(() => import('sentry/views/disabledMember')))}
-        key="org-disabled-member"
-      />
+      </Route>
       {USING_CUSTOMER_DOMAIN && (
         <Route
           path="/restore/"
