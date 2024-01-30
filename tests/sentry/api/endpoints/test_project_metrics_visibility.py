@@ -108,6 +108,22 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         assert response.data["blockedTags"] == []
         assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 0
 
+    def test_block_metric_tag_with_glob(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            operationType="blockTags",
+            metricMri="s:custom/user@none",
+            tags=["/*_project"],
+        )
+
+        assert response.status_code == 200
+        assert response.data["metricMri"] == "s:custom/user@none"
+        assert response.data["isBlocked"] is False
+        assert sorted(response.data["blockedTags"]) == ["/_project"]
+        assert len(get_metrics_blocking_state([self.project])[self.project.id].metrics) == 1
+
     @patch(
         "sentry.api.endpoints.project_metrics.ProjectMetricsVisibilityEndpoint.create_audit_entry"
     )

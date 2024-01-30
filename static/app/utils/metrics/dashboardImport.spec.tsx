@@ -42,7 +42,12 @@ const mockWidget = (overrides = {}) => {
 };
 
 const mockAvailableMetrics = (mris: MRI[]): MetricMeta[] => {
-  return mris.map(mri => ({...parseMRI(mri), mri, operations: []})) as MetricMeta[];
+  return mris.map(mri => ({
+    ...parseMRI(mri),
+    mri,
+    operations: [],
+    blockingStatus: [],
+  })) as MetricMeta[];
 };
 
 describe('WidgetParser', () => {

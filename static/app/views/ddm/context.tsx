@@ -224,11 +224,9 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       }
 
       const dateRange = getAbsoluteDateTimeRange(pageFilters.datetime);
-      if (area.range.start < dateRange.start) {
-        area.range.start = dateRange.start;
-      }
-      if (area.range.end > dateRange.end) {
-        area.range.end = dateRange.end;
+      if (area.range.end < dateRange.start || area.range.start > dateRange.end) {
+        Sentry.metrics.increment('ddm.enhance.range-outside');
+        return;
       }
 
       Sentry.metrics.increment('ddm.enhance.add');
