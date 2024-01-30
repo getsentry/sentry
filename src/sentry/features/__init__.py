@@ -108,6 +108,7 @@ default_manager.add("organizations:gitlab-disable-on-broken", OrganizationFeatur
 default_manager.add("organizations:group-chunk-load-errors", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:grouping-built-in-fingerprint-rules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:grouping-suppress-unnecessary-secondary-hash", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:higher-ownership-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
