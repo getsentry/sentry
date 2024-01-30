@@ -21,6 +21,7 @@ export type WebVitalsScoreBreakdown = {
   cls: SeriesDataUnit[];
   fcp: SeriesDataUnit[];
   fid: SeriesDataUnit[];
+  inp: SeriesDataUnit[];
   lcp: SeriesDataUnit[];
   total: SeriesDataUnit[];
   ttfb: SeriesDataUnit[];
@@ -91,6 +92,7 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
     cls: [],
     ttfb: [],
     fid: [],
+    inp: [],
     total: [],
   };
 

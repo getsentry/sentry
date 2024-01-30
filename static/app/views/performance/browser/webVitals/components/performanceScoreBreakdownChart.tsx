@@ -198,6 +198,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
           fid: storedScores.unweightedFid,
           cls: storedScores.unweightedCls,
           ttfb: storedScores.unweightedTtfb,
+          inp: storedScores.unweightedInp,
           total: storedScores.total,
         }
       : timeseriesData,
