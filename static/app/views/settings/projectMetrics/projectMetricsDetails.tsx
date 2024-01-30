@@ -114,15 +114,14 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
 
   const handleMetricTagBlockToggle = useCallback(
     (tag: string) => {
-      const operationType = isBlockedMetric ? 'unblockTags' : 'blockTags';
+      const currentlyBlockedTags = blockingStatus?.blockedTags ?? [];
+      const isBlockedTag = currentlyBlockedTags.includes(tag);
 
-      const newTags = isBlockedMetric
-        ? blockingStatus?.blockedTags?.filter(blockedTag => blockedTag !== tag)
-        : [...(blockingStatus?.blockedTags ?? []), tag];
+      const operationType = isBlockedTag ? 'unblockTags' : 'blockTags';
 
-      blockMetricMutation.mutate({operationType, mri, tags: newTags});
+      blockMetricMutation.mutate({operationType, mri, tags: [tag]});
     },
-    [blockMetricMutation, isBlockedMetric, mri, blockingStatus?.blockedTags]
+    [blockMetricMutation, mri, blockingStatus?.blockedTags]
   );
 
   const tags = tagsData.sort((a, b) => a.key.localeCompare(b.key));
@@ -139,7 +138,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
               disabled={blockMetricMutation.isLoading}
               isBlocked={isBlockedMetric}
               onConfirm={handleMetricBlockToggle}
-              aria-label="Block Metric"
+              aria-label={t('Block Metric')}
             />
             <LinkButton
               to={getDdmUrl(organization.slug, {
@@ -238,7 +237,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
                   disabled={blockMetricMutation.isLoading || isBlockedMetric}
                   isBlocked={isBlockedTag}
                   onConfirm={() => handleMetricTagBlockToggle(key)}
-                  aria-label="Block tag"
+                  aria-label={t('Block tag')}
                 />
               </TextAlignRight>
             </Fragment>
