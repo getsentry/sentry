@@ -65,8 +65,8 @@ def is_in_test_case_body() -> bool:
     the `django_db_setup` fixture, but post-test teardown seems to be too tightly
     coupled to the test run to insert a fixture between them. Adding something to the
     `tearDown()` override in Sentry's BaseTestCase may have worked, but would not
-    helped with standalone test functions. A better solution may nonetheless exist;
-    refactoring is encouraged if you find one.
+    have helped with standalone test functions. A better solution may nonetheless
+    exist; refactoring is encouraged if you find one.
 
     This should not be used as a general-purpose utility function. Avoid calling it
     in places other than `validate_transaction_using_for_silo_mode` if it all possible.
