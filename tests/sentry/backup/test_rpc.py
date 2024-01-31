@@ -30,7 +30,7 @@ from sentry.services.hybrid_cloud.import_export.model import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.utils import json
 
 CONTROL_OPTION_MODEL_NAME = get_model_name(ControlOption)
@@ -39,6 +39,7 @@ PROJECT_MODEL_NAME = get_model_name(Project)
 USER_MODEL_NAME = get_model_name(User)
 
 
+@no_silo_test
 class RpcImportRetryTests(TestCase):
     """
     Ensure that retries don't duplicate writes.
@@ -254,6 +255,7 @@ class RpcImportRetryTests(TestCase):
                 assert ControlImportChunk.objects.count() == import_chunk_count + 1
 
 
+@no_silo_test
 class RpcImportErrorTests(TestCase):
     """
     Validate errors related to the `import_by_model()` RPC method.
@@ -373,6 +375,7 @@ class RpcImportErrorTests(TestCase):
         assert result.get_kind() == RpcImportErrorKind.UnexpectedModel
 
 
+@no_silo_test
 class RpcExportErrorTests(TestCase):
     """Validate errors related to the `export_by_model()` RPC method."""
 
