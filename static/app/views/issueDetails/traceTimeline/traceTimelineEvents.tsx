@@ -10,12 +10,12 @@ import {TraceTimelineTooltip} from 'sentry/views/issueDetails/traceTimeline/trac
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
 import {useTraceTimelineEvents} from './useTraceTimelineEvents';
-import {getEventsByColumn} from './utils';
+import {getChunkTimeRange, getEventsByColumn} from './utils';
 
 // Adjusting this will change the number of tooltip groups
-const markerWidth = 24;
+const PARENT_WIDTH = 12;
 // Adjusting subwidth changes how many dots to render
-const subWidth = 2;
+const CHILD_WIDTH = 4;
 
 interface TraceTimelineEventsProps {
   event: Event;
@@ -34,7 +34,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
     paddedEndTime = startTimestamp + 1000;
   }
 
-  const totalColumns = Math.floor(width / markerWidth);
+  const totalColumns = Math.floor(width / PARENT_WIDTH);
   const eventsByColumn = getEventsByColumn(
     durationMs,
     data,
@@ -48,10 +48,11 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
       <TimelineColumns totalColumns={totalColumns}>
         {Array.from(eventsByColumn.entries()).map(([column, colEvents]) => {
           // Calculate the timestamp range that this column represents
-          const columnStartTimestamp =
-            (durationMs / totalColumns) * (column - 1) + paddedStartTime;
-          const columnEndTimestamp =
-            (durationMs / totalColumns) * column + paddedStartTime;
+          const timeRange = getChunkTimeRange(
+            paddedStartTime,
+            column - 1,
+            durationMs / totalColumns
+          );
           return (
             <EventColumn
               key={column}
@@ -61,7 +62,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
                 event={event}
                 colEvents={colEvents}
                 columnSize={columnSize}
-                timeRange={[columnStartTimestamp, columnEndTimestamp]}
+                timeRange={timeRange}
                 currentEventId={event.id}
               />
             </EventColumn>
@@ -133,13 +134,13 @@ function NodeGroup({
   event: Event;
   timeRange: [number, number];
 }) {
-  const totalSubColumns = Math.floor(columnSize / subWidth);
+  const totalSubColumns = Math.floor(columnSize / CHILD_WIDTH);
   const durationMs = timeRange[1] - timeRange[0];
   const eventsByColumn = getEventsByColumn(
     durationMs,
     colEvents,
     totalSubColumns,
-    timeRange[1]
+    timeRange[0]
   );
 
   return (

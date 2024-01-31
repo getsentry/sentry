@@ -22,15 +22,15 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
   const hasFeature = hasTraceTimelineFeature(organization, user);
-  const {isError, isLoading} = useTraceTimelineEvents({event}, hasFeature);
+  const {isError, isLoading, data} = useTraceTimelineEvents({event}, hasFeature);
 
   if (!hasFeature) {
     return null;
   }
 
-  if (isError) {
+  if (isError || (!isLoading && data.length === 0)) {
     // display placeholder to reduce layout shift
-    return <div style={{height: 20}} />;
+    return <div style={{height: 45}} />;
   }
 
   return (
