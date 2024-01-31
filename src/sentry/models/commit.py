@@ -50,10 +50,10 @@ class Commit(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_commit"
-        index_together = (
-            ("repository_id", "date_added"),
-            ("author", "date_added"),
-            ("organization_id", "date_added"),
+        indexes = (
+            models.Index(fields=("repository_id", "date_added")),
+            models.Index(fields=("author", "date_added")),
+            models.Index(fields=("organization_id", "date_added")),
         )
         unique_together = (("repository_id", "key"),)
 

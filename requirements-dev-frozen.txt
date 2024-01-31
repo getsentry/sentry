@@ -118,7 +118,7 @@ pep517==0.12.0
 petname==2.6
 phabricator==0.7.0
 phonenumberslite==8.12.55
-pillow==10.0.1
+pillow==10.2.0
 pip-tools==7.1.0
 platformdirs==2.5.2
 pluggy==1.4.0
@@ -185,7 +185,7 @@ sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
-snuba-sdk==2.0.23
+snuba-sdk==2.0.24
 sortedcontainers==2.4.0
 soupsieve==2.3.2.post1
 sqlparse==0.4.4
