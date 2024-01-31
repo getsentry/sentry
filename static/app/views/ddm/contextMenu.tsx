@@ -3,7 +3,8 @@ import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   IconClose,
   IconCopy,
@@ -13,13 +14,9 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {
-  isCustomMeasurement,
-  isCustomMetric,
-  MetricDisplayType,
-  MetricsQuery,
-} from 'sentry/utils/metrics';
+import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
   encodeWidgetQuery,
@@ -27,6 +24,7 @@ import {
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import type {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useDDMContext} from 'sentry/views/ddm/context';
@@ -66,6 +64,9 @@ export function MetricQueryContextMenu({
         key: 'duplicate',
         label: t('Duplicate'),
         onAction: () => {
+          trackAnalytics('ddm.widget.duplicate', {
+            organization,
+          });
           Sentry.metrics.increment('ddm.widget.duplicate');
           duplicateWidget(widgetIndex);
         },
@@ -76,6 +77,10 @@ export function MetricQueryContextMenu({
         label: t('Create Alert'),
         disabled: !createAlert,
         onAction: () => {
+          trackAnalytics('ddm.create-alert', {
+            organization,
+            source: 'widget',
+          });
           Sentry.metrics.increment('ddm.widget.alert');
           createAlert?.();
         },
@@ -86,6 +91,10 @@ export function MetricQueryContextMenu({
         label: t('Add to Dashboard'),
         disabled: !createDashboardWidget,
         onAction: () => {
+          trackAnalytics('ddm.add-to-dashboard', {
+            organization,
+            source: 'widget',
+          });
           Sentry.metrics.increment('ddm.widget.dashboard');
           createDashboardWidget?.();
         },
@@ -96,6 +105,9 @@ export function MetricQueryContextMenu({
         label: t('Metric Settings'),
         disabled: !isCustomMetric({mri: metricsQuery.mri}),
         onAction: () => {
+          trackAnalytics('ddm.widget.settings', {
+            organization,
+          });
           Sentry.metrics.increment('ddm.widget.settings');
           navigateTo(
             `/settings/projects/:projectId/metrics/${encodeURIComponent(
@@ -119,12 +131,13 @@ export function MetricQueryContextMenu({
     [
       createAlert,
       createDashboardWidget,
-      duplicateWidget,
-      removeWidget,
-      widgetIndex,
-      canDelete,
       metricsQuery.mri,
+      canDelete,
+      organization,
+      duplicateWidget,
+      widgetIndex,
       router,
+      removeWidget,
     ]
   );
 

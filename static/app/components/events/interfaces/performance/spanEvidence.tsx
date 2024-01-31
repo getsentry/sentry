@@ -6,19 +6,18 @@ import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/pe
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {EventTransaction, Organization} from 'sentry/types';
 import {
-  EventTransaction,
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
   isTransactionBased,
-  Organization,
 } from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import TraceView from '../spans/traceView';
-import {TraceContextType} from '../spans/types';
+import type {TraceContextType} from '../spans/types';
 import WaterfallModel from '../spans/waterfallModel';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';

@@ -1,12 +1,9 @@
-import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
-import {IdleTransaction} from '@sentry/core';
+import type {ReactNode} from 'react';
+import {Fragment, Profiler, useEffect, useRef} from 'react';
+import type {IdleTransaction} from '@sentry/core';
 import {captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import {
-  type MeasurementUnit,
-  type Transaction,
-  type TransactionEvent,
-} from '@sentry/types';
+import type {MeasurementUnit, Transaction, TransactionEvent} from '@sentry/types';
 import {
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
@@ -599,9 +596,9 @@ function isINPEntity(entry: PerformanceEntry): entry is INPPerformanceEntry {
   return entry.entryType === 'first-input';
 }
 
-function getNearestElementName(node: HTMLElement | undefined): string | undefined {
+function getNearestElementName(node: HTMLElement | undefined | null): string | undefined {
   if (!node) {
-    return 'unknown';
+    return 'no-element';
   }
 
   let current: HTMLElement | null = node;
@@ -609,14 +606,14 @@ function getNearestElementName(node: HTMLElement | undefined): string | undefine
     const elementName =
       current.dataset?.testId ?? current.dataset?.component ?? current.dataset?.element;
 
-    if (elementName !== undefined) {
+    if (elementName) {
       return elementName;
     }
 
     current = current.parentElement;
   }
 
-  return 'unknown';
+  return `${node.tagName.toLowerCase()}.${node.className ?? ''}`;
 }
 
 export function makeIssuesINPObserver(): PerformanceObserver | undefined {
@@ -635,6 +632,7 @@ export function makeIssuesINPObserver(): PerformanceObserver | undefined {
         if (entry.duration < 16) {
           return;
         }
+
         Sentry.metrics.distribution('issues-stream.inp', entry.duration, {
           unit: 'millisecond',
           tags: {

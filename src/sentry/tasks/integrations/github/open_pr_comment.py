@@ -22,6 +22,7 @@ from snuba_sdk import (
 from snuba_sdk import Request as SnubaRequest
 
 from sentry import features
+from sentry.constants import EXTENSION_LANGUAGE_MAP
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -88,8 +89,6 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 {issue_rows}
 </details>"""
 
-OPEN_PR_ISSUE_ROW_TEMPLATE = "| **`{function_name}`** | [**{title}**]({url}) {subtitle} <br> `Event Count:` **{event_count}** |"
-
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
@@ -104,15 +103,25 @@ def format_open_pr_comment_subtitle(title_length, subtitle):
 
 
 # for a single file, create a table
-def format_issue_table(diff_filename: str, issues: List[PullRequestIssue], toggle=False) -> str:
+def format_issue_table(
+    diff_filename: str, issues: List[PullRequestIssue], patch_parsers: Dict[str, Any], toggle: bool
+) -> str:
+    language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
+
+    if not language_parser:
+        return ""
+
+    issue_row_template = language_parser.issue_row_template
+
     issue_rows = "\n".join(
         [
-            OPEN_PR_ISSUE_ROW_TEMPLATE.format(
+            issue_row_template.format(
                 title=issue.title,
                 subtitle=format_open_pr_comment_subtitle(len(issue.title), issue.subtitle),
                 url=format_comment_url(issue.url, GITHUB_OPEN_PR_BOT_REFERRER),
                 event_count=small_count(issue.event_count),
                 function_name=issue.function_name,
+                affected_users=small_count(issue.affected_users),
             )
             for issue in issues
         ]
@@ -198,7 +207,11 @@ def safe_for_comment(
     for file in pr_files:
         filename = file["filename"]
         # don't count the file if it was added or is not a Python file
-        if file["status"] == "added" or filename.split(".")[-1] not in patch_parsers:
+        if (
+            file["status"] == "added"
+            or file["status"] == "renamed"
+            or filename.split(".")[-1] not in patch_parsers
+        ):
             continue
 
         changed_file_count += 1
@@ -292,60 +305,93 @@ def get_top_5_issues_by_count_for_file(
 
     multi_if = language_parser.generate_multi_if(function_names)
 
+    # fetch the count of events for each group_id
+    subquery = (
+        Query(Entity("events"))
+        .set_select(
+            [
+                Column("title"),
+                Column("culprit"),
+                Column("group_id"),
+                Function("count", [], "event_count"),
+                Function(
+                    "multiIf",
+                    multi_if,
+                    "function_name",
+                ),
+            ]
+        )
+        .set_groupby(
+            [
+                Column("title"),
+                Column("culprit"),
+                Column("group_id"),
+                Column("exception_frames.function"),
+            ]
+        )
+        .set_where(
+            [
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("group_id"), Op.IN, group_ids),
+                Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
+                Condition(Column("timestamp"), Op.LT, datetime.now()),
+                # NOTE: ideally this would follow suspect commit logic
+                BooleanCondition(
+                    BooleanOp.OR,
+                    [
+                        BooleanCondition(
+                            BooleanOp.AND,
+                            [
+                                Condition(
+                                    Function(
+                                        "arrayElement",
+                                        (Column("exception_frames.filename"), i),
+                                    ),
+                                    Op.IN,
+                                    sentry_filenames,
+                                ),
+                                language_parser.generate_function_name_conditions(
+                                    function_names, i
+                                ),
+                            ],
+                        )
+                        for i in range(-STACKFRAME_COUNT, 0)  # first n frames
+                    ],
+                ),
+                Condition(Function("notHandled", []), Op.EQ, 1),
+            ]
+        )
+        .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
+    )
+
+    # filter on the subquery to squash group_ids with the same title and culprit
+    # return the group_id with the greatest count of events
     request = SnubaRequest(
         dataset=Dataset.Events.value,
         app_id="default",
         tenant_ids={"organization_id": projects[0].organization_id},
         query=(
-            Query(Entity("events"))
+            Query(subquery)
             .set_select(
                 [
-                    Column("group_id"),
-                    Function("count", [], "event_count"),
+                    Column("function_name"),
                     Function(
-                        "multiIf",
-                        multi_if,
-                        "function_name",
+                        "arrayElement",
+                        (Function("groupArray", [Column("group_id")]), 1),
+                        "group_id",
+                    ),
+                    Function(
+                        "arrayElement",
+                        (Function("groupArray", [Column("event_count")]), 1),
+                        "event_count",
                     ),
                 ]
             )
             .set_groupby(
                 [
-                    Column("group_id"),
-                    Column("exception_stacks.mechanism_handled"),
-                    Column("exception_frames.function"),
-                ]
-            )
-            .set_where(
-                [
-                    Condition(Column("project_id"), Op.IN, project_ids),
-                    Condition(Column("group_id"), Op.IN, group_ids),
-                    Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=14)),
-                    Condition(Column("timestamp"), Op.LT, datetime.now()),
-                    # NOTE: ideally this would follow suspect commit logic
-                    BooleanCondition(
-                        BooleanOp.OR,
-                        [
-                            BooleanCondition(
-                                BooleanOp.AND,
-                                [
-                                    Condition(
-                                        Function(
-                                            "arrayElement",
-                                            (Column("exception_frames.filename"), i),
-                                        ),
-                                        Op.IN,
-                                        sentry_filenames,
-                                    ),
-                                    language_parser.generate_function_name_conditions(
-                                        function_names, i
-                                    ),
-                                ],
-                            )
-                            for i in range(-STACKFRAME_COUNT, 0)  # first n frames
-                        ],
-                    ),
-                    Condition(Function("notHandled", []), Op.EQ, 1),
+                    Column("title"),
+                    Column("culprit"),
+                    Column("function_name"),
                 ]
             )
             .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
@@ -430,6 +476,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     if features.has("organizations:integrations-open-pr-comment-js", organization):
         patch_parsers = BETA_PATCH_PARSERS
 
+    file_extensions = set()
     # fetch issues related to the files
     for file in pullrequest_files:
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
@@ -462,6 +509,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             continue
 
         top_issues_per_file.append(top_issues)
+        file_extensions.add(file_extension)
 
         issue_table_contents[file.filename] = get_issue_table_contents(top_issues)
 
@@ -482,11 +530,15 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             continue
 
         if first_table:
-            issue_table = format_issue_table(pr_filename, issue_table_content)
+            issue_table = format_issue_table(
+                pr_filename, issue_table_content, patch_parsers, toggle=False
+            )
             first_table = False
         else:
             # toggle all tables but the first one
-            issue_table = format_issue_table(pr_filename, issue_table_content, toggle=True)
+            issue_table = format_issue_table(
+                pr_filename, issue_table_content, patch_parsers, toggle=True
+            )
 
         issue_tables.append(issue_table)
 
@@ -495,6 +547,14 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     # list all issues in the comment
     issue_list: List[Dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
     issue_id_list: List[int] = [issue["group_id"] for issue in issue_list]
+
+    # pick one language from the list of languages in the PR for analytics
+    languages = [
+        EXTENSION_LANGUAGE_MAP[extension]
+        for extension in file_extensions
+        if extension in EXTENSION_LANGUAGE_MAP
+    ]
+    language = languages[0] if len(languages) else "not found"
 
     try:
         create_or_update_comment(
@@ -506,6 +566,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             issue_list=issue_id_list,
             comment_type=CommentType.OPEN_PR,
             metrics_base=OPEN_PR_METRICS_BASE,
+            language=language,
         )
     except ApiError as e:
         if e.json:

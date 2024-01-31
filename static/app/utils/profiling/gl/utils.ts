@@ -1,23 +1,23 @@
 import {useLayoutEffect, useState} from 'react';
-import Fuse from 'fuse.js';
+import type Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {clamp, colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
-import {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {
+import type {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {
   FlamegraphRenderer,
   FlamegraphRendererConstructor,
 } from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
-import {
+import type {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
+import type {
   UIFramesRenderer,
   UIFramesRendererConstructor,
 } from 'sentry/utils/profiling/renderers/UIFramesRenderer';
-import {SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function initializeFlamegraphRenderer(
@@ -366,8 +366,8 @@ export function upperBound<T extends {end: number; start: number} | {x: number}>
         ? 1
         : 0
       : values[0].start < target
-      ? 1
-      : 0;
+        ? 1
+        : 0;
   }
 
   while (low !== high) {
@@ -418,8 +418,8 @@ export function lowerBound<T extends {end: number; start: number}>(
         ? 1
         : 0
       : values[0].end < target
-      ? 1
-      : 0;
+        ? 1
+        : 0;
   }
 
   while (low !== high) {

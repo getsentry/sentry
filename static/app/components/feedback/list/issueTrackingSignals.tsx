@@ -1,5 +1,5 @@
 import useExternalIssueDataFeedback from 'sentry/components/feedback/list/useHasLinkedIssues';
-import {
+import type {
   IntegrationComponent,
   PluginActionComponent,
   PluginIssueComponent,
@@ -8,7 +8,7 @@ import {
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Event, Group} from 'sentry/types';
+import type {Event, Group} from 'sentry/types';
 import {
   getIntegrationDisplayName,
   getIntegrationIcon,

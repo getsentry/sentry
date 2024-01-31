@@ -1,12 +1,12 @@
 import {useEffect} from 'react';
 import {browserHistory} from 'react-router';
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 
 import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Event} from 'sentry/types';
-import {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import type {Event} from 'sentry/types';
+import type {TraceMetaQueryChildrenProps} from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -28,23 +28,29 @@ function TraceDetailsRouting(props: Props) {
   useEffect(() => {
     const traceId = event.contexts?.trace?.trace_id ?? '';
 
-    if (
-      organization.features.includes('performance-trace-details') &&
-      metaResults?.meta &&
-      metaResults?.meta.transactions <= DEFAULT_TRACE_ROWS_LIMIT
-    ) {
-      const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
-        organization,
-        traceId,
-        datetimeSelection,
-        location.query
-      );
+    if (organization.features.includes('performance-trace-details')) {
+      if (event?.groupID && event?.eventID) {
+        const issuesLocation = `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}`;
+        browserHistory.replace({
+          pathname: issuesLocation,
+        });
+      } else if (
+        metaResults?.meta &&
+        metaResults?.meta.transactions <= DEFAULT_TRACE_ROWS_LIMIT
+      ) {
+        const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
+          organization,
+          traceId,
+          datetimeSelection,
+          location.query
+        );
 
-      browserHistory.replace({
-        pathname: traceDetailsLocation.pathname,
-        query: traceDetailsLocation.query,
-        hash: transactionTargetHash(event.eventID) + location.hash,
-      });
+        browserHistory.replace({
+          pathname: traceDetailsLocation.pathname,
+          query: traceDetailsLocation.query,
+          hash: transactionTargetHash(event.eventID) + location.hash,
+        });
+      }
     }
   }, [event, metaResults, location, organization, datetimeSelection]);
 

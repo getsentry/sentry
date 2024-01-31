@@ -3,15 +3,17 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
+import {updateOrganization} from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
 import {OnboardingTaskKey} from 'sentry/types';
+
+jest.mock('sentry/actionCreators/organizations', () => ({
+  updateOrganization: jest.fn(),
+}));
 
 describe('actionCreators/onboardingTasks', function () {
   const api = new MockApiClient();
   const user = ConfigStore.get('user');
-
-  jest.spyOn(OrganizationStore, 'onUpdate');
 
   describe('updateOnboardingTask', function () {
     it('Adds the task to the organization when task does not exists', async function () {
@@ -37,7 +39,7 @@ describe('actionCreators/onboardingTasks', function () {
 
       expect(mockUpdate).toHaveBeenCalled();
 
-      expect(OrganizationStore.onUpdate).toHaveBeenCalledWith({
+      expect(updateOrganization).toHaveBeenCalledWith({
         onboardingTasks: [{...testTask, user}],
       });
     });
@@ -68,7 +70,7 @@ describe('actionCreators/onboardingTasks', function () {
 
       // NOTE: user is not passed as it is already associated to the existing
       // onboarding task.
-      expect(OrganizationStore.onUpdate).toHaveBeenCalledWith({
+      expect(updateOrganization).toHaveBeenCalledWith({
         onboardingTasks: [testTask],
       });
     });
@@ -93,7 +95,7 @@ describe('actionCreators/onboardingTasks', function () {
       await tick();
 
       expect(mockUpdate).not.toHaveBeenCalled();
-      expect(OrganizationStore.onUpdate).toHaveBeenCalledWith({
+      expect(updateOrganization).toHaveBeenCalledWith({
         onboardingTasks: [{...testTask, user}],
       });
     });

@@ -1,23 +1,23 @@
-import {ReactNode, useMemo} from 'react';
-import {Location} from 'history';
+import type {ReactNode} from 'react';
+import {useMemo} from 'react';
+import type {Location} from 'history';
 import moment from 'moment';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
-import {TableData, useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {
   AggregationKeyWithAlias,
   ColumnType,
-  fieldAlignment,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {Container} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -25,12 +25,12 @@ import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 import {ExplorerText} from 'sentry/views/performance/trends/changeExplorer';
-import {
+import type {
   NormalizedTrendsTransaction,
-  TrendFunctionField,
   TrendsTransaction,
   TrendView,
 } from 'sentry/views/performance/trends/types';
+import {TrendFunctionField} from 'sentry/views/performance/trends/types';
 
 type MetricsTableProps = {
   isLoading: boolean;

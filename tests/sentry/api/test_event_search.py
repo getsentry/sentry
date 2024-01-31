@@ -425,16 +425,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator=">=",
-                value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, tzinfo=datetime.timezone.utc)
-                ),
+                value=SearchValue(raw_value=datetime.datetime(2018, 1, 1, tzinfo=datetime.UTC)),
             ),
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator="<",
-                value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 2, tzinfo=datetime.timezone.utc)
-                ),
+                value=SearchValue(raw_value=datetime.datetime(2018, 1, 2, tzinfo=datetime.UTC)),
             ),
         ]
 
@@ -443,14 +439,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.UTC)
                 ),
             ),
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.UTC)
                 ),
             ),
         ]
@@ -460,14 +456,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.UTC)
                 ),
             ),
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.UTC)
                 ),
             ),
         ]
@@ -486,14 +482,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="timestamp.to_hour"),
                 operator=">=",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.UTC)
                 ),
             ),
             SearchFilter(
                 key=SearchKey(name="timestamp.to_hour"),
                 operator="<",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.UTC)
                 ),
             ),
         ]

@@ -1,10 +1,16 @@
-import {MRI} from 'sentry/types';
-import {
-  getDateTimeParams,
+import {useEffect, useMemo, useState} from 'react';
+import * as Sentry from '@sentry/react';
+import moment from 'moment';
+
+import type {MRI} from 'sentry/types';
+import {parsePeriodToHours} from 'sentry/utils/dates';
+import {getDateTimeParams} from 'sentry/utils/metrics';
+import type {
   MetricCorrelation,
   MetricMetaCodeLocation,
-  MetricRange,
-} from 'sentry/utils/metrics';
+  SelectionRange,
+} from 'sentry/utils/metrics/types';
+import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -13,19 +19,29 @@ type ApiResponse = {
   metrics: MetricMetaCodeLocation[];
 };
 
-type MetricsDDMMetaOpts = MetricRange & {
+type MetricsDDMMetaOpts = SelectionRange & {
   codeLocations?: boolean;
   metricSpans?: boolean;
   query?: string;
 };
 
-function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
-  const organization = useOrganization();
+function useDateTimeParams(options: MetricsDDMMetaOpts) {
   const {selection} = usePageFilters();
 
   const {start, end} = options;
-  const dateTimeParams =
-    start || end ? {start, end} : getDateTimeParams(selection.datetime);
+  return start || end
+    ? {start, end, statsPeriod: undefined}
+    : getDateTimeParams(selection.datetime);
+}
+
+function useMetricsDDMMeta(
+  mri: MRI | undefined,
+  options: MetricsDDMMetaOpts,
+  queryOptions: Partial<UseApiQueryOptions<ApiResponse>> = {}
+) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const dateTimeParams = useDateTimeParams(options);
 
   const minMaxParams =
     // remove non-numeric values
@@ -52,6 +68,7 @@ function useMetricsDDMMeta(mri: MRI | undefined, options: MetricsDDMMetaOpts) {
     {
       enabled: !!mri,
       staleTime: Infinity,
+      ...queryOptions,
     }
   );
 
@@ -70,10 +87,63 @@ export function useCorrelatedSamples(
   mri: MRI | undefined,
   options: Omit<MetricsDDMMetaOpts, 'metricSpans'> = {}
 ) {
-  return useMetricsDDMMeta(mri, {
+  const [isUsingFallback, setIsUseFallback] = useState(false);
+  const dateTimeParams = useDateTimeParams(options);
+
+  const mainQuery = useMetricsDDMMeta(mri, {
     ...options,
+    ...dateTimeParams,
     metricSpans: true,
   });
+
+  const hasTimeParams =
+    (!!dateTimeParams.end && !!dateTimeParams.start) || !!dateTimeParams.statsPeriod;
+  const periodInHours =
+    dateTimeParams.statsPeriod !== undefined
+      ? parsePeriodToHours(dateTimeParams.statsPeriod)
+      : undefined;
+
+  const {startDate, endDate} = useMemo(() => {
+    const end = periodInHours ? moment() : moment(dateTimeParams.end);
+    end.set('milliseconds', 0); // trim milliseconds to de-duplicate requests
+    return {
+      startDate: end.clone().subtract(1, 'hour').set('milliseconds', 0).toISOString(),
+      endDate: end.toISOString(),
+    };
+  }, [dateTimeParams.end, periodInHours]);
+
+  const isFallbackEnabled =
+    !!mri &&
+    hasTimeParams &&
+    (periodInHours ??
+      moment(dateTimeParams.start).diff(moment(dateTimeParams.end), 'hours')) > 1;
+
+  const fallbackQuery = useMetricsDDMMeta(
+    mri,
+    {
+      ...options,
+      start: startDate,
+      end: endDate,
+      metricSpans: true,
+    },
+    {
+      enabled: isFallbackEnabled,
+    }
+  );
+
+  useEffect(() => {
+    if (mainQuery.isLoading && isFallbackEnabled) {
+      const timeout = setTimeout(() => {
+        setIsUseFallback(true);
+        Sentry.metrics.increment('ddm.correlated_samples.timeout');
+      }, 15000);
+      return () => clearTimeout(timeout);
+    }
+    setIsUseFallback(false);
+    return () => {};
+  }, [mainQuery.isLoading, isFallbackEnabled]);
+
+  return isUsingFallback ? fallbackQuery : mainQuery;
 }
 
 export function useMetricsCodeLocations(

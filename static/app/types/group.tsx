@@ -1,10 +1,16 @@
-import {TitledPlugin} from 'sentry/components/group/pluginActions';
+import type {TitledPlugin} from 'sentry/components/group/pluginActions';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
-import type {Commit, ExternalIssue, PullRequest, Repository} from './integrations';
+import type {
+  Commit,
+  ExternalIssue,
+  PlatformExternalIssue,
+  PullRequest,
+  Repository,
+} from './integrations';
 import type {Team} from './organization';
 import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
@@ -733,6 +739,7 @@ export interface BaseGroup {
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
+  sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
 }
 

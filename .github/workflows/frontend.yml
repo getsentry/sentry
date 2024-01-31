@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 
       - name: Check for frontend file changes
-        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
         id: changes
         with:
           token: ${{ github.token }}
@@ -84,9 +84,7 @@ jobs:
         env:
           # Run relax config on main branch (and stricter config for changed files)
           SENTRY_ESLINT_RELAXED: 1
-        run: |
-          yarn lint
-          yarn lint:css
+        run: yarn lint
 
       # Otherwise... only lint modified files
       # Note `eslint --fix` will not fail when it auto fixes files
@@ -99,6 +97,10 @@ jobs:
         if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend_components_modified_lintable == 'true'
         run: |
           yarn stylelint ${{ needs.files-changed.outputs.frontend_components_modified_lintable_files }}
+
+      - name: biome
+        if: github.ref != 'refs/heads/master' && needs.files-changed.outputs.frontend_components_modified_lintable == 'true'
+        run: yarn biome check . --apply
 
       # Check (and error) for dirty working tree for forks
       # Reason being we need a different token to auto commit changes and

@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import type {AreaChartProps} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import Grid from 'sentry/components/charts/components/grid';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
@@ -14,7 +15,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
@@ -83,9 +84,7 @@ function MemoryChart({
         const seriesTooltips = values.map(
           value => `
             <div>
-              <span className="tooltip-label">${value.marker}<strong>${
-                value.seriesName
-              }</strong></span>
+              <span className="tooltip-label">${value.marker}<strong>${value.seriesName}</strong></span>
           ${formatBytesBase2(value.data[1])}
             </div>
           `

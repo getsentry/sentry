@@ -5,7 +5,8 @@ import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -14,23 +15,25 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
-import {ReactEchartsRef} from 'sentry/types/echarts';
+import type {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getDefaultMetricDisplayType,
   getSeriesName,
-  MetricCorrelation,
-  MetricDisplayType,
-  metricDisplayTypeOptions,
-  MetricWidgetQueryParams,
   stringifyMetricWidget,
 } from 'sentry/utils/metrics';
+import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  type MetricCorrelation,
+  MetricDisplayType,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {MetricChart} from 'sentry/views/ddm/chart';
-import {FocusArea} from 'sentry/views/ddm/focusArea';
+import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 import {getChartColors} from 'sentry/views/ddm/useGetChartPalette';
@@ -43,8 +46,7 @@ type MetricWidgetProps = {
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   projects: PageFilters['projects'];
   widget: MetricWidgetQueryParams;
-  addFocusArea?: (area: FocusArea) => void;
-  focusArea?: FocusArea | null;
+  focusArea?: FocusAreaProps;
   getChartPalette?: (seriesNames: string[]) => (seriesName: string) => string;
   hasSiblings?: boolean;
   highlightedSampleId?: string;
@@ -52,7 +54,6 @@ type MetricWidgetProps = {
   isSelected?: boolean;
   onSampleClick?: (sample: Sample) => void;
   onSelect?: (index: number) => void;
-  removeFocusArea?: () => void;
   showQuerySymbols?: boolean;
 };
 
@@ -60,6 +61,7 @@ export type Sample = {
   projectId: number;
   spanId: string;
   transactionId: string;
+  transactionSpanId: string;
 };
 
 export const MetricWidget = memo(
@@ -74,10 +76,8 @@ export const MetricWidget = memo(
     onSelect,
     onChange,
     hasSiblings = false,
-    addFocusArea,
-    removeFocusArea,
     showQuerySymbols,
-    focusArea = null,
+    focusArea,
     onSampleClick,
     highlightedSampleId,
   }: MetricWidgetProps) => {
@@ -166,9 +166,7 @@ export const MetricWidget = memo(
                 getChartPalette={getChartPalette}
                 environments={environments}
                 onChange={handleChange}
-                addFocusArea={addFocusArea}
                 focusArea={focusArea}
-                removeFocusArea={removeFocusArea}
                 onSampleClick={onSampleClick}
                 chartHeight={300}
                 highlightedSampleId={highlightedSampleId}
@@ -191,15 +189,13 @@ export const MetricWidget = memo(
 );
 
 interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
-  focusArea: FocusArea | null;
   widgetIndex: number;
-  addFocusArea?: (area: FocusArea) => void;
   chartHeight?: number;
+  focusArea?: FocusAreaProps;
   getChartPalette?: (seriesNames: string[]) => (seriesName: string) => string;
   highlightedSampleId?: string;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   onSampleClick?: (sample: Sample) => void;
-  removeFocusArea?: () => void;
 }
 
 const defaultGetChartPalette = (seriesNames: string[]) => {
@@ -215,10 +211,8 @@ export const MetricWidgetBody = memo(
     highlightedSampleId,
     sort,
     widgetIndex,
-    addFocusArea,
     getChartPalette = defaultGetChartPalette,
     focusArea,
-    removeFocusArea,
     chartHeight,
     onSampleClick,
     ...metricsQuery
@@ -243,7 +237,10 @@ export const MetricWidgetBody = memo(
       {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
     );
 
-    const {data: samplesData} = useCorrelatedSamples(mri, {...focusArea?.range});
+    const {data: samplesData} = useCorrelatedSamples(mri, {
+      ...focusArea?.selection?.range,
+      query,
+    });
 
     const chartRef = useRef<ReactEchartsRef>(null);
 
@@ -338,13 +335,11 @@ export const MetricWidgetBody = memo(
           displayType={displayType}
           operation={metricsQuery.op}
           widgetIndex={widgetIndex}
-          addFocusArea={addFocusArea}
-          focusArea={focusArea}
-          removeFocusArea={removeFocusArea}
           height={chartHeight}
           highlightedSampleId={highlightedSampleId}
           correlations={correlations}
           onSampleClick={onSampleClick}
+          focusArea={focusArea}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable
@@ -420,7 +415,7 @@ export type Series = {
   transaction?: string;
 };
 
-export type ScatterSeries = Series & {
+export interface ScatterSeries extends Series {
   itemStyle: {
     color: string;
     opacity: number;
@@ -431,7 +426,7 @@ export type ScatterSeries = Series & {
   symbolSize: number;
   transactionId: string;
   z: number;
-};
+}
 
 const MetricWidgetPanel = styled(Panel)<{
   isHighlightable: boolean;

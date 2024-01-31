@@ -3,7 +3,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {UnityEventContext} from 'sentry/components/events/contexts/unity';
-import {UnityContext} from 'sentry/types';
+import type {UnityContext} from 'sentry/types';
 
 export const unityMockData: UnityContext = {
   copy_texture_support: 'Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture',

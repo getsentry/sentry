@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -16,7 +15,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization as TOrganization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -80,7 +79,7 @@ describe('CreateProject', function () {
     TeamStore.loadUserTeams([teamNoAccess]);
 
     MockApiClient.addMockResponse({
-      url: `/projects/testOrg/rule-conditions/`,
+      url: `/projects/org-slug/rule-conditions/`,
       body: {},
       // Not required for these tests
       statusCode: 500,
@@ -92,18 +91,14 @@ describe('CreateProject', function () {
   });
 
   it('should block if you have access to no teams without team-roles', function () {
-    render(<CreateProject />, {
-      context: RouterContextFixture([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            access: ['project:read'],
-            features: [],
-          },
-        },
-      ]),
+    const organization = OrganizationFixture({
+      id: '1',
+      slug: 'org-slug',
+      access: ['project:read'],
+      features: [],
     });
+
+    render(<CreateProject />, {organization});
   });
 
   it('can create a new project as member with team-roles', async function () {
@@ -118,16 +113,6 @@ describe('CreateProject', function () {
     TeamStore.loadUserTeams([TeamFixture({id: '2', slug: 'team-two', access: []})]);
 
     render(<CreateProject />, {
-      context: RouterContextFixture([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            access: ['project:read'],
-            features: [],
-          },
-        },
-      ]),
       organization,
     });
 
@@ -153,7 +138,6 @@ describe('CreateProject', function () {
       TeamFixture({id: '3', slug: 'team-three', access: ['team:admin']}),
     ]);
     render(<CreateProject />, {
-      context: RouterContextFixture([{organization}]),
       organization,
     });
 
@@ -166,21 +150,12 @@ describe('CreateProject', function () {
   it('should fill in project name if its empty when platform is chosen', async function () {
     const {organization} = initializeOrg({
       organization: {
-        access: ['project:admin'],
+        access: ['project:read'],
+        features: ['team-roles'],
       },
     });
 
     render(<CreateProject />, {
-      context: RouterContextFixture([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            access: ['project:read'],
-            features: [],
-          },
-        },
-      ]),
       organization,
     });
 
@@ -283,16 +258,6 @@ describe('CreateProject', function () {
       teamSlug: teamNoAccess.slug,
     });
     render(<CreateProject />, {
-      context: RouterContextFixture([
-        {
-          organization: {
-            id: '1',
-            slug: 'testOrg',
-            access: ['project:read'],
-            features: [],
-          },
-        },
-      ]),
       organization,
     });
 
@@ -411,7 +376,7 @@ describe('CreateProject', function () {
     });
 
     it('should enabled the submit button if and only if all the required information has been filled', async function () {
-      render(<CreateProject />);
+      render(<CreateProject />, {organization});
 
       // We need to query for the submit button every time we want to access it
       // as re-renders can create new DOM nodes
