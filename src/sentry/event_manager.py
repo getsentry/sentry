@@ -518,12 +518,8 @@ class EventManager:
 
         try:
             with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
-                group_info = _save_aggregate(
-                    event=job["event"],
-                    job=job,
-                    release=job["release"],
-                    received_timestamp=job["received_timestamp"],
-                    metric_tags=metric_tags,
+                group_info = assign_event_to_group(
+                    event=job["event"], job=job, metric_tags=metric_tags
                 )
                 job["groups"] = [group_info]
         except HashDiscarded as err:
@@ -1335,6 +1331,40 @@ def get_culprit(data: Mapping[str, Any]) -> str:
     return str(
         force_str(data.get("culprit") or data.get("transaction") or generate_culprit(data) or "")
     )
+
+
+def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> GroupInfo | None:
+    project = event.project
+
+    primary_grouping_config = project.get_option("sentry:grouping_config")
+    secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
+    has_mobile_config = "mobile:2021-02-12" in [primary_grouping_config, secondary_grouping_config]
+
+    if (
+        features.has(
+            "organizations:grouping-suppress-unnecessary-secondary-hash",
+            project.organization,
+        )
+        and not has_mobile_config
+    ):
+        # This will be updated to the new logic once it's written
+        group_info = _save_aggregate(
+            event=event,
+            job=job,
+            release=job["release"],
+            received_timestamp=job["received_timestamp"],
+            metric_tags=metric_tags,
+        )
+    else:
+        group_info = _save_aggregate(
+            event=event,
+            job=job,
+            release=job["release"],
+            received_timestamp=job["received_timestamp"],
+            metric_tags=metric_tags,
+        )
+
+    return group_info
 
 
 def _save_aggregate(
