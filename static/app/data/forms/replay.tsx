@@ -7,7 +7,7 @@ const formGroups: JsonFormObject[] = [
     title: 'Settings',
     fields: [
       {
-        name: 'replays:rage-click-issue-creation',
+        name: 'sentry:replay_rage_click_issues',
         type: 'boolean',
 
         // additional data/props that is related to rendering of form field rather than data
