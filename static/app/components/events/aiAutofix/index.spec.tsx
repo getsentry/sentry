@@ -62,13 +62,14 @@ describe('AiAutofix', () => {
               steps: [
                 {
                   id: '1',
+                  index: 1,
                   title: 'I am processing',
                   description: 'oh yes I am',
                   status: 'PROCESSING',
                 },
               ],
             },
-          } as EventMetadataWithAutofix,
+          },
         }}
       />
     );

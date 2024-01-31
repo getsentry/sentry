@@ -1,10 +1,10 @@
 import {AutofixCard} from 'sentry/components/events/aiAutofix/autofixCard';
 import {Banner} from 'sentry/components/events/aiAutofix/banner';
+import type {GroupWithAutofix} from 'sentry/components/events/aiAutofix/types';
 import {useAiAutofix} from 'sentry/components/events/aiAutofix/useAiAutofix';
-import type {Group} from 'sentry/types';
 
 type Props = {
-  group: Group;
+  group: GroupWithAutofix;
 };
 
 export function AiAutofix({group}: Props) {
