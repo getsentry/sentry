@@ -12,7 +12,7 @@ const POLL_INTERVAL = 2500;
 export const useAiAutofix = (group: GroupWithAutofix) => {
   const api = useApi();
 
-  const [additionalContext, setAdditionalContext] = useState<string>('');
+  const [additionalContext, setAdditionalContext] = useState('');
   const [overwriteData, setOverwriteData] = useState<AutofixData | null>(null);
   const autofixData = overwriteData ?? group.metadata?.autofix ?? null;
   const isPolling = autofixData?.status === 'PROCESSING';
