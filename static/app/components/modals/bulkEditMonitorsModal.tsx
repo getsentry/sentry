@@ -46,6 +46,11 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
     return !!selectedMonitors.find(m => m.slug === monitor.slug);
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCursor(undefined);
+  };
+
   const handleToggleMonitor = (monitor: Monitor) => {
     const checked = isMonitorSelected(monitor);
     if (!checked) {
@@ -134,7 +139,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
             size="sm"
             placeholder={t('Search Monitors')}
             query={searchQuery}
-            onSearch={setSearchQuery}
+            onSearch={handleSearch}
           />
         </Actions>
         <StyledPanelTable headers={headers} stickyHeaders>
