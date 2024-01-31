@@ -4,6 +4,7 @@ import sentry_sdk
 from django.http import Http404
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
+from sentry_sdk.tracing import TRANSACTION_SOURCE_VIEW
 
 from sentry import features
 from sentry.features.exceptions import FeatureNotRegistered
@@ -21,9 +22,7 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
 
     def handle(self, request: Request, organization, provider_id) -> HttpResponseBase:
         with sentry_sdk.configure_scope() as scope:
-            scope.set_transaction_name(
-                f"integration.{provider_id}", source="OrganizationIntegrationSetupView"
-            )
+            scope.set_transaction_name(f"integration.{provider_id}", source=TRANSACTION_SOURCE_VIEW)
 
         pipeline = IntegrationPipeline(
             request=request, organization=organization, provider_key=provider_id
