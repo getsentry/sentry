@@ -1632,8 +1632,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
-    # Enable issue stream performance improvements
-    "organizations:issue-stream-performance": False,
     # Enable issue stream performance improvements (cache)
     "organizations:issue-stream-performance-cache": False,
     # Enable issue similarity embeddings

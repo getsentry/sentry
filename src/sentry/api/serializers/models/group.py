@@ -491,13 +491,7 @@ class GroupSerializerBase(Serializer, ABC):
     def _get_group_snuba_stats(
         self, item_list: Sequence[Group], seen_stats: Optional[Mapping[Group, SeenStats]]
     ):
-        if (
-            self._collapse("unhandled")
-            and len(item_list) > 0
-            and features.has(
-                "organizations:issue-stream-performance", item_list[0].project.organization
-            )
-        ):
+        if self._collapse("unhandled") and len(item_list) > 0:
             return None
         start = self._get_start_from_seen_stats(seen_stats)
         unhandled = {}
