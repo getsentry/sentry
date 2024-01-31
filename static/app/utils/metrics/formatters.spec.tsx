@@ -12,6 +12,7 @@ describe('formatMetricsUsingUnitAndOp', () => {
     expect(formatMetricsUsingUnitAndOp(600, 'byte')).toEqual('600 B');
     expect(formatMetricsUsingUnitAndOp(4096, 'kibibyte')).toEqual('4.0 MiB');
     expect(formatMetricsUsingUnitAndOp(3145728, 'megabyte')).toEqual('3.15 TB');
+    expect(formatMetricsUsingUnitAndOp(3145728, 'megabytes')).toEqual('3.15 TB');
     expect(formatMetricsUsingUnitAndOp(0.99, 'ratio')).toEqual('99%');
     expect(formatMetricsUsingUnitAndOp(99, 'percent')).toEqual('99%');
   });

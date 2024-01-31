@@ -74,58 +74,104 @@ function formatDuration(seconds: number): string {
 export const formattingSupportedMetricUnits = [
   'none',
   'nanosecond',
+  'nanoseconds',
   'microsecond',
+  'microseconds',
   'millisecond',
+  'milliseconds',
   'second',
+  'seconds',
   'minute',
+  'minutes',
   'hour',
+  'hours',
   'day',
+  'days',
   'week',
+  'weeks',
   'ratio',
   'percent',
+  'percents',
   'bit',
+  'bits',
   'byte',
+  'bytes',
   'kibibyte',
+  'kibibytes',
   'kilobyte',
+  'kilobytes',
   'mebibyte',
+  'mebibytes',
   'megabyte',
+  'megabytes',
   'gibibyte',
+  'gibibytes',
   'gigabyte',
+  'gigabytes',
   'tebibyte',
+  'tebibytes',
   'terabyte',
+  'terabytes',
   'pebibyte',
+  'pebibytes',
   'petabyte',
+  'petabytes',
   'exbibyte',
+  'exbibytes',
   'exabyte',
+  'exabytes',
 ] as const;
 
 type FormattingSupportedMetricUnit = (typeof formattingSupportedMetricUnits)[number];
 
 const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
   nanosecond: 'ns',
+  nanoseconds: 'ns',
   microsecond: 'μs',
+  microseconds: 'μs',
   millisecond: 'ms',
+  milliseconds: 'ms',
   second: 's',
+  seconds: 's',
   minute: 'min',
+  minutes: 'min',
   hour: 'hr',
+  hours: 'hr',
   day: 'day',
+  days: 'day',
   week: 'wk',
+  weeks: 'wk',
   ratio: '%',
   percent: '%',
+  percents: '%',
   bit: 'b',
+  bits: 'b',
   byte: 'B',
+  bytes: 'B',
   kibibyte: 'KiB',
+  kibibytes: 'KiB',
   kilobyte: 'KB',
+  kilobytes: 'KB',
   mebibyte: 'MiB',
+  mebibytes: 'MiB',
   megabyte: 'MB',
+  megabytes: 'MB',
   gibibyte: 'GiB',
+  gibibytes: 'GiB',
   gigabyte: 'GB',
+  gigabytes: 'GB',
   tebibyte: 'TiB',
+  tebibytes: 'TiB',
   terabyte: 'TB',
+  terabytes: 'TB',
   pebibyte: 'PiB',
+  pebibytes: 'PiB',
   petabyte: 'PB',
+  petabytes: 'PB',
   exbibyte: 'EiB',
+  exbibytes: 'EiB',
   exabyte: 'EB',
+  exabytes: 'EB',
   none: '',
 };
 
@@ -136,52 +182,75 @@ export function formatMetricUsingUnit(value: number | null, unit: string) {
 
   switch (unit as FormattingSupportedMetricUnit) {
     case 'nanosecond':
+    case 'nanoseconds':
       return formatDuration(value / 1000000000);
     case 'microsecond':
+    case 'microseconds':
       return formatDuration(value / 1000000);
     case 'millisecond':
+    case 'milliseconds':
       return formatDuration(value / 1000);
     case 'second':
+    case 'seconds':
       return formatDuration(value);
     case 'minute':
+    case 'minutes':
       return formatDuration(value * 60);
     case 'hour':
+    case 'hours':
       return formatDuration(value * 60 * 60);
     case 'day':
+    case 'days':
       return formatDuration(value * 60 * 60 * 24);
     case 'week':
+    case 'weeks':
       return formatDuration(value * 60 * 60 * 24 * 7);
     case 'ratio':
       return `${formatNumberWithDynamicDecimalPoints(value * 100)}%`;
     case 'percent':
+    case 'percents':
       return `${formatNumberWithDynamicDecimalPoints(value)}%`;
     case 'bit':
+    case 'bits':
       return formatBytesBase2(value / 8);
     case 'byte':
+    case 'bytes':
       return formatBytesBase10(value);
     case 'kibibyte':
+    case 'kibibytes':
       return formatBytesBase2(value * 1024);
     case 'kilobyte':
+    case 'kilobytes':
       return formatBytesBase10(value, 1);
     case 'mebibyte':
+    case 'mebibytes':
       return formatBytesBase2(value * 1024 ** 2);
     case 'megabyte':
+    case 'megabytes':
       return formatBytesBase10(value, 2);
     case 'gibibyte':
+    case 'gibibytes':
       return formatBytesBase2(value * 1024 ** 3);
     case 'gigabyte':
+    case 'gigabytes':
       return formatBytesBase10(value, 3);
     case 'tebibyte':
+    case 'tebibytes':
       return formatBytesBase2(value * 1024 ** 4);
     case 'terabyte':
+    case 'terabytes':
       return formatBytesBase10(value, 4);
     case 'pebibyte':
+    case 'pebibytes':
       return formatBytesBase2(value * 1024 ** 5);
     case 'petabyte':
+    case 'petabytes':
       return formatBytesBase10(value, 5);
     case 'exbibyte':
+    case 'exbibytes':
       return formatBytesBase2(value * 1024 ** 6);
     case 'exabyte':
+    case 'exabytes':
       return formatBytesBase10(value, 6);
     case 'none':
     default:
