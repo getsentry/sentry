@@ -69,7 +69,7 @@ def is_in_test_case_body() -> bool:
     exist; refactoring is encouraged if you find one.
 
     This should not be used as a general-purpose utility function. Avoid calling it
-    in places other than `validate_transaction_using_for_silo_mode` if it all possible.
+    in places other than `validate_transaction_using_for_silo_mode` if at all possible.
     """
     frames = [str(frame) for (frame, _) in traceback.walk_stack(None)]
 
