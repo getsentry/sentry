@@ -28,6 +28,7 @@ const {
   fid: FID_WEIGHT,
   cls: CLS_WEIGHT,
   ttfb: TTFB_WEIGHT,
+  inp: INP_WEIGHT,
 } = PERFORMANCE_SCORE_WEIGHTS;
 
 type Coordinates = {
@@ -142,6 +143,7 @@ function PerformanceScoreRingWithTooltips({
     fid: FID_WEIGHT,
     cls: CLS_WEIGHT,
     ttfb: TTFB_WEIGHT,
+    inp: INP_WEIGHT,
   },
   barWidth = 16,
   hideWebVitalLabels = false,

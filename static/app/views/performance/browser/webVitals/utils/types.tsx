@@ -5,6 +5,7 @@ export type Row = {
   'p75(measurements.cls)': number;
   'p75(measurements.fcp)': number;
   'p75(measurements.fid)': number;
+  'p75(measurements.inp)': number;
   'p75(measurements.lcp)': number;
   'p75(measurements.ttfb)': number;
   transaction: string;
@@ -32,6 +33,7 @@ type Score = {
   clsScore: number;
   fcpScore: number;
   fidScore: number;
+  inpScore: number;
   lcpScore: number;
   totalScore: number;
   ttfbScore: number;
@@ -39,10 +41,29 @@ type Score = {
 
 export type ScoreWithWeightsAndOpportunity = Score & Weight & Opportunity;
 
+export type InteractionSpanSampleRow = {
+  'measurements.inp': number;
+  'profile.id': string;
+  projectSlug: string;
+  replayId: string;
+  'segment.id': string;
+  'span.description': string;
+  'span.op': string;
+  'span.self_time': number;
+  timestamp: string;
+  totalScore: number;
+  'user.display': string;
+};
+
+export type InteractionSpanSampleRowWithScore = InteractionSpanSampleRow & {
+  inpScore: number;
+};
+
 export type Weight = {
   clsWeight: number;
   fcpWeight: number;
   fidWeight: number;
+  inpWeight: number;
   lcpWeight: number;
   ttfbWeight: number;
 };
@@ -57,7 +78,7 @@ export type RowWithScoreAndOpportunity = Row & Score & Opportunity;
 
 export type RowWithScore = Row & Score;
 
-export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid';
+export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid' | 'inp';
 
 // TODO: Refactor once stored scores are GA'd
 export const SORTABLE_SCORE_FIELDS = [
@@ -72,6 +93,7 @@ export const SORTABLE_FIELDS = [
   'p75(measurements.cls)',
   'p75(measurements.fcp)',
   'p75(measurements.fid)',
+  'p75(measurements.inp)',
   'p75(measurements.lcp)',
   'p75(measurements.ttfb)',
   ...SORTABLE_SCORE_FIELDS,
@@ -85,6 +107,7 @@ export const SORTABLE_INDEXED_FIELDS = [
   'measurements.cls',
   'measurements.ttfb',
   'measurements.fid',
+  'measurements.inp',
   ...SORTABLE_INDEXED_SCORE_FIELDS,
 ] as const;
 

@@ -45,6 +45,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
         fcp: projectScore.fcpWeight,
         lcp: projectScore.lcpWeight,
         ttfb: projectScore.ttfbWeight,
+        inp: projectScore.inpWeight,
       }
     : undefined;
 
