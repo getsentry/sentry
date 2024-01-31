@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Dict, List, Mapping, Optional, Sequence, Set, Tuple, cast
+from typing import Mapping, Optional, Sequence, cast
 
 import sentry_sdk
 from snuba_sdk import (
@@ -136,9 +136,9 @@ class MetricCorrelations:
 
 
 class QueryConditions:
-    def __init__(self, conditions: List[QueryCondition]):
+    def __init__(self, conditions: list[QueryCondition]):
         self._conditions = conditions
-        self._visitors: List[QueryConditionVisitor[QueryCondition]] = []
+        self._visitors: list[QueryConditionVisitor[QueryCondition]] = []
 
     @classmethod
     def build(cls, query: Optional[str], environments: Sequence[Environment]) -> "QueryConditions":
@@ -164,13 +164,13 @@ class QueryConditions:
         parsed_phantom_query = EnvironmentsInjectionVisitor(environments).visit(
             parsed_phantom_query
         )
-        return QueryConditions(cast(List[QueryCondition], parsed_phantom_query.filters))
+        return QueryConditions(cast(list[QueryCondition], parsed_phantom_query.filters))
 
     def add_visitor(self, visitor: QueryConditionVisitor[QueryCondition]) -> "QueryConditions":
         self._visitors.append(visitor)
         return self
 
-    def get(self) -> List[QueryCondition]:
+    def get(self) -> list[QueryCondition]:
         conditions = self._conditions
         for visitor in self._visitors:
             conditions = visitor.visit_group(conditions)
@@ -237,7 +237,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
-    ) -> Mapping[str, Tuple[float, float, float, float]]:
+    ) -> Mapping[str, tuple[float, float, float, float]]:
         """
         Returns a mapping between a span ids and the metrics summary for that span.
 
@@ -292,10 +292,10 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
 
     def _get_segments_spans(
         self,
-        span_ids: Set[str],
+        span_ids: set[str],
         start: datetime,
         end: datetime,
-    ) -> Mapping[str, Sequence[Tuple[str, int, datetime]]]:
+    ) -> Mapping[str, Sequence[tuple[str, int, datetime]]]:
         """
         Returns a mapping of the transaction id and all the correlated spans inside that segment.
         """
@@ -328,7 +328,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
 
         data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
 
-        segments_spans: Dict[str, List[Tuple[str, int, datetime]]] = {}
+        segments_spans: dict[str, list[tuple[str, int, datetime]]] = {}
         for value in data:
             segments_spans.setdefault(value["transaction_id"], []).append(
                 (value["span_id"], value["duration"], value["timestamp"])
@@ -420,7 +420,7 @@ class TransactionDurationCorrelationsSource(CorrelationsSource):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Segment]:
-        where: List[QueryCondition] = []
+        where: list[QueryCondition] = []
 
         conditions.add_visitor(TagsTransformationVisitor(check_sentry_tags=True))
         conditions.add_visitor(MappingTransformationVisitor(mappings=SENTRY_TAG_TO_COLUMN_NAME))
@@ -464,7 +464,7 @@ class MeasurementsCorrelationsSource(CorrelationsSource):
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Segment]:
-        where: List[QueryCondition] = []
+        where: list[QueryCondition] = []
 
         conditions.add_visitor(TagsTransformationVisitor(check_sentry_tags=True))
         conditions.add_visitor(MappingTransformationVisitor(mappings=SENTRY_TAG_TO_COLUMN_NAME))
@@ -611,12 +611,12 @@ def _get_segments(
         raise Exception("Error while fetching segments for the metric")
 
     # First, we build a reverse index on the span ops.
-    segment_ops: Dict[str, List[Tuple[str, int]]] = {}
+    segment_ops: dict[str, list[tuple[str, int]]] = {}
     for row in results[1]["data"]:
         segment_ops.setdefault(row["transaction_id"], []).append((row["op"], row["duration"]))
 
     # Second, we build the segment objects to return.
-    segments: List[Segment] = []
+    segments: list[Segment] = []
     for row in results[0]["data"]:
         spans_summary = [
             SpanSummary(span_op=op, total_duration=total_duration)

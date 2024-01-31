@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from sentry.spans.grouping.strategy.base import Span
 
@@ -13,7 +13,7 @@ class SpanBuilder:
         self.same_process_as_parent: bool = True
         self.op: str = "default"
         self.description: Optional[str] = None
-        self.fingerprint: Optional[List[str]] = None
+        self.fingerprint: Optional[list[str]] = None
         self.tags: Optional[Any] = None
         self.data: Optional[Any] = None
         self.hash: Optional[str] = None
@@ -30,7 +30,7 @@ class SpanBuilder:
         self.span_id = span_id
         return self
 
-    def with_fingerprint(self, fingerprint: List[str]) -> "SpanBuilder":
+    def with_fingerprint(self, fingerprint: list[str]) -> "SpanBuilder":
         self.fingerprint = fingerprint
         return self
 

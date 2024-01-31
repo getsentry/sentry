@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Sequence
+from typing import Any, Sequence
 
 from sentry.spans.grouping.result import SpanGroupingResults
 from sentry.spans.grouping.strategy.base import (
@@ -30,7 +30,7 @@ class SpanGroupingConfig:
         return SpanGroupingResults(self.id, results)
 
 
-CONFIGURATIONS: Dict[str, SpanGroupingConfig] = {}
+CONFIGURATIONS: dict[str, SpanGroupingConfig] = {}
 
 
 def register_configuration(config_id: str, strategies: Sequence[CallableStrategy]) -> None:

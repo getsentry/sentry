@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Optional
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
@@ -31,7 +31,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             "channel": {"type": "string", "placeholder": "i.e. General, Jane Schmidt"},
         }
 
-    def get_integrations(self) -> List[RpcIntegration]:
+    def get_integrations(self) -> list[RpcIntegration]:
         # NOTE: We exclude installations of `tenant` type to NOT show up in the team choices dropdown in alert rule actions
         # as currently, there is no way to query the API for users or channels within a `tenant` to send alerts to.
         return [

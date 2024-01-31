@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from snuba_sdk import Column, Function
 from snuba_sdk.query import SelectableExpression
@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-def apply_performance_conditions(conditions: List[Any], group: Group) -> List[Any]:
+def apply_performance_conditions(conditions: list[Any], group: Group) -> list[Any]:
     conditions.append([["has", ["group_ids", group.id]], "=", 1])
     return conditions
 

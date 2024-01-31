@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Union
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -25,7 +25,7 @@ class SourceMapProcessingIssueResponse(TypedDict):
 
 
 class SourceMapProcessingResponse(TypedDict):
-    errors: List[SourceMapProcessingIssueResponse]
+    errors: list[SourceMapProcessingIssueResponse]
 
 
 @region_silo_endpoint

@@ -2,7 +2,7 @@ import logging
 import random
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
+from typing import Any, Literal, Optional, Sequence, TypedDict, Union
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -54,7 +54,7 @@ _MAX_ON_DEMAND_ALERTS = 50
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
 _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL = 3600 * 0.5  # 30m
 
-HashedMetricSpec = Tuple[str, MetricSpec, SpecVersion]
+HashedMetricSpec = tuple[str, MetricSpec, SpecVersion]
 
 
 class HighCardinalityWidgetException(Exception):
@@ -65,7 +65,7 @@ class MetricExtractionConfig(TypedDict):
     """Configuration for generic extraction of metrics from all data categories."""
 
     version: int
-    metrics: List[MetricSpec]
+    metrics: list[MetricSpec]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
@@ -107,7 +107,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
+def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
     feature_names = [
         "organizations:on-demand-metrics-extraction",
         "organizations:on-demand-metrics-extraction-widgets",  # Controls extraction for widgets
@@ -125,8 +125,8 @@ def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
 
 @metrics.wraps("on_demand_metrics._get_alert_metric_specs")
 def _get_alert_metric_specs(
-    project: Project, enabled_features: Set[str], prefilling: bool
-) -> List[HashedMetricSpec]:
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
     if not ("organizations:on-demand-metrics-extraction" in enabled_features or prefilling):
         return []
 
@@ -183,8 +183,8 @@ def _get_alert_metric_specs(
 
 @metrics.wraps("on_demand_metrics._get_widget_metric_specs")
 def _get_widget_metric_specs(
-    project: Project, enabled_features: Set[str], prefilling: bool
-) -> List[HashedMetricSpec]:
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
     if "organizations:on-demand-metrics-extraction-widgets" not in enabled_features:
         metrics.incr("on_demand_metrics.get_widget_metric_specs.extraction_feature_disabled")
         return []
@@ -204,9 +204,9 @@ def _get_widget_metric_specs(
         "on_demand_metrics.widgets_to_process", amount=len(widget_queries), sample_rate=1.0
     )
 
-    ignored_widget_ids: Dict[int, bool] = {}
-    specs_for_widget: Dict[int, list[HashedMetricSpec]] = defaultdict(list)
-    specs: List[HashedMetricSpec] = []
+    ignored_widget_ids: dict[int, bool] = {}
+    specs_for_widget: dict[int, list[HashedMetricSpec]] = defaultdict(list)
+    specs: list[HashedMetricSpec] = []
 
     total_spec_count = 0
 
@@ -253,10 +253,10 @@ def _get_widget_metric_specs(
 
 
 def _trim_disabled_widgets(
-    ignored_widgets: Dict[int, bool], specs_for_widget: Dict[int, list[HashedMetricSpec]]
+    ignored_widgets: dict[int, bool], specs_for_widget: dict[int, list[HashedMetricSpec]]
 ) -> list[HashedMetricSpec]:
     """Specifically remove only widget specs that share a widget (spec limit, cardinality limit)."""
-    enabled_specs: List[HashedMetricSpec] = []
+    enabled_specs: list[HashedMetricSpec] = []
 
     for widget_id, specs in specs_for_widget.items():
         if not ignored_widgets.get(widget_id, None):
@@ -299,8 +299,8 @@ def _trim_if_above_limit(
 
 @metrics.wraps("on_demand_metrics._merge_metric_specs")
 def _merge_metric_specs(
-    alert_specs: List[HashedMetricSpec], widget_specs: List[HashedMetricSpec]
-) -> List[MetricSpec]:
+    alert_specs: list[HashedMetricSpec], widget_specs: list[HashedMetricSpec]
+) -> list[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
     specs: dict[str, MetricSpec] = {}
     duplicated_specs = 0
@@ -350,7 +350,7 @@ def convert_widget_query_to_metric(
     Converts a passed metrics widget query to one or more MetricSpecs.
     Widget query can result in multiple metric specs if it selects multiple fields
     """
-    metrics_specs: List[HashedMetricSpec] = []
+    metrics_specs: list[HashedMetricSpec] = []
 
     if not widget_query.aggregates:
         return metrics_specs
@@ -489,7 +489,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
     New queries will be checked upon creation and not allowed at that time.
     """
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "statsPeriod": "30m",
         "project_objects": [project],
         "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
@@ -722,7 +722,7 @@ _DEFAULT_THRESHOLD = _DefaultThreshold(
 def get_metric_conditional_tagging_rules(
     project: Project,
 ) -> Sequence[MetricConditionalTaggingRule]:
-    rules: List[MetricConditionalTaggingRule] = []
+    rules: list[MetricConditionalTaggingRule] = []
 
     # transaction-specific overrides must precede the project-wide threshold in the list of rules.
     for threshold_override in project.projecttransactionthresholdoverride_set.all().order_by(
@@ -1263,8 +1263,8 @@ _HISTOGRAM_OUTLIERS_QUERY_RESULTS = [
 
 
 def _parse_percentiles(
-    value: Union[Tuple[()], Tuple[str, str, str, str, str]]
-) -> Tuple[float, float]:
+    value: Union[tuple[()], tuple[str, str, str, str, str]]
+) -> tuple[float, float]:
     if not value:
         return 0, 0
     _min, p25, _p50, p75, _max = map(float, value)
@@ -1272,7 +1272,7 @@ def _parse_percentiles(
 
 
 def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditionalTaggingRule]:
-    rules: List[MetricConditionalTaggingRule] = []
+    rules: list[MetricConditionalTaggingRule] = []
     for row in query_results:
         platform = row["platform"]
         op = row["op"]

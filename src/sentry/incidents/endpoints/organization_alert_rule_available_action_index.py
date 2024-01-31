@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, DefaultDict, List, Mapping
+from typing import Any, DefaultDict, Mapping
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -102,7 +102,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
         actions = []
 
         # Cache Integration objects in this data structure to save DB calls.
-        provider_integrations: DefaultDict[str, List[RpcIntegration]] = defaultdict(list)
+        provider_integrations: DefaultDict[str, list[RpcIntegration]] = defaultdict(list)
         for integration in get_available_action_integrations_for_org(organization):
             provider_integrations[integration.provider].append(integration)
 

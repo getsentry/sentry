@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from enum import IntEnum, auto, unique
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, NamedTuple, Optional
 
 from sentry.utils import json
 
@@ -189,14 +189,14 @@ class ComparatorFinding(Finding):
     def pretty(self) -> str:
         return f"ComparatorFinding(\n    kind: {self.kind.name},{self._pretty_inner()}\n)"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
 class ComparatorFindings:
     """A wrapper type for a list of 'ComparatorFinding' which enables pretty-printing in asserts."""
 
-    def __init__(self, findings: List[ComparatorFinding]):
+    def __init__(self, findings: list[ComparatorFinding]):
         self.findings = findings
 
     def append(self, finding: ComparatorFinding) -> None:
@@ -205,7 +205,7 @@ class ComparatorFindings:
     def empty(self) -> bool:
         return not self.findings
 
-    def extend(self, findings: List[ComparatorFinding]) -> None:
+    def extend(self, findings: list[ComparatorFinding]) -> None:
         self.findings += findings
 
     def pretty(self) -> str:

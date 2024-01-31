@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry_redis_tools.sliding_windows_rate_limiter import GrantedQuota, Quota
@@ -22,7 +22,7 @@ class SlidingWindowRateLimiter(Service):
 
     def check_within_quotas(
         self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
-    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
+    ) -> tuple[Timestamp, Sequence[GrantedQuota]]:
         """
         Given a set of quotas requests and limits, compute how much quota could
         be consumed.
@@ -147,7 +147,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
 
     def check_within_quotas(
         self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
-    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
+    ) -> tuple[Timestamp, Sequence[GrantedQuota]]:
         return self.impl.check_within_quotas(requests, timestamp)
 
     def use_quotas(

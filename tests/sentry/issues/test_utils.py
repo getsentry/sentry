@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 from django.utils import timezone
 
@@ -67,7 +67,7 @@ class OccurrenceTestMixin:
 
     def process_occurrence(
         self, event_data: dict[str, Any] | None = None, **overrides
-    ) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+    ) -> tuple[IssueOccurrence, Optional[GroupInfo]]:
         """
         Testutil to build and process occurrence data instead of going through Kafka.
         This ensures the occurrence data is well-formed.
@@ -89,10 +89,10 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         fingerprints: Sequence[str],
         environment: Optional[str] = None,
         insert_time: Optional[datetime] = None,
-        tags: Optional[Sequence[Tuple[str, Any]]] = None,
+        tags: Optional[Sequence[tuple[str, Any]]] = None,
         release: Optional[str] = None,
-        user: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[Event, IssueOccurrence, Optional[GroupInfo]]:
+        user: Optional[dict[str, Any]] = None,
+    ) -> tuple[Event, IssueOccurrence, Optional[GroupInfo]]:
         from sentry.utils import snuba
 
         insert_timestamp = (insert_time if insert_time else timezone.now()).replace(microsecond=0)
@@ -158,8 +158,8 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
 def get_mock_groups_past_counts_response(
     num_days: int,
     num_hours: int,
-    groups: List[Group],
-) -> List[GroupsCountResponse]:
+    groups: list[Group],
+) -> list[GroupsCountResponse]:
     """
     Returns a mocked response of type `GroupsCountResponse` from `query_groups_past_counts`.
     Creates event count data for each group in `groups` for `num_days`, for `num_hours`.

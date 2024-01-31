@@ -5,7 +5,7 @@ import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
-from typing import Dict, List, Literal, Mapping, Optional
+from typing import Literal, Mapping, Optional
 
 import msgpack
 import sentry_sdk
@@ -58,7 +58,7 @@ CHECKIN_QUOTA_WINDOW = 60
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
-    config: Optional[Dict],
+    config: Optional[dict],
     quotas_outcome: PermitCheckInStatus,
 ):
     try:
@@ -131,7 +131,7 @@ def _ensure_monitor_with_config(
 
 
 def check_killswitch(
-    metric_kwargs: Dict,
+    metric_kwargs: dict,
     project: Project,
 ):
     """
@@ -149,7 +149,7 @@ def check_killswitch(
     return is_blocked
 
 
-def check_ratelimit(metric_kwargs: Dict, item: CheckinItem):
+def check_ratelimit(metric_kwargs: dict, item: CheckinItem):
     """
     Enforce check-in rate limits. Returns True if rate limit is enforced.
     """
@@ -175,7 +175,7 @@ def check_ratelimit(metric_kwargs: Dict, item: CheckinItem):
 
 def transform_checkin_uuid(
     txn: Transaction | Span,
-    metric_kwargs: Dict,
+    metric_kwargs: dict,
     monitor_slug: str,
     check_in_id: str,
 ):
@@ -220,7 +220,7 @@ def transform_checkin_uuid(
 
 def update_existing_check_in(
     txn: Transaction | Span,
-    metric_kwargs: Dict,
+    metric_kwargs: dict,
     project_id: int,
     monitor_environment: MonitorEnvironment,
     start_time: datetime,
@@ -762,7 +762,7 @@ def process_checkin(item: CheckinItem):
         logger.exception("Failed to process check-in")
 
 
-def process_checkin_group(items: List[CheckinItem]):
+def process_checkin_group(items: list[CheckinItem]):
     """
     Process a group of related check-ins (all part of the same monitor)
     completely serially.
@@ -783,7 +783,7 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
     batch = message.payload
 
     latest_partition_ts: Mapping[int, datetime] = {}
-    checkin_mapping: Mapping[str, List[CheckinItem]] = defaultdict(list)
+    checkin_mapping: Mapping[str, list[CheckinItem]] = defaultdict(list)
 
     for item in batch:
         assert isinstance(item, BrokerValue)

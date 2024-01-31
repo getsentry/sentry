@@ -14,7 +14,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Tuple
+from typing import Any
 
 from django.conf import settings
 from django.core.signing import BadSignature
@@ -187,7 +187,7 @@ class Superuser(ElevatedMode):
             return False
         return self._is_active
 
-    def is_privileged_request(self) -> Tuple[bool, InactiveReason]:
+    def is_privileged_request(self) -> tuple[bool, InactiveReason]:
         """
         Returns ``(bool is_privileged, RequestStatus reason)``
         """

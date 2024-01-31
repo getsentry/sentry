@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Iterable, Mapping, MutableMapping, Optional, Sequence
 
 from sentry.db.models.base import Model
 from sentry.models.organization import Organization
@@ -26,7 +26,7 @@ class MissingMembersNudgeNotification(BaseNotification):
     def __init__(
         self,
         organization: Organization,
-        commit_authors: Sequence[Dict[str, Any]],
+        commit_authors: Sequence[dict[str, Any]],
         provider: str,
     ) -> None:
         super().__init__(organization)

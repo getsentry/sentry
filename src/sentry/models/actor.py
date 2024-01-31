@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union, overload
+from typing import TYPE_CHECKING, Optional, Sequence, Union, overload
 
 import sentry_sdk
 from django.conf import settings
@@ -172,7 +172,7 @@ class Actor(Model):
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> Optional[tuple[int, ImportKind]]:
         if self.team is None:
             return super().write_relocation_import(scope, flags)
 

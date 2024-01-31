@@ -11,7 +11,7 @@ Tombstone row will not, therefore, cascade to any related cross silo rows.
 import datetime
 from dataclasses import dataclass
 from hashlib import sha1
-from typing import Any, List, Tuple, Type
+from typing import Any
 from uuid import uuid4
 
 import sentry_sdk
@@ -42,7 +42,7 @@ def get_watermark_key(prefix: str, field: HybridCloudForeignKey) -> str:
     return f"{prefix}.{field.model._meta.db_table}.{field.name}"
 
 
-def get_watermark(prefix: str, field: HybridCloudForeignKey) -> Tuple[int, str]:
+def get_watermark(prefix: str, field: HybridCloudForeignKey) -> tuple[int, str]:
     with redis.clusters.get("default").get_local_client_for_key("deletions.watermark") as client:
         key = get_watermark_key(prefix, field)
         v = client.get(key)
@@ -235,7 +235,7 @@ def get_batch_size() -> int:
 def _process_tombstone_reconciliation(
     field: HybridCloudForeignKey,
     model: Any,
-    tombstone_cls: Type[TombstoneBase],
+    tombstone_cls: type[TombstoneBase],
     row_after_tombstone: bool,
 ) -> bool:
     from sentry import deletions
@@ -252,7 +252,7 @@ def _process_tombstone_reconciliation(
         prefix, field, watermark_manager, batch_size=get_batch_size()
     )
     has_more = watermark_batch.has_more
-    to_delete_ids: List[int] = []
+    to_delete_ids: list[int] = []
 
     if watermark_batch.low < watermark_batch.up:
         oldest_seen: datetime.datetime = timezone.now()

@@ -1,7 +1,7 @@
 import hashlib
 import hmac
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -68,12 +68,12 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
 
     token_name = b"rpcsignature"
 
-    def accepts_auth(self, auth: List[bytes]) -> bool:
+    def accepts_auth(self, auth: list[bytes]) -> bool:
         if not auth or len(auth) < 2:
             return False
         return auth[0].lower() == self.token_name
 
-    def authenticate_token(self, request: Request, token: str) -> Tuple[Any, Any]:
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
@@ -105,7 +105,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return True
         return False
 
-    def _dispatch_to_local_method(self, method_name: str, arguments: Dict[str, Any]) -> Any:
+    def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
         # As seer is a single service, we just directly expose the methods instead of services.
@@ -117,7 +117,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise PermissionDenied
 
         try:
-            arguments: Dict[str, Any] = request.data["args"]
+            arguments: dict[str, Any] = request.data["args"]
         except KeyError as e:
             raise ParseError from e
         if not isinstance(arguments, dict):
@@ -140,7 +140,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         return Response(data=result)
 
 
-def on_autofix_step_update(*, issue_id: int, status: str, steps: List[dict]) -> None:
+def on_autofix_step_update(*, issue_id: int, status: str, steps: list[dict]) -> None:
     group: Group = Group.objects.get(id=issue_id)
 
     metadata = group.data.get("metadata", {})
@@ -156,9 +156,7 @@ def on_autofix_step_update(*, issue_id: int, status: str, steps: List[dict]) -> 
     group.save()
 
 
-def on_autofix_complete(
-    *, issue_id: int, status: str, steps: List[dict], fix: Optional[dict]
-) -> None:
+def on_autofix_complete(*, issue_id: int, status: str, steps: list[dict], fix: dict | None) -> None:
     group: Group = Group.objects.get(id=issue_id)
 
     metadata = group.data.get("metadata", {})

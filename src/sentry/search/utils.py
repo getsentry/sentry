@@ -4,18 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    FrozenSet,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence, Union
 
 from django.db import DataError, connections, router
 from django.utils import timezone as django_timezone
@@ -243,7 +232,7 @@ def parse_datetime_string(value: str) -> datetime:
     raise InvalidQuery(f"{value} is not a valid ISO8601 date query")
 
 
-ParsedDatetime = Optional[Tuple[datetime, bool]]
+ParsedDatetime = Optional[tuple[datetime, bool]]
 
 
 def parse_datetime_comparison(
@@ -387,7 +376,7 @@ def get_latest_release(
         else:
             date_project_ids.append(project_id)
 
-    versions: Set[str] = set()
+    versions: set[str] = set()
     versions.update(
         _run_latest_release_query(
             LatestReleaseOrders.SEMVER,
@@ -413,7 +402,7 @@ def get_latest_release(
     return list(sorted(versions))
 
 
-def _get_release_query_type_sql(query_type: LatestReleaseOrders, last: bool) -> Tuple[str, str]:
+def _get_release_query_type_sql(query_type: LatestReleaseOrders, last: bool) -> tuple[str, str]:
     direction = "DESC" if last else "ASC"
     extra_conditions = ""
     if query_type == LatestReleaseOrders.SEMVER:
@@ -526,7 +515,7 @@ def parse_release(
 
 
 numeric_modifiers: Sequence[
-    Tuple[str, Callable[[str, Union[int, float]], dict[str, Union[int, float, bool]]]]
+    tuple[str, Callable[[str, Union[int, float]], dict[str, Union[int, float, bool]]]]
 ] = [
     (
         ">=",
@@ -824,7 +813,7 @@ def convert_user_tag_to_query(key: str, value: str) -> Optional[str]:
 @dataclass
 class SupportedConditions:
     field_name: str
-    operators: Optional[FrozenSet[str]] = None
+    operators: Optional[frozenset[str]] = None
 
 
 supported_cdc_conditions = [
@@ -852,7 +841,7 @@ def validate_cdc_search_filters(search_filters: Optional[Sequence[SearchFilter]]
 
 
 # Mapping of device class to the store corresponding tag value
-DEVICE_CLASS: Dict[str, Set[str]] = {
+DEVICE_CLASS: dict[str, set[str]] = {
     "low": {"1"},
     "medium": {"2"},
     "high": {"3"},

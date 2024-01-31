@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Generic, List, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Callable, Generic, Optional, TypeVar, Union
 
 from django.db.models import Model, QuerySet
 
@@ -108,7 +108,7 @@ class FilterQueryDatabaseImpl(
         as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
         serializer: Optional[SERIALIZER_ENUM] = None,
-    ) -> List[OpaqueSerializedResponse]:
+    ) -> list[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
         from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -127,8 +127,8 @@ class FilterQueryDatabaseImpl(
             serializer=self.serialize_api(serializer),
         )
 
-    def get_many(self, filter: FILTER_ARGS) -> List[RPC_RESPONSE]:
+    def get_many(self, filter: FILTER_ARGS) -> list[RPC_RESPONSE]:
         return [self.serialize_rpc(o) for o in self._query_many(filter=filter)]
 
-    def get_many_ids(self, filter: FILTER_ARGS) -> List[int]:
+    def get_many_ids(self, filter: FILTER_ARGS) -> list[int]:
         return [o.id for o in self._query_many(filter=filter, ids_only=True)]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional, Set, TypedDict
+from typing import Any, Optional, TypedDict
 
 import sentry_sdk
 from django.core.cache import cache
@@ -565,7 +565,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization | RpcOrganization,
         release: Optional[Release] = None,
-        project_ids: Optional[Set[int]] = None,
+        project_ids: Optional[set[int]] = None,
     ) -> bool:
         """
         Does the given request have permission to access this release, based

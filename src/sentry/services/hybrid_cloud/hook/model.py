@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from pydantic.fields import Field
 
@@ -18,7 +18,7 @@ class RpcServiceHook(RpcModel):
     project_id: Optional[int] = None
     organization_id: Optional[int] = None
     url: str = ""
-    events: List[str] = Field(default_factory=list)
+    events: list[str] = Field(default_factory=list)
     status: int = 0
 
     def get_audit_log_data(self) -> Mapping[str, Any]:

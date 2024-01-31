@@ -10,13 +10,11 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Iterable,
-    List,
     Mapping,
     MutableMapping,
     MutableSet,
     Optional,
     Sequence,
-    Type,
 )
 
 import sentry_sdk
@@ -42,7 +40,7 @@ class RegisteredFeatureManager:
     """
 
     def __init__(self) -> None:
-        self._handler_registry: MutableMapping[str, List[FeatureHandler]] = defaultdict(list)
+        self._handler_registry: MutableMapping[str, list[FeatureHandler]] = defaultdict(list)
 
     def add_handler(self, handler: FeatureHandler) -> None:
         """
@@ -62,7 +60,7 @@ class RegisteredFeatureManager:
         return None
 
     @abc.abstractmethod
-    def _get_feature_class(self, name: str) -> Type[Feature]:
+    def _get_feature_class(self, name: str) -> type[Feature]:
         """
         We need this abstract method on this class because the `has_for_batch()`
         method instantiates a `FeatureCheckBatch` and sets `manager` as `self`
@@ -135,11 +133,11 @@ class RegisteredFeatureManager:
 class FeatureManager(RegisteredFeatureManager):
     def __init__(self) -> None:
         super().__init__()
-        self._feature_registry: MutableMapping[str, Type[Feature]] = {}
+        self._feature_registry: MutableMapping[str, type[Feature]] = {}
         self.entity_features: MutableSet[str] = set()
         self._entity_handler: Optional[FeatureHandler] = None
 
-    def all(self, feature_type: Type[Feature] = Feature) -> Mapping[str, Type[Feature]]:
+    def all(self, feature_type: type[Feature] = Feature) -> Mapping[str, type[Feature]]:
         """
         Get a mapping of feature name -> feature class, optionally specific to a
         particular feature type.
@@ -149,7 +147,7 @@ class FeatureManager(RegisteredFeatureManager):
     def add(
         self,
         name: str,
-        cls: Type[Feature] = Feature,
+        cls: type[Feature] = Feature,
         entity_feature_strategy: bool | FeatureHandlerStrategy = False,
     ) -> None:
         """
@@ -168,7 +166,7 @@ class FeatureManager(RegisteredFeatureManager):
             self.entity_features.add(name)
         self._feature_registry[name] = cls
 
-    def _get_feature_class(self, name: str) -> Type[Feature]:
+    def _get_feature_class(self, name: str) -> type[Feature]:
         try:
             return self._feature_registry[name]
         except KeyError:

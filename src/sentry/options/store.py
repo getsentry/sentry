@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from random import random
 from time import time
-from typing import Any, Optional, Set
+from typing import Any, Optional
 
 from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
@@ -38,7 +38,7 @@ class Key:
     cache_key: str
     grouping_info: Optional[GroupingInfo]
 
-    def has_any_flag(self, flags: Set[int]) -> bool:
+    def has_any_flag(self, flags: set[int]) -> bool:
         """
         Returns true if the option is registered with at least one
         of the flags passed as argument.

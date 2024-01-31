@@ -1,5 +1,5 @@
 import sys
-from typing import Any, Optional, Set
+from typing import Any, Optional
 
 import click
 from yaml import safe_load
@@ -12,7 +12,7 @@ def _attempt_update(
     presenter_delegator: PresenterDelegator,
     key: str,
     value: Any,
-    drifted_options: Set[str],
+    drifted_options: set[str],
     dry_run: bool,
     hide_drift: bool,
 ) -> None:

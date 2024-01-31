@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import reduce
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Mapping, Optional, Sequence, Union
 
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from sentry_relay.processing import parse_release as parse_release_relay
@@ -65,7 +65,7 @@ def translate_transaction_status(val: str) -> str:
     return SPAN_STATUS_NAME_TO_CODE[val]
 
 
-def to_list(value: Union[List[str], str]) -> List[str]:
+def to_list(value: Union[list[str], str]) -> list[str]:
     if isinstance(value, list):
         return value
     return [value]
@@ -318,7 +318,7 @@ def _release_stage_filter_converter(
     search_filter: SearchFilter,
     name: str,
     params: Optional[Mapping[str, Union[int, str, datetime]]],
-) -> Tuple[str, str, Sequence[str]]:
+) -> tuple[str, str, Sequence[str]]:
     """
     Parses a release stage search and returns a snuba condition to filter to the
     requested releases.
@@ -357,7 +357,7 @@ def _semver_filter_converter(
     search_filter: SearchFilter,
     name: str,
     params: Optional[Mapping[str, Union[int, str, datetime]]],
-) -> Tuple[str, str, Sequence[str]]:
+) -> tuple[str, str, Sequence[str]]:
     """
     Parses a semver query search and returns a snuba condition to filter to the
     requested releases.
@@ -431,7 +431,7 @@ def _semver_package_filter_converter(
     search_filter: SearchFilter,
     name: str,
     params: Optional[Mapping[str, Union[int, str, datetime]]],
-) -> Tuple[str, str, Sequence[str]]:
+) -> tuple[str, str, Sequence[str]]:
     """
     Applies a semver package filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
@@ -462,7 +462,7 @@ def _semver_build_filter_converter(
     search_filter: SearchFilter,
     name: str,
     params: Optional[Mapping[str, Union[int, str, datetime]]],
-) -> Tuple[str, str, Sequence[str]]:
+) -> tuple[str, str, Sequence[str]]:
     """
     Applies a semver build filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
@@ -497,7 +497,7 @@ def _semver_build_filter_converter(
     return ["release", "IN", versions]
 
 
-def handle_operator_negation(operator: str) -> Tuple[str, bool]:
+def handle_operator_negation(operator: str) -> tuple[str, bool]:
     negated = False
     if operator == "!=":
         negated = True

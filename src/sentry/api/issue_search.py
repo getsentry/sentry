@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
+from typing import Callable, Iterable, Mapping, Optional, Sequence, Union
 
 from sentry.api.event_search import (
     AggregateFilter,
@@ -82,7 +82,7 @@ ValueConverter = Callable[
         User,
         Optional[Sequence[Environment]],
     ],
-    Union[str, List[str], List[Optional[Union[User, Team]]], List[User], List[int]],
+    Union[str, list[str], list[Optional[Union[User, Team]]], list[User], list[int]],
 ]
 
 
@@ -91,7 +91,7 @@ def convert_actor_or_none_value(
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[Optional[Union[User, Team]]]:
+) -> list[Optional[Union[User, Team]]]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of actors here, but we can look into batching it if needed.
     actors_or_none = []
@@ -108,7 +108,7 @@ def convert_user_value(
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[User]:
+) -> list[User]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of usernames here, but we can look into batching it if needed.
     return [parse_user_value(username, user) for username in value]
@@ -119,10 +119,10 @@ def convert_release_value(
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> Union[str, List[str]]:
+) -> Union[str, list[str]]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    releases: Set[str] = set()
+    releases: set[str] = set()
     for version in value:
         releases.update(parse_release(version, projects, environments))
     results = list(releases)
@@ -136,10 +136,10 @@ def convert_first_release_value(
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[str]:
+) -> list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    releases: Set[str] = set()
+    releases: set[str] = set()
     for version in value:
         releases.update(parse_release(version, projects, environments))
     return list(releases)
@@ -165,7 +165,7 @@ def convert_status_value(
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[int]:
+) -> list[int]:
     parsed = []
     for status in value:
         try:
@@ -180,9 +180,9 @@ def convert_category_value(
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[int]:
+) -> list[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
-    results: List[int] = []
+    results: list[int] = []
     for category in value:
         group_category = getattr(GroupCategory, category.upper(), None)
         if not group_category:
@@ -196,7 +196,7 @@ def convert_type_value(
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[int]:
+) -> list[int]:
     """Convert a value like 'error' or 'performance_n_plus_one_db_queries' to the GroupType value for issue lookup"""
     results = []
     for type in value:
@@ -212,7 +212,7 @@ def convert_device_class_value(
     projects: Sequence[Project],
     user: User,
     environments: Optional[Sequence[Environment]],
-) -> List[str]:
+) -> list[str]:
     """Convert high, medium, and low to the underlying device class values"""
     results = set()
     for device_class in value:
@@ -245,7 +245,7 @@ def convert_query_values(
     user: Optional[User | RpcUser],
     environments: Optional[Sequence[Environment]],
     value_converters=value_converters,
-) -> List[SearchFilter]:
+) -> list[SearchFilter]:
     """
     Accepts a collection of SearchFilter objects and converts their values into
     a specific format, based on converters specified in `value_converters`.

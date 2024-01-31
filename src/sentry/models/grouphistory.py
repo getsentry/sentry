@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
 from django.db import models
 from django.db.models import SET_NULL, Q
@@ -291,7 +291,7 @@ def record_group_history(
 
 
 def bulk_record_group_history(
-    groups: List["Group"],
+    groups: list["Group"],
     status: int,
     actor: Optional[Union["User", "RpcUser", "Team"]] = None,
     release: Optional["Release"] = None,

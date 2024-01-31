@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.integration.model import (
@@ -33,7 +33,7 @@ class IntegrationService(RpcService):
     def page_integration_ids(
         self,
         *,
-        provider_keys: List[str],
+        provider_keys: list[str],
         organization_id: int,
         args: RpcPaginationArgs,
     ) -> RpcPaginationResult:
@@ -57,7 +57,7 @@ class IntegrationService(RpcService):
         self,
         *,
         organization_id: int,
-        statuses: List[int],
+        statuses: list[int],
         provider_key: Optional[str] = None,
         args: RpcPaginationArgs,
     ) -> RpcPaginationResult:
@@ -68,18 +68,17 @@ class IntegrationService(RpcService):
     def get_integrations(
         self,
         *,
-        integration_ids: Optional[List[int]] = None,
+        integration_ids: Optional[list[int]] = None,
         organization_id: Optional[int] = None,
         status: Optional[int] = None,
-        providers: Optional[List[str]] = None,
+        providers: Optional[list[str]] = None,
         org_integration_status: Optional[int] = None,
         limit: Optional[int] = None,
         organization_integration_id: Optional[int] = None,
-    ) -> List[RpcIntegration]:
+    ) -> list[RpcIntegration]:
         """
         Returns all RpcIntegrations matching the provided kwargs.
         """
-        pass
 
     @rpc_method
     @abstractmethod
@@ -96,29 +95,27 @@ class IntegrationService(RpcService):
         """
         Returns an RpcIntegration using either the id or a combination of the provider and external_id
         """
-        pass
 
     @rpc_method
     @abstractmethod
     def get_organization_integrations(
         self,
         *,
-        org_integration_ids: Optional[List[int]] = None,
+        org_integration_ids: Optional[list[int]] = None,
         integration_id: Optional[int] = None,
         organization_id: Optional[int] = None,
-        organization_ids: Optional[List[int]] = None,
+        organization_ids: Optional[list[int]] = None,
         status: Optional[int] = None,
-        providers: Optional[List[str]] = None,
+        providers: Optional[list[str]] = None,
         has_grace_period: Optional[bool] = None,
         grace_period_expired: Optional[bool] = None,
         limit: Optional[int] = None,
-    ) -> List[RpcOrganizationIntegration]:
+    ) -> list[RpcOrganizationIntegration]:
         """
         Returns all RpcOrganizationIntegrations from the matching kwargs.
         If providers is set, it will also be filtered by the integration providers set in the list.
         If has_grace_period is set, it will filter by whether the grace_period is null or not.
         """
-        pass
 
     @rpc_method
     def get_organization_integration(
@@ -141,12 +138,11 @@ class IntegrationService(RpcService):
         integration_id: Optional[int] = None,
         provider: Optional[str] = None,
         external_id: Optional[str] = None,
-    ) -> Tuple[Optional[RpcIntegration], Optional[RpcOrganizationIntegration]]:
+    ) -> tuple[Optional[RpcIntegration], Optional[RpcOrganizationIntegration]]:
         """
         Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
         by either integration_id, or a combination of provider and external_id.
         """
-        pass
 
     @rpc_method
     @abstractmethod
@@ -157,33 +153,31 @@ class IntegrationService(RpcService):
         integration_id: Optional[int] = None,
         provider: Optional[str] = None,
         external_id: Optional[str] = None,
-    ) -> Tuple[Optional[RpcIntegration], List[RpcOrganizationIntegration]]:
+    ) -> tuple[Optional[RpcIntegration], list[RpcOrganizationIntegration]]:
         """
         Returns a tuple of RpcIntegration and RpcOrganizationIntegrations. The integrations are selected
         by either integration_id, or a combination of provider and external_id.
         """
-        pass
 
     @rpc_method
     @abstractmethod
     def update_integrations(
         self,
         *,
-        integration_ids: List[int],
+        integration_ids: list[int],
         name: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
         status: Optional[int] = None,
-    ) -> List[RpcIntegration]:
+    ) -> list[RpcIntegration]:
         """
         Returns a list of RpcIntegrations after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
-        pass
 
     @rpc_method
     @abstractmethod
     def add_organization(
-        self, *, integration_id: int, org_ids: List[int]
+        self, *, integration_id: int, org_ids: list[int]
     ) -> Optional[RpcIntegration]:
         """
         Adds organizations to an existing integration
@@ -196,31 +190,29 @@ class IntegrationService(RpcService):
         *,
         integration_id: int,
         name: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
         status: Optional[int] = None,
     ) -> Optional[RpcIntegration]:
         """
         Returns an RpcIntegration after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
-        pass
 
     @rpc_method
     @abstractmethod
     def update_organization_integrations(
         self,
         *,
-        org_integration_ids: List[int],
-        config: Optional[Dict[str, Any]] = None,
+        org_integration_ids: list[int],
+        config: Optional[dict[str, Any]] = None,
         status: Optional[int] = None,
         grace_period_end: Optional[datetime] = None,
         set_grace_period_end_null: Optional[bool] = None,
-    ) -> List[RpcOrganizationIntegration]:
+    ) -> list[RpcOrganizationIntegration]:
         """
         Returns a list of RpcOrganizationIntegrations after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
-        pass
 
     @rpc_method
     @abstractmethod
@@ -228,7 +220,7 @@ class IntegrationService(RpcService):
         self,
         *,
         org_integration_id: int,
-        config: Optional[Dict[str, Any]] = None,
+        config: Optional[dict[str, Any]] = None,
         status: Optional[int] = None,
         grace_period_end: Optional[datetime] = None,
         set_grace_period_end_null: Optional[bool] = None,
@@ -237,7 +229,6 @@ class IntegrationService(RpcService):
         Returns an RpcOrganizationIntegration after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
-        pass
 
     @rpc_method
     @abstractmethod
@@ -258,7 +249,7 @@ class IntegrationService(RpcService):
     @rpc_method
     @abstractmethod
     def send_msteams_incident_alert_notification(
-        self, *, integration_id: int, channel: str, attachment: Dict[str, Any]
+        self, *, integration_id: int, channel: str, attachment: dict[str, Any]
     ) -> bool:
         raise NotImplementedError
 
@@ -278,7 +269,7 @@ class IntegrationService(RpcService):
     @abstractmethod
     def get_integration_external_projects(
         self, *, organization_id: int, integration_id: int, external_id: str | None = None
-    ) -> List[RpcIntegrationExternalProject]:
+    ) -> list[RpcIntegrationExternalProject]:
         pass
 
     @rpc_method

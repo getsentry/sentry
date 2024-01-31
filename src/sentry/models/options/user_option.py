@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional
 
 from django.conf import settings
 from django.db import models
@@ -211,7 +211,7 @@ class UserOption(Model):
 
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> Optional[tuple[int, ImportKind]]:
         # TODO(getsentry/team-ospo#190): This circular import is a bit gross. See if we can't find a
         # better place for this logic to live.
         from sentry.api.endpoints.user_details import UserOptionsSerializer

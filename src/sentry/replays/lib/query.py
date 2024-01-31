@@ -1,6 +1,6 @@
 """Dynamic query parsing library."""
 import uuid
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import Column, Condition, Function, Identifier, Lambda, Op
@@ -45,7 +45,7 @@ class Field:
         self.operators = operators or self._operators
         self.validators = validators or []
 
-    def deserialize_operator(self, operator: str) -> Tuple[Any, List[str]]:
+    def deserialize_operator(self, operator: str) -> tuple[Any, list[str]]:
         op = OPERATOR_MAP.get(operator)
         if op is None:
             return None, ["Operator not found."]
@@ -54,7 +54,7 @@ class Field:
         else:
             return op, []
 
-    def deserialize_values(self, values: List[str]) -> Tuple[List[Any], List[str]]:
+    def deserialize_values(self, values: list[str]) -> tuple[list[Any], list[str]]:
         parsed_values = []
         for value in values:
             parsed_value, errors = self.deserialize_value(value)
@@ -65,7 +65,7 @@ class Field:
 
         return parsed_values, []
 
-    def deserialize_value(self, value: Union[List[str], str]) -> Tuple[Any, List[str]]:
+    def deserialize_value(self, value: Union[list[str], str]) -> tuple[Any, list[str]]:
         if isinstance(value, list):
             return self.deserialize_values(value)
 
@@ -88,7 +88,7 @@ class Field:
         self,
         field_alias: str,
         operator: Op,
-        value: Union[List[str], str],
+        value: Union[list[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
         return Condition(Column(self.query_alias or self.attribute_name), operator, value)
@@ -104,7 +104,7 @@ class UUIDField(Field):
     _python_type = str
 
     def as_condition(
-        self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
+        self, field_alias: str, operator: Op, value: Union[list[str], str], is_wildcard: bool
     ) -> Condition:
         if isinstance(value, list):
             uuids = _transform_uuids(value)
@@ -129,7 +129,7 @@ class IPAddress(Field):
         self,
         field_alias: str,
         operator: Op,
-        value: Union[List[str], str],
+        value: Union[list[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
         if isinstance(value, list):
@@ -145,7 +145,7 @@ class String(Field):
     _python_type = str
 
     def as_condition(
-        self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
+        self, field_alias: str, operator: Op, value: Union[list[str], str], is_wildcard: bool
     ) -> Condition:
         if is_wildcard:
             return Condition(
@@ -162,11 +162,11 @@ class Selector(Field):
     _python_type = str
 
     def as_condition(
-        self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
+        self, field_alias: str, operator: Op, value: Union[list[str], str], is_wildcard: bool
     ) -> Condition:
         # This list of queries implies an `OR` operation between each item in the set. To `AND`
         # selector queries apply them separately.
-        queries: List[QueryType] = parse_selector(value)
+        queries: list[QueryType] = parse_selector(value)
 
         # A valid selector will always return at least one query condition. If this did not occur
         # then the selector was not well-formed. We return an empty resultset.
@@ -174,7 +174,7 @@ class Selector(Field):
             return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
 
         # Conditions are pre-made and intended for application in the HAVING clause.
-        conditions: List[Condition] = []
+        conditions: list[Condition] = []
 
         for query in queries:
             columns, values = [], []
@@ -223,7 +223,7 @@ class ListField(Field):
     _python_type = None
 
     def as_condition(
-        self, _: str, operator: Op, value: Union[List[str], str], is_wildcard: bool = False
+        self, _: str, operator: Op, value: Union[list[str], str], is_wildcard: bool = False
     ) -> Condition:
         if operator in [Op.EQ, Op.NEQ]:
             if is_wildcard:
@@ -253,7 +253,7 @@ class ListField(Field):
     def _has_condition(
         self,
         operator: Op,
-        value: Union[List[str], str],
+        value: Union[list[str], str],
     ) -> Condition:
         if isinstance(value, list):
             return self._has_any_condition(Op.IN if operator == Op.EQ else Op.NOT_IN, value)
@@ -279,7 +279,7 @@ class ListField(Field):
     def _has_any_condition(
         self,
         operator: Op,
-        values: Union[List[str], str],
+        values: Union[list[str], str],
     ) -> Condition:
         if not isinstance(values, list):
             return self._has_condition(Op.EQ if operator == Op.IN else Op.NEQ, values)
@@ -314,7 +314,7 @@ class Tag(Field):
         kwargs.pop("operators", None)
         return super().__init__(**kwargs)
 
-    def deserialize_operator(self, operator: str) -> Tuple[Op, List[str]]:
+    def deserialize_operator(self, operator: str) -> tuple[Op, list[str]]:
         op = OPERATOR_MAP.get(operator)
         if op is None:
             return None, ["Operator not found."]
@@ -327,7 +327,7 @@ class Tag(Field):
         self,
         field_alias: str,
         operator: Op,
-        value: Union[List[str], str],
+        value: Union[list[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
 
@@ -354,7 +354,7 @@ class Tag(Field):
         )
 
     def _filter_tag_by_value(
-        self, key: str, values: Union[List[str], str], operator: Op
+        self, key: str, values: Union[list[str], str], operator: Op
     ) -> Condition:
         """Helper function that allows filtering a tag by multiple values."""
         expected = 0 if operator not in (Op.EQ, Op.IN) else 1
@@ -379,7 +379,7 @@ class InvalidField(Field):
     _python_type = str
 
     def as_condition(
-        self, _: str, operator: Op, value: Union[List[str], str], is_wildcard: bool = False
+        self, _: str, operator: Op, value: Union[list[str], str], is_wildcard: bool = False
     ) -> Condition:
         raise ParseError()
 
@@ -389,20 +389,20 @@ class InvalidField(Field):
     def _has_condition(
         self,
         operator: Op,
-        value: Union[List[str], str],
+        value: Union[list[str], str],
     ) -> Condition:
         raise ParseError()
 
     def _has_any_condition(
         self,
         operator: Op,
-        values: Union[List[str], str],
+        values: Union[list[str], str],
     ) -> Condition:
         raise ParseError()
 
 
 class QueryConfig:
-    def __init__(self, only: Optional[Tuple[str]] = None) -> None:
+    def __init__(self, only: Optional[tuple[str]] = None) -> None:
         self.fields = {}
         for field_name in only or self.__class__.__dict__:
             field = getattr(self, field_name)
@@ -429,10 +429,10 @@ class QueryConfig:
 
 
 def generate_valid_conditions(
-    query: List[Union[SearchFilter, ParenExpression, str]], query_config: QueryConfig
-) -> List[Expression]:
+    query: list[Union[SearchFilter, ParenExpression, str]], query_config: QueryConfig
+) -> list[Expression]:
     """Convert search filters to snuba conditions."""
-    result: List[Expression] = []
+    result: list[Expression] = []
     look_back = None
     for search_filter in query:
         # SearchFilters are appended to the result set.  If they are top level filters they are
@@ -499,7 +499,7 @@ def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) 
 
 
 def attempt_compressed_condition(
-    result: List[Expression],
+    result: list[Expression],
     condition: Condition,
     condition_type: Union[And, Or],
 ):
@@ -520,7 +520,7 @@ def get_valid_sort_commands(
     sort: Optional[str],
     default: OrderBy,
     query_config: QueryConfig,
-) -> List[OrderBy]:
+) -> list[OrderBy]:
     if not sort:
         return [default]
 
@@ -595,7 +595,7 @@ def _wildcard_search_function(value, identifier):
 # Helpers
 
 
-def _transform_uuids(values: List[str]) -> Optional[List[str]]:
+def _transform_uuids(values: list[str]) -> Optional[list[str]]:
     try:
         return [str(uuid.UUID(value)) for value in values]
     except ValueError:
