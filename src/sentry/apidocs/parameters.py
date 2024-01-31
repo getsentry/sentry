@@ -375,3 +375,64 @@ class IntegrationParams:
         type=bool,
         description="""Specify `True` to fetch third-party integration configurations. Note that this can add several seconds to the response time.""",
     )
+
+
+class SessionsParams:
+    FIELD = OpenApiParameter(
+        name="field",
+        location="query",
+        required=True,
+        type=str,
+        many=True,
+        description="""The list of fields to query.\n\nThe available fields are\n  - `sum(session)`\n  - `count_unique("
+                    "user)`\n  - `avg`, `p50`, `p75`, `p90`, `p95`, `p99`, `max` applied to `session.duration`. For "
+                    "example, `p99(session.duration)`. Session duration is [no longer being recorded]("
+                    "https://github.com/getsentry/sentry/discussions/42716) as of on Jan 12, 2023. Returned data may "
+                    "be incomplete.\n  - `crash_rate`, `crash_free_rate` applied to `user` or `session`. For example, "
+                    "`crash_free_rate(user)`""",
+    )
+    INTERVAL = OpenApiParameter(
+        name="interval",
+        location="query",
+        required=False,
+        type=str,
+        description="""Resolution of the time series, given in the same format as `statsPeriod`.\n\nThe default and
+        the minimum interval is `1h`.""",
+    )
+    PER_PAGE = OpenApiParameter(
+        name="per_page",
+        location="query",
+        required=False,
+        type=int,
+        description="""The number of groups to return per request.""",
+    )
+    GROUP_BY = OpenApiParameter(
+        name="groupBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The list of properties to group by.\n\nThe available groupBy conditions are `project`,
+        `release`, `environment` and `session.status`.""",
+    )
+    ORDER_BY = OpenApiParameter(
+        name="orderBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""An optional field to order by, which must be one of the fields provided in `field`. Use `-`
+        for descending order, for example `-sum(session)`""",
+    )
+    INCLUDE_TOTALS = OpenApiParameter(
+        name="includeTotals",
+        location="query",
+        required=False,
+        type=int,
+        description="""Specify `0` to exclude totals from the response. The default is `1`""",
+    )
+    INCLUDE_SERIES = OpenApiParameter(
+        name="includeSeries",
+        location="query",
+        required=False,
+        type=int,
+        description="""Specify `0` to exclude series from the response. The default is `1`""",
+    )
