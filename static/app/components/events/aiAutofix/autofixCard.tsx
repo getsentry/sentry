@@ -15,7 +15,7 @@ export function AutofixCard({data, onRetry}: {data: AutofixData; onRetry: () => 
   const hasSteps = data.steps && data.steps.length > 0;
 
   return (
-    <Wrapper>
+    <AutofixPanel>
       <Header>
         <Title>
           {t('AI Autofix')}
@@ -36,7 +36,7 @@ export function AutofixCard({data, onRetry}: {data: AutofixData; onRetry: () => 
           <FixResult autofixData={data} onRetry={onRetry} />
         </Footer>
       )}
-    </Wrapper>
+    </AutofixPanel>
   );
 }
 
@@ -48,7 +48,7 @@ const Body = styled(PanelBody)`
 const Header = styled(PanelHeader)`
   align-items: center;
   background: transparent;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   padding: ${space(1)} ${space(2)};
 `;
 
@@ -68,7 +68,7 @@ const Title = styled('div')`
   line-height: ${space(2)};
 `;
 
-const Wrapper = styled(Panel)`
+const AutofixPanel = styled(Panel)`
   margin-bottom: 0;
   overflow: hidden;
 `;
