@@ -510,6 +510,7 @@ module = [
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
     "sentry.tsdb.redis",
+"sentry.tsdb.snuba",
     "sentry.types.integrations",
     "sentry.utils.audit",
     "sentry.utils.auth",
@@ -529,7 +530,6 @@ module = [
     "sentry.utils.sentry_apps.webhooks",
     "sentry.utils.services",
     "sentry.utils.snowflake",
-    "sentry.utils.snuba",
     "sentry.utils.suspect_resolutions.get_suspect_resolutions",
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.web.client_config",
@@ -646,6 +646,6 @@ module = [
     "src.sentry.snuba.metrics.extraction",
     "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.relay.config.test_metric_extraction",
-]
+    ]
 disallow_untyped_defs = true
 # end: stronger typing

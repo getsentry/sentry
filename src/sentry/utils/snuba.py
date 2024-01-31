@@ -430,7 +430,7 @@ def to_naive_timestamp(value):
 
 def to_start_of_hour(dt: datetime) -> datetime:
     """This is a function that mimics toStartOfHour from Clickhouse"""
-    return dt.replace(minute=0, second=0, microsecond=0).isoformat()
+    return dt.replace(minute=0, second=0, microsecond=0)
 
 
 def get_snuba_column_name(name, dataset=Dataset.Events):
@@ -522,7 +522,9 @@ def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int
     return list(set.union(*ids))
 
 
-def get_query_params_to_update_for_projects(query_params, with_org=False):
+def get_query_params_to_update_for_projects(
+    query_params: SnubaQueryParams, with_org: bool = False
+) -> tuple[int, MutableMapping[str, Any]]:
     """
     Get the project ID and query params that need to be updated for project
     based datasets, before we send the query to Snuba.
@@ -549,7 +551,7 @@ def get_query_params_to_update_for_projects(query_params, with_org=False):
 
     organization_id = get_organization_id_from_project_ids(project_ids)
 
-    params = {"project": project_ids}
+    params: MutableMapping[str, Any] = {"project": project_ids}
     if with_org:
         params["organization"] = organization_id
 
@@ -593,6 +595,8 @@ def _prepare_start_end(
         start = datetime(2008, 5, 8)
     if not end:
         end = datetime.utcnow() + timedelta(seconds=1)
+    assert isinstance(start, datetime)
+    assert isinstance(end, datetime)
 
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
@@ -907,9 +911,11 @@ def _apply_cache_and_build_results(
 
     if to_query:
         query_results = _bulk_snuba_query([item[1] for item in to_query], headers)
-        for result, (query_pos, _, cache_key) in zip(query_results, to_query):
-            if cache_key:
-                cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
+        for result, (query_pos, _, opt_cache_key) in zip(query_results, to_query):
+            if opt_cache_key:
+                cache.set(
+                    opt_cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS
+                )
             results.append((query_pos, result))
 
     # Sort so that we get the results back in the original param list order
@@ -1147,7 +1153,9 @@ def query(
             return nest_groups(body["data"], groupby, aggregate_names + selected_names)
 
 
-def nest_groups(data, groups, aggregate_cols):
+def nest_groups(
+    data: MutableMapping[Any, Any], groups: Optional[list[str]], aggregate_cols: list[str]
+) -> MutableMapping[Any, Any] | None:
     """
     Build a nested mapping from query response rows. Each group column
     gives a new level of nesting and the leaf result is the aggregate
@@ -1161,14 +1169,14 @@ def nest_groups(data, groups, aggregate_cols):
             return {c: data[0][c] for c in aggregate_cols} if data else None
     else:
         g, rest = groups[0], groups[1:]
-        inter = {}
+        inter: dict[Any, Any] = {}
         for d in data:
             inter.setdefault(d[g], []).append(d)
         return {k: nest_groups(v, rest, aggregate_cols) for k, v in inter.items()}
 
 
-def resolve_column(dataset) -> Callable[[str], str]:
-    def _resolve_column(col: str) -> str:
+def resolve_column(dataset) -> Callable[[Any], Any]:
+    def _resolve_column(col: Any) -> Any:
         if col is None:
             return col
         if isinstance(col, int) or isinstance(col, float):
@@ -1208,7 +1216,7 @@ def resolve_column(dataset) -> Callable[[str], str]:
     return _resolve_column
 
 
-def resolve_condition(cond, column_resolver):
+def resolve_condition(cond: list, column_resolver: Callable[[Any], Any]) -> Sequence[Any]:
     """
     When conditions have been parsed by the api.event_search module
     we can end up with conditions that are not valid on the current dataset
@@ -1239,6 +1247,7 @@ def resolve_condition(cond, column_resolver):
             for i, arg in enumerate(func_args):
                 if i == 0:
                     if isinstance(arg, (list, tuple)):
+                        assert isinstance(arg, list)
                         func_args[i] = resolve_condition(arg, column_resolver)
                     else:
                         func_args[i] = column_resolver(arg)
@@ -1253,6 +1262,7 @@ def resolve_condition(cond, column_resolver):
             # Nested function
             try:
                 if isinstance(arg, (list, tuple)):
+                    assert isinstance(arg, list)
                     func_args[i] = resolve_condition(arg, column_resolver)
                 else:
                     func_args[i] = column_resolver(arg)
@@ -1269,6 +1279,7 @@ def resolve_condition(cond, column_resolver):
             return cond
         if isinstance(cond[0], (list, tuple)):
             if get_function_index(cond[0]) is not None:
+                assert isinstance(cond[0], list)
                 cond[0] = resolve_condition(cond[0], column_resolver)
                 return cond
             else:
@@ -1298,7 +1309,7 @@ def _aliased_query_impl(**kwargs):
 
 
 def resolve_conditions(
-    conditions: Sequence[Any] | None, column_resolver: Callable[[str], str]
+    conditions: Sequence[Any] | None, column_resolver: Callable[[Any], Any]
 ) -> Sequence[Any] | None:
     if conditions is None:
         return conditions
@@ -1331,7 +1342,7 @@ def aliased_query_params(
         raise ValueError("A dataset is required, and is no longer automatically detected.")
 
     derived_columns = []
-    resolve_func = resolve_column(dataset)
+    resolve_func: Callable = resolve_column(dataset)
     if selected_columns:
         for i, col in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
@@ -1345,11 +1356,10 @@ def aliased_query_params(
             derived_columns.append(aggregation[2])
 
     if conditions:
-        column_resolver = (
-            functools.partial(condition_resolver, dataset=dataset)
-            if condition_resolver
-            else resolve_func
-        )
+        if condition_resolver:
+            column_resolver: Callable = functools.partial(condition_resolver, dataset=dataset)
+        else:
+            column_resolver = resolve_func
         resolved_conditions = resolve_conditions(conditions, column_resolver)
     else:
         resolved_conditions = conditions
@@ -1490,7 +1500,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 Release.objects.filter(id__in=[x[2] for x in gr_map]).values_list("id", "version")
             )
             fwd_map = {gr: (group, ver[release]) for (gr, group, release) in gr_map}
-            rev_map = dict(reversed(t) for t in fwd_map.items())
+            rev_map = {v: k for k, v in fwd_map.items()}
             fwd = (
                 lambda col, trans: lambda filters: replace(
                     filters, col, [trans[k][1] for k in filters[col]]
@@ -1510,7 +1520,7 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
             fwd_map = {
                 k: fmt(v) for k, v in model.objects.filter(id__in=ids).values_list("id", field)
             }
-            rev_map = dict(reversed(t) for t in fwd_map.items())
+            rev_map = {v: k for k, v in fwd_map.items()}
             fwd = (
                 lambda col, trans: lambda filters: replace(
                     filters, col, [trans[k] for k in filters[col] if k]
@@ -1569,7 +1579,7 @@ def get_related_project_ids(column, ids):
     return []
 
 
-def shrink_time_window(issues, start):
+def shrink_time_window(issues, start: datetime) -> datetime:
     """\
     If a single issue is passed in, shrink the `start` parameter to be briefly before
     the `first_seen` in order to hopefully eliminate a large percentage of rows scanned.
@@ -1588,7 +1598,7 @@ def shrink_time_window(issues, start):
     return start
 
 
-def naiveify_datetime(dt):
+def naiveify_datetime(dt: datetime) -> datetime:
     return dt if not dt.tzinfo else dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
