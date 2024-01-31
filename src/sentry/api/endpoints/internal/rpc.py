@@ -35,9 +35,7 @@ class InternalRpcServiceEndpoint(Endpoint):
 
     def post(self, request: Request, service_name: str, method_name: str) -> Response:
         with configure_scope() as scope:
-            scope.set_tag("rpc_service", service_name)
-            scope.set_tag("rpc_method", method_name)
-
+            scope.set_tag("rpc_method", f"{service_name}.{method_name}")
         if not self._is_authorized(request):
             raise PermissionDenied
 
