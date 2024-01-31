@@ -120,7 +120,7 @@ class StacktraceState:
 
 
 def merge_rust_enhancements(
-    bases: list[Enhancements], rust_enhancements: RustEnhancements | None = None
+    bases: list[str], rust_enhancements: RustEnhancements | None = None
 ) -> RustEnhancements | None:
     """
     Similar to `iter_rules` in Python, this will also merge the parsed enhancements
@@ -134,9 +134,11 @@ def merge_rust_enhancements(
 
     try:
         merged_rust_enhancements = RustEnhancements.empty()
-        for base in bases:
-            base = ENHANCEMENT_BASES.get(base)
+        for base_id in bases:
+            base = ENHANCEMENT_BASES.get(base_id)
             if base:
+                if not base.rust_enhancements:
+                    raise Exception("base has no rust_enhancements")
                 merged_rust_enhancements.extend_from(base.rust_enhancements)
         merged_rust_enhancements.extend_from(rust_enhancements)
         return merged_rust_enhancements
@@ -168,8 +170,10 @@ def parse_rust_enhancements(
     if parse_rust_enhancements:
         try:
             if source == "config_structure":
+                assert isinstance(input, bytes)
                 rust_enhancements = RustEnhancements.from_config_structure(input, RUST_CACHE)
             else:
+                assert isinstance(input, str)
                 rust_enhancements = RustEnhancements.parse(input, RUST_CACHE)
 
             metrics.incr("rust_enhancements.parsing_performed", tags={"source": source})
@@ -227,7 +231,7 @@ def apply_rust_enhancements(
 
 
 def compare_rust_enhancers(
-    frames: list[dict[str, Any]], rust_enhanced_frames: RustEnhancedFrames | None
+    frames: Sequence[dict[str, Any]], rust_enhanced_frames: RustEnhancedFrames | None
 ):
     """
     Compares the results of `rust_enhanced_frames` with the frame modifications
@@ -239,13 +243,10 @@ def compare_rust_enhancers(
         python_frames = list((get_path(f, "data", "category"), f.get("in_app")) for f in frames)
 
         if python_frames != rust_enhanced_frames:
-            logger.error(
-                "Rust Enhancements mismatch",
-                extra={
-                    "python_frames": python_frames,
-                    "rust_enhanced_frames": rust_enhanced_frames,
-                },
-            )
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("python_frames", python_frames)
+                scope.set_extra("rust_enhanced_frames", rust_enhanced_frames)
+                sentry_sdk.capture_message("Rust Enhancements mismatch")
 
 
 class Enhancements:
