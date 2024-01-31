@@ -97,6 +97,7 @@ describe('useReplayData', () => {
     });
 
     await waitForNextUpdate();
+
     expect(result.current).toEqual({
       attachments: expect.any(Array),
       errors: expect.any(Array),
