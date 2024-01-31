@@ -20,7 +20,7 @@ from sentry.models.integrations.sentry_app_installation_token import SentryAppIn
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SentryInternalAppTokenPermission,)
 
