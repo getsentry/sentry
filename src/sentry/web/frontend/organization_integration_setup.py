@@ -1,5 +1,6 @@
 import logging
 
+import sentry_sdk
 from django.http import Http404
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -19,6 +20,10 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
     csrf_protect = False
 
     def handle(self, request: Request, organization, provider_id) -> HttpResponseBase:
+        with sentry_sdk.configure_scope() as scope:
+            scope.transaction.op = "integration.setup"
+            scope.transaction.name = f"integration.{provider_id}"
+
         pipeline = IntegrationPipeline(
             request=request, organization=organization, provider_key=provider_id
         )
