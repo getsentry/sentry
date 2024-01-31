@@ -542,7 +542,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @patch(
         "sentry.api.serializers.models.pullrequest.PullRequestSerializer._external_url",
-        return_value="https://github.com/meowmeow/cats/pull/1",
+        return_value="https://unknown.com/meowmeow/cats/pull/1",
     )
     @with_feature("organizations:slack-block-kit")
     def test_issue_alert_with_suspect_commits_unknown_provider(self, mock_external_url):
@@ -553,7 +553,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             organization_id=self.organization.id,
             name="example",
             integration_id=self.integration.id,
-            url="http://www.github.com/meowmeow/cats",
+            url="http://www.unknown.com/meowmeow/cats",
         )
         commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
