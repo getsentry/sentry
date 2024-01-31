@@ -1849,8 +1849,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-a11y-tab": False,
     # Enable the accessibility issues endpoint
     "organizations:session-replay-accessibility-issues": False,
-    # Enable core Session Replay SDK for recording onError events on sentry.io
-    "organizations:session-replay-count-query-optimize": False,
     # Enable canvas recording
     "organizations:session-replay-enable-canvas": False,
     # Enable canvas replaying
