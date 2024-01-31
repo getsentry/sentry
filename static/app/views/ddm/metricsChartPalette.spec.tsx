@@ -39,5 +39,14 @@ describe('getQuerySymbol', () => {
     getCachedChartPalette(cache, ['a', 'b', 'c']);
 
     expect(cache.length).toBe(20);
+
+    // Ensure it removes more than 1 cache entry
+    const cache2: Record<string, string>[] = Array.from({length: 100}).map(() => ({
+      z: '#123123',
+    }));
+
+    getCachedChartPalette(cache2, ['a', 'b', 'c']);
+
+    expect(cache2.length).toBe(20);
   });
 });

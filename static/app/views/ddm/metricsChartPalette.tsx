@@ -69,7 +69,8 @@ export function getCachedChartPalette(
 
   // Don't cache more than CACHE_SIZE palettes, so we do not create a memory leak
   if (cache.length > CACHE_SIZE) {
-    cache.shift();
+    const overflow = cache.length - CACHE_SIZE;
+    cache.splice(0, overflow);
   }
 
   return newPalette;
