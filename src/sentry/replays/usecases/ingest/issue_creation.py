@@ -32,7 +32,7 @@ def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent)
 
     # Seconds since epoch is UTC.
     timestamp = datetime.datetime.fromtimestamp(payload["timestamp"])
-    timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
+    timestamp = timestamp.replace(tzinfo=datetime.UTC)
 
     replay_info_list = query_replay_instance(
         project_id=project_id,

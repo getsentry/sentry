@@ -84,7 +84,7 @@ class SentryAppUpdater:
     overview: str | None = None
     allowed_origins: List[str] | None = None
     popularity: int | None = None
-    features: List[str] | None = None
+    features: List[int] | None = None
 
     def run(self, user: User) -> SentryApp:
         with transaction.atomic(router.db_for_write(User)):

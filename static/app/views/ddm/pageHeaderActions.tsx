@@ -138,7 +138,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
     <ButtonBar gap={1}>
       {showCustomMetricButton && (
         <Button priority="primary" onClick={() => addCustomMetric('header')} size="sm">
-          {t('Add Custom Metric')}
+          {t('Set Up Custom Metrics')}
         </Button>
       )}
       <Button

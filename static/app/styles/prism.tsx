@@ -124,7 +124,8 @@ export const prismStyles = (theme: Theme) => css`
   }
 
   pre[class*='language-']::selection,
-  code[class*='language-']::selection {
+  code[class*='language-']::selection,
+  code[class*='language-'] *::selection {
     text-shadow: none;
     background: var(--prism-selected);
   }
