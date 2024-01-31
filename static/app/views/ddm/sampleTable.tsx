@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
@@ -7,7 +7,11 @@ import * as qs from 'query-string';
 import {LinkButton} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import type {
+  GridColumn,
+  GridColumnHeader,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -57,7 +61,7 @@ interface SamplesTableProps extends SelectionRange {
 
 type Column = GridColumnHeader<keyof MetricCorrelation>;
 
-const columnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
+const defaultColumnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
   {key: 'transactionId', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
   {key: 'segmentName', width: COL_WIDTH_UNDEFINED, name: 'Transaction'},
   {key: 'spansNumber', width: COL_WIDTH_UNDEFINED, name: 'Number of Spans'},
@@ -78,7 +82,23 @@ export function SampleTable({
   const organization = useOrganization();
   const {projects} = useProjects();
 
+  const [columnOrder, setColumnOrder] = useState(defaultColumnOrder);
+
   const {data, isFetching} = useCorrelatedSamples(mri, metricMetaOptions);
+
+  const handleColumnResize = useCallback(
+    (columnIndex: number, nextColumn: GridColumn) => {
+      setColumnOrder(prevColumnOrder => {
+        const newColumnOrder = [...prevColumnOrder];
+        newColumnOrder[columnIndex] = {
+          ...newColumnOrder[columnIndex],
+          width: nextColumn.width,
+        };
+        return newColumnOrder;
+      });
+    },
+    [setColumnOrder]
+  );
 
   const rows = data?.metrics
     .map(m => m.metricSpans)
@@ -250,7 +270,11 @@ export function SampleTable({
           onHover={onRowHover}
           highlighted={highlighted}
         >
-          <DateTime date={row.timestamp} />
+          <Tooltip title={row.timestamp} showOnlyOnOverflow>
+            <TextOverflow>
+              <DateTime date={row.timestamp} />
+            </TextOverflow>
+          </Tooltip>
         </BodyCell>
       );
     }
@@ -289,6 +313,7 @@ export function SampleTable({
         grid={{
           renderHeadCell,
           renderBodyCell,
+          onResizeColumn: handleColumnResize,
         }}
         emptyMessage={mri ? t('No samples found') : t('Choose a metric to display data.')}
         location={location}

@@ -428,7 +428,7 @@ class TestGetCommentIssues(CreateEventTestCase):
 
     def test_not_first_frame(self):
         group_id = self._create_event(
-            function_names=["world", "hello"], filenames=["baz.py", "bar.py"]
+            function_names=["world", "hello"], filenames=["baz.py", "bar.py"], culprit="hi"
         ).group.id
 
         top_5_issues = get_top_5_issues_by_count_for_file([self.project], ["baz.py"], ["world"])
@@ -458,6 +458,37 @@ class TestGetCommentIssues(CreateEventTestCase):
         assert group_id != self.group_id
         assert top_5_issue_ids == [self.group_id]
 
+    def test_squashes_same_title_culprit_issues(self):
+        # both of these have the same title and culprit,
+        # so "squash" them and return the one with greater number of events
+        [
+            self._create_event(
+                filenames=["base.py", "baz.py"],
+                function_names=["wonderful", "world"],
+                user_id=str(i),
+                handled=False,
+            )
+            for i in range(3)
+        ]
+        group_id = [
+            self._create_event(
+                filenames=["bar.py", "baz.py"],
+                function_names=["blue", "planet"],
+                user_id=str(i),
+                handled=False,
+            )
+            for i in range(5)
+        ][0].group_id
+
+        top_5_issues = get_top_5_issues_by_count_for_file(
+            [self.project], ["baz.py"], ["world", "planet"]
+        )
+        top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+        function_names = [issue["function_name"] for issue in top_5_issues]
+
+        assert top_5_issue_ids == [self.group_id, group_id]
+        assert function_names == ["world", "planet"]
+
     def test_fetches_top_five_issues(self):
         group_id_1 = [
             self._create_event(
@@ -483,6 +514,7 @@ class TestGetCommentIssues(CreateEventTestCase):
                 function_names=["wonderful", "world"],
                 user_id=str(i),
                 handled=False,
+                culprit="hi",
             )
             for i in range(3)
         ][0].group.id

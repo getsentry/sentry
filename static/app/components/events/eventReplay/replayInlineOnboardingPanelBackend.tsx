@@ -13,6 +13,9 @@ import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import theme from 'sentry/utils/theme';
+import useMedia from 'sentry/utils/useMedia';
+import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
@@ -26,24 +29,23 @@ const OnboardingCTAButton = HookOrDefault({
 export default function ReplayInlineOnboardingPanelBackend({
   platform,
 }: OnboardingCTAProps) {
-  const [isHidden, setIsHidden] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
   const platformName = platforms.find(p => p.id === platform) ?? otherPlatform;
+  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   return (
     <EventReplaySection
       actions={
-        <ToggleButton priority="link" onClick={() => setIsHidden(!isHidden)}>
-          {isHidden ? t('Show Details') : t('Hide Details')}
-        </ToggleButton>
+        <SectionToggleButton isExpanded={isExpanded} onExpandChange={setIsExpanded} />
       }
     >
-      {isHidden ? null : (
+      {isExpanded ? (
         <PageBanner
           button={
             <ButtonBar gap={1}>
-              <OnboardingCTAButton />
+              {!isScreenSmall && <OnboardingCTAButton />}
               <Button
                 priority="primary"
                 analyticsEventName="Clicked Replay Onboarding Backend CTA Button in Issue Details"
@@ -63,7 +65,7 @@ export default function ReplayInlineOnboardingPanelBackend({
           image={replaysInlineOnboarding}
           title={<PurpleText>{t('What’s new')}</PurpleText>}
         />
-      )}
+      ) : null}
     </EventReplaySection>
   );
 }
@@ -71,13 +73,4 @@ export default function ReplayInlineOnboardingPanelBackend({
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
   font-weight: bold;
-`;
-
-const ToggleButton = styled(Button)`
-  font-weight: 700;
-  color: ${p => p.theme.subText};
-  &:hover,
-  &:focus {
-    color: ${p => p.theme.textColor};
-  }
 `;
