@@ -88,20 +88,26 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
 
 
 def superuser_has_permission(request: HttpRequest | Request) -> bool:
-    if not is_active_superuser(request):
-        return False
-
+    """
+    This is used in place of is_active_superuser() in APIs / permission classes.
+    Checks if superuser has permission for the request.
+    Superuser read-only is restricted to GET and OPTIONS requests.
+    These checks do not affect self-hosted.
+    """
     if is_self_hosted():
         return True
 
-    if features.has("auth:enterprise-superuser-read-write", actor=request.user):
-        if "superuser.write" in request.access.permissions:
-            return True
+    if is_active_superuser(request):
+        if features.has("auth:enterprise-superuser-read-write", actor=request.user):
+            if request.access.has_permission("superuser.write"):
+                return True
 
-        # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
-        return request.method == "GET" or request.method == "OPTIONS"
+            # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
+            return request.method == "GET" or request.method == "OPTIONS"
 
-    return True
+        return True
+
+    return False
 
 
 def is_active_superuser(request: HttpRequest | Request) -> bool:
