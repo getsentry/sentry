@@ -1,10 +1,11 @@
+import {useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
@@ -40,6 +41,7 @@ import {
   isTransaction,
 } from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import TraceDetailsRouting from 'sentry/views/performance/traceDetails/TraceDetailsRouting';
 import EventMetas from 'sentry/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -58,51 +60,37 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'loca
   isHomepage?: boolean;
 };
 
-type State = {
-  event: Event | undefined;
-  isSidebarVisible: boolean;
-} & DeprecatedAsyncComponent['state'];
+function EventHeader({event}: {event: Event}) {
+  const message = getMessage(event);
+  return (
+    <EventHeaderContainer data-test-id="event-header">
+      <TitleWrapper>
+        <StyledEventOrGroupTitle data={event} />
+      </TitleWrapper>
+      {message && (
+        <MessageWrapper>
+          <EventMessage message={message} />
+        </MessageWrapper>
+      )}
+    </EventHeaderContainer>
+  );
+}
 
-class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
-  state: State = {
-    // AsyncComponent state
-    loading: true,
-    reloading: false,
-    error: false,
-    errors: {},
-    event: undefined,
+function EventDetailsContent(props: Props) {
+  const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
+  const projectId = props.eventSlug.split(':')[0];
 
-    // local state
-    isSidebarVisible: true,
-  };
+  const {
+    data: event,
+    isLoading,
+    error,
+  } = useApiQuery<Event>(
+    [`/organizations/${props.organization.slug}/events/${props.eventSlug}/`],
+    {staleTime: 2 * 60 * 1000} // 2 minutes in milliseonds
+  );
 
-  toggleSidebar = () => {
-    this.setState({isSidebarVisible: !this.state.isSidebarVisible});
-  };
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, params, location, eventView} = this.props;
-    const {eventSlug} = params;
-
-    const query = eventView.getEventsAPIPayload(location);
-
-    // Fields aren't used, reduce complexity by omitting from query entirely
-    query.field = [];
-
-    const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
-
-    // Get a specific event. This could be coming from
-    // a paginated group or standalone event.
-    return [['event', url, {query}]];
-  }
-
-  get projectId() {
-    return this.props.eventSlug.split(':')[0];
-  }
-
-  generateTagUrl = (tag: EventTag) => {
-    const {eventView, organization, isHomepage} = this.props;
-    const {event} = this.state;
+  const generateTagUrl = (tag: EventTag) => {
+    const {eventView, organization, isHomepage} = props;
     if (!event) {
       return '';
     }
@@ -115,20 +103,12 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
     return nextView.getResultsViewUrlTarget(organization.slug, isHomepage);
   };
 
-  renderBody() {
-    const {event} = this.state;
-
+  function renderContent() {
     if (!event) {
       return <NotFound />;
     }
 
-    return this.renderContent(event);
-  }
-
-  renderContent(event: Event) {
-    const {organization, location, eventView, isHomepage} = this.props;
-
-    const {isSidebarVisible} = this.state;
+    const {organization, location, eventView, isHomepage} = props;
 
     // metrics
     trackAnalytics('discover_v2.event_details', {
@@ -147,13 +127,13 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
           })
         : null;
 
-    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${event.eventID}/json/`;
 
     const hasProfilingFeature = organization.features.includes('profiling');
 
     const profileId = isTransaction(event) ? event.contexts?.profile?.profile_id : null;
 
-    const renderContent = (
+    const render = (
       results?: QuickTraceQueryChildrenProps,
       metaResults?: TraceMetaQueryChildrenProps
     ) => {
@@ -177,7 +157,7 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
               </Layout.HeaderContent>
               <Layout.HeaderActions>
                 <ButtonBar gap={1}>
-                  <Button size="sm" onClick={this.toggleSidebar}>
+                  <Button size="sm" onClick={() => setIsSidebarVisible(prev => !prev)}>
                     {isSidebarVisible ? 'Hide Details' : 'Show Details'}
                   </Button>
                   <Button
@@ -197,10 +177,7 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                     {t('JSON')} (<FileSize bytes={event.size} />)
                   </Button>
                   {hasProfilingFeature && event.type === 'transaction' && (
-                    <TransactionToProfileButton
-                      event={event}
-                      projectSlug={this.projectId}
-                    />
+                    <TransactionToProfileButton event={event} projectSlug={projectId} />
                   )}
                   {transactionSummaryTarget && (
                     <Feature organization={organization} features="performance-view">
@@ -226,14 +203,14 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                   meta={metaResults?.meta ?? null}
                   event={event}
                   organization={organization}
-                  projectId={this.projectId}
+                  projectId={projectId}
                   location={location}
                   errorDest="discover"
                   transactionDest="discover"
                 />
               </Layout.Main>
               <Layout.Main fullWidth={!isSidebarVisible}>
-                <Projects orgId={organization.slug} slugs={[this.projectId]}>
+                <Projects orgId={organization.slug} slugs={[projectId]}>
                   {({projects, initiallyLoaded}) =>
                     initiallyLoaded ? (
                       <SpanEntryContext.Provider
@@ -255,7 +232,7 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                           {hasProfilingFeature ? (
                             <ProfilesProvider
                               orgSlug={organization.slug}
-                              projectSlug={this.projectId}
+                              projectSlug={projectId}
                               profileId={profileId || ''}
                             >
                               <ProfileContext.Consumer>
@@ -308,7 +285,7 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                     <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
                   )}
                   <TagsTable
-                    generateUrl={this.generateTagUrl}
+                    generateUrl={generateTagUrl}
                     event={event}
                     query={eventView.query}
                   />
@@ -340,23 +317,23 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
               location={location}
               orgSlug={organization.slug}
             >
-              {results => renderContent(results, metaResults)}
+              {results => render(results, metaResults)}
             </QuickTraceQuery>
           )}
         </TraceMetaQuery>
       );
     }
 
-    return renderContent();
+    return render();
   }
 
-  renderError(error: Error) {
-    const notFound = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 404
-    );
-    const permissionDenied = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 403
-    );
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (error) {
+    const notFound = error.status === 404;
+    const permissionDenied = error.status === 403;
 
     if (notFound) {
       return <NotFound />;
@@ -367,11 +344,15 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
       );
     }
 
-    return super.renderError(error, true);
+    return (
+      <Alert type="error" showIcon>
+        {error.message}
+      </Alert>
+    );
   }
 
-  getEventSlug = (): string => {
-    const {eventSlug} = this.props.params;
+  const getEventSlug = (): string => {
+    const {eventSlug} = props.params;
 
     if (typeof eventSlug === 'string') {
       return eventSlug.trim();
@@ -380,39 +361,20 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
     return '';
   };
 
-  renderComponent() {
-    const {eventView, organization} = this.props;
-    const {event} = this.state;
-    const eventSlug = this.getEventSlug();
-    const projectSlug = eventSlug.split(':')[0];
+  const {eventView, organization} = props;
+  const eventSlug = getEventSlug();
+  const projectSlug = eventSlug.split(':')[0];
 
-    const title = generateTitle({eventView, event, organization});
+  const title = generateTitle({eventView, event, organization});
 
-    return (
-      <SentryDocumentTitle
-        title={title}
-        orgSlug={organization.slug}
-        projectSlug={projectSlug}
-      >
-        {super.renderComponent() as React.ReactChild}
-      </SentryDocumentTitle>
-    );
-  }
-}
-
-function EventHeader({event}: {event: Event}) {
-  const message = getMessage(event);
   return (
-    <EventHeaderContainer data-test-id="event-header">
-      <TitleWrapper>
-        <StyledEventOrGroupTitle data={event} />
-      </TitleWrapper>
-      {message && (
-        <MessageWrapper>
-          <EventMessage message={message} />
-        </MessageWrapper>
-      )}
-    </EventHeaderContainer>
+    <SentryDocumentTitle
+      title={title}
+      orgSlug={organization.slug}
+      projectSlug={projectSlug}
+    >
+      {renderContent() as React.ReactChild}
+    </SentryDocumentTitle>
   );
 }
 

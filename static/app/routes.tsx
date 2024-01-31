@@ -1382,40 +1382,23 @@ function buildRoutes() {
     </Fragment>
   );
 
-  const cronsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    return (
-      <Fragment>
-        <IndexRoute component={make(() => import('sentry/views/monitors/overview'))} />
-        <Route
-          path={
-            forCustomerDomain ? '/crons/create/' : '/organizations/:orgId/crons/create/'
-          }
-          component={make(() => import('sentry/views/monitors/create'))}
-          key={forCustomerDomain ? 'orgless-monitors-create' : 'org-monitors-create'}
-        />
-        <Route
-          path={
-            forCustomerDomain
-              ? '/crons/:monitorSlug/'
-              : '/organizations/:orgId/crons/:monitorSlug/'
-          }
-          component={make(() => import('sentry/views/monitors/details'))}
-          key={
-            forCustomerDomain ? 'orgless-monitors-monitor-id' : 'org-monitors-monitor-id'
-          }
-        />
-        <Route
-          path={
-            forCustomerDomain
-              ? '/crons/:monitorSlug/edit/'
-              : '/organizations/:orgId/crons/:monitorSlug/edit/'
-          }
-          component={make(() => import('sentry/views/monitors/edit'))}
-          key={forCustomerDomain ? 'orgless-monitors-edit' : 'org-monitors-edit'}
-        />
-      </Fragment>
-    );
-  };
+  const cronsChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/monitors/overview'))} />
+      <Route
+        path="create/"
+        component={make(() => import('sentry/views/monitors/create'))}
+      />
+      <Route
+        path=":monitorSlug/"
+        component={make(() => import('sentry/views/monitors/details'))}
+      />
+      <Route
+        path=":monitorSlug/edit/"
+        component={make(() => import('sentry/views/monitors/edit'))}
+      />
+    </Fragment>
+  );
   const cronsRoutes = (
     <Fragment>
       {USING_CUSTOMER_DOMAIN && (
@@ -1424,7 +1407,7 @@ function buildRoutes() {
           component={withDomainRequired(make(() => import('sentry/views/monitors')))}
           key="orgless-monitors-route"
         >
-          {cronsChildRoutes({forCustomerDomain: true})}
+          {cronsChildRoutes}
         </Route>
       )}
       <Route
@@ -1432,7 +1415,7 @@ function buildRoutes() {
         component={withDomainRedirect(make(() => import('sentry/views/monitors')))}
         key="org-monitors"
       >
-        {cronsChildRoutes({forCustomerDomain: false})}
+        {cronsChildRoutes}
       </Route>
     </Fragment>
   );
@@ -2575,6 +2558,6 @@ export const routes = memoize(buildRoutes);
 // Exported for use in tests.
 export {buildRoutes};
 
-function NoOp(props: {children: React.ReactNode}) {
-  return <Fragment>{props.children}</Fragment>;
+function NoOp({children}: {children: JSX.Element}) {
+  return children;
 }

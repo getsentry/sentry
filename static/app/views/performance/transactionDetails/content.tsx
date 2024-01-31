@@ -1,10 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
 import EventCustomPerformanceMetrics, {
   EventDetailPageSource,
@@ -18,6 +18,7 @@ import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -38,6 +39,7 @@ import {
 } from 'sentry/utils/performance/quickTrace/utils';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import Projects from 'sentry/utils/projects';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
@@ -59,58 +61,36 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'loca
     projects: Project[];
   };
 
-type State = {
-  event: Event | undefined;
-  isSidebarVisible: boolean;
-} & DeprecatedAsyncComponent['state'];
+function EventDetailsContent(props: Props) {
+  const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
+  const projectId = props.eventSlug.split(':')[0];
+  const {organization, eventSlug, location} = props;
 
-class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
-  state: State = {
-    // AsyncComponent state
-    loading: true,
-    reloading: false,
-    error: false,
-    errors: {},
-    event: undefined,
+  const {
+    data: event,
+    isLoading,
+    error,
+  } = useApiQuery<Event>(
+    [`/organizations/${organization.slug}/events/${eventSlug}/`],
+    {staleTime: 2 * 60 * 1000} // 2 minutes in milliseonds
+  );
 
-    // local state
-    isSidebarVisible: true,
-  };
+  useEffect(() => {
+    if (event) {
+      const {projects} = props;
+      props.setEventNames(
+        'performance.event_details',
+        'Performance: Opened Event Details'
+      );
+      props.setRouteAnalyticsParams({
+        event_type: event?.type,
+        project_platforms: getSelectedProjectPlatforms(location, projects),
+        ...getAnalyticsDataForEvent(event),
+      });
+    }
+  }, [event, props, location]);
 
-  toggleSidebar = () => {
-    this.setState({isSidebarVisible: !this.state.isSidebarVisible});
-  };
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, params} = this.props;
-    const {eventSlug} = params;
-
-    const url = `/organizations/${organization.slug}/events/${eventSlug}/`;
-
-    return [['event', url]];
-  }
-
-  onLoadAllEndpointsSuccess() {
-    const {location, projects} = this.props;
-    const {event} = this.state;
-    this.props.setEventNames(
-      'performance.event_details',
-      'Performance: Opened Event Details'
-    );
-    this.props.setRouteAnalyticsParams({
-      event_type: event?.type,
-      project_platforms: getSelectedProjectPlatforms(location, projects),
-      ...getAnalyticsDataForEvent(event),
-    });
-  }
-
-  get projectId() {
-    return this.props.eventSlug.split(':')[0];
-  }
-
-  generateTagUrl = (tag: EventTag) => {
-    const {location, organization} = this.props;
-    const {event} = this.state;
+  const generateTagUrl = (tag: EventTag) => {
     if (!event) {
       return '';
     }
@@ -127,43 +107,20 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
     });
   };
 
-  renderBody() {
-    const {event} = this.state;
-    const {organization} = this.props;
-
-    if (!event) {
-      return <NotFound />;
-    }
-    const isSampleTransaction = event.tags.some(
-      tag => tag.key === 'sample_event' && tag.value === 'yes'
-    );
-
-    return (
-      <Fragment>
-        {isSampleTransaction && (
-          <FinishSetupAlert organization={organization} projectId={this.projectId} />
-        )}
-        {this.renderContent(event)}
-      </Fragment>
-    );
-  }
-
-  renderContent(event: Event) {
-    const {organization, location, eventSlug} = this.props;
-
-    const {isSidebarVisible} = this.state;
-    const transactionName = event.title;
+  function renderContent(transaction: Event) {
+    const transactionName = transaction.title;
     const query = decodeScalar(location.query.query, '');
 
-    const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
-    const traceId = event.contexts?.trace?.trace_id ?? '';
-    const {start, end} = getTraceTimeRangeFromEvent(event);
+    const eventJsonUrl = `/api/0/projects/${organization.slug}/${projectId}/events/${transaction.eventID}/json/`;
+    const traceId = transaction.contexts?.trace?.trace_id ?? '';
+    const {start, end} = getTraceTimeRangeFromEvent(transaction);
 
     const hasProfilingFeature = organization.features.includes('profiling');
 
-    const profileId = (event as EventTransaction).contexts?.profile?.profile_id ?? null;
+    const profileId =
+      (transaction as EventTransaction).contexts?.profile?.profile_id ?? null;
 
-    const originatingUrl = getUrlFromEvent(event);
+    const originatingUrl = getUrlFromEvent(transaction);
 
     return (
       <TraceMetaQuery
@@ -174,17 +131,19 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
         end={end}
       >
         {metaResults => (
-          <TraceDetailsRouting event={event} metaResults={metaResults}>
+          <TraceDetailsRouting event={transaction} metaResults={metaResults}>
             <QuickTraceQuery
-              event={event}
+              event={transaction}
               location={location}
               orgSlug={organization.slug}
             >
               {results => (
                 <TransactionProfileIdProvider
-                  projectId={event.projectID}
-                  transactionId={event.type === 'transaction' ? event.id : undefined}
-                  timestamp={event.dateReceived}
+                  projectId={transaction.projectID}
+                  transactionId={
+                    transaction.type === 'transaction' ? transaction.id : undefined
+                  }
+                  timestamp={transaction.dateReceived}
                 >
                   <Layout.Header>
                     <Layout.HeaderContent>
@@ -192,14 +151,14 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                         organization={organization}
                         location={location}
                         transaction={{
-                          project: event.projectID,
+                          project: transaction.projectID,
                           name: transactionName,
                         }}
                         eventSlug={eventSlug}
                       />
                       <Layout.Title data-test-id="event-header">
                         <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
-                          <EventTitle>{event.title}</EventTitle>
+                          <EventTitle>{transaction.title}</EventTitle>
                         </Tooltip>
                         {originatingUrl && (
                           <Button
@@ -216,7 +175,10 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                     </Layout.HeaderContent>
                     <Layout.HeaderActions>
                       <ButtonBar gap={1}>
-                        <Button size="sm" onClick={this.toggleSidebar}>
+                        <Button
+                          size="sm"
+                          onClick={() => setIsSidebarVisible(prev => !prev)}
+                        >
                           {isSidebarVisible ? 'Hide Details' : 'Show Details'}
                         </Button>
                         {results && (
@@ -226,13 +188,13 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                             href={eventJsonUrl}
                             external
                           >
-                            {t('JSON')} (<FileSize bytes={event.size} />)
+                            {t('JSON')} (<FileSize bytes={transaction.size} />)
                           </Button>
                         )}
-                        {hasProfilingFeature && isTransaction(event) && (
+                        {hasProfilingFeature && isTransaction(transaction) && (
                           <TransactionToProfileButton
-                            event={event}
-                            projectSlug={this.projectId}
+                            event={transaction}
+                            projectSlug={projectId}
                           />
                         )}
                       </ButtonBar>
@@ -244,9 +206,9 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                         <EventMetas
                           quickTrace={results}
                           meta={metaResults?.meta ?? null}
-                          event={event}
+                          event={transaction}
                           organization={organization}
-                          projectId={this.projectId}
+                          projectId={projectId}
                           location={location}
                           errorDest="issue"
                           transactionDest="performance"
@@ -254,7 +216,7 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                       </Layout.Main>
                     )}
                     <Layout.Main fullWidth={!isSidebarVisible}>
-                      <Projects orgId={organization.slug} slugs={[this.projectId]}>
+                      <Projects orgId={organization.slug} slugs={[projectId]}>
                         {({projects: _projects}) => (
                           <SpanEntryContext.Provider
                             value={{
@@ -272,7 +234,7 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                               {hasProfilingFeature ? (
                                 <ProfilesProvider
                                   orgSlug={organization.slug}
-                                  projectSlug={this.projectId}
+                                  projectSlug={projectId}
                                   profileId={profileId || ''}
                                 >
                                   <ProfileContext.Consumer>
@@ -316,24 +278,24 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
                         {results === undefined && (
                           <Fragment>
                             <EventMetadata
-                              event={event}
+                              event={transaction}
                               organization={organization}
-                              projectId={this.projectId}
+                              projectId={projectId}
                             />
-                            <RootSpanStatus event={event} />
+                            <RootSpanStatus event={transaction} />
                           </Fragment>
                         )}
-                        <EventVitals event={event} />
+                        <EventVitals event={transaction} />
                         <EventCustomPerformanceMetrics
-                          event={event}
+                          event={transaction}
                           location={location}
                           organization={organization}
                           source={EventDetailPageSource.PERFORMANCE}
                         />
                         <TagsTable
-                          event={event}
+                          event={transaction}
                           query={query}
-                          generateUrl={this.generateTagUrl}
+                          generateUrl={generateTagUrl}
                         />
                       </Layout.Side>
                     )}
@@ -347,13 +309,31 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
     );
   }
 
-  renderError(error: Error) {
-    const notFound = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 404
+  function renderBody() {
+    if (!event) {
+      return <NotFound />;
+    }
+    const isSampleTransaction = event.tags.some(
+      tag => tag.key === 'sample_event' && tag.value === 'yes'
     );
-    const permissionDenied = Object.values(this.state.errors).find(
-      resp => resp && resp.status === 403
+
+    return (
+      <Fragment>
+        {isSampleTransaction && (
+          <FinishSetupAlert organization={organization} projectId={projectId} />
+        )}
+        {renderContent(event)}
+      </Fragment>
     );
+  }
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (error) {
+    const notFound = error.status === 404;
+    const permissionDenied = error.status === 403;
 
     if (notFound) {
       return <NotFound />;
@@ -364,21 +344,21 @@ class EventDetailsContent extends DeprecatedAsyncComponent<Props, State> {
       );
     }
 
-    return super.renderError(error, true);
-  }
-
-  renderComponent() {
-    const {organization} = this.props;
-
     return (
-      <SentryDocumentTitle
-        title={t('Performance — Event Details')}
-        orgSlug={organization.slug}
-      >
-        {super.renderComponent() as React.ReactChild}
-      </SentryDocumentTitle>
+      <Alert type="error" showIcon>
+        {error.message}
+      </Alert>
     );
   }
+
+  return (
+    <SentryDocumentTitle
+      title={t('Performance — Event Details')}
+      orgSlug={organization.slug}
+    >
+      {renderBody() as React.ReactChild}
+    </SentryDocumentTitle>
+  );
 }
 
 // We can't use theme.overflowEllipsis so that width isn't set to 100%
