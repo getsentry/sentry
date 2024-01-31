@@ -38,7 +38,7 @@ import {
   TimeWindow,
 } from 'sentry/views/alerts/rules/metric/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
-import {getChartColors} from 'sentry/views/ddm/useGetChartPalette';
+import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/ddm/widget';
 
 interface FormState {
@@ -156,7 +156,7 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
         focusedSeries: undefined,
         groupBy: [],
         // We are limited to one series in this chart, so we can just use the first color
-        getChartPalette: () => () => getChartColors(1)[0],
+        getChartPalette: createChartPalette,
       }),
     [data, metricsQuery.mri]
   );

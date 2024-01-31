@@ -34,9 +34,9 @@ import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {MetricChart} from 'sentry/views/ddm/chart';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
+import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
-import {getChartColors} from 'sentry/views/ddm/useGetChartPalette';
 
 import {MIN_WIDGET_WIDTH} from './constants';
 
@@ -47,7 +47,7 @@ type MetricWidgetProps = {
   projects: PageFilters['projects'];
   widget: MetricWidgetQueryParams;
   focusArea?: FocusAreaProps;
-  getChartPalette?: (seriesNames: string[]) => (seriesName: string) => string;
+  getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   hasSiblings?: boolean;
   highlightedSampleId?: string;
   index?: number;
@@ -192,16 +192,11 @@ interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   widgetIndex: number;
   chartHeight?: number;
   focusArea?: FocusAreaProps;
-  getChartPalette?: (seriesNames: string[]) => (seriesName: string) => string;
+  getChartPalette?: (seriesNames: string[]) => Record<string, string>;
   highlightedSampleId?: string;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   onSampleClick?: (sample: Sample) => void;
 }
-
-const defaultGetChartPalette = (seriesNames: string[]) => {
-  const colors = getChartColors(seriesNames.length);
-  return (seriesName: string) => colors[seriesNames.indexOf(seriesName) % colors.length];
-};
 
 export const MetricWidgetBody = memo(
   ({
@@ -211,7 +206,7 @@ export const MetricWidgetBody = memo(
     highlightedSampleId,
     sort,
     widgetIndex,
-    getChartPalette = defaultGetChartPalette,
+    getChartPalette = createChartPalette,
     focusArea,
     chartHeight,
     onSampleClick,
@@ -364,7 +359,7 @@ export function getChartTimeseries(
     focusedSeries,
     groupBy,
   }: {
-    getChartPalette: (seriesNames: string[]) => (seriesName: string) => string;
+    getChartPalette: (seriesNames: string[]) => Record<string, string>;
     mri: MRI;
     focusedSeries?: string;
     groupBy?: string[];
@@ -390,7 +385,7 @@ export function getChartTimeseries(
     seriesName: item.name,
     groupBy: item.groupBy,
     unit,
-    color: chartPalette(item.name),
+    color: chartPalette[item.name],
     hidden: focusedSeries && focusedSeries !== item.name,
     data: item.values.map((value, index) => ({
       name: moment(data.intervals[index]).valueOf(),
