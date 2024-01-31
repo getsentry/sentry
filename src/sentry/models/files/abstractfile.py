@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import io
 import logging
 import mmap
@@ -7,7 +8,7 @@ import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha1
-from typing import ClassVar, Type
+from typing import ClassVar
 
 import sentry_sdk
 from django.core.files.base import ContentFile
@@ -209,8 +210,9 @@ class AbstractFile(Model):
         abstract = True
 
     # abstract
-    FILE_BLOB_MODEL: ClassVar[Type[AbstractFileBlob]]
-    FILE_BLOB_INDEX_MODEL: ClassVar[Type[Model]]
+    # XXX: uses `builtins.type` to avoid clash with `type` local
+    FILE_BLOB_MODEL: ClassVar[builtins.type[AbstractFileBlob]]
+    FILE_BLOB_INDEX_MODEL: ClassVar[builtins.type[Model]]
     DELETE_UNREFERENCED_BLOB_TASK: ClassVar[SentryTask]
     blobs: models.ManyToManyField
 
