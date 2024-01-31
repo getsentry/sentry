@@ -1634,8 +1634,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable issue stream performance improvements
     "organizations:issue-stream-performance": False,
-    # Enable issue stream performance improvements (cache)
-    "organizations:issue-stream-performance-cache": False,
     # Enable issue similarity embeddings
     "organizations:issues-similarity-embeddings": False,
     # Enable the trace timeline on issue details
