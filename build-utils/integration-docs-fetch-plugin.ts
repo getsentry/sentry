@@ -7,7 +7,7 @@ import https from 'https';
 import path from 'path';
 import url from 'url';
 
-import webpack from 'webpack';
+import type webpack from 'webpack';
 
 const INTEGRATIONS_DOC_URL =
   process.env.INTEGRATION_DOCS_URL || 'https://docs.sentry.io/_platforms/';
