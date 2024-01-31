@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import type {AutofixData} from 'sentry/components/events/aiAutofix/types';
 import Anchor from 'sentry/components/links/anchor';
 import {IconOpen} from 'sentry/icons';
@@ -67,7 +68,7 @@ export function FixResult({autofixData, onRetry}: Props) {
             </PrefixText>
             <PrTitle>{autofixData.fix!.title}</PrTitle>
           </PreviewContent>
-          <ButtonRow>
+          <ButtonBar gap={1}>
             <Anchor href={autofixData.fix!.pr_url}>
               <Button size="xs" icon={<IconOpen size="xs" />}>
                 {t('View Pull Request')}
@@ -76,7 +77,7 @@ export function FixResult({autofixData, onRetry}: Props) {
             <Button size="xs" onClick={onRetry}>
               {t('Try Again')}
             </Button>
-          </ButtonRow>
+          </ButtonBar>
         </Content>
       )}
     </div>
@@ -116,11 +117,4 @@ const Content = styled('div')`
     flex-direction: column;
     align-items: flex-start;
   }
-`;
-
-const ButtonRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(1)};
 `;
