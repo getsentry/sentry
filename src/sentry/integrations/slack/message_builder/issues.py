@@ -58,14 +58,12 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
-PROVIDER_TO_COMMIT_LINK_URL_FORMAT = {
+SUPPORTED_PROVIDER_TO_COMMIT_URL = {
     "github": "{base_url}/commit/{commit_id}",
     "integrations:github": "{base_url}/commit/{commit_id}",
     "integrations:github_enterprise": "{base_url}/commit/{commit_id}",
-    "visualstudio": "{base_url}/commit/{commit_id}",  # TODO: buggy
     "integrations:vsts": "{base_url}/commit/{commit_id}",
-    "gitlab": "{base_url}/commit/{commit_id}",  # TODO: buggy
-    "integrations:gitlab": "{base_url}/commit/{commit_id}",  # TODO: buggy
+    "integrations:gitlab": "{base_url}/commit/{commit_id}",
     "bitbucket": "{base_url}/commits/{commit_id}",
     "integrations:bitbucket": "{base_url}/commits/{commit_id}",
 }
@@ -315,8 +313,8 @@ def get_suspect_commit_text(
         repo = pull_request.get("repository", {})
         repo_base = repo.get("url")
         provider = repo.get("provider", {}).get("id")
-        if repo_base and provider in PROVIDER_TO_COMMIT_LINK_URL_FORMAT:
-            commit_link = f"<{PROVIDER_TO_COMMIT_LINK_URL_FORMAT[provider].format(base_url=repo_base, commit_id=commit_id)}|{commit_id[:6]}>"
+        if repo_base and provider in SUPPORTED_PROVIDER_TO_COMMIT_URL:
+            commit_link = f"<{SUPPORTED_PROVIDER_TO_COMMIT_URL[provider].format(base_url=repo_base, commit_id=commit_id)}|{commit_id[:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
         else:  # for unsupported providers
             suspect_commit_text += f"{commit_id[:6]} by {author_display}"

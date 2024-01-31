@@ -536,6 +536,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             name="example",
             integration_id=self.integration.id,
             url="http://www.unknown.com/meowmeow/cats",
+            provider="dummy",
         )
         commit_author = self.create_commit_author(project=self.project, user=self.user)
         self.commit = self.create_commit(
