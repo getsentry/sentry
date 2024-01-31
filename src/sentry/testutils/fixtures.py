@@ -548,6 +548,9 @@ class Fixtures:
     def snooze_rule(self, *args, **kwargs):
         return Factories.snooze_rule(*args, **kwargs)
 
+    def create_request_access(self, *args, **kwargs):
+        return Factories.create_request_access(*args, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot
