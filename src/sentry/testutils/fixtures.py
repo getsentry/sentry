@@ -255,6 +255,12 @@ class Fixtures:
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
 
+    def create_user_avatar(self, *args, **kwargs):
+        return Factories.create_user_avatar(*args, **kwargs)
+
+    def create_user_role(self, *args, **kwargs):
+        return Factories.create_user_role(*args, **kwargs)
+
     def create_usersocialauth(
         self,
         user: User | None = None,
@@ -302,6 +308,9 @@ class Fixtures:
 
     def create_sentry_app(self, *args, **kwargs):
         return Factories.create_sentry_app(*args, **kwargs)
+
+    def create_sentry_app_avatar(self, *args, **kwargs):
+        return Factories.create_sentry_app_avatar(*args, **kwargs)
 
     def create_internal_integration(self, *args, **kwargs):
         return Factories.create_internal_integration(*args, **kwargs)
