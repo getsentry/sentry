@@ -1,6 +1,6 @@
 /* eslint-env node */
 
-// const CODE_OWNER_MIGRATIONS_TEAM_NAME = 'owners-migrations';
+const CODE_OWNER_MIGRATIONS_TEAM_NAME = 'owners-migrations';
 
 module.exports = {
   check: async ({github, context, core}) => {
