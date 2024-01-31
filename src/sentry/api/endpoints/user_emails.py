@@ -161,7 +161,7 @@ class UserEmailsEndpoint(UserEndpoint):
         # TODO(dcramer): this needs a lock/constraint
         if UserEmail.objects.filter(email__iexact=new_email, is_primary=True).exclude(user=user).exists():
             return self.respond(
-                {'detail': 'This email is already used as a primary email by another user.'},
+                {'email': 'This email address is already in use as a primary email by another account.'},
                 status=400,
             )
 
