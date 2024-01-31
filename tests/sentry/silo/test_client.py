@@ -82,7 +82,6 @@ class SiloClientTest(TestCase):
 
             assert mock_cache.get.call_count == 0
             assert mock_cache.set.call_count == 0
-            assert mock_cache.delete.call_count == 0
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -106,13 +105,8 @@ class SiloClientTest(TestCase):
             assert response.status_code == 200
             assert response.body.get("ok")
 
-            assert mock_cache.get.call_count == 0
-            assert mock_cache.set.call_count == 0
-            assert mock_cache.delete.call_count == 1
-
-            hash = sha1(f"{prefix_hash}{self.region.name}GET{path}".encode()).hexdigest()
-            cache_key = f"region_silo_client:request_attempts:{hash}"
-            mock_cache.delete.assert_called_with(cache_key)
+            assert mock_cache.get.call_count == 1
+            assert mock_cache.set.call_count == 1
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -133,10 +127,7 @@ class SiloClientTest(TestCase):
             cache_key = f"region_silo_client:request_attempts:{hash}"
             num_of_request_attempts = 0
 
-            while True:
-                if num_of_request_attempts > REQUEST_ATTEMPTS_LIMIT:
-                    assert False, "Request attempts limit not captured"
-
+            while num_of_request_attempts <= REQUEST_ATTEMPTS_LIMIT:
                 mock_cache.reset_mock()
                 responses.calls.reset()
 
@@ -148,28 +139,18 @@ class SiloClientTest(TestCase):
                 parent_mock = mock.Mock()
                 parent_mock.attach_mock(mock_cache.get, "cache_get")
                 parent_mock.attach_mock(mock_cache.set, "cache_set")
-                parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
                 if num_of_request_attempts == REQUEST_ATTEMPTS_LIMIT:
                     with raises(SiloClientError) as exception_info:
                         client.request("POST", path, prefix_hash=prefix_hash)
-                    assert len(responses.calls) == 1
+                    assert len(responses.calls) == 0
                     assert (
                         exception_info.value.args[0]
                         == f"Request attempts limit reached for: POST {path}"
                     )
 
                     assert mock_cache.get.call_count == 1
-                    assert mock_cache.set.call_count == 0
-                    assert mock_cache.delete.call_count == 1
-
-                    # Assert order of cache method calls
-                    expected_calls = [
-                        mock.call.cache_get(cache_key),
-                        mock.call.cache_delete(cache_key),
-                    ]
-                    assert parent_mock.mock_calls == expected_calls
-                    return
+                    assert mock_cache.set.call_count == 1
                 else:
                     with raises(ApiError):
                         client.request("POST", path, prefix_hash=prefix_hash)
@@ -177,20 +158,16 @@ class SiloClientTest(TestCase):
                     resp = responses.calls[0].response
                     assert resp.status_code == 400
 
-                    num_of_request_attempts += 1
-
                     assert mock_cache.get.call_count == 1
                     assert mock_cache.set.call_count == 1
-                    assert mock_cache.delete.call_count == 0
 
-                    # Assert order of cache method calls
-                    expected_calls = [
-                        mock.call.cache_get(cache_key),
-                        mock.call.cache_set(
-                            cache_key, num_of_request_attempts, timeout=CACHE_TIMEOUT
-                        ),
-                    ]
-                    assert parent_mock.mock_calls == expected_calls
+                num_of_request_attempts += 1
+                # Assert order of cache method calls
+                expected_calls = [
+                    mock.call.cache_get(cache_key),
+                    mock.call.cache_set(cache_key, num_of_request_attempts, timeout=CACHE_TIMEOUT),
+                ]
+                assert parent_mock.mock_calls == expected_calls
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -211,7 +188,7 @@ class SiloClientTest(TestCase):
             cache_key = f"region_silo_client:request_attempts:{hash}"
             num_of_request_attempts = 0
 
-            while True:
+            while num_of_request_attempts < REQUEST_ATTEMPTS_LIMIT:
                 mock_cache.reset_mock()
                 responses.calls.reset()
 
@@ -230,22 +207,11 @@ class SiloClientTest(TestCase):
                 parent_mock = mock.Mock()
                 parent_mock.attach_mock(mock_cache.get, "cache_get")
                 parent_mock.attach_mock(mock_cache.set, "cache_set")
-                parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
                 if num_of_request_attempts == (REQUEST_ATTEMPTS_LIMIT - 1):
                     client.request("POST", path, prefix_hash=prefix_hash)
                     assert len(responses.calls) == 1
 
-                    assert mock_cache.get.call_count == 0
-                    assert mock_cache.set.call_count == 0
-                    assert mock_cache.delete.call_count == 1
-
-                    # Assert order of cache method calls
-                    expected_calls = [
-                        mock.call.cache_delete(cache_key),
-                    ]
-                    assert parent_mock.mock_calls == expected_calls
-                    return
                 else:
                     with raises(ApiError):
                         client.request("POST", path, prefix_hash=prefix_hash)
@@ -254,20 +220,16 @@ class SiloClientTest(TestCase):
                     resp = responses.calls[0].response
                     assert resp.status_code == 400
 
-                    num_of_request_attempts += 1
+                num_of_request_attempts += 1
+                assert mock_cache.get.call_count == 1
+                assert mock_cache.set.call_count == 1
 
-                    assert mock_cache.get.call_count == 1
-                    assert mock_cache.set.call_count == 1
-                    assert mock_cache.delete.call_count == 0
-
-                    # Assert order of cache method calls
-                    expected_calls = [
-                        mock.call.cache_get(cache_key),
-                        mock.call.cache_set(
-                            cache_key, num_of_request_attempts, timeout=CACHE_TIMEOUT
-                        ),
-                    ]
-                    assert parent_mock.mock_calls == expected_calls
+                # Assert order of cache method calls
+                expected_calls = [
+                    mock.call.cache_get(cache_key),
+                    mock.call.cache_set(cache_key, num_of_request_attempts, timeout=CACHE_TIMEOUT),
+                ]
+                assert parent_mock.mock_calls == expected_calls
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
