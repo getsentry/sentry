@@ -18,6 +18,7 @@ export default function ReplaySection({eventTimestampMs, organization, replayId}
 
   return (
     <LazyLoad
+      analyticsContext="feedback"
       component={replayPreview}
       eventTimestampMs={eventTimestampMs}
       focusTab={TabKey.BREADCRUMBS}
