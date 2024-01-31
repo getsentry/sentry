@@ -24,7 +24,7 @@ import {
   toMetricDisplayType,
 } from '../../../../utils/metrics/dashboard';
 import {parseField} from '../../../../utils/metrics/mri';
-import type {Widget} from '../../types';
+import type {DashboardFilters, Widget} from '../../types';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -33,6 +33,7 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   widget: Widget;
+  dashboardFilters?: DashboardFilters;
   index?: string;
   isEditingWidget?: boolean;
   isMobile?: boolean;
@@ -59,6 +60,7 @@ export function MetricWidgetCard({
   location,
   router,
   index,
+  dashboardFilters,
 }: Props) {
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
     useState<MetricWidgetQueryParams>(convertFromWidget(widget));
@@ -165,6 +167,7 @@ export function MetricWidgetCard({
             selection={selection}
             widget={widget}
             editorParams={metricWidgetQueryParams}
+            dashboardFilters={dashboardFilters}
           />
         </MetricWidgetChartWrapper>
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
@@ -176,6 +179,7 @@ export function MetricWidgetCard({
 type MetricWidgetChartContainerProps = {
   selection: PageFilters;
   widget: Widget;
+  dashboardFilters?: DashboardFilters;
   editorParams?: Partial<MetricWidgetQueryParams>;
 };
 
@@ -183,6 +187,7 @@ export function MetricWidgetChartContainer({
   selection,
   widget,
   editorParams = {},
+  dashboardFilters,
 }: MetricWidgetChartContainerProps) {
   const metricWidgetQueryParams = {
     ...convertFromWidget(widget),
@@ -197,11 +202,31 @@ export function MetricWidgetChartContainer({
       environments={selection.environments}
       mri={metricWidgetQueryParams.mri}
       op={metricWidgetQueryParams.op}
-      query={metricWidgetQueryParams.query}
+      query={extendQuery(metricWidgetQueryParams.query, dashboardFilters)}
       groupBy={metricWidgetQueryParams.groupBy}
       displayType={toMetricDisplayType(metricWidgetQueryParams.displayType)}
     />
   );
+}
+
+function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
+  const releaseQuery = convertToQuery(dashboardFilters);
+
+  return `${query} ${releaseQuery}`;
+}
+
+function convertToQuery(dashboardFilters?: DashboardFilters) {
+  const {release} = dashboardFilters ?? {};
+
+  if (!release?.length) {
+    return '';
+  }
+
+  if (release.length === 1) {
+    return `release:${release[0]}`;
+  }
+
+  return `release:[${release.join(',')}]`;
 }
 
 function convertFromWidget(widget: Widget): MetricWidgetQueryParams {
