@@ -76,7 +76,7 @@ def is_in_test_case_body() -> bool:
     def seek(name: str) -> bool:
         """Check whether the named function has been called in the current stack."""
         pattern = re.compile(rf"\b{name}>$")
-        return any(pattern.search(str(frame)) for frame in frames)
+        return any(pattern.search(frame) for frame in frames)
 
     return seek("pytest_runtest_call") and all(
         not seek(maintenance_method)
