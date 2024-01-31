@@ -1961,7 +1961,7 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable using new webhooks from Vercel
-    "organizations:vercel-integration-webhooks": True,
+    "organizations:vercel-integration-webhooks": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable AI Autofix feture on the Issue Details page.
