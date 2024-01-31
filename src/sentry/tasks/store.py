@@ -878,9 +878,12 @@ def save_event_feedback(
     start_time: Optional[int] = None,
     event_id: Optional[str] = None,
     project_id: Optional[int] = None,
+    organization_id: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
-    create_feedback_issue(data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+    create_feedback_issue(
+        data, project_id, organization_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+    )
 
 
 @instrumented_task(

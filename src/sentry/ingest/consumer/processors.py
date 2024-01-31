@@ -170,6 +170,7 @@ def process_event(message: IngestMessage, project: Project) -> None:
                 start_time=start_time,
                 event_id=event_id,
                 project_id=project_id,
+                organization_id=project.organization_id,
             )
     else:
         # Preprocess this event, which spawns either process_event or

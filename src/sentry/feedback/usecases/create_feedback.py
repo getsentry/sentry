@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import jsonschema
 
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -124,7 +125,11 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
     return False
 
 
-def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
+def create_feedback_issue(event, project_id, organization_id, source: FeedbackCreationSource):
+    # If the organization exists in the organization denylist reject the feedback event.
+    if organization_id is None or organization_id in options.get("feedback.organizations.denylist"):
+        return None
+
     if should_filter_feedback(event, project_id, source):
         return
 
@@ -249,7 +254,7 @@ def shim_to_feedback(
             if report.get("event_id"):
                 feedback_event["contexts"]["feedback"]["associated_event_id"] = report["event_id"]
 
-        create_feedback_issue(feedback_event, project.id, source)
+        create_feedback_issue(feedback_event, project.id, project.organization_id, source)
     except Exception:
         logger.exception(
             "Error attempting to create new User Feedback from Shiming old User Report"
