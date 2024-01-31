@@ -355,10 +355,6 @@ def convert_widget_query_to_metric(
     if not widget_query.aggregates:
         return metrics_specs
 
-    if "event.type:error" in widget_query.conditions.split():
-        # Error widgets don't get on-demand extracted.
-        return []
-
     for aggregate in widget_query.aggregates:
         metrics.incr(
             "on_demand_metrics.before_widget_spec_generation",
