@@ -159,9 +159,15 @@ class UserEmailsEndpoint(UserEndpoint):
         # Check if email is in use
         # TODO(dcramer): this needs rate limiting to avoid abuse
         # TODO(dcramer): this needs a lock/constraint
-        if UserEmail.objects.filter(email__iexact=new_email, is_primary=True).exclude(user=user).exists():
+        if (
+            UserEmail.objects.filter(email__iexact=new_email, is_primary=True)
+            .exclude(user=user)
+            .exists()
+        ):
             return self.respond(
-                {'email': 'This email address is already in use as a primary email by another account.'},
+                {
+                    "email": "This email address is already in use as a primary email by another account."
+                },
                 status=400,
             )
 
