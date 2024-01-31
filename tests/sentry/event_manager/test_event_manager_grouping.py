@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-import uuid
 from time import time
 from unittest import mock
 from unittest.mock import MagicMock
@@ -17,17 +15,6 @@ from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 
 pytestmark = [requires_snuba]
-
-
-def make_event(**kwargs):
-    result = {
-        "event_id": uuid.uuid1().hex,
-        "level": logging.ERROR,
-        "logger": "default",
-        "tags": [],
-    }
-    result.update(kwargs)
-    return result
 
 
 def get_relevant_metrics_calls(mock_fn: MagicMock, key: str) -> list[mock._Call]:
