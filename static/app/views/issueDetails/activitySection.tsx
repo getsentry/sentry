@@ -89,6 +89,7 @@ function ActivitySection(props: Props) {
                   activity={item}
                   organization={organization}
                   projectId={group.project.id}
+                  group={group}
                 />
               }
             />
