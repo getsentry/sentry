@@ -9,7 +9,7 @@ from binascii import hexlify
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any, FrozenSet, List, Mapping, Optional, Sequence
 from unittest import mock
 from uuid import uuid4
 
@@ -23,6 +23,7 @@ from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.text import slugify
 
+from sentry.auth.access import RpcBackedAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
@@ -125,8 +126,10 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationTokenCreator,
 )
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
 from sentry.silo import SiloMode
@@ -1781,3 +1784,24 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def snooze_rule(**kwargs):
         return RuleSnooze.objects.create(**kwargs)
+
+    @staticmethod
+    def create_request_access(
+        sso_state: Optional[RpcMemberSsoState] = None,
+        permissions: Optional[List] = None,
+        org_context: Optional[RpcUserOrganizationContext] = None,
+        scopes_upper_bound: Optional[FrozenSet] = frozenset(),
+    ) -> RpcBackedAccess:
+        if not sso_state:
+            sso_state = RpcMemberSsoState()
+        if not permissions:
+            permissions = []
+        if not org_context:
+            org_context = RpcUserOrganizationContext()
+
+        auth_state = RpcAuthState(sso_state=sso_state, permissions=permissions)
+        return RpcBackedAccess(
+            rpc_user_organization_context=org_context,
+            auth_state=auth_state,
+            scopes_upper_bound=scopes_upper_bound,
+        )
