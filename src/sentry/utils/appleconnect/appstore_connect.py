@@ -137,8 +137,7 @@ def _get_appstore_json(
             full_url = ""
         full_url += url
         logger.debug("GET %s", full_url)
-        with sentry_sdk.start_transaction(op="http", description="AppStoreConnect request"):
-            response = session.get(full_url, headers=headers, timeout=REQUEST_TIMEOUT)
+        response = session.get(full_url, headers=headers, timeout=REQUEST_TIMEOUT)
         if not response.ok:
             err_info = {
                 "url": full_url,
