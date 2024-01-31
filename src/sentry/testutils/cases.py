@@ -38,6 +38,7 @@ from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk import Granularity, Limit, Offset
@@ -941,6 +942,22 @@ class RuleTestCase(TestCase):
             event = self.event
         state = self.get_state(**kwargs)
         assert rule.passes(event, state) is False
+
+
+class DRFPermissionTestCase(TestCase):
+    def make_request(self, *arg, **kwargs) -> Request:
+        """
+        Override the return type of make_request b/c DRF permission classes
+        expect a DRF request (go figure)
+        """
+        drf_request: Request = super().make_request(*arg, **kwargs)  # type: ignore
+        return drf_request
+
+    def setUp(self):
+        self.superuser_user = self.create_user(is_superuser=True, is_staff=False)
+        self.staff_user = self.create_user(is_staff=True, is_superuser=False)
+        self.superuser_request = self.make_request(user=self.superuser_user, is_superuser=True)
+        self.staff_request = self.make_request(user=self.staff_user, is_staff=True)
 
 
 class PermissionTestCase(TestCase):
