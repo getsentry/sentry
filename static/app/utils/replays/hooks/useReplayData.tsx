@@ -1,10 +1,12 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -102,8 +104,6 @@ function useReplayData({
   const queryClient = useQueryClient();
 
   const [state, setState] = useState<State>(INITIAL_STATE);
-  const [attachments, setAttachments] = useState<unknown[]>([]);
-  const attachmentMap = useRef<Map<string, unknown[]>>(new Map()); // Map keys are always iterated by insertion order
   const [errors, setErrors] = useState<ReplayError[]>([]);
 
   // Fetch every field of the replay. The TS type definition lists every field
@@ -129,42 +129,29 @@ function useReplayData({
     return projects.projects.find(p => p.id === replayRecord.project_id)?.slug ?? null;
   }, [replayRecord, projects.projects]);
 
-  const fetchAttachments = useCallback(async () => {
-    if (!replayRecord || !projectSlug) {
-      return;
-    }
+  const getAttachmentsQueryKey = useCallback(
+    ({cursor, per_page}): ApiQueryKey => {
+      return [
+        `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
+        {
+          query: {
+            download: true,
+            per_page,
+            cursor,
+          },
+        },
+      ];
+    },
+    [orgSlug, projectSlug, replayId]
+  );
 
-    if (!replayRecord.count_segments) {
-      setState(prev => ({...prev, fetchingAttachments: false}));
-      return;
-    }
-
-    const pages = Math.ceil(replayRecord.count_segments / segmentsPerPage);
-    const cursors = new Array(pages).fill(0).map((_, i) => `0:${segmentsPerPage * i}:0`);
-    cursors.forEach(cursor => attachmentMap.current.set(cursor, []));
-
-    await Promise.allSettled(
-      cursors.map(cursor => {
-        const promise = api.requestPromise(
-          `/projects/${orgSlug}/${projectSlug}/replays/${replayRecord.id}/recording-segments/`,
-          {
-            query: {
-              download: true,
-              per_page: segmentsPerPage,
-              cursor,
-            },
-          }
-        );
-        promise.then(response => {
-          attachmentMap.current.set(cursor, response);
-          const flattened = Array.from(attachmentMap.current.values()).flat(2);
-          setAttachments(flattened);
-        });
-        return promise;
-      })
-    );
-    setState(prev => ({...prev, fetchingAttachments: false}));
-  }, [segmentsPerPage, api, orgSlug, replayRecord, projectSlug]);
+  const {pages: attachmentPages, isFetching: isFetchingAttachments} =
+    useFetchParallelPages({
+      enabled: !fetchReplayError && Boolean(projectSlug) && Boolean(replayRecord),
+      hits: replayRecord?.count_segments ?? 0,
+      getQueryKey: getAttachmentsQueryKey,
+      perPage: segmentsPerPage,
+    });
 
   const fetchErrors = useCallback(async () => {
     if (!replayRecord) {
@@ -205,13 +192,6 @@ function useReplayData({
     fetchErrors().catch(onError);
   }, [state.fetchError, fetchErrors, onError]);
 
-  useEffect(() => {
-    if (state.fetchError) {
-      return;
-    }
-    fetchAttachments().catch(onError);
-  }, [state.fetchError, fetchAttachments, onError]);
-
   const clearQueryCache = useCallback(() => {
     () => {
       queryClient.invalidateQueries({
@@ -231,10 +211,10 @@ function useReplayData({
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
   return {
-    attachments,
+    attachments: attachmentPages.flat(2),
     errors,
     fetchError: fetchReplayError ?? state.fetchError,
-    fetching: state.fetchingAttachments || state.fetchingErrors || isFetchingReplay,
+    fetching: state.fetchingErrors || isFetchingReplay || isFetchingAttachments,
     projectSlug,
     onRetry: clearQueryCache,
     replayRecord,
