@@ -1743,6 +1743,7 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
         ("event.type:default", False, [], None),
         ('event.type:"error"', False, [], None),
         ("event.type:transaction", True, ["5367d030", "f7a47137"], None),
+        ("!event.type:transaction", False, [], None),
         (
             "!event.type:error",
             True,
@@ -1754,7 +1755,7 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
         ),
     ],
 )
-def test_event_type_error(
+def test_event_type(
     default_project: Project,
     query: str,
     config_assertion: bool,
