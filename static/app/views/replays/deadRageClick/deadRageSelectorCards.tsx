@@ -1,4 +1,5 @@
-import {ComponentProps, ReactNode, useState} from 'react';
+import type {ComponentProps, ReactNode} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Accordion from 'sentry/components/accordion/accordion';
@@ -13,7 +14,7 @@ import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

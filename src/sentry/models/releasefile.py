@@ -9,7 +9,7 @@ from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from typing import IO, ClassVar, Optional, Tuple
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlunsplit
 
 import sentry_sdk
 from django.core.files.base import File as FileObj
@@ -34,6 +34,7 @@ from sentry.models.release import Release
 from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.urls import urlsplit_best_effort
 from sentry.utils.zip import safe_extract_zip
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,7 @@ class ReleaseFile(Model):
 
     class Meta:
         unique_together = (("release_id", "ident"),)
-        index_together = (("release_id", "name"),)
+        indexes = (models.Index(fields=("release_id", "name")),)
         app_label = "sentry"
         db_table = "sentry_releasefile"
 
@@ -135,7 +136,7 @@ class ReleaseFile(Model):
         * (optional) full url without scheme and netloc or querystring
         """
         # Always ignore the fragment
-        scheme, netloc, path, query, _ = urlsplit(url)
+        scheme, netloc, path, query = urlsplit_best_effort(url)
 
         uri_without_fragment = (scheme, netloc, path, query, "")
         uri_relative = ("", "", path, query, "")

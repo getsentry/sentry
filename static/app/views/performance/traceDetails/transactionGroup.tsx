@@ -1,23 +1,24 @@
 import {Component, Fragment} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
-import {
-  ScrollbarManagerChildrenProps,
-  withScrollbarManager,
-} from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import {
+import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
+import type {ScrollbarManagerChildrenProps} from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import {withScrollbarManager} from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import type {
   SpanBoundsType,
   SpanGeneratedBoundsType,
   VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
-import {Organization} from 'sentry/types';
-import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {Organization} from 'sentry/types';
+import type {
+  TraceError,
+  TraceFullDetailed,
+} from 'sentry/utils/performance/quickTrace/types';
 
-import {EventDetail} from './newTraceDetailsContent';
+import type {EventDetail} from './newTraceDetailsContent';
 import NewTraceDetailsTransactionBar from './newTraceDetailsTransactionBar';
 import TransactionBar from './transactionBar';
-import {TraceInfo, TraceRoot, TreeDepth} from './types';
+import type {TraceInfo, TraceRoot, TreeDepth} from './types';
 
 type Props = ScrollbarManagerChildrenProps & {
   continuingDepths: TreeDepth[];

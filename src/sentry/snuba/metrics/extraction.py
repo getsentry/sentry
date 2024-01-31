@@ -25,6 +25,7 @@ import sentry_sdk
 from django.utils.functional import cached_property
 from typing_extensions import NotRequired
 
+from sentry import features
 from sentry.api import event_search
 from sentry.api.event_search import (
     AggregateFilter,
@@ -80,12 +81,15 @@ class OnDemandMetricSpecVersioning:
 
     spec_versions = [
         SpecVersion(1),
+        SpecVersion(2, {"include_environment_tag"}),
     ]
 
     @classmethod
     def get_query_spec_version(cls: Any, organization_id: int) -> SpecVersion:
         """Return spec version based on feature flag enabled for an organization."""
-        _ = Organization.objects.get_from_cache(id=organization_id)
+        org = Organization.objects.get_from_cache(id=organization_id)
+        if features.has("organizations:on-demand-metrics-query-spec-version-two", org):
+            return cls.spec_versions[1]
         return cls.spec_versions[0]
 
     @classmethod
@@ -1136,6 +1140,13 @@ class OnDemandMetricSpec:
 
         # Removes field if passed in selected_columns
         self.groupbys = [groupby for groupby in groupbys or () if groupby != field]
+        # Include environment in groupbys which will cause it to included it in the query hash
+        if (
+            self.spec_type == MetricSpecType.DYNAMIC_QUERY
+            and "environment" not in self.groupbys
+            and self.spec_version.flags == {"include_environment_tag"}
+        ):
+            self.groupbys.append("environment")
         # For now, we just support the environment as extra, but in the future we might need more complex ways to
         # combine extra values that are outside the query string.
         self.environment = environment
@@ -1268,7 +1279,13 @@ class OnDemandMetricSpec:
         tag_from_groupbys = self.tags_groupbys(self.groupbys)
         extended_tags_conditions.extend(tag_from_groupbys)
 
-        if self.spec_type == MetricSpecType.DYNAMIC_QUERY:
+        # Once we switch to the next spec we can remove this block
+        # since the environment will be added to the groupbys, thus, being included in the query hash
+        if (
+            self.spec_type == MetricSpecType.DYNAMIC_QUERY
+            and self.spec_version.flags == set()
+            and self._tag_for_field("environment") not in extended_tags_conditions
+        ):
             extended_tags_conditions.append(self._tag_for_field("environment"))
 
         metric_spec: MetricSpec = {
@@ -1425,6 +1442,27 @@ class OnDemandMetricSpec:
             return QueryParsingResult(conditions=conditions)
         except InvalidSearchQuery as e:
             raise Exception(f"Invalid search query '{value}' in on demand spec: {e}")
+
+
+def fetch_on_demand_metric_spec(
+    org_id: int,
+    field: str,
+    query: str,
+    environment: Optional[str] = None,
+    groupbys: Optional[Sequence[str]] = None,
+    spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
+) -> OnDemandMetricSpec:
+    """Function to query the right spec based on the feature flags for an organization."""
+    # The spec version defines what OnDemandMetricSpec version is created
+    spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(org_id)
+    return OnDemandMetricSpec(
+        field=field,
+        query=query,
+        environment=environment,
+        groupbys=groupbys,
+        spec_type=spec_type,
+        spec_version=spec_version,
+    )
 
 
 def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:

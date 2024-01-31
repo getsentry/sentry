@@ -1,14 +1,14 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {SavedSearch} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types';
+import type {UseMutationOptions} from 'sentry/utils/queryClient';
 import {
   getApiQueryData,
   setApiQueryData,
   useMutation,
-  UseMutationOptions,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {makeFetchSavedSearchesForOrgQueryKey} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 

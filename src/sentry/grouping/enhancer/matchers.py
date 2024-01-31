@@ -63,7 +63,7 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
         category=get_path(frame_data, "data", "category"),
         family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
         function=_get_function_name(frame_data, platform),
-        in_app=frame_data.get("in_app") or False,
+        in_app=frame_data.get("in_app"),
         module=get_path(frame_data, "module"),
         package=frame_data.get("package"),
         path=frame_data.get("abs_path") or frame_data.get("filename"),
@@ -72,11 +72,14 @@ def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
     for key in list(match_frame.keys()):
         value = match_frame[key]
         if isinstance(value, (bytes, str)):
-            if key in ("package", "path"):
-                value = match_frame[key] = value.lower()
-
             if isinstance(value, str):
-                match_frame[key] = value.encode("utf-8")
+                value = match_frame[key] = value.encode("utf-8")
+
+            if key in ("package", "path"):
+                # NOTE: path-like matchers are case insensitive, and normalize
+                # file-system separators to `/`.
+                # We do this here in a central place instead of in each matcher separately.
+                value = match_frame[key] = value.lower().replace(b"\\", b"/")
 
     return match_frame
 
@@ -234,7 +237,7 @@ class InAppMatch(FrameMatch):
         self._ref_val = bool(get_rule_bool(self.pattern))
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
-        return self._ref_val == match_frame["in_app"]
+        return self._ref_val == bool(match_frame["in_app"])
 
 
 class FrameFieldMatch(FrameMatch):

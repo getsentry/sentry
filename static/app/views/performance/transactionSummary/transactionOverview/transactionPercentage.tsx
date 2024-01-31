@@ -5,7 +5,7 @@ import clamp from 'lodash/clamp';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
-import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 

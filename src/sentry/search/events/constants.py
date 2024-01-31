@@ -82,7 +82,7 @@ VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
     },
 }
 
-TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
+TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
@@ -287,6 +287,30 @@ METRICS_MAP = {
     "spans.ui": "d:transactions/breakdowns.span_ops.ops.ui@millisecond",
     "transaction.duration": "d:transactions/duration@millisecond",
     "user": "s:transactions/user@none",
+}
+# The assumed list of tags that all metrics have, some won't because we remove tags to reduce cardinality
+# Use the public api aliases here
+DEFAULT_METRIC_TAGS = {
+    "browser.name",
+    "device.class",
+    "environment",
+    "geo.country_code",
+    "has_profile",
+    "histogram_outlier",
+    "http.method",
+    "http.status_code",
+    "measurement_rating",
+    "os.name",
+    "query_hash",
+    "release",
+    "resource.render_blocking_status",
+    "satisfaction",
+    "sdk",
+    "session.status",
+    "transaction",
+    "transaction.method",
+    "transaction.op",
+    "transaction.status",
 }
 SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",

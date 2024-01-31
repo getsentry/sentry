@@ -5,7 +5,7 @@ import AlertLink from 'sentry/components/alertLink';
 import {LinkButton} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {FieldObject} from 'sentry/components/forms/types';
+import type {FieldObject} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';

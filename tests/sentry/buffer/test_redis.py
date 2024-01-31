@@ -76,7 +76,7 @@ class TestRedisBuffer:
         filters = {"pk": 1}
         extra = {
             "foo": "bar",
-            "datetime": datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc),
+            "datetime": datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.UTC),
         }
         signal_only = None
         self.buf.process("foo")
@@ -133,7 +133,7 @@ class TestRedisBuffer:
         assert self.buf.get(model, columns, filters=filters) == {"times_seen": 6}
 
     def test_incr_saves_to_redis(self):
-        now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
+        now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.UTC)
         client = self.buf.get_routing_client()
         model = mock.Mock()
         model.__name__ = "Mock"
@@ -261,7 +261,7 @@ class TestRedisBuffer:
 
 #    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
 #    def test_incr_uses_signal_only(self):
-#        now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
+#        now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=datetime.timezone.utc)
 #        client = self.buf.cluster.get_routing_client()
 #        model = mock.Mock()
 #        model.__name__ = "Mock"
@@ -283,7 +283,7 @@ class TestRedisBuffer:
 @pytest.mark.parametrize(
     "value",
     [
-        datetime.datetime.today().replace(tzinfo=timezone.utc),
+        datetime.datetime.today().replace(tzinfo=datetime.UTC),
         timezone.now(),
         datetime.date.today(),
     ],

@@ -1,15 +1,16 @@
-import {Fragment, ReactNode} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
 import InviteRowControl from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
 import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
-import {
+import type {
   InviteRow,
   InviteStatus,
   NormalizedInvite,
@@ -18,7 +19,7 @@ import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 interface Props {

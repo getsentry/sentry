@@ -1,8 +1,8 @@
-import {LocationDescriptorObject, Query} from 'history';
+import type {LocationDescriptorObject, Query} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {Organization, OrganizationSummary} from 'sentry/types';
-import {
+import type {Organization, OrganizationSummary} from 'sentry/types';
+import type {
   EventLite,
   TraceError,
   TraceFull,
@@ -12,7 +12,7 @@ import {
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
-import {TraceInfo} from './types';
+import type {TraceInfo} from './types';
 
 export function getTraceDetailsUrl(
   organization: OrganizationSummary,

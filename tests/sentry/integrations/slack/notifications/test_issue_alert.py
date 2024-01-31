@@ -115,7 +115,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={self.rule.id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -350,7 +350,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -458,7 +458,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -651,10 +651,11 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
+        assert blocks[5]["elements"][0]["text"] == f"Suggested Assignees: #{self.team.slug}"
         assert (
-            blocks[5]["elements"][0]["text"]
+            blocks[6]["elements"][0]["text"]
             == f"{event.project.slug} | <http://testserver/settings/{event.organization.slug}/teams/{self.team.slug}/notifications/?referrer=issue_alert-slack-team&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
@@ -982,7 +983,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":exclamation: <http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[5]["elements"][0]["text"]
@@ -1244,7 +1245,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>  \n"
+            == f":exclamation: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]

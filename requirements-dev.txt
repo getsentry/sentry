@@ -1,6 +1,6 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
-sentry-devenv>=1.2.1
+sentry-devenv>=1.2.2
 
 covdefaults>=2.3.0
 docker>=6
@@ -8,9 +8,9 @@ time-machine>=2.13.0
 honcho>=1.1.0
 openapi-core>=0.18.2
 psutil
-pytest>=7.2.1
+pytest>=8
 pytest-cov>=4.0.0
-pytest-django>=4.7.0
+pytest-django>=4.8.0
 pytest-fail-slow>=0.3.0
 pytest-rerunfailures>=11
 pytest-sentry>=0.1.11
@@ -24,7 +24,7 @@ pre-commit>=3.3
 black>=22.10.0
 flake8>=6.1
 flake8-bugbear>=22.10
-flake8-logging>=1.4
+flake8-logging>=1.5
 pyupgrade>=3.2.3
 isort>=5.10.1
 

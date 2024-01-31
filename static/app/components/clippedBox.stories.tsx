@@ -77,8 +77,8 @@ export default storyBook(ClippedBox, story => {
       <Fragment>
         <p>
           Some callbacks are available:{' '}
-          <JSXProperty name="onSetRenderedHeight" value={Function} />
-          & <JSXProperty name="onReveal" value={Function} />.
+          <JSXProperty name="onSetRenderedHeight" value={Function} />&{' '}
+          <JSXProperty name="onReveal" value={Function} />.
         </p>
         <SideBySide>
           {[50, 100, 150].map(imgHeight => {

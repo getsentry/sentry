@@ -6,7 +6,7 @@ import itertools
 from collections.abc import Mapping, Set
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, List, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 from snuba_sdk import (
     Column,
@@ -378,7 +378,7 @@ class SnubaTSDB(BaseTSDB):
             model_aggregate = None
 
         aggregated_as = "aggregate"
-        aggregations: List[SelectableExpression] = [
+        aggregations: list[SelectableExpression] = [
             Function(
                 aggregation,
                 [Column(model_aggregate)] if model_aggregate else [],
@@ -395,7 +395,7 @@ class SnubaTSDB(BaseTSDB):
             limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
             # build up order by
-            orderby: List[OrderBy] = []
+            orderby: list[OrderBy] = []
             if group_on_time:
                 orderby.append(OrderBy(Column("time"), Direction.DESC))
             if group_on_model and model_group is not None:

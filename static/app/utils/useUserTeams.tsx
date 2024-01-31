@@ -5,7 +5,8 @@ import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface UseTeamsResult {
   isError: boolean | null;
@@ -53,9 +54,12 @@ export function useUserTeams(): UseTeamsResult {
   }, [additionalTeams]);
 
   const isSuperuser = isActiveSuperuser();
+  const isOrgOwner = organization?.access.includes('org:admin');
   const teams = useMemo<Team[]>(() => {
-    return isSuperuser ? storeState.teams : storeState.teams.filter(t => t.isMember);
-  }, [storeState.teams, isSuperuser]);
+    return isSuperuser || isOrgOwner
+      ? storeState.teams
+      : storeState.teams.filter(t => t.isMember);
+  }, [isSuperuser, isOrgOwner, storeState.teams]);
 
   return {
     teams,

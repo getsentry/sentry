@@ -26,6 +26,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
@@ -55,7 +56,7 @@ from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpecType,
     OnDemandMetricSpec,
-    OnDemandMetricSpecVersioning,
+    fetch_on_demand_metric_spec,
     should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -92,6 +93,7 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metrics_layer_functions: List[CurriedFunction] = []
         self.metric_ids: Set[int] = set()
         self._indexer_cache: Dict[str, Optional[int]] = {}
+        self._use_default_tags: Optional[bool] = None
         # always true if this is being called
         config.has_metrics = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -116,6 +118,17 @@ class MetricsQueryBuilder(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
+
+    @property
+    def use_default_tags(self) -> bool:
+        if self._use_default_tags is None:
+            if self.params.organization is not None:
+                self._use_default_tags = features.has(
+                    "organizations:mep-use-default-tags", self.params.organization, actor=None
+                )
+            else:
+                self._use_default_tags = False
+        return self._use_default_tags
 
     def are_columns_resolved(self) -> bool:
         # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
@@ -153,17 +166,13 @@ class MetricsQueryBuilder(QueryBuilder):
                     "Must include on demand metrics type when querying on demand"
                 )
 
-            # Instead of calling OnDemandMetricSpec without a spec_version (defaulting to the least),
-            # we keep this logic here to make future spec versions easier to roll out since it will
-            # save us to look where to add this logic again
-            spec_version = OnDemandMetricSpecVersioning.get_query_spec_version(self.organization_id)
-            return OnDemandMetricSpec(
+            return fetch_on_demand_metric_spec(
+                self.organization_id,
                 field=field,
                 query=self.query,
                 environment=environment,
                 groupbys=groupby_columns,
                 spec_type=self.builder_config.on_demand_metrics_type,
-                spec_version=spec_version,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -382,7 +391,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         if col in DATASETS[self.dataset]:
             return str(DATASETS[self.dataset][col])
-        tag_id = self.resolve_metric_index(col)
+        tag_id = self.resolve_tag_key(col)
         if tag_id is None:
             raise InvalidSearchQuery(f"Unknown field: {col}")
         if self.is_performance:
@@ -583,6 +592,15 @@ class MetricsQueryBuilder(QueryBuilder):
         if self.is_performance or self.use_metrics_layer:
             return value
         return self.resolve_metric_index(value)
+
+    def resolve_tag_key(self, value: str) -> Optional[Union[int, str]]:
+        if self.use_default_tags:
+            if value in constants.DEFAULT_METRIC_TAGS:
+                return self.resolve_metric_index(value)
+            else:
+                raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
+        else:
+            return self.resolve_metric_index(value)
 
     def default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
@@ -1692,6 +1710,13 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                 # Ensure the project id fields stay as numbers, clickhouse 20 can't handle it, but 21 can
                 if field in {"project_id", "project.id"}:
                     value = int(value)
+                if field == constants.PROJECT_ALIAS:
+                    # These will be strings so lets turn them back to ints
+                    project_map = {project.slug: project.id for project in self.params.projects}
+                    if isinstance(value, list):
+                        value = {project_map.get(val) for val in value}
+                    else:
+                        value = project_map.get(value)
                 # TODO: Handle potential None case
                 elif value is not None:
                     value = self.resolve_tag_value(str(value))
@@ -1700,9 +1725,12 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
             values_list = list(values)
 
             if values_list:
-                conditions.append(
-                    Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)
+                lhs = (
+                    resolved_field.exp
+                    if isinstance(resolved_field, AliasedExpression)
+                    else resolved_field
                 )
+                conditions.append(Condition(lhs, Op.IN if not other else Op.NOT_IN, values_list))
 
         if len(conditions) > 1:
             final_function = And if not other else Or

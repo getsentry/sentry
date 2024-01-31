@@ -19,6 +19,8 @@ def dump_obj(obj):
     for key, value in obj.__dict__.items():
         if key.startswith("_"):
             continue
+        elif key == "rust_enhancements":
+            continue
         elif isinstance(value, list):
             rv[key] = [dump_obj(x) for x in value]
         elif isinstance(value, dict):
@@ -30,6 +32,7 @@ def dump_obj(obj):
 
 @pytest.mark.parametrize("version", [1, 2])
 @django_db_all
+@override_options({"grouping.rust_enhancers.parse_rate": 1.0})
 def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
@@ -83,6 +86,37 @@ def test_callee_recursion():
     # Remove this test when CalleeMatch can be applied recursively
     with pytest.raises(InvalidEnhancerConfig):
         Enhancements.from_config_string(" category:foo | [ category:bar ] | [ category:baz ] +app")
+
+
+@django_db_all
+@override_options(
+    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
+)
+def test_flipflop_inapp():
+    enhancement = Enhancements.from_config_string(
+        """
+        family:all +app
+        family:all -app
+    """
+    )
+
+    frames: list[dict[str, Any]] = [{}]
+    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+
+    assert frames[0]["data"]["orig_in_app"] == -1  # == None
+    assert frames[0]["in_app"] is False
+
+    frames = [{"in_app": False}]
+    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+
+    assert "data" not in frames[0]  # no changes were made
+    assert frames[0]["in_app"] is False
+
+    frames = [{"in_app": True}]
+    enhancement.apply_modifications_to_frame(frames, "javascript", {})
+
+    assert frames[0]["data"]["orig_in_app"] == 1  # == True
+    assert frames[0]["in_app"] is False
 
 
 def _get_matching_frame_actions(rule, frames, platform, exception_data=None, cache=None):
@@ -452,6 +486,10 @@ def test_sentinel_and_prefix(action, type):
     assert getattr(component, f"is_{type}_frame") is expected
 
 
+@django_db_all
+@override_options(
+    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
+)
 @pytest.mark.parametrize(
     "frame",
     [

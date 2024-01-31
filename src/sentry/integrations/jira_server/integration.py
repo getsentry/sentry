@@ -432,8 +432,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_config_data(self):
         config = self.org_integration.config
-        project_mappings = IntegrationExternalProject.objects.filter(
-            organization_integration_id=self.org_integration.id
+        project_mappings = integration_service.get_integration_external_projects(
+            organization_id=self.org_integration.organization_id,
+            integration_id=self.org_integration.integration_id,
         )
         sync_status_forward = {}
         for pm in project_mappings:

@@ -2,18 +2,16 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Checkbox from 'sentry/components/checkbox';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
-import {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
-import {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
-import {
-  InviteModalHook,
-  InviteModalRenderFunc,
-} from 'sentry/components/modals/memberInviteModalCustomization';
+import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
+import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
+import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
+import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PanelTable from 'sentry/components/panels/panelTable';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
@@ -22,7 +20,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MissingMember, Organization, OrgRole} from 'sentry/types';
+import type {MissingMember, Organization, OrgRole} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
@@ -155,8 +153,8 @@ export function InviteMissingMembersModal({
         !errorResponse || !errorResponse.email
           ? false
           : Array.isArray(errorResponse.email)
-          ? errorResponse.email[0]
-          : errorResponse.email;
+            ? errorResponse.email[0]
+            : errorResponse.email;
 
       const error = emailError || t('Could not invite user');
 
@@ -196,8 +194,8 @@ export function InviteMissingMembersModal({
         memberInvites.length === selectedCount
           ? `all ${selectedCount}`
           : selectedCount === 0
-          ? ''
-          : selectedCount,
+            ? ''
+            : selectedCount,
       isPlural: selectedCount !== 1 ? 's' : '',
     });
   };

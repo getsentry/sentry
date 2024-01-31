@@ -1,17 +1,18 @@
-import {useCallback, useState} from 'react';
-import {InjectedRouter} from 'react-router';
+import {useCallback, useMemo, useState} from 'react';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {MRI, Organization, PageFilters} from 'sentry/types';
-import {MetricWidgetQueryParams, stringifyMetricWidget} from 'sentry/utils/metrics';
+import type {MRI, Organization, PageFilters} from 'sentry/types';
+import {stringifyMetricWidget} from 'sentry/utils/metrics';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
-import {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
+import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {InlineEditor} from 'sentry/views/dashboards/widgetCard/metricWidgetCard/inlineEditor';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
@@ -23,7 +24,7 @@ import {
   toMetricDisplayType,
 } from '../../../../utils/metrics/dashboard';
 import {parseField} from '../../../../utils/metrics/mri';
-import {Widget} from '../../types';
+import type {Widget} from '../../types';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -62,9 +63,12 @@ export function MetricWidgetCard({
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
     useState<MetricWidgetQueryParams>(convertFromWidget(widget));
 
-  const [title, setTitle] = useState<string>(
-    widget.title ?? stringifyMetricWidget(metricWidgetQueryParams)
+  const defaultTitle = useMemo(
+    () => stringifyMetricWidget(metricWidgetQueryParams),
+    [metricWidgetQueryParams]
   );
+
+  const [title, setTitle] = useState<string>(widget.title ?? defaultTitle);
 
   const handleChange = useCallback(
     (data: Partial<MetricWidgetQueryParams>) => {
@@ -82,15 +86,18 @@ export function MetricWidgetCard({
       toMetricDisplayType(metricWidgetQueryParams.displayType)
     );
 
+    const isCustomTitle = title !== '' && title !== defaultTitle;
+
     const updatedWidget = {
       ...widget,
-      title,
+      // If user renamed the widget, preserve that title, otherwise stringify the widget query params
+      title: isCustomTitle ? title : defaultTitle,
       queries: convertedWidget.queries,
       displayType: convertedWidget.displayType,
     };
 
     onUpdate?.(updatedWidget);
-  }, [title, metricWidgetQueryParams, onUpdate, widget, selection]);
+  }, [title, defaultTitle, metricWidgetQueryParams, onUpdate, widget, selection]);
 
   const handleCancel = useCallback(() => {
     onUpdate?.(null);
@@ -186,7 +193,6 @@ export function MetricWidgetChartContainer({
   return (
     <MetricWidgetBody
       widgetIndex={0}
-      focusArea={null}
       datetime={selection.datetime}
       projects={selection.projects}
       environments={selection.environments}

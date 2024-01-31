@@ -515,11 +515,17 @@ def test_apply_new_fingerprinting_rules(
 
     assert is_group_finished(event1.group_id)
 
-    # Events should now be in different groups:
+    # Events should now be in different groups
     event1 = eventstore.backend.get_event_by_id(default_project.id, event_id1)
     event2 = eventstore.backend.get_event_by_id(default_project.id, event_id2)
+    # Both events end up with new group ids because the entire group is reprocessed, so even though
+    # nothing has changed for event2, it's still put into a new group
     assert event1.group.id != original_issue_id
+    assert event2.group.id != original_issue_id
     assert event1.group.id != event2.group.id
+    # The group `message` value is taken from the `search_message` attribute, which is basically
+    # just all the event's `metadata` entries shoved together (so that they can all be searhed on -
+    # hence the name). Thus group1 includes both the event's message and its title.
     assert event1.group.message == "hello world 1 HW1"
     assert event2.group.message == "hello world 2"
 
@@ -589,7 +595,7 @@ def test_apply_new_stack_trace_rules(
     original_issue_id = event1.group.id
 
     with mock.patch(
-        "sentry.event_manager.get_grouping_config_dict_for_project",
+        "sentry.grouping.ingest.get_grouping_config_dict_for_project",
         return_value={
             "id": DEFAULT_GROUPING_CONFIG,
             "enhancements": Enhancements.from_config_string(

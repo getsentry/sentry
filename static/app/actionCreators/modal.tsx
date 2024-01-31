@@ -378,3 +378,10 @@ export async function openProjectCreationModal(options: {organization: Organizat
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
+
+export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOptions) {
+  const mod = await import('sentry/components/modals/bulkEditMonitorsModal');
+  const {default: Modal, modalCss} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
+}

@@ -1,4 +1,5 @@
-import {CSSProperties, memo, useCallback} from 'react';
+import type {CSSProperties} from 'react';
+import {memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -107,8 +108,8 @@ const ConsoleLog = styled('div')<{
     ['warning', 'error'].includes(String(p.level))
       ? p.theme.alert[String(p.level)].iconColor
       : p.hasOccurred
-      ? 'inherit'
-      : p.theme.gray300};
+        ? 'inherit'
+        : p.theme.gray300};
 
   /*
   Show the timestamp button "Play" icon when we hover the row.

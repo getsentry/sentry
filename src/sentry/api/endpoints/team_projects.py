@@ -189,7 +189,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 and project.platform
                 and project.platform.startswith("javascript")
             ):
-                set_default_inbound_filters(project)
+                set_default_inbound_filters(project, team.organization)
 
             self.create_audit_entry(
                 request=request,

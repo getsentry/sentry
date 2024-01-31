@@ -2,7 +2,7 @@
 /* eslint import/no-nodejs-modules:0 */
 import {TextDecoder, TextEncoder} from 'util';
 
-import {ReactElement} from 'react';
+import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
 import {ConfigFixture} from 'sentry-fixture/config';
@@ -50,7 +50,6 @@ jest.mock('lodash/debounce', () =>
 );
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
-jest.mock('sentry/utils/withOrganization');
 jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);

@@ -20,6 +20,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
+from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
@@ -89,6 +90,9 @@ def _validate_project_config(config):
     # Relay keeps BTreeSets for these, so sort here as well:
     for rule in config.get("metricConditionalTagging", []):
         rule["targetMetrics"] = sorted(rule["targetMetrics"])
+    # Relay uses a BTreeSet for features:
+    if features := config.get("features"):
+        config["features"] = sorted(features)
 
     validate_project_config(json.dumps(config), strict=True)
 
@@ -690,6 +694,26 @@ def test_healthcheck_filter(default_project, health_check_set):
 
 
 @django_db_all
+@region_silo_test
+@pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
+def test_with_blocked_metrics(default_project, feature_flag):
+    block_metric("g:custom/*@millisecond", [default_project])
+    block_tags_of_metric("c:custom/page_click@none", {"release", "transaction"}, [default_project])
+
+    with Feature({"organizations:metrics-blocking": feature_flag}):
+        project_config = get_project_config(default_project)
+        config = project_config.to_dict()["config"]
+        _validate_project_config(config)
+
+        if not feature_flag:
+            assert "metrics" not in config
+        else:
+            config = config["metrics"]
+            assert len(config["deniedNames"]) == 1
+            assert len(config["deniedTags"]) == 1
+
+
+@django_db_all
 def test_alert_metric_extraction_rules_empty(default_project):
     features = {
         "organizations:transaction-metrics-extraction": True,
@@ -898,164 +922,9 @@ def test_performance_calculate_score(default_project):
 
 
 @django_db_all
-def test_performance_calculate_score_with_optional_lcp_and_cls(default_project):
-    features = {
-        "organizations:performance-calculate-score-relay": True,
-        "organizations:performance-score-optional-lcp-and-cls": True,
-    }
-
-    with Feature(features):
-        config = get_project_config(default_project, full_config=True).to_dict()["config"]
-
-        validate_project_config(json.dumps(config), strict=True)
-        performance_score = config["performanceScore"]["profiles"]
-        assert performance_score[0] == {
-            "name": "Chrome",
-            "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
-                {
-                    "measurement": "fid",
-                    "weight": 0.3,
-                    "p10": 100,
-                    "p50": 300,
-                    "optional": True,
-                },
-                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
-            ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Chrome",
-            },
-        }
-        assert performance_score[1] == {
-            "name": "Firefox",
-            "scoreComponents": [
-                {
-                    "measurement": "fcp",
-                    "weight": 0.15,
-                    "p10": 900.0,
-                    "p50": 1600.0,
-                    "optional": False,
-                },
-                {
-                    "measurement": "lcp",
-                    "weight": 0.3,
-                    "p10": 1200.0,
-                    "p50": 2400.0,
-                    "optional": True,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.3,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
-                },
-                {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
-                {
-                    "measurement": "ttfb",
-                    "weight": 0.1,
-                    "p10": 200.0,
-                    "p50": 400.0,
-                    "optional": False,
-                },
-            ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Firefox",
-            },
-        }
-        assert performance_score[2] == {
-            "name": "Safari",
-            "scoreComponents": [
-                {
-                    "measurement": "fcp",
-                    "weight": 0.15,
-                    "p10": 900.0,
-                    "p50": 1600.0,
-                    "optional": False,
-                },
-                {
-                    "measurement": "lcp",
-                    "weight": 0.0,
-                    "p10": 1200.0,
-                    "p50": 2400.0,
-                    "optional": False,
-                },
-                {
-                    "measurement": "fid",
-                    "weight": 0.0,
-                    "p10": 100.0,
-                    "p50": 300.0,
-                    "optional": True,
-                },
-                {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
-                {
-                    "measurement": "ttfb",
-                    "weight": 0.1,
-                    "p10": 200.0,
-                    "p50": 400.0,
-                    "optional": False,
-                },
-            ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Safari",
-            },
-        }
-        assert performance_score[3] == {
-            "name": "Edge",
-            "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
-                {
-                    "measurement": "fid",
-                    "weight": 0.3,
-                    "p10": 100,
-                    "p50": 300,
-                    "optional": True,
-                },
-                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
-            ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Edge",
-            },
-        }
-        assert performance_score[4] == {
-            "name": "Opera",
-            "scoreComponents": [
-                {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-                {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
-                {
-                    "measurement": "fid",
-                    "weight": 0.3,
-                    "p10": 100,
-                    "p50": 300,
-                    "optional": True,
-                },
-                {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
-                {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
-            ],
-            "condition": {
-                "op": "eq",
-                "name": "event.contexts.browser.name",
-                "value": "Opera",
-            },
-        }
-
-
-@django_db_all
 @region_silo_test
 def test_project_config_cardinality_limits(default_project, insta_snapshot):
-    with override_options(
+    options = override_options(
         {
             "sentry-metrics.cardinality-limiter.limits.performance.per-org": [
                 {"window_seconds": 1000, "granularity_seconds": 100, "limit": 10}
@@ -1073,7 +942,11 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot):
                 {"window_seconds": 5000, "granularity_seconds": 500, "limit": 50}
             ],
         },
-    ):
+    )
+
+    features = Feature({"organizations:relay-cardinality-limiter": True})
+
+    with options, features:
         project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()

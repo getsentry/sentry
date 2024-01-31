@@ -5,7 +5,7 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import {AuthProvider, Organization} from 'sentry/types';
+import type {AuthProvider, Organization} from 'sentry/types';
 import {descopeFeatureName} from 'sentry/utils';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import withOrganization from 'sentry/utils/withOrganization';

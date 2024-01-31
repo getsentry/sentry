@@ -3,12 +3,12 @@ import * as Sentry from '@sentry/react';
 
 import Chart from 'sentry/components/events/eventStatisticalDetector/lineChart';
 import {DataSection} from 'sentry/components/events/styles';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {transformEventStats} from 'sentry/views/performance/trends/chart';
-import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 

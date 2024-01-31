@@ -1,4 +1,4 @@
-from typing import Any, Optional, Sequence
+from typing import Optional, Sequence
 from unittest import mock
 
 import pytest
@@ -17,6 +17,14 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold, Tra
 from sentry.relay.config.metric_extraction import get_metric_extraction_config
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import (
+    MetricSpec,
+    MetricSpecType,
+    OnDemandMetricSpec,
+    RuleCondition,
+    TagSpec,
+    fetch_on_demand_metric_spec,
+)
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -122,14 +130,17 @@ def test_get_metric_extraction_config_single_alert(default_project: Project) -> 
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 1
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": "a312e0db"}],
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "a312e0db"},
+                ],
+            }
+        ]
 
 
 @django_db_all
@@ -147,26 +158,33 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 1
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {
-                "inner": [
-                    {"name": "event.environment", "op": "eq", "value": "development"},
-                    {
-                        "inner": [
-                            {"name": "event.tags.device.platform", "op": "eq", "value": "android"},
-                            {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
-                        ],
-                        "op": "or",
-                    },
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {
+                    "inner": [
+                        {"name": "event.environment", "op": "eq", "value": "development"},
+                        {
+                            "inner": [
+                                {
+                                    "name": "event.tags.device.platform",
+                                    "op": "eq",
+                                    "value": "android",
+                                },
+                                {"name": "event.tags.device.platform", "op": "eq", "value": "ios"},
+                            ],
+                            "op": "or",
+                        },
+                    ],
+                    "op": "and",
+                },
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "ca87c609"},
                 ],
-                "op": "and",
-            },
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": "ca87c609"}],
-        }
+            }
+        ]
 
 
 @django_db_all
@@ -206,7 +224,6 @@ def test_get_metric_extraction_config_multiple_alerts(default_project: Project) 
 @django_db_all
 @override_options({"on_demand.max_alert_specs": 1})
 def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
-    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature(ON_DEMAND_METRICS):
@@ -215,15 +232,19 @@ def test_get_metric_extraction_config_multiple_alerts_above_max_limit(
 
         config = get_metric_extraction_config(default_project)
 
-        assert config
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+            assert config
+
+            assert capture_exception.call_count == 2
+            exception = capture_exception.call_args.args[0]
+            assert (
+                exception.args[0]
+                == "Spec version 2: Too many (2) on demand metric alerts for org baz"
+            )
+
         # Since we have set a maximum of 1 we will not get 2
         assert len(config["metrics"]) == 1
-
-        out, _ = capfd.readouterr()
-        assert out.splitlines()[0].split(": ")[1:3] == [
-            "Spec version 1",
-            "Too many (2) on demand metric alerts for project bar",
-        ]
 
 
 @django_db_all
@@ -280,17 +301,28 @@ def test_get_metric_extraction_config_single_widget(default_project: Project) ->
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 1
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "a312e0db"},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "a312e0db"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "cf5f5100"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+        ]
 
 
 @django_db_all
@@ -306,27 +338,48 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "a312e0db"},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
-        assert config["metrics"][1] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": "event.duration",
-            "mri": "d:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "10acc97f"},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "a312e0db"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": "event.duration",
+                "mri": "d:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "10acc97f"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "cf5f5100"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": "event.duration",
+                "mri": "d:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "3a976c6d"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+        ]
 
 
 @django_db_all
@@ -345,49 +398,92 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 3
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "a312e0db"},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
-        assert config["metrics"][1] == {
-            "category": "transaction",
-            "condition": {
-                "inner": [
-                    {"name": "event.duration", "op": "gte", "value": 1000.0},
-                    {"name": "event.duration", "op": "gt", "value": 2000.0},
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "a312e0db"},
+                    {"key": "environment", "field": "event.environment"},
                 ],
-                "op": "and",
             },
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "e2977925"},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
-        assert config["metrics"][2] == {
-            "category": "transaction",
-            "condition": {
-                "inner": [
-                    {"name": "event.duration", "op": "gte", "value": 1000.0},
-                    {"name": "event.duration", "op": "gte", "value": 1000.0},
+            {
+                "category": "transaction",
+                "condition": {
+                    "inner": [
+                        {"name": "event.duration", "op": "gte", "value": 1000.0},
+                        {"name": "event.duration", "op": "gt", "value": 2000.0},
+                    ],
+                    "op": "and",
+                },
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "e2977925"},
+                    {"key": "environment", "field": "event.environment"},
                 ],
-                "op": "and",
             },
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "c50b5bc7"},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
+            {
+                "category": "transaction",
+                "condition": {
+                    "inner": [
+                        {"name": "event.duration", "op": "gte", "value": 1000.0},
+                        {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    ],
+                    "op": "and",
+                },
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "c50b5bc7"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "cf5f5100"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {
+                    "inner": [
+                        {"name": "event.duration", "op": "gte", "value": 1000.0},
+                        {"name": "event.duration", "op": "gt", "value": 2000.0},
+                    ],
+                    "op": "and",
+                },
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "0061cb28"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {
+                    "inner": [
+                        {"name": "event.duration", "op": "gte", "value": 1000.0},
+                        {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    ],
+                    "op": "and",
+                },
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "9e291845"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+        ]
 
 
 @django_db_all
@@ -405,17 +501,28 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 1
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": "event.duration",
-            "mri": "d:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "10acc97f"},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": "event.duration",
+                "mri": "d:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "10acc97f"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": "event.duration",
+                "mri": "d:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "3a976c6d"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+        ]
 
 
 @django_db_all
@@ -430,79 +537,119 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "a312e0db"},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
-        assert config["metrics"][1] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": "event.duration",
-            "mri": "d:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "10acc97f"},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "a312e0db"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": "event.duration",
+                "mri": "d:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "10acc97f"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "cf5f5100"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": "event.duration",
+                "mri": "d:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "3a976c6d"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+        ]
 
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 1})
 def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
-    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "transaction.duration:>=1100", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
-        config = get_metric_extraction_config(default_project)
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+            assert config
 
-        assert config
+            assert capture_exception.call_count == 2
+            exception = capture_exception.call_args.args[0]
+            assert (
+                exception.args[0]
+                == "Spec version 2: Too many (2) on demand metric widgets for org baz"
+            )
+
+        # Revert to 1 after {"include_environment_tag"} becomes the default
         # Since we have set a maximum of 1 we will not get 2
-        assert len(config["metrics"]) == 1
+        assert len(config["metrics"]) == 2
 
-        out, _ = capfd.readouterr()
-        assert out.splitlines()[0].split(": ")[1:3] == [
-            "Spec version 1",
-            "Too many (2) on demand metric widgets for project bar",
-        ]
+
+@django_db_all
+@override_options({"on_demand.max_widget_specs": 1})
+def test_get_metric_extraction_config_multiple_widgets_not_above_max_limit_identical_hashes(
+    default_project: Project,
+) -> None:
+    with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
+        create_widget(["count()"], "transaction.duration:>=1000", default_project)
+        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+            assert config
+
+            assert capture_exception.call_count == 0
 
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 1, "on_demand.extended_max_widget_specs": 0})
 def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
-    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(["count()"], "transaction.duration:>=1100", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
-        config = get_metric_extraction_config(default_project)
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+            assert config
 
-        assert config
+            assert capture_exception.call_count == 2
+            exception = capture_exception.call_args.args[0]
+            assert (
+                exception.args[0]
+                == "Spec version 2: Too many (2) on demand metric widgets for org baz"
+            )
+
+        # Revert to 1 after {"include_environment_tag"} becomes the default
         # Since we have set a maximum of 1 we will not get 2
-        assert len(config["metrics"]) == 1
-
-        out, _ = capfd.readouterr()
-        assert out.splitlines()[0].split(": ")[1:3] == [
-            "Spec version 1",
-            "Too many (2) on demand metric widgets for project bar",
-        ]
+        assert len(config["metrics"]) == 2
 
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 1})
 def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
-    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
@@ -511,23 +658,25 @@ def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
         create_widget(["count()"], "transaction.duration:>=1100", default_project)
         create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
 
-        config = get_metric_extraction_config(default_project)
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+            assert config
 
-        assert config
+            assert capture_exception.call_count == 2
+            exception = capture_exception.call_args.args[0]
+            assert (
+                exception.args[0]
+                == "Spec version 2: Too many (2) on demand metric widgets for org baz"
+            )
+
+        # Revert to 1 after {"include_environment_tag"} becomes the default
         # Since we have set a maximum of 1 we will not get 2
-        assert len(config["metrics"]) == 1
-
-        out, _ = capfd.readouterr()
-        assert out.splitlines()[0].split(": ")[1:3] == [
-            "Spec version 1",
-            "Too many (2) on demand metric widgets for project bar",
-        ]
+        assert len(config["metrics"]) == 2
 
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 2})
 def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
-    capfd: Any,
     default_project: Project,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}), override_options(
@@ -539,7 +688,8 @@ def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2
+        # Revert to 2 after {"include_environment_tag"} becomes the default
+        assert len(config["metrics"]) == 4
 
 
 @django_db_all
@@ -552,14 +702,17 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project: Pr
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 1
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": "a312e0db"}],
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "a312e0db"},
+                ],
+            }
+        ]
 
 
 @django_db_all
@@ -574,27 +727,48 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project: Projec
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "a312e0db"},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
-        assert config["metrics"][1] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": "event.duration",
-            "mri": "d:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": "10acc97f"},
-                {"key": "environment", "field": "event.environment"},
-            ],
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "a312e0db"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": "event.duration",
+                "mri": "d:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "10acc97f"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "cf5f5100"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": "event.duration",
+                "mri": "d:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "3a976c6d"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+        ]
 
 
 @django_db_all
@@ -605,29 +779,52 @@ def test_get_metric_extraction_config_with_failure_count(default_project: Projec
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 1
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [
-                {
-                    "condition": {
-                        "inner": {
-                            "name": "event.contexts.trace.status",
-                            "op": "eq",
-                            "value": ["ok", "cancelled", "unknown"],
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {
+                            "inner": {
+                                "name": "event.contexts.trace.status",
+                                "op": "eq",
+                                "value": ["ok", "cancelled", "unknown"],
+                            },
+                            "op": "not",
                         },
-                        "op": "not",
+                        "key": "failure",
+                        "value": "true",
                     },
-                    "key": "failure",
-                    "value": "true",
-                },
-                {"key": "query_hash", "value": "c3a2ddea"},
-                {"key": "environment", "field": "event.environment"},
-            ],
-        }
+                    {"key": "query_hash", "value": "c3a2ddea"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {
+                            "inner": {
+                                "name": "event.contexts.trace.status",
+                                "op": "eq",
+                                "value": ["ok", "cancelled", "unknown"],
+                            },
+                            "op": "not",
+                        },
+                        "key": "failure",
+                        "value": "true",
+                    },
+                    {"key": "query_hash", "value": "4e66755b"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+        ]
 
 
 @django_db_all
@@ -693,112 +890,216 @@ def test_get_metric_extraction_config_with_count_web_vitals(
         vital = measurement.split(".")[1]
 
         assert config
-        assert len(config["metrics"]) == 1
 
         if measurement_rating == "good":
-            assert config["metrics"][0] == {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [
-                    {
-                        "condition": {
-                            "name": f"event.{measurement}.value",
-                            "op": "lt",
-                            "value": VITAL_THRESHOLDS[vital]["meh"],
+            assert config["metrics"] == [
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {
+                            "condition": {
+                                "name": f"event.{measurement}.value",
+                                "op": "lt",
+                                "value": VITAL_THRESHOLDS[vital]["meh"],
+                            },
+                            "key": "measurement_rating",
+                            "value": "matches_hash",
                         },
-                        "key": "measurement_rating",
-                        "value": "matches_hash",
-                    },
-                    {"key": "query_hash", "value": "30cb4ba5"},
-                    {"key": "environment", "field": "event.environment"},
-                ],
-            }
+                        {"key": "query_hash", "value": "30cb4ba5"},
+                        {"key": "environment", "field": "event.environment"},
+                    ],
+                },
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {
+                            "condition": {
+                                "name": f"event.{measurement}.value",
+                                "op": "lt",
+                                "value": VITAL_THRESHOLDS[vital]["meh"],
+                            },
+                            "key": "measurement_rating",
+                            "value": "matches_hash",
+                        },
+                        {"key": "query_hash", "value": "e14212cf"},
+                        {"key": "environment", "field": "event.environment"},
+                    ],
+                },
+            ]
 
         if measurement_rating == "meh":
-            assert config["metrics"][0] == {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [
-                    {
-                        "condition": {
-                            "inner": [
-                                {
-                                    "name": f"event.{measurement}.value",
-                                    "op": "gte",
-                                    "value": VITAL_THRESHOLDS[vital]["meh"],
-                                },
-                                {
-                                    "name": f"event.{measurement}.value",
-                                    "op": "lt",
-                                    "value": VITAL_THRESHOLDS[vital]["poor"],
-                                },
-                            ],
-                            "op": "and",
+            assert config["metrics"] == [
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {
+                            "condition": {
+                                "inner": [
+                                    {
+                                        "name": f"event.{measurement}.value",
+                                        "op": "gte",
+                                        "value": VITAL_THRESHOLDS[vital]["meh"],
+                                    },
+                                    {
+                                        "name": f"event.{measurement}.value",
+                                        "op": "lt",
+                                        "value": VITAL_THRESHOLDS[vital]["poor"],
+                                    },
+                                ],
+                                "op": "and",
+                            },
+                            "key": "measurement_rating",
+                            "value": "matches_hash",
                         },
-                        "key": "measurement_rating",
-                        "value": "matches_hash",
-                    },
-                    {"key": "query_hash", "value": "f207c139"},
-                    {"key": "environment", "field": "event.environment"},
-                ],
-            }
+                        {"key": "query_hash", "value": "f207c139"},
+                        {"key": "environment", "field": "event.environment"},
+                    ],
+                },
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {
+                            "condition": {
+                                "inner": [
+                                    {
+                                        "name": f"event.{measurement}.value",
+                                        "op": "gte",
+                                        "value": VITAL_THRESHOLDS[vital]["meh"],
+                                    },
+                                    {
+                                        "name": f"event.{measurement}.value",
+                                        "op": "lt",
+                                        "value": VITAL_THRESHOLDS[vital]["poor"],
+                                    },
+                                ],
+                                "op": "and",
+                            },
+                            "key": "measurement_rating",
+                            "value": "matches_hash",
+                        },
+                        {"key": "query_hash", "value": "be0b73bb"},
+                        {"key": "environment", "field": "event.environment"},
+                    ],
+                },
+            ]
 
         if measurement_rating == "poor":
-            assert config["metrics"][0] == {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [
-                    {
-                        "condition": {
-                            "name": f"event.{measurement}.value",
-                            "op": "gte",
-                            "value": VITAL_THRESHOLDS[vital]["poor"],
+            assert config["metrics"] == [
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {
+                            "condition": {
+                                "name": f"event.{measurement}.value",
+                                "op": "gte",
+                                "value": VITAL_THRESHOLDS[vital]["poor"],
+                            },
+                            "key": "measurement_rating",
+                            "value": "matches_hash",
                         },
-                        "key": "measurement_rating",
-                        "value": "matches_hash",
-                    },
-                    {"key": "query_hash", "value": "051c26d1"},
-                    {"key": "environment", "field": "event.environment"},
-                ],
-            }
+                        {"key": "query_hash", "value": "051c26d1"},
+                        {"key": "environment", "field": "event.environment"},
+                    ],
+                },
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {
+                            "condition": {
+                                "name": f"event.{measurement}.value",
+                                "op": "gte",
+                                "value": VITAL_THRESHOLDS[vital]["poor"],
+                            },
+                            "key": "measurement_rating",
+                            "value": "matches_hash",
+                        },
+                        {"key": "query_hash", "value": "57d48347"},
+                        {"key": "environment", "field": "event.environment"},
+                    ],
+                },
+            ]
 
         if measurement_rating == "any":
-            assert config["metrics"][0] == {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [
-                    {
-                        "condition": {
-                            "name": f"event.{measurement}.value",
-                            "op": "gte",
-                            "value": 0,
+            assert config["metrics"] == [
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {
+                            "condition": {
+                                "name": f"event.{measurement}.value",
+                                "op": "gte",
+                                "value": 0,
+                            },
+                            "key": "measurement_rating",
+                            "value": "matches_hash",
                         },
-                        "key": "measurement_rating",
-                        "value": "matches_hash",
-                    },
-                    {"key": "query_hash", "value": "511aaa66"},
-                    {"key": "environment", "field": "event.environment"},
-                ],
-            }
+                        {"key": "query_hash", "value": "511aaa66"},
+                        {"key": "environment", "field": "event.environment"},
+                    ],
+                },
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {
+                            "condition": {
+                                "name": f"event.{measurement}.value",
+                                "op": "gte",
+                                "value": 0,
+                            },
+                            "key": "measurement_rating",
+                            "value": "matches_hash",
+                        },
+                        {"key": "query_hash", "value": "401b8e0e"},
+                        {"key": "environment", "field": "event.environment"},
+                    ],
+                },
+            ]
 
         if measurement_rating == "":
-            assert config["metrics"][0] == {
-                "category": "transaction",
-                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [
-                    {"key": "environment", "field": "event.environment"},
-                ],
-            }
+            assert config["metrics"] == [
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {"key": "environment", "field": "event.environment"},
+                    ],
+                },
+                {
+                    "category": "transaction",
+                    "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                    "field": None,
+                    "mri": "c:transactions/on_demand@none",
+                    "tags": [
+                        {"key": "environment", "field": "event.environment"},
+                    ],
+                },
+            ]
 
 
 @django_db_all
@@ -831,7 +1132,23 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
                     {"key": "query_hash", "value": "1394a552"},
                     {"key": "environment", "field": "event.environment"},
                 ],
-            }
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
+                # This is necessary for calculating unique users
+                "field": "event.user.id",
+                "mri": "s:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {"name": "event.duration", "op": "gt", "value": threshold * 4},
+                        "key": "satisfaction",
+                        "value": "frustrated",
+                    },
+                    {"key": "query_hash", "value": "9fbc729c"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
         ]
 
 
@@ -871,7 +1188,25 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
                     {"key": "custom", "field": "event.tags.custom"},
                     {"key": "environment", "field": "event.environment"},
                 ],
-            }
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
+                # This is necessary for calculating unique users
+                "field": "event.user.id",
+                "mri": "s:transactions/on_demand@none",
+                "tags": [
+                    {
+                        "condition": {"name": "event.duration", "op": "gt", "value": threshold * 4},
+                        "key": "satisfaction",
+                        "value": "frustrated",
+                    },
+                    {"key": "query_hash", "value": "d508d70d"},
+                    {"key": "lcp.element", "field": "event.tags.lcp.element"},
+                    {"key": "custom", "field": "event.tags.custom"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
         ]
 
 
@@ -902,7 +1237,19 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
                     {"key": "release", "field": "event.release"},
                     {"key": "environment", "field": "event.environment"},
                 ],
-            }
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": float(duration)},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "52427c0a"},
+                    {"key": "user.id", "field": "event.user.id"},
+                    {"key": "release", "field": "event.release"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
         ]
 
 
@@ -957,7 +1304,8 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2
+        # Revert to 2 after {"include_environment_tag"} becomes the default
+        assert len(config["metrics"]) == 4
 
 
 @django_db_all
@@ -1051,7 +1399,8 @@ def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2
+        # Revert to 2 after {"include_environment_tag"} becomes the default
+        assert len(config["metrics"]) == 4
 
 
 @django_db_all
@@ -1086,31 +1435,48 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
         create_widget(["count()"], "user.name:Kevan", default_project, title="Dashboard Foo")
         config = get_metric_extraction_config(default_project)
         assert config
-        assert config == {
-            "metrics": [
-                {
-                    "category": "transaction",
-                    "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Armén"},
-                    "field": None,
-                    "mri": "c:transactions/on_demand@none",
-                    "tags": [
-                        {"key": "query_hash", "value": "d3e07bdf"},
-                        {"field": "event.environment", "key": "environment"},
-                    ],
-                },
-                {
-                    "category": "transaction",
-                    "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Kevan"},
-                    "field": None,
-                    "mri": "c:transactions/on_demand@none",
-                    "tags": [
-                        {"key": "query_hash", "value": "5142a1f7"},
-                        {"field": "event.environment", "key": "environment"},
-                    ],
-                },
-            ],
-            "version": 2,
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Armén"},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "d3e07bdf"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Kevan"},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "5142a1f7"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Armén"},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "c57cc340"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Kevan"},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "762b5dae"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+        ]
 
 
 @django_db_all
@@ -1118,24 +1484,35 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
 def test_get_metric_extraction_config_with_no_tag_spec(
     default_project: Project, metric: str
 ) -> None:
-    query_hash = "8f8293cf" if metric == "epm()" else "9ffdd8ac"
+    query_hashes = ["8f8293cf", "5200e087"] if metric == "epm()" else ["9ffdd8ac", "162178e9"]
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget([metric], "transaction.duration:>=1000", default_project)
 
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 1
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [
-                {"key": "query_hash", "value": query_hash},
-                {"field": "event.environment", "key": "environment"},
-            ],
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": query_hashes[0]},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": query_hashes[1]},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+        ]
 
 
 @django_db_all
@@ -1145,9 +1522,12 @@ def test_get_metric_extraction_config_with_no_tag_spec(
         ([ON_DEMAND_METRICS], 1),  # Alerts.
         ([ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
         ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_PREFILL], 1),  # Alerts.
-        ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widgets.
-        ([ON_DEMAND_METRICS_WIDGETS], 1),  # Widgets.
-        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRICS_WIDGETS], 2),  # Alerts and widget.
+        # Revert to 2 after {"include_environment_tag"} becomes the default
+        ([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS], 3),  # Alerts and widgets.
+        # Revert to 1 after {"include_environment_tag"} becomes the default
+        ([ON_DEMAND_METRICS_WIDGETS], 2),  # Widgets.
+        # Revert to 2 after {"include_environment_tag"} becomes the default
+        ([ON_DEMAND_METRICS_PREFILL, ON_DEMAND_METRICS_WIDGETS], 3),  # Alerts and widget.
         ([], 0),  # Nothing.
     ],
 )
@@ -1181,35 +1561,43 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project:
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 2
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": "f1353b0f"}],
-        }
-        assert config["metrics"][1] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 20.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": "a547e4d9"}],
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "f1353b0f"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 20.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "a547e4d9"},
+                ],
+            },
+        ]
 
     # We test without prefilling, and we expect that only alerts for performance metrics are fetched.
     with Feature({ON_DEMAND_METRICS: True}):
         config = get_metric_extraction_config(default_project)
 
         assert config
-        assert len(config["metrics"]) == 1
-        assert config["metrics"][0] == {
-            "category": "transaction",
-            "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
-            "field": None,
-            "mri": "c:transactions/on_demand@none",
-            "tags": [{"key": "query_hash", "value": "f1353b0f"}],
-        }
+        assert config["metrics"] == [
+            {
+                "category": "transaction",
+                "condition": {"name": "event.duration", "op": "gte", "value": 10.0},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "f1353b0f"},
+                ],
+            }
+        ]
 
 
 @django_db_all
@@ -1227,3 +1615,120 @@ def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> 
         assert config
         assert len(config["metrics"]) == 1
         assert config["metrics"][0].get("condition") is None
+
+
+def _on_demand_spec_from_widget(
+    project: Project, widget: DashboardWidgetQuery
+) -> OnDemandMetricSpec:
+    field = widget.aggregates[0] if widget.aggregates else ""
+    return fetch_on_demand_metric_spec(
+        project.organization.id,
+        field=field,
+        query=widget.conditions,
+        groupbys=widget.columns,
+        spec_type=MetricSpecType.DYNAMIC_QUERY,
+    )
+
+
+def _on_demand_spec_from_alert(project: Project, alert: AlertRule) -> OnDemandMetricSpec:
+    return fetch_on_demand_metric_spec(
+        project.organization.id,
+        field=alert.snuba_query.aggregate,
+        query=alert.snuba_query.query,
+        spec_type=MetricSpecType.SIMPLE_QUERY,
+    )
+
+
+def widget_to_metric_spec(query_hash: str, condition: Optional[RuleCondition] = None) -> MetricSpec:
+    _tags: Sequence[TagSpec] = [
+        {"key": "query_hash", "value": query_hash},
+        {"field": "event.environment", "key": "environment"},
+    ]
+    spec: MetricSpec = {
+        "category": "transaction",
+        "field": None,
+        "mri": "c:transactions/on_demand@none",
+        "tags": _tags,
+    }
+
+    if condition is not None:
+        spec["condition"] = condition
+
+    return spec
+
+
+@django_db_all
+def test_include_environment_for_widgets(default_project: Project) -> None:
+    aggr = "count()"
+    query = "transaction.duration:>=10"
+    condition: RuleCondition = {"name": "event.duration", "op": "gte", "value": 10.0}
+
+    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
+        widget = create_widget([aggr], query, default_project)
+        config = get_metric_extraction_config(default_project)
+        # Because we have two specs we will have two metrics.
+        # The second spec includes the environment tag as part of the query hash.
+        assert config and config["metrics"] == [
+            widget_to_metric_spec("f1353b0f", condition),
+            widget_to_metric_spec("4fb5a472", condition),
+        ]
+
+        # We now verify that the string used for hashing is what we expect
+        # Since we're using the current spec it will not include the environment tag
+        expected_query_str_hash = f"None;{condition}"
+        spec = _on_demand_spec_from_widget(default_project, widget)
+        assert spec.query_hash == "f1353b0f"
+        assert spec._query_str_for_hash == expected_query_str_hash
+        assert spec.spec_version.version == 1
+        assert spec.spec_version.flags == set()
+
+        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
+            spec = _on_demand_spec_from_widget(default_project, widget)
+            assert spec._query_str_for_hash == f"{expected_query_str_hash};['environment']"
+            assert spec.query_hash == "4fb5a472"
+            assert spec.spec_version.version == 2
+            assert spec.spec_version.flags == {"include_environment_tag"}
+
+
+# Remove this test once we drop the current spec version
+@django_db_all
+def test_alert_and_widget_colliding(default_project: Project) -> None:
+    aggr = "count()"
+    query = "transaction.duration:>=10"
+    condition: RuleCondition = {"name": "event.duration", "op": "gte", "value": 10.0}
+
+    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
+        widget = create_widget([aggr], query, default_project)
+        config = get_metric_extraction_config(default_project)
+        # Because we have two specs we will have two metrics.
+        assert config and config["metrics"] == [
+            widget_to_metric_spec("f1353b0f", condition),
+            widget_to_metric_spec("4fb5a472", condition),
+        ]
+
+        # Once we deprecate the current spec version, the widget will not create
+        # the f1353b0f, thus, there will be no more duplicated specs
+        alert = create_alert(aggr, query, default_project)
+        config = get_metric_extraction_config(default_project)
+        # Now that we iterate over the widgets first, we will pick the spec generated by the widget
+        # which includes the environment as a tag
+        assert config and config["metrics"] == [
+            widget_to_metric_spec("f1353b0f", condition),
+            widget_to_metric_spec("4fb5a472", condition),
+        ]
+
+        widget_spec = _on_demand_spec_from_widget(default_project, widget)
+        alert_spec = _on_demand_spec_from_alert(default_project, alert)
+        expected_query_str_hash = f"None;{condition}"
+        assert widget_spec._query_str_for_hash == expected_query_str_hash
+        assert alert_spec._query_str_for_hash == expected_query_str_hash
+
+        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
+            widget_spec = _on_demand_spec_from_widget(default_project, widget)
+            assert widget_spec._query_str_for_hash == f"{expected_query_str_hash};['environment']"
+            assert widget_spec.query_hash == "4fb5a472"
+            assert widget_spec.spec_version.version == 2
+            assert widget_spec.spec_version.flags == {"include_environment_tag"}
+
+            # With the new spec version they will not collide anymore
+            assert widget_spec.query_hash != alert_spec.query_hash

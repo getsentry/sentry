@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
@@ -11,7 +11,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
+import type {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

@@ -283,8 +283,9 @@ class TagValue(TypedDict):
 
 
 class BlockedMetric(TypedDict):
-    projectId: int
+    isBlocked: bool
     blockedTags: Sequence[str]
+    projectId: int
 
 
 class MetricMeta(TypedDict):
@@ -293,9 +294,8 @@ class MetricMeta(TypedDict):
     operations: Collection[MetricOperationType]
     unit: Optional[MetricUnit]
     mri: str
-    # TODO: change to camelcase.
-    project_ids: Sequence[int]
-    blockedForProjects: Optional[Sequence[BlockedMetric]]
+    projectIds: Sequence[int]
+    blockingStatus: Optional[Sequence[BlockedMetric]]
 
 
 class MetricMetaWithTagKeys(MetricMeta):
