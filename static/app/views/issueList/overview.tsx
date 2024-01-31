@@ -187,10 +187,7 @@ class IssueListOverview extends Component<Props, State> {
     // Wait for saved searches to load so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
     // But if searches are already there, we can go right to fetching issues
-    if (
-      !this.props.savedSearchLoading ||
-      this.props.organization.features.includes('issue-stream-performance')
-    ) {
+    if (!this.props.savedSearchLoading) {
       const loadedFromCache = this.loadFromCache();
       if (!loadedFromCache) {
         // It's possible the projects query parameter is not yet ready and this
@@ -231,22 +228,7 @@ class IssueListOverview extends Component<Props, State> {
       return;
     }
 
-    if (
-      prevProps.savedSearchLoading &&
-      !this.props.savedSearchLoading &&
-      this.props.organization.features.includes('issue-stream-performance')
-    ) {
-      return;
-    }
-
-    if (
-      prevProps.savedSearchLoading &&
-      !this.props.organization.features.includes('issue-stream-performance')
-    ) {
-      const loadedFromCache = this.loadFromCache();
-      if (!loadedFromCache) {
-        this.fetchData();
-      }
+    if (prevProps.savedSearchLoading && !this.props.savedSearchLoading) {
       return;
     }
 
@@ -624,25 +606,16 @@ class IssueListOverview extends Component<Props, State> {
       ...this.getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
-      savedSearch: this.props.organization.features.includes('issue-stream-performance')
-        ? this.props.savedSearchLoading
-          ? savedSearchLookupEnabled
-          : savedSearchLookupDisabled
+      savedSearch: this.props.savedSearchLoading
+        ? savedSearchLookupEnabled
         : savedSearchLookupDisabled,
     };
 
-    if (
-      this.props.organization.features.includes('issue-stream-performance') &&
-      this.props.selectedSearchId
-    ) {
+    if (this.props.selectedSearchId) {
       requestParams.searchId = this.props.selectedSearchId;
     }
 
-    if (
-      this.props.organization.features.includes('issue-stream-performance') &&
-      this.props.savedSearchLoading &&
-      !this.props.location.query.query
-    ) {
+    if (this.props.savedSearchLoading && !this.props.location.query.query) {
       delete requestParams.query;
     }
 
@@ -1228,13 +1201,6 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   render() {
-    if (
-      this.props.savedSearchLoading &&
-      !this.props.organization.features.includes('issue-stream-performance')
-    ) {
-      return this.renderLoading();
-    }
-
     const {
       pageLinks,
       queryCount,
