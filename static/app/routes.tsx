@@ -1993,66 +1993,53 @@ function buildRoutes() {
 
   // Once org issues is complete, these routes can be nested under
   // /organizations/:orgId/issues
-  const issueTabs = ({forCustomerDomain}: {forCustomerDomain: boolean}) => {
-    const hoc = forCustomerDomain ? withDomainRequired : x => x;
-    return (
-      <Fragment>
-        <IndexRoute
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupEventDetails'))
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.REPLAYS]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupReplays')))}
-        />
-        <Route
-          path={TabPaths[Tab.ACTIVITY]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupActivity')))}
-        />
-        <Route
-          path={TabPaths[Tab.EVENTS]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupEvents')))}
-        />
-        <Route
-          path={TabPaths[Tab.TAGS]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupTags')))}
-        />
-        <Route
-          path={`${TabPaths[Tab.TAGS]}:tagKey/`}
-          component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
-        />
-        <Route
-          path={TabPaths[Tab.USER_FEEDBACK]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupUserFeedback'))
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.ATTACHMENTS]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupEventAttachments'))
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.SIMILAR_ISSUES]}
-          component={hoc(
-            make(() => import('sentry/views/issueDetails/groupSimilarIssues'))
-          )}
-        />
-        <Route
-          path={TabPaths[Tab.MERGED]}
-          component={hoc(make(() => import('sentry/views/issueDetails/groupMerged')))}
-        />
-      </Fragment>
-    );
-  };
-  const issueDetailsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => (
+  const issueTabs = (
     <Fragment>
-      {issueTabs({forCustomerDomain})}
-      <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>
-        {issueTabs({forCustomerDomain})}
-      </Route>
+      <IndexRoute
+        component={make(() => import('sentry/views/issueDetails/groupEventDetails'))}
+      />
+      <Route
+        path={TabPaths[Tab.REPLAYS]}
+        component={make(() => import('sentry/views/issueDetails/groupReplays'))}
+      />
+      <Route
+        path={TabPaths[Tab.ACTIVITY]}
+        component={make(() => import('sentry/views/issueDetails/groupActivity'))}
+      />
+      <Route
+        path={TabPaths[Tab.EVENTS]}
+        component={make(() => import('sentry/views/issueDetails/groupEvents'))}
+      />
+      <Route
+        path={TabPaths[Tab.TAGS]}
+        component={make(() => import('sentry/views/issueDetails/groupTags'))}
+      />
+      <Route
+        path={`${TabPaths[Tab.TAGS]}:tagKey/`}
+        component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
+      />
+      <Route
+        path={TabPaths[Tab.USER_FEEDBACK]}
+        component={make(() => import('sentry/views/issueDetails/groupUserFeedback'))}
+      />
+      <Route
+        path={TabPaths[Tab.ATTACHMENTS]}
+        component={make(() => import('sentry/views/issueDetails/groupEventAttachments'))}
+      />
+      <Route
+        path={TabPaths[Tab.SIMILAR_ISSUES]}
+        component={make(() => import('sentry/views/issueDetails/groupSimilarIssues'))}
+      />
+      <Route
+        path={TabPaths[Tab.MERGED]}
+        component={make(() => import('sentry/views/issueDetails/groupMerged'))}
+      />
+    </Fragment>
+  );
+  const issueDetailsChildRoutes = (
+    <Fragment>
+      {issueTabs}
+      <Route path={`${TabPaths[Tab.EVENTS]}:eventId/`}>{issueTabs}</Route>
     </Fragment>
   );
   const issueDetailsRoutes = (
@@ -2064,7 +2051,7 @@ function buildRoutes() {
         )}
         key="org-issues-group-id"
       >
-        {issueDetailsChildRoutes({forCustomerDomain: false})}
+        {issueDetailsChildRoutes}
       </Route>
       {USING_CUSTOMER_DOMAIN && (
         <Route
@@ -2074,7 +2061,7 @@ function buildRoutes() {
           )}
           key="orgless-issues-group-id-route"
         >
-          {issueDetailsChildRoutes({forCustomerDomain: true})}
+          {issueDetailsChildRoutes}
         </Route>
       )}
     </Fragment>
