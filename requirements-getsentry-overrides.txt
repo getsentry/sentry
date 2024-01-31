@@ -9,4 +9,4 @@
 # library-name @ https://github.com/getsentry/<repo>/archive/<40 char sha>.zip
 
 # Dog fooding the refactoring of Hubs&Scopes
-sentry-sdk @ https://github.com/getsentry/sentry-python/archive/9f43dc1364650e778d22d81a877619e60e7d6500.zip
+sentry-sdk @ https://github.com/getsentry/sentry-python/archive/374592c6ea6fbee12148a1950b8fc6790f5fe833.zip
