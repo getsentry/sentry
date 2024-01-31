@@ -104,13 +104,6 @@ export function SampleTable({
     [setColumnOrder]
   );
 
-  const rows = data?.metrics
-    .map(m => m.metricSpans)
-    .flat()
-    .filter(Boolean)
-    // We only want to show the first 10 correlations
-    .slice(0, 10) as MetricCorrelation[];
-
   function trackClick(target: 'event-id' | 'transaction' | 'trace-id' | 'profile') {
     trackAnalytics('ddm.sample-table-interaction', {
       organization,
@@ -313,7 +306,7 @@ export function SampleTable({
         isLoading={isFetching}
         columnOrder={columnOrder}
         columnSortBy={[]}
-        data={rows ?? []}
+        data={data ?? []}
         grid={{
           renderHeadCell,
           renderBodyCell,
