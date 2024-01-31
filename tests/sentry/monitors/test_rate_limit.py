@@ -9,22 +9,12 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.rate_limit import get_project_monitor_quota
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 @mock.patch("sentry.monitors.rate_limit.QUOTA_WINDOW", 45)
 @mock.patch("sentry.monitors.rate_limit.ALLOWED_CHECK_INS_PER_MONITOR", 2)
 @mock.patch("sentry.monitors.rate_limit.ALLOWED_MINIMUM", 5)
 class MonitorRateLimit(TestCase):
-    def test_disabled(self):
-        """
-        Disabled without feature flag
-        """
-        limit, window = get_project_monitor_quota(self.project)
-        assert limit is None
-        assert window is None
-
-    @with_feature("organizations:monitors-quota-rate-limit")
     def test_minimum(self):
         """
         Without any monitor environments we'll always return ALLOWED_MINIMUM.
@@ -33,7 +23,6 @@ class MonitorRateLimit(TestCase):
         assert limit == 5
         assert window == 45
 
-    @with_feature("organizations:monitors-quota-rate-limit")
     def test_computed_from_environments(self):
         """
         Validate that the quota is computed from the total number of monitor
