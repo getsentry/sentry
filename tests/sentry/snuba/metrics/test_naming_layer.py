@@ -61,6 +61,9 @@ def test_invalid_public_name_regex(name):
         "s:sessions/error@none",
         "g:sessions/error@none",
         "g:custom/error@none",
+        "c:custom/MyMetric@user",
+        "c:custom/MyMetric.MyService@User",
+        "c:custom/MyMetric.MyService.2@User",
     ],
 )
 def test_valid_mri_schema_regex(name):
