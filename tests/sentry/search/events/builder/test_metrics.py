@@ -2082,7 +2082,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
             ),
         )
-        assert query_builder._on_demand_metric_spec_map.get(field, None) == spec
+        spec_map = query_builder._on_demand_metric_spec_map
+        assert spec_map
+        assert spec_map.get(field) == spec
         assert query_builder.dataset.name == "PerformanceMetrics"
         assert query_builder.dataset.value == "generic_metrics"
 
