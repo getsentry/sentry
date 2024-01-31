@@ -5,7 +5,11 @@ import type {AutofixStep} from 'sentry/components/events/aiAutofix/types';
 import {IconCheckmark, IconCircle, IconClose, IconFatal, IconSync} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
-function StepIcon({status}: {status: AutofixStep['status']}) {
+interface StepIconProps {
+  status: AutofixStep['status'];
+}
+
+function StepIcon({status}: StepIconProps) {
   switch (status) {
     case 'PROCESSING':
       return (
@@ -24,7 +28,12 @@ function StepIcon({status}: {status: AutofixStep['status']}) {
   }
 }
 
-export function Step({step, isChild}: {step: AutofixStep; isChild?: boolean}) {
+interface StepProps {
+  step: AutofixStep;
+  isChild?: boolean;
+}
+
+export function Step({step, isChild}: StepProps) {
   const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
 
   return (

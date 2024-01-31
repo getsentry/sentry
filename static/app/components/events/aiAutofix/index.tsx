@@ -3,9 +3,9 @@ import {Banner} from 'sentry/components/events/aiAutofix/banner';
 import type {GroupWithAutofix} from 'sentry/components/events/aiAutofix/types';
 import {useAiAutofix} from 'sentry/components/events/aiAutofix/useAiAutofix';
 
-type Props = {
+interface Props {
   group: GroupWithAutofix;
-};
+}
 
 export function AiAutofix({group}: Props) {
   const {autofixData, triggerAutofix, additionalContext, setAdditionalContext} =
