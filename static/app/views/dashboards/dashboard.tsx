@@ -23,7 +23,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -314,10 +314,7 @@ class Dashboard extends Component<Props, State> {
 
     const widget = this.props.dashboard.widgets[index];
 
-    if (
-      widget.widgetType === WidgetType.METRICS &&
-      hasDDMExperimentalFeature(organization)
-    ) {
+    if (widget.widgetType === WidgetType.METRICS && hasDDMFeature(organization)) {
       this.handleStartEditMetricWidget(index);
       return;
     }
@@ -551,7 +548,7 @@ class Dashboard extends Component<Props, State> {
     const canModifyLayout = !isMobile && isEditingDashboard;
 
     const displayInlineAddWidget =
-      hasDDMExperimentalFeature(organization) &&
+      hasDDMFeature(organization) &&
       isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (

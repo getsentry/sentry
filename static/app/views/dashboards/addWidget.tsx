@@ -12,7 +12,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasDDMExperimentalFeature, hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -62,7 +62,7 @@ function AddWidget({onAddWidget}: Props) {
         duration: 0.25,
       }}
     >
-      {hasDDMExperimentalFeature(organization) ? (
+      {hasDDMFeature(organization) ? (
         <InnerWrapper>
           <AddWidgetButton
             onAddWidget={onAddWidget}
