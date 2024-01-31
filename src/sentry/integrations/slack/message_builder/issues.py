@@ -318,6 +318,8 @@ def get_suspect_commit_text(
         if repo_base and provider in PROVIDER_TO_COMMIT_LINK_URL_FORMAT:
             commit_link = f"<{PROVIDER_TO_COMMIT_LINK_URL_FORMAT[provider].format(base_url=repo_base, commit_id=commit_id)}|{commit_id[:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
+        else:  # for unsupported providers
+            suspect_commit_text += f"{commit_id} by {author_display}"
 
         pr_date = pull_request.get("dateCreated")
         if pr_date:
