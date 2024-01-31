@@ -1,13 +1,16 @@
 import {useCallback, useRef} from 'react';
 
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import theme from 'sentry/utils/theme';
 
 const CACHE_SIZE = 20; // number of palettes to cache
 
 export function createChartPalette(seriesNames: string[]): Record<string, string> {
   // We do length - 2 to be aligned with the colors in other parts of the app (copy-pasta)
-  // We use Math.max to avoid numbers < -1 as then `getColorPalette` returns undefined (not typesafe because of array access)
-  const chartColors = theme.charts.getColorPalette(Math.max(seriesNames.length - 2, -1));
+  // We use Math.max to avoid numbers < -1 as then `getColorPalette` returns undefined (not typesafe because of array access and casting)
+  const chartColors =
+    theme.charts.getColorPalette(Math.max(seriesNames.length - 2, -1)) ??
+    CHART_PALETTE[CHART_PALETTE.length - 1];
 
   return seriesNames.reduce(
     (palette, seriesName, i) => {
@@ -26,9 +29,9 @@ export function createChartPalette(seriesNames: string[]): Record<string, string
  * @returns an object mapping seriesNames to colors
  */
 export function getCachedChartPalette(
-  cache: Record<string, string>[],
+  cache: Readonly<Record<string, string>>[],
   seriesNames: string[]
-): Record<string, string> {
+): Readonly<Record<string, string>> {
   // Check if we already have a palette that includes all of the given seriesNames
   // We search in reverse to get the most recent palettes first
   let cacheIndex = -1;
