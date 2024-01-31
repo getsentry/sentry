@@ -980,13 +980,15 @@ def _bulk_snuba_query(
             error_query = snuba_param_list[index][0]
             if isinstance(error_query, Request):
                 query_str = error_query.serialize()
+                query_type = "mql" if isinstance(error_query.query, MetricsQuery) else "snql"
             else:
                 query_str = json.dumps(error_query)
+                query_type = "snql"
             sentry_sdk.add_breadcrumb(
                 category="query_info",
                 level="info",
-                message="mql_query",
-                data={"mql": query_str},
+                message=f"{query_type}_query",
+                data={query_type: query_str},
             )
 
             if body.get("error"):
