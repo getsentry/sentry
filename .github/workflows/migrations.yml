@@ -43,8 +43,17 @@ jobs:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
         with:
           persist-credentials: false
+
+      - name: getsentry token
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+        id: getsentry
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
       - uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0 # v6.3.3
         with:
+          github-token: ${{ steps.getsentry.outputs.token }}
           script: |
             const {check} = require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/migration-approval-check`);
             await check({ github, context, core });
