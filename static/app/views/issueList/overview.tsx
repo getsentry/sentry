@@ -184,17 +184,13 @@ class IssueListOverview extends Component<Props, State> {
       success: this.onRealtimePoll,
     });
 
-    // Wait for saved searches to load so if the user is on a saved search
-    // or they have a pinned search we load the correct data the first time.
-    // But if searches are already there, we can go right to fetching issues
-    if (!this.props.savedSearchLoading) {
-      const loadedFromCache = this.loadFromCache();
-      if (!loadedFromCache) {
-        // It's possible the projects query parameter is not yet ready and this
-        // request will be repeated in componentDidUpdate
-        this.fetchData();
-      }
+    const loadedFromCache = this.loadFromCache();
+    if (!loadedFromCache) {
+      // It's possible the projects query parameter is not yet ready and this
+      // request will be repeated in componentDidUpdate
+      this.fetchData();
     }
+
     this.fetchTags();
     this.fetchMemberList();
     // let custom analytics take control
