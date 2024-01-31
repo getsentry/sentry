@@ -1,4 +1,5 @@
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 
 import {space} from 'sentry/styles/space';
 
@@ -123,7 +124,8 @@ export const prismStyles = (theme: Theme) => css`
   }
 
   pre[class*='language-']::selection,
-  code[class*='language-']::selection {
+  code[class*='language-']::selection,
+  code[class*='language-'] *::selection {
     text-shadow: none;
     background: var(--prism-selected);
   }

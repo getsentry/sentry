@@ -1,8 +1,9 @@
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
-import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
+import type useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 
 type Props = {
   networkFrames: undefined | unknown[];

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -10,7 +10,7 @@ import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Organization, Relay, RelayActivity} from 'sentry/types';
+import type {Organization, Relay, RelayActivity} from 'sentry/types';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
@@ -7,11 +7,12 @@ import * as qs from 'query-string';
 import {LinkButton} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
+import type {
+  GridColumn,
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -19,18 +20,17 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconArrow, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MRI} from 'sentry/types';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import type {MRI} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/formatters';
+import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
+import type {MetricCorrelation, SelectionRange} from 'sentry/utils/metrics/types';
 import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
-
-import {MetricCorrelation, MetricRange} from '../../utils/metrics/index';
 
 /**
  * Limits the number of spans to the top n + an "other" entry
@@ -52,16 +52,16 @@ function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: nu
   ]);
 }
 
-export type SamplesTableProps = MetricRange & {
+interface SamplesTableProps extends SelectionRange {
   highlightedRow?: string | null;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   query?: string;
-};
+}
 
 type Column = GridColumnHeader<keyof MetricCorrelation>;
 
-const columnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
+const defaultColumnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
   {key: 'transactionId', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
   {key: 'segmentName', width: COL_WIDTH_UNDEFINED, name: 'Transaction'},
   {key: 'spansNumber', width: COL_WIDTH_UNDEFINED, name: 'Number of Spans'},
@@ -82,7 +82,23 @@ export function SampleTable({
   const organization = useOrganization();
   const {projects} = useProjects();
 
+  const [columnOrder, setColumnOrder] = useState(defaultColumnOrder);
+
   const {data, isFetching} = useCorrelatedSamples(mri, metricMetaOptions);
+
+  const handleColumnResize = useCallback(
+    (columnIndex: number, nextColumn: GridColumn) => {
+      setColumnOrder(prevColumnOrder => {
+        const newColumnOrder = [...prevColumnOrder];
+        newColumnOrder[columnIndex] = {
+          ...newColumnOrder[columnIndex],
+          width: nextColumn.width,
+        };
+        return newColumnOrder;
+      });
+    },
+    [setColumnOrder]
+  );
 
   const rows = data?.metrics
     .map(m => m.metricSpans)
@@ -90,6 +106,13 @@ export function SampleTable({
     .filter(Boolean)
     // We only want to show the first 10 correlations
     .slice(0, 10) as MetricCorrelation[];
+
+  function trackClick(target: 'event-id' | 'transaction' | 'trace-id' | 'profile') {
+    trackAnalytics('ddm.sample-table-interaction', {
+      organization,
+      target,
+    });
+  }
 
   function renderHeadCell(col: Column) {
     if (col.key === 'profileId') {
@@ -113,11 +136,6 @@ export function SampleTable({
     }
 
     const project = projects.find(p => parseInt(p.id, 10) === row.projectId);
-    const eventSlug = generateEventSlug({
-      id: row.transactionId,
-      project: project?.slug,
-    });
-
     const highlighted = row.transactionId === highlightedRow;
 
     if (key === 'transactionId') {
@@ -128,13 +146,14 @@ export function SampleTable({
           highlighted={highlighted}
         >
           <Link
-            to={getTransactionDetailsUrl(
-              organization.slug,
-              eventSlug,
-              undefined,
-              {referrer: 'metrics', openPanel: 'open'},
-              row.spansDetails[0]?.spanId
+            to={getMetricsCorrelationSpanUrl(
+              organization,
+              project?.slug,
+              row.spansDetails[0]?.spanId,
+              row.transactionId,
+              row.transactionSpanId
             )}
+            onClick={() => trackClick('event-id')}
             target="_blank"
           >
             {row.transactionId.slice(0, 8)}
@@ -162,6 +181,7 @@ export function SampleTable({
                   referrer: 'metrics',
                 })}`
               )}
+              onClick={() => trackClick('transaction')}
             >
               {row.segmentName}
             </Link>
@@ -192,6 +212,7 @@ export function SampleTable({
             to={normalizeUrl(
               `/organizations/${organization.slug}/performance/trace/${row.traceId}/`
             )}
+            onClick={() => trackClick('trace-id')}
           >
             {row.traceId.slice(0, 8)}
           </Link>
@@ -249,7 +270,11 @@ export function SampleTable({
           onHover={onRowHover}
           highlighted={highlighted}
         >
-          <DateTime date={row.timestamp} />
+          <Tooltip title={row.timestamp} showOnlyOnOverflow>
+            <TextOverflow>
+              <DateTime date={row.timestamp} />
+            </TextOverflow>
+          </Tooltip>
         </BodyCell>
       );
     }
@@ -261,6 +286,7 @@ export function SampleTable({
               to={normalizeUrl(
                 `/organizations/${organization.slug}/profiling/profile/${project?.slug}/${row.profileId}/flamegraph/`
               )}
+              onClick={() => trackClick('profile')}
               size="xs"
             >
               <IconProfiling size="xs" />
@@ -287,6 +313,7 @@ export function SampleTable({
         grid={{
           renderHeadCell,
           renderBodyCell,
+          onResizeColumn: handleColumnResize,
         }}
         emptyMessage={mri ? t('No samples found') : t('Choose a metric to display data.')}
         location={location}

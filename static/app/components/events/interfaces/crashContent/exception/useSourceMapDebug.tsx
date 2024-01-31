@@ -2,12 +2,8 @@ import uniqBy from 'lodash/uniqBy';
 
 import type {ExceptionValue, Frame, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {
-  ApiQueryKey,
-  useApiQuery,
-  UseApiQueryOptions,
-  useQueries,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 import {isFrameFilenamePathlike, sourceMapSdkDocsMap} from './utils';

@@ -3,7 +3,8 @@ import {useCallback} from 'react';
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import type {Actor, GroupStatus, Organization} from 'sentry/types';
-import {fetchMutation, MutateOptions, useMutation} from 'sentry/utils/queryClient';
+import type {MutateOptions} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type TFeedbackIds = 'all' | string[];
@@ -41,8 +42,8 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
       const options = isSingleId
         ? {}
         : ids === 'all'
-        ? listQueryKey[1]!
-        : {query: {id: ids}};
+          ? listQueryKey[1]!
+          : {query: {id: ids}};
       return fetchMutation(api)(['PUT', url, options, payload]);
     },
     onSettled: (_resp, _error, [ids, _payload]) => {

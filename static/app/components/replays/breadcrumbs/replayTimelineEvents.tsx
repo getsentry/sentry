@@ -1,4 +1,5 @@
-import {css, Theme, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
@@ -112,6 +113,8 @@ function Event({
     }
   `;
 
+  const firstFrame = frames.at(0);
+
   // We want to show the full variety of colors available.
   const uniqueColors = uniq(frames.map(frame => getFrameDetails(frame).color));
 
@@ -136,18 +139,25 @@ function Event({
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
-      <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
-        <IconNode colors={sortedUniqueColors} frameCount={frameCount} />
-      </IconNodeTooltip>
+      <Tooltip
+        title={title}
+        overlayStyle={overlayStyle}
+        containerDisplayMode="grid"
+        isHoverable
+      >
+        <IconNode
+          colors={sortedUniqueColors}
+          frameCount={frameCount}
+          onClick={() => {
+            if (firstFrame) {
+              onClickTimestamp(firstFrame);
+            }
+          }}
+        />
+      </Tooltip>
     </IconPosition>
   );
 }
-
-const IconNodeTooltip = styled(Tooltip)`
-  display: grid;
-  justify-items: center;
-  align-items: center;
-`;
 
 const IconPosition = styled('div')`
   position: absolute;
@@ -190,7 +200,9 @@ const getBackgroundGradient = ({
     );`;
 };
 
-const IconNode = styled('div')<{colors: Color[]; frameCount: number}>`
+const IconNode = styled('button')<{colors: Color[]; frameCount: number}>`
+  padding: 0;
+  border: none;
   grid-column: 1;
   grid-row: 1;
   width: ${p => NODE_SIZES[p.frameCount - 1]}px;

@@ -5,7 +5,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {Event, Group, Project} from 'sentry/types';
+import type {Event, Group, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import re
+import zoneinfo
 from datetime import datetime
 from typing import Any
 
-import pytz
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -17,13 +17,14 @@ from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
 from sentry.models.user import User
 from sentry.utils.auth import find_users, logger
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
 
 def _get_timezone_choices():
     results = []
-    for tz in pytz.common_timezones:
-        now = datetime.now(pytz.timezone(tz))
+    for tz in AVAILABLE_TIMEZONES:
+        now = datetime.now(zoneinfo.ZoneInfo(tz))
         offset = now.strftime("%z")
         results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
     results.sort()

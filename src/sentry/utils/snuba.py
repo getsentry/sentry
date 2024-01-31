@@ -11,18 +11,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -31,7 +20,7 @@ from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
 from sentry_sdk import Hub
-from snuba_sdk import Request
+from snuba_sdk import MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.models.environment import Environment
@@ -129,6 +118,16 @@ SPAN_COLUMN_MAP = {
     "transaction.op": "transaction_op",
     "user": "user",
     "profile_id": "profile_id",
+    "transaction.method": "sentry_tags[transaction.method]",
+    "system": "sentry_tags[system]",
+    "release": "sentry_tags[release]",
+    "environment": "sentry_tags[environment]",
+    "device.class": "sentry_tags[device.class]",
+    "category": "sentry_tags[category]",
+    "resource.render_blocking_status": "sentry_tags[resource.render_blocking_status]",
+    "http.response_content_length": "sentry_tags[http.response_content_length]",
+    "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
+    "http.response_transfer_size": "sentry_tags[http.response_transfer_size]",
 }
 
 SPAN_COLUMN_MAP.update(
@@ -175,7 +174,7 @@ METRICS_COLUMN_MAP = {
 }
 
 
-DATASETS: Dict[Dataset, Dict[str, str]] = {
+DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,
@@ -515,7 +514,7 @@ def get_organization_id_from_project_ids(project_ids: Sequence[int]) -> int:
     return organization_id
 
 
-def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int]]) -> List[int]:
+def infer_project_ids_from_related_models(filter_keys: Mapping[str, Sequence[int]]) -> list[int]:
     ids = [set(get_related_project_ids(k, filter_keys[k])) for k in filter_keys]
     return list(set.union(*ids))
 
@@ -586,7 +585,7 @@ def _prepare_start_end(
     end: Optional[datetime],
     organization_id: int,
     group_ids: Optional[Sequence[int]],
-) -> Tuple[datetime, datetime]:
+) -> tuple[datetime, datetime]:
     if not start:
         start = datetime(2008, 5, 8)
     if not end:
@@ -790,8 +789,8 @@ def raw_query(
 
 SnubaQuery = Union[Request, MutableMapping[str, Any]]
 Translator = Callable[[Any], Any]
-SnubaQueryBody = Tuple[SnubaQuery, Translator, Translator]
-ResultSet = List[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
+SnubaQueryBody = tuple[SnubaQuery, Translator, Translator]
+ResultSet = list[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
 
 
 def raw_snql_query(
@@ -809,7 +808,7 @@ def raw_snql_query(
 
 
 def bulk_snql_query(
-    requests: List[Request],
+    requests: list[Request],
     referrer: Optional[str] = None,
     use_cache: bool = False,
 ) -> ResultSet:
@@ -820,10 +819,9 @@ def bulk_snql_query(
 
 
 def bulk_snuba_queries(
-    requests: List[Request],
+    requests: list[Request],
     referrer: Optional[str] = None,
     use_cache: bool = False,
-    use_mql: bool = False,
 ) -> ResultSet:
     """
     The main entrypoint to running queries in Snuba. This function accepts
@@ -841,9 +839,7 @@ def bulk_snuba_queries(
             request.tenant_ids["referrer"] = referrer
 
     params: SnubaQuery = [(request, lambda x: x, lambda x: x) for request in requests]
-    return _apply_cache_and_build_results(
-        params, referrer=referrer, use_cache=use_cache, use_mql=use_mql
-    )
+    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
 # TODO: This is the endpoint that accepts legacy (non-SnQL/MQL queries)
@@ -875,7 +871,6 @@ def _apply_cache_and_build_results(
     snuba_param_list: Sequence[SnubaQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    use_mql: bool = False,
 ) -> ResultSet:
     headers = {}
     validate_referrer(referrer)
@@ -889,7 +884,7 @@ def _apply_cache_and_build_results(
     if use_cache:
         cache_keys = [get_cache_key(query_params[0]) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
-        to_query: List[Tuple[int, SnubaQueryBody, Optional[str]]] = []
+        to_query: list[tuple[int, SnubaQueryBody, Optional[str]]] = []
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
             cached_result = cache_data.get(cache_key)
             metric_tags = {"referrer": referrer} if referrer else None
@@ -903,7 +898,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query([item[1] for item in to_query], headers, use_mql=use_mql)
+        query_results = _bulk_snuba_query([item[1] for item in to_query], headers)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -918,7 +913,6 @@ def _apply_cache_and_build_results(
 def _bulk_snuba_query(
     snuba_param_list: Sequence[SnubaQueryBody],
     headers: Mapping[str, str],
-    use_mql: bool = False,
 ) -> ResultSet:
     query_referrer = headers.get("referer", "<unknown>")
 
@@ -948,16 +942,14 @@ def _bulk_snuba_query(
                 _query_thread_pool.map(
                     query_fn,
                     [
-                        (params, Hub(Hub.current), headers, parent_api, use_mql)
+                        (params, Hub(Hub.current), headers, parent_api)
                         for params in snuba_param_list
                     ],
                 )
             )
         else:
             # No need to submit to the thread pool if we're just performing a single query
-            query_results = [
-                query_fn((snuba_param_list[0], Hub(Hub.current), headers, parent_api, use_mql))
-            ]
+            query_results = [query_fn((snuba_param_list[0], Hub(Hub.current), headers, parent_api))]
 
     results = []
     for index, item in enumerate(query_results):
@@ -983,11 +975,17 @@ def _bulk_snuba_query(
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
-            if use_mql:
-                error_request = snuba_param_list[index][0]
-                error_request = (
-                    error_request.serialize_mql()
-                )  # never used, only for sentry visibility
+            error_query = snuba_param_list[index][0]
+            if isinstance(error_query, Request):
+                query_str = error_query.serialize()
+            else:
+                query_str = json.dumps(error_query)
+            sentry_sdk.add_breadcrumb(
+                category="query_info",
+                level="info",
+                message="mql_query",
+                data={"mql": query_str},
+            )
 
             if body.get("error"):
                 error = body["error"]
@@ -1011,7 +1009,7 @@ def _bulk_snuba_query(
     return results
 
 
-RawResult = Tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
+RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
 def _snql_query(
@@ -1020,7 +1018,7 @@ def _snql_query(
     ]
 ) -> RawResult:
     # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
-    return _snuba_query(tuple([*params, False]))
+    return _snuba_query(params)
 
 
 def _snuba_query(
@@ -1029,12 +1027,11 @@ def _snuba_query(
         Hub,
         Mapping[str, str],
         str,
-        bool,
     ],
 ) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function.
-    query_data, thread_hub, headers, parent_api, use_mql = params
+    query_data, thread_hub, headers, parent_api = params
     request, forward, reverse = query_data
     request.parent_api = parent_api
     assert isinstance(request, Request)
@@ -1044,11 +1041,11 @@ def _snuba_query(
             import pprint
 
             print(  # NOQA: only prints when an env variable is set
-                f"{referrer}.body:\n {pprint.pformat(request.to_dict(mql=use_mql))}"
+                f"{referrer}.body:\n {pprint.pformat(request.to_dict())}"
             )
             request.flags.debug = True
 
-        if use_mql:
+        if isinstance(request.query, MetricsQuery):
             return _raw_mql_query(request, thread_hub, headers), forward, reverse
 
         return _raw_snql_query(request, thread_hub, headers), forward, reverse
@@ -1056,9 +1053,9 @@ def _snuba_query(
         raise SnubaError(err)
 
 
-def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str, bool]) -> RawResult:
+def _legacy_snql_query(params: tuple[SnubaQuery, Hub, Mapping[str, str], str, bool]) -> RawResult:
     # Convert the JSON query to SnQL and run it
-    query_data, thread_hub, headers, parent_api, _ = params
+    query_data, thread_hub, headers, parent_api = params
     query_params, forward, reverse = query_data
 
     try:
@@ -1079,7 +1076,7 @@ def _raw_mql_query(
     with thread_hub, timer("mql_query"):
         referrer = headers.get("referer", "unknown")
         # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
-        serialized_req = request.serialize_mql()
+        serialized_req = request.serialize()
         with thread_hub.start_span(op="snuba_mql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
@@ -1198,6 +1195,12 @@ def resolve_column(dataset) -> Callable[[str], str]:
         if dataset == Dataset.Discover:
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
+        elif (
+            dataset == Dataset.SpansIndexed
+            and isinstance(col, str)
+            and col.startswith("sentry_tags[")
+        ):
+            return col
         else:
             if (
                 col in DATASET_FIELDS[dataset]

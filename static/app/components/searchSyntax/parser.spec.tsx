@@ -1,12 +1,11 @@
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
+import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {
   BooleanOperator,
   InvalidReason,
-  ParseResult,
   parseSearch,
   Token,
-  TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {treeTransformer} from 'sentry/components/searchSyntax/utils';
 

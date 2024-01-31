@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, List
 
 import sentry_sdk
 from django.db import connection
-from django.utils import timezone
 from sentry_sdk.crons.decorator import monitor
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
@@ -244,6 +243,8 @@ def github_comment_reactions():
         created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
     ).select_related("pull_request")
 
+    comment_count = 0
+
     for comment in RangeQuerySetWrapper(comments):
         pr = comment.pull_request
         try:
@@ -284,4 +285,10 @@ def github_comment_reactions():
                 sentry_sdk.capture_exception(e)
             continue
 
+        comment_count += 1
+
         metrics.incr("github_pr_comment.comment_reactions.success")
+
+    logger.info(
+        "github_pr_comment.comment_reactions.total_collected", extra={"count": comment_count}
+    )

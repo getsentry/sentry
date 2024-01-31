@@ -1,14 +1,17 @@
 import {Component, Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
-import {Theme, useTheme} from '@emotion/react';
+import type {InjectedRouter} from 'react-router';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
-import ChartZoom, {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
+import type {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
+import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
+import type {LineChartProps} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -18,8 +21,8 @@ import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
-import {EChartEventHandler, Series} from 'sentry/types/echarts';
+import type {Organization, PageFilters} from 'sentry/types';
+import type {EChartEventHandler, Series} from 'sentry/types/echarts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -319,13 +322,13 @@ class Chart extends Component<ChartProps, ChartState> {
             max: 100,
           }
         : this.isAnr
-        ? {
-            axisLabel: {
-              formatter: (value: number) => displayCrashFreePercent(value, 0, 3, false),
-            },
-            scale: true,
-          }
-        : {min: 0},
+          ? {
+              axisLabel: {
+                formatter: (value: number) => displayCrashFreePercent(value, 0, 3, false),
+              },
+              scale: true,
+            }
+          : {min: 0},
     };
   }
 
@@ -341,8 +344,8 @@ class Chart extends Component<ChartProps, ChartState> {
     const ChartComponent = this.isCrashFree
       ? LineChart
       : this.isAnr
-      ? BarChart
-      : StackedAreaChart;
+        ? BarChart
+        : StackedAreaChart;
     return (
       <ChartComponent
         {...zoomRenderProps}

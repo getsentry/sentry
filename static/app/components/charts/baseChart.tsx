@@ -5,7 +5,8 @@ import 'echarts/lib/component/brush';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
-import {css, Global, Theme, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {
   AxisPointerComponentOption,
@@ -28,7 +29,7 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
   EChartBrushStartHandler,
@@ -49,7 +50,8 @@ import {defined} from 'sentry/utils';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import {computeChartTooltip, TooltipSubLabel} from './components/tooltip';
+import type {TooltipSubLabel} from './components/tooltip';
+import {computeChartTooltip} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
@@ -403,26 +405,26 @@ function BaseChartUnwrapped({
             itemStyle: {...(s.areaStyle ?? {})},
           }))
         : hasSinglePoints && transformSinglePointToLine
-        ? (series as LineSeriesOption[] | undefined)?.map(s => ({
-            ...s,
-            type: 'line',
-            itemStyle: {...(s.lineStyle ?? {})},
-            markLine:
-              s?.data?.[0]?.[1] !== undefined
-                ? MarkLine({
-                    silent: true,
-                    lineStyle: {
-                      type: 'solid',
-                      width: 1.5,
-                    },
-                    data: [{yAxis: s?.data?.[0]?.[1]}],
-                    label: {
-                      show: false,
-                    },
-                  })
-                : undefined,
-          }))
-        : series) ?? [];
+          ? (series as LineSeriesOption[] | undefined)?.map(s => ({
+              ...s,
+              type: 'line',
+              itemStyle: {...(s.lineStyle ?? {})},
+              markLine:
+                s?.data?.[0]?.[1] !== undefined
+                  ? MarkLine({
+                      silent: true,
+                      lineStyle: {
+                        type: 'solid',
+                        width: 1.5,
+                      },
+                      data: [{yAxis: s?.data?.[0]?.[1]}],
+                      label: {
+                        show: false,
+                      },
+                    })
+                  : undefined,
+            }))
+          : series) ?? [];
 
     const transformedPreviousPeriod =
       previousPeriod?.map((previous, seriesIndex) =>
@@ -504,8 +506,8 @@ function BaseChartUnwrapped({
         ? YAxis({theme, ...yAxis})
         : undefined
       : Array.isArray(yAxes)
-      ? yAxes.map(axis => YAxis({...axis, theme}))
-      : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
+        ? yAxes.map(axis => YAxis({...axis, theme}))
+        : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
 
     const xAxisOrCustom = !xAxes
       ? xAxis !== null
@@ -522,20 +524,20 @@ function BaseChartUnwrapped({
           })
         : undefined
       : Array.isArray(xAxes)
-      ? xAxes.map(axis =>
-          XAxis({
-            ...axis,
-            theme,
-            useShortDate,
-            start,
-            end,
-            period,
-            isGroupedByDate,
-            addSecondsToTimeFormat,
-            utc,
-          })
-        )
-      : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
+        ? xAxes.map(axis =>
+            XAxis({
+              ...axis,
+              theme,
+              useShortDate,
+              start,
+              end,
+              period,
+              isGroupedByDate,
+              addSecondsToTimeFormat,
+              utc,
+            })
+          )
+        : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
     return {
       ...options,

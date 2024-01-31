@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -24,7 +24,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
+import type {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';

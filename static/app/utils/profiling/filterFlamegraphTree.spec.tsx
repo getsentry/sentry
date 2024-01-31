@@ -1,5 +1,5 @@
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 const f = (partial: Partial<FlamegraphFrame & {key: string | number}>) => {
   return {

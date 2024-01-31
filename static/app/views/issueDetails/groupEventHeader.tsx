@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {DataSection} from 'sentry/components/events/styles';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import {space} from 'sentry/styles/space';
-import {Group, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event, Group, Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
+import {TraceTimeline} from 'sentry/views/issueDetails/traceTimeline/traceTimeline';
 
 type GroupEventHeaderProps = {
   event: Event;
@@ -24,6 +24,7 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
         project={project}
         organization={organization}
       />
+      <TraceTimeline event={event} />
     </DataSection>
   );
 }

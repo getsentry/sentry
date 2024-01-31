@@ -3,7 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,9 +13,11 @@ import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
-import {parseDashboard, ParseResult} from 'sentry/utils/metrics/dashboardImport';
+import type {ParseResult} from 'sentry/utils/metrics/dashboardImport';
+import {parseDashboard} from 'sentry/utils/metrics/dashboardImport';
+import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -24,16 +27,13 @@ import {
   assignDefaultLayout,
   getInitialColumnDepths,
 } from 'sentry/views/dashboards/layoutUtils';
-import {DDMContextProvider, useDDMContext} from 'sentry/views/ddm/context';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 export function openDashboardImport(organization: Organization) {
   return openModal(
     deps => (
       <OrganizationContext.Provider value={organization}>
-        <DDMContextProvider>
-          <DashboardImportModal {...deps} />
-        </DDMContextProvider>
+        <DashboardImportModal {...deps} />
       </OrganizationContext.Provider>
     ),
     {modalCss}
@@ -50,8 +50,11 @@ type FormState = {
 function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
   const api = useApi();
   const router = useRouter();
-  const {metricsMeta} = useDDMContext();
+
   const {selection} = usePageFilters();
+  // we want to get all custom metrics for organization
+  const {data: metricsMeta} = useMetricsMeta([-1], ['custom']);
+
   const organization = useOrganization();
 
   const [formState, setFormState] = useState<FormState>({

@@ -5,7 +5,7 @@ import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
-from typing import Dict, List, Mapping, Optional
+from typing import Dict, List, Literal, Mapping, Optional
 
 import msgpack
 import sentry_sdk
@@ -18,7 +18,7 @@ from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.db import router, transaction
 from sentry_sdk.tracing import Span, Transaction
 
-from sentry import features, quotas, ratelimits
+from sentry import quotas, ratelimits
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
@@ -86,12 +86,6 @@ def _ensure_monitor_with_config(
 
     validated_config = validator.validated_data
     created = False
-
-    if (
-        features.has("organizations:crons-disable-new-projects", project.organization)
-        and not project.flags.has_cron_monitors
-    ):
-        return monitor
 
     # Create monitor
     if not monitor:
@@ -816,6 +810,12 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
         )
         checkin_mapping[item.processing_key].append(item)
 
+    # Number of check-ins that are being processed in this batch
+    metrics.gauge("monitors.checkin.parallel_batch_count", len(batch))
+
+    # Number of check-in groups we've collected to be processed in parallel
+    metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
+
     # Submit check-in groups for processing
     with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
@@ -865,8 +865,29 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     Does the consumer process unrelated check-ins in parallel?
     """
 
-    def __init__(self, parallel=False) -> None:
-        self.parallel = parallel
+    max_batch_size = 500
+    """
+    How many messages will be batched at once when in parallel mode.
+    """
+
+    max_batch_time = 10
+    """
+    The maximum time in seconds to accumulate a bach of check-ins.
+    """
+
+    def __init__(
+        self,
+        mode: Literal["parallel", "serial"] | None = None,
+        max_batch_size: int | None = None,
+        max_batch_time: int | None = None,
+    ) -> None:
+        if mode == "parallel":
+            self.parallel = True
+
+        if max_batch_size is not None:
+            self.max_batch_size = max_batch_size
+        if max_batch_time is not None:
+            self.max_batch_time = max_batch_time
 
     def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         batch_processor = RunTask(
@@ -874,8 +895,8 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
             next_step=CommitOffsets(commit),
         )
         return BatchStep(
-            max_batch_size=500,
-            max_batch_time=10,
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
             next_step=batch_processor,
         )
 

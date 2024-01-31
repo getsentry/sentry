@@ -1,9 +1,10 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router';
-import {Theme, withTheme} from '@emotion/react';
+import type {InjectedRouter} from 'react-router';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {DataZoomComponentOption, LegendComponentOption} from 'echarts';
-import {Location} from 'history';
+import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -17,12 +18,13 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
+import type {PlaceholderProps} from 'sentry/components/placeholder';
+import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
+import type {Organization, PageFilters} from 'sentry/types';
+import type {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -30,9 +32,9 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
-  AggregationOutputType,
   getAggregateArg,
   getEquation,
   getMeasurementSlug,
@@ -49,9 +51,10 @@ import {
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';
-import {DisplayType, Widget, WidgetType} from '../types';
+import type {Widget} from '../types';
+import {DisplayType, WidgetType} from '../types';
 
-import {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
+import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 export const SLIDER_HEIGHT = 60;
@@ -139,7 +142,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
-    const {location, widget, organization, selection} = this.props;
+    const {location, widget, selection} = this.props;
     if (errorMessage) {
       return (
         <StyledErrorPanel>
@@ -172,7 +175,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           loader={<LoadingPlaceholder />}
           metadata={result.meta}
           data={result.data}
-          organization={organization}
           stickyHeaders
           fieldHeaderMap={datasetConfig.getFieldHeaderMap?.(widget.queries[i])}
           getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}

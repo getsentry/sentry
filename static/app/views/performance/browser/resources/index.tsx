@@ -10,10 +10,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ResourceView, {
@@ -41,7 +38,7 @@ function ResourcesLandingPage() {
       title={[t('Performance'), t('Resources')].join(' — ')}
       baseURL="/performance/browser/resources"
     >
-      <PageErrorProvider>
+      <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
@@ -63,7 +60,7 @@ function ResourcesLandingPage() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <FloatingFeedbackWidget />
-            <PageErrorAlert />
+            <PageAlert />
             <FilterOptionsContainer columnCount={2}>
               <PageFilterBar condensed>
                 <ProjectPageFilter />
@@ -82,7 +79,7 @@ function ResourcesLandingPage() {
             <ResourceView />
           </Layout.Main>
         </Layout.Body>
-      </PageErrorProvider>
+      </PageAlertProvider>
     </ModulePageProviders>
   );
 }

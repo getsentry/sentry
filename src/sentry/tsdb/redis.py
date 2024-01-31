@@ -232,9 +232,9 @@ class RedisTSDB(BaseTSDB):
 
             with manager as client:
                 # (hash_key, hash_field) -> count
-                key_operations = defaultdict(lambda: 0)
+                key_operations = defaultdict(int)
                 # (hash_key) -> "max expiration encountered"
-                key_expiries = defaultdict(lambda: 0.0)
+                key_expiries = defaultdict(float)
 
                 for rollup, max_values in self.rollups.items():
                     for item in items:

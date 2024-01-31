@@ -80,7 +80,7 @@ def test_sdk_crash_is_reported_development_paths(
             reported_event_data, "exception", "values", -1, "stacktrace", "frames"
         )
 
-        assert len(stripped_frames) == 4
+        assert len(stripped_frames) == 6
         assert stripped_frames[0]["function"] == "dispatchEvent"
         assert stripped_frames[1]["function"] == "community.lib.dosomething"
         assert stripped_frames[2]["function"] == "nativeCrash"
@@ -89,6 +89,23 @@ def test_sdk_crash_is_reported_development_paths(
         assert sdk_frame["function"] == "ReactNativeClient#nativeCrash"
         assert sdk_frame["filename"] == expected_stripped_filename
         assert sdk_frame["abs_path"] == expected_stripped_filename
+        assert sdk_frame["in_app"] is True
+
+        system_lib_frame1 = stripped_frames[4]
+        assert system_lib_frame1["function"] == "callFunctionReturnFlushedQueue"
+        assert (
+            system_lib_frame1["filename"]
+            == "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js"
+        )
+        assert system_lib_frame1["in_app"] is False
+
+        system_lib_frame2 = stripped_frames[5]
+        assert system_lib_frame2["function"] == "processCallbacks"
+        assert (
+            system_lib_frame2["filename"]
+            == "node_modules/react-native-community/BatchedBridge/MessageQueue.js"
+        )
+        assert system_lib_frame2["in_app"] is False
     else:
         assert mock_sdk_crash_reporter.report.call_count == 0
 
@@ -161,7 +178,7 @@ def test_sdk_crash_is_reported_production_paths(
             reported_event_data, "exception", "values", -1, "stacktrace", "frames"
         )
 
-        assert len(stripped_frames) == 4
+        assert len(stripped_frames) == 6
         assert stripped_frames[0]["function"] == "dispatchEvent"
         assert stripped_frames[1]["function"] == "community.lib.dosomething"
         assert stripped_frames[2]["function"] == "nativeCrash"

@@ -19,11 +19,11 @@
     ["transaction", "getProductList"],
     ["url", "https://app.example.com/products"]
   ],
-  "_metrics": {"bytes.ingested.event": 3448, "bytes.stored.event": 3591},
+  "_metrics": { "bytes.ingested.event": 3448, "bytes.stored.event": 3591 },
   "contexts": {
-    "browser": {"name": "Chrome", "version": "86.0.4240", "type": "browser"},
-    "client_os": {"name": "Mac OS X", "version": "10.11.6", "type": "os"},
-    "os": {"name": "Mac OS X", "version": "10.15.6", "type": "os"},
+    "browser": { "name": "Chrome", "version": "86.0.4240", "type": "browser" },
+    "client_os": { "name": "Mac OS X", "version": "10.11.6", "type": "os" },
+    "os": { "name": "Mac OS X", "version": "10.15.6", "type": "os" },
     "runtime": {
       "name": "CPython",
       "version": "2.7.18",
@@ -42,7 +42,7 @@
   "culprit": "getProductList",
   "environment": "prod",
   "extra": {
-    "inventory": {"hammer": 1, "nails": 1, "wrench": 0},
+    "inventory": { "hammer": 1, "nails": 1, "wrench": 0 },
     "sys.argv": ["/usr/local/bin/flask", "run", "--host=0.0.0.0", "-p", "8080"]
   },
   "level": "info",
@@ -52,7 +52,7 @@
   "request": {
     "url": "https://app.example.com/products",
     "method": "GET",
-    "env": {"SERVER_NAME": "0.0.0.0", "SERVER_PORT": "8080"}
+    "env": { "SERVER_NAME": "0.0.0.0", "SERVER_PORT": "8080" }
   },
   "spans": [
     {
@@ -62,7 +62,7 @@
       "span_id": "99bbfb48193a4ddb",
       "parent_span_id": "1756e116945a4360",
       "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
-      "data": {"duration": 2.903681993484497, "offset": 0},
+      "data": { "duration": 2.903681993484497, "offset": 0 },
       "same_process_as_parent": true
     },
     {
@@ -72,7 +72,7 @@
       "span_id": "a3c3c7064e6d4fba",
       "parent_span_id": "99bbfb48193a4ddb",
       "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
-      "data": {"duration": 0.9859052112667244, "offset": 0},
+      "data": { "duration": 0.9859052112667244, "offset": 0 },
       "same_process_as_parent": true
     },
     {
@@ -82,7 +82,7 @@
       "span_id": "65d005a5b31d4614",
       "parent_span_id": "99bbfb48193a4ddb",
       "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
-      "data": {"duration": 1.6758032827607312, "offset": 0.9859052112667244},
+      "data": { "duration": 1.6758032827607312, "offset": 0.9859052112667244 },
       "same_process_as_parent": true
     },
     {
@@ -93,7 +93,7 @@
       "span_id": "b501702695634df2",
       "parent_span_id": "65d005a5b31d4614",
       "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
-      "data": {"duration": 1.675803282760731, "offset": 0.9859052112667244},
+      "data": { "duration": 1.675803282760731, "offset": 0.9859052112667244 },
       "same_process_as_parent": true
     },
     {
@@ -103,7 +103,7 @@
       "span_id": "500c7624ca2c4df6",
       "parent_span_id": "99bbfb48193a4ddb",
       "trace_id": "10d0b72df0fe4392a6788bce71ec2028",
-      "data": {"duration": 0.24197349945704172, "offset": 2.6617084940274554},
+      "data": { "duration": 0.24197349945704172, "offset": 2.6617084940274554 },
       "same_process_as_parent": true
     }
   ],
@@ -116,7 +116,7 @@
     "email": "selia@example.com",
     "ip_address": "185.196.94.82",
     "name": "Selia",
-    "geo": {"country_code": "AU", "city": "Melbourne", "region": "VIC"}
+    "geo": { "country_code": "AU", "city": "Melbourne", "region": "VIC" }
   },
   "version": "5"
 }

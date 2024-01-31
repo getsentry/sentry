@@ -10,10 +10,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
@@ -26,7 +23,7 @@ export default function InitializationModule() {
     <Feature features="starfish-mobile-appstart" organization={organization}>
       <SentryDocumentTitle title={ROUTE_NAMES['app-startup']} orgSlug={organization.slug}>
         <Layout.Page>
-          <PageErrorProvider>
+          <PageAlertProvider>
             <Layout.Header>
               <Layout.HeaderContent>
                 <Layout.Title>{ROUTE_NAMES['app-startup']}</Layout.Title>
@@ -35,7 +32,7 @@ export default function InitializationModule() {
 
             <Layout.Body>
               <Layout.Main fullWidth>
-                <PageErrorAlert />
+                <PageAlert />
                 <PageFiltersContainer>
                   <Container>
                     <PageFilterBar condensed>
@@ -51,7 +48,7 @@ export default function InitializationModule() {
                 </PageFiltersContainer>
               </Layout.Main>
             </Layout.Body>
-          </PageErrorProvider>
+          </PageAlertProvider>
         </Layout.Page>
       </SentryDocumentTitle>
     </Feature>

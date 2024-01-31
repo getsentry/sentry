@@ -10,7 +10,7 @@ import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
-import {SentryServiceStatus} from 'sentry/types';
+import type {Organization, SentryServiceStatus} from 'sentry/types';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
@@ -24,14 +24,14 @@ describe('Sidebar', function () {
     sdkUpdates: jest.fn(),
   };
 
-  const getElement = (props: React.ComponentProps<typeof SidebarContainer>) => (
+  const getElement = () => (
     <OnboardingContextProvider>
-      <SidebarContainer organization={organization} {...props} />
+      <SidebarContainer />
     </OnboardingContextProvider>
   );
 
-  const renderSidebar = (props: React.ComponentProps<typeof SidebarContainer> = {}) =>
-    render(getElement(props), {context: routerContext, organization});
+  const renderSidebar = ({organization: org}: {organization: Organization | null}) =>
+    render(getElement(), {context: routerContext, organization: org});
 
   beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
@@ -49,12 +49,12 @@ describe('Sidebar', function () {
   });
 
   it('renders', async function () {
-    renderSidebar();
+    renderSidebar({organization});
     expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
   });
 
   it('renders without org', async function () {
-    renderSidebar({organization: undefined});
+    renderSidebar({organization: null});
 
     // no org displays user details
     expect(await screen.findByText(user.name)).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('Sidebar', function () {
   });
 
   it('can toggle help menu', async function () {
-    renderSidebar();
+    renderSidebar({organization});
     await userEvent.click(await screen.findByText('Help'));
 
     expect(screen.getByText('Visit Help Center')).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('Sidebar', function () {
 
   describe('SidebarDropdown', function () {
     it('can open Sidebar org/name dropdown menu', async function () {
-      renderSidebar();
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
 
@@ -112,7 +112,7 @@ describe('Sidebar', function () {
     it('can open "Switch Organization" sub-menu', async function () {
       act(() => void ConfigStore.set('features', new Set(['organizations:create'])));
 
-      renderSidebar();
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
 
@@ -128,7 +128,7 @@ describe('Sidebar', function () {
 
   describe('SidebarPanel', function () {
     it('hides when path changes', async function () {
-      const {rerender} = renderSidebar();
+      const {rerender} = renderSidebar({organization});
 
       await userEvent.click(await screen.findByText("What's new"));
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('Sidebar', function () {
 
       const oldPath = routerContext.context.location.pathname;
       routerContext.context.location.pathname = '/other/path';
-      rerender(getElement({}));
+      rerender(getElement());
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
       routerContext.context.location.pathname = oldPath;
     });
@@ -164,7 +164,7 @@ describe('Sidebar', function () {
         url: `/organizations/${organization.slug}/broadcasts/`,
         body: [],
       });
-      renderSidebar();
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByText("What's new"));
 
@@ -182,7 +182,7 @@ describe('Sidebar', function () {
 
     it('can display Broadcasts panel and mark as seen', async function () {
       jest.useFakeTimers();
-      renderSidebar();
+      renderSidebar({organization});
 
       expect(apiMocks.broadcasts).toHaveBeenCalled();
 
@@ -214,7 +214,7 @@ describe('Sidebar', function () {
 
     it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function () {
       jest.useFakeTimers();
-      const {unmount} = renderSidebar();
+      const {unmount} = renderSidebar({organization});
 
       // This will start timer to mark as seen
       await userEvent.click(await screen.findByRole('link', {name: "What's new"}), {
@@ -245,7 +245,7 @@ describe('Sidebar', function () {
           });
         });
 
-      renderSidebar();
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByText('Service status'));
       await screen.findByText('Recent service updates');
@@ -253,7 +253,7 @@ describe('Sidebar', function () {
   });
 
   it('can toggle collapsed state', async function () {
-    renderSidebar();
+    renderSidebar({organization});
 
     expect(await screen.findByText(user.name)).toBeInTheDocument();
     expect(screen.getByText(organization.name)).toBeInTheDocument();

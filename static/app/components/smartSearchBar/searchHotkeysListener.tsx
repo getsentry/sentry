@@ -1,6 +1,6 @@
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
-import {Shortcut} from './types';
+import type {Shortcut} from './types';
 
 function SearchHotkeysListener({
   visibleShortcuts,
