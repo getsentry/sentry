@@ -1,6 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
-import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
+import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
   getDeepestNodeAtPoint,

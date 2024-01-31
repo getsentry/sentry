@@ -112,15 +112,18 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
+  - repo: https://github.com/biomejs/pre-commit
+    rev: v0.1.0
+    hooks:
+      - id: biome-check
+        name: biome (javascript, typescript, json)
+        additional_dependencies: ['@biomejs/biome@1.5.3']
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: 'v3.0.3' # Use the sha or tag you want to point at
     hooks:
       - id: prettier
-        name: prettier (yaml, json, markdown)
-        types_or:
-          - json
-          - yaml
-          - markdown
+        name: prettier (yaml, markdown)
+        types_or: [yaml, markdown]
         # https://pre-commit.com/#regular-expressions
         exclude: |
           (?x)^($^

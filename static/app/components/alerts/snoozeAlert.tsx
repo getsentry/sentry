@@ -5,7 +5,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconMute, IconSound} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {RuleActionsCategories} from 'sentry/types/alerts';
@@ -202,6 +203,5 @@ const DropdownTrigger = styled(Button)`
 
 const MuteButton = styled(Button)<{hasDropdown: boolean}>`
   box-shadow: none;
-  border-radius: ${p =>
-    p.hasDropdown ? p.theme.borderRadiusLeft : p.theme.borderRadius};
+  border-radius: ${p => (p.hasDropdown ? p.theme.borderRadiusLeft : p.theme.borderRadius)};
 `;

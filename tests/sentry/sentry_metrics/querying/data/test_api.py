@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.utils import timezone as django_timezone
 
-from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
@@ -26,8 +26,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
 
-        release_1 = self.create_release(project=self.project, version="1.0")
-        release_2 = self.create_release(project=self.project, version="2.0")
+        release_1 = self.create_release(
+            project=self.project, version="1.0", date_added=MOCK_DATETIME
+        )
+        release_2 = self.create_release(
+            project=self.project, version="2.0", date_added=MOCK_DATETIME + timedelta(minutes=5)
+        )
 
         for value, transaction, platform, env, release, time in (
             (1, "/hello", "android", "prod", release_1.version, self.now()),
@@ -282,11 +286,54 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[1]["series"] == {field: [1.0]}
         assert groups[1]["totals"] == {field: 1.0}
 
-    def test_query_with_two_simple_filters(self) -> None:
+    def test_query_with_parenthesized_filter(self) -> None:
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
             fields=[field],
             query="(transaction:/hello)",
+            group_bys=["platform"],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = sorted(results["groups"], key=lambda value: value["by"]["platform"])
+        assert len(groups) == 2
+        assert groups[0]["by"] == {"platform": "android"}
+        assert groups[0]["series"] == {field: [0.0, 1.0, 2.0]}
+        assert groups[0]["totals"] == {field: 3.0}
+        assert groups[1]["by"] == {"platform": "ios"}
+        assert groups[1]["series"] == {field: [0.0, 6.0, 3.0]}
+        assert groups[1]["totals"] == {field: 9.0}
+
+    def test_query_with_and_filter(self) -> None:
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query="platform:ios AND transaction:/hello",
+            group_bys=["platform"],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = sorted(results["groups"], key=lambda value: value["by"]["platform"])
+        assert len(groups) == 1
+        assert groups[0]["by"] == {"platform": "ios"}
+        assert groups[0]["series"] == {field: [0.0, 6.0, 3.0]}
+        assert groups[0]["totals"] == {field: 9.0}
+
+    def test_query_with_or_filter(self) -> None:
+        field = f"sum({TransactionMRI.DURATION.value})"
+        results = run_metrics_query(
+            fields=[field],
+            query="platform:ios OR platform:android",
             group_bys=["platform"],
             start=self.now() - timedelta(minutes=30),
             end=self.now() + timedelta(hours=1, minutes=30),
@@ -560,23 +607,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_invalid_filters(self) -> None:
-        field = f"sum({TransactionMRI.DURATION.value})"
-
-        with pytest.raises(InvalidMetricsQueryError):
-            run_metrics_query(
-                fields=[field],
-                query='platform:"android" OR platform:ios',
-                group_bys=["platform"],
-                start=self.now() - timedelta(minutes=30),
-                end=self.now() + timedelta(hours=1, minutes=30),
-                interval=3600,
-                organization=self.project.organization,
-                projects=[self.project],
-                environments=[],
-                referrer="metrics.data.api",
-            )
-
     def test_query_with_injection_attack(self) -> None:
         field = f"sum({TransactionMRI.DURATION.value})"
 
@@ -627,7 +657,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["series"] == {field: [0, 2, 0]}
         assert groups[0]["totals"] == {field: 2}
 
-    @patch("sentry.sentry_metrics.querying.api.SNUBA_QUERY_LIMIT", 5)
+    @patch("sentry.sentry_metrics.querying.data.execution.SNUBA_QUERY_LIMIT", 5)
     def test_query_with_too_many_results(self) -> None:
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -662,8 +692,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[2]["series"] == {field: [0.0, 9.0]}
         assert groups[2]["totals"] == {field: 9.0}
 
-    @patch("sentry.sentry_metrics.querying.api.SNUBA_QUERY_LIMIT", 5)
-    @patch("sentry.sentry_metrics.querying.api.DEFAULT_QUERY_INTERVALS", [])
+    @patch("sentry.sentry_metrics.querying.data.execution.SNUBA_QUERY_LIMIT", 5)
+    @patch("sentry.sentry_metrics.querying.data.execution.DEFAULT_QUERY_INTERVALS", [])
     def test_query_with_too_many_results_and_no_interval_found(self) -> None:
         with pytest.raises(MetricsQueryExecutionError):
             run_metrics_query(

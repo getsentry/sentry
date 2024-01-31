@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
+import type {PromptResponse} from 'sentry/actionCreators/prompts';
 import {
   makePromptsCheckQueryKey,
-  PromptResponse,
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
@@ -25,7 +25,6 @@ import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useUser} from 'sentry/utils/useUser';
 
 import {AddCodecovBanner} from './addCodecovBanner';
 import {AddIntegrationBanner} from './addIntegrationBanner';
@@ -58,7 +57,6 @@ interface StacktraceBannersProps {
 }
 
 export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
-  const user = useUser();
   const organization = useOrganization({allowNull: true});
   const api = useApi();
   const queryClient = useQueryClient();
@@ -74,7 +72,7 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
     [projects, event]
   );
 
-  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization, user);
+  const hasInFrameFeature = hasStacktraceLinkInFrameFeature(organization);
   const enabled =
     !!organization && !!expectedDefaultFrame && !!project && hasInFrameFeature;
 

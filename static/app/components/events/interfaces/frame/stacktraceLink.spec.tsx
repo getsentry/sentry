@@ -7,14 +7,13 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {CodecovStatusCode, Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types';
+import {CodecovStatusCode} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
 
 import {StacktraceLink} from './stacktraceLink';
@@ -306,15 +305,6 @@ describe('StacktraceLink', function () {
   });
 
   it('renders the link using a valid sourceLink for a .NET project', async function () {
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {
-          ...UserFixture().options,
-          issueDetailsNewExperienceQ42023: true,
-        },
-      })
-    );
     const dotnetFrame = {
       filename: 'path/to/file.py',
       sourceLink: 'https://www.github.com/username/path/to/file.py#L100',
@@ -368,15 +358,6 @@ describe('StacktraceLink', function () {
   });
 
   it('renders in-frame stacktrace links and fetches data with 100ms delay', async function () {
-    ConfigStore.set(
-      'user',
-      UserFixture({
-        options: {
-          ...UserFixture().options,
-          issueDetailsNewExperienceQ42023: true,
-        },
-      })
-    );
     const organization = OrganizationFixture({
       features: ['issue-details-stacktrace-link-in-frame'],
     });

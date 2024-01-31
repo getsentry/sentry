@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Query} from 'history';
+import type {Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -7,8 +7,8 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {Organization, OrganizationSummary} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Organization, OrganizationSummary} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
@@ -16,7 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import DurationChart from 'sentry/views/performance/charts/chart';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
-import {ViewProps} from 'sentry/views/performance/types';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 type Props = ViewProps & {
   organization: OrganizationSummary;

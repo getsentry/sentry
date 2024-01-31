@@ -1,5 +1,6 @@
-import React, {createContext, Fragment, useContext, useState} from 'react';
-import {Theme} from '@emotion/react';
+import type React from 'react';
+import {createContext, Fragment, useContext, useState} from 'react';
+import type {Theme} from '@emotion/react';
 
 import {Alert} from 'sentry/components/alert';
 

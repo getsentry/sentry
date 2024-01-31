@@ -1,19 +1,17 @@
 import {Fragment} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import SpanExamplesQuery, {
-  ChildrenProps as SpanExamplesProps,
-} from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
-import SuspectSpansQuery, {
-  ChildrenProps as SuspectSpansProps,
-} from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
-import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {ChildrenProps as SpanExamplesProps} from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
+import SpanExamplesQuery from 'sentry/utils/performance/suspectSpans/spanExamplesQuery';
+import type {ChildrenProps as SuspectSpansProps} from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
+import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
+import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';

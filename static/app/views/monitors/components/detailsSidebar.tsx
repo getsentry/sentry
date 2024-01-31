@@ -14,12 +14,8 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {DEFAULT_MAX_RUNTIME} from 'sentry/views/monitors/components/monitorForm';
 import MonitorIcon from 'sentry/views/monitors/components/monitorIcon';
-import {
-  Monitor,
-  MonitorEnvironment,
-  MonitorStatus,
-  ScheduleType,
-} from 'sentry/views/monitors/types';
+import type {Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
+import {MonitorStatus, ScheduleType} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils';
 
 interface Props {

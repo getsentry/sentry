@@ -30,8 +30,8 @@ def result_sorted(result):
     return result
 
 
-ONE_DAY_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
-TWO_DAYS_AGO = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=2)
+ONE_DAY_AGO = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=1)
+TWO_DAYS_AGO = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=2)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=12, minute=27, second=28, microsecond=303000)
 MOCK_DATETIME_PLUS_TEN_MINUTES = MOCK_DATETIME + datetime.timedelta(minutes=10)
 MOCK_DATETIME_PLUS_ONE_HOUR = MOCK_DATETIME + datetime.timedelta(hours=1)

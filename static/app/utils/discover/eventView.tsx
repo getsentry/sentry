@@ -1,4 +1,4 @@
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -6,13 +6,13 @@ import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
 import moment from 'moment';
 
-import {EventQuery} from 'sentry/actionCreators/events';
+import type {EventQuery} from 'sentry/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {
+import type {
   NewQuery,
   PageFilters,
   Project,
@@ -20,11 +20,9 @@ import {
   SelectValue,
   User,
 } from 'sentry/types';
+import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
-  Column,
-  ColumnType,
-  Field,
   generateFieldAsString,
   getAggregateAlias,
   getEquation,
@@ -32,7 +30,6 @@ import {
   isAggregateField,
   isEquation,
   isLegalYAxisType,
-  Sort,
 } from 'sentry/utils/discover/fields';
 import {
   CHART_AXIS_OPTIONS,
@@ -45,17 +42,14 @@ import {
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {
-  FieldValueKind,
-  TableColumn,
-  TableColumnSort,
-} from 'sentry/views/discover/table/types';
+import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
-import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 import {statsPeriodToDays} from '../dates';
-import {WebVital} from '../fields';
+import type {WebVital} from '../fields';
 import {MutableSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
@@ -1183,8 +1177,8 @@ class EventView {
       this.sorts.length <= 0
         ? undefined
         : this.sorts.length > 1
-        ? encodeSorts(this.sorts)
-        : encodeSort(this.sorts[0]);
+          ? encodeSorts(this.sorts)
+          : encodeSort(this.sorts[0]);
     const fields = this.getFields();
     const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));

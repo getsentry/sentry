@@ -4,7 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
-import {EntryType, Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types';
+import {EntryType} from 'sentry/types';
 
 describe('Frame - Line', function () {
   const event = EventFixture();

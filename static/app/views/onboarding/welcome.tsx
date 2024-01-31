@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
-import {motion, MotionProps} from 'framer-motion';
+import type {MotionProps} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 import OnboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
@@ -17,7 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
 
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 const fadeAway: MotionProps = {
   variants: {

@@ -17,19 +17,24 @@ from snuba_sdk import (
     Request,
 )
 from snuba_sdk.conditions import ConditionGroup
+from snuba_sdk.mql.mql import parse_mql
+from snuba_sdk.timeseries import Timeseries
 
-from sentry.exceptions import InvalidParams
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import SNUBA_QUERY_LIMIT
-from sentry.sentry_metrics.querying.errors import CorrelationsQueryExecutionError
-from sentry.sentry_metrics.querying.metadata.utils import (
-    add_environments_condition,
-    get_snuba_conditions_from_query,
-    transform_conditions_to_tags,
-    transform_conditions_with,
-    transform_latest_release_condition,
+from sentry.sentry_metrics.querying.errors import (
+    CorrelationsQueryExecutionError,
+    InvalidMetricsQueryError,
+)
+from sentry.sentry_metrics.querying.types import QueryCondition
+from sentry.sentry_metrics.querying.visitors import (
+    EnvironmentsInjectionVisitor,
+    LatestReleaseTransformationVisitor,
+    MappingTransformationVisitor,
+    QueryConditionVisitor,
+    TagsTransformationVisitor,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import (
@@ -103,6 +108,7 @@ class Segment:
     project_id: int
     trace_id: str
     segment_id: str
+    segment_span_id: str
     segment_name: str
     profile_id: Optional[str]
     spans_number: int
@@ -129,6 +135,49 @@ class MetricCorrelations:
         return hash(self.metric_mri)
 
 
+class QueryConditions:
+    def __init__(self, conditions: List[QueryCondition]):
+        self._conditions = conditions
+        self._visitors: List[QueryConditionVisitor[QueryCondition]] = []
+
+    @classmethod
+    def build(cls, query: Optional[str], environments: Sequence[Environment]) -> "QueryConditions":
+        """
+        Returns a set of Snuba conditions from a query string which is assumed to contain filters in the MQL grammar.
+
+        Since MQL does not support parsing only filters, we have to create a phantom query to feed the parser,
+        in order for it to correctly resolve a `Timeseries` out of which we extract the `filters`.
+        """
+        # We want to create a phantom query to feed into the parser in order to be able to extract the conditions
+        # from the returned timeseries.
+        phantom_query = f"count(phantom){{{query or ''}}}"
+
+        parsed_phantom_query = parse_mql(phantom_query).query
+        if not isinstance(parsed_phantom_query, Timeseries):
+            # For now, we reuse data from `api` but we will soon lift out common components from that file.
+            raise InvalidMetricsQueryError("The supplied query is not valid")
+
+        if parsed_phantom_query.filters is None:
+            parsed_phantom_query = parsed_phantom_query.set_filters([])
+
+        # We inject the environments in the phantom query.
+        parsed_phantom_query = EnvironmentsInjectionVisitor(environments).visit(
+            parsed_phantom_query
+        )
+        return QueryConditions(cast(List[QueryCondition], parsed_phantom_query.filters))
+
+    def add_visitor(self, visitor: QueryConditionVisitor[QueryCondition]) -> "QueryConditions":
+        self._visitors.append(visitor)
+        return self
+
+    def get(self) -> List[QueryCondition]:
+        conditions = self._conditions
+        for visitor in self._visitors:
+            conditions = visitor.visit_group(conditions)
+
+        return conditions
+
+
 class CorrelationsSource(ABC):
     def __init__(
         self,
@@ -148,9 +197,9 @@ class CorrelationsSource(ABC):
         max_value: Optional[float],
         environments: Sequence[Environment],
     ) -> Sequence[Segment]:
-        conditions = get_snuba_conditions_from_query(query)
-        conditions = add_environments_condition(conditions, environments)
-        conditions = transform_latest_release_condition(conditions, self.projects)
+        conditions = QueryConditions.build(query, environments).add_visitor(
+            LatestReleaseTransformationVisitor(self.projects)
+        )
 
         return self._get_segments(
             metric_mri=metric_mri,
@@ -170,7 +219,7 @@ class CorrelationsSource(ABC):
     def _get_segments(
         self,
         metric_mri: str,
-        conditions: Optional[ConditionGroup],
+        conditions: QueryConditions,
         start: datetime,
         end: datetime,
         min_value: Optional[float],
@@ -183,7 +232,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
     def _get_metrics_summaries_by_span(
         self,
         metric_mri: str,
-        conditions: Optional[ConditionGroup],
+        conditions: QueryConditions,
         start: datetime,
         end: datetime,
         min_value: Optional[float],
@@ -218,7 +267,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
                 Condition(Column("end_timestamp"), Op.LT, end),
                 Condition(Column("metric_mri"), Op.EQ, metric_mri),
             ]
-            + (conditions or []),
+            + conditions.get(),
             having=having,
             groupby=[Column("span_id")],
             limit=Limit(SNUBA_QUERY_LIMIT),
@@ -294,18 +343,19 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
     def _get_segments(
         self,
         metric_mri: str,
-        conditions: Optional[ConditionGroup],
+        conditions: QueryConditions,
         start: datetime,
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Segment]:
-        transformed_conditions = transform_conditions_to_tags(conditions)
+        if conditions:
+            conditions.add_visitor(TagsTransformationVisitor(check_sentry_tags=False))
 
         # First, we fetch the spans we are interested in given the metric and the bounds.
         metric_summaries_by_span = self._get_metrics_summaries_by_span(
             metric_mri=metric_mri,
-            conditions=transformed_conditions,
+            conditions=conditions,
             start=start,
             end=end,
             min_value=min_value,
@@ -364,22 +414,17 @@ class TransactionDurationCorrelationsSource(CorrelationsSource):
     def _get_segments(
         self,
         metric_mri: str,
-        conditions: Optional[ConditionGroup],
+        conditions: QueryConditions,
         start: datetime,
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Segment]:
-        where = []
+        where: List[QueryCondition] = []
 
-        transformed_conditions = transform_conditions_to_tags(
-            conditions=conditions, check_sentry_tags=True
-        )
-        transformed_conditions = transform_conditions_with(
-            conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
-        )
-        if transformed_conditions:
-            where += transformed_conditions
+        conditions.add_visitor(TagsTransformationVisitor(check_sentry_tags=True))
+        conditions.add_visitor(MappingTransformationVisitor(mappings=SENTRY_TAG_TO_COLUMN_NAME))
+        where += conditions.get()
 
         if min_value:
             where += [Condition(Column("duration"), Op.GTE, min_value)]
@@ -413,22 +458,17 @@ class MeasurementsCorrelationsSource(CorrelationsSource):
     def _get_segments(
         self,
         metric_mri: str,
-        conditions: Optional[ConditionGroup],
+        conditions: QueryConditions,
         start: datetime,
         end: datetime,
         min_value: Optional[float],
         max_value: Optional[float],
     ) -> Sequence[Segment]:
-        where = []
+        where: List[QueryCondition] = []
 
-        transformed_conditions = transform_conditions_to_tags(
-            conditions=conditions, check_sentry_tags=True
-        )
-        transformed_conditions = transform_conditions_with(
-            conditions=transformed_conditions, mappings=SENTRY_TAG_TO_COLUMN_NAME
-        )
-        if transformed_conditions:
-            where += transformed_conditions
+        conditions.add_visitor(TagsTransformationVisitor(check_sentry_tags=True))
+        conditions.add_visitor(MappingTransformationVisitor(mappings=SENTRY_TAG_TO_COLUMN_NAME))
+        where += conditions.get()
 
         measurement_name = self._extract_measurement_name(metric_mri)
         # We add this condition every time, since if a measurement is not set, Snuba will return 0, but it could also
@@ -472,6 +512,12 @@ def _get_segments_aggregates_query(
                 "countIf",
                 [Column("span_id"), Function("equals", [Column("is_segment"), 0])],
                 alias="spans_number",
+            ),
+            # Returns the span id of the transaction.
+            Function(
+                "anyIf",
+                [Column("span_id"), Function("equals", [Column("is_segment"), 1])],
+                alias="transaction_span_id",
             ),
             # Returns the duration of the transaction.
             Function(
@@ -581,6 +627,7 @@ def _get_segments(
             project_id=row["project_id"],
             # For now, we still use the old transaction_id.
             segment_id=row["transaction_id"],
+            segment_span_id=row["transaction_span_id"],
             trace_id=row["trace_id"],
             profile_id=row["profile_id"],
             segment_name=row["segment_name"],
@@ -643,7 +690,7 @@ def get_metric_correlations(
     """
     correlations_source = get_correlations_source(metric_mri, organization, projects)
     if not correlations_source:
-        raise InvalidParams(
+        raise CorrelationsQueryExecutionError(
             f"The supplied metric {metric_mri} does not support fetching correlated spans"
         )
 

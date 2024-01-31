@@ -1,12 +1,13 @@
 import {Fragment, useMemo, useRef} from 'react';
-import {AriaOptionProps, useOption} from '@react-aria/listbox';
-import {ListState} from '@react-stately/list';
-import {Node} from '@react-types/shared';
+import type {AriaOptionProps} from '@react-aria/listbox';
+import {useOption} from '@react-aria/listbox';
+import type {ListState} from '@react-stately/list';
+import type {Node} from '@react-types/shared';
 
 import Checkbox from 'sentry/components/checkbox';
 import MenuListItem from 'sentry/components/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import {CheckWrap} from '../styles';
 

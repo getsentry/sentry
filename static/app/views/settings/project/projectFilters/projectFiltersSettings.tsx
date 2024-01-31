@@ -16,7 +16,8 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import FieldLabel from 'sentry/components/forms/fieldGroup/fieldLabel';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -35,7 +36,7 @@ import filterGroups, {
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -480,8 +481,8 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                             filter.id === 'legacy-browsers' && value instanceof Set
                               ? [...value].sort().join(',')
                               : value
-                              ? 'enabled'
-                              : 'disabled',
+                                ? 'enabled'
+                                : 'disabled',
                         });
                       }}
                     >

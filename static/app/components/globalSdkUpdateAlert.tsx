@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import {Alert, AlertProps} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
@@ -9,7 +10,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {ProjectSdkUpdates} from 'sentry/types';
+import type {ProjectSdkUpdates} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
@@ -78,8 +79,8 @@ function InnerGlobalSdkUpdateAlert(
   const projectSpecificUpdates =
     selection?.projects?.length === 0 || selection?.projects[0] === ALL_ACCESS_PROJECTS
       ? props.sdkUpdates
-      : props.sdkUpdates.filter(
-          update => selection?.projects?.includes(parseInt(update.projectId, 10))
+      : props.sdkUpdates.filter(update =>
+          selection?.projects?.includes(parseInt(update.projectId, 10))
         );
 
   // Check if we have at least one suggestion out of the list of updates

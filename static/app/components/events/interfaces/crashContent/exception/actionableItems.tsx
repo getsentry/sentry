@@ -1,11 +1,12 @@
-import React, {Fragment, useEffect, useMemo, useState} from 'react';
+import type React from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import {EventErrorData} from 'sentry/components/events/errorItem';
+import type {EventErrorData} from 'sentry/components/events/errorItem';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -18,21 +19,21 @@ import {
 } from 'sentry/constants/eventErrors';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Project} from 'sentry/types';
+import type {Event, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import type {ActionableItemErrors, ActionableItemTypes} from './actionableItemsUtils';
 import {
-  ActionableItemErrors,
-  ActionableItemTypes,
   ActionableItemWarning,
   shouldErrorBeShown,
   useFetchProguardMappingFiles,
 } from './actionableItemsUtils';
-import {ActionableItemsResponse, useActionableItems} from './useActionableItems';
+import type {ActionableItemsResponse} from './useActionableItems';
+import {useActionableItems} from './useActionableItems';
 
 interface ErrorMessage {
   desc: React.ReactNode;
