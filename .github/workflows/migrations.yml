@@ -55,8 +55,8 @@ jobs:
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
           script: |
-            const {check} = require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/migration-approval-check`);
-            await check({ github, context, core });
+            const {check} = require(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/team-approval-check`);
+            await check({ github, context, core, 'owners-migrations' });
 
   modified-migration:
     name: check if modified migration
