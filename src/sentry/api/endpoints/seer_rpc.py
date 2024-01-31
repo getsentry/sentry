@@ -1,7 +1,7 @@
 import hashlib
 import hmac
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -20,7 +20,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.models.group import Group
 from sentry.services.hybrid_cloud.rpc import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
@@ -141,37 +140,43 @@ class SeerRpcServiceEndpoint(Endpoint):
         return Response(data=result)
 
 
-def autofix_callback(result: dict) -> None:
-    group: Group = Group.objects.get(id=result["issue_id"])
+def on_autofix_step_update(*, issue_id: int, status: str, steps: List[dict]) -> None:
+    group: Group = Group.objects.get(id=issue_id)
 
     metadata = group.data.get("metadata", {})
     autofix_data = metadata.get("autofix", {})
-    if result["result"]:
-        metadata["autofix"] = {
-            **autofix_data,
-            "completedAt": datetime.now().isoformat(),
-            "status": "COMPLETED",
-            "fix": convert_dict_key_case(result["result"], snake_to_camel_case),
-        }
-    elif result["status"] == "ERROR":
-        metadata["autofix"] = {
-            **autofix_data,
-            "completedAt": datetime.now().isoformat(),
-            "status": "ERROR",
-            "fix": None,
-            "errorMessage": "Something went wrong with the autofix.",
-        }
-    else:
-        metadata["autofix"] = {
-            "completedAt": datetime.now().isoformat(),
-            "status": "COMPLETED",
-            "fix": None,
-        }
+
+    metadata["autofix"] = {
+        **autofix_data,
+        "status": status,
+        "steps": steps,
+    }
+
+    group.data["metadata"] = metadata
+    group.save()
+
+
+def on_autofix_complete(
+    *, issue_id: int, status: str, steps: List[dict], fix: Optional[dict]
+) -> None:
+    group: Group = Group.objects.get(id=issue_id)
+
+    metadata = group.data.get("metadata", {})
+    autofix_data = metadata.get("autofix", {})
+
+    metadata["autofix"] = {
+        **autofix_data,
+        "completedAt": datetime.now().isoformat(),
+        "status": status,
+        "steps": steps,
+        "fix": fix,
+    }
 
     group.data["metadata"] = metadata
     group.save()
 
 
 seer_method_registry = {
-    "autofix_callback": autofix_callback,
+    "on_autofix_step_update": on_autofix_step_update,
+    "on_autofix_complete": on_autofix_complete,
 }
