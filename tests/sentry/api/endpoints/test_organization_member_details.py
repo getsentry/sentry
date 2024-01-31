@@ -14,6 +14,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo import SiloMode
+from sentry.silo.patches.silo_aware_transaction_patch import is_in_test_case_body
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -32,6 +33,7 @@ class OrganizationMemberTestBase(APITestCase):
 @region_silo_test
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
     def test_me(self):
+        assert is_in_test_case_body()
         response = self.get_success_response(self.organization.slug, "me")
 
         assert response.data["role"] == "owner"

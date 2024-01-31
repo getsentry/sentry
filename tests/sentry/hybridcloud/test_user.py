@@ -1,6 +1,7 @@
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.files import ControlFile
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo.patches.silo_aware_transaction_patch import is_in_test_case_body
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -8,6 +9,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of
 
 @django_db_all(transaction=True)
 def test_user_serialize_avatar_none():
+    assert is_in_test_case_body()
     user = Factories.create_user()
     rpc_user = user_service.get_user(user_id=user.id)
     assert rpc_user

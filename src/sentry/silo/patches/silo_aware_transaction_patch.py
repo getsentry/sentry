@@ -1,3 +1,5 @@
+import re
+import traceback
 from typing import TYPE_CHECKING, Any, Callable, Optional, Type
 
 from django.db import router, transaction
@@ -46,12 +48,47 @@ def siloed_on_commit(func: Callable[..., Any], using: Optional[str] = None) -> N
     return _default_on_commit(func, using)
 
 
+def is_in_test_case_body() -> bool:
+    """Determine whether the current execution stack is in a test case body.
+
+    This is a best-effort, potentially brittle implementation that depends on private
+    behavior of the current Pytest implementation. We can't necessarily rely on
+    underscore-prefixed method names being used in a stable way.
+
+    Are you landing here because test cases regressed mysteriously after a Pytest
+    upgrade? Check the list of frames and add tweak the condition logic to make this
+    function return false as needed. To ensure that you aren't making
+    `validate_transaction_using_for_silo_mode` too permissive, try sprinkling `assert
+    is_in_test_case_body()` into a few test bodies (then revert before merging).
+
+    An attempt was also made using Pytest fixtures. We can add state changes around
+    the `django_db_setup` fixture, but post-test teardown seems to be too tightly
+    coupled to the test run to insert a fixture between them. Adding something to the
+    `tearDown()` override in Sentry's BaseTestCase may have worked, but would not
+    helped with standalone test functions.
+    """
+    frames = [str(frame) for (frame, _) in traceback.walk_stack(None)]
+
+    def seek(name: str) -> bool:
+        """Check whether the named function has been called in the current stack."""
+        pattern = re.compile(rf"\b{name}>$")
+        return any(pattern.search(str(frame)) for frame in frames)
+
+    return seek("pytest_runtest_call") and all(
+        not seek(maintenance_method)
+        for maintenance_method in ("create_test_db", "_pre_setup", "_post_teardown")
+    )
+
+
 def validate_transaction_using_for_silo_mode(using: Optional[str]):
     from sentry.models.outbox import ControlOutbox, RegionOutbox
     from sentry.silo import SiloMode
 
     if using is None:
         raise TransactionMissingDBException("'using' must be specified when creating a transaction")
+
+    if not is_in_test_case_body():
+        return
 
     current_silo_mode = SiloMode.get_current_mode()
     control_db = _get_db_for_model_if_available(ControlOutbox)
