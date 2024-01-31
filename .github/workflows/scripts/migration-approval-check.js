@@ -17,8 +17,17 @@ module.exports = {
 
     // TODO: Fetch using API (based on team name)
     const code_owners = [];
+    const {data: members} = await github.rest.teams.listMembersInOrg({
+      org: owner,
+      team_slug: CODE_OWNER_MIGRATIONS_TEAM_NAME,
+    });
 
-    // Check if @getsentry/owners-migrations approved this PR
+    if (!members) {
+      core.setFailed(`No members found in ${CODE_OWNER_MIGRATIONS_TEAM_NAME}`);
+    }
+
+    console.log(members); // eslint-disable-line no-console
+
     const approved = reviews.some(
       review => code_owners.includes(review.user.login) && review.state === 'APPROVED'
     );
