@@ -73,14 +73,14 @@ def is_in_test_case_body() -> bool:
     """
     frames = [str(frame) for (frame, _) in traceback.walk_stack(None)]
 
-    def seek(name: str) -> bool:
+    def seek(module_path: str, function_name: str) -> bool:
         """Check whether the named function has been called in the current stack."""
-        pattern = re.compile(rf"\b{name}>$")
+        pattern = re.compile(rf"/{module_path}\b.*\b{function_name}>$")
         return any(pattern.search(frame) for frame in frames)
 
-    return seek("pytest_runtest_call") and all(
-        not seek(maintenance_method)
-        for maintenance_method in ("create_test_db", "_pre_setup", "_post_teardown")
+    return seek("_pytest/runner.py", "pytest_runtest_call") and not (
+        seek("django/test/testcases.py", "_pre_setup")
+        or seek("django/test/testcases.py", "_post_teardown")
     )
 
 
