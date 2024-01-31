@@ -76,6 +76,9 @@ export function getCachedChartPalette(
   return newPalette;
 }
 
+/**
+ * **NOTE: Not yet optimized for performance, it should only be used for the metrics page with a limited amount of series**
+ */
 export const useGetCachedChartPalette = () => {
   const cacheRef = useRef<Readonly<Record<string, string>>[]>([]);
   return useCallback((seriesNames: string[]) => {
