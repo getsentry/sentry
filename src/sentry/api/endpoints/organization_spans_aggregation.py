@@ -167,7 +167,7 @@ class BaseAggregateSpans:
 
         # Handles sibling spans that have the same group
         span_tree["children"].sort(key=lambda s: s["start_timestamp_ms"])
-        span_hash_seen: Dict[str, int] = defaultdict(lambda: 0)
+        span_hash_seen: Dict[str, int] = defaultdict(int)
 
         for child in span_tree["children"]:
             child_span_hash = child["key"]

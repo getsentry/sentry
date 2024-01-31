@@ -54,7 +54,7 @@ from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
 
-THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.timezone.utc)
+THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 
 _T = TypeVar("_T")
 
@@ -583,7 +583,7 @@ class OutboxBase(Model):
             assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             metrics.timing(
                 "outbox.coalesced_net_queue_time",
-                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
@@ -610,13 +610,13 @@ class OutboxBase(Model):
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
-                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
                 - first_coalesced.scheduled_from.timestamp(),
                 tags=tags,
             )
             metrics.timing(
                 "outbox.coalesced_net_processing_time",
-                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
@@ -624,8 +624,8 @@ class OutboxBase(Model):
     def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
         span.set_tag(tag_for_outbox, message.shard_identifier)
-        span.set_data("payload", message.payload)
         span.set_data("outbox_id", message.id)
+        span.set_data("outbox_shard_id", message.shard_identifier)
         span.set_tag("outbox_category", OutboxCategory(message.category).name)
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 
@@ -746,19 +746,23 @@ class RegionOutbox(RegionOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
-        index_together = (
-            (
-                "shard_scope",
-                "shard_identifier",
-                "category",
-                "object_identifier",
+        indexes = (
+            models.Index(
+                fields=(
+                    "shard_scope",
+                    "shard_identifier",
+                    "category",
+                    "object_identifier",
+                )
             ),
-            (
-                "shard_scope",
-                "shard_identifier",
-                "scheduled_for",
+            models.Index(
+                fields=(
+                    "shard_scope",
+                    "shard_identifier",
+                    "scheduled_for",
+                )
             ),
-            ("shard_scope", "shard_identifier", "id"),
+            models.Index(fields=("shard_scope", "shard_identifier", "id")),
         )
 
 
@@ -838,21 +842,25 @@ class ControlOutbox(ControlOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_controloutbox"
-        index_together = (
-            (
-                "region_name",
-                "shard_scope",
-                "shard_identifier",
-                "category",
-                "object_identifier",
+        indexes = (
+            models.Index(
+                fields=(
+                    "region_name",
+                    "shard_scope",
+                    "shard_identifier",
+                    "category",
+                    "object_identifier",
+                )
             ),
-            (
-                "region_name",
-                "shard_scope",
-                "shard_identifier",
-                "scheduled_for",
+            models.Index(
+                fields=(
+                    "region_name",
+                    "shard_scope",
+                    "shard_identifier",
+                    "scheduled_for",
+                )
             ),
-            ("region_name", "shard_scope", "shard_identifier", "id"),
+            models.Index(fields=("region_name", "shard_scope", "shard_identifier", "id")),
         )
 
 

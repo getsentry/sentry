@@ -579,7 +579,7 @@ class _RemoteSiloCall:
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_adapter = HTTPAdapter(
             max_retries=Retry(
-                total=3,
+                total=5,
                 backoff_factor=0.1,
                 status_forcelist=[503],
                 allowed_methods=["POST"],
@@ -599,7 +599,11 @@ class _RemoteSiloCall:
             headers["Baggage"] = baggage
         try:
             return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
-        except requests.Timeout as e:
+        except requests.exceptions.ConnectionError as e:
+            raise self._remote_exception("RPC Connection failed") from e
+        except requests.exceptions.RetryError as e:
+            raise self._remote_exception("RPC failed, max retries reached.") from e
+        except requests.exceptions.Timeout as e:
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
 
 

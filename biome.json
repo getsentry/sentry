@@ -10,7 +10,14 @@
     "enabled": false
   },
   "linter": {
-    "enabled": false
+    "enabled": true,
+    "rules": {
+      "recommended": false,
+      "nursery": {
+        "useExportType": "error",
+        "useImportType": "error"
+      }
+    }
   },
   "files": {
     "ignoreUnknown": true,
@@ -47,6 +54,10 @@
   "json": {
     "formatter": {
       "enabled": true
+    },
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true
     }
   }
 }

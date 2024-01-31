@@ -295,14 +295,14 @@ def get_suspect_commit_text(
     pull_request = commit.get("pull_request")
     author = commit.get("author")
     commit_id = commit.get("id")
-    if not author and not commit_id:
+    if not (author and commit_id):  # we need both the author and commit id to continue
         return None
 
     author_display = author.get("name") if author.get("name") is not None else author.get("email")
     if pull_request:
         repo_base = pull_request.get("repository", {}).get("url")
         if repo_base:
-            commit_link = f"<{repo_base}/commits/{commit_id}|{commit_id[0:6]}>"
+            commit_link = f"<{repo_base}/commit/{commit_id}|{commit_id[0:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
 
         pr_date = pull_request.get("dateCreated")
@@ -543,12 +543,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build up the blocks for newer issue alert formatting #
 
         # build title block
-        if text:
-            text = text.lstrip(" ")
-            if self.actions:
-                text += "\n" + action_text
-        if not text:
-            text = action_text
         title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
         if self.group.issue_category == GroupCategory.ERROR:
@@ -564,8 +558,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"
         blocks = [self.get_markdown_block(title_text)]
+
+        # build up text block
         if text:
+            text = text.lstrip(" ")
             blocks.append(self.get_rich_text_preformatted_block(text))
+
+        # build up actions text
+        if self.actions:
+            blocks.append(self.get_markdown_block(action_text))
 
         # build tags block
         tags = get_tags(event_for_tags, self.tags)
@@ -669,33 +670,3 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             block_id=json.dumps(block_id),
             skip_fallback=self.skip_fallback,
         )
-
-
-def build_group_attachment(
-    group: Group,
-    event: GroupEvent | None = None,
-    tags: set[str] | None = None,
-    identity: RpcIdentity | None = None,
-    actions: Sequence[MessageAction] | None = None,
-    rules: list[Rule] | None = None,
-    link_to_event: bool = False,
-    issue_details: bool = False,
-    is_unfurl: bool = False,
-    notification_uuid: str | None = None,
-    notes: str | None = None,
-    commits: Sequence[Mapping[str, Any]] | None = None,
-) -> Union[SlackBlock, SlackAttachment]:
-
-    return SlackIssuesMessageBuilder(
-        group,
-        event,
-        tags,
-        identity,
-        actions,
-        rules,
-        link_to_event,
-        issue_details,
-        is_unfurl=is_unfurl,
-        notes=notes,
-        commits=commits,
-    ).build(notification_uuid=notification_uuid)
