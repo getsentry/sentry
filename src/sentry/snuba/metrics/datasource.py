@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sentry_sdk
+
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 
 """
@@ -236,6 +238,7 @@ def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Seq
     for metric_mri, project_ids in stored_metrics.items():
         parsed_mri = parse_mri(metric_mri)
         if parsed_mri is None:
+            sentry_sdk.capture_message(f"Invalid metric MRI {metric_mri} detected")
             continue
 
         blocking_status = []
