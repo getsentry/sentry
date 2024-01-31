@@ -392,7 +392,7 @@ def test_process_widget_specs(
                 is_low_cardinality=expected_low_cardinality,
                 has_features=bool(feature_flags),
                 expected_applicable=False,
-                expected_hashes=[],
+                expected_hashes={},
             )
 
 
@@ -401,7 +401,7 @@ def assert_on_demand_model(
     is_low_cardinality: bool,
     has_features: bool,
     expected_applicable: bool,
-    expected_hashes: dict[int, str],
+    expected_hashes: dict[int, list[str]],
 ) -> None:
     assert model.spec_version
 
