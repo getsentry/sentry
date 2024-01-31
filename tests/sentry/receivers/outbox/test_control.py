@@ -110,7 +110,6 @@ class ProcessControlOutboxTest(TestCase):
         parent_mock = mock.Mock()
         parent_mock.attach_mock(mock_cache.get, "cache_get")
         parent_mock.attach_mock(mock_cache.set, "cache_set")
-        parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
         request, outbox, cache_key = self.generate_outbox()
 
@@ -130,13 +129,11 @@ class ProcessControlOutboxTest(TestCase):
 
         assert mock_cache.get.call_count == 1
         assert mock_cache.set.call_count == 1
-        assert mock_cache.delete.call_count == 1
 
         # Assert order of cache method calls
         expected_calls = [
             mock.call.cache_get(cache_key),
             mock.call.cache_set(cache_key, 1, timeout=CACHE_TIMEOUT),
-            mock.call.cache_delete(cache_key),
         ]
         assert parent_mock.mock_calls == expected_calls
 
@@ -147,7 +144,6 @@ class ProcessControlOutboxTest(TestCase):
         parent_mock = mock.Mock()
         parent_mock.attach_mock(mock_cache.get, "cache_get")
         parent_mock.attach_mock(mock_cache.set, "cache_set")
-        parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
         request, outbox, cache_key = self.generate_outbox()
 
@@ -168,7 +164,6 @@ class ProcessControlOutboxTest(TestCase):
 
         assert mock_cache.get.call_count == 1
         assert mock_cache.set.call_count == 1
-        assert mock_cache.delete.call_count == 0
 
         # Assert order of cache method calls
         expected_calls = [
@@ -204,7 +199,6 @@ class ProcessControlOutboxTest(TestCase):
             parent_mock = mock.Mock()
             parent_mock.attach_mock(mock_cache.get, "cache_get")
             parent_mock.attach_mock(mock_cache.set, "cache_set")
-            parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
             if num_of_request_attempts == REQUEST_ATTEMPTS_LIMIT:
                 with mock.patch("sentry_sdk.capture_exception") as capture_exception:
@@ -226,7 +220,6 @@ class ProcessControlOutboxTest(TestCase):
 
                 assert mock_cache.get.call_count == 1
                 assert mock_cache.set.call_count == 1
-                assert mock_cache.delete.call_count == 0
 
                 # Assert order of cache method calls
                 expected_calls = [
@@ -251,7 +244,6 @@ class ProcessControlOutboxTest(TestCase):
 
                 assert mock_cache.get.call_count == 1
                 assert mock_cache.set.call_count == 1
-                assert mock_cache.delete.call_count == 0
 
                 # Assert order of cache method calls
                 expected_calls = [
@@ -292,7 +284,6 @@ class ProcessControlOutboxTest(TestCase):
             parent_mock = mock.Mock()
             parent_mock.attach_mock(mock_cache.get, "cache_get")
             parent_mock.attach_mock(mock_cache.set, "cache_set")
-            parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
             if num_of_request_attempts == (REQUEST_ATTEMPTS_LIMIT - 1):
                 with mock.patch("sentry_sdk.capture_exception") as capture_exception:
@@ -308,13 +299,11 @@ class ProcessControlOutboxTest(TestCase):
 
                 assert mock_cache.get.call_count == 1
                 assert mock_cache.set.call_count == 1
-                assert mock_cache.delete.call_count == 1
 
                 # Assert order of cache method calls
                 expected_calls = [
                     mock.call.cache_get(cache_key),
                     mock.call.cache_set(cache_key, 10, timeout=CACHE_TIMEOUT),
-                    mock.call.cache_delete(cache_key),
                 ]
                 assert parent_mock.mock_calls == expected_calls
                 return
@@ -334,7 +323,6 @@ class ProcessControlOutboxTest(TestCase):
 
                 assert mock_cache.get.call_count == 1
                 assert mock_cache.set.call_count == 1
-                assert mock_cache.delete.call_count == 0
 
                 # Assert order of cache method calls
                 expected_calls = [
@@ -386,7 +374,6 @@ class ProcessControlOutboxTest(TestCase):
             parent_mock = mock.Mock()
             parent_mock.attach_mock(mock_cache.get, "cache_get")
             parent_mock.attach_mock(mock_cache.set, "cache_set")
-            parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
             with mock.patch("sentry_sdk.capture_exception") as capture_exception:
                 # Does not raise on ApiHostError exceptions
@@ -412,7 +399,6 @@ class ProcessControlOutboxTest(TestCase):
 
                 assert mock_cache.get.call_count == 1
                 assert mock_cache.set.call_count == 1
-                assert mock_cache.delete.call_count == 0
 
                 # Assert order of cache method calls
                 expected_calls = [
@@ -441,7 +427,6 @@ class ProcessControlOutboxTest(TestCase):
             parent_mock = mock.Mock()
             parent_mock.attach_mock(mock_cache.get, "cache_get")
             parent_mock.attach_mock(mock_cache.set, "cache_set")
-            parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
             expected_exception: Type[Exception] = ApiTimeoutError
             if api_host_error == ApiConnectionResetError:
@@ -463,7 +448,6 @@ class ProcessControlOutboxTest(TestCase):
 
             assert mock_cache.get.call_count == 1
             assert mock_cache.set.call_count == 1
-            assert mock_cache.delete.call_count == 0
 
             # Assert order of cache method calls
             expected_calls = [
@@ -478,7 +462,6 @@ class ProcessControlOutboxTest(TestCase):
         parent_mock = mock.Mock()
         parent_mock.attach_mock(mock_cache.get, "cache_get")
         parent_mock.attach_mock(mock_cache.set, "cache_set")
-        parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
         request, outbox, cache_key = self.generate_outbox()
 
@@ -501,7 +484,6 @@ class ProcessControlOutboxTest(TestCase):
 
             assert mock_cache.get.call_count == 1
             assert mock_cache.set.call_count == 1
-            assert mock_cache.delete.call_count == 0
 
             # Assert order of cache method calls
             expected_calls = [
@@ -516,7 +498,6 @@ class ProcessControlOutboxTest(TestCase):
         parent_mock = mock.Mock()
         parent_mock.attach_mock(mock_cache.get, "cache_get")
         parent_mock.attach_mock(mock_cache.set, "cache_set")
-        parent_mock.attach_mock(mock_cache.delete, "cache_delete")
 
         request, outbox, cache_key = self.generate_outbox()
 
@@ -544,7 +525,6 @@ class ProcessControlOutboxTest(TestCase):
 
             assert mock_cache.get.call_count == 1
             assert mock_cache.set.call_count == 1
-            assert mock_cache.delete.call_count == 0
 
             # Assert order of cache method calls
             expected_calls = [

@@ -220,14 +220,6 @@ class RegionSiloClient(BaseSiloClient):
         if request_attempts > REQUEST_ATTEMPTS_LIMIT:
             raise SiloClientError(f"Request attempts limit reached for: {method} {path}")
 
-    def cleanup_request_attempts(self, hash: str | None) -> None:
-        if hash is None:
-            return
-
-        self.logger.info("silo_client.cleaning_request_attempts", extra={"request_hash": hash})
-        cache_key = self._get_hash_cache_key(hash=hash)
-        cache.delete(cache_key)
-
     def request(
         self,
         method: str,
@@ -258,5 +250,4 @@ class RegionSiloClient(BaseSiloClient):
             raw_response=raw_response,
         )
 
-        self.cleanup_request_attempts(hash=hash)
         return response
