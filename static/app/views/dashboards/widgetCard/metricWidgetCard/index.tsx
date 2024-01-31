@@ -83,7 +83,8 @@ export function MetricWidgetCard({
       toMetricDisplayType(metricWidgetQueryParams.displayType)
     );
 
-    const isCustomTitle = parseField(title) === null && title !== '';
+    const isCustomTitle = title !== '' &&
+      parseField(title)?.mri !== metricWidgetQueryParams.mri;
     const defaultTitle = stringifyMetricWidget(metricWidgetQueryParams);
 
     const updatedWidget = {
