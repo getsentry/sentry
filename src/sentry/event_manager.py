@@ -521,7 +521,7 @@ class EventManager:
                 group_info = assign_event_to_group(
                     event=job["event"], job=job, metric_tags=metric_tags
                 )
-                job["groups"] = [group_info]
+
         except HashDiscarded as err:
             logger.info(
                 "event_manager.save.discard",
@@ -544,8 +544,6 @@ class EventManager:
                     },
                 )
             return job["event"]
-
-        job["event"].group = group_info.group
 
         # store a reference to the group id to guarantee validation of isolation
         # XXX(markus): No clue what this does
@@ -1363,6 +1361,10 @@ def assign_event_to_group(event: Event, job: Job, metric_tags: MutableTags) -> G
             received_timestamp=job["received_timestamp"],
             metric_tags=metric_tags,
         )
+
+    if group_info:
+        event.group = group_info.group
+    job["groups"] = [group_info]
 
     return group_info
 
