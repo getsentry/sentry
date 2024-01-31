@@ -33,13 +33,13 @@ jobs:
           echo "WEBPACK_CACHE_PATH=.webpack_cache" >> "$GITHUB_ENV"
 
       - name: webpack cache
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-self-hosted-webpack-cache-${{ hashFiles('webpack.config.ts') }}
 
       - name: node_modules cache
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         id: nodemodulescache
         with:
           path: node_modules
