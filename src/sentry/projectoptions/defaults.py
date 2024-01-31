@@ -137,7 +137,7 @@ register(
 
 register(
     key="sentry:replay_rage_click_issues",
-    default="1",
+    default=True,
 )
 
 
