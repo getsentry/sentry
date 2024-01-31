@@ -22,6 +22,10 @@ export function createChartPalette(seriesNames: string[]): Record<string, string
 }
 
 /**
+ * **NOTE: Not yet optimized for performance, it should only be used for the metrics page with a limited amount of series**
+ *
+ * Runtime complexity is O(n * m) where n is the number of palettes in the cache and m is the number of seriesNames
+ *
  * Creates chart palettes for the given seriesNames and caches them in a LRU cache
  * If a palette for the given seriesNames already exists in the cache, it will be returned
  * @param cache object that will contain the cached palettes
