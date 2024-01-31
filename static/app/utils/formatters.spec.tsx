@@ -424,6 +424,17 @@ describe('formatNumberWithDynamicDecimals', () => {
     expect(formatNumberWithDynamicDecimalPoints(Infinity)).toEqual('∞');
     expect(formatNumberWithDynamicDecimalPoints(-Infinity)).toEqual('-∞');
   });
+
+  it('handles negative numbers', () => {
+    expect(formatNumberWithDynamicDecimalPoints(-1)).toEqual('-1');
+    expect(formatNumberWithDynamicDecimalPoints(-1.0)).toEqual('-1');
+    expect(formatNumberWithDynamicDecimalPoints(-1.5)).toEqual('-1.5');
+    expect(formatNumberWithDynamicDecimalPoints(-1.05)).toEqual('-1.05');
+    expect(formatNumberWithDynamicDecimalPoints(-1.004)).toEqual('-1');
+    expect(formatNumberWithDynamicDecimalPoints(-1.005)).toEqual('-1.01');
+    expect(formatNumberWithDynamicDecimalPoints(-1.1009)).toEqual('-1.1');
+    expect(formatNumberWithDynamicDecimalPoints(-2.236)).toEqual('-2.24');
+  });
 });
 
 describe('formatSpanOperation', () => {

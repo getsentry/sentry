@@ -437,7 +437,7 @@ export function formatNumberWithDynamicDecimalPoints(value: number): string {
     return value.toLocaleString();
   }
 
-  const exponent = Math.floor(Math.log10(value));
+  const exponent = Math.floor(Math.log10(Math.abs(value)));
 
   const maxFractionDigits = exponent >= 0 ? 2 : Math.abs(exponent) + 1;
   const numberFormat = {
