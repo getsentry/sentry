@@ -1826,7 +1826,7 @@ function buildRoutes() {
       />
       <Route
         path="trace/:traceSlug/"
-        component={make(() => import('sentry/views/performance/traceDetails'))}
+        component={make(() => import('sentry/views/performance/newTraceDetails'))}
       />
       <Route
         path=":eventSlug/"
