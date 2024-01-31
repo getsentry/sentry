@@ -271,7 +271,7 @@ def configure_sdk():
     """
     Setup and initialize the Sentry SDK.
     """
-    assert not sentry_sdk.Hub.main.client.is_active()
+    assert sentry_sdk.Hub.main.client is None
 
     sdk_options, dsns = _get_sdk_options()
 

@@ -13,7 +13,6 @@ from unittest import mock
 
 import pytest
 from django.conf import settings
-from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo import SiloMode
@@ -272,7 +271,7 @@ def pytest_configure(config: pytest.Config) -> None:
     from sentry.runner.initializer import initialize_app
 
     initialize_app({"settings": settings, "options": None})
-    Hub.main.bind_client(None)
+
     register_extensions()
 
     from sentry.utils.redis import clusters
@@ -347,8 +346,6 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     for model in (OrganizationOption, ProjectOption, UserOption):
         model.objects.clear_local_cache()
-
-    Hub.main.bind_client(None)
 
 
 def _shuffle(items: list[pytest.Item]) -> None:
