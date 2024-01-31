@@ -273,7 +273,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
     initialize_app({"settings": settings, "options": None})
     Hub.main.bind_client(None)
-
     register_extensions()
 
     from sentry.utils.redis import clusters
