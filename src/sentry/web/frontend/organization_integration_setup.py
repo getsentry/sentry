@@ -21,8 +21,9 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
 
     def handle(self, request: Request, organization, provider_id) -> HttpResponseBase:
         with sentry_sdk.configure_scope() as scope:
-            scope.transaction.op = "integration.setup"
-            scope.transaction.name = f"integration.{provider_id}"
+            scope.set_transaction_name(
+                f"integration.{provider_id}", source="OrganizationIntegrationSetupView"
+            )
 
         pipeline = IntegrationPipeline(
             request=request, organization=organization, provider_key=provider_id
