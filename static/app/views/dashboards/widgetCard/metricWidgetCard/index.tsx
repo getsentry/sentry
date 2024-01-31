@@ -86,7 +86,7 @@ export function MetricWidgetCard({
       toMetricDisplayType(metricWidgetQueryParams.displayType)
     );
 
-    const isCustomTitle = parseField(title) === null && title !== '';
+    const isCustomTitle = title !== '' && title !== defaultTitle;
 
     const updatedWidget = {
       ...widget,
