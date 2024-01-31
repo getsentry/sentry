@@ -32,6 +32,11 @@ class TestUpdateWithReturning(TestCase):
         )
         assert {r for r in returned} == {(id_, "hi") for id_ in ids}
 
+    def test_empty_query(self):
+        assert [] == Group.objects.filter(id__in=[]).update_with_returning(
+            returned_fields=["id"], message="hi"
+        )
+
 
 class TestSendPostUpdateSignal(TestCase):
     def test_not_triggered(self):
@@ -65,6 +70,17 @@ class TestSendPostUpdateSignal(TestCase):
                 .with_post_update_signal(False)
                 .update(message="hi")
                 == 1
+            )
+
+        assert not handler.called
+
+        # Test signal not fired when Django detects the query will return no results
+        with catch_signal(post_update) as handler, override_options(
+            {"groups.enable-post-update-signal": True}
+        ):
+            assert (
+                Group.objects.filter(id__in=[]).with_post_update_signal(True).update(message="hi")
+                == 0
             )
 
         assert not handler.called
