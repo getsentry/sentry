@@ -2,8 +2,6 @@ from typing import Optional, Tuple
 
 from django.core.cache import cache
 
-from sentry import features
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.monitors.models import MonitorEnvironment
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -68,11 +66,6 @@ def get_project_monitor_quota(
 
     :return: A (limit, window) tuple. (None, None) indicates no rate-limit
     """
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-
-    if not features.has("organizations:monitors-quota-rate-limit", organization=organization):
-        return (None, None)
-
     limit = None
     cache_key = f"project:{project.id}:monitor-env-count"
 
