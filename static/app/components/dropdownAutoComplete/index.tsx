@@ -1,4 +1,5 @@
-import React, {useCallback, useState} from 'react';
+import type React from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {MenuProps} from './menu';

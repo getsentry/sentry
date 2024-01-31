@@ -1,5 +1,6 @@
 import type {ReactElement} from 'react';
-import React, {Fragment, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import type React from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {mat3} from 'gl-matrix';

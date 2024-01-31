@@ -3,11 +3,7 @@ import {Fragment, Profiler, useEffect, useRef} from 'react';
 import type {IdleTransaction} from '@sentry/core';
 import {captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import {
-  type MeasurementUnit,
-  type Transaction,
-  type TransactionEvent,
-} from '@sentry/types';
+import type {MeasurementUnit, Transaction, TransactionEvent} from '@sentry/types';
 import {
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
