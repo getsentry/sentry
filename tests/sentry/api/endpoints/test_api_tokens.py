@@ -8,23 +8,26 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class ApiTokensListTest(APITestCase):
-    def test_simple(self):
-        ApiToken.objects.create(user=self.user)
-        ApiToken.objects.create(user=self.user)
+    def setUp(self) -> None:
+        super().setUp()
+        for _ in range(2):
+            ApiToken.objects.create(user=self.user)
 
+    def test_simple(self):
         self.login_as(self.user)
+
         url = reverse("sentry-api-0-api-tokens")
         response = self.client.get(url)
+
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
 
     def test_never_cache(self):
-        ApiToken.objects.create(user=self.user)
-        ApiToken.objects.create(user=self.user)
-
         self.login_as(self.user)
+
         url = reverse("sentry-api-0-api-tokens")
         response = self.client.get(url)
+
         assert response.status_code == 200, response.content
         assert (
             response.get("cache-control")
@@ -88,7 +91,7 @@ class ApiTokensDeleteTest(APITestCase):
         token = ApiToken.objects.create(user=self.user)
         self.login_as(self.user)
         url = reverse("sentry-api-0-api-tokens")
-        response = self.client.delete(url, data={"token": token.token})
+        response = self.client.delete(url, data={"tokenId": token.id})
         assert response.status_code == 204
         assert not ApiToken.objects.filter(id=token.id).exists()
 
@@ -96,20 +99,12 @@ class ApiTokensDeleteTest(APITestCase):
         token = ApiToken.objects.create(user=self.user)
         self.login_as(self.user)
         url = reverse("sentry-api-0-api-tokens")
-        response = self.client.delete(url, data={"token": token.token})
+        response = self.client.delete(url, data={"tokenId": token.id})
         assert response.status_code == 204
         assert (
             response.get("cache-control")
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
-
-    def test_with_id(self) -> None:
-        token = ApiToken.objects.create(user=self.user)
-        self.login_as(self.user)
-        url = reverse("sentry-api-0-api-tokens")
-        response = self.client.delete(url, data={"tokenId": token.id})
-        assert response.status_code == 204
-        assert not ApiToken.objects.filter(id=token.id).exists()
 
     def test_returns_400_when_no_token_param_is_sent(self) -> None:
         token = ApiToken.objects.create(user=self.user)
@@ -161,7 +156,7 @@ class ApiTokensSuperUserTest(APITestCase):
         user_token = ApiToken.objects.create(user=self.user)
         self.login_as(super_user, superuser=True)
 
-        response = self.client.delete(self.url, {"userId": self.user.id, "token": user_token.token})
+        response = self.client.delete(self.url, {"userId": self.user.id, "tokenId": user_token.id})
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert not ApiToken.objects.filter(id=user_token.id).exists()
 
@@ -171,12 +166,13 @@ class ApiTokensSuperUserTest(APITestCase):
         su_token = ApiToken.objects.create(user=super_user)
         self.login_as(super_user, superuser=True)
 
-        response = self.client.delete(self.url, {"token": user_token.token})
-        assert response.status_code == status.HTTP_204_NO_CONTENT
+        response = self.client.delete(self.url, {"tokenId": user_token.id})
+        # The superusers' id will be used since no override is sent, and because it does not exist, it is a bad request
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert ApiToken.objects.filter(id=user_token.id).exists()
         assert ApiToken.objects.filter(id=su_token.id).exists()
 
-        response = self.client.delete(self.url, {"token": su_token.token})
+        response = self.client.delete(self.url, {"tokenId": su_token.id})
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert ApiToken.objects.filter(id=user_token.id).exists()
         assert not ApiToken.objects.filter(id=su_token.id).exists()
@@ -187,7 +183,7 @@ class ApiTokensSuperUserTest(APITestCase):
         su_token = ApiToken.objects.create(user=super_user)
         self.login_as(super_user)
         # Fails trying to delete the user's token, since we're not an active superuser
-        response = self.client.delete(self.url, {"userId": self.user.id, "token": user_token.token})
-        assert response.status_code == status.HTTP_204_NO_CONTENT
+        response = self.client.delete(self.url, {"userId": self.user.id, "tokenId": user_token.id})
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert ApiToken.objects.filter(id=user_token.id).exists()
         assert ApiToken.objects.filter(id=su_token.id).exists()
