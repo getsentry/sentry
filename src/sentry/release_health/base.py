@@ -7,6 +7,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Collection,
+    Dict,
+    List,
     Literal,
     Mapping,
     Optional,
@@ -85,22 +87,22 @@ class SessionsQuery(TypedDict):
     rollup: int  # seconds
 
 
-SessionsQueryValue = Union[None, float, int]
+SessionsQueryValue = Union[None, float]
 
 ProjectWithCount = Tuple[ProjectId, int]
 
 
 class SessionsQueryGroup(TypedDict):
-    by: Mapping[GroupByFieldName, Union[str, int]]
-    series: Mapping[SessionsQueryFunction, Sequence[SessionsQueryValue]]
-    totals: Mapping[SessionsQueryFunction, SessionsQueryValue]
+    by: Dict[str, Union[str, int]]
+    series: Dict[str, List[SessionsQueryValue]]
+    totals: Dict[str, SessionsQueryValue]
 
 
 class SessionsQueryResult(TypedDict):
     start: DateString
     end: DateString
-    intervals: Sequence[DateString]
-    groups: Sequence[SessionsQueryGroup]
+    intervals: List[DateString]
+    groups: List[SessionsQueryGroup]
     query: str
 
 

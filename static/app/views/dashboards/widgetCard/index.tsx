@@ -26,7 +26,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {isSupportedDisplayType} from 'sentry/utils/metrics';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   MEPConsumer,
@@ -269,10 +269,7 @@ class WidgetCard extends Component<Props, State> {
     );
 
     if (widget.widgetType === WidgetType.METRICS) {
-      if (
-        hasDDMExperimentalFeature(organization) &&
-        isSupportedDisplayType(widget.displayType)
-      ) {
+      if (hasDDMFeature(organization) && isSupportedDisplayType(widget.displayType)) {
         return (
           <MetricWidgetCard
             index={this.props.index}
