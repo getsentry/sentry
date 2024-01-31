@@ -1,77 +1,139 @@
-import {useMemo, useState} from 'react';
+import {Component} from 'react';
+import type {RouteComponentProps} from 'react-router';
 
+import type {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
+import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
+import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import withApi from 'sentry/utils/withApi';
+import withOrganization from 'sentry/utils/withOrganization';
 
-import {Trace} from './trace';
+import {getTraceSplitResults} from '../traceDetails/utils';
 
-const DOCUMENT_TITLE = [t('Trace Details'), t('Performance')].join(' — ');
+type Props = RouteComponentProps<{traceSlug: string}, {}> & {
+  api: Client;
+  organization: Organization;
+};
 
-export function TraceView() {
-  const location = useLocation();
-  const organization = useOrganization();
-  const params = useParams<{traceSlug?: string}>();
+class TraceSummary extends Component<Props> {
+  componentDidMount(): void {
+    const {query} = this.props.location;
 
-  const traceSlug = params.traceSlug?.trim() ?? '';
+    if (query.limit) {
+      this.setState({limit: query.limit});
+    }
+  }
 
-  const dateSelection = useMemo(() => {
+  handleLimitChange = (newLimit: number) => {
+    this.setState({limit: newLimit});
+  };
+
+  getDocumentTitle(): string {
+    return [t('Trace Details'), t('Performance')].join(' — ');
+  }
+
+  getTraceSlug(): string {
+    const {traceSlug} = this.props.params;
+    return typeof traceSlug === 'string' ? traceSlug.trim() : '';
+  }
+
+  getDateSelection() {
+    const {location} = this.props;
     const queryParams = normalizeDateTimeParams(location.query, {
       allowAbsolutePageDatetime: true,
     });
     const start = decodeScalar(queryParams.start);
     const end = decodeScalar(queryParams.end);
     const statsPeriod = decodeScalar(queryParams.statsPeriod);
-
     return {start, end, statsPeriod};
-  }, [location.query]);
+  }
 
-  // @TODO pass this to children
-  // const _traceEventView = useMemo(() => {
-  //   const {start, end, statsPeriod} = dateSelection;
+  getTraceEventView() {
+    const traceSlug = this.getTraceSlug();
+    const {start, end, statsPeriod} = this.getDateSelection();
 
-  //   return EventView.fromSavedQuery({
-  //     id: undefined,
-  //     name: `Events with Trace ID ${traceSlug}`,
-  //     fields: ['title', 'event.type', 'project', 'timestamp'],
-  //     orderby: '-timestamp',
-  //     query: `trace:${traceSlug}`,
-  //     projects: [ALL_ACCESS_PROJECTS],
-  //     version: 2,
-  //     start,
-  //     end,
-  //     range: statsPeriod,
-  //   });
-  // }, []);
+    return EventView.fromSavedQuery({
+      id: undefined,
+      name: `Events with Trace ID ${traceSlug}`,
+      fields: ['title', 'event.type', 'project', 'timestamp'],
+      orderby: '-timestamp',
+      query: `trace:${traceSlug}`,
+      projects: [ALL_ACCESS_PROJECTS],
+      version: 2,
+      start,
+      end,
+      range: statsPeriod,
+    });
+  }
 
-  const [_limit, _setLimit] = useState<number>();
-  // const _handleLimithange = useCallback((newLimit: number) => {
-  //   setLimit(newLimit);
-  // }, []);
+  renderContent() {
+    const {location, organization} = this.props;
+    const traceSlug = this.getTraceSlug();
+    const {start, end, statsPeriod} = this.getDateSelection();
 
-  return (
-    <SentryDocumentTitle title={DOCUMENT_TITLE} orgSlug={organization.slug}>
-      <Layout.Page>
-        <NoProjectMessage organization={organization}>
-          <TraceFullDetailedQuery
+    const handleRendering = (traceResults, metaResults) => {
+      const {transactions} = getTraceSplitResults<TraceFullDetailed>(
+        traceResults.traces ?? [],
+        organization
+      );
+
+      // console.log("TraceResults", transactions);
+      // console.log("MetaResults", metaResults);
+
+      return (
+        <p>
+          {transactions?.length} {metaResults?.meta?.transactions}
+        </p>
+      );
+    };
+
+    return (
+      <TraceFullDetailedQuery
+        location={location}
+        orgSlug={organization.slug}
+        traceId={traceSlug}
+        start={start}
+        end={end}
+        statsPeriod={statsPeriod}
+      >
+        {traceResults => (
+          <TraceMetaQuery
             location={location}
             orgSlug={organization.slug}
             traceId={traceSlug}
-            start={dateSelection.start}
-            end={dateSelection.end}
-            statsPeriod={dateSelection.statsPeriod}
+            start={start}
+            end={end}
+            statsPeriod={statsPeriod}
           >
-            {trace => <Trace trace={trace?.traces} trace_id={traceSlug} />}
-          </TraceFullDetailedQuery>
-        </NoProjectMessage>
-      </Layout.Page>
-    </SentryDocumentTitle>
-  );
+            {metaResults => handleRendering(traceResults, metaResults)}
+          </TraceMetaQuery>
+        )}
+      </TraceFullDetailedQuery>
+    );
+  }
+
+  render() {
+    const {organization} = this.props;
+
+    return (
+      <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
+        <Layout.Page>
+          <NoProjectMessage organization={organization}>
+            {this.renderContent()}
+          </NoProjectMessage>
+        </Layout.Page>
+      </SentryDocumentTitle>
+    );
+  }
 }
+
+export default withOrganization(withApi(TraceSummary));
