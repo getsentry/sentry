@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
@@ -22,7 +22,6 @@ interface Props {
    * This, combined with `perPage`, determines the number of fetches to make
    */
   hits: number;
-
   /**
    * The size of each page to fetch
    *
@@ -97,19 +96,23 @@ export default function useFetchParallelPages<Data>({
   const queryClient = useQueryClient();
 
   const responsePages = useRef<Map<string, ResponsePage<Data>>>(new Map());
+
+  const pages = Math.ceil(hits / perPage);
+  const cursors = useMemo(
+    () => new Array(pages).fill(0).map((_, i) => `0:${perPage * i}:0`),
+    [pages, perPage]
+  );
+
   const [state, setState] = useState<State<Data>>({
     pages: [],
     error: undefined,
     getLastResponseHeader: undefined,
     isError: false,
-    isFetching: true,
+    isFetching: enabled && Boolean(cursors.length),
   });
 
   const fetch = useCallback(
     async function () {
-      const pages = Math.ceil(hits / perPage);
-      const cursors = new Array(pages).fill(0).map((_, i) => `0:${perPage * i}:0`);
-
       await Promise.allSettled(
         cursors.map(async cursor => {
           try {
@@ -155,7 +158,7 @@ export default function useFetchParallelPages<Data>({
         })
       );
     },
-    [api, hits, getQueryKey, perPage, queryClient]
+    [api, cursors, getQueryKey, perPage, queryClient]
   );
 
   useEffect(() => {

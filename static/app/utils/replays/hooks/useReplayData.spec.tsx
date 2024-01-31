@@ -96,13 +96,12 @@ describe('useReplayData', () => {
       },
     });
 
-    // First we get the replay record
     await waitForNextUpdate();
     expect(result.current).toEqual({
       attachments: expect.any(Array),
       errors: expect.any(Array),
       fetchError: undefined,
-      fetching: true, // more data may still be fetching
+      fetching: false,
       onRetry: expect.any(Function),
       projectSlug: project.slug,
       replayRecord: expectedReplay,
