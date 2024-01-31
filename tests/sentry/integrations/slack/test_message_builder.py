@@ -18,7 +18,6 @@ from sentry.integrations.slack.message_builder.issues import (
     format_release_tag,
     get_option_groups,
     get_option_groups_block_kit,
-    get_suspect_commit_text,
     time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
@@ -63,7 +62,7 @@ def build_test_message_blocks(
     suggested_assignees: str | None = None,
     initial_assignee: Team | User | None = None,
     notes: str | None = None,
-    suspect_commit: dict[str, str] | None = None,
+    suspect_commit_text: str | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -158,8 +157,7 @@ def build_test_message_blocks(
         }
         blocks.append(suggested_assignees_section)
 
-    if suspect_commit and event:
-        suspect_commit_text = get_suspect_commit_text(project, event.for_group(group))
+    if suspect_commit_text and event:
         suspect_commit_section = {
             "type": "context",
             "elements": [{"type": "mrkdwn", "text": suspect_commit_text}],
@@ -509,23 +507,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             context={"commitId": self.commit.id},
         )
 
-        suspect_commit = {
-            "commit_id": self.commit.key,
-            "author": {
-                "email": commit_author.email,
-                "name": commit_author.name,
-            },
-            "pull_request": {
-                "dateCreated": pull_request.date_added,
-                "title": pull_request.title,
-                "externalUrl": mock_external_url.return_value,
-                "id": pull_request.key,
-                "repository": {
-                    "url": self.repo.url,
-                },
-            },
-        }
-
+        suspect_commit_text = f"Suspect Commit: <{self.repo.url}/commit/{self.commit.key}|{self.commit.key[:6]}> by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{mock_external_url.return_value}|View Pull Request>"
         commits = get_commits(self.project, event)
 
         assert SlackIssuesMessageBuilder(
@@ -537,7 +519,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             event=event,
-            suspect_commit=suspect_commit,
+            suspect_commit_text=suspect_commit_text,
         )
 
     @patch(
@@ -595,23 +577,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             context={"commitId": self.commit.id},
         )
 
-        suspect_commit = {
-            "commit_id": self.commit.key,
-            "author": {
-                "email": commit_author.email,
-                "name": commit_author.name,
-            },
-            "pull_request": {
-                "dateCreated": pull_request.date_added,
-                "title": pull_request.title,
-                "externalUrl": mock_external_url.return_value,
-                "id": pull_request.key,
-                "repository": {
-                    "url": self.repo.url,
-                },
-            },
-        }
-
+        suspect_commit_text = f"Suspect Commit: {self.commit.key[:6]} by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{mock_external_url.return_value}|View Pull Request>"
         commits = get_commits(self.project, event)
 
         assert SlackIssuesMessageBuilder(
@@ -623,7 +589,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             users={self.user},
             group=group,
             event=event,
-            suspect_commit=suspect_commit,
+            suspect_commit_text=suspect_commit_text,
         )
 
     @with_feature("organizations:slack-block-kit")
@@ -671,8 +637,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         # create suspect commit
         repo = Repository.objects.create(
             organization_id=self.organization.id,
-            name="home-repo",
+            name="dogs",
             integration_id=self.integration.id,
+            url="http://www.bitbucket.org/woofwoof/dogs",
             provider="bitbucket",
         )
         user2 = self.create_user()
@@ -696,10 +663,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         # auto assign group
         ProjectOwnership.handle_auto_assignment(self.project.id, event)
-        suspect_commit = {
-            "commit_id": commit.key,
-            "author_email": commit.author.email,
-        }
+        suspect_commit_text = f"Suspect Commit: {commit.key[:6]} by {user2.email}"  # no commit link because there is no PR
 
         commits = get_commits(self.project, event)
         expected_blocks = build_test_message_blocks(
@@ -709,8 +673,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
             suggested_assignees=f"#{self.team.slug}, {user2.email}",  # auto-assignee is not included in suggested
             initial_assignee=self.user,
-            suspect_commit=suspect_commit,
+            suspect_commit_text=suspect_commit_text,
         )
+
         assert (
             SlackIssuesMessageBuilder(
                 group, event.for_group(group), tags={"foo"}, commits=commits
@@ -722,7 +687,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         with assume_test_silo_mode(SiloMode.CONTROL):
             user2.update(name="Scooby Doo")
         commit.author.update(name=user2.name)
-        suspect_commit["author_name"] = commit.author.name
+        suspect_commit_text = f"Suspect Commit: {commit.key[:6]} by {user2.name}"
         expected_blocks = build_test_message_blocks(
             teams={self.team},
             users={self.user},
@@ -730,7 +695,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
             suggested_assignees=f"#{self.team.slug}, {user2.name}",
             initial_assignee=self.user,
-            suspect_commit=suspect_commit,
+            suspect_commit_text=suspect_commit_text,
         )
         commits = get_commits(self.project, event)
         assert (

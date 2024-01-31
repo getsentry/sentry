@@ -62,10 +62,10 @@ PROVIDER_TO_COMMIT_LINK_URL_FORMAT = {
     "github": "{base_url}/commit/{commit_id}",
     "integrations:github": "{base_url}/commit/{commit_id}",
     "integrations:github_enterprise": "{base_url}/commit/{commit_id}",
-    "visualstudio": "{base_url}/commit/{commit_id}",
+    "visualstudio": "{base_url}/commit/{commit_id}",  # TODO: buggy
     "integrations:vsts": "{base_url}/commit/{commit_id}",
-    "gitlab": "{base_url}/commit/{commit_id}",
-    "integrations:gitlab": "{base_url}/commit/{commit_id}",
+    "gitlab": "{base_url}/commit/{commit_id}",  # TODO: buggy
+    "integrations:gitlab": "{base_url}/commit/{commit_id}",  # TODO: buggy
     "bitbucket": "{base_url}/commits/{commit_id}",
     "integrations:bitbucket": "{base_url}/commits/{commit_id}",
 }
@@ -314,12 +314,12 @@ def get_suspect_commit_text(
     if pull_request:
         repo = pull_request.get("repository", {})
         repo_base = repo.get("url")
-        provider = repo.get("provider", {}).get("name")
+        provider = repo.get("provider", {}).get("id")
         if repo_base and provider in PROVIDER_TO_COMMIT_LINK_URL_FORMAT:
             commit_link = f"<{PROVIDER_TO_COMMIT_LINK_URL_FORMAT[provider].format(base_url=repo_base, commit_id=commit_id)}|{commit_id[:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
         else:  # for unsupported providers
-            suspect_commit_text += f"{commit_id} by {author_display}"
+            suspect_commit_text += f"{commit_id[:6]} by {author_display}"
 
         pr_date = pull_request.get("dateCreated")
         if pr_date:
@@ -332,7 +332,7 @@ def get_suspect_commit_text(
                 f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
             )
     else:
-        suspect_commit_text += f"{commit_id} by {author_display}"
+        suspect_commit_text += f"{commit_id[:6]} by {author_display}"
     return suspect_commit_text
 
 
