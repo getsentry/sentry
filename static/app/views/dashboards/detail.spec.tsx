@@ -1105,13 +1105,15 @@ describe('Dashboards > Detail', function () {
       screen.getByText('All Releases');
       await userEvent.click(document.body);
 
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            release: '',
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              release: '',
+            }),
+          })
+        );
+      });
     });
 
     it('can save absolute time range in existing dashboard', async () => {

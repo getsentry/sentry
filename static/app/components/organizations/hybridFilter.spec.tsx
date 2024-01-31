@@ -1,4 +1,10 @@
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 
@@ -155,15 +161,21 @@ describe('ProjectPageFilter', function () {
 
     // Open the menu, focus is on search input
     await userEvent.click(screen.getByRole('button', {expanded: false}));
-    expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+    });
 
     // Press Arrow Down to move focus to Option One
     await userEvent.keyboard('{ArrowDown}');
-    expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus();
+    });
 
     // Press Arrow Right to move focus to the checkbox
     await userEvent.keyboard('{ArrowRight}');
-    expect(screen.getByRole('checkbox', {name: 'Select Option One'})).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByRole('checkbox', {name: 'Select Option One'})).toHaveFocus();
+    });
 
     // Activate the checkbox. In browsers, users can press Space when the checkbox is
     // focused to activate it. With RTL, however, onChange events aren't fired on Space
