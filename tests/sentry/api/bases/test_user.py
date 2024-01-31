@@ -12,7 +12,7 @@ from sentry.api.bases.user import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.staff import is_active_staff
-from sentry.testutils.cases import DRFPermissionTestCase, TestCase
+from sentry.testutils.cases import DRFPermissionTestCase
 from sentry.testutils.silo import all_silo_test, control_silo_test, region_silo_test
 
 
@@ -71,7 +71,7 @@ class UserAndStaffPermissionTest(DRFPermissionTestCase):
         assert mock_is_active_staff.call_count == 1
 
 
-class BaseUserEndpointTest(TestCase):
+class BaseUserEndpointTest(DRFPermissionTestCase):
     endpoint: RegionSiloUserEndpoint | UserEndpoint = UserEndpoint()
 
     def test_retrieves_me_anonymous(self):
