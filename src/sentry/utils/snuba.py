@@ -120,6 +120,7 @@ SPAN_COLUMN_MAP = {
     "profile_id": "profile_id",
     "transaction.method": "sentry_tags[transaction.method]",
     "system": "sentry_tags[system]",
+    "raw_domain": "sentry_tags[raw_domain]",
     "release": "sentry_tags[release]",
     "environment": "sentry_tags[environment]",
     "device.class": "sentry_tags[device.class]",
