@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -63,9 +63,12 @@ export function MetricWidgetCard({
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
     useState<MetricWidgetQueryParams>(convertFromWidget(widget));
 
-  const [title, setTitle] = useState<string>(
-    widget.title ?? stringifyMetricWidget(metricWidgetQueryParams)
+  const defaultTitle = useMemo(
+    () => stringifyMetricWidget(metricWidgetQueryParams),
+    [metricWidgetQueryParams]
   );
+
+  const [title, setTitle] = useState<string>(widget.title ?? defaultTitle);
 
   const handleChange = useCallback(
     (data: Partial<MetricWidgetQueryParams>) => {
@@ -83,15 +86,18 @@ export function MetricWidgetCard({
       toMetricDisplayType(metricWidgetQueryParams.displayType)
     );
 
+    const isCustomTitle = title !== '' && title !== defaultTitle;
+
     const updatedWidget = {
       ...widget,
-      title,
+      // If user renamed the widget, preserve that title, otherwise stringify the widget query params
+      title: isCustomTitle ? title : defaultTitle,
       queries: convertedWidget.queries,
       displayType: convertedWidget.displayType,
     };
 
     onUpdate?.(updatedWidget);
-  }, [title, metricWidgetQueryParams, onUpdate, widget, selection]);
+  }, [title, defaultTitle, metricWidgetQueryParams, onUpdate, widget, selection]);
 
   const handleCancel = useCallback(() => {
     onUpdate?.(null);

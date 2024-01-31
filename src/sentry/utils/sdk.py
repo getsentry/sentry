@@ -566,7 +566,7 @@ def check_current_scope_transaction(
     values.
 
     Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
-    been set maunually. (See the `transaction_start` decorator, for example.)
+    been set maunually.
     """
 
     with configure_scope() as scope:
