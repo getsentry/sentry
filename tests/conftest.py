@@ -126,7 +126,7 @@ def validate_silo_mode():
         raise Exception(message)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(autouse=True)
 def switch_to_monolith_mode_before_db_setup():
     """Allow the django_db_setup hook to run in monolith mode.
 
@@ -137,7 +137,7 @@ def switch_to_monolith_mode_before_db_setup():
     settings.SILO_MODE = SiloMode.MONOLITH
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(autouse=True)
 def django_db_setup(switch_to_monolith_mode_before_db_setup, django_db_setup):
     """Override the built-in django_db_setup fixture.
 
