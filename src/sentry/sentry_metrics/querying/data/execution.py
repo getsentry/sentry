@@ -187,7 +187,7 @@ class ExecutableQuery:
             ),
         )
 
-    def merge_with_blocked_projects(
+    def filter_blocked_projects(
         self,
         organization: Organization,
         projects: Set[Project],
@@ -430,7 +430,7 @@ class QueryExecutor:
         try:
             # We merge the query with the blocked projects, in order to obtain a new query with only the projects that
             # all have the queried metrics unblocked.
-            executable_query = executable_query.merge_with_blocked_projects(
+            executable_query = executable_query.filter_blocked_projects(
                 organization=self._organization,
                 projects=set(self._projects),
                 blocked_metrics_for_projects=self._blocked_metrics_for_projects,
