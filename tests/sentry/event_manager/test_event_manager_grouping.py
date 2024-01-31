@@ -46,10 +46,12 @@ class EventManagerGroupingTest(TestCase):
             {"message": "Adopt don't shop", "fingerprint": ["maisey"]}, self.project
         )
 
+        assert event.group_id == event2.group_id
+
         group = Group.objects.get(id=event.group_id)
 
         assert group.times_seen == 2
-        assert group.last_seen == event.datetime
+        assert group.last_seen == event2.datetime
         assert group.message == event2.message
 
     def test_puts_events_with_different_fingerprints_in_different_groups(self):
@@ -95,6 +97,7 @@ class EventManagerGroupingTest(TestCase):
 
         assert event1.group is not None
         assert event2.group is None
+        assert event1.group_id != event2.group_id
         assert (
             tsdb.backend.get_sums(
                 TSDBModel.project,
