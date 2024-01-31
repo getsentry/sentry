@@ -8967,7 +8967,7 @@ class Migration(CheckedMigration):
                 (
                     "scheduled_for",
                     models.DateTimeField(
-                        default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=datetime.timezone.utc)
+                        default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=datetime.UTC)
                     ),
                 ),
             ],
@@ -8998,7 +8998,7 @@ class Migration(CheckedMigration):
                 (
                     "scheduled_for",
                     models.DateTimeField(
-                        default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=datetime.timezone.utc)
+                        default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=datetime.UTC)
                     ),
                 ),
                 ("region_name", models.CharField(max_length=48)),
