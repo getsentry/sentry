@@ -69,9 +69,9 @@ class StaffPermissionMixin:
     Sentry endpoints that should be accessible by staff but have an existing permission
     class (that is not StaffPermission) require this mixin because staff does not give
     any scopes.
-    NOTE: This mixin MUST be the leftmost class in the child class declaration in order
-    to work properly. See 'OrganizationAndStaffPermission' for an example of this or
-    https://www.python.org/download/releases/2.3/mro/ to learn more
+    NOTE: This mixin MUST be the leftmost parent class in the child class declaration in
+    order to work properly. See 'OrganizationAndStaffPermission' for an example of this or
+    https://www.python.org/download/releases/2.3/mro/ to learn more.
     """
 
     def has_permission(self, request, *args, **kwargs):
