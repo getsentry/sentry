@@ -128,12 +128,14 @@ class ProcessControlOutboxTest(TestCase):
 
         assert mock_response.call_count == 1
 
-        assert mock_cache.get.call_count == 0
-        assert mock_cache.set.call_count == 0
+        assert mock_cache.get.call_count == 1
+        assert mock_cache.set.call_count == 1
         assert mock_cache.delete.call_count == 1
 
         # Assert order of cache method calls
         expected_calls = [
+            mock.call.cache_get(cache_key),
+            mock.call.cache_set(cache_key, 1, timeout=CACHE_TIMEOUT),
             mock.call.cache_delete(cache_key),
         ]
         assert parent_mock.mock_calls == expected_calls
@@ -212,7 +214,7 @@ class ProcessControlOutboxTest(TestCase):
                         shard_identifier=outbox.shard_identifier,
                         object_identifier=outbox.object_identifier,
                     )
-                    assert len(responses.calls) == 1
+                    assert len(responses.calls) == 0
 
                     assert capture_exception.call_count == 1
                     exception = capture_exception.call_args.args[0]
@@ -223,13 +225,13 @@ class ProcessControlOutboxTest(TestCase):
                     )
 
                 assert mock_cache.get.call_count == 1
-                assert mock_cache.set.call_count == 0
-                assert mock_cache.delete.call_count == 1
+                assert mock_cache.set.call_count == 1
+                assert mock_cache.delete.call_count == 0
 
                 # Assert order of cache method calls
                 expected_calls = [
                     mock.call.cache_get(cache_key),
-                    mock.call.cache_delete(cache_key),
+                    mock.call.cache_set(cache_key, 11, timeout=CACHE_TIMEOUT),
                 ]
                 assert parent_mock.mock_calls == expected_calls
                 return
@@ -304,12 +306,14 @@ class ProcessControlOutboxTest(TestCase):
 
                     assert capture_exception.call_count == 0
 
-                assert mock_cache.get.call_count == 0
-                assert mock_cache.set.call_count == 0
+                assert mock_cache.get.call_count == 1
+                assert mock_cache.set.call_count == 1
                 assert mock_cache.delete.call_count == 1
 
                 # Assert order of cache method calls
                 expected_calls = [
+                    mock.call.cache_get(cache_key),
+                    mock.call.cache_set(cache_key, 10, timeout=CACHE_TIMEOUT),
                     mock.call.cache_delete(cache_key),
                 ]
                 assert parent_mock.mock_calls == expected_calls
