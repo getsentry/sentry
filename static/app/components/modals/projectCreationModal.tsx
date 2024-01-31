@@ -10,16 +10,16 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
-import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
-import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
+import type {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import PlatformPicker, {type Platform} from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedSDK, Organization, Team} from 'sentry/types';
+import type {OnboardingSelectedSDK, Organization, Team} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
@@ -106,8 +106,8 @@ export default function ProjectCreationModal({Header, closeModal, organization}:
         issue_alert: defaultRules
           ? 'Default'
           : shouldCreateCustomRule
-          ? 'Custom'
-          : 'No Rule',
+            ? 'Custom'
+            : 'No Rule',
         project_id: projectData.id,
         rule_id: ruleId || '',
       });
