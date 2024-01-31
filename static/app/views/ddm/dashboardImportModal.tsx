@@ -17,6 +17,7 @@ import type {Organization} from 'sentry/types';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import type {ParseResult} from 'sentry/utils/metrics/dashboardImport';
 import {parseDashboard} from 'sentry/utils/metrics/dashboardImport';
+import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -26,16 +27,13 @@ import {
   assignDefaultLayout,
   getInitialColumnDepths,
 } from 'sentry/views/dashboards/layoutUtils';
-import {DDMContextProvider, useDDMContext} from 'sentry/views/ddm/context';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 export function openDashboardImport(organization: Organization) {
   return openModal(
     deps => (
       <OrganizationContext.Provider value={organization}>
-        <DDMContextProvider>
-          <DashboardImportModal {...deps} />
-        </DDMContextProvider>
+        <DashboardImportModal {...deps} />
       </OrganizationContext.Provider>
     ),
     {modalCss}
@@ -52,8 +50,11 @@ type FormState = {
 function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
   const api = useApi();
   const router = useRouter();
-  const {metricsMeta} = useDDMContext();
+
   const {selection} = usePageFilters();
+  // we want to get all custom metrics for organization
+  const {data: metricsMeta} = useMetricsMeta([-1], ['custom']);
+
   const organization = useOrganization();
 
   const [formState, setFormState] = useState<FormState>({
