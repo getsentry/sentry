@@ -54,14 +54,6 @@ class ProjectReplayAccessibilityIssuesEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        if not features.has(
-            "organizations:session-replay-accessibility-issues",
-            project.organization,
-            actor=request.user,
-        ):
-            metrics.incr("session-replay-accessibility-issues-flag-disabled")
-            return Response(status=404)
-
         if options.get("organizations:session-replay-accessibility-issues-enabled") is False:
             metrics.incr("session-replay-accessibility-issues-option-disabled")
             return Response(status=404)

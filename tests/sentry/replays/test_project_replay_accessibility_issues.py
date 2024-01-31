@@ -10,7 +10,6 @@ from sentry.testutils.silo import region_silo_test
 
 REPLAYS_FEATURES = {
     "organizations:session-replay": True,
-    "organizations:session-replay-accessibility-issues": True,
 }
 
 
