@@ -55,6 +55,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
+    const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
     const hasComments = feedbackItem.numComments > 0;
     const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;
 
@@ -133,7 +134,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
                   </Tooltip>
                 )}
 
-                {isCrashReport && (
+                {(isCrashReport || isUserReportWithError) && (
                   <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
                     <IconFatal color="red400" size="xs" />
                   </Tooltip>

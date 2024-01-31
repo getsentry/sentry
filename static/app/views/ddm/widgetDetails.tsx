@@ -1,12 +1,14 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {SampleTable} from 'sentry/views/ddm/sampleTable';
@@ -23,6 +25,7 @@ const constructQueryString = (queryObject: Record<string, string>) => {
 };
 
 export function WidgetDetails() {
+  const organization = useOrganization();
   const {
     selectedWidgetIndex,
     widgets,
@@ -46,9 +49,21 @@ export function WidgetDetails() {
     setHighlightedSampleId(sampleId);
   };
 
+  const handleTabChange = useCallback(
+    (tab: Tab) => {
+      if (tab === Tab.CODE_LOCATIONS) {
+        trackAnalytics('ddm.code-locations', {
+          organization,
+        });
+      }
+      setSelectedTab(tab);
+    },
+    [organization]
+  );
+
   return (
     <TrayWrapper>
-      <Tabs value={selectedTab} onChange={setSelectedTab}>
+      <Tabs value={selectedTab} onChange={handleTabChange}>
         <TabList>
           <TabList.Item key={Tab.SAMPLES}>{t('Samples')}</TabList.Item>
           <TabList.Item
@@ -78,13 +93,13 @@ export function WidgetDetails() {
                       )}`.trim()
                     : selectedWidget?.query
                 }
-                {...focusArea?.range}
+                {...focusArea?.selection?.range}
                 highlightedRow={highlightedSampleId}
                 onRowHover={handleSampleRowHover}
               />
             </TabPanels.Item>
             <TabPanels.Item key={Tab.CODE_LOCATIONS}>
-              <CodeLocations mri={selectedWidget?.mri} {...focusArea?.range} />
+              <CodeLocations mri={selectedWidget?.mri} {...focusArea?.selection?.range} />
             </TabPanels.Item>
           </TabPanels>
         </ContentWrapper>

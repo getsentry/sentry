@@ -8,7 +8,7 @@ import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import {isCumulativeOp} from 'sentry/utils/metrics';
 import type {MetricCorrelation, MetricSummary} from 'sentry/utils/metrics/types';
-import {fitToValueRect, getValueRect} from 'sentry/views/ddm/rect';
+import {fitToValueRect, getValueRect} from 'sentry/views/ddm/chartUtils';
 import type {Sample} from 'sentry/views/ddm/widget';
 
 type UseChartSamplesProps = {
@@ -150,6 +150,7 @@ export function useChartSamples({
         // TODO: for now we just pass these ids through, but we should probably index
         // samples by an id and then just pass that reference
         transactionId: sample.transactionId,
+        transactionSpanId: sample.transactionSpanId,
         spanId: sample.spanId,
         projectId: sample.projectId,
         itemStyle: {

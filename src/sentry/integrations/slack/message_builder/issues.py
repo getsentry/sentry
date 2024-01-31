@@ -44,6 +44,7 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -55,7 +56,6 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.committers import get_serialized_event_file_committers
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 logger = logging.getLogger(__name__)
@@ -278,58 +278,46 @@ def get_suggested_assignees(
     return []
 
 
-def get_suspect_commit_block(project: Project, event: GroupEvent):
-    """Build up the suspect commit info for the given event"""
-    author = None
-    commit_id = None
-    commit_link = None
-    pr_link = None
-    pr_date = None
-    committers = None
-    repo_base = None
+def get_suspect_commit_text(
+    project: Project, event: GroupEvent, commits: Sequence[Mapping[str, Any]] | None = None
+) -> SlackBlock:
+    """Build up the suspect commit text for the given event"""
 
-    try:
-        committers = get_serialized_event_file_committers(project, event)
-    except (Release.DoesNotExist, Commit.DoesNotExist):
-        logger.info("Skipping suspect committers because release does not exist.")
-    except Exception:
-        logger.exception("Could not get suspect committers. Continuing execution.")
-    if not committers:
+    # commits is passed from context when the rule initially fires
+    # we may not have that data if the message is being built after an action is taken, for example
+    if not commits:
+        commits = get_commits(project, event)
+    if not commits:
         return None
 
-    if committers:
-        committer = committers[0]
-        author = committer.get("author", {})
-        commits = committer.get("commits")
-        if commits:
-            commit_id = commits[0].get("id")
-            pull_request = commits[0].get("pullRequest")
-            if pull_request:
-                pr_title = pull_request.get("title")
-                pr_link = pull_request.get("externalUrl")
-                repo_base = pull_request.get("repository", {}).get("url")
-                pr_date = pull_request.get("dateCreated")
-                pr_id = pull_request.get("id")
-                if pr_date:
-                    pr_date = time_since(pr_date)
+    commit = commits[0]  # get the most recent commit
+    suspect_commit_text = "Suspect Commit: "
+    pull_request = commit.get("pull_request")
+    author = commit.get("author")
+    commit_id = commit.get("id")
+    if not (author and commit_id):  # we need both the author and commit id to continue
+        return None
 
-    if author and commit_id:
-        author_display = (
-            author.get("name") if author.get("name") is not None else author.get("email")
-        )
-
-        suspect_commit_text = "Suspect Commit: "
+    author_display = author.get("name") if author.get("name") is not None else author.get("email")
+    if pull_request:
+        repo_base = pull_request.get("repository", {}).get("url")
         if repo_base:
-            commit_link = f"<{repo_base}/commits/{commit_id}|{commit_id[0:6]}>"
+            commit_link = f"<{repo_base}/commit/{commit_id}|{commit_id[0:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
-        else:
-            suspect_commit_text += f"{commit_id} by {author_display}"
-        if pull_request:
+
+        pr_date = pull_request.get("dateCreated")
+        if pr_date:
+            pr_date = time_since(pr_date)
+        pr_id = pull_request.get("id")
+        pr_title = pull_request.get("title")
+        pr_link = pull_request.get("externalUrl")
+        if pr_date and pr_id and pr_title and pr_link:
             suspect_commit_text += (
                 f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
             )
-        return suspect_commit_text
-    return None
+    else:
+        suspect_commit_text += f"{commit_id} by {author_display}"
+    return suspect_commit_text
 
 
 def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
@@ -460,6 +448,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         is_unfurl: bool = False,
         skip_fallback: bool = False,
         notes: str | None = None,
+        commits: Sequence[Mapping[str, Any]] | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -475,6 +464,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
+        self.commits = commits
 
     @property
     def escape_text(self) -> bool:
@@ -553,13 +543,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build up the blocks for newer issue alert formatting #
 
         # build title block
-        if text:
-            text = f"```{text.lstrip(' ')}```"
-            if self.actions:
-                text += "\n" + action_text
-        if not text:
-            text = action_text
-        title_text = f"<{title_link}|*{escape_slack_text(title)}*>  \n{text}"
+        title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
         if self.group.issue_category == GroupCategory.ERROR:
             level_text = None
@@ -573,8 +557,17 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"
-
         blocks = [self.get_markdown_block(title_text)]
+
+        # build up text block
+        if text:
+            text = text.lstrip(" ")
+            blocks.append(self.get_rich_text_preformatted_block(text))
+
+        # build up actions text
+        if self.actions:
+            blocks.append(self.get_markdown_block(action_text))
+
         # build tags block
         tags = get_tags(event_for_tags, self.tags)
         if tags:
@@ -633,9 +626,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             )  # get rid of comma at the end
 
         # add suspect commit info
-        suspect_commit_text = get_suspect_commit_block(project, event_for_tags)
-        if suspect_commit_text:
-            blocks.append(self.get_context_block(suspect_commit_text))
+        if event_for_tags:
+            suspect_commit_text = get_suspect_commit_text(project, event_for_tags, self.commits)
+            if suspect_commit_text:
+                blocks.append(self.get_context_block(suspect_commit_text))
 
         # add notes
         if self.notes:
@@ -676,31 +670,3 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             block_id=json.dumps(block_id),
             skip_fallback=self.skip_fallback,
         )
-
-
-def build_group_attachment(
-    group: Group,
-    event: GroupEvent | None = None,
-    tags: set[str] | None = None,
-    identity: RpcIdentity | None = None,
-    actions: Sequence[MessageAction] | None = None,
-    rules: list[Rule] | None = None,
-    link_to_event: bool = False,
-    issue_details: bool = False,
-    is_unfurl: bool = False,
-    notification_uuid: str | None = None,
-    notes: str | None = None,
-) -> Union[SlackBlock, SlackAttachment]:
-
-    return SlackIssuesMessageBuilder(
-        group,
-        event,
-        tags,
-        identity,
-        actions,
-        rules,
-        link_to_event,
-        issue_details,
-        is_unfurl=is_unfurl,
-        notes=notes,
-    ).build(notification_uuid=notification_uuid)

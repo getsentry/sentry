@@ -110,4 +110,5 @@ const SVG = styled('svg')<{background: ColorOrAlias; border: ColorOrAlias}>`
   }
 `;
 
-export {OverlayArrow, OverlayArrowProps};
+export type {OverlayArrowProps};
+export {OverlayArrow};

@@ -32,12 +32,10 @@ module.exports = {
       {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
     ],
     ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
-    // TODO(@anonrig): Move this to eslint-config-sentry-app
-    '@typescript-eslint/consistent-type-imports': [
-      'error',
-      {fixStyle: 'separate-type-imports', prefer: 'type-imports'},
-    ],
   },
+  // JSON file formatting is handled by Biome. ESLint should not be linting
+  // and formatting these files.
+  ignorePatterns: ['*.json'],
   overrides: [
     {
       files: ['tests/js/**/*.{ts,js}'],

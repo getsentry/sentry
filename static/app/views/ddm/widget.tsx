@@ -32,7 +32,7 @@ import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import theme from 'sentry/utils/theme';
 import {MetricChart} from 'sentry/views/ddm/chart';
-import type {FocusArea} from 'sentry/views/ddm/focusArea';
+import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
@@ -44,15 +44,13 @@ type MetricWidgetProps = {
   onChange: (index: number, data: Partial<MetricWidgetQueryParams>) => void;
   projects: PageFilters['projects'];
   widget: MetricWidgetQueryParams;
-  addFocusArea?: (area: FocusArea) => void;
-  focusArea?: FocusArea | null;
+  focusArea?: FocusAreaProps;
   hasSiblings?: boolean;
   highlightedSampleId?: string;
   index?: number;
   isSelected?: boolean;
   onSampleClick?: (sample: Sample) => void;
   onSelect?: (index: number) => void;
-  removeFocusArea?: () => void;
   showQuerySymbols?: boolean;
 };
 
@@ -60,6 +58,7 @@ export type Sample = {
   projectId: number;
   spanId: string;
   transactionId: string;
+  transactionSpanId: string;
 };
 
 export const MetricWidget = memo(
@@ -73,10 +72,8 @@ export const MetricWidget = memo(
     onSelect,
     onChange,
     hasSiblings = false,
-    addFocusArea,
-    removeFocusArea,
     showQuerySymbols,
-    focusArea = null,
+    focusArea,
     onSampleClick,
     highlightedSampleId,
   }: MetricWidgetProps) => {
@@ -164,9 +161,7 @@ export const MetricWidget = memo(
                 projects={projects}
                 environments={environments}
                 onChange={handleChange}
-                addFocusArea={addFocusArea}
                 focusArea={focusArea}
-                removeFocusArea={removeFocusArea}
                 onSampleClick={onSampleClick}
                 chartHeight={300}
                 highlightedSampleId={highlightedSampleId}
@@ -189,14 +184,12 @@ export const MetricWidget = memo(
 );
 
 interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
-  focusArea: FocusArea | null;
   widgetIndex: number;
-  addFocusArea?: (area: FocusArea) => void;
   chartHeight?: number;
+  focusArea?: FocusAreaProps;
   highlightedSampleId?: string;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
   onSampleClick?: (sample: Sample) => void;
-  removeFocusArea?: () => void;
 }
 
 export const MetricWidgetBody = memo(
@@ -207,9 +200,7 @@ export const MetricWidgetBody = memo(
     highlightedSampleId,
     sort,
     widgetIndex,
-    addFocusArea,
     focusArea,
-    removeFocusArea,
     chartHeight,
     onSampleClick,
     ...metricsQuery
@@ -234,7 +225,10 @@ export const MetricWidgetBody = memo(
       {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
     );
 
-    const {data: correlations} = useMetricSamples(mri, {...focusArea?.range});
+    const {data: correlations} = useMetricSamples(mri, {
+      ...focusArea?.selection?.range,
+      query,
+    });
 
     const chartRef = useRef<ReactEchartsRef>(null);
 
@@ -312,13 +306,11 @@ export const MetricWidgetBody = memo(
           displayType={displayType}
           operation={metricsQuery.op}
           widgetIndex={widgetIndex}
-          addFocusArea={addFocusArea}
-          focusArea={focusArea}
-          removeFocusArea={removeFocusArea}
           height={chartHeight}
           highlightedSampleId={highlightedSampleId}
           correlations={correlations}
           onSampleClick={onSampleClick}
+          focusArea={focusArea}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable

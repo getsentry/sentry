@@ -101,15 +101,16 @@ export type MetricCorrelation = {
   timestamp: string;
   traceId: string;
   transactionId: string;
+  transactionSpanId: string;
   spansSummary?: {
     spanDuration: number;
     spanOp: string;
   }[];
 };
 
-export type MetricRange = {
+export interface SelectionRange {
   end?: DateString;
   max?: number;
   min?: number;
   start?: DateString;
-};
+}
