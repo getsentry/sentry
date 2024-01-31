@@ -127,7 +127,8 @@ def should_filter_feedback(event, project_id, source: FeedbackCreationSource):
 
 def create_feedback_issue(event, project_id, organization_id, source: FeedbackCreationSource):
     # If the organization exists in the organization denylist reject the feedback event.
-    if organization_id is None or organization_id in options.get("feedback.organizations.denylist"):
+    if organization_id in options.get("feedback.organizations.denylist"):
+        metrics.incr("feedback.rejected", tags={"referrer": source.value}, sample_rate=1.0)
         return None
 
     if should_filter_feedback(event, project_id, source):
