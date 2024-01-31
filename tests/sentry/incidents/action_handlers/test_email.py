@@ -39,6 +39,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time()
+@region_silo_test
 class EmailActionHandlerTest(FireTest):
     @responses.activate
     def run_test(self, incident, method):
@@ -237,6 +238,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 
 @freeze_time()
+@region_silo_test
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
     def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE
@@ -480,7 +482,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
 
         est = "America/New_York"
         pst = "US/Pacific"
-        UserOption.objects.set_value(user=self.user, key="timezone", value=est)
+        with assume_test_silo_mode_of(UserOption):
+            UserOption.objects.set_value(user=self.user, key="timezone", value=est)
         result = generate_incident_trigger_email_context(
             self.project,
             incident,
@@ -491,7 +494,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         )
         assert result["timezone"] == est
 
-        UserOption.objects.set_value(user=self.user, key="timezone", value=pst)
+        with assume_test_silo_mode_of(UserOption):
+            UserOption.objects.set_value(user=self.user, key="timezone", value=pst)
         result = generate_incident_trigger_email_context(
             self.project,
             incident,

@@ -209,6 +209,7 @@ class SuperUserGetSentryAppsTest(SentryAppsTest):
         assert self.published_app.uuid not in response_uuids
 
 
+@control_silo_test
 class GetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()
