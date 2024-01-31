@@ -139,9 +139,11 @@ export function useMetricSamples(
       }, 15000);
       return () => clearTimeout(timeout);
     }
-    setIsUseFallback(false);
+    if (!mainQuery.isError) {
+      setIsUseFallback(false);
+    }
     return () => {};
-  }, [mainQuery.isLoading, isFallbackEnabled]);
+  }, [mainQuery.isLoading, isFallbackEnabled, mainQuery.isError]);
 
   const queryInfo = isUsingFallback ? fallbackQuery : mainQuery;
 
