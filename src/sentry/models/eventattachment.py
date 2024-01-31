@@ -87,7 +87,10 @@ class EventAttachment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_eventattachment"
-        index_together = (("project_id", "date_added"), ("project_id", "event_id"))
+        indexes = (
+            models.Index(fields=("project_id", "date_added")),
+            models.Index(fields=("project_id", "event_id")),
+        )
 
     __repr__ = sane_repr("event_id", "name")
 
