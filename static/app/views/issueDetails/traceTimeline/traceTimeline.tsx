@@ -28,9 +28,9 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     return null;
   }
 
-  if (isError || (!isLoading && !data)) {
+  if (isError || (!isLoading && data.length === 0)) {
     // display placeholder to reduce layout shift
-    return <div style={{height: 20}} />;
+    return <div style={{height: 45}} />;
   }
 
   return (
