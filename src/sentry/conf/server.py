@@ -1616,8 +1616,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-inline-replay-viewer": False,
     # Enables a toggle for entering the new issue details UI
     "organizations:issue-details-new-experience-toggle": False,
-    # Enable experimental replay-issue rendering on Issue Details page
-    "organizations:issue-details-replay-event": False,
     # Enables the new Stacktrace Link UI in frame header
     "organizations:issue-details-stacktrace-link-in-frame": False,
     # Enable tag improvements in the issue details page
@@ -1873,8 +1871,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-slack-new-issue": False,
     # Enable the Replay Details > Performance tab
     "organizations:session-replay-trace-table": False,
-    # Enable the AM1 trial ended banner on sentry.io
-    "organizations:session-replay-trial-ended-banner": False,
     # Enable core Session Replay link in the sidebar
     "organizations:session-replay-ui": True,
     # Enable linking from 'weekly email' summaries to the issue replay list
