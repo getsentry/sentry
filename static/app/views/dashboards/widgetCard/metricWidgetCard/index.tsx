@@ -83,9 +83,14 @@ export function MetricWidgetCard({
       toMetricDisplayType(metricWidgetQueryParams.displayType)
     );
 
+    const isCustomTitle =
+      title !== '' && parseField(title)?.mri !== metricWidgetQueryParams.mri;
+    const defaultTitle = stringifyMetricWidget(metricWidgetQueryParams);
+
     const updatedWidget = {
       ...widget,
-      title,
+      // If user renamed the widget, preserve that title, otherwise stringify the widget query params
+      title: isCustomTitle ? title : defaultTitle,
       queries: convertedWidget.queries,
       displayType: convertedWidget.displayType,
     };
