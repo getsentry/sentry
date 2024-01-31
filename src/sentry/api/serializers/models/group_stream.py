@@ -9,7 +9,7 @@ from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 from django.utils import timezone
 from rest_framework.request import Request
 
-from sentry import features, release_health, tsdb
+from sentry import release_health, tsdb
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.api.serializers.models.group import (
@@ -279,9 +279,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 attrs = {item: seen_stats.get(item, {}) for item in item_list}
             else:
                 attrs = {item: {} for item in item_list}
-            if len(item_list) > 0 and features.has(
-                "organizations:issue-stream-performance", item_list[0].project.organization
-            ):
+            if len(item_list) > 0:
                 unhandled_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
                 if unhandled_stats is not None:
