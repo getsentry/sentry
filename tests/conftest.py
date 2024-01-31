@@ -4,7 +4,6 @@ from typing import MutableMapping
 import psutil
 import pytest
 import responses
-from django.conf import settings
 from django.db import connections
 
 from sentry.silo import SiloMode
@@ -124,26 +123,6 @@ def validate_silo_mode():
     yield
     if SiloMode.get_current_mode() != expected:
         raise Exception(message)
-
-
-@pytest.fixture(scope="session")
-def switch_to_monolith_mode_before_db_setup():
-    """Allow the django_db_setup hook to run in monolith mode.
-
-    This prevents a false error when
-        sentry.silo.patches.silo_aware_transaction_patch.validate_transaction_using_for_silo_mode
-    is invoked. All models should be considered accessible during database setup.
-    """
-    settings.SILO_MODE = SiloMode.MONOLITH
-
-
-@pytest.fixture(scope="session")
-def django_db_setup(switch_to_monolith_mode_before_db_setup, django_db_setup):
-    """Override the built-in django_db_setup fixture.
-
-    Undo switch_to_monolith_mode_before_db_setup, then delegate to the original fixture.
-    """
-    settings.SILO_MODE = DEFAULT_SILO_MODE_FOR_TEST_CASES
 
 
 @pytest.fixture(autouse=True)
