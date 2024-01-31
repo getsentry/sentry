@@ -122,8 +122,16 @@ class StacktraceState:
 def merge_rust_enhancements(
     bases: list[Enhancements], rust_enhancements: RustEnhancements | None = None
 ) -> RustEnhancements | None:
+    """
+    Similar to `iter_rules` in Python, this will also merge the parsed enhancements
+    together with the `bases`. It pretty much concatenates all the rules in `bases`
+    (in order) together with all the rules in the incoming `rust_enhancements`.
+    If `rust_enhancements` is `None`, it means nothing was parsed (either due to it
+    being disabled, or due to a parse error). In that case we do not return anything.
+    """
     if not rust_enhancements:
         return None
+
     try:
         merged_rust_enhancements = RustEnhancements.empty()
         for base in bases:
@@ -171,6 +179,75 @@ def parse_rust_enhancements(
     return rust_enhancements
 
 
+RustEnhancedFrames = list[tuple[str | None, bool | None]]
+
+
+def apply_rust_enhancements(
+    rust_enhancements: RustEnhancements | None,
+    match_frames: list[dict[str, bytes]],
+    exception_data: dict[str, Any],
+) -> RustEnhancedFrames | None:
+    """
+    If `RustEnhancements` were successfully parsed and usage is enabled,
+    this will apply all the modifications from enhancement rules to `match_frames`,
+    returning a tuple of `(modified category, modified in_app)` for each frame.
+    """
+    if not rust_enhancements:
+        return None
+
+    try:
+        use_rust_enhancements = random.random() < options.get(
+            "grouping.rust_enhancers.modify_frames_rate"
+        )
+    except Exception:
+        use_rust_enhancements = False
+    if not use_rust_enhancements:
+        return None
+
+    try:
+        e = exception_data or {}
+        e = {
+            "ty": e.get("type"),
+            "value": e.get("value"),
+            "mechanism": get_path(e, "mechanism", "type"),
+        }
+        for key in e.keys():
+            value = e[key]
+            if isinstance(value, str):
+                e[key] = value.encode("utf-8")
+
+        rust_enhanced_frames = rust_enhancements.apply_modifications_to_frames(
+            iter(match_frames), e
+        )
+        metrics.incr("rust_enhancements.modifications_run")
+        return rust_enhanced_frames
+    except Exception:
+        logger.exception("failed running Rust Enhancements modifications")
+        return None
+
+
+def compare_rust_enhancers(
+    frames: list[dict[str, Any]], rust_enhanced_frames: RustEnhancedFrames | None
+):
+    """
+    Compares the results of `rust_enhanced_frames` with the frame modifications
+    applied by Python code directly to `frames`.
+
+    This will log an internal error on every mismatch.
+    """
+    if rust_enhanced_frames:
+        python_frames = list((get_path(f, "data", "category"), f.get("in_app")) for f in frames)
+
+        if python_frames != rust_enhanced_frames:
+            logger.error(
+                "Rust Enhancements mismatch",
+                extra={
+                    "python_frames": python_frames,
+                    "rust_enhanced_frames": rust_enhanced_frames,
+                },
+            )
+
+
 class Enhancements:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
@@ -210,53 +287,18 @@ class Enhancements:
         # Matching frames are used for matching rules
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_enhanced_frames = None
-        try:
-            use_rust_enhancements = random.random() < options.get(
-                "grouping.rust_enhancers.modify_frames_rate"
-            )
-        except Exception:
-            use_rust_enhancements = False
-        if (enhancements := self.rust_enhancements) and use_rust_enhancements:
-            e = exception_data or {}
-            e = {
-                "ty": e.get("type"),
-                "value": e.get("value"),
-                "mechanism": get_path(e, "mechanism", "type"),
-            }
-            for key in e.keys():
-                value = e[key]
-                if isinstance(value, str):
-                    e[key] = value.encode("utf-8")
+        rust_enhanced_frames = apply_rust_enhancements(
+            self.rust_enhancements, match_frames, exception_data
+        )
 
-            try:
-                rust_enhanced_frames = enhancements.apply_modifications_to_frames(
-                    iter(match_frames), e
-                )
-                metrics.incr("rust_enhancements.modifications_run")
-            except Exception:
-                logger.exception("failed running Rust Enhancements modifications")
-
-            # TODO: once ready, update the frame directly
-            # for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
-            #     if in_app is not None:
-            #         set_in_app(frame, in_app)
-            #     if category is not None:
-            #         set_path(frame, "data", "category", value=category)
-
-        def compare_rust_enhancers():
-            if rust_enhanced_frames:
-                has_mismatch = False
-                for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
-                    in_app_matches = bool(frame.get("in_app")) == in_app
-                    category_matches = get_path(frame, "data", "category") == category
-                    is_mismatch = not in_app_matches or not category_matches
-                    has_mismatch = has_mismatch or is_mismatch
-                if has_mismatch:
-                    logger.error(
-                        "Rust Enhancements mismatch",
-                        extra={"frames": frames, "rust_enhanced_frames": rust_enhanced_frames},
-                    )
+        # TODO: Once we are happy with the state of Rust provided enhancements,
+        # update the frames and return before the Python code runs.
+        # for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
+        #     if in_app is not None:
+        #         set_in_app(frame, in_app)
+        #     if category is not None:
+        #         set_path(frame, "data", "category", value=category)
+        # return
 
         in_memory_cache: dict[str, str] = {}
 
@@ -272,7 +314,7 @@ class Enhancements:
             frames_changed = _update_frames_from_cached_values(frames, cache_key, platform)
             if frames_changed:
                 logger.debug("The frames have been loaded from the cache. Skipping some work.")
-                compare_rust_enhancers()
+                compare_rust_enhancers(frames, rust_enhanced_frames)
                 return
 
         with sentry_sdk.start_span(op="stacktrace_processing", description="apply_rules_to_frames"):
@@ -289,7 +331,7 @@ class Enhancements:
         if use_cache:
             _cache_changed_frame_values(frames, cache_key, platform)
 
-        compare_rust_enhancers()
+        compare_rust_enhancers(frames, rust_enhanced_frames)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
         in_memory_cache: dict[str, str] = {}
