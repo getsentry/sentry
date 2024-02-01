@@ -163,7 +163,7 @@ export default function ProjectCreationModal({
                 <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
                 <ProjectNameInput
                   type="text"
-                  name="name"
+                  name="project-name"
                   placeholder={t('project-name')}
                   autoComplete="off"
                   value={projectName}
