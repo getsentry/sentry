@@ -777,9 +777,10 @@ function NewTraceDetailsTransactionBar(props: Props) {
     const hasMetrics = Object.keys(embeddedChildren?._metrics_summary ?? {}).length > 0;
 
     if (
+      !hasDDMExperimentalFeature(organization) ||
       isTraceRoot(transaction) ||
       isTraceError(transaction) ||
-      (!hasMetrics && !hasDDMExperimentalFeature(organization))
+      !hasMetrics
     ) {
       return null;
     }
