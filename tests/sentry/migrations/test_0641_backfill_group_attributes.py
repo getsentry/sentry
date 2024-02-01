@@ -33,8 +33,8 @@ def run_test(expected_groups):
 
 
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
-    migrate_from = "0639_add_spec_version_to_dashboard_on_demand"
-    migrate_to = "0640_backfill_group_attributes"
+    migrate_from = "0640_index_together"
+    migrate_to = "0641_backfill_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group()
@@ -45,8 +45,8 @@ class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
 
 
 class TestBackfillGroupAttributesRetry(SnubaTestCase, TestMigrations):
-    migrate_from = "0639_add_spec_version_to_dashboard_on_demand"
-    migrate_to = "0640_backfill_group_attributes"
+    migrate_from = "0640_index_together"
+    migrate_to = "0641_backfill_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group()

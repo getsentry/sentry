@@ -156,7 +156,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0639_add_spec_version_to_dashboard_on_demand"),
+        ("sentry", "0640_index_together"),
     ]
 
     operations = [
