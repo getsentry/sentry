@@ -9,7 +9,7 @@ from binascii import hexlify
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any, FrozenSet, List, Mapping, Optional, Sequence
 from unittest import mock
 from uuid import uuid4
 
@@ -23,6 +23,7 @@ from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.text import slugify
 
+from sentry.auth.access import RpcBackedAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
@@ -52,6 +53,8 @@ from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -88,6 +91,7 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -115,14 +119,17 @@ from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
+from sentry.models.userrole import UserRole
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
 from sentry.silo import SiloMode
@@ -825,6 +832,16 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_avatar(*args, **kwargs):
+        return UserAvatar.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_role(*args, **kwargs):
+        return UserRole.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_usersocialauth(
         user: User,
         provider: str | None = None,
@@ -1023,6 +1040,11 @@ class Factories:
             app.update(status=SentryAppStatus.PUBLISHED)
 
         return app
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_sentry_app_avatar(*args, **kwargs):
+        return SentryAppAvatar.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1750,6 +1772,11 @@ class Factories:
         return NotificationSettingProvider.objects.create(*args, **kwargs)
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_option(*args, **kwargs) -> UserOption:
+        return UserOption.objects.create(*args, **kwargs)
+
+    @staticmethod
     def create_basic_auth_header(username: str, password: str = "") -> str:
         return b"Basic " + b64encode(f"{username}:{password}".encode())
 
@@ -1757,3 +1784,24 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def snooze_rule(**kwargs):
         return RuleSnooze.objects.create(**kwargs)
+
+    @staticmethod
+    def create_request_access(
+        sso_state: Optional[RpcMemberSsoState] = None,
+        permissions: Optional[List] = None,
+        org_context: Optional[RpcUserOrganizationContext] = None,
+        scopes_upper_bound: Optional[FrozenSet] = frozenset(),
+    ) -> RpcBackedAccess:
+        if not sso_state:
+            sso_state = RpcMemberSsoState()
+        if not permissions:
+            permissions = []
+        if not org_context:
+            org_context = RpcUserOrganizationContext()
+
+        auth_state = RpcAuthState(sso_state=sso_state, permissions=permissions)
+        return RpcBackedAccess(
+            rpc_user_organization_context=org_context,
+            auth_state=auth_state,
+            scopes_upper_bound=scopes_upper_bound,
+        )

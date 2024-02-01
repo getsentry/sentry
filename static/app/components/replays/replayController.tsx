@@ -121,6 +121,7 @@ function ReplayControls({
   const barRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
   const isFullscreen = useIsFullscreen();
+  const {analyticsContext} = useReplayContext();
 
   // If the browser supports going fullscreen or not. iPhone Safari won't do
   // it. https://caniuse.com/fullscreen
@@ -129,11 +130,12 @@ function ReplayControls({
   const handleFullscreenToggle = useCallback(() => {
     trackAnalytics('replay.toggle-fullscreen', {
       organization,
+      context: analyticsContext,
       user_email: user.email,
       fullscreen: !isFullscreen,
     });
     toggleFullscreen();
-  }, [user.email, isFullscreen, organization, toggleFullscreen]);
+  }, [organization, analyticsContext, user.email, isFullscreen, toggleFullscreen]);
 
   const updateIsCompact = useCallback(() => {
     const {width} = barRef.current?.getBoundingClientRect() ?? {

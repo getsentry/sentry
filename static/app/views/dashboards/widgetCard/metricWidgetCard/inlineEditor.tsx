@@ -23,6 +23,7 @@ import {
   isCustomMetric,
   isMeasurement,
   isTransactionDuration,
+  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import type {
@@ -109,6 +110,7 @@ export const InlineEditor = memo(function InlineEditor({
               <WidgetTitleInput
                 value={title}
                 size="sm"
+                placeholder={stringifyMetricWidget(metricsQuery)}
                 onChange={e => {
                   onTitleChange?.(e.target.value);
                 }}

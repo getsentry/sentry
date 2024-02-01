@@ -452,9 +452,10 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
     this assumes stateful extraction can be used, and returns the enabled state."""
     on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
 
-    if len(on_demand_entries) != 1:
+    if len(on_demand_entries) != len(OnDemandMetricSpecVersioning.get_spec_versions()):
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("on_demand_entries", on_demand_entries)
+            scope.set_extra("spec_version", OnDemandMetricSpecVersioning.get_spec_versions())
             sentry_sdk.capture_exception(
                 Exception("Skipped extraction due to mismatched on_demand entries")
             )

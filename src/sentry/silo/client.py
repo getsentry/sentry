@@ -214,20 +214,11 @@ class RegionSiloClient(BaseSiloClient):
                 "configured_attempt_limit": REQUEST_ATTEMPTS_LIMIT,
             },
         )
-        if request_attempts < REQUEST_ATTEMPTS_LIMIT:
-            request_attempts += 1
-            cache.set(cache_key, request_attempts, timeout=CACHE_TIMEOUT)
-        else:
-            cache.delete(cache_key)
+        request_attempts += 1
+        cache.set(cache_key, request_attempts, timeout=CACHE_TIMEOUT)
+
+        if request_attempts > REQUEST_ATTEMPTS_LIMIT:
             raise SiloClientError(f"Request attempts limit reached for: {method} {path}")
-
-    def cleanup_request_attempts(self, hash: str | None) -> None:
-        if hash is None:
-            return
-
-        self.logger.info("silo_client.cleaning_request_attempts", extra={"request_hash": hash})
-        cache_key = self._get_hash_cache_key(hash=hash)
-        cache.delete(cache_key)
 
     def request(
         self,
@@ -248,18 +239,15 @@ class RegionSiloClient(BaseSiloClient):
         if prefix_hash is not None:
             hash = sha1(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
 
-        try:
-            response = super().request(
-                method=method,
-                path=path,
-                headers=headers,
-                data=data,
-                params=params,
-                json=json,
-                raw_response=raw_response,
-            )
-        except Exception:
-            self.check_request_attempts(hash=hash, method=method, path=path)
-            raise
-        self.cleanup_request_attempts(hash=hash)
+        self.check_request_attempts(hash=hash, method=method, path=path)
+        response = super().request(
+            method=method,
+            path=path,
+            headers=headers,
+            data=data,
+            params=params,
+            json=json,
+            raw_response=raw_response,
+        )
+
         return response
