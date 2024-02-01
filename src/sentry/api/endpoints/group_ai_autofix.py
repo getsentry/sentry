@@ -121,8 +121,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         if not request.user.is_authenticated:
             raise PermissionDenied(detail="You must be authenticated to perform this action.")
 
-        # (request.user should've worked here, plus get_entries doesn't use it anyway...)
-        event_entries = self._get_event_entries(group, request.user)  # type: ignore
+        event_entries = self._get_event_entries(group, request.user)
 
         if event_entries is None:
             return self._respond_with_error(
