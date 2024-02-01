@@ -1043,11 +1043,16 @@ export const defaultConfig: SearchConfig = {
   },
 };
 
-const options = {
-  TokenConverter,
-  TermOperator,
-  FilterType,
-};
+function tryParseSearch<T extends {config: SearchConfig}>(
+  query: string,
+  config: T
+): ParseResult | null {
+  try {
+    return grammar.parse(query, config);
+  } catch (e) {
+    return null;
+  }
+}
 
 /**
  * Parse a search query into a ParseResult. Failing to parse the search query
@@ -1057,18 +1062,16 @@ export function parseSearch(
   query: string,
   additionalConfig?: Partial<SearchConfig>
 ): ParseResult | null {
-  const configCopy = {...defaultConfig};
+  const config = additionalConfig
+    ? merge({...defaultConfig}, additionalConfig)
+    : defaultConfig;
 
-  // Merge additionalConfig with defaultConfig
-  const config = merge(configCopy, additionalConfig);
-
-  try {
-    return grammar.parse(query, {...options, config});
-  } catch (e) {
-    // TODO(epurkhiser): Should we capture these errors somewhere?
-  }
-
-  return null;
+  return tryParseSearch(query, {
+    config,
+    TokenConverter,
+    TermOperator,
+    FilterType,
+  });
 }
 
 /**
