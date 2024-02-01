@@ -25,8 +25,12 @@ def _check_history():
         raise click.ClickException("Could not determine migration state. Aborting")
 
     # Either of these migrations need to have been run for us to proceed.
-    # The first migration is 'pre-squash' and the second is the new squash
-    migration_heads = ("0200_release_indices", "0001_squashed_0200_release_indices")
+    # The first migration is 'pre-squash' and the other entries are squashes
+    migration_heads = (
+        "0200_release_indices",
+        "0001_squashed_0200_release_indices",
+        "0001_squashed_0484_break_org_member_user_fk",
+    )
 
     # If we haven't run all the migration up to the latest squash abort.
     # As we squash more history this should be updated.
