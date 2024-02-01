@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, MutableMapping, Optional
+from typing import Iterable, MutableMapping
 
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
@@ -129,8 +129,8 @@ def serialize_organization_summary(org: Organization) -> RpcOrganizationSummary:
 def serialize_rpc_organization(
     org: Organization,
     *,
-    include_projects: Optional[bool] = True,
-    include_teams: Optional[bool] = True,
+    include_projects: bool | None = True,
+    include_teams: bool | None = True,
 ) -> RpcOrganization:
     rpc_org: RpcOrganization = RpcOrganization(
         slug=org.slug,

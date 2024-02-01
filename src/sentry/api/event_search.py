@@ -354,7 +354,7 @@ class SearchKey(NamedTuple):
 
 
 class SearchValue(NamedTuple):
-    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]]
+    raw_value: str | int | datetime | Sequence[int] | Sequence[str]
 
     @property
     def value(self):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 import re
-from typing import Any, Generator, Optional
+from typing import Any, Generator
 
 import sentry_sdk
 
@@ -110,7 +110,7 @@ def get_basename(string: str) -> str:
     return _basename_re.split(string)[-1]
 
 
-def get_package_component(package: str, platform: Optional[str]) -> GroupingComponent:
+def get_package_component(package: str, platform: str | None) -> GroupingComponent:
     if package is None or platform != "native":
         return GroupingComponent(id="package")
 
@@ -124,8 +124,8 @@ def get_package_component(package: str, platform: Optional[str]) -> GroupingComp
 
 def get_filename_component(
     abs_path: str,
-    filename: Optional[str],
-    platform: Optional[str],
+    filename: str | None,
+    platform: str | None,
     allow_file_origin: bool = False,
 ) -> GroupingComponent:
     """Attempt to normalize filenames by detecting special filenames and by
@@ -163,9 +163,9 @@ def get_filename_component(
 
 
 def get_module_component(
-    abs_path: Optional[str],
-    module: Optional[str],
-    platform: Optional[str],
+    abs_path: str | None,
+    module: str | None,
+    platform: str | None,
     context: GroupingContext,
 ) -> GroupingComponent:
     """Given an absolute path, module and platform returns the module component
@@ -216,9 +216,9 @@ def get_module_component(
 
 def get_function_component(
     context: GroupingContext,
-    function: Optional[str],
-    raw_function: Optional[str],
-    platform: Optional[str],
+    function: str | None,
+    raw_function: str | None,
+    platform: str | None,
     sourcemap_used: bool = False,
     context_line_available: bool = False,
 ) -> GroupingComponent:
@@ -463,7 +463,7 @@ def frame(
 
 
 def get_contextline_component(
-    frame: Frame, platform: Optional[str], function: str, context: GroupingContext
+    frame: Frame, platform: str | None, function: str, context: GroupingContext
 ) -> GroupingComponent:
     """Returns a contextline component.  The caller's responsibility is to
     make sure context lines are only used for platforms where we trust the
@@ -737,8 +737,8 @@ def filter_exceptions_for_exception_groups(
     class ExceptionTreeNode:
         def __init__(
             self,
-            exception: Optional[SingleException] = None,
-            children: Optional[list[SingleException]] = None,
+            exception: SingleException | None = None,
+            children: list[SingleException] | None = None,
         ):
             self.exception = exception
             self.children = children if children else []
@@ -867,7 +867,7 @@ def threads(
 
 def _filtered_threads(
     threads: list[dict[str, Any]], event: Event, context: GroupingContext, meta: dict[str, Any]
-) -> Optional[ReturnedVariants]:
+) -> ReturnedVariants | None:
     if len(threads) != 1:
         return None
 

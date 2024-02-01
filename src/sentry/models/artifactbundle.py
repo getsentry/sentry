@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import zipfile
 from enum import Enum
-from typing import IO, Any, Callable, Iterable, Mapping, Optional
+from typing import IO, Any, Callable, Iterable, Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -42,7 +42,7 @@ class SourceFileType(Enum):
         return [(key.value, key.name) for key in cls]
 
     @classmethod
-    def from_lowercase_key(cls, lowercase_key: Optional[str]) -> Optional[SourceFileType]:
+    def from_lowercase_key(cls, lowercase_key: str | None) -> SourceFileType | None:
         if lowercase_key is None:
             return None
 
@@ -185,7 +185,7 @@ class ArtifactBundleFlatFileIndex(Model):
         indexstore.set_bytes(self._indexstore_id(), encoded_data)
         self.update(date_added=timezone.now())
 
-    def load_flat_file_index(self) -> Optional[bytes]:
+    def load_flat_file_index(self) -> bytes | None:
         return indexstore.get_bytes(self._indexstore_id())
 
 
@@ -345,7 +345,7 @@ class ArtifactBundleArchive:
         return {k.lower(): v for k, v in headers.items()}
 
     @staticmethod
-    def normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
+    def normalize_debug_id(debug_id: str | None) -> str | None:
         if debug_id is None:
             return None
 
@@ -389,7 +389,7 @@ class ArtifactBundleArchive:
     def has_debug_ids(self):
         return len(self._entries_by_debug_id) > 0
 
-    def extract_bundle_id(self) -> Optional[str]:
+    def extract_bundle_id(self) -> str | None:
         bundle_id = self.manifest.get("debug_id")
 
         if bundle_id is not None:
@@ -425,7 +425,7 @@ class ArtifactBundleArchive:
 
         return results
 
-    def get_files_by_url_or_debug_id(self, query: Optional[str]) -> dict[str, dict]:
+    def get_files_by_url_or_debug_id(self, query: str | None) -> dict[str, dict]:
         def filter_function(_: str, info: dict) -> bool:
             if query is None:
                 return True
@@ -453,7 +453,7 @@ class ArtifactBundleArchive:
 
         return self.get_files_by(filter_function)
 
-    def get_file_info(self, file_path: Optional[str]) -> Optional[zipfile.ZipInfo]:
+    def get_file_info(self, file_path: str | None) -> zipfile.ZipInfo | None:
         if file_path is None:
             return None
         try:
@@ -463,7 +463,7 @@ class ArtifactBundleArchive:
 
     def get_file_url_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType
-    ) -> Optional[str]:
+    ) -> str | None:
         entry = self._entries_by_debug_id.get((debug_id, source_file_type))
         if entry is not None:
             return entry[1]

@@ -6,7 +6,7 @@ import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os import path
-from typing import IO, Generic, NamedTuple, Optional, Protocol, TypeVar
+from typing import IO, Generic, NamedTuple, Protocol, TypeVar
 
 import sentry_sdk
 from django.db import IntegrityError, router
@@ -78,9 +78,7 @@ class AssembleResult(NamedTuple):
 
 
 @sentry_sdk.tracing.trace
-def assemble_file(
-    task, org_or_project, name, checksum, chunks, file_type
-) -> Optional[AssembleResult]:
+def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
     """
     Verifies and assembles a file model from chunks.
 
@@ -486,8 +484,8 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         self,
         assemble_result: AssembleResult,
         organization: Organization,
-        release: Optional[str],
-        dist: Optional[str],
+        release: str | None,
+        dist: str | None,
         project_ids: list[int],
         is_release_bundle_migration: bool = False,
     ):
@@ -769,9 +767,9 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
 def prepare_post_assembler(
     assemble_result: AssembleResult,
     organization: Organization,
-    release: Optional[str],
-    dist: Optional[str],
-    project_ids: Optional[list[int]],
+    release: str | None,
+    dist: str | None,
+    project_ids: list[int] | None,
     upload_as_artifact_bundle: bool,
     is_release_bundle_migration: bool,
 ) -> PostAssembler:

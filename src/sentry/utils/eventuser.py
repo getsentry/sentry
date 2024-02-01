@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 
 from snuba_sdk import (
     BooleanCondition,
@@ -63,13 +63,13 @@ MAX_FETCH_SIZE = 10_000
 
 @dataclass
 class EventUser:
-    project_id: Optional[int]
-    email: Optional[str]
-    username: Optional[str]
-    name: Optional[str]
-    ip_address: Optional[str]
-    user_ident: Optional[int | str]
-    id: Optional[int] = None  # EventUser model id
+    project_id: int | None
+    email: str | None
+    username: str | None
+    name: str | None
+    ip_address: str | None
+    user_ident: int | str | None
+    id: int | None = None  # EventUser model id
 
     def __hash__(self):
         return hash(self.hash)
@@ -96,7 +96,7 @@ class EventUser:
         keyword_filters: Mapping[str, list[Any]],
         filter_boolean: BooleanOp = BooleanOp.AND,
         result_offset: int = 0,
-        result_limit: Optional[int] = None,
+        result_limit: int | None = None,
     ) -> list[EventUser]:
         """
         Fetch the EventUser with a Snuba query that exists within a list of projects

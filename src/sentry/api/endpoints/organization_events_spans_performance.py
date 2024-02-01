@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 from datetime import datetime
 from itertools import chain
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Callable, Sequence
 
 import sentry_sdk
 from rest_framework import serializers
@@ -291,7 +291,7 @@ class SpanExamplesPaginator:
     def __init__(self, data_fn: Callable[[int, int], Any]):
         self.data_fn = data_fn
 
-    def get_result(self, limit: int, cursor: Optional[Cursor] = None) -> CursorResult:
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult:
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
@@ -328,7 +328,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
             params: dict[str, str],
             rollup: int,
             zerofill_results: bool,
-            comparison_delta: Optional[datetime] = None,
+            comparison_delta: datetime | None = None,
         ) -> SnubaTSResult:
             with sentry_sdk.start_span(
                 op="discover.discover", description="timeseries.filter_transform"
@@ -411,7 +411,7 @@ class ExampleSpan:
 @dataclasses.dataclass(frozen=True)
 class ExampleTransaction:
     id: str
-    description: Optional[str]
+    description: str | None
     start_timestamp: float
     finish_timestamp: float
     non_overlapping_exclusive_time: float
@@ -432,15 +432,15 @@ class ExampleTransaction:
 class SuspectSpan:
     op: str
     group: str
-    description: Optional[str]
-    frequency: Optional[int]
-    count: Optional[int]
-    avg_occurrences: Optional[float]
-    sum_exclusive_time: Optional[float]
-    p50_exclusive_time: Optional[float]
-    p75_exclusive_time: Optional[float]
-    p95_exclusive_time: Optional[float]
-    p99_exclusive_time: Optional[float]
+    description: str | None
+    frequency: int | None
+    count: int | None
+    avg_occurrences: float | None
+    sum_exclusive_time: float | None
+    p50_exclusive_time: float | None
+    p75_exclusive_time: float | None
+    p95_exclusive_time: float | None
+    p99_exclusive_time: float | None
 
     def serialize(self) -> Any:
         return {
@@ -484,16 +484,16 @@ class EventID:
 def query_suspect_span_groups(
     params: ParamsType,
     fields: list[str],
-    query: Optional[str],
-    span_ops: Optional[list[str]],
-    exclude_span_ops: Optional[list[str]],
-    span_groups: Optional[list[str]],
+    query: str | None,
+    span_ops: list[str] | None,
+    exclude_span_ops: list[str] | None,
+    span_groups: list[str] | None,
     direction: str,
     orderby: str,
     limit: int,
     offset: int,
-    min_exclusive_time: Optional[float] = None,
-    max_exclusive_time: Optional[float] = None,
+    min_exclusive_time: float | None = None,
+    max_exclusive_time: float | None = None,
 ) -> list[SuspectSpan]:
     suspect_span_columns = SPAN_PERFORMANCE_COLUMNS[orderby]
 
@@ -611,8 +611,8 @@ class SpanQueryBuilder(QueryBuilder):
         function: str,
         span: Span,
         alias: str,
-        min_exclusive_time: Optional[float] = None,
-        max_exclusive_time: Optional[float] = None,
+        min_exclusive_time: float | None = None,
+        max_exclusive_time: float | None = None,
     ):
         op = span.op
         group = span.group
@@ -659,14 +659,14 @@ class SpanQueryBuilder(QueryBuilder):
 
 def query_example_transactions(
     params: ParamsType,
-    query: Optional[str],
+    query: str | None,
     direction: str,
     orderby: str,
     span: Span,
     per_suspect: int = 5,
-    offset: Optional[int] = None,
-    min_exclusive_time: Optional[float] = None,
-    max_exclusive_time: Optional[float] = None,
+    offset: int | None = None,
+    min_exclusive_time: float | None = None,
+    max_exclusive_time: float | None = None,
 ) -> dict[Span, list[EventID]]:
     # there aren't any suspects, early return to save an empty query
     if per_suspect == 0:
@@ -732,7 +732,7 @@ def get_span_description(
     event: EventID,
     span_op: str,
     span_group: str,
-) -> Optional[str]:
+) -> str | None:
     nodestore_event = eventstore.backend.get_event_by_id(event.project_id, event.event_id)
     data = nodestore_event.data
 
@@ -752,8 +752,8 @@ def get_example_transaction(
     event: EventID,
     span_op: str,
     span_group: str,
-    min_exclusive_time: Optional[float] = None,
-    max_exclusive_time: Optional[float] = None,
+    min_exclusive_time: float | None = None,
+    max_exclusive_time: float | None = None,
 ) -> ExampleTransaction:
     span_group_id = int(span_group, 16)
     nodestore_event = eventstore.backend.get_event_by_id(event.project_id, event.event_id)

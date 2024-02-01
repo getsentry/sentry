@@ -5,7 +5,7 @@ import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
-from typing import Literal, Mapping, Optional
+from typing import Literal, Mapping
 
 import msgpack
 import sentry_sdk
@@ -58,7 +58,7 @@ CHECKIN_QUOTA_WINDOW = 60
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
-    config: Optional[dict],
+    config: dict | None,
     quotas_outcome: PermitCheckInStatus,
 ):
     try:

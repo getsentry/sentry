@@ -6,7 +6,6 @@ will produce new outboxes incrementally to replicate those models.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Union
 
 from django.apps import apps
 from django.db import router, transaction
@@ -69,7 +68,7 @@ def set_processing_state(table_name: str, value: int, version: int) -> None:
 
 
 def find_replication_version(
-    model: Union[type[ControlOutboxProducingModel], type[RegionOutboxProducingModel], type[User]],
+    model: type[ControlOutboxProducingModel] | type[RegionOutboxProducingModel] | type[User],
     force_synchronous=False,
 ) -> int:
     """
@@ -89,7 +88,7 @@ def find_replication_version(
 
 
 def _chunk_processing_batch(
-    model: Union[type[ControlOutboxProducingModel], type[RegionOutboxProducingModel], type[User]],
+    model: type[ControlOutboxProducingModel] | type[RegionOutboxProducingModel] | type[User],
     *,
     batch_size: int,
     force_synchronous=False,

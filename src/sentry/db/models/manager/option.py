@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any
 
 from celery.signals import task_postrun
 from django.core.signals import request_finished
@@ -26,6 +26,6 @@ class OptionManager(BaseManager[M]):
         task_postrun.connect(self.clear_local_cache)
         request_finished.connect(self.clear_local_cache)
 
-    def _make_key(self, instance_id: Union[int, str]) -> str:
+    def _make_key(self, instance_id: int | str) -> str:
         assert instance_id
         return f"{self.model._meta.db_table}:{instance_id}"

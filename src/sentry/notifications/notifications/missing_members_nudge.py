@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry.db.models.base import Model
 from sentry.models.organization import Organization
@@ -48,7 +48,7 @@ class MissingMembersNudgeNotification(BaseNotification):
         return [ExternalProviders.EMAIL]
 
     def get_members_list_url(
-        self, provider: ExternalProviders, recipient: Optional[RpcActor] = None
+        self, provider: ExternalProviders, recipient: RpcActor | None = None
     ) -> str:
         url = self.organization.absolute_url(
             f"/settings/{self.organization.slug}/members/",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import Any, Mapping, Sequence
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -77,9 +77,9 @@ class MetricsQueryBuilder(QueryBuilder):
         *args: Any,
         # Datasets are currently a bit confusing; Dataset.Metrics is actually release health/sessions
         # Dataset.PerformanceMetrics is MEP. TODO: rename Dataset.Metrics to Dataset.ReleaseMetrics or similar
-        dataset: Optional[Dataset] = None,
-        granularity: Optional[int] = None,
-        config: Optional[QueryBuilderConfig] = None,
+        dataset: Dataset | None = None,
+        granularity: int | None = None,
+        config: QueryBuilderConfig | None = None,
         **kwargs: Any,
     ):
         if config is None:
@@ -92,8 +92,8 @@ class MetricsQueryBuilder(QueryBuilder):
         # only used for metrics_layer right now
         self.metrics_layer_functions: list[CurriedFunction] = []
         self.metric_ids: set[int] = set()
-        self._indexer_cache: dict[str, Optional[int]] = {}
-        self._use_default_tags: Optional[bool] = None
+        self._indexer_cache: dict[str, int | None] = {}
+        self._use_default_tags: bool | None = None
         # always true if this is being called
         config.has_metrics = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
@@ -147,7 +147,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return super().are_columns_resolved()
 
-    def _get_on_demand_metric_spec(self, field: str) -> Optional[OnDemandMetricSpec]:
+    def _get_on_demand_metric_spec(self, field: str) -> OnDemandMetricSpec | None:
         if not field:
             return None
 
@@ -189,7 +189,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return bool(self._on_demand_metric_spec_map)
 
     @cached_property
-    def _on_demand_metric_spec_map(self) -> Optional[dict[str, OnDemandMetricSpec]]:
+    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec] | None:
         if not self.builder_config.on_demand_metrics_enabled:
             return None
 
@@ -206,10 +206,10 @@ class MetricsQueryBuilder(QueryBuilder):
         self,
         spec: OnDemandMetricSpec,
         require_time_range: bool = True,
-        groupby: Optional[Sequence[MetricGroupByField]] = None,
+        groupby: Sequence[MetricGroupByField] | None = None,
         # Where normally isn't accepted for on-demand since it should only encoded into the metric
         # but in the case of top events, etc. there is need for another where condition dynamically for top N groups.
-        additional_where: Optional[Sequence[Condition]] = None,
+        additional_where: Sequence[Condition] | None = None,
     ) -> MetricsQuery:
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
@@ -322,11 +322,11 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_query(
         self,
-        query: Optional[str] = None,
-        selected_columns: Optional[list[str]] = None,
-        groupby_columns: Optional[list[str]] = None,
-        equations: Optional[list[str]] = None,
-        orderby: Optional[list[str]] = None,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        groupby_columns: list[str] | None = None,
+        equations: list[str] | None = None,
+        orderby: list[str] | None = None,
     ) -> None:
         # Resolutions that we always must perform, irrespectively of on demand.
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
@@ -444,7 +444,7 @@ class MetricsQueryBuilder(QueryBuilder):
         granularity = optimal_granularity_for_date_range(self.start, self.end)
         return Granularity(granularity)
 
-    def resolve_split_granularity(self) -> tuple[list[Condition], Optional[Granularity]]:
+    def resolve_split_granularity(self) -> tuple[list[Condition], Granularity | None]:
         """This only is applicable to table queries, we can use multiple granularities across the time period, which
         should improve performance"""
         if self.end is None or self.start is None:
@@ -526,7 +526,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 return []
         return super().resolve_having(parsed_terms)
 
-    def resolve_limit(self, limit: Optional[int]) -> Limit:
+    def resolve_limit(self, limit: int | None) -> Limit:
         """Impose a max limit, since we may need to create a large condition based on the group by values when the query
         is run"""
         if limit is not None and limit > constants.METRICS_MAX_LIMIT:
@@ -544,7 +544,7 @@ class MetricsQueryBuilder(QueryBuilder):
         arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
-    ) -> Optional[SelectType]:
+    ) -> SelectType | None:
         if snql_function.snql_distribution is not None:
             resolved_function = snql_function.snql_distribution(arguments, alias)
             if not resolve_only:
@@ -580,7 +580,7 @@ class MetricsQueryBuilder(QueryBuilder):
             return resolved_function
         return None
 
-    def resolve_metric_index(self, value: str) -> Optional[int]:
+    def resolve_metric_index(self, value: str) -> int | None:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
             result = indexer.resolve(self.use_case_id, self.organization_id, value)
@@ -588,12 +588,12 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return self._indexer_cache[value]
 
-    def resolve_tag_value(self, value: str) -> Optional[Union[int, str]]:
+    def resolve_tag_value(self, value: str) -> int | str | None:
         if self.is_performance or self.use_metrics_layer:
             return value
         return self.resolve_metric_index(value)
 
-    def resolve_tag_key(self, value: str) -> Optional[Union[int, str]]:
+    def resolve_tag_key(self, value: str) -> int | str | None:
         if self.use_default_tags:
             if value in constants.DEFAULT_METRIC_TAGS:
                 return self.resolve_metric_index(value)
@@ -602,7 +602,7 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             return self.resolve_metric_index(value)
 
-    def default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def default_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -674,14 +674,14 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
-    def _resolve_environment_filter_value(self, value: str) -> Union[int, str]:
-        value_id: Optional[Union[int, str]] = self.resolve_tag_value(f"{value}")
+    def _resolve_environment_filter_value(self, value: str) -> int | str:
+        value_id: int | str | None = self.resolve_tag_value(f"{value}")
         if value_id is None:
             raise IncompatibleMetricsQuery(f"Environment: {value} was not found")
 
         return value_id
 
-    def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _environment_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         """All of this is copied from the parent class except for the addition of `resolve_value`
 
         Going to live with the duplicated code since this will go away anyways once we move to the metric layer
@@ -715,8 +715,8 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def get_metrics_layer_snql_query(
         self,
-        query_framework: Optional[QueryFramework] = None,
-        extra_conditions: Optional[list[Condition]] = None,
+        query_framework: QueryFramework | None = None,
+        extra_conditions: list[Condition] | None = None,
     ) -> Query:
         """
         This method returns the metrics layer snql of the query being fed into the transformer and then into the metrics
@@ -871,7 +871,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 for framework in query_framework.values():
                     framework.orderby.append(orderby)
 
-        having_entity: Optional[str] = None
+        having_entity: str | None = None
         for condition in self.flattened_having:
             for entity, framework in query_framework.items():
                 if condition.lhs in framework.functions:
@@ -1221,7 +1221,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         self._granularity = granularity
         super().__init__(*args, **kwargs)
 
-    def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
+    def resolve_limit(self, limit: int | None) -> Limit | None:
         return None
 
     def resolve_granularity(self) -> Granularity:
@@ -1283,7 +1283,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
 
         return super().get_snql_query()
 
-    def resolve_split_granularity(self) -> tuple[list[Condition], Optional[Granularity]]:
+    def resolve_split_granularity(self) -> tuple[list[Condition], Granularity | None]:
         """Don't do this for anything but table queries"""
         return [], self.granularity
 
@@ -1304,7 +1304,7 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
             histogram_params.start_offset + histogram_params.bucket_size * self.num_buckets
         )
 
-        self.zoom_params: Optional[Function] = metrics_histogram.zoom_histogram(
+        self.zoom_params: Function | None = metrics_histogram.zoom_histogram(
             self.num_buckets,
             self.min_bin,
             self.max_bin,
@@ -1327,7 +1327,7 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
 
         return result
 
-    def resolve_split_granularity(self) -> tuple[list[Condition], Optional[Granularity]]:
+    def resolve_split_granularity(self) -> tuple[list[Condition], Granularity | None]:
         """Don't do this for anything but table queries"""
         return [], self.granularity
 
@@ -1339,12 +1339,12 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         self,
         params: ParamsType,
         interval: int,
-        dataset: Optional[Dataset] = None,
-        query: Optional[str] = None,
-        selected_columns: Optional[list[str]] = None,
-        limit: Optional[int] = 10000,
-        groupby: Optional[Column] = None,
-        config: Optional[QueryBuilderConfig] = None,
+        dataset: Dataset | None = None,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        limit: int | None = 10000,
+        groupby: Column | None = None,
+        config: QueryBuilderConfig | None = None,
     ):
         self.interval = interval
         config = config if config is not None else QueryBuilderConfig()
@@ -1387,7 +1387,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
         return Granularity(granularity)
 
-    def resolve_split_granularity(self) -> tuple[list[Condition], Optional[Granularity]]:
+    def resolve_split_granularity(self) -> tuple[list[Condition], Granularity | None]:
         """Don't do this for timeseries"""
         return [], self.granularity
 
@@ -1620,11 +1620,11 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         interval: int,
         top_events: list[dict[str, Any]],
         other: bool = False,
-        query: Optional[str] = None,
-        selected_columns: Optional[list[str]] = None,
-        timeseries_columns: Optional[list[str]] = None,
-        limit: Optional[int] = 10000,
-        config: Optional[QueryBuilderConfig] = None,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        timeseries_columns: list[str] | None = None,
+        limit: int | None = 10000,
+        config: QueryBuilderConfig | None = None,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -1691,7 +1691,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
     def resolve_top_event_conditions(
         self, top_events: list[dict[str, Any]], other: bool
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         """Given a list of top events construct the conditions"""
         conditions = []
 

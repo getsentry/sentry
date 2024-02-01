@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Union
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -43,12 +43,12 @@ class Operation:
     def __init__(
         self,
         operator: str,
-        lhs: Optional[OperandType] = None,
-        rhs: Optional[OperandType] = None,
+        lhs: OperandType | None = None,
+        rhs: OperandType | None = None,
     ) -> None:
         self.operator = operator
-        self.lhs: Optional[OperandType] = lhs
-        self.rhs: Optional[OperandType] = rhs
+        self.lhs: OperandType | None = lhs
+        self.rhs: OperandType | None = rhs
         self.validate()
 
     def validate(self) -> None:
@@ -59,7 +59,7 @@ class Operation:
         if self.operator == "divide" and self.rhs == 0:
             raise ArithmeticValidationError("division by 0 is not allowed")
 
-    def to_snuba_json(self, alias: Optional[str] = None) -> JsonQueryType:
+    def to_snuba_json(self, alias: str | None = None) -> JsonQueryType:
         """Convert this tree of Operations to the equivalent snuba json"""
         lhs = self.lhs.to_snuba_json() if isinstance(self.lhs, Operation) else self.lhs
         # TODO(snql): This is a hack so the json syntax doesn't turn lhs into a function
@@ -195,7 +195,7 @@ class ArithmeticVisitor(NodeVisitor):
         "percentile_range",
     }
 
-    def __init__(self, max_operators: int | None, custom_measurements: Optional[set[str]]):
+    def __init__(self, max_operators: int | None, custom_measurements: set[str] | None):
         super().__init__()
         self.operators: int = 0
         self.terms: int = 0
@@ -294,8 +294,8 @@ class ArithmeticVisitor(NodeVisitor):
 
 def parse_arithmetic(
     equation: str,
-    max_operators: Optional[int] = None,
-    custom_measurements: Optional[set[str]] = None,
+    max_operators: int | None = None,
+    custom_measurements: set[str] | None = None,
 ) -> tuple[Operation, list[str], list[str]]:
     """Given a string equation try to parse it into a set of Operations"""
     try:
@@ -327,7 +327,7 @@ def resolve_equation_list(
     aggregates_only: bool = False,
     auto_add: bool = False,
     plain_math: bool = False,
-    custom_measurements: Optional[set[str]] = None,
+    custom_measurements: set[str] | None = None,
 ) -> tuple[list[str], list[ParsedEquation]]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats
     :param equations: list of equations strings that haven't been parsed yet

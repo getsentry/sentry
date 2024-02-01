@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
 
 from django.http.request import HttpRequest
 
@@ -27,7 +26,7 @@ def unfurl_issues(
     request: HttpRequest,
     integration: Integration,
     links: list[UnfurlableUrl],
-    user: Optional[User] = None,
+    user: User | None = None,
 ) -> UnfurledUrl:
     """
     Returns a map of the attachments used in the response we send to Slack

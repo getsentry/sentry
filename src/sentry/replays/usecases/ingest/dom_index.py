@@ -5,7 +5,7 @@ import random
 import time
 import uuid
 from hashlib import md5
-from typing import Any, Literal, Optional, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 from django.conf import settings
 
@@ -20,7 +20,7 @@ logger = logging.getLogger("sentry.replays")
 
 EVENT_LIMIT = 20
 
-replay_publisher: Optional[KafkaPublisher] = None
+replay_publisher: KafkaPublisher | None = None
 
 ReplayActionsEventPayloadClick = TypedDict(
     "ReplayActionsEventPayloadClick",
@@ -81,7 +81,7 @@ def parse_replay_actions(
     replay_id: str,
     retention_days: int,
     segment_data: list[dict[str, Any]],
-) -> Optional[ReplayActionsEvent]:
+) -> ReplayActionsEvent | None:
     """Parse RRWeb payload to ReplayActionsEvent."""
     actions = get_user_actions(project_id, replay_id, segment_data)
     if len(actions) == 0:
@@ -317,7 +317,7 @@ def create_click_event(
     replay_id: str,
     is_dead: bool,
     is_rage: bool,
-) -> Optional[ReplayActionsEventPayloadClick]:
+) -> ReplayActionsEventPayloadClick | None:
     node = payload.get("data", {}).get("node")
     if node is None:
         return None

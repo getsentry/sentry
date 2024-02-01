@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Callable, Sequence
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -155,7 +155,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
             return params
 
-    def get_orderby(self, request: Request) -> Optional[Sequence[str]]:
+    def get_orderby(self, request: Request) -> Sequence[str] | None:
         sort: Sequence[str] = request.GET.getlist("sort")
         if sort:
             return sort
@@ -190,7 +190,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     owner = ApiOwner.PERFORMANCE
 
-    def build_cursor_link(self, request: Request, name: str, cursor: Optional[Cursor]) -> str:
+    def build_cursor_link(self, request: Request, name: str, cursor: Cursor | None) -> str:
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
         querystring = "&".join(
@@ -224,8 +224,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
     def handle_unit_meta(
         self, meta: dict[str, str]
-    ) -> tuple[dict[str, str], dict[str, Optional[str]]]:
-        units: dict[str, Optional[str]] = {}
+    ) -> tuple[dict[str, str], dict[str, str | None]]:
+        units: dict[str, str | None] = {}
         for key, value in meta.items():
             if value in SIZE_UNITS:
                 units[key] = value
@@ -252,8 +252,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         organization: Organization,
         project_ids: Sequence[int],
         results: dict[str, Any],
-        standard_meta: Optional[bool] = False,
-        dataset: Optional[Any] = None,
+        standard_meta: bool | None = False,
+        dataset: Any | None = None,
     ) -> dict[str, Any]:
         with sentry_sdk.start_span(op="discover.endpoint", description="base.handle_results"):
             data = self.handle_data(request, organization, project_ids, results.get("data"))
@@ -289,8 +289,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request: Request,
         organization: Organization,
         project_ids: Sequence[int],
-        results: Optional[Sequence[Any]],
-    ) -> Optional[Sequence[Any]]:
+        results: Sequence[Any] | None,
+    ) -> Sequence[Any] | None:
         if not results:
             return results
 
@@ -345,17 +345,17 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         request: Request,
         organization: Organization,
         get_event_stats: Callable[
-            [Sequence[str], str, dict[str, str], int, bool, Optional[timedelta]], SnubaTSResult
+            [Sequence[str], str, dict[str, str], int, bool, timedelta | None], SnubaTSResult
         ],
         top_events: int = 0,
         query_column: str = "count()",
-        params: Optional[dict[str, Any]] = None,
-        query: Optional[str] = None,
+        params: dict[str, Any] | None = None,
+        query: str | None = None,
         allow_partial_buckets: bool = False,
         zerofill_results: bool = True,
-        comparison_delta: Optional[timedelta] = None,
-        additional_query_column: Optional[str] = None,
-        dataset: Optional[Any] = None,
+        comparison_delta: timedelta | None = None,
+        additional_query_column: str | None = None,
+        dataset: Any | None = None,
     ) -> dict[str, Any]:
         with handle_query_errors():
             with sentry_sdk.start_span(
@@ -529,7 +529,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         query_columns: Sequence[str],
         allow_partial_buckets: bool,
         zerofill_results: bool = True,
-        dataset: Optional[Any] = None,
+        dataset: Any | None = None,
     ) -> dict[str, Any]:
         # Return with requested yAxis as the key
         result = {}

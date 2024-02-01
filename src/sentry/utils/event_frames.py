@@ -3,20 +3,20 @@ from __future__ import annotations
 import inspect
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Protocol, Sequence, cast
+from typing import Any, Callable, Mapping, MutableMapping, Protocol, Sequence, cast
 
 from sentry.utils.safe import PathSearchable, get_path
 
 
 @dataclass(frozen=True)
 class EventFrame:
-    lineno: Optional[int] = None
-    in_app: Optional[bool] = None
-    abs_path: Optional[str] = None
-    filename: Optional[str] = None
-    function: Optional[str] = None
-    package: Optional[str] = None
-    module: Optional[str] = None
+    lineno: int | None = None
+    in_app: bool | None = None
+    abs_path: str | None = None
+    filename: str | None = None
+    function: str | None = None
+    package: str | None = None
+    module: str | None = None
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> EventFrame:
@@ -104,7 +104,7 @@ PLATFORM_FRAME_MUNGER: Mapping[str, SdkFrameMunger] = {
 }
 
 
-def get_sdk_name(event_data: PathSearchable) -> Optional[str]:
+def get_sdk_name(event_data: PathSearchable) -> str | None:
     return get_path(event_data, "sdk", "name", filter=True) or None
 
 
@@ -130,7 +130,7 @@ def munged_filename_and_frames(
     data_frames: Sequence[Mapping[str, Any]],
     key: str = "munged_filename",
     sdk_name: str | None = None,
-) -> Optional[tuple[str, Sequence[Mapping[str, Any]]]]:
+) -> tuple[str, Sequence[Mapping[str, Any]]] | None:
     """
     Applies platform-specific frame munging for filename pathing.
 
