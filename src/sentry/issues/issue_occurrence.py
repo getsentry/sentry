@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Sequence, TypedDict, cast
+from typing import Any, Mapping, NotRequired, Sequence, TypedDict, cast
 
 from django.utils.timezone import is_aware
 
@@ -34,7 +34,7 @@ class IssueOccurrenceData(TypedDict):
     detection_time: float
     level: str | None
     culprit: str | None
-    initial_issue_priority: int | None
+    initial_issue_priority: NotRequired[int]
 
 
 @dataclass(frozen=True)
