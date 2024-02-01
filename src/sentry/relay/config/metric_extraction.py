@@ -415,7 +415,7 @@ def _can_widget_query_use_stateful_extraction(
     specs_per_version = get_specs_per_version(metrics_specs)
 
     stateful_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
-    default_version_specs = specs_per_version[stateful_extraction_version]
+    default_version_specs = specs_per_version.get(stateful_extraction_version, [])
     spec_hashes = [hashed_spec[0] for hashed_spec in default_version_specs]
 
     on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.filter(
