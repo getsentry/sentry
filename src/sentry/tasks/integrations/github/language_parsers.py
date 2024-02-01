@@ -223,4 +223,6 @@ BETA_PATCH_PARSERS: dict[str, Any] = {
     "py": PythonParser,
     "js": JavascriptParser,
     "jsx": JavascriptParser,
+    "ts": JavascriptParser,
+    "tsx": JavascriptParser,
 }
