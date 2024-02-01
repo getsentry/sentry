@@ -1,4 +1,4 @@
-import {MonitorBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {MonitorBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {filterMonitorStatsBucketByEnv} from 'sentry/views/monitors/utils/filterMonitorStatsBucketByEnv';
 
 describe('filterMonitorStatsBucketByEnvs', function () {

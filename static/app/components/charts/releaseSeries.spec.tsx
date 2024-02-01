@@ -3,7 +3,8 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ReleaseSeries, {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
+import type {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {lightTheme} from 'sentry/utils/theme';
 
 describe('ReleaseSeries', function () {

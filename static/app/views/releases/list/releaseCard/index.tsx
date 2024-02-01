@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
-import {Location} from 'history';
+import type {Location} from 'history';
 import partition from 'lodash/partition';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -16,11 +16,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, Release} from 'sentry/types';
+import type {Organization, PageFilters, Release} from 'sentry/types';
 
-import {Threshold, ThresholdStatus} from '../../utils/types';
-import {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import {ReleasesRequestRenderProps} from '../releasesRequest';
+import type {Threshold, ThresholdStatus} from '../../utils/types';
+import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
+import type {ReleasesRequestRenderProps} from '../releasesRequest';
 
 import ReleaseCardCommits from './releaseCardCommits';
 import ReleaseCardProjectRow from './releaseCardProjectRow';

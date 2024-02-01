@@ -1,7 +1,8 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import {OnboardingTask, OnboardingTaskStatus, Organization} from 'sentry/types';
+import type {OnboardingTask, OnboardingTaskStatus, Organization} from 'sentry/types';
+
+import {updateOrganization} from './organizations';
 
 interface UpdatedTask extends Partial<Pick<OnboardingTask, 'status' | 'data'>> {
   task: OnboardingTask['task'];
@@ -41,5 +42,5 @@ export function updateOnboardingTask(
       )
     : [...organization.onboardingTasks, {...updatedTask, user} as OnboardingTaskStatus];
 
-  OrganizationStore.onUpdate({onboardingTasks});
+  updateOrganization({onboardingTasks});
 }

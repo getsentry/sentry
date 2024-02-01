@@ -273,26 +273,26 @@ def _trim_if_above_limit(
 ) -> list[HashedMetricSpec]:
     """Trim specs per version if above max limit"""
     return_specs = []
-    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    specs_per_version: dict[int, dict[str, HashedMetricSpec]] = {}
     for hash, spec, spec_version in specs:
-        specs_per_version.setdefault(spec_version.version, [])
-        specs_per_version[spec_version.version].append((hash, spec, spec_version))
+        specs_per_version.setdefault(spec_version.version, {})
+        specs_per_version[spec_version.version][hash] = (hash, spec, spec_version)
 
-    for version, specs_for_version in specs_per_version.items():
+    for version, _specs_for_version in specs_per_version.items():
+        specs_for_version = _specs_for_version.values()
         if len(specs_for_version) > max_specs:
-            # Do not log for Sentry
-            if project.organization.id != 1:
-                logger.error(
-                    "Spec version %s: Too many (%s) on demand metric %s for project %s",
-                    version,
-                    len(specs_for_version),
-                    widget_type,
-                    project.slug,
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("project_id", project.id)
+                scope.set_context("specs", {"values": [spec[0] for spec in specs_for_version]})
+                sentry_sdk.capture_exception(
+                    Exception(
+                        f"Spec version {version}: Too many ({len(specs_for_version)}) on demand metric {widget_type} for org {project.organization.slug}"
+                    )
                 )
 
-            return_specs += specs_for_version[:max_specs]
+            return_specs += list(specs_for_version)[:max_specs]
         else:
-            return_specs += specs_for_version
+            return_specs += list(specs_for_version)
 
     return return_specs
 
@@ -304,7 +304,7 @@ def _merge_metric_specs(
     # We use a dict so that we can deduplicate metrics with the same hash.
     specs: dict[str, MetricSpec] = {}
     duplicated_specs = 0
-    for query_hash, spec, _ in alert_specs + widget_specs:
+    for query_hash, spec, _ in widget_specs + alert_specs:
         already_present = specs.get(query_hash)
         if already_present and not are_specs_equal(already_present, spec):
             logger.warning(
@@ -399,7 +399,8 @@ def _can_widget_query_use_stateful_extraction(
     widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
 ) -> bool:
     """Stateful extraction for metrics is not always used, in cases where a query has been recently modified.
-    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries."""
+    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries.
+    """
     spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]
     on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
 
@@ -451,9 +452,10 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
     this assumes stateful extraction can be used, and returns the enabled state."""
     on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
 
-    if len(on_demand_entries) != 1:
+    if len(on_demand_entries) != len(OnDemandMetricSpecVersioning.get_spec_versions()):
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("on_demand_entries", on_demand_entries)
+            scope.set_extra("spec_version", OnDemandMetricSpecVersioning.get_spec_versions())
             sentry_sdk.capture_exception(
                 Exception("Skipped extraction due to mismatched on_demand entries")
             )

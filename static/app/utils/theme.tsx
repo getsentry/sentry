@@ -158,7 +158,7 @@ const prismLight = {
 
 const prismDark = {
   '--prism-base': '#D6D0DC',
-  '--prism-selected': '#18121C',
+  '--prism-selected': '#393041',
   '--prism-inline-code': '#D6D0DC',
   '--prism-inline-code-background': '#18121C',
   '--prism-highlight-background': '#A8A2C31C',

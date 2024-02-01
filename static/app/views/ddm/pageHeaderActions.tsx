@@ -66,7 +66,13 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
         leadingItems: [<IconDashboard key="icon" />],
         key: 'add-dashboard',
         label: t('Add to Dashboard'),
-        onAction: createDashboard,
+        onAction: () => {
+          trackAnalytics('ddm.add-to-dashboard', {
+            organization,
+            source: 'global',
+          });
+          createDashboard();
+        },
       },
       {
         leadingItems: [<IconSettings key="icon" />],
@@ -108,7 +114,13 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
             ? t('Custom measurements cannot be used to create alerts')
             : undefined,
           disabled: !createAlert,
-          onAction: createAlert,
+          onAction: () => {
+            trackAnalytics('ddm.create-alert', {
+              organization,
+              source: 'global',
+            });
+            createAlert?.();
+          },
         };
       }),
     [
@@ -126,7 +138,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
     <ButtonBar gap={1}>
       {showCustomMetricButton && (
         <Button priority="primary" onClick={() => addCustomMetric('header')} size="sm">
-          {t('Add Custom Metric')}
+          {t('Set Up Custom Metrics')}
         </Button>
       )}
       <Button

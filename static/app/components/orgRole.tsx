@@ -7,7 +7,7 @@ import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types';
 import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 
 export function OrgRoleInfo({

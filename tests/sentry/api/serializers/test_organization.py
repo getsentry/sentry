@@ -77,6 +77,7 @@ class OrganizationSerializerTest(TestCase):
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
+            "integrations-codeowners",
             "integrations-deployment",
             "dashboard-widget-indicators",
             "integrations-enterprise-alert-rule",
@@ -189,7 +190,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         self.team
         self.project
         self.release = self.create_release(self.project)
-        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
+        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=datetime.UTC)
         self.environment_1 = Environment.objects.create(
             organization_id=self.organization.id, name="production"
         )

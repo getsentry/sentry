@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 
 import {getKnownData, getUnknownData} from '../utils';
 
 import {getBrowserKnownDataDetails} from './getBrowserKnownDataDetails';
-import {BrowserKnownData, BrowserKnownDataType} from './types';
+import type {BrowserKnownData} from './types';
+import {BrowserKnownDataType} from './types';
 
 type Props = {
   data: BrowserKnownData;

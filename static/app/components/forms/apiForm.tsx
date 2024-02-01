@@ -1,8 +1,9 @@
 import {useCallback} from 'react';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import {RequestOptions} from 'sentry/api';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {RequestOptions} from 'sentry/api';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 

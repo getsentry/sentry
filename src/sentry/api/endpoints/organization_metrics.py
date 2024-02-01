@@ -10,7 +10,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
-from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
@@ -18,11 +18,6 @@ from sentry.sentry_metrics.querying.errors import (
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
-from sentry.sentry_metrics.visibility import (
-    BlockedMetric,
-    MalformedBlockedMetricsPayloadError,
-    block_metric,
-)
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_all_tags,
@@ -34,6 +29,7 @@ from sentry.snuba.metrics import (
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import parse_stats_period
 
@@ -55,7 +51,7 @@ def get_use_case_id(request: Request) -> UseCaseID:
 
 @region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL, "POST": ApiPublishStatus.EXPERIMENTAL}
+    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def get(self, request: Request, organization) -> Response:
@@ -66,30 +62,6 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
         metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
 
         return Response(metrics, status=200)
-
-    def post(self, request: Request, organization) -> Response:
-        projects = self.get_projects(request, organization)
-        if not projects:
-            raise InvalidParams(
-                "You must supply at least one projects of which metrics will be blocked"
-            )
-
-        metrics = request.data.get("metrics", [])
-        if not metrics:
-            raise InvalidParams("You must supply at least one metric to block")
-
-        for metric in metrics:
-            try:
-                blocked_metric = BlockedMetric(metric_mri=metric, tags=request.GET.getlist("tag"))
-                block_metric(blocked_metric, projects)
-            except MalformedBlockedMetricsPayloadError:
-                # In case one metric fails to be inserted, we abort the entire insertion since the project options are
-                # likely to be corrupted.
-                return Response(
-                    {"detail": "The blocked metrics settings are corrupted, try again"}, status=500
-                )
-
-        return Response(status=200)
 
 
 @region_silo_endpoint
@@ -206,6 +178,17 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     The data can be filtered and grouped by tags.
     Based on `OrganizationSessionsEndpoint`.
     """
+
+    # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
+    default_rate_limit = RateLimit(200, 5)
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: default_rate_limit,
+            RateLimitCategory.USER: default_rate_limit,
+            RateLimitCategory.ORGANIZATION: default_rate_limit,
+        },
+    }
 
     # Number of groups returned for each page (applies to old endpoint).
     default_per_page = 50

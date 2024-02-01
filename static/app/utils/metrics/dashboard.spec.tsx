@@ -1,5 +1,11 @@
-import {MetricDisplayType} from 'sentry/utils/metrics';
-import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
+import type {MRI} from 'sentry/types';
+import {
+  convertToDashboardWidget,
+  getWidgetQuery,
+  toDisplayType,
+  toMetricDisplayType,
+} from 'sentry/utils/metrics/dashboard';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 describe('convertToDashboardWidget', () => {
@@ -75,5 +81,69 @@ describe('convertToDashboardWidget', () => {
         },
       ],
     });
+  });
+});
+
+describe('toMetricDisplayType', () => {
+  it('should return the displayType if it is a valid MetricDisplayType', () => {
+    expect(MetricDisplayType.BAR).toEqual(toMetricDisplayType(DisplayType.BAR));
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(DisplayType.LINE));
+    expect(MetricDisplayType.AREA).toEqual(toMetricDisplayType(DisplayType.AREA));
+  });
+
+  it('should return MetricDisplayType.LINE if the displayType is invalid or unsupported', () => {
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(DisplayType.BIG_NUMBER));
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(DisplayType.TABLE));
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(DisplayType.TOP_N));
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(undefined));
+    expect(MetricDisplayType.LINE).toEqual(toMetricDisplayType(''));
+  });
+});
+
+describe('toDisplayType', () => {
+  it('should return the displayType if it is a valid MetricDisplayType', () => {
+    expect(DisplayType.BAR).toEqual(toDisplayType(DisplayType.BAR));
+    expect(DisplayType.LINE).toEqual(toDisplayType(DisplayType.LINE));
+    expect(DisplayType.AREA).toEqual(toDisplayType(DisplayType.AREA));
+    expect(DisplayType.BIG_NUMBER).toEqual(toDisplayType(DisplayType.BIG_NUMBER));
+    expect(DisplayType.TABLE).toEqual(toDisplayType(DisplayType.TABLE));
+    expect(DisplayType.TOP_N).toEqual(toDisplayType(DisplayType.TOP_N));
+  });
+
+  it('should return DisplayType.LINE if the displayType is invalid or unsupported', () => {
+    expect(DisplayType.LINE).toEqual(toDisplayType(undefined));
+    expect(DisplayType.LINE).toEqual(toDisplayType(''));
+  });
+});
+
+describe('getWidgetQuery', () => {
+  const metricsQueryBase = {
+    datetime: {start: '2022-01-01', end: '2022-01-31', period: null, utc: false},
+    environments: ['production'],
+    projects: [1],
+    groupBy: [],
+    query: '',
+  };
+
+  it('should return the correct widget query object', () => {
+    // Arrange
+    const metricsQuery = {
+      ...metricsQueryBase,
+      mri: 'd:custom/sentry.events.symbolicator.query_task@second' as MRI,
+      op: 'sum',
+      query: 'status = "success"',
+      title: 'Example Widget',
+    };
+
+    const expectedWidgetQuery = {
+      name: '',
+      aggregates: ['sum(d:custom/sentry.events.symbolicator.query_task@second)'],
+      columns: [],
+      fields: ['sum(d:custom/sentry.events.symbolicator.query_task@second)'],
+      conditions: 'status = "success"',
+      orderby: '',
+    };
+
+    expect(getWidgetQuery(metricsQuery)).toEqual(expectedWidgetQuery);
   });
 });

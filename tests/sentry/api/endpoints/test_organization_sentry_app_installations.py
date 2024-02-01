@@ -1,6 +1,10 @@
+from sentry.constants import SentryAppStatus
+from sentry.models.integrations.integration_feature import Feature
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -127,3 +131,37 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         self.login_as(user=self.user)
         response = self.get_error_response(self.org.slug, slug="1234", status_code=400)
         assert response.data["slug"][0] == DEFAULT_SLUG_ERROR_MESSAGE
+
+    def test_cannot_install_nonexistent_app(self):
+        self.login_as(user=self.user)
+        self.get_error_response(self.org.slug, slug="nonexistent", status_code=404)
+
+    def test_cannot_install_unpublished_unowned_app(self):
+        self.login_as(user=self.user)
+        org2 = self.create_organization()
+        app2 = self.create_sentry_app(name="Unpublished", organization=org2)
+        self.get_error_response(self.org.slug, slug=app2.slug, status_code=404)
+
+    def test_cannot_install_other_org_internal_app(self):
+        self.login_as(user=self.user)
+        org2 = self.create_organization()
+        internal_app = self.create_internal_integration(name="Internal App", organization=org2)
+        self.get_error_response(self.org.slug, slug=internal_app.slug, status_code=404)
+
+    @with_feature({"organizations:integrations-alert-rule": False})
+    def test_disallow_app_with_all_features_disabled(self):
+        # prepare an app with paid features
+        app = self.unpublished_app
+        SentryAppUpdater(sentry_app=app, features=[Feature.ALERTS]).run(user=self.user)
+        app.update(status=SentryAppStatus.PUBLISHED)
+
+        # test on a free-tier org
+        user2 = self.create_user("free@example.com")
+        org2 = self.create_organization(owner=user2)
+        self.login_as(user=user2)
+
+        response = self.get_error_response(org2.slug, slug=app.slug, status_code=403)
+        assert response.data == {
+            "detail": "At least one feature from this list has to be enabled in order to install the app",
+            "missing_features": ["organizations:integrations-alert-rule"],
+        }

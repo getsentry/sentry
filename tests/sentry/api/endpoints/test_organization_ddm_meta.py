@@ -8,7 +8,9 @@ from django.utils import timezone
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.metadata.code_locations import get_cache_key_for_code_location
+from sentry.sentry_metrics.querying.metadata.metrics_code_locations import (
+    get_cache_key_for_code_location,
+)
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
@@ -182,10 +184,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert len(codeLocations) == 0
 
     @patch(
-        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher._get_code_locations"
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher._get_code_locations"
     )
     @patch(
-        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.BATCH_SIZE", 10
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.BATCH_SIZE",
+        10,
     )
     def test_get_locations_batching(self, get_code_locations_mock):
         get_code_locations_mock.return_value = []
@@ -313,7 +316,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert frame["postContext"] == []
 
     @patch(
-        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
         50,
     )
     def test_get_locations_with_too_many_combinations(self):
@@ -325,7 +328,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             metric=[mri],
             project=[project.id],
             statsPeriod="90d",
-            status_code=500,
+            status_code=400,
             codeLocations="true",
         )
 
@@ -335,11 +338,13 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         transaction_id = uuid.uuid4().hex
         trace_id = uuid.uuid4().hex
 
+        segment_span_id = "56230207e8e4a6ab"
         self.store_segment(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
             trace_id=trace_id,
             transaction_id=transaction_id,
+            span_id=segment_span_id,
             duration=30,
         )
         span_id_1 = "98230207e6e4a6ad"
@@ -384,6 +389,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 1
         assert metric_spans[0]["transactionId"] == transaction_id
+        assert metric_spans[0]["transactionSpanId"] == segment_span_id
         assert metric_spans[0]["duration"] == 30
         assert metric_spans[0]["spansNumber"] == 3
         assert sorted(metric_spans[0]["metricSummaries"], key=lambda value: value["min"]) == [

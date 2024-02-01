@@ -2,7 +2,8 @@ import type {Theme} from '@emotion/react';
 
 import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
 import {t} from 'sentry/locale';
-import {Group, GroupSubstatus} from 'sentry/types';
+import type {Group} from 'sentry/types';
+import {GroupSubstatus} from 'sentry/types';
 
 interface SubstatusBadgeProps {
   status: Group['status'];
@@ -52,8 +53,8 @@ function getBadgeProperties(
         substatus === GroupSubstatus.ARCHIVED_FOREVER
           ? t('Archived forever')
           : substatus === GroupSubstatus.ARCHIVED_UNTIL_ESCALATING
-          ? t('Archived until escalating')
-          : t('Archived until condition met'),
+            ? t('Archived until escalating')
+            : t('Archived until condition met'),
     };
   }
   return undefined;

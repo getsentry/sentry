@@ -2,13 +2,15 @@ import dataclasses
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional, Union
+from typing import List, Optional, Union, cast
 
 import requests
 import urllib3
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from django.conf import settings
+from django.db.models import F, Window
+from django.db.models.functions import Rank
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
@@ -17,7 +19,7 @@ from sentry import options
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.signals import issue_assigned, issue_deleted, issue_unassigned
+from sentry.signals import issue_assigned, issue_deleted, issue_unassigned, post_update
 from sentry.utils import json, metrics, snuba
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -72,19 +74,34 @@ def _log_group_attributes_changed(
 def send_snapshot_values(
     group_id: Optional[int], group: Optional[Group], group_deleted: bool = False
 ) -> None:
+    group_ids = None
+    if group_id:
+        group_ids = [group_id]
+
+    groups = None
+    if group:
+        groups = [group]
+
+    bulk_send_snapshot_values(group_ids, groups, group_deleted=group_deleted)
+
+
+def bulk_send_snapshot_values(
+    group_ids: Optional[List[int]], groups: Optional[List[Group]], group_deleted: bool = False
+) -> None:
     if not (options.get("issues.group_attributes.send_kafka") or False):
         return
 
-    if group_id is None and group is None:
-        raise ValueError("cannot send snapshot values when group_id and group are None")
+    if group_ids is None and groups is None:
+        raise ValueError("cannot send snapshot values when group_ids and groups are None")
 
-    if group is not None:
-        return produce_snapshot_to_kafka(_retrieve_snapshot_values(group, group_deleted))
+    group_list: List[Group | GroupValues] = cast(List[Group | GroupValues], groups) or []
+    if group_ids:
+        group_list.extend(_bulk_retrieve_group_values(group_ids))
 
-    if group_id is not None:
-        return produce_snapshot_to_kafka(
-            _retrieve_snapshot_values(_retrieve_group_values(group_id), group_deleted)
-        )
+    snapshots = _bulk_retrieve_snapshot_values(group_list, group_deleted=group_deleted)
+
+    for snapshot in snapshots:
+        produce_snapshot_to_kafka(snapshot)
 
 
 def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
@@ -109,86 +126,81 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
 
 
 def _retrieve_group_values(group_id: int) -> GroupValues:
-    group_values = list(
-        Group.objects.filter(id=group_id).values(
-            "project_id", "status", "substatus", "first_seen", "num_comments"
+    return _bulk_retrieve_group_values([group_id])[0]
+
+
+def _bulk_retrieve_group_values(group_ids: List[int]) -> List[GroupValues]:
+    group_values_map = {
+        group["id"]: group
+        for group in Group.objects.filter(id__in=group_ids).values(
+            "id", "project_id", "status", "substatus", "first_seen", "num_comments"
         )
-    )
-    assert len(group_values) == 1
-
-    return GroupValues(
-        id=group_id,
-        project_id=group_values[0]["project_id"],
-        status=group_values[0]["status"],
-        substatus=group_values[0]["substatus"],
-        first_seen=group_values[0]["first_seen"],
-        num_comments=group_values[0]["num_comments"],
-    )
-
-
-def _retrieve_snapshot_values(
-    group_values: Union[Group, GroupValues], group_deleted: bool = False
-) -> GroupAttributesSnapshot:
-    group_assignee_values = list(
-        GroupAssignee.objects.filter(group_id=group_values.id)
-        .order_by("-date_added")
-        .values("user_id", "team_id")
-    )
-
-    group_owner_values = list(
-        GroupOwner.objects.filter(group_id=group_values.id).values(
-            "type", "user_id", "team_id", "date_added"
-        )
-    )
-    latest_group_owner_by_type: Dict[int, Dict[str, Any]] = {}
-    for vals in group_owner_values:
-        if vals["type"] in latest_group_owner_by_type:
-            if vals["date_added"] >= latest_group_owner_by_type[vals["type"]]["date_added"]:
-                latest_group_owner_by_type[vals["type"]] = vals
-        else:
-            latest_group_owner_by_type[vals["type"]] = vals
-
-    return {
-        "group_deleted": group_deleted,
-        "project_id": group_values.project_id,
-        "group_id": group_values.id,
-        "status": group_values.status,
-        "substatus": group_values.substatus,
-        "first_seen": group_values.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        "num_comments": group_values.num_comments,
-        "assignee_user_id": group_assignee_values[0]["user_id"]
-        if len(group_assignee_values) > 0
-        else None,
-        "assignee_team_id": group_assignee_values[0]["team_id"]
-        if len(group_assignee_values) > 0
-        else None,
-        "owner_suspect_commit_user_id": latest_group_owner_by_type[
-            GroupOwnerType.SUSPECT_COMMIT.value
-        ]["user_id"]
-        if GroupOwnerType.SUSPECT_COMMIT.value in latest_group_owner_by_type
-        else None,
-        "owner_ownership_rule_user_id": latest_group_owner_by_type[
-            GroupOwnerType.OWNERSHIP_RULE.value
-        ]["user_id"]
-        if GroupOwnerType.OWNERSHIP_RULE.value in latest_group_owner_by_type
-        else None,
-        "owner_ownership_rule_team_id": latest_group_owner_by_type[
-            GroupOwnerType.OWNERSHIP_RULE.value
-        ]["team_id"]
-        if GroupOwnerType.OWNERSHIP_RULE.value in latest_group_owner_by_type
-        else None,
-        "owner_codeowners_user_id": latest_group_owner_by_type[GroupOwnerType.CODEOWNERS.value][
-            "user_id"
-        ]
-        if GroupOwnerType.CODEOWNERS.value in latest_group_owner_by_type
-        else None,
-        "owner_codeowners_team_id": latest_group_owner_by_type[GroupOwnerType.CODEOWNERS.value][
-            "team_id"
-        ]
-        if GroupOwnerType.CODEOWNERS.value in latest_group_owner_by_type
-        else None,
-        "timestamp": datetime.now().isoformat(),
     }
+    assert len(group_values_map) == len(group_ids)
+
+    results = []
+    for group_id in group_ids:
+        group_values = group_values_map[group_id]
+        results.append(
+            GroupValues(
+                id=group_id,
+                project_id=group_values["project_id"],
+                status=group_values["status"],
+                substatus=group_values["substatus"],
+                first_seen=group_values["first_seen"],
+                num_comments=group_values["num_comments"],
+            )
+        )
+    return results
+
+
+def _bulk_retrieve_snapshot_values(
+    group_values_list: List[Union[Group, GroupValues]], group_deleted: bool = False
+) -> List[GroupAttributesSnapshot]:
+    group_assignee_map = {
+        ga["group_id"]: ga
+        for ga in GroupAssignee.objects.filter(
+            group_id__in=[gv.id for gv in group_values_list]
+        ).values("group_id", "user_id", "team_id")
+    }
+
+    group_owner_map = {}
+
+    for group_owner in (
+        GroupOwner.objects.annotate(
+            position=Window(Rank(), partition_by=[F("group_id"), F("type")], order_by="-date_added")
+        )
+        .filter(position=1, group_id__in=[g.id for g in group_values_list])
+        .values("group_id", "user_id", "team_id", "type")
+    ):
+        group_owner_map[(group_owner["group_id"], group_owner["type"])] = group_owner
+
+    snapshots = []
+    for group_value in group_values_list:
+        assignee = group_assignee_map.get(group_value.id)
+        suspect_owner = group_owner_map.get((group_value.id, GroupOwnerType.SUSPECT_COMMIT.value))
+        ownership_owner = group_owner_map.get((group_value.id, GroupOwnerType.OWNERSHIP_RULE.value))
+        codeowners_owner = group_owner_map.get((group_value.id, GroupOwnerType.CODEOWNERS.value))
+        snapshot: GroupAttributesSnapshot = {
+            "group_deleted": group_deleted,
+            "project_id": group_value.project_id,
+            "group_id": group_value.id,
+            "status": group_value.status,
+            "substatus": group_value.substatus,
+            "first_seen": group_value.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "num_comments": group_value.num_comments,
+            "timestamp": datetime.now().isoformat(),
+            "assignee_user_id": assignee["user_id"] if assignee else None,
+            "assignee_team_id": assignee["team_id"] if assignee else None,
+            "owner_suspect_commit_user_id": suspect_owner["user_id"] if suspect_owner else None,
+            "owner_ownership_rule_user_id": ownership_owner["user_id"] if ownership_owner else None,
+            "owner_ownership_rule_team_id": ownership_owner["team_id"] if ownership_owner else None,
+            "owner_codeowners_user_id": codeowners_owner["user_id"] if codeowners_owner else None,
+            "owner_codeowners_team_id": codeowners_owner["team_id"] if codeowners_owner else None,
+        }
+        snapshots.append(snapshot)
+
+    return snapshots
 
 
 @receiver(
@@ -200,23 +212,33 @@ def post_save_log_group_attributes_changed(instance, sender, created, *args, **k
             _log_group_attributes_changed(Operation.CREATED, "group", None)
             send_snapshot_values(None, instance, False)
         else:
-            update_fields = kwargs.get("update_fields", set())
-            if not update_fields:
-                # we have no guarantees update_fields is used everywhere save() is called
-                # we'll need to assume any of the attributes are updated in that case
-                attributes_updated = {"all"}
-            else:
-                attributes_updated = {"status", "substatus", "num_comments"}.intersection(
-                    update_fields or ()
-                )
-            if attributes_updated:
-                _log_group_attributes_changed(
-                    Operation.UPDATED, "group", "-".join(sorted(attributes_updated))
-                )
+            if process_update_fields(kwargs.get("update_fields", set())):
                 send_snapshot_values(None, instance, False)
-
     except Exception:
         logger.exception("failed to log group attributes after group post_save")
+
+
+@receiver(post_update, sender=Group, dispatch_uid="post_update_group", weak=False)
+def post_update_group(sender, updated_fields, model_ids, *args, **kwargs):
+    try:
+        updated_fields = process_update_fields(updated_fields)
+        if updated_fields:
+            bulk_send_snapshot_values(model_ids, None)
+    except Exception:
+        logger.exception("failed to log group attributes after group_owner updated")
+
+
+def process_update_fields(updated_fields):
+    if not updated_fields:
+        # we have no guarantees update_fields is used everywhere save() is called
+        # we'll need to assume any of the attributes are updated in that case
+        updated_fields = {"all"}
+    else:
+        VALID_FIELDS = {"status", "substatus", "num_comments"}
+        updated_fields = VALID_FIELDS.intersection(updated_fields or ())
+    if updated_fields:
+        _log_group_attributes_changed(Operation.UPDATED, "group", "-".join(sorted(updated_fields)))
+    return updated_fields
 
 
 @issue_deleted.connect(weak=False)

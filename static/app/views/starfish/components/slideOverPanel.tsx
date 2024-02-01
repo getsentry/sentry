@@ -1,4 +1,5 @@
-import {ForwardedRef, forwardRef, useEffect} from 'react';
+import type {ForwardedRef} from 'react';
+import {forwardRef, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';

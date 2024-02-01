@@ -1,25 +1,32 @@
 /* eslint-env node */
 /* eslint import/no-nodejs-modules:0 */
 
-import fs from 'fs';
-import path from 'path';
-
 import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
+import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
+import browserslist from 'browserslist';
 import CompressionPlugin from 'compression-webpack-plugin';
 import CopyPlugin from 'copy-webpack-plugin';
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
+import lightningcss from 'lightningcss';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import fs from 'node:fs';
+import path from 'node:path';
+import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
-import {Configuration as DevServerConfig} from 'webpack-dev-server';
+import type {Configuration as DevServerConfig} from 'webpack-dev-server';
 import WebpackHookPlugin from 'webpack-hook-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
-import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
 import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
 import babelConfig from './babel.config';
+import packageJson from './package.json';
+
+type MinimizerPluginOptions = {
+  targets: lightningcss.TransformAttributeOptions['targets'];
+};
 
 // Runs as part of prebuild step to generate a list of identifier -> name mappings for  iOS
 (async () => {
@@ -79,6 +86,7 @@ const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_RUN_SPOTLIGHT = DEV_MODE && !env.NO_SPOTLIGHT; // Do not run spotlight sidecar
+const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 
 // Deploy previews are built using vercel. We can check if we're in vercel's
 // build process by checking the existence of the PULL_REQUEST env var.
@@ -175,7 +183,7 @@ type CacheGroupTest = (
 ) => boolean;
 
 // A mapping of chunk groups used for locale code splitting
-const localeChunkGroups: CacheGroups = {};
+const cacheGroups: CacheGroups = {};
 
 supportedLocales
   // No need to split the english locale out as it will be completely empty and
@@ -207,7 +215,7 @@ supportedLocales
     //
     // In the application code you will still need to import via their module
     // paths and not the chunk name
-    localeChunkGroups[group] = {
+    cacheGroups[group] = {
       chunks: 'async',
       name: group,
       test: groupTest,
@@ -368,6 +376,8 @@ const appConfig: Configuration = {
         ]
       : []),
 
+    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorWebpackPlugin({})] : []),
+
     /**
      * Restrict translation files that are pulled in through app/translations.jsx
      * and through moment/locale/* to only those which we create bundles for via
@@ -449,6 +459,7 @@ const appConfig: Configuration = {
 
     modules: ['node_modules'],
     extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    symlinks: false,
   },
   output: {
     crossOriginLoading: 'anonymous',
@@ -470,14 +481,24 @@ const appConfig: Configuration = {
       chunks: 'async',
       maxInitialRequests: 10, // (default: 30)
       maxAsyncRequests: 10, // (default: 30)
-      cacheGroups: {
-        ...localeChunkGroups,
-      },
+      cacheGroups,
     },
 
-    // This only runs in production mode
-    // Grabbed this example from https://github.com/webpack-contrib/css-minimizer-webpack-plugin
-    minimizer: ['...', new CssMinimizerPlugin()],
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+        minify: TerserPlugin.esbuildMinify,
+      }),
+      new CssMinimizerPlugin<MinimizerPluginOptions>({
+        parallel: true,
+        minify: CssMinimizerPlugin.lightningCssMinify,
+        minimizerOptions: {
+          targets: lightningcss.browserslistToTargets(
+            browserslist(packageJson.browserslist.production)
+          ),
+        },
+      }),
+    ],
   },
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
@@ -488,16 +509,6 @@ if (IS_TEST) {
     'fixtures',
     'js-stubs'
   );
-}
-if (IS_TEST || IS_ACCEPTANCE_TEST) {
-  appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
-    __dirname,
-    'fixtures/integration-docs/_platforms.json'
-  );
-} else {
-  const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
-  appConfig.plugins?.push(plugin);
-  appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
 }
 
 if (IS_ACCEPTANCE_TEST) {
@@ -675,6 +686,7 @@ if (IS_UI_DEV_ONLY) {
         headers: {
           Referer: 'https://sentry.io/',
           'Document-Policy': 'js-profiling',
+          origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
         router: ({hostname}) => {
@@ -696,6 +708,7 @@ if (IS_UI_DEV_ONLY) {
         headers: {
           Referer: 'https://sentry.io/',
           'Document-Policy': 'js-profiling',
+          origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
         pathRewrite: {
@@ -751,15 +764,10 @@ const minificationPlugins = [
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.
-  //
-  // TODO(ts): The current @types/compression-webpack-plugin is still targeting
-  //           webpack@4, for now we just as any it.
   new CompressionPlugin({
     algorithm: 'gzip',
     test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }) as any,
-  // NOTE: In production mode webpack will automatically minify javascript
-  // using the TerserWebpackPlugin.
+  }),
 ];
 
 if (IS_PRODUCTION) {

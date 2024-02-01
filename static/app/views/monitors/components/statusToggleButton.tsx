@@ -1,11 +1,12 @@
-import {BaseButtonProps, Button} from 'sentry/components/button';
+import type {BaseButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {ObjectStatus} from 'sentry/types';
+import type {ObjectStatus} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Monitor} from 'sentry/views/monitors/types';
+import type {Monitor} from 'sentry/views/monitors/types';
 
 interface StatusToggleButtonProps extends Omit<BaseButtonProps, 'onClick'> {
   monitor: Monitor;
@@ -48,4 +49,5 @@ const StatusToggleButton = HookOrDefault({
   defaultComponent: SimpleStatusToggle,
 });
 
-export {StatusToggleButton, StatusToggleButtonProps};
+export type {StatusToggleButtonProps};
+export {StatusToggleButton};

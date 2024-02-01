@@ -56,24 +56,16 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import (
-    GroupingConfig,
-    SecondaryGroupingConfigLoader,
-    get_grouping_config_dict_for_event_data,
-    get_grouping_config_dict_for_project,
-)
+from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
 from sentry.grouping.ingest import (
-    calculate_primary_hash,
-    calculate_secondary_hash,
     find_existing_grouphash,
-    run_background_grouping,
-    should_run_secondary_grouping,
+    get_hash_values,
     update_grouping_config_if_needed,
 )
-from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.priority import PriorityLevel
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -116,7 +108,7 @@ from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.types.group import GroupSubStatus
 from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -516,100 +508,6 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
-        # Background grouping is a way for us to get performance metrics for a new
-        # config without having it actually affect on how events are grouped. It runs
-        # either before or after the main grouping logic, depending on the option value.
-        do_background_grouping_before = options.get("store.background-grouping-before")
-        if do_background_grouping_before:
-            run_background_grouping(project, job)
-
-        secondary_hashes = None
-        migrate_off_hierarchical = False
-
-        if should_run_secondary_grouping(project):
-            with metrics.timer("event_manager.secondary_grouping", tags=metric_tags):
-                secondary_grouping_config = SecondaryGroupingConfigLoader().get_config_dict(project)
-                secondary_hashes = calculate_secondary_hash(project, job, secondary_grouping_config)
-
-        with metrics.timer("event_manager.load_grouping_config"):
-            # At this point we want to normalize the in_app values in case the
-            # clients did not set this appropriately so far.
-            if is_reprocessed:
-                # The customer might have changed grouping enhancements since
-                # the event was ingested -> make sure we get the fresh one for reprocessing.
-                grouping_config = get_grouping_config_dict_for_project(project)
-                # Write back grouping config because it might have changed since the
-                # event was ingested.
-                # NOTE: We could do this unconditionally (regardless of `is_processed`).
-                job["data"]["grouping_config"] = grouping_config
-            else:
-                grouping_config = get_grouping_config_dict_for_event_data(
-                    job["event"].data.data, project
-                )
-
-        with sentry_sdk.start_span(
-            op="event_manager",
-            description="event_manager.save.calculate_event_grouping",
-        ), metrics.timer("event_manager.calculate_event_grouping", tags=metric_tags):
-            hashes = calculate_primary_hash(project, job, grouping_config)
-
-        if secondary_hashes:
-            tags = {
-                "primary_config": grouping_config["id"],
-                "secondary_config": secondary_grouping_config["id"],
-            }
-            current_values = hashes.hashes
-            secondary_values = secondary_hashes.hashes
-            hashes_match = current_values == secondary_values
-
-            if hashes_match:
-                tags["result"] = "no change"
-            else:
-                shared_hashes = set(current_values) & set(secondary_values)
-                if len(shared_hashes) > 0:
-                    tags["result"] = "partial change"
-                else:
-                    tags["result"] = "full change"
-
-            metrics.incr("grouping.hash_comparison", tags=tags)
-
-        # Track the total number of grouping calculations done overall, so we can divide by the
-        # count to get an average number of calculations per event
-        metrics.incr("grouping.hashes_calculated", amount=2 if secondary_hashes else 1)
-
-        # Because this logic is not complex enough we want to special case the situation where we
-        # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
-        # `_save_aggregate` needs special logic to not create orphaned hashes in migration cases
-        # but it wants a different logic to implement splitting of hierarchical hashes.
-        migrate_off_hierarchical = bool(
-            secondary_hashes
-            and secondary_hashes.hierarchical_hashes
-            and not hashes.hierarchical_hashes
-        )
-
-        hashes = CalculatedHashes(
-            hashes=list(hashes.hashes) + list(secondary_hashes and secondary_hashes.hashes or []),
-            hierarchical_hashes=(
-                list(hashes.hierarchical_hashes)
-                + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
-            ),
-            tree_labels=(
-                hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
-            ),
-        )
-
-        if not do_background_grouping_before:
-            run_background_grouping(project, job)
-
-        if hashes.tree_labels:
-            job["finest_tree_label"] = hashes.finest_tree_label
-
-        _materialize_metadata_many(jobs)
-
-        group_creation_kwargs = _get_group_creation_kwargs(job)
-
-        group_creation_kwargs["culprit"] = job["culprit"]
-
         # Load attachments first, but persist them at the very last after
         # posting to eventstream to make sure all counters and eventstream are
         # incremented for sure. Also wait for grouping to remove attachments
@@ -622,12 +520,10 @@ class EventManager:
             with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
                 group_info = _save_aggregate(
                     event=job["event"],
-                    hashes=hashes,
+                    job=job,
                     release=job["release"],
-                    metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
-                    migrate_off_hierarchical=migrate_off_hierarchical,
-                    **group_creation_kwargs,
+                    metric_tags=metric_tags,
                 )
                 job["groups"] = [group_info]
         except HashDiscarded as err:
@@ -741,10 +637,6 @@ class EventManager:
         _track_outcome_accepted_many(jobs)
 
         self._data = job["event"].data.data
-
-        # Check if the project is configured for auto upgrading and we need to upgrade
-        # to the latest grouping config.
-        update_grouping_config_if_needed(project)
 
         return job["event"]
 
@@ -1043,6 +935,7 @@ def _get_group_creation_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any
         "last_seen": job["event"].datetime,
         "first_seen": job["event"].datetime,
         "active_at": job["event"].datetime,
+        "culprit": job["culprit"],
     }
 
     if job["release"]:
@@ -1446,14 +1339,35 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 
 def _save_aggregate(
     event: Event,
-    hashes: CalculatedHashes,
+    job: Job,
     release: Optional[Release],
-    metadata: dict[str, Any],
     received_timestamp: Union[int, float],
-    migrate_off_hierarchical: Optional[bool] = False,
-    **kwargs: Any,
+    metric_tags: MutableTags,
 ) -> Optional[GroupInfo]:
     project = event.project
+
+    primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
+
+    # Now that we've used the current and possibly secondary grouping config(s) to calculate the
+    # hashes, we're free to perform a config update if needed. Future events will use the new
+    # config, but will also be grandfathered into the current config for a week, so as not to
+    # erroneously create new groups.
+    update_grouping_config_if_needed(project)
+
+    _materialize_metadata_many([job])
+    metadata = dict(job["event_metadata"])
+
+    group_creation_kwargs = _get_group_creation_kwargs(job)
+
+    # Because this logic is not complex enough we want to special case the situation where we
+    # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
+    # there needs to be special logic to not create orphaned hashes in migration cases
+    # but it wants a different logic to implement splitting of hierarchical hashes.
+    migrate_off_hierarchical = bool(
+        secondary_hashes
+        and secondary_hashes.hierarchical_hashes
+        and not primary_hashes.hierarchical_hashes
+    )
 
     flat_grouphashes = [
         GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
@@ -1490,12 +1404,12 @@ def _save_aggregate(
     #
     # Additionally the `last_received` key is set for group metadata, later in
     # _save_aggregate
-    kwargs["data"] = materialize_metadata(
+    group_creation_kwargs["data"] = materialize_metadata(
         event.data,
         get_event_type(event.data),
         metadata,
     )
-    kwargs["data"]["last_received"] = received_timestamp
+    group_creation_kwargs["data"]["last_received"] = received_timestamp
 
     if existing_grouphash is None:
         if killswitch_matches_context(
@@ -1517,13 +1431,15 @@ def _save_aggregate(
             span.set_tag("create_group_transaction.outcome", "no_group")
             metric_tags["create_group_transaction.outcome"] = "no_group"
 
-            all_hash_ids = [h.id for h in flat_grouphashes]
+            all_grouphash_ids = [h.id for h in flat_grouphashes]
             if root_hierarchical_grouphash is not None:
-                all_hash_ids.append(root_hierarchical_grouphash.id)
+                all_grouphash_ids.append(root_hierarchical_grouphash.id)
 
-            all_hashes = list(GroupHash.objects.filter(id__in=all_hash_ids).select_for_update())
+            all_grouphashes = list(
+                GroupHash.objects.filter(id__in=all_grouphash_ids).select_for_update()
+            )
 
-            flat_grouphashes = [gh for gh in all_hashes if gh.hash in hashes.hashes]
+            flat_grouphashes = [gh for gh in all_grouphashes if gh.hash in hashes.hashes]
 
             existing_grouphash, root_hierarchical_hash = find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes
@@ -1537,7 +1453,7 @@ def _save_aggregate(
                 root_hierarchical_grouphash = None
 
             if existing_grouphash is None:
-                group = _create_group(project, event, **kwargs)
+                group = _create_group(project, event, **group_creation_kwargs)
 
                 if (
                     features.has("projects:first-event-severity-calculation", event.project)
@@ -1652,7 +1568,7 @@ def _save_aggregate(
     is_regression = _process_existing_aggregate(
         group=group,
         event=event,
-        incoming_group_values=kwargs,
+        incoming_group_values=group_creation_kwargs,
         release=release,
     )
 
@@ -1755,12 +1671,13 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
             transition_type="automatic",
             sender="handle_regression",
         )
-        post_save.send(
-            sender=Group,
-            instance=group,
-            created=False,
-            update_fields=["last_seen", "active_at", "status", "substatus"],
-        )
+        if not options.get("groups.enable-post-update-signal"):
+            post_save.send(
+                sender=Group,
+                instance=group,
+                created=False,
+                update_fields=["last_seen", "active_at", "status", "substatus"],
+            )
 
     follows_semver = False
     resolved_in_activity = None

@@ -1,4 +1,4 @@
-import {ReactText} from 'react';
+import type {ReactText} from 'react';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -7,12 +7,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
 import {calculatePerformanceScore} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import type {
+  TransactionSampleRowWithScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
   SORTABLE_INDEXED_SCORE_FIELDS,
-  TransactionSampleRowWithScore,
-  WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
@@ -132,6 +134,9 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
               lcpScore: lcpScore ?? 0,
               ttfbScore: ttfbScore ?? 0,
               fidScore: fidScore ?? 0,
+              // Fake INP data using FID data
+              // TODO(edwardgou): Remove this once INP is queryable in discover
+              inpScore: fidScore ?? 0,
             };
           })
       : [];

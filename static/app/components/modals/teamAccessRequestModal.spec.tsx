@@ -6,9 +6,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import TeamAccessRequestModal, {
-  CreateTeamAccessRequestModalProps,
-} from 'sentry/components/modals/teamAccessRequestModal';
+import type {CreateTeamAccessRequestModalProps} from 'sentry/components/modals/teamAccessRequestModal';
+import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
 
 describe('TeamAccessRequestModal', function () {
   let createMock;

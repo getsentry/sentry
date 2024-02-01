@@ -10,7 +10,12 @@ from django.test import RequestFactory
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import (
+    NoProjects,
+    OrganizationAndStaffPermission,
+    OrganizationEndpoint,
+    OrganizationPermission,
+)
 from sentry.api.exceptions import (
     MemberDisabledOverLimit,
     ResourceDoesNotExist,
@@ -21,6 +26,7 @@ from sentry.api.exceptions import (
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.staff import is_active_staff
 from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
@@ -41,12 +47,22 @@ class MockSuperUser:
         return True
 
 
-class OrganizationPermissionBase(TestCase):
+class PermissionBaseTestCase(TestCase):
     def setUp(self):
         self.org = self.create_organization()
+        # default to the organization permission class
+        self.permission_cls = OrganizationPermission
         super().setUp()
 
-    def has_object_perm(self, method, obj, auth=None, user=None, is_superuser=None) -> bool:
+    def has_object_perm(
+        self,
+        method,
+        obj,
+        auth=None,
+        user=None,
+        is_superuser=None,
+        is_staff=None,
+    ) -> bool:
         result_with_org_rpc = None
         result_with_org_context_rpc = None
         if isinstance(obj, Organization):
@@ -55,17 +71,18 @@ class OrganizationPermissionBase(TestCase):
             )
             assert organization_context is not None
             result_with_org_context_rpc = self.has_object_perm(
-                method, organization_context, auth, user, is_superuser
+                method, organization_context, auth, user, is_superuser, is_staff
             )
             result_with_org_rpc = self.has_object_perm(
-                method, organization_context.organization, auth, user, is_superuser
+                method, organization_context.organization, auth, user, is_superuser, is_staff
             )
-        perm = OrganizationPermission()
+        perm = self.permission_cls()
         if user is not None:
             user = user_service.get_user(user.id)  # Replace with region silo APIUser
-        request = self.make_request(user=user, auth=auth, method=method)
-        if is_superuser:
-            request.superuser.set_logged_in(request.user)
+
+        request = self.make_request(
+            user=user, auth=auth, method=method, is_superuser=is_superuser, is_staff=is_staff
+        )
         result_with_obj = perm.has_permission(
             request=request, view=None
         ) and perm.has_object_permission(request=request, view=None, organization=obj)
@@ -75,7 +92,7 @@ class OrganizationPermissionBase(TestCase):
 
 
 @region_silo_test
-class OrganizationPermissionTest(OrganizationPermissionBase):
+class OrganizationPermissionTest(PermissionBaseTestCase):
     def org_require_2fa(self):
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.org.flags.require_2fa.is_set is True
@@ -199,6 +216,28 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             assert self.has_object_perm("GET", self.org, user=user)
         with pytest.raises(SsoRequired):
             assert not self.has_object_perm("POST", self.org, user=user)
+
+
+class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.permission_cls = OrganizationAndStaffPermission
+
+    def test_regular_user(self):
+        user = self.create_user()
+        assert not self.has_object_perm("GET", self.org, user=user)
+
+    def test_superuser(self):
+        user = self.create_user(is_superuser=True)
+        assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
+
+    @mock.patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
+    def test_staff(self, mock_is_active_staff):
+        user = self.create_user(is_staff=True)
+
+        assert self.has_object_perm("GET", self.org, user=user, is_staff=True)
+        # ensure we fail the scope check and call is_active_staff
+        assert mock_is_active_staff.call_count == 3
 
 
 class BaseOrganizationEndpointTest(TestCase):
