@@ -26,7 +26,7 @@ export type DDMEventParameters = {
 
 export const ddmEventMap: Record<keyof DDMEventParameters, string> = {
   'ddm.page-view': 'DDM: Page View',
-  'ddm.remove-default-query': 'DDM: Set Default Query',
+  'ddm.remove-default-query': 'DDM: Remove Default Query',
   'ddm.set-default-query': 'DDM: Set Default Query',
   'ddm.open-onboarding': 'DDM: Open Onboarding',
   'ddm.widget.add': 'DDM: Widget Added',
