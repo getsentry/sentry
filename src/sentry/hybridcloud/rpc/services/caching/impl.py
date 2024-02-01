@@ -1,4 +1,5 @@
-from typing import Generator, Mapping, TypeVar, Union
+from collections.abc import Generator, Mapping
+from typing import TypeVar
 
 from django.core.cache import cache
 
@@ -42,16 +43,14 @@ def _delete_cache(key: str, mode: SiloMode) -> Generator[None, None, int]:
     return version
 
 
-def _get_cache(
-    keys: list[str], mode: SiloMode
-) -> Generator[None, None, Mapping[str, Union[str, int]]]:
+def _get_cache(keys: list[str], mode: SiloMode) -> Generator[None, None, Mapping[str, str | int]]:
     versions = {cv.key: cv.version for cv in _version_model(mode).objects.filter(key__in=keys)}
     yield
 
     versioned_keys = [_versioned_key(key, versions.get(key, 0)) for key in keys]
     existing = cache.get_many(versioned_keys)
     yield
-    result: dict[str, Union[str, int]] = {}
+    result: dict[str, str | int] = {}
     for k, versioned_key in zip(keys, versioned_keys):
         if versioned_key in existing:
             result[k] = existing[versioned_key]

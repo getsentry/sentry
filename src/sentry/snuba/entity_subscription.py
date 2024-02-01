@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence, TypedDict, Union
+from typing import TYPE_CHECKING, Any, TypedDict, Union
 
 from snuba_sdk import Column, Condition, Join, Op, Request
 

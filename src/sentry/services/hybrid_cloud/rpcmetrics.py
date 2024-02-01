@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import threading
 from collections import deque
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from types import TracebackType
-from typing import Generator
 
 from sentry_sdk.tracing import Span
 

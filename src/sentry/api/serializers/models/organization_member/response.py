@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from typing_extensions import TypedDict
 
@@ -84,7 +83,7 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     flags: _OrganizationMemberFlags
     dateCreated: datetime
     inviteStatus: str
-    inviterName: Optional[str]
+    inviterName: str | None
 
 
 class OrganizationMemberWithTeamsResponse(OrganizationMemberResponse):
@@ -103,7 +102,7 @@ class OrganizationMemberWithRolesResponseOptional(TypedDict, total=False):
 class OrganizationMemberWithRolesResponse(
     OrganizationMemberWithTeamsResponse, OrganizationMemberWithRolesResponseOptional
 ):
-    invite_link: Optional[str]
+    invite_link: str | None
     isOnlyOwner: bool
     orgRoleList: list[OrganizationRoleSerializerResponse]
     teamRoleList: list[TeamRoleSerializerResponse]

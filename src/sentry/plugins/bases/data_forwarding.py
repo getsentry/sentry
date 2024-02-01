@@ -1,5 +1,6 @@
 import logging
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from sentry import ratelimits, tsdb
 from sentry.api.serializers import serialize
