@@ -1,19 +1,18 @@
-import type {RefObject} from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {XAXisOption} from 'echarts/types/dist/shared';
 import moment from 'moment';
 
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {getDuration} from 'sentry/utils/formatters';
 import {isCumulativeOp} from 'sentry/utils/metrics';
-import type {MetricCorrelation, MetricSummary} from 'sentry/utils/metrics/types';
+import type {MetricCorrelation} from 'sentry/utils/metrics/types';
 import {fitToValueRect, getValueRect} from 'sentry/views/ddm/chartUtils';
 import type {Sample} from 'sentry/views/ddm/widget';
 
-type UseChartSamplesProps = {
+type UseMetricSamplesProps = {
   timeseries: Series[];
-  chartRef?: RefObject<ReactEchartsRef>;
+  chartRef?: any;
   correlations?: MetricCorrelation[];
   highlightedSampleId?: string;
   onClick?: (sample: Sample) => void;
@@ -21,9 +20,6 @@ type UseChartSamplesProps = {
   onMouseOver?: (sample: Sample) => void;
   operation?: string;
 };
-
-// TODO: remove this once we have a stabilized type for this
-type ChartSample = MetricCorrelation & MetricSummary;
 
 function getDateRange(timeseries: Series[]) {
   if (!timeseries?.length) {
@@ -35,19 +31,19 @@ function getDateRange(timeseries: Series[]) {
   return {min, max};
 }
 
-export function useChartSamples({
+export function useMetricSamples({
   correlations,
   onClick,
   highlightedSampleId,
   chartRef,
   operation,
   timeseries,
-}: UseChartSamplesProps) {
+}: UseMetricSamplesProps) {
   const theme = useTheme();
 
   const [valueRect, setValueRect] = useState(getValueRect(chartRef));
 
-  const samples: Record<string, ChartSample> = useMemo(() => {
+  const samples: Record<string, any> = useMemo(() => {
     return (correlations ?? [])
       ?.flatMap(correlation => [
         ...correlation.metricSummaries.map(summaries => ({...summaries, ...correlation})),
@@ -132,7 +128,7 @@ export function useChartSamples({
       const isHighlighted = highlightedSampleId === sample.transactionId;
 
       const xValue = moment(sample.timestamp).valueOf();
-      const yValue = ((sample.min ?? 0) + (sample.max ?? 0)) / 2;
+      const yValue = (sample.min + sample.max) / 2;
 
       const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
 
