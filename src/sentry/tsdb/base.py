@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from enum import Enum
+from typing import Optional
 
 from django.conf import settings
 from django.utils import timezone
@@ -212,7 +213,7 @@ class BaseTSDB(Service):
         """
         return int(epoch / seconds)
 
-    def get_optimal_rollup(self, start_timestamp, end_timestamp):
+    def get_optimal_rollup(self, start_timestamp, end_timestamp) -> int:
         """
         Identify the lowest granularity rollup available within the given time
         range.
@@ -237,7 +238,9 @@ class BaseTSDB(Service):
         # lowest resolution interval.
         return list(self.rollups)[-1]
 
-    def get_optimal_rollup_series(self, start, end=None, rollup=None):
+    def get_optimal_rollup_series(
+        self, start, end: Optional[datetime] = None, rollup: Optional[int] = None
+    ) -> tuple[int, list[int]]:
         if end is None:
             end = timezone.now()
 
@@ -418,7 +421,7 @@ class BaseTSDB(Service):
         for key, points in values.items():
             result[key] = []
             last_new_ts = None
-            for (ts, count) in points:
+            for ts, count in points:
                 new_ts = normalize_ts_to_epoch(ts, rollup)
                 if new_ts == last_new_ts:
                     result[key][-1][1] += count

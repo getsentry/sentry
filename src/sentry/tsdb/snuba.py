@@ -6,7 +6,7 @@ import itertools
 from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional, Sequence, TypeVar
 
 from snuba_sdk import (
     Column,
@@ -213,7 +213,7 @@ class SnubaTSDB(BaseTSDB):
     def __init__(self, **options):
         super().__init__(**options)
 
-    def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> Sequence[Any]:
+    def __manual_group_on_time_aggregation(self, rollup, time_column_alias) -> list[Any]:
         """
         Explicitly builds an aggregation expression in-place of using a `TimeSeriesProcessor` on the snuba entity.
         Older tables and queries that target that table had syntactic sugar on the `time` column and would apply
@@ -267,7 +267,7 @@ class SnubaTSDB(BaseTSDB):
         if model in self.non_outcomes_snql_query_settings:
             # no way around having to explicitly map legacy condition format to SnQL since this function
             # is used everywhere that expects `conditions` to be legacy format
-            parsed_conditions = []
+            parsed_conditions: list = []
             for cond in conditions or ():
                 if not is_condition(cond):
                     or_conditions = []
@@ -322,7 +322,7 @@ class SnubaTSDB(BaseTSDB):
     def __get_data_snql(
         self,
         model: TSDBModel,
-        keys: Sequence[Any],
+        keys: Sequence[int],
         start: datetime | None,
         end: datetime | None,
         rollup: int | None = None,
@@ -352,8 +352,8 @@ class SnubaTSDB(BaseTSDB):
         model_dataset = model_query_settings.dataset
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
-        keys_map = dict(zip(columns, self.flatten_keys(keys)))
-        keys_map = {k: v for k, v in keys_map.items() if k is not None and v is not None}
+        keys_map_tmp = dict(zip(columns, self.flatten_keys_top_level(keys)))
+        keys_map = {k: v for k, v in keys_map_tmp.items() if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids
 
@@ -402,7 +402,7 @@ class SnubaTSDB(BaseTSDB):
                 orderby.append(OrderBy(Column(model_group), Direction.ASC))
 
             # build up where conditions
-            conditions = conditions if conditions is not None else []
+            conditions = list(conditions) if conditions is not None else []
             if model_query_settings.conditions is not None:
                 conditions += model_query_settings.conditions
 
@@ -438,7 +438,9 @@ class SnubaTSDB(BaseTSDB):
                 app_id="tsdb.get_data",
                 query=Query(
                     match=Entity(model_dataset.value),
-                    select=(model_query_settings.selected_columns or []) + aggregations,
+                    select=list(
+                        itertools.chain((model_query_settings.selected_columns or []), aggregations)
+                    ),
                     where=where_conds,
                     groupby=[Column(g) for g in groupby] if groupby else None,
                     orderby=orderby,
@@ -925,3 +927,8 @@ class SnubaTSDB(BaseTSDB):
             return (items, None)
         else:
             raise ValueError("Unsupported type: %s" % (type(items)))
+
+    _T = TypeVar("_T")
+
+    def flatten_keys_top_level(self, items: Sequence[_T]) -> tuple[Sequence[_T], None]:
+        return (items, None)
