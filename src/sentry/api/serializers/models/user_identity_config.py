@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, MutableMapping, Optional, Union
+from typing import Any, MutableMapping, Optional, Union
 
 from django.db.models.base import Model
 
@@ -116,7 +116,7 @@ class UserIdentityConfig:
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
     def get_attrs(
-        self, item_list: List[UserIdentityConfig], user: Any, **kwargs: Any
+        self, item_list: list[UserIdentityConfig], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
         result: MutableMapping[UserIdentityConfig, Any] = {}
         organizations = {

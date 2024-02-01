@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Optional
 
 from django.db.models import QuerySet
 
@@ -26,13 +26,13 @@ class DatabaseBackedUserOptionService(UserOptionService):
         filter: UserOptionFilterArgs,
         as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
-    ) -> List[OpaqueSerializedResponse]:
+    ) -> list[OpaqueSerializedResponse]:
         return self._FQ.serialize_many(filter, as_user, auth_context)
 
-    def get_many(self, *, filter: UserOptionFilterArgs) -> List[RpcUserOption]:
+    def get_many(self, *, filter: UserOptionFilterArgs) -> list[RpcUserOption]:
         return self._FQ.get_many(filter)
 
-    def delete_options(self, *, option_ids: List[int]) -> None:
+    def delete_options(self, *, option_ids: list[int]) -> None:
         UserOption.objects.filter(id__in=option_ids).delete()
 
     def set_option(
@@ -90,7 +90,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
                 )
 
             if "keys" in filters or "key" in filters:
-                keys: List[str] = []
+                keys: list[str] = []
                 if "keys" in filters:
                     keys = filters["keys"]
                 if "key" in filters:

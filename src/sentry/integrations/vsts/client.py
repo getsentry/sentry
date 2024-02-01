@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from time import time
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Union
 from urllib.parse import quote
 
 from requests import PreparedRequest
@@ -257,7 +257,7 @@ class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
         assigned_to: UnsettableString = UNSET,
         state: UnsettableString = UNSET,
     ) -> Response:
-        data: List[Mapping[str, Any]] = []
+        data: list[Mapping[str, Any]] = []
 
         for f_name, f_value in (
             ("title", title),

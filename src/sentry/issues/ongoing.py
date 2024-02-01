@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from django.db.models.signals import post_save
@@ -13,7 +13,7 @@ from sentry.types.group import GroupSubStatus
 def bulk_transition_group_to_ongoing(
     from_status: int,
     from_substatus: int,
-    group_ids: List[int],
+    group_ids: list[int],
     activity_data: Optional[Mapping[str, Any]] = None,
 ) -> None:
     with sentry_sdk.start_span(description="groups_to_transistion") as span:

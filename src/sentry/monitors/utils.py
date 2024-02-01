@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Union
+from typing import Optional, Union
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -98,8 +98,8 @@ def get_checkin_margin(checkin_margin: Optional[int]) -> timedelta:
 
 
 def fetch_associated_groups(
-    trace_ids: List[str], organization_id: int, project_id: int, start: datetime, end
-) -> Dict[str, List[Dict[str, int]]]:
+    trace_ids: list[str], organization_id: int, project_id: int, start: datetime, end
+) -> dict[str, list[dict[str, int]]]:
     """
     Returns serializer appropriate group_ids corresponding with check-in trace ids
     :param trace_ids: list of trace_ids from the given check-ins
@@ -178,8 +178,8 @@ def fetch_associated_groups(
         },
     )
 
-    group_id_data: Dict[int, Set[str]] = defaultdict(set)
-    trace_groups: Dict[str, List[Dict[str, Union[int, str]]]] = defaultdict(list)
+    group_id_data: dict[int, set[str]] = defaultdict(set)
+    trace_groups: dict[str, list[dict[str, Union[int, str]]]] = defaultdict(list)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
     # if query completes successfully, add an array of objects with group id and short id

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, FrozenSet, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from sentry.utils import json, metrics
 
@@ -13,7 +13,7 @@ class UnexpectedOperation(Exception):
 
 
 def basic_protocol_handler(
-    unsupported_operations: FrozenSet[str],
+    unsupported_operations: frozenset[str],
 ) -> Callable[[str, Any, Any], Optional[dict[str, Any]]]:
     # The insert message formats for Version 1 and 2 are essentially unchanged,
     # so this function builds a handler function that can deal with both.
@@ -150,7 +150,7 @@ def decode_optional_list_str(value: Optional[str]) -> Optional[Sequence[Any]]:
 
 
 def get_task_kwargs_for_message_from_headers(
-    headers: Sequence[Tuple[str, Optional[bytes]]]
+    headers: Sequence[tuple[str, Optional[bytes]]]
 ) -> Optional[dict[str, Any]]:
     """
     Same as get_task_kwargs_for_message but gets the required information from

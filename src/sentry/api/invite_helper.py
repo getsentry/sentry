@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from logging import Logger
-from typing import Dict, Optional
+from typing import Optional
 
 from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
@@ -290,7 +290,7 @@ class ApiInviteHelper:
         )
         return not primary_email_is_verified
 
-    def get_onboarding_steps(self) -> Dict[str, bool]:
+    def get_onboarding_steps(self) -> dict[str, bool]:
         return {
             "needs2fa": self._needs_2fa(),
             "needsEmailVerification": self._needs_email_verification(),

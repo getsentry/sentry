@@ -1,5 +1,5 @@
 from enum import Enum, IntEnum
-from typing import ClassVar, Sequence, Tuple
+from typing import ClassVar, Sequence
 
 from django.db import models
 from django.utils import timezone
@@ -25,7 +25,7 @@ class RuleSource(IntEnum):
     CRON_MONITOR = 1
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.ISSUE, "issue"),
             (cls.CRON_MONITOR, "cron_monitor"),

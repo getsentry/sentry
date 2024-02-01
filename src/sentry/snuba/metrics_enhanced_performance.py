@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import sentry_sdk
 
@@ -110,13 +110,13 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: dict[str, str],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    functions_acl: Optional[list[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
@@ -194,7 +194,7 @@ def top_events_timeseries(
     allow_empty: Optional[bool] = True,
     zerofill_results: Optional[bool] = True,
     include_other: Optional[bool] = False,
-    functions_acl: Optional[List[str]] = None,
+    functions_acl: Optional[list[str]] = None,
     on_demand_metrics_enabled: Optional[bool] = False,
     on_demand_metrics_type: Optional[MetricSpecType] = None,
 ) -> SnubaTSResult | dict[str, Any]:

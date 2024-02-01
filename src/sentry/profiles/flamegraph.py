@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
@@ -15,10 +15,10 @@ from sentry.utils.snuba import raw_snql_query
 def query_profiles_data(
     params: ParamsType,
     referrer: str,
-    selected_columns: List[str],
+    selected_columns: list[str],
     query: Optional[str] = None,
-    additional_conditions: Optional[List[Condition]] = None,
-) -> List[Dict[str, Any]]:
+    additional_conditions: Optional[list[Condition]] = None,
+) -> list[dict[str, Any]]:
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
@@ -46,7 +46,7 @@ def query_profiles_data(
 def get_profile_ids(
     params: ParamsType,
     query: Optional[str] = None,
-) -> Dict[str, List[str]]:
+) -> dict[str, list[str]]:
     data = query_profiles_data(
         params,
         Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
@@ -146,7 +146,7 @@ def get_profiles_with_function(
         transform_alias_to_input_format=True,
     )
 
-    def extract_profile_ids() -> List[str]:
+    def extract_profile_ids() -> list[str]:
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
         profile_ids = []
 

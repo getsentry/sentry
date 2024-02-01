@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import zoneinfo
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Sequence, Union
 from uuid import uuid4
 
 import jsonschema
@@ -97,7 +97,7 @@ class MonitorStatus:
     TIMEOUT = 7
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             # TODO: It is unlikely a MonitorEnvironment should ever be in the
             # 'active' state, since for a monitor environment to be created
@@ -339,7 +339,7 @@ class Monitor(Model):
         alert_rule = self.get_alert_rule()
         if alert_rule:
             data = alert_rule.data
-            alert_rule_data: Dict[str, Optional[Any]] = dict()
+            alert_rule_data: dict[str, Optional[Any]] = dict()
 
             # Build up alert target data
             targets = []

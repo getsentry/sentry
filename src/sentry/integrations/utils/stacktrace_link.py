@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List, Optional, TypedDict
+from typing import TYPE_CHECKING, Optional, TypedDict
 
 from typing_extensions import NotRequired
 
@@ -96,7 +96,7 @@ class StacktraceLinkOutcome(TypedDict):
 
 
 def get_stacktrace_config(
-    configs: List[RepositoryProjectPathConfig],
+    configs: list[RepositoryProjectPathConfig],
     ctx: StacktraceLinkContext,
 ) -> StacktraceLinkOutcome:
     result: StacktraceLinkOutcome = {

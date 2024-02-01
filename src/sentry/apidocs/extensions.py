@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union, get_type_hints
+from typing import Any, Optional, Union, get_type_hints
 
 from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSerializerExtension
 from drf_spectacular.openapi import AutoSchema
@@ -16,7 +16,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
     target_class = "sentry.api.authentication.UserAuthTokenAuthentication"
     name = "auth_token"
 
-    def get_security_requirement(self, auto_schema: AutoSchema) -> Dict[str, List[Any]]:
+    def get_security_requirement(self, auto_schema: AutoSchema) -> dict[str, list[Any]]:
         scopes = set()
         for permission in auto_schema.view.get_permissions():
             for s in permission.scope_map.get(auto_schema.method, []):
@@ -28,7 +28,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
 
     def get_security_definition(
         self, auto_schema: AutoSchema
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    ) -> Union[dict[str, Any], list[dict[str, Any]]]:
         return {"type": "http", "scheme": "bearer"}
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from copy import deepcopy
-from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
+from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, TypedDict
 
 from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -69,13 +69,13 @@ class MergeableRow(TypedDict, total=False):
 
 def group_categories_from(
     search_filters: Optional[Sequence[SearchFilter]],
-) -> Set[int]:
+) -> set[int]:
     """Iterates over search_filters for any Group-specific filters
 
     :returns: a set of GroupCategories if the list of search-filters targets a Group type or category, else
                 an empty set.
     """
-    group_categories: Set[int] = set()
+    group_categories: set[int] = set()
     # determine which dataset to fan-out to based on the search filter criteria provided
     # if its unspecified, we have to query all datasources
     for search_filter in search_filters or ():

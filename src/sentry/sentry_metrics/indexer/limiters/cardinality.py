@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Dict, Mapping, MutableMapping, Optional, Sequence, TypedDict
+from typing import Mapping, MutableMapping, Optional, Sequence, TypedDict
 
 from sentry import options
 from sentry.ratelimits.cardinality import (
@@ -68,7 +68,7 @@ class InboundMessage(TypedDict):
     # Note: This is only the subset of fields we access in this file.
     org_id: int
     name: str
-    tags: Dict[str, str]
+    tags: dict[str, str]
     # now that all messages are getting a use_case_id
     # field via message processing, we can add it here
     use_case_id: UseCaseID
@@ -83,7 +83,7 @@ class TimeseriesCardinalityLimiter:
         self, metric_path_key: UseCaseKey, messages: Mapping[BrokerMeta, InboundMessage]
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
-        hash_to_meta: Mapping[str, Dict[int, BrokerMeta]] = defaultdict(dict)
+        hash_to_meta: Mapping[str, dict[int, BrokerMeta]] = defaultdict(dict)
         prefix_to_quota = {}
 
         # this works by applying one cardinality limiter rollout option

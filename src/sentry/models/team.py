@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, ClassVar, Literal, Optional, Sequence, Tuple, Union, overload
+from typing import TYPE_CHECKING, ClassVar, Literal, Optional, Sequence, Union, overload
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
@@ -64,7 +64,7 @@ class TeamManager(BaseManager["Team"]):
         scope: Optional[str] = None,
         is_team_admin: bool = False,
         with_projects: bool = False,
-    ) -> Union[Sequence[Team], Sequence[Tuple[Team, Sequence[Project]]]]:
+    ) -> Union[Sequence[Team], Sequence[tuple[Team, Sequence[Project]]]]:
         """
         Returns a list of all teams a user has some level of access to.
         """

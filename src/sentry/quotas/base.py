@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Any, List, Literal, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from django.conf import settings
 from django.core.cache import cache
@@ -34,7 +34,7 @@ class AbuseQuota:
     # Org an Sentry option name.
     option: str
     # Quota categories.
-    categories: List[DataCategory]
+    categories: list[DataCategory]
     # Quota Scope.
     scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
     # Old org option name still used for compatibility reasons,
@@ -534,7 +534,7 @@ class Quota(Service):
 
     def get_transaction_sampling_tier_for_volume(
         self, organization_id: int, volume: int
-    ) -> Optional[Tuple[int, float]]:
+    ) -> Optional[tuple[int, float]]:
         """
         Returns the transaction sampling tier closest to a specific volume.
 
@@ -573,7 +573,6 @@ class Quota(Service):
         """
         Removes a monitor from it's assigned seat.
         """
-        pass
 
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
         """

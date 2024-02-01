@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from hashlib import md5
-from typing import Any, Mapping, Optional, Tuple, TypedDict, cast
+from typing import Any, Mapping, Optional, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
-) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
+) -> tuple[IssueOccurrence, Optional[GroupInfo]]:
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
     if occurrence.event_id != event.event_id:

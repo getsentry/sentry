@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Union
 
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
@@ -167,7 +167,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self,
         project_id: int,
         _type: str,
-        extra_data: Tuple[Any, ...] = (),
+        extra_data: tuple[Any, ...] = (),
         asynchronous: bool = True,
         headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,

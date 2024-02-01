@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Optional
 
 from django.db.models import QuerySet
 
@@ -41,7 +41,7 @@ class DatabaseBackedIdentityService(IdentityService):
 
         return serialize_identity_provider(idp) if idp else None
 
-    def get_identities(self, *, filter: IdentityFilterArgs) -> List[RpcIdentity]:
+    def get_identities(self, *, filter: IdentityFilterArgs) -> list[RpcIdentity]:
         return self._FQ.get_many(filter=filter)
 
     def get_identity(self, *, filter: IdentityFilterArgs) -> RpcIdentity | None:
@@ -56,7 +56,7 @@ class DatabaseBackedIdentityService(IdentityService):
         user_id: int,
         provider_type: str,
         exclude_matching_external_ids: bool = False,
-    ) -> List[RpcIdentity]:
+    ) -> list[RpcIdentity]:
         from django.db.models import F
 
         from sentry.models.identity import Identity

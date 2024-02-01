@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Mapping, Optional, Sequence, Union
 
 from snuba_sdk import Column, Function
 
@@ -180,7 +180,7 @@ def resolve_metrics_percentile(
     args: Mapping[str, Union[str, Column, SelectType, int, float]],
     alias: Optional[str],
     fixed_percentile: Optional[float] = None,
-    extra_conditions: Optional[List[Function]] = None,
+    extra_conditions: Optional[list[Function]] = None,
 ) -> SelectType:
     if fixed_percentile is None:
         fixed_percentile = args["percentile"]

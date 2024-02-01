@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
 from sentry import options
 from sentry.ratelimits.sliding_windows import (
@@ -124,7 +124,7 @@ class WritesLimiter:
     @metrics.wraps("sentry_metrics.indexer.construct_quota_requests")
     def _construct_quota_requests(
         self, keys: UseCaseKeyCollection
-    ) -> Tuple[Sequence[UseCaseID], Sequence[OrgId], Sequence[RequestedQuota]]:
+    ) -> tuple[Sequence[UseCaseID], Sequence[OrgId], Sequence[RequestedQuota]]:
         use_case_ids = []
         org_ids = []
         requests = []

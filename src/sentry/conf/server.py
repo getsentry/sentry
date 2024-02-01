@@ -11,18 +11,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    List,
-    Mapping,
-    MutableSequence,
-    Optional,
-    Union,
-    overload,
-)
+from typing import Any, Callable, Final, Mapping, MutableSequence, Optional, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -559,7 +548,7 @@ AUTHENTICATION_BACKENDS = (
     "social_auth.backends.visualstudio.VisualStudioBackend",
 )
 
-AUTH_PASSWORD_VALIDATORS: List[Dict[str, Any]] = [
+AUTH_PASSWORD_VALIDATORS: list[dict[str, Any]] = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",

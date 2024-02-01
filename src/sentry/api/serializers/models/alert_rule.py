@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, List, Mapping, MutableMapping, Optional, Sequence, Union
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Union
 
 from django.db.models import Max, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema_serializer
@@ -32,13 +32,13 @@ from sentry.snuba.models import SnubaQueryEventType
 
 class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     environment: Optional[str]
-    projects: Optional[List[str]]
-    excludedProjects: Optional[List[dict]]
+    projects: Optional[list[str]]
+    excludedProjects: Optional[list[dict]]
     queryType: Optional[int]
     resolveThreshold: Optional[float]
     dataset: Optional[str]
     thresholdType: Optional[int]
-    eventTypes: Optional[List[str]]
+    eventTypes: Optional[list[str]]
     owner: Optional[str]
     originalAlertRuleId: Optional[str]
     comparisonDelta: Optional[float]
@@ -74,7 +74,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     timeWindow: int
     resolution: float
     thresholdPeriod: int
-    triggers: List[dict]
+    triggers: list[dict]
     includeAllProjects: bool
     dateModified: datetime
     dateCreated: datetime

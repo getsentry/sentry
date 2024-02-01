@@ -3,18 +3,7 @@ from __future__ import annotations
 import inspect
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import (
-    Any,
-    Callable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Protocol,
-    Sequence,
-    Set,
-    Tuple,
-    cast,
-)
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Protocol, Sequence, cast
 
 from sentry.utils.safe import PathSearchable, get_path
 
@@ -45,7 +34,7 @@ class FrameMunger(Protocol):
 class SdkFrameMunger:
     frame_munger: FrameMunger
     requires_sdk: bool = False
-    supported_sdks: Set[str] = field(default_factory=set)
+    supported_sdks: set[str] = field(default_factory=set)
 
 
 def java_frame_munger(frame: EventFrame) -> str | None:
@@ -141,7 +130,7 @@ def munged_filename_and_frames(
     data_frames: Sequence[Mapping[str, Any]],
     key: str = "munged_filename",
     sdk_name: str | None = None,
-) -> Optional[Tuple[str, Sequence[Mapping[str, Any]]]]:
+) -> Optional[tuple[str, Sequence[Mapping[str, Any]]]]:
     """
     Applies platform-specific frame munging for filename pathing.
 
