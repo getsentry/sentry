@@ -52,6 +52,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert "priority" not in result
+        assert "priorityLockedAt" not in result
 
     @with_feature("projects:issue-priority")
     def test_priority_high(self):
@@ -73,6 +74,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["priority"] is None
+        assert result["priorityLockedAt"] is None
 
     def test_is_ignored_with_expired_snooze(self):
         now = django_timezone.now()
