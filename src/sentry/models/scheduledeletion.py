@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Type
 from uuid import uuid4
 
 from django.apps import apps
@@ -160,7 +159,7 @@ class RegionScheduledDeletion(BaseScheduledDeletion):
         db_table = "sentry_regionscheduleddeletion"
 
 
-def get_regional_scheduled_deletion(mode: SiloMode) -> Type[BaseScheduledDeletion]:
+def get_regional_scheduled_deletion(mode: SiloMode) -> type[BaseScheduledDeletion]:
     if mode != SiloMode.CONTROL:
         return RegionScheduledDeletion
     return ScheduledDeletion

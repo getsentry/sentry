@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 
 import pytest
 from django.utils.functional import cached_property
@@ -11,7 +11,7 @@ from sentry.incidents.models import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.identity import IdentityProvider
+from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
@@ -19,6 +19,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
@@ -129,8 +130,17 @@ class Fixtures:
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
 
+    def create_auth_provider(self, *args, **kwargs):
+        return Factories.create_auth_provider(*args, **kwargs)
+
+    def create_auth_identity(self, *args, **kwargs):
+        return Factories.create_auth_identity(*args, **kwargs)
+
     def create_user_auth_token(self, *args, **kwargs):
         return Factories.create_user_auth_token(*args, **kwargs)
+
+    def create_org_auth_token(self, *args, **kwargs):
+        return Factories.create_org_auth_token(*args, **kwargs)
 
     def create_team_membership(self, *args, **kwargs):
         return Factories.create_team_membership(*args, **kwargs)
@@ -245,6 +255,12 @@ class Fixtures:
     def create_useremail(self, *args, **kwargs):
         return Factories.create_useremail(*args, **kwargs)
 
+    def create_user_avatar(self, *args, **kwargs):
+        return Factories.create_user_avatar(*args, **kwargs)
+
+    def create_user_role(self, *args, **kwargs):
+        return Factories.create_user_role(*args, **kwargs)
+
     def create_usersocialauth(
         self,
         user: User | None = None,
@@ -293,6 +309,9 @@ class Fixtures:
     def create_sentry_app(self, *args, **kwargs):
         return Factories.create_sentry_app(*args, **kwargs)
 
+    def create_sentry_app_avatar(self, *args, **kwargs):
+        return Factories.create_sentry_app_avatar(*args, **kwargs)
+
     def create_internal_integration(self, *args, **kwargs):
         return Factories.create_internal_integration(*args, **kwargs)
 
@@ -301,6 +320,9 @@ class Fixtures:
 
     def create_sentry_app_installation(self, *args, **kwargs):
         return Factories.create_sentry_app_installation(*args, **kwargs)
+
+    def create_sentry_app_installation_for_provider(self, *args, **kwargs):
+        return Factories.create_sentry_app_installation_for_provider(*args, **kwargs)
 
     def create_stacktrace_link_schema(self, *args, **kwargs):
         return Factories.create_stacktrace_link_schema(*args, **kwargs)
@@ -334,6 +356,9 @@ class Fixtures:
 
     def create_integration_external_issue(self, *args, **kwargs):
         return Factories.create_integration_external_issue(*args, **kwargs)
+
+    def create_integration_external_project(self, *args, **kwargs):
+        return Factories.create_integration_external_project(*args, **kwargs)
 
     def create_incident(self, organization=None, projects=None, *args, **kwargs):
         if not organization:
@@ -394,6 +419,12 @@ class Fixtures:
             organization=organization, projects=projects, **kwargs
         )
 
+    def create_notification_settings_provider(self, *args, **kwargs):
+        return Factories.create_notification_settings_provider(*args, **kwargs)
+
+    def create_user_option(self, *args, **kwargs):
+        return Factories.create_user_option(*args, **kwargs)
+
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
             user = self.user
@@ -429,7 +460,7 @@ class Fixtures:
         self,
         organization: Organization,
         external_id: str = "TXXXXXXX1",
-        user: Optional[RpcUser] = None,
+        user: RpcUser | None = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):
@@ -458,6 +489,26 @@ class Fixtures:
     def create_provider_integration(self, **integration_params: Any) -> Integration:
         """Create an integration tied to a provider but no particular organization."""
         return Factories.create_provider_integration(**integration_params)
+
+    def create_provider_integration_for(
+        self,
+        organization: Organization | RpcOrganization,
+        user: User | RpcUser | None,
+        **integration_params: Any,
+    ) -> tuple[Integration, OrganizationIntegration]:
+        """Create an integration tied to a provider, then add an organization."""
+        return Factories.create_provider_integration_for(organization, user, **integration_params)
+
+    def create_identity_integration(
+        self,
+        user: User | RpcUser,
+        organization: Organization | RpcOrganization,
+        integration_params: Mapping[Any, Any],
+        identity_params: Mapping[Any, Any],
+    ) -> tuple[Integration, OrganizationIntegration, Identity, IdentityProvider]:
+        return Factories.create_identity_integration(
+            user, organization, integration_params, identity_params
+        )
 
     def create_organization_integration(self, **integration_params: Any) -> OrganizationIntegration:
         """Create an OrganizationIntegration entity."""
@@ -496,6 +547,9 @@ class Fixtures:
 
     def snooze_rule(self, *args, **kwargs):
         return Factories.snooze_rule(*args, **kwargs)
+
+    def create_request_access(self, *args, **kwargs):
+        return Factories.create_request_access(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

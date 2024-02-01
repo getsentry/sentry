@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Callable, Type
+from typing import Callable
 
 import sentry_sdk
 from celery import Task
@@ -65,7 +65,7 @@ def schedule_batch(
         concurrency = CONCURRENCY
     try:
         for outbox_name in settings.SENTRY_OUTBOX_MODELS[silo_mode.name]:
-            outbox_model: Type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
+            outbox_model: type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
 
             aggregates = outbox_model.objects.all().aggregate(Min("id"), Max("id"))
 
@@ -77,10 +77,11 @@ def schedule_batch(
             scheduled_count += hi - lo + 1
             batch_size = math.ceil((hi - lo + 1) / concurrency)
 
+            metrics_tags = dict(silo_mode=silo_mode.name, outbox_name=outbox_name)
             metrics.gauge(
                 "deliver_from_outbox.queued_batch_size",
                 value=batch_size,
-                tags=dict(silo_mode=silo_mode.name),
+                tags=metrics_tags,
                 sample_rate=1.0,
             )
 
@@ -92,8 +93,28 @@ def schedule_batch(
                     outbox_identifier_low=lo + i * batch_size,
                     outbox_identifier_hi=lo + (i + 1) * batch_size,
                 )
+
+            deepest_shard_information = outbox_model.get_shard_depths_descending(limit=1)
+            max_shard_depth = (
+                deepest_shard_information[0]["depth"] if deepest_shard_information else 0
+            )
+            metrics.gauge(
+                "deliver_from_outbox.maximum_shard_depth",
+                value=max_shard_depth,
+                tags=metrics_tags,
+                sample_rate=1.0,
+            )
+
+            outbox_count = outbox_model.get_total_outbox_count()
+            metrics.gauge(
+                "deliver_from_outbox.total_outbox_count",
+                value=outbox_count,
+                tags=metrics_tags,
+                sample_rate=1.0,
+            )
         if process_outbox_backfills:
             backfill_outboxes_for(silo_mode, scheduled_count)
+
     except Exception:
         sentry_sdk.capture_exception()
         raise
@@ -112,7 +133,7 @@ def drain_outbox_shards(
             outbox_name = settings.SENTRY_OUTBOX_MODELS["REGION"][0]
 
         assert outbox_name, "Could not determine outbox name"
-        outbox_model: Type[RegionOutboxBase] = RegionOutboxBase.from_outbox_name(outbox_name)
+        outbox_model: type[RegionOutboxBase] = RegionOutboxBase.from_outbox_name(outbox_name)
 
         process_outbox_batch(outbox_identifier_hi, outbox_identifier_low, outbox_model)
     except Exception:
@@ -135,7 +156,7 @@ def drain_outbox_shards_control(
             outbox_name = settings.SENTRY_OUTBOX_MODELS["CONTROL"][0]
 
         assert outbox_name, "Could not determine outbox name"
-        outbox_model: Type[ControlOutboxBase] = ControlOutboxBase.from_outbox_name(outbox_name)
+        outbox_model: type[ControlOutboxBase] = ControlOutboxBase.from_outbox_name(outbox_name)
 
         process_outbox_batch(outbox_identifier_hi, outbox_identifier_low, outbox_model)
     except Exception:
@@ -144,7 +165,7 @@ def drain_outbox_shards_control(
 
 
 def process_outbox_batch(
-    outbox_identifier_hi: int, outbox_identifier_low: int, outbox_model: Type[OutboxBase]
+    outbox_identifier_hi: int, outbox_identifier_low: int, outbox_model: type[OutboxBase]
 ) -> int:
     processed_count: int = 0
     for shard_attributes in outbox_model.find_scheduled_shards(

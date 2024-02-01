@@ -8,7 +8,7 @@ import time
 import traceback
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Generator, List, Literal, Mapping, Tuple, overload
+from typing import Any, Generator, Literal, Mapping, overload
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -21,6 +21,7 @@ from rest_framework.request import Request
 from sentry_sdk import Scope
 
 from sentry import options
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
@@ -241,8 +242,8 @@ def is_member_disabled_from_limit(
     if getattr(user, "is_sentry_app", False):
         return False
 
-    # don't limit super users
-    if is_active_superuser(request):
+    # don't limit superuser or staff
+    if is_active_superuser(request) or is_active_staff(request):
         return False
 
     # must be a simple user at this point
@@ -295,7 +296,7 @@ def generate_region_url(region_name: str | None = None) -> str:
     return region_url_template.replace("{region}", region_name)
 
 
-_path_patterns: List[Tuple[re.Pattern[str], str]] = [
+_path_patterns: list[tuple[re.Pattern[str], str]] = [
     # /organizations/slug/section, but not /organizations/new
     (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/

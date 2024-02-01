@@ -6,10 +6,11 @@ import os
 import random
 from base64 import b64encode
 from binascii import hexlify
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -23,6 +24,7 @@ from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.text import slugify
 
+from sentry.auth.access import RpcBackedAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
@@ -49,7 +51,11 @@ from sentry.models.actor import Actor
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
+from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
+from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -67,6 +73,7 @@ from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.models.integrations.integration_feature import (
     Feature,
     IntegrationFeature,
@@ -75,17 +82,23 @@ from sentry.models.integrations.integration_feature import (
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
 from sentry.models.notificationaction import (
     ActionService,
     ActionTarget,
     ActionTrigger,
     NotificationAction,
 )
+from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
@@ -107,13 +120,18 @@ from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
+from sentry.models.userrole import UserRole
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -382,7 +400,17 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user_auth_token(user, scope_list: List[str] = None, **kwargs) -> ApiToken:
+    def create_auth_provider(**kwargs):
+        return AuthProvider.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_auth_identity(**kwargs):
+        return AuthIdentity.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_auth_token(user, scope_list: list[str] = None, **kwargs) -> ApiToken:
         if scope_list is None:
             scope_list = []
         return ApiToken.objects.create(
@@ -390,6 +418,11 @@ class Factories:
             scope_list=scope_list,
             **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_org_auth_token(*args, **kwargs) -> OrgAuthToken:
+        return OrgAuthToken.objects.create(*args, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -518,14 +551,14 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_release(
         project: Project,
-        user: Optional[User] = None,
-        version: Optional[str] = None,
-        date_added: Optional[datetime] = None,
-        additional_projects: Optional[Sequence[Project]] = None,
-        environments: Optional[Sequence[Environment]] = None,
-        date_released: Optional[datetime] = None,
-        adopted: Optional[datetime] = None,
-        unadopted: Optional[datetime] = None,
+        user: User | None = None,
+        version: str | None = None,
+        date_added: datetime | None = None,
+        additional_projects: Sequence[Project] | None = None,
+        environments: Sequence[Environment] | None = None,
+        date_released: datetime | None = None,
+        adopted: datetime | None = None,
+        unadopted: datetime | None = None,
     ):
         if version is None:
             version = force_str(hexlify(os.urandom(20)))
@@ -800,6 +833,16 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_avatar(*args, **kwargs):
+        return UserAvatar.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_role(*args, **kwargs):
+        return UserRole.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_usersocialauth(
         user: User,
         provider: str | None = None,
@@ -1001,6 +1044,11 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_sentry_app_avatar(*args, **kwargs):
+        return SentryAppAvatar.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_internal_integration(**kwargs):
         args = Factories._sentry_app_kwargs(**kwargs)
         args["verify_install"] = False
@@ -1079,6 +1127,22 @@ class Factories:
                 )
                 install = SentryAppInstallation.objects.get(id=install.id)
         return install
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_sentry_app_installation_for_provider(
+        sentry_app_id: int,
+        organization_id: int,
+        provider: str,
+    ) -> SentryAppInstallationForProvider:
+        installation = SentryAppInstallation.objects.get(
+            sentry_app_id=sentry_app_id, organization_id=organization_id
+        )
+        return SentryAppInstallationForProvider.objects.create(
+            organization_id=organization_id,
+            provider=provider,
+            sentry_app_installation=installation,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -1232,7 +1296,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration_features(
         features=None, doc_integration=None
-    ) -> List[IntegrationFeature]:
+    ) -> list[IntegrationFeature]:
         if not features:
             features = [Feature.API]
         if not doc_integration:
@@ -1319,6 +1383,18 @@ class Factories:
         )
 
         return external_issue
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_integration_external_project(
+        organization_id: int, integration_id: int, *args: Any, **kwargs: Any
+    ) -> IntegrationExternalProject:
+        oi = OrganizationIntegration.objects.get(
+            organization_id=organization_id, integration_id=integration_id
+        )
+        return IntegrationExternalProject.objects.create(
+            organization_integration_id=oi.id, *args, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1529,6 +1605,41 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_provider_integration_for(
+        organization: Organization | RpcOrganization,
+        user: User | RpcUser | None,
+        **integration_params: Any,
+    ) -> tuple[Integration, OrganizationIntegration]:
+        integration = Integration.objects.create(**integration_params)
+        org_integration = integration.add_organization(organization, user)
+        assert org_integration is not None
+        return integration, org_integration
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_identity_integration(
+        user: User | RpcUser,
+        organization: Organization | RpcOrganization,
+        integration_params: Mapping[Any, Any],
+        identity_params: Mapping[Any, Any],
+    ) -> tuple[Integration, OrganizationIntegration, Identity, IdentityProvider]:
+        # Avoid common pitfalls in tests
+        assert "provider" in integration_params
+        assert "external_id" in integration_params
+        assert "external_id" in identity_params
+
+        integration = Factories.create_provider_integration(**integration_params)
+        identity_provider = Factories.create_identity_provider(integration=integration)
+        identity = Factories.create_identity(
+            user=user, identity_provider=identity_provider, **identity_params
+        )
+        organization_integration = integration.add_organization(
+            organization_id=organization.id, user=user, default_auth_id=identity.id
+        )
+        return integration, organization_integration, identity, identity_provider
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_organization_integration(**integration_params: Any) -> OrganizationIntegration:
         return OrganizationIntegration.objects.create(**integration_params)
 
@@ -1572,10 +1683,10 @@ class Factories:
     def create_group_history(
         group: Group,
         status: int,
-        release: Optional[Release] = None,
-        actor: Optional[Actor] = None,
-        prev_history: Optional[GroupHistory] = None,
-        date_added: Optional[datetime] = None,
+        release: Release | None = None,
+        actor: Actor | None = None,
+        prev_history: GroupHistory | None = None,
+        date_added: datetime | None = None,
     ) -> GroupHistory:
         prev_history_date = None
         if prev_history:
@@ -1630,8 +1741,8 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_notification_action(
-        organization: Optional[Organization] = None,
-        projects: Optional[List[Project]] = None,
+        organization: Organization | None = None,
+        projects: list[Project] | None = None,
         **kwargs,
     ):
         if not organization:
@@ -1657,6 +1768,16 @@ class Factories:
         return action
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_notification_settings_provider(*args, **kwargs) -> NotificationSettingProvider:
+        return NotificationSettingProvider.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_user_option(*args, **kwargs) -> UserOption:
+        return UserOption.objects.create(*args, **kwargs)
+
+    @staticmethod
     def create_basic_auth_header(username: str, password: str = "") -> str:
         return b"Basic " + b64encode(f"{username}:{password}".encode())
 
@@ -1664,3 +1785,24 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def snooze_rule(**kwargs):
         return RuleSnooze.objects.create(**kwargs)
+
+    @staticmethod
+    def create_request_access(
+        sso_state: RpcMemberSsoState | None = None,
+        permissions: list | None = None,
+        org_context: RpcUserOrganizationContext | None = None,
+        scopes_upper_bound: frozenset | None = frozenset(),
+    ) -> RpcBackedAccess:
+        if not sso_state:
+            sso_state = RpcMemberSsoState()
+        if not permissions:
+            permissions = []
+        if not org_context:
+            org_context = RpcUserOrganizationContext()
+
+        auth_state = RpcAuthState(sso_state=sso_state, permissions=permissions)
+        return RpcBackedAccess(
+            rpc_user_organization_context=org_context,
+            auth_state=auth_state,
+            scopes_upper_bound=scopes_upper_bound,
+        )

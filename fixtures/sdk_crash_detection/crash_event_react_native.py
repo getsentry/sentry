@@ -1,4 +1,4 @@
-from typing import Dict, Mapping, MutableMapping, Sequence
+from typing import Mapping, MutableMapping, Sequence
 
 
 def get_frames(filename: str) -> Sequence[MutableMapping[str, str]]:
@@ -25,8 +25,21 @@ def get_frames(filename: str) -> Sequence[MutableMapping[str, str]]:
         },
         {
             "function": "ReactNativeClient#nativeCrash",
+            "module": filename.replace("node_modules/", "").replace(".js", ""),
             "filename": filename,
-            "abs_path": "/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js",
+            "abs_path": f"app:///{filename}",
+        },
+        {
+            "function": "callFunctionReturnFlushedQueue",
+            "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+            "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+            "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+        },
+        {
+            "function": "processCallbacks",
+            "module": "react-native-community/BatchedBridge/MessageQueue",
+            "filename": "node_modules/react-native-community/BatchedBridge/MessageQueue.js",
+            "abs_path": "app:///node_modules/react-native-community/BatchedBridge/MessageQueue.js",
         },
     ]
     return frames
@@ -34,11 +47,11 @@ def get_frames(filename: str) -> Sequence[MutableMapping[str, str]]:
 
 def get_crash_event(
     filename="/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js", **kwargs
-) -> Dict[str, object]:
+) -> dict[str, object]:
     return get_crash_event_with_frames(get_frames(filename=filename), **kwargs)
 
 
-def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -> Dict[str, object]:
+def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -> dict[str, object]:
     result = {
         "event_id": "150d5b0b4f3a4797a3cd1345374ac484",
         "release": "com.samplenewarchitecture@1.0+1",

@@ -2,10 +2,8 @@ import styled from '@emotion/styled';
 
 import ContextData from 'sentry/components/contextData';
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
-import {
-  getAttachmentUrl,
-  ViewerProps,
-} from 'sentry/components/events/attachmentViewers/utils';
+import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
+import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';

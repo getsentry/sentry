@@ -6,11 +6,11 @@ import responses
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.notifications.additional_attachment_manager import manager
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -23,11 +23,24 @@ def additional_attachment_generator(integration, organization):
     return {"title": organization.slug, "text": integration.id}
 
 
+@region_silo_test
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
     def setUp(self):
-        self.integration = install_slack(self.get_event().project.organization)
+        self.organization = self.get_event().project.organization
+        self.integration, self.org_integration = self.create_provider_integration_for(
+            organization=self.organization,
+            user=self.user,
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "domain_name": "sentry.slack.com",
+                "installation_type": "born_as_bot",
+            },
+            name="Awesome Team",
+            provider="slack",
+        )
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()
@@ -76,25 +89,26 @@ class SlackNotifyActionTest(RuleTestCase):
             == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] in notification"
         )
 
-    @with_feature("organizations:slack-formatting-update")
-    def test_render_label_with_mentions(self):
+    @with_feature("organizations:slack-block-kit")
+    def test_render_label_with_notes(self):
         rule = self.get_rule(
             data={
                 "workspace": self.integration.id,
                 "channel": "#my-channel",
                 "channel_id": "",
                 "tags": "one, two",
-                "mentions": "fix this @colleen",
+                "notes": "fix this @colleen",
             }
         )
 
         assert (
             rule.render_label()
-            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] and mentions fix this @colleen in notification"
+            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] and notes fix this @colleen in notification"
         )
 
     def test_render_label_without_integration(self):
-        self.integration.delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.delete()
 
         rule = self.get_rule(
             data={
@@ -113,7 +127,9 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_valid_bot_channel_selected(self):
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            organization=self.event.project.organization,
+            user=self.user,
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX2",
@@ -123,7 +139,6 @@ class SlackNotifyActionTest(RuleTestCase):
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.event.project.organization, self.user)
         rule = self.get_rule(
             data={"workspace": integration.id, "channel": "#my-channel", "tags": ""}
         )
@@ -357,10 +372,11 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def test_disabled_org_integration(self):
         org = self.create_organization(owner=self.user)
-        self.create_organization_integration(organization_id=org.id, integration=self.integration)
-        OrganizationIntegration.objects.get(
-            integration=self.integration, organization_id=self.event.project.organization.id
-        ).update(status=ObjectStatus.DISABLED)
+        self.create_organization_integration(
+            organization_id=org.id, integration=self.integration, status=ObjectStatus.DISABLED
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration.update(status=ObjectStatus.DISABLED)
         event = self.get_event()
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})

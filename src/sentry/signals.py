@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import functools
 import logging
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable
 
 from django.dispatch.dispatcher import NO_RECEIVERS, Signal
 
@@ -14,7 +14,7 @@ Receiver = Callable[[], Any]
 _AllReceivers = enum.Enum("_AllReceivers", "ALL")
 
 
-_receivers_that_raise: _AllReceivers | List[Receiver] = []
+_receivers_that_raise: _AllReceivers | list[Receiver] = []
 
 
 class receivers_raise_on_send:
@@ -27,7 +27,7 @@ class receivers_raise_on_send:
 
     receivers: Any
 
-    def __init__(self, receivers: _AllReceivers | Receiver | List[Receiver] = _AllReceivers.ALL):
+    def __init__(self, receivers: _AllReceivers | Receiver | list[Receiver] = _AllReceivers.ALL):
         self.receivers = receivers
 
     def __enter__(self) -> None:
@@ -78,11 +78,11 @@ class BetterSignal(Signal):
             wrapped.__doc__ = receiver.__doc__
         return wrapped(receiver)
 
-    def send_robust(self, sender, **named) -> List[Tuple[Receiver, Union[Exception, Any]]]:
+    def send_robust(self, sender, **named) -> list[tuple[Receiver, Exception | Any]]:
         """
         A reimplementation of send_robust which logs failures, thus recovering stacktraces.
         """
-        responses: List[Tuple[Receiver, Union[Exception, Any]]] = []
+        responses: list[tuple[Receiver, Exception | Any]] = []
         if not self.receivers or self.sender_receivers_cache.get(sender) is NO_RECEIVERS:
             return responses
 
@@ -195,6 +195,10 @@ user_signup = BetterSignal()  # ["user", "source"]
 
 # relocation
 relocated = BetterSignal()  # ["relocation_uuid"]
+relocation_link_promo_code = BetterSignal()  # ["relocation_uuid", "promo_code"]
+relocation_redeem_promo_code = BetterSignal()  # ["user_id", "relocation_uuid", "orgs"]
 
+# Fired after an update is performed on a `PostUpdateQuerySet`. Separate to a `.update` call on a model.
+post_update = BetterSignal()  # [sender: Model, updated_fields: list[str], model_ids: list[int]]
 # After `sentry upgrade` has completed.  Better than post_migrate because it won't run in tests.
 post_upgrade = BetterSignal()  # []

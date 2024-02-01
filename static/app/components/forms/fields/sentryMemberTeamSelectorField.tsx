@@ -2,7 +2,7 @@ import {useContext, useEffect, useMemo} from 'react';
 
 import Avatar from 'sentry/components/avatar';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -10,7 +10,8 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import FormContext from '../formContext';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import SelectField, {SelectFieldProps} from './selectField';
+import type {SelectFieldProps} from './selectField';
+import SelectField from './selectField';
 
 // projects can be passed as a direct prop as well
 export interface RenderFieldProps extends SelectFieldProps<any> {

@@ -3,7 +3,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {

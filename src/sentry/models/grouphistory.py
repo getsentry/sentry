@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
 from django.db import models
 from django.db.models import SET_NULL, Q
@@ -58,6 +58,10 @@ class GroupHistoryStatus:
     # Just reserving this for us with queries, we don't store the first time a group is created in
     # `GroupHistoryStatus`
     NEW = 20
+
+    PRIORITY_HIGH = 21
+    PRIORITY_MEDIUM = 22
+    PRIORITY_LOW = 23
 
 
 STRING_TO_STATUS_LOOKUP = {
@@ -209,10 +213,10 @@ class GroupHistory(Model):
     class Meta:
         db_table = "sentry_grouphistory"
         app_label = "sentry"
-        index_together = (
-            ("project", "status", "release"),
-            ("group", "status"),
-            ("project", "date_added"),
+        indexes = (
+            models.Index(fields=("project", "status", "release")),
+            models.Index(fields=("group", "status")),
+            models.Index(fields=("project", "date_added")),
         )
 
     __repr__ = sane_repr("group_id", "release_id")
@@ -287,7 +291,7 @@ def record_group_history(
 
 
 def bulk_record_group_history(
-    groups: List["Group"],
+    groups: list["Group"],
     status: int,
     actor: Optional[Union["User", "RpcUser", "Team"]] = None,
     release: Optional["Release"] = None,

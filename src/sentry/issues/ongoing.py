@@ -1,8 +1,9 @@
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from django.db.models.signals import post_save
 
+from sentry import options
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import bulk_remove_groups_from_inbox
 from sentry.types.activity import ActivityType
@@ -12,7 +13,7 @@ from sentry.types.group import GroupSubStatus
 def bulk_transition_group_to_ongoing(
     from_status: int,
     from_substatus: int,
-    group_ids: List[int],
+    group_ids: list[int],
     activity_data: Optional[Mapping[str, Any]] = None,
 ) -> None:
     with sentry_sdk.start_span(description="groups_to_transistion") as span:
@@ -31,20 +32,23 @@ def bulk_transition_group_to_ongoing(
             activity_type=ActivityType.AUTO_SET_ONGOING,
             activity_data=activity_data,
             send_activity_notification=False,
+            from_substatus=from_substatus,
         )
 
     for group in groups_to_transistion:
         group.status = GroupStatus.UNRESOLVED
         group.substatus = GroupSubStatus.ONGOING
+        # TODO(snigdha): do we need to update the priority here?
 
     with sentry_sdk.start_span(description="bulk_remove_groups_from_inbox"):
         bulk_remove_groups_from_inbox(groups_to_transistion)
 
     with sentry_sdk.start_span(description="post_save_send_robust"):
-        for group in groups_to_transistion:
-            post_save.send_robust(
-                sender=Group,
-                instance=group,
-                created=False,
-                update_fields=["status", "substatus"],
-            )
+        if not options.get("groups.enable-post-update-signal"):
+            for group in groups_to_transistion:
+                post_save.send_robust(
+                    sender=Group,
+                    instance=group,
+                    created=False,
+                    update_fields=["status", "substatus"],
+                )

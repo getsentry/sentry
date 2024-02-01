@@ -1,6 +1,7 @@
 import re
+import zoneinfo
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, Optional, Tuple, Union, overload
+from typing import Any, Mapping, Optional, Union, overload
 
 from dateutil.parser import parse
 from django.http.request import HttpRequest
@@ -10,6 +11,9 @@ from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
 
 epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
+# Factory is an obscure GMT alias
+AVAILABLE_TIMEZONES = frozenset(zoneinfo.available_timezones() - {"Factory"})
 
 
 def ensure_aware(value: datetime) -> datetime:
@@ -179,7 +183,7 @@ def validate_interval(
 
 def outside_retention_with_modified_start(
     start: datetime, end: datetime, organization: Any
-) -> Tuple[bool, datetime]:
+) -> tuple[bool, datetime]:
     """
     Check if a start-end datetime range is outside an
     organizations retention period. Returns an updated

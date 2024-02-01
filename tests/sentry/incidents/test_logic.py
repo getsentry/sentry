@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 import responses
 from django.core import mail
+from django.test import override_settings
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -73,10 +74,12 @@ from sentry.models.actor import ActorTuple, get_actor_for_user, get_actor_id_for
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import BaseIncidentsTest, BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, region_silo_test
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -431,6 +434,7 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
         assert list(get_incident_subscribers(incident)) == [subscription]
 
 
+@region_silo_test
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test(self):
         name = "hello"
@@ -560,6 +564,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     # This test will fail unless real migrations are run. Refer to migration 0061.
     @pytest.mark.migrations  # requires custom migration 0061
+    @override_settings(SILO_MODE=SiloMode.MONOLITH)
     def test_two_archived_with_same_name(self):
         name = "allowed"
         alert_rule_1 = create_alert_rule(
@@ -1218,13 +1223,13 @@ class DeleteAlertRuleTriggerTest(TestCase):
         )
         trigger_id = trigger.id
         assert AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger=trigger, query_subscription__project=self.project
+            alert_rule_trigger=trigger_id, query_subscription__project=self.project
         ).exists()
         delete_alert_rule_trigger(trigger)
 
         assert not AlertRuleTrigger.objects.filter(id=trigger_id).exists()
         assert not AlertRuleTriggerExclusion.objects.filter(
-            alert_rule_trigger=trigger, query_subscription__project=self.project
+            alert_rule_trigger=trigger_id, query_subscription__project=self.project
         ).exists()
 
 
@@ -1245,6 +1250,7 @@ class BaseAlertRuleTriggerActionTest:
         return create_alert_rule_trigger(self.alert_rule, "hello", 1000)
 
 
+@region_silo_test
 class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase):
     def test(self):
         type = AlertRuleTriggerAction.Type.EMAIL
@@ -1272,7 +1278,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     @responses.activate
     def test_slack(self):
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             external_id="2",
             provider="slack",
             metadata={
@@ -1280,7 +1288,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel"
@@ -1317,12 +1324,13 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.integration_id == integration.id
 
     def test_slack_not_existing(self):
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             external_id="1",
             provider="slack",
             metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
@@ -1338,7 +1346,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
     @responses.activate
     def test_slack_rate_limiting(self):
         """Should handle 429 from Slack on new Metric Alert creation"""
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             external_id="1",
             provider="slack",
             metadata={
@@ -1346,7 +1356,6 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel"
@@ -1377,8 +1386,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
-        integration = self.create_provider_integration(external_id="1", provider="msteams")
-        integration.add_organization(self.organization, self.user)
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, external_id="1", provider="msteams"
+        )
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "some_channel"
@@ -1404,8 +1414,9 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value=None)
     def test_msteams_not_existing(self, mock_get_channel_id):
-        integration = self.create_provider_integration(external_id="1", provider="msteams")
-        integration.add_organization(self.organization, self.user)
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, external_id="1", provider="msteams"
+        )
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "some_channel"
@@ -1428,18 +1439,20 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
                 "service_name": "hellboi",
             }
         ]
-        integration = self.create_provider_integration(
+        integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
             metadata={"services": services},
         )
-        org_integration = integration.add_organization(self.organization, self.user)
-        service = add_service(
-            org_integration,
-            service_name=services[0]["service_name"],
-            integration_key=services[0]["integration_key"],
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            service = add_service(
+                org_integration,
+                service_name=services[0]["service_name"],
+                integration_key=services[0]["integration_key"],
+            )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         target_identifier = service["id"]
@@ -1458,12 +1471,13 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.integration_id == integration.id
 
     def test_pagerduty_not_existing(self):
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
         )
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         target_identifier = 1
@@ -1485,13 +1499,14 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             "name": "Server Name",
             "type": ChannelType.GUILD_TEXT.value,
         }
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="discord",
             name="Example Discord",
             external_id=guild_id,
             metadata=metadata,
         )
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_id = "channel-id"
@@ -1521,13 +1536,14 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             "name": "Server Name",
             "type": ChannelType.GUILD_TEXT.value,
         }
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="discord",
             external_id=guild_id,
             metadata=metadata,
         )
 
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_id = "channel-id"
@@ -1542,6 +1558,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             )
 
 
+@region_silo_test
 class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @cached_property
     def action(self):
@@ -1565,7 +1582,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     @responses.activate
     def test_slack(self):
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             external_id="1",
             provider="slack",
             metadata={
@@ -1573,7 +1592,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel"
@@ -1610,12 +1628,13 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.integration_id == integration.id
 
     def test_slack_not_existing(self):
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             external_id="1",
             provider="slack",
             metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
@@ -1631,7 +1650,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @responses.activate
     def test_slack_rate_limiting(self):
         """Should handle 429 from Slack on existing Metric Alert update"""
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             external_id="1",
             provider="slack",
             metadata={
@@ -1639,7 +1660,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel"
@@ -1670,8 +1690,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value="some_id")
     def test_msteams(self, mock_get_channel_id):
-        integration = self.create_provider_integration(external_id="1", provider="msteams")
-        integration.add_organization(self.organization, self.user)
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, external_id="1", provider="msteams"
+        )
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "some_channel"
@@ -1697,8 +1718,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
 
     @patch("sentry.integrations.msteams.utils.get_channel_id", return_value=None)
     def test_msteams_not_existing(self, mock_get_channel_id):
-        integration = self.create_provider_integration(external_id="1", provider="msteams")
-        integration.add_organization(self.organization, self.user)
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, external_id="1", provider="msteams"
+        )
         type = AlertRuleTriggerAction.Type.MSTEAMS
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "some_channel"
@@ -1721,18 +1743,20 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
                 "service_name": "hellboi",
             }
         ]
-        integration = self.create_provider_integration(
+        integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
             metadata={"services": services},
         )
-        org_integration = integration.add_organization(self.organization, self.user)
-        service = add_service(
-            org_integration,
-            service_name=services[0]["service_name"],
-            integration_key=services[0]["integration_key"],
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            service = add_service(
+                org_integration,
+                service_name=services[0]["service_name"],
+                integration_key=services[0]["integration_key"],
+            )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         target_identifier = service["id"]
@@ -1752,12 +1776,13 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         assert action.integration_id == integration.id
 
     def test_pagerduty_not_existing(self):
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
         )
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         target_identifier = 1
@@ -1779,15 +1804,17 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             "domain_name": "test-app.app.opsgenie.com",
         }
         team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
-        integration = self.create_provider_integration(
-            provider="opsgenie", name="test-app", external_id="test-app", metadata=metadata
+        integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="opsgenie",
+            name="test-app",
+            external_id="test-app",
+            metadata=metadata,
         )
-        integration.add_organization(self.organization, self.user)
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        )
-        org_integration.config = {"team_table": [team]}
-        org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration.config = {"team_table": [team]}
+            org_integration.save()
 
         resp_data = {
             "result": "Integration [sentry] is valid",
@@ -1823,8 +1850,13 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             "base_url": "https://api.opsgenie.com/",
             "domain_name": "test-app.app.opsgenie.com",
         }
-        integration = self.create_provider_integration(
-            provider="opsgenie", name="test-app", external_id="test-app", metadata=metadata
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="opsgenie",
+            name="test-app",
+            external_id="test-app",
+            metadata=metadata,
         )
 
         type = AlertRuleTriggerAction.Type.OPSGENIE
@@ -1847,7 +1879,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         guild_id = "example-discord-server"
         guild_name = "Server Name"
 
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="discord",
             name="Example Discord",
             external_id=f"{guild_id}",
@@ -1858,7 +1892,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
@@ -1892,7 +1925,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         guild_id = "example-discord-server"
         guild_name = "Server Name"
 
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="discord",
             name="Example Discord",
             external_id=f"{guild_id}",
@@ -1903,7 +1938,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(method=responses.GET, url=f"{base_url}/channels/{channel_id}", status=404)
@@ -1924,7 +1958,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         guild_id = "example-discord-server"
         guild_name = "Server Name"
 
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="discord",
             name="Example Discord",
             external_id=f"{guild_id}",
@@ -1935,7 +1971,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
@@ -1975,7 +2010,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         guild_id = "example-discord-server"
         guild_name = "Server Name"
 
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="discord",
             name="Example Discord",
             external_id=f"{guild_id}",
@@ -1986,7 +2023,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
@@ -2014,7 +2050,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         guild_id = "example-discord-server"
         guild_name = "Server Name"
 
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="discord",
             name="Example Discord",
             external_id=f"{guild_id}",
@@ -2025,7 +2063,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
@@ -2054,7 +2091,9 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         guild_id = "example-discord-server"
         guild_name = "Server Name"
 
-        integration = self.create_provider_integration(
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="discord",
             name="Example Discord",
             external_id=f"{guild_id}",
@@ -2065,7 +2104,6 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             },
         )
 
-        integration.add_organization(self.organization, self.user)
         type = AlertRuleTriggerAction.Type.DISCORD
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         responses.add(
@@ -2088,6 +2126,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             )
 
 
+@region_silo_test
 class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     @cached_property
     def action(self):
@@ -2105,6 +2144,7 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             AlertRuleTriggerAction.objects.get(id=action_id)
 
 
+@region_silo_test
 class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
     def test(self):
         assert list(get_actions_for_trigger(self.trigger)) == []
@@ -2117,42 +2157,52 @@ class GetActionsForTriggerTest(BaseAlertRuleTriggerActionTest, TestCase):
         assert list(get_actions_for_trigger(self.trigger)) == [action]
 
 
+@region_silo_test
 class GetAvailableActionIntegrationsForOrgTest(TestCase):
     def test_none(self):
         assert list(get_available_action_integrations_for_org(self.organization)) == []
 
     def test_unregistered(self):
-        integration = self.create_provider_integration(external_id="1", provider="something_random")
-        integration.add_organization(self.organization)
+        integration, _ = self.create_provider_integration_for(
+            self.organization, user=None, external_id="1", provider="something_random"
+        )
         assert list(get_available_action_integrations_for_org(self.organization)) == []
 
     def test_registered(self):
-        integration = self.create_provider_integration(external_id="1", provider="slack")
-        integration.add_organization(self.organization)
+        integration, _ = self.create_provider_integration_for(
+            self.organization, user=None, external_id="1", provider="slack"
+        )
         assert list(get_available_action_integrations_for_org(self.organization)) == [
             serialize_integration(integration)
         ]
 
     def test_mixed(self):
-        integration = self.create_provider_integration(external_id="1", provider="slack")
-        integration.add_organization(self.organization)
-        other_integration = self.create_provider_integration(external_id="12345", provider="random")
-        other_integration.add_organization(self.organization)
+        integration, _ = self.create_provider_integration_for(
+            self.organization, user=None, external_id="1", provider="slack"
+        )
+        other_integration, _ = self.create_provider_integration_for(
+            self.organization, user=None, external_id="12345", provider="random"
+        )
         assert list(get_available_action_integrations_for_org(self.organization)) == [
             serialize_integration(integration)
         ]
 
     def test_disabled_integration(self):
-        integration = self.create_provider_integration(
-            external_id="1", provider="slack", status=ObjectStatus.DISABLED
+        integration, _ = self.create_provider_integration_for(
+            self.organization,
+            user=None,
+            external_id="1",
+            provider="slack",
+            status=ObjectStatus.DISABLED,
         )
-        integration.add_organization(self.organization)
         assert list(get_available_action_integrations_for_org(self.organization)) == []
 
     def test_disabled_org_integration(self):
-        integration = self.create_provider_integration(external_id="1", provider="slack")
-        org_integration = integration.add_organization(self.organization)
-        org_integration.update(status=ObjectStatus.DISABLED)
+        integration, org_integration = self.create_provider_integration_for(
+            self.organization, user=None, external_id="1", provider="slack"
+        )
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration.update(status=ObjectStatus.DISABLED)
         assert list(get_available_action_integrations_for_org(self.organization)) == []
 
 
@@ -2269,7 +2319,9 @@ class TestDeduplicateTriggerActions(TestCase):
         super().setUp()
         self.alert_rule = self.create_alert_rule()
         self.incident = self.create_incident(alert_rule=self.alert_rule)
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",

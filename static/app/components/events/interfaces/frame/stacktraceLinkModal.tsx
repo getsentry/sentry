@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -153,7 +153,7 @@ function StacktraceLinkModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Tell us where your source code is')}</h4>
+        <h4>{t('Set up Code Mapping')}</h4>
       </Header>
       <Body>
         <ModalContainer>
@@ -177,8 +177,8 @@ function StacktraceLinkModal({
                     }
                   )
                 : error.includes('blank')
-                ? t('URL is required.')
-                : error}
+                  ? t('URL is required.')
+                  : error}
             </StyledAlert>
           )}
           <div>

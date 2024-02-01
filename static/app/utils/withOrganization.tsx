@@ -1,10 +1,11 @@
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 import useOrganization from './useOrganization';
 
 type InjectedOrganizationProps = {
   organization?: Organization;
+  organizationAllowNull?: undefined | true;
 };
 
 function withOrganization<P extends InjectedOrganizationProps>(
@@ -14,7 +15,7 @@ function withOrganization<P extends InjectedOrganizationProps>(
     Partial<InjectedOrganizationProps>;
 
   function Wrapper(props: Props) {
-    const organization = useOrganization();
+    const organization = useOrganization({allowNull: props.organizationAllowNull});
 
     const allProps = {organization, ...props} as P;
 

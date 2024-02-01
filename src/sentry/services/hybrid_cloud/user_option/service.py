@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
@@ -15,7 +15,7 @@ from sentry.silo import SiloMode
 
 
 def get_option_from_list(
-    options: List[RpcUserOption],
+    options: list[RpcUserOption],
     *,
     key: Optional[str] = None,
     user_id: Optional[int] = None,
@@ -48,17 +48,17 @@ class UserOptionService(RpcService):
         filter: UserOptionFilterArgs,
         as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
-    ) -> List[OpaqueSerializedResponse]:
+    ) -> list[OpaqueSerializedResponse]:
         pass
 
     @rpc_method
     @abstractmethod
-    def get_many(self, *, filter: UserOptionFilterArgs) -> List[RpcUserOption]:
+    def get_many(self, *, filter: UserOptionFilterArgs) -> list[RpcUserOption]:
         pass
 
     @rpc_method
     @abstractmethod
-    def delete_options(self, *, option_ids: List[int]) -> None:
+    def delete_options(self, *, option_ids: list[int]) -> None:
         pass
 
     @rpc_method

@@ -1,5 +1,6 @@
-from typing import Any, Dict
+from typing import Any
 
+import sentry_sdk
 from django.http import HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -28,9 +29,9 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get_profiling_params(self, request: Request, organization: Organization) -> Dict[str, Any]:
+    def get_profiling_params(self, request: Request, organization: Organization) -> dict[str, Any]:
         try:
-            params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
+            params: dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
         except InvalidSearchQuery as err:
             raise ParseError(detail=str(err))
 
@@ -68,6 +69,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
 
         span_group = request.query_params.get("spans.group", None)
         if span_group is not None:
+            sentry_sdk.set_tag("dataset", "spans")
             profile_ids = get_profile_ids_with_spans(
                 organization.id,
                 project_ids[0],
@@ -75,6 +77,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
                 span_group,
             )
         elif request.query_params.get("fingerprint"):
+            sentry_sdk.set_tag("dataset", "functions")
             function_fingerprint = int(request.query_params["fingerprint"])
             profile_ids = get_profiles_with_function(
                 organization.id,
@@ -84,9 +87,10 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
                 request.GET.get("query", ""),
             )
         else:
+            sentry_sdk.set_tag("dataset", "profiles")
             profile_ids = get_profile_ids(params, request.query_params.get("query", None))
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "method": "POST",
             "path": f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
             "json_data": profile_ids,

@@ -8,7 +8,7 @@ import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Tag} from 'sentry/types';
+import type {Tag} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {Dot} from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
@@ -17,7 +17,7 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/performance/browser/webVitals/utils/scoreToStatus';
-import {
+import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -35,6 +35,7 @@ const WEB_VITAL_FULL_NAME_MAP = {
   cls: t('Cumulative Layout Shift'),
   fcp: t('First Contentful Paint'),
   fid: t('First Input Delay'),
+  inp: t('Interaction to Next Paint'),
   lcp: t('Largest Contentful Paint'),
   ttfb: t('Time to First Byte'),
 };
@@ -54,6 +55,9 @@ const VITAL_DESCRIPTIONS: Partial<Record<WebVital, string>> = {
   ),
   [WebVital.TTFB]: t(
     'Time to First Byte (TTFB) is a foundational metric for measuring connection setup time and web server responsiveness in both the lab and the field. It helps identify when a web server is too slow to respond to requests. In the case of navigation requests—that is, requests for an HTML document—it precedes every other meaningful loading performance metric.'
+  ),
+  [WebVital.INP]: t(
+    "Interaction to Next Paint (INP) is a metric that assesses a page's overall responsiveness to user interactions by observing the latency of all click, tap, and keyboard interactions that occur throughout the lifespan of a user's visit to a page. The final INP value is the longest interaction observed, ignoring outliers."
   ),
 };
 

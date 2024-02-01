@@ -6,7 +6,7 @@ import os
 import random
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import jsonschema
 import sentry_sdk
@@ -139,13 +139,13 @@ HIDDEN_SECRET_SCHEMA = {
 }
 
 
-def _redact_schema(schema: Dict, keys_to_redact: List[str]) -> Dict:
+def _redact_schema(schema: dict, keys_to_redact: list[str]) -> dict:
     """
     Returns a deepcopy of the input schema, overriding any keys in keys_to_redact
     with HIDDEN_SECRET_SCHEMA. Works on nested dictionaries.
     """
 
-    def override_key(schema: Dict, keys_to_redact: List[str]) -> None:
+    def override_key(schema: dict, keys_to_redact: list[str]) -> None:
         for key, value in schema.items():
             if key in keys_to_redact:
                 schema[key] = HIDDEN_SECRET_SCHEMA
@@ -267,8 +267,8 @@ def get_internal_artifact_lookup_source_url(project: Project):
 
 
 def get_bundle_index_urls(
-    project: Project, release: Optional[str], dist: Optional[str]
-) -> Tuple[Optional[str], Optional[str]]:
+    project: Project, release: str | None, dist: str | None
+) -> tuple[str | None, str | None]:
     if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-sample-rate"):
         return None, None
 
@@ -301,7 +301,7 @@ def get_bundle_index_urls(
     return debug_id_index, url_index
 
 
-def get_scraping_config(project: Project) -> Dict[str, Any]:
+def get_scraping_config(project: Project) -> dict[str, Any]:
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
@@ -761,14 +761,26 @@ def capture_apple_symbol_stats(json):
 
     if eligible_symbols:
         metrics.incr(
-            "apple_symbol_availability", amount=neither_has_symbol, tags={"availability": "neither"}
+            "apple_symbol_availability",
+            amount=neither_has_symbol,
+            tags={"availability": "neither"},
+            sample_rate=1.0,
         )
         metrics.incr(
-            "apple_symbol_availability", amount=both_have_symbol, tags={"availability": "both"}
+            "apple_symbol_availability",
+            amount=both_have_symbol,
+            tags={"availability": "both"},
+            sample_rate=1.0,
         )
         metrics.incr(
-            "apple_symbol_availability", amount=old_has_symbol, tags={"availability": "old"}
+            "apple_symbol_availability",
+            amount=old_has_symbol,
+            tags={"availability": "old"},
+            sample_rate=1.0,
         )
         metrics.incr(
-            "apple_symbol_availability", amount=symx_has_symbol, tags={"availability": "symx"}
+            "apple_symbol_availability",
+            amount=symx_has_symbol,
+            tags={"availability": "symx"},
+            sample_rate=1.0,
         )

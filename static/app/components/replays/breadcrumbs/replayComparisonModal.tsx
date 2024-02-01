@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -17,8 +17,8 @@ import SplitDiff from 'sentry/components/splitDiff';
 import {TabList} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import type {Organization} from 'sentry/types';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps {
@@ -103,6 +103,7 @@ export default function ReplayComparisonModal({
             }}
           >
             <ReplayContextProvider
+              analyticsContext="replay_comparison_modal_left"
               isFetching={fetching}
               replay={replay}
               initialTimeOffsetMs={{offsetMs: startOffset}}
@@ -116,6 +117,7 @@ export default function ReplayComparisonModal({
               </ComparisonSideWrapper>
             </ReplayContextProvider>
             <ReplayContextProvider
+              analyticsContext="replay_comparison_modal_right"
               isFetching={fetching}
               replay={replay}
               initialTimeOffsetMs={{offsetMs: rightTimestamp + 1}}

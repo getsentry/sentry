@@ -17,7 +17,7 @@ class GetProfileWithFunctionTest(ProfilesSnubaTestCase):
             minute=0, second=0, microsecond=0, tzinfo=timezone.utc
         )
 
-        for _ in range(3):
+        for i in range(3):
             self.store_functions(
                 [
                     {
@@ -28,12 +28,30 @@ class GetProfileWithFunctionTest(ProfilesSnubaTestCase):
                     },
                 ],
                 project=self.project,
-                timestamp=self.hour_ago,
+                timestamp=self.hour_ago - timedelta(hours=i),
             )
 
         transaction = load_data("transaction", timestamp=before_now(minutes=10))
         transaction["transaction"] = "foobar"
 
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [100 for _ in range(10)],
+                    "package": "foo",
+                    "function": "foo",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=self.hour_ago,
+            transaction=transaction,
+        )
+
+        transaction = load_data("transaction", timestamp=before_now(minutes=10))
+        transaction["transaction"] = "foobar"
+        profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
+        profile_context["profile_id"] = "00000000000000000000000000000000"
         self.store_functions(
             [
                 {

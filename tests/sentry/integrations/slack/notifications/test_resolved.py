@@ -67,10 +67,10 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         assert blocks[0]["text"]["text"] == fallback_text
         assert (
             blocks[1]["text"]["text"]
-            == f"<{issue_link}/?referrer=resolved_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>  \n"
+            == f":exclamation: <{issue_link}/?referrer=resolved_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
         )
         assert (
-            blocks[2]["elements"][0]["text"]
+            blocks[3]["elements"][0]["text"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 

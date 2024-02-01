@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from random import random
-from typing import Any, Callable, Literal, Mapping, Sequence, Type, Union, overload
+from typing import Any, Callable, Literal, Mapping, Sequence, Union, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -16,7 +16,6 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.utils import is_response_error, is_response_success
 from sentry.models.organization import Organization
 from sentry.net.http import SafeSession
@@ -71,7 +70,7 @@ class BaseApiClient(TrackResponseMixin):
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type: Type[Exception], exc_value: Exception, traceback: Any) -> None:
+    def __exit__(self, exc_type: type[Exception], exc_value: Exception, traceback: Any) -> None:
         # TODO(joshuarli): Look into reusing a SafeSession, and closing it here.
         #  Don't want to make the change until I completely understand urllib3
         #  machinery + how we override it, possibly do this along with urllib3
@@ -444,40 +443,39 @@ class BaseApiClient(TrackResponseMixin):
             self.disable_integration(buffer)
 
     def disable_integration(self, buffer) -> None:
-        rpc_integration, rpc_org_integration = integration_service.get_organization_contexts(
+        rpc_integration, rpc_org_integrations = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
-        if (
-            integration_service.get_integration(integration_id=rpc_integration.id).status
-            == ObjectStatus.DISABLED
-        ):
+        if rpc_integration and rpc_integration.status == ObjectStatus.DISABLED:
             return
-        oi = OrganizationIntegration.objects.filter(integration_id=self.integration_id)[0]
-        org = Organization.objects.get(id=oi.organization_id)
+
+        org = None
+        if len(rpc_org_integrations) > 0:
+            org = Organization.objects.filter(id=rpc_org_integrations[0].organization_id).first()
 
         extra = {
             "integration_id": self.integration_id,
             "buffer_record": buffer._get_all_from_buffer(),
         }
-        if len(rpc_org_integration) == 0 and rpc_integration is None:
+        if len(rpc_org_integrations) == 0 and rpc_integration is None:
             extra["provider"] = "unknown"
             extra["organization_id"] = "unknown"
-        elif len(rpc_org_integration) == 0:
+        elif len(rpc_org_integrations) == 0:
             extra["provider"] = rpc_integration.provider
             extra["organization_id"] = "unknown"
         elif rpc_integration is None:
             extra["provider"] = "unknown"
-            extra["organization_id"] = rpc_org_integration[0].organization_id
+            extra["organization_id"] = rpc_org_integrations[0].organization_id
         else:
             extra["provider"] = rpc_integration.provider
-            extra["organization_id"] = rpc_org_integration[0].organization_id
+            extra["organization_id"] = rpc_org_integrations[0].organization_id
 
         self.logger.info(
             "integration.disabled",
             extra=extra,
         )
 
-        if (
+        if org and (
             (rpc_integration.provider == "slack" and buffer.is_integration_fatal_broken())
             or (rpc_integration.provider == "github")
             or (

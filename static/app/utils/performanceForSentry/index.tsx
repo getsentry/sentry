@@ -1,12 +1,9 @@
-import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
-import {IdleTransaction} from '@sentry/core';
+import type {ReactNode} from 'react';
+import {Fragment, Profiler, useEffect, useRef} from 'react';
+import type {IdleTransaction} from '@sentry/core';
 import {captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import {
-  type MeasurementUnit,
-  type Transaction,
-  type TransactionEvent,
-} from '@sentry/types';
+import type {MeasurementUnit, Transaction, TransactionEvent} from '@sentry/types';
 import {
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
@@ -575,3 +572,79 @@ export const addUIElementTag = (transaction: TransactionEvent) => {
 
   transaction.tags.interactionElement = interactionSpan?.description;
 };
+
+function supportsINP() {
+  return (
+    'PerformanceObserver' in window &&
+    'PerformanceEventTiming' in window &&
+    'interactionId' in PerformanceEventTiming.prototype
+  );
+}
+
+interface INPPerformanceEntry extends PerformanceEntry {
+  cancellable: boolean;
+  duration: number;
+  entryType: 'first-input';
+  name: string;
+  processingEnd: number;
+  processingStart: number;
+  startTime: number;
+  target: HTMLElement | undefined;
+}
+
+function isINPEntity(entry: PerformanceEntry): entry is INPPerformanceEntry {
+  return entry.entryType === 'first-input';
+}
+
+function getNearestElementName(node: HTMLElement | undefined | null): string | undefined {
+  if (!node) {
+    return 'no-element';
+  }
+
+  let current: HTMLElement | null = node;
+  while (current && current !== document.body) {
+    const elementName =
+      current.dataset?.testId ?? current.dataset?.component ?? current.dataset?.element;
+
+    if (elementName) {
+      return elementName;
+    }
+
+    current = current.parentElement;
+  }
+
+  return `${node.tagName.toLowerCase()}.${node.className ?? ''}`;
+}
+
+export function makeIssuesINPObserver(): PerformanceObserver | undefined {
+  if (!supportsINP()) {
+    return undefined;
+  }
+
+  const observer = new PerformanceObserver(entryList => {
+    entryList.getEntries().forEach(entry => {
+      if (!isINPEntity(entry)) {
+        return;
+      }
+
+      if (entry.duration) {
+        // < 16 ms wont cause frame drops so just ignore this for now
+        if (entry.duration < 16) {
+          return;
+        }
+
+        Sentry.metrics.distribution('issues-stream.inp', entry.duration, {
+          unit: 'millisecond',
+          tags: {
+            element: getNearestElementName(entry.target),
+            entryType: entry.entryType,
+            interaction: entry.name,
+          },
+        });
+      }
+    });
+  });
+
+  observer.observe({type: 'first-input', buffered: true});
+  return observer;
+}

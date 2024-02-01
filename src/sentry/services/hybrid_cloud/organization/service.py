@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from abc import abstractmethod
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from django.dispatch import Signal
 
@@ -17,6 +17,7 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
+    RpcOrganizationMemberSummary,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
@@ -48,6 +49,7 @@ class OrganizationService(RpcService):
 
     def get(self, id: int) -> Optional[RpcOrganization]:
         org_context = self.get_organization_by_id(id=id)
+
         return org_context.organization if org_context else None
 
     @regional_rpc_method(resolve=ByOrganizationId("id"))
@@ -62,7 +64,6 @@ class OrganizationService(RpcService):
         Attempts to serialize a given organization.  Note that this can be None if the organization is already deleted
         in the corresponding region silo.
         """
-        pass
 
     @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
     @abstractmethod
@@ -80,7 +81,6 @@ class OrganizationService(RpcService):
         status.  When user_id is provided, membership data related to that user from the organization
         is also given in the response.  See RpcUserOrganizationContext for more info.
         """
-        pass
 
     @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
@@ -95,17 +95,15 @@ class OrganizationService(RpcService):
         rules. This method is differentiated from get_organization_by_slug by not being cached and returning
         RpcOrganizationSummary instead of org contexts
         """
-        pass
 
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_organizations_by_user_and_scope(
         self, *, region_name: str, user: RpcUser, scope: Optional[str] = None
-    ) -> List[RpcOrganization]:
+    ) -> list[RpcOrganization]:
         """
         Fetches organizations for the given user, with the given organization member scope.
         """
-        pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -120,7 +118,6 @@ class OrganizationService(RpcService):
         """
         Used to look up an organization membership by an email
         """
-        pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -130,7 +127,15 @@ class OrganizationService(RpcService):
         """
         Used to look up an organization membership by a user id
         """
-        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_member_summaries_by_ids(
+        self, *, organization_id: int, user_ids: list[int]
+    ) -> list[RpcOrganizationMemberSummary]:
+        """
+        Used to look up multiple membership summaries by users' id.
+        """
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -164,7 +169,6 @@ class OrganizationService(RpcService):
         """
         Delete an organization member by its id.
         """
-        pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -178,7 +182,6 @@ class OrganizationService(RpcService):
         """
         Set the user id for an organization member.
         """
-        pass
 
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
@@ -384,7 +387,7 @@ class OrganizationService(RpcService):
     @abstractmethod
     def get_organization_owner_members(
         self, *, organization_id: int
-    ) -> List[RpcOrganizationMember]:
+    ) -> list[RpcOrganizationMember]:
         pass
 
 
@@ -394,14 +397,12 @@ class OrganizationCheckService(abc.ABC):
         """
         If exists and matches the only_visible requirement, returns an organization's id by the slug.
         """
-        pass
 
     @abstractmethod
     def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
         """
         Checks if an organization exists by the id.
         """
-        pass
 
 
 def _control_check_organization() -> OrganizationCheckService:

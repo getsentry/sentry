@@ -2,7 +2,7 @@ import hmac
 import itertools
 import uuid
 from hashlib import sha256
-from typing import ClassVar, List
+from typing import ClassVar
 
 from django.db import models, router, transaction
 from django.db.models import QuerySet
@@ -208,7 +208,7 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
         return set(self.scope_list).issubset(encoded_scopes)
 
-    def outboxes_for_update(self) -> List[ControlOutbox]:
+    def outboxes_for_update(self) -> list[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.APP_SCOPE,

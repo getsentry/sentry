@@ -21,7 +21,10 @@ class UserReport(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_userreport"
-        index_together = (("project_id", "event_id"), ("project_id", "date_added"))
+        indexes = (
+            models.Index(fields=("project_id", "event_id")),
+            models.Index(fields=("project_id", "date_added")),
+        )
         unique_together = (("project_id", "event_id"),)
 
     __repr__ = sane_repr("event_id", "name", "email")

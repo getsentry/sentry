@@ -4,14 +4,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {DetailedOrganization} from 'sentry/types';
+import type {DetailedOrganization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
+const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
+  SpanIndexedField;
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -42,10 +43,10 @@ describe('SampleImages', function () {
       render(<SampleImages groupId="group123" projectId={2} />);
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-      expect(screen.queryByTestId('sample-image')).toHaveAttribute(
-        'src',
-        'https://cdn.com/image.png'
-      );
+      const sampleImages = screen.queryAllByTestId('sample-image');
+
+      expect(sampleImages[0]).toHaveAttribute('src', 'https://cdn.com/image.png');
+      expect(sampleImages[1]).toHaveAttribute('src', 'https://cdn.com/image2.png');
     });
   });
 
@@ -117,6 +118,15 @@ const setupMockRequests = (
           project: 'javascript',
           [SPAN_DESCRIPTION]: 'https://cdn.com/image.png',
           'any(id)': 'anyId123',
+          [RAW_DOMAIN]: '',
+        },
+        {
+          [SPAN_GROUP]: 'group123',
+          [`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]: 1234,
+          project: 'javascript',
+          [SPAN_DESCRIPTION]: '/image2.png',
+          'any(id)': 'anyId123',
+          [RAW_DOMAIN]: 'https://cdn.com',
         },
       ],
     },

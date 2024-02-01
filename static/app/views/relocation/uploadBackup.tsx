@@ -15,7 +15,7 @@ import useApi from 'sentry/utils/useApi';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 type UploadWellProps = {
   centered: boolean;
@@ -79,7 +79,7 @@ export function UploadBackup({onComplete}: StepProps) {
   };
 
   const handleStartRelocation = async () => {
-    const {orgSlugs, regionUrl} = relocationOnboardingContext.data;
+    const {orgSlugs, regionUrl, promoCode} = relocationOnboardingContext.data;
     if (!orgSlugs || !regionUrl || !file) {
       addErrorMessage(DEFAULT_ERROR_MSG);
       return;
@@ -88,6 +88,9 @@ export function UploadBackup({onComplete}: StepProps) {
     formData.set('orgs', orgSlugs);
     formData.set('file', file);
     formData.set('owner', user.username);
+    if (promoCode) {
+      formData.set('promo_code', promoCode);
+    }
     try {
       const result = await api.requestPromise(`/relocations/`, {
         method: 'POST',

@@ -1,7 +1,9 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
 import {
   getMappedThreadState,
@@ -15,15 +17,8 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  EntryType,
-  Event,
-  Organization,
-  Project,
-  StackType,
-  StackView,
-  Thread,
-} from 'sentry/types';
+import type {Event, Organization, Project, Thread} from 'sentry/types';
+import {EntryType, StackType, StackView} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
@@ -178,8 +173,8 @@ export function Threads({
             display.includes('raw-stack-trace')
               ? StackView.RAW
               : fullStackTrace
-              ? StackView.FULL
-              : StackView.APP
+                ? StackView.FULL
+                : StackView.APP
           }
           projectSlug={projectSlug}
           newestFirst={recentFirst}
@@ -206,8 +201,8 @@ export function Threads({
             display.includes('raw-stack-trace')
               ? StackView.RAW
               : fullStackTrace
-              ? StackView.FULL
-              : StackView.APP
+                ? StackView.FULL
+                : StackView.APP
           }
           newestFirst={recentFirst}
           event={event}
@@ -349,12 +344,30 @@ export function Threads({
         stackTraceNotFound={stackTraceNotFound}
         wrapTitle={false}
       >
-        {childrenProps => (
-          <Fragment>
-            {!organization.features.includes('anr-improvements') && renderPills()}
-            {renderContent(childrenProps)}
-          </Fragment>
-        )}
+        {childrenProps => {
+          // TODO(scttcper): These are duplicated from renderContent, should consolidate
+          const stackType = childrenProps.display.includes('minified')
+            ? StackType.MINIFIED
+            : StackType.ORIGINAL;
+          const isRaw = childrenProps.display.includes('raw-stack-trace');
+          const stackTrace = getThreadStacktrace(
+            stackType !== StackType.ORIGINAL,
+            activeThread
+          );
+
+          return (
+            <Fragment>
+              {!organization.features.includes('anr-improvements') && renderPills()}
+
+              {stackTrace && !isRaw && (
+                <ErrorBoundary customComponent={null}>
+                  <StacktraceBanners event={event} stacktrace={stackTrace} />
+                </ErrorBoundary>
+              )}
+              {renderContent(childrenProps)}
+            </Fragment>
+          );
+        }}
       </TraceEventDataSection>
     </Fragment>
   );

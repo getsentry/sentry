@@ -15,7 +15,11 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS, TRANSACTION_METRICS_NAMES
+from sentry.sentry_metrics.indexer.strings import (
+    SHARED_TAG_STRINGS,
+    SPAN_METRICS_NAMES,
+    TRANSACTION_METRICS_NAMES,
+)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
 from sentry.snuba.metrics import parse_mri
@@ -48,8 +52,11 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
     directly taken from the `c:transactions/usage@none` counter metric.
     """
 
-    #: The ID of the metric used to count transactions
-    metric_id = TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]
+    #: The IDs of the metrics used to count transactions or spans
+    metric_ids = {
+        TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]: DataCategory.TRANSACTION,
+        SPAN_METRICS_NAMES["c:spans/usage@none"]: DataCategory.SPAN,
+    }
     profile_tag_key = str(SHARED_TAG_STRINGS["has_profile"])
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
@@ -81,7 +88,10 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         return cast(GenericMetric, payload)
 
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
-        if generic_metric["metric_id"] != self.metric_id:
+        metric_id = generic_metric["metric_id"]
+        try:
+            data_category = self.metric_ids[metric_id]
+        except KeyError:
             return {}
 
         value = generic_metric["value"]
@@ -91,12 +101,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             # Unexpected value type for this metric ID, skip.
             return {}
 
-        items = {DataCategory.TRANSACTION: quantity}
+        items = {data_category: quantity}
 
         if self._has_profile(generic_metric):
             # The bucket is tagged with the "has_profile" tag,
             # so we also count the quantity of this bucket towards profiles.
-            # This assumes a "1 to 0..1" relationship between transactions and profiles.
+            # This assumes a "1 to 0..1" relationship between transactions / spans and profiles.
             items[DataCategory.PROFILE] = quantity
 
         return items

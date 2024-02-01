@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from string import Template
-from typing import Any, Optional
+from typing import Any
 from zipfile import ZipFile
 
 import yaml
@@ -45,7 +45,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.signals import relocated
+from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
@@ -141,7 +141,7 @@ def uploading_complete(uuid: str) -> None:
     before we try to do all sorts of fun stuff with it.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -203,7 +203,7 @@ def preprocessing_scan(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -349,7 +349,7 @@ def preprocessing_transfer(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -429,7 +429,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -483,7 +483,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -536,7 +536,7 @@ def preprocessing_complete(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -745,7 +745,7 @@ def validating_start(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -822,7 +822,7 @@ def validating_poll(uuid: str, build_id: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -924,7 +924,7 @@ def validating_complete(uuid: str, build_id: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -993,7 +993,7 @@ def importing(uuid: str) -> None:
     trying it again!
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1051,7 +1051,7 @@ def postprocessing(uuid: str) -> None:
     Make the owner of this relocation an owner of all of the organizations we just imported.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1104,6 +1104,15 @@ def postprocessing(uuid: str) -> None:
             if isinstance(result, Exception):
                 raise result
 
+        # This signal nust come after the relocated signal, to ensure that the subscription and customer models
+        # have been appropriately set up before attempting to redeem a promo code.
+        relocation_redeem_promo_code.send_robust(
+            sender=postprocessing,
+            user_id=relocation.owner_id,
+            relocation_uuid=uuid,
+            orgs=list(imported_orgs),
+        )
+
         for org in imported_orgs:
             try:
                 analytics.record(
@@ -1134,7 +1143,7 @@ def notifying_users(uuid: str) -> None:
     Send an email to all users that have been imported, telling them to claim their accounts.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1198,7 +1207,7 @@ def notifying_owner(uuid: str) -> None:
     Send an email to the creator and owner, telling them that their relocation was successful.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1241,7 +1250,7 @@ def completed(uuid: str) -> None:
     Finish up a relocation by marking it a success.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,

@@ -4,8 +4,6 @@ from datetime import datetime, timezone
 from typing import (
     Any,
     Callable,
-    Dict,
-    List,
     Literal,
     Mapping,
     MutableMapping,
@@ -18,7 +16,7 @@ from typing import (
 import sentry_sdk
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, killswitches, quotas, utils
+from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
@@ -44,6 +42,8 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
+from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
+from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
@@ -105,8 +105,8 @@ def get_exposed_features(project: Project) -> Sequence[str]:
 
 def get_public_key_configs(
     project: Project, full_config: bool, project_keys: Optional[Sequence[ProjectKey]] = None
-) -> List[Mapping[str, Any]]:
-    public_keys: List[Mapping[str, Any]] = []
+) -> list[Mapping[str, Any]]:
+    public_keys: list[Mapping[str, Any]] = []
     for project_key in project_keys or ():
         key = {
             "publicKey": project_key.public_key,
@@ -134,7 +134,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
-    error_messages: List[str] = []
+    error_messages: list[str] = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
@@ -171,7 +171,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if blacklisted_ips:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
-    csp_disallowed_sources: List[str] = []
+    csp_disallowed_sources: list[str] = []
     if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
         csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
     csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
@@ -181,7 +181,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     return filter_settings
 
 
-def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
+def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> list[str]:
     try:
         computed_quotas = [
             quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
@@ -192,6 +192,61 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
     else:
         metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
         return computed_quotas
+
+
+class SlidingWindow(TypedDict):
+    windowSeconds: int
+    granularitySeconds: int
+
+
+class CardinalityLimit(TypedDict):
+    id: str
+    window: SlidingWindow
+    limit: int
+    scope: Literal["organization"]
+    namespace: Optional[str]
+
+
+def get_metrics_config(project: Project) -> Optional[Mapping[str, Any]]:
+    metrics_config = {}
+
+    if features.has("organizations:relay-cardinality-limiter", project.organization):
+        cardinality_limits: list[CardinalityLimit] = []
+        cardinality_options = {
+            "unsupported": "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
+        }
+        cardinality_options.update(
+            (namespace.value, option)
+            for namespace, option in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items()
+        )
+        for namespace, option_name in cardinality_options.items():
+            option = options.get(option_name)
+            if not option or not len(option) == 1:
+                # Multiple quotas are not supported
+                continue
+
+            quota = option[0]
+
+            cardinality_limits.append(
+                {
+                    "id": namespace,
+                    "window": {
+                        "windowSeconds": quota["window_seconds"],
+                        "granularitySeconds": quota["granularity_seconds"],
+                    },
+                    "limit": quota["limit"],
+                    "scope": "organization",
+                    "namespace": namespace,
+                }
+            )
+        metrics_config["cardinalityLimits"] = cardinality_limits
+
+    if features.has("organizations:metrics-blocking", project.organization):
+        metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+        if metrics_blocking_state is not None:
+            metrics_config.update(metrics_blocking_state)  # type:ignore
+
+    return metrics_config or None
 
 
 def get_project_config(
@@ -364,6 +419,8 @@ def _get_project_config(
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
+    add_experimental_config(config, "metrics", get_metrics_config, project)
+
     if _should_extract_transaction_metrics(project):
         add_experimental_config(
             config,
@@ -392,10 +449,6 @@ def _get_project_config(
             ),
         }
 
-    lcp_and_cls_is_optional = features.has(
-        "organizations:performance-score-optional-lcp-and-cls", project.organization
-    )
-
     if features.has("organizations:performance-calculate-score-relay", project.organization):
         config["performanceScore"] = {
             "profiles": [
@@ -414,7 +467,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -428,7 +481,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -549,7 +602,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -563,7 +616,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -594,7 +647,7 @@ def _get_project_config(
                             "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "fid",
@@ -608,7 +661,7 @@ def _get_project_config(
                             "weight": 0.15,
                             "p10": 0.1,
                             "p50": 0.25,
-                            "optional": lcp_and_cls_is_optional,
+                            "optional": False,
                         },
                         {
                             "measurement": "ttfb",
@@ -786,7 +839,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 
     is_enabled = setting != "0"
 
-    ret_val: Dict[str, Union[bool, Sequence[str]]] = {"isEnabled": is_enabled}
+    ret_val: dict[str, Union[bool, Sequence[str]]] = {"isEnabled": is_enabled}
 
     # special case for legacy browser.
     # If the number of special cases increases we'll have to factor this functionality somewhere
@@ -822,7 +875,7 @@ TransactionNameStrategy = Literal["strict", "clientBased"]
 
 class TransactionMetricsSettings(TypedDict):
     version: int
-    extractCustomTags: List[str]
+    extractCustomTags: list[str]
     customMeasurements: CustomMeasurementSettings
     acceptTransactionNames: TransactionNameStrategy
 
@@ -841,7 +894,7 @@ def get_transaction_metrics_settings(
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-    custom_tags: List[str] = []
+    custom_tags: list[str] = []
 
     if breakdowns_config is not None:
         # we already have a breakdown configuration that tells relay which

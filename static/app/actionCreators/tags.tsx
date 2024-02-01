@@ -1,12 +1,12 @@
-import {Query} from 'history';
+import type {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
-import {PageFilters, Tag} from 'sentry/types';
+import type {PageFilters, Tag, TagValue} from 'sentry/types';
 
 const MAX_TAGS = 1000;
 
@@ -106,7 +106,7 @@ export function fetchTagValues({
   projectIds?: string[];
   search?: string;
   sort?: string;
-}) {
+}): Promise<TagValue[]> {
   const url = `/organizations/${orgSlug}/tags/${tagKey}/values/`;
 
   const query: Query = {};

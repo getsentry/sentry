@@ -21,12 +21,8 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {
-  Group,
-  GroupActivityType,
-  Organization as TOrganization,
-  Project,
-} from 'sentry/types';
+import type {Group, Organization as TOrganization, Project} from 'sentry/types';
+import {GroupActivityType, PriorityLevel} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import GroupActivity from 'sentry/views/issueDetails/groupActivity';
 
@@ -724,6 +720,45 @@ describe('GroupActivity', function () {
       );
       expect(activity).toHaveTextContent(
         'abc1 is greater than or equal to abc2 compared via release date'
+      );
+    });
+
+    it('renders a set priority activity for escalating issues', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_PRIORITY,
+            project: ProjectFixture(),
+            data: {
+              priority: PriorityLevel.HIGH,
+              reason: 'escalating',
+            },
+            dateCreated,
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry updated the priority value of this issue to be high after it escalated'
+      );
+    });
+    it('renders a set priority activity for ongoing issues', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_PRIORITY,
+            project: ProjectFixture(),
+            data: {
+              priority: PriorityLevel.LOW,
+              reason: 'ongoing',
+            },
+            dateCreated,
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry updated the priority value of this issue to be low after it was marked as ongoing'
       );
     });
   });

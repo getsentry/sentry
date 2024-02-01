@@ -6,7 +6,8 @@ import omit from 'lodash/omit';
 import moment from 'moment-timezone';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -22,7 +23,7 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Organization} from 'sentry/types';
+import type {Event, Group, Organization} from 'sentry/types';
 import {defined, formatBytesBase2} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
@@ -38,8 +39,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {TraceLink} from 'sentry/views/issueDetails/traceTimeline/traceLink';
+import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 import QuickTrace from './quickTrace';
@@ -359,6 +363,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
 export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const user = useUser();
 
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
@@ -373,6 +378,8 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     successMessage: t('Event ID copied to clipboard'),
     text: event.id,
   });
+
+  const hasTraceTimeline = hasTraceTimelineFeature(organization, user);
 
   return (
     <CarouselAndButtonsWrapper>
@@ -422,7 +429,11 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventIdAndTimeContainer>
         </EventHeading>
-        <QuickTrace event={event} organization={organization} location={location} />
+        {hasTraceTimeline ? (
+          <TraceLink event={event} />
+        ) : (
+          <QuickTrace event={event} organization={organization} location={location} />
+        )}
       </div>
       <ActionsWrapper>
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />

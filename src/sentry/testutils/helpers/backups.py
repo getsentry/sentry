@@ -3,10 +3,9 @@ from __future__ import annotations
 import io
 import tempfile
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property, cmp_to_key
 from pathlib import Path
-from typing import Tuple
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -15,7 +14,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from sentry_relay.auth import generate_key_pair
 
 from sentry.backup.crypto import (
@@ -155,7 +154,7 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
     return output
 
 
-def generate_rsa_key_pair() -> Tuple[bytes, bytes]:
+def generate_rsa_key_pair() -> tuple[bytes, bytes]:
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
@@ -429,8 +428,8 @@ class BackupTestCase(TransactionTestCase):
         )
         CustomDynamicSamplingRule.update_or_create(
             condition={"op": "equals", "name": "environment", "value": "prod"},
-            start=timezone.now(),
-            end=timezone.now() + timedelta(hours=1),
+            start=django_timezone.now(),
+            end=django_timezone.now() + timedelta(hours=1),
             project_ids=[project.id],
             organization_id=org.id,
             num_samples=100,

@@ -71,7 +71,9 @@ class ActivityNotificationTest(APITestCase):
     """
 
     def setUp(self):
-        self.integration = self.create_provider_integration(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -80,7 +82,6 @@ class ActivityNotificationTest(APITestCase):
                 "installation_type": "born_as_bot",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
         self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         self.identity = Identity.objects.create(
             external_id="UXXXXXXX1",
@@ -459,7 +460,6 @@ class ActivityNotificationTest(APITestCase):
         Test that an email AND Slack notification are sent with
         the expected values when an issue is held back for reprocessing
         """
-        pass
 
     @responses.activate
     @patch("sentry.analytics.record")

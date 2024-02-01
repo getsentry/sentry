@@ -5,20 +5,18 @@ import pick from 'lodash/pick';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import {
-  CompactSelect,
-  SelectOption,
-  SelectSection,
-} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
-import {EntryType, Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 

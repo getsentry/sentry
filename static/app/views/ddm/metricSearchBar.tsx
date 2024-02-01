@@ -2,10 +2,19 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
-import {BooleanOperator} from 'sentry/components/searchSyntax/parser';
-import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {
+  FilterType,
+  joinQuery,
+  parseSearch,
+  Token,
+} from 'sentry/components/searchSyntax/parser';
+import {treeTransformer} from 'sentry/components/searchSyntax/utils';
+import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
-import {MRI, SavedSearchType, TagCollection} from 'sentry/types';
+import type {MRI, TagCollection} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useApi from 'sentry/utils/useApi';
@@ -22,7 +31,35 @@ interface MetricSearchBarProps extends Partial<SmartSearchBarProps> {
 
 const EMPTY_ARRAY = [];
 const EMPTY_SET = new Set<never>();
-const DISSALLOWED_LOGICAL_OPERATORS = new Set([BooleanOperator.OR]);
+
+export function ensureQuotedTextFilters(
+  query: string,
+  configOverrides?: Partial<SearchConfig>
+) {
+  const parsedSearch = parseSearch(query, configOverrides);
+
+  if (!parsedSearch) {
+    return query;
+  }
+
+  const newTree = treeTransformer({
+    tree: parsedSearch,
+    transform: token => {
+      if (token.type === Token.FILTER && token.filter === FilterType.TEXT) {
+        if (!token.value.quoted) {
+          return {
+            ...token,
+            // joinQuery() does not access nested tokens, so we need to manipulate the text of the filter instead of it's value
+            text: `${token.key.text}:"${token.value.text}"`,
+          };
+        }
+      }
+      return token;
+    },
+  });
+
+  return joinQuery(newTree);
+}
 
 export function MetricSearchBar({
   mri,
@@ -45,6 +82,21 @@ export function MetricSearchBar({
   const supportedTags: TagCollection = useMemo(
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),
     [tags]
+  );
+
+  const searchConfig = useMemo(
+    () => ({
+      booleanKeys: EMPTY_SET,
+      dateKeys: EMPTY_SET,
+      durationKeys: EMPTY_SET,
+      numericKeys: EMPTY_SET,
+      percentageKeys: EMPTY_SET,
+      sizeKeys: EMPTY_SET,
+      textOperatorKeys: EMPTY_SET,
+      supportedTags,
+      disallowFreeText: true,
+    }),
+    [supportedTags]
   );
 
   const fetchTagValues = useMemo(() => {
@@ -81,11 +133,12 @@ export function MetricSearchBar({
 
   const handleChange = useCallback(
     (value: string, {validSearch} = {validSearch: true}) => {
-      if (validSearch) {
-        onChange(value);
+      if (!validSearch) {
+        return;
       }
+      onChange(ensureQuotedTextFilters(value, searchConfig));
     },
-    [onChange]
+    [onChange, searchConfig]
   );
 
   return (
@@ -94,23 +147,14 @@ export function MetricSearchBar({
       maxMenuHeight={220}
       organization={org}
       onGetTagValues={getTagValues}
-      supportedTags={supportedTags}
       // don't highlight tags while loading as we don't know yet if they are supported
       highlightUnsupportedTags={!isLoading}
-      disallowedLogicalOperators={DISSALLOWED_LOGICAL_OPERATORS}
-      disallowFreeText
       onClose={handleChange}
       onSearch={handleChange}
       placeholder={t('Filter by tags')}
       query={query}
       savedSearchType={SavedSearchType.METRIC}
-      durationKeys={EMPTY_SET}
-      percentageKeys={EMPTY_SET}
-      numericKeys={EMPTY_SET}
-      dateKeys={EMPTY_SET}
-      booleanKeys={EMPTY_SET}
-      sizeKeys={EMPTY_SET}
-      textOperatorKeys={EMPTY_SET}
+      {...searchConfig}
       {...props}
     />
   );

@@ -1,8 +1,8 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'sentry/api';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Client} from 'sentry/api';
+import type {Group, Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 const DEFAULT_POLL_INTERVAL = 5000;

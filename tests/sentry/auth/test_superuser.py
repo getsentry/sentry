@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 from unittest.mock import Mock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.auth.superuser import (
     COOKIE_DOMAIN,
@@ -17,18 +17,24 @@ from sentry.auth.superuser import (
     IDLE_MAX_AGE,
     MAX_AGE,
     SESSION_KEY,
+    SUPERUSER_READONLY_SCOPES,
+    SUPERUSER_SCOPES,
     EmptySuperuserAccessForm,
     Superuser,
     SuperuserAccessFormInvalidJson,
     SuperuserAccessSerializer,
+    get_superuser_scopes,
     is_active_superuser,
+    superuser_has_permission,
 )
 from sentry.auth.system import SystemToken
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
@@ -49,7 +55,7 @@ IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 class SuperuserTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        self.current_datetime = timezone.now()
+        self.current_datetime = django_timezone.now()
         self.default_token = "abcdefghjiklmnog"
 
     def build_request(
@@ -61,11 +67,12 @@ class SuperuserTestCase(TestCase):
         uid=UNSET,
         session_data=True,
         user=None,
+        method=None,
     ):
         if user is None:
             user = self.create_user("foo@example.com", is_superuser=True)
         current_datetime = self.current_datetime
-        request = self.make_request(user=user)
+        request = self.make_request(user=user, method=method)
         if cookie_token is not None:
             request.COOKIES[COOKIE_NAME] = signing.get_cookie_signer(
                 salt=COOKIE_NAME + COOKIE_SALT
@@ -466,3 +473,87 @@ class SuperuserTestCase(TestCase):
             json.dumps(serialized_data.errors)
             == '{"superuserReason":["Ensure this field has no more than 128 characters."]}'
         )
+
+    def test_superuser_scopes(self):
+        user = self.create_user(is_superuser=True)
+
+        auth_state = RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[])
+        auth_state_with_write = RpcAuthState(
+            sso_state=RpcMemberSsoState(), permissions=["superuser.write"]
+        )
+
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            assert get_superuser_scopes(auth_state, user) == SUPERUSER_SCOPES
+            assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
+
+            # test scope separation
+            with self.feature("auth:enterprise-superuser-read-write"):
+                assert get_superuser_scopes(auth_state, user) == SUPERUSER_READONLY_SCOPES
+                assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
+
+    def test_superuser_scopes_self_hosted(self):
+        # self hosted always has superuser write scopes
+
+        user = self.create_user(is_superuser=True)
+
+        auth_state = RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[])
+        auth_state_with_write = RpcAuthState(
+            sso_state=RpcMemberSsoState(), permissions=["superuser.write"]
+        )
+
+        assert get_superuser_scopes(auth_state, user) == SUPERUSER_SCOPES
+        assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
+
+        with self.feature("auth:enterprise-superuser-read-write"):
+            assert get_superuser_scopes(auth_state, user) == SUPERUSER_SCOPES
+            assert get_superuser_scopes(auth_state_with_write, user) == SUPERUSER_SCOPES
+
+    def test_superuser_has_permission(self):
+        request = self.build_request()
+
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            assert not superuser_has_permission(request)
+
+            # logging in gives permission
+            request.superuser = Superuser(request)
+            request.superuser._is_active = True
+            assert superuser_has_permission(request)
+
+    def test_superuser_has_permission_self_hosted(self):
+        request = self.build_request()
+
+        request.superuser = Superuser(request)
+        request.superuser._is_active = True
+
+        assert superuser_has_permission(request)
+
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_has_permission_read_write_get(self):
+        request = self.build_request(method="GET")
+
+        request.superuser = Superuser(request)
+        request.superuser._is_active = True
+
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            # all superusers have permission to hit GET
+            request.access = self.create_request_access()
+            assert superuser_has_permission(request)
+
+            request.access = self.create_request_access(permissions=["superuser.write"])
+            assert superuser_has_permission(request)
+
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_has_permission_read_write_post(self):
+        request = self.build_request(method="POST")
+
+        request.superuser = Superuser(request)
+        request.superuser._is_active = True
+
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            # superuser without superuser.write does not have permission
+            request.access = self.create_request_access()
+            assert not superuser_has_permission(request)
+
+            # superuser with superuser.write has permission
+            request.access = self.create_request_access(permissions=["superuser.write"])
+            assert superuser_has_permission(request)

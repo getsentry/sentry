@@ -91,6 +91,25 @@ class SlackRequestTest(TestCase):
             self.slack_request.validate()
             assert e.status == 403
 
+    def test_none_in_data(self):
+        request = mock.Mock()
+        request.data = {
+            "type": "foo",
+            "team": None,
+            "channel": {"id": "1"},
+            "user": {"id": "2"},
+            "api_app_id": "S1",
+        }
+        request.body = urlencode(self.request.data).encode("utf-8")
+        request.META = (options.get("slack.signing-secret"), self.request.body)
+
+        slack_request = SlackRequest(request)
+        assert slack_request.logging_data == {
+            "slack_channel_id": "1",
+            "slack_user_id": "2",
+            "slack_api_app_id": "S1",
+        }
+
 
 @region_silo_test
 class SlackEventRequestTest(TestCase):

@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from django import forms
 
@@ -66,7 +66,7 @@ class IssueSeverityFilter(EventFilter):
         return self._passes(event.group)
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             group = Group.objects.get_from_cache(id=condition_activity.group_id)

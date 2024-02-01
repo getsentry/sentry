@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Sequence
+from typing import Any, Sequence
 
 import sentry_sdk
 import sqlparse
@@ -292,12 +292,18 @@ class EventSerializer(Serializer):
         """
         Add attributes that are only present on transaction events.
         """
-        return {
+        transaction_attrs = {
             "startTimestamp": obj.data.get("start_timestamp"),
             "endTimestamp": obj.data.get("timestamp"),
             "measurements": obj.data.get("measurements"),
             "breakdowns": obj.data.get("breakdowns"),
         }
+
+        # The _ reflects the temporary nature of this field.
+        if (transaction_metrics_summary := obj.data.get("_metrics_summary")) is not None:
+            transaction_attrs["_metrics_summary"] = transaction_metrics_summary
+
+        return transaction_attrs
 
     def __serialize_error_attrs(self, attrs, obj):
         """
@@ -319,7 +325,7 @@ class SqlFormatEventSerializer(EventSerializer):
 
     def __init__(self) -> None:
         super().__init__()
-        self.formatted_sql_cache: Dict[str, str] = {}
+        self.formatted_sql_cache: dict[str, str] = {}
 
     def get_attrs(self, item_list, user, is_public=False, **kwargs):
         return super().get_attrs(item_list, user, is_public=is_public)
@@ -438,7 +444,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
-    def _get_resolved_with(self, obj: Event) -> List[str]:
+    def _get_resolved_with(self, obj: Event) -> list[str]:
         stacktraces = find_stacktraces_in_data(obj.data)
 
         frame_lists = [stacktrace.get_frames() for stacktrace in stacktraces]

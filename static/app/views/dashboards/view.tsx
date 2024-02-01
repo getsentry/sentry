@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import pick from 'lodash/pick';
 
 import {updateDashboardVisit} from 'sentry/actionCreators/dashboards';
@@ -10,13 +11,14 @@ import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import DashboardDetail from './detail';
 import OrgDashboards from './orgDashboards';
-import {DashboardState, Widget} from './types';
+import type {Widget} from './types';
+import {DashboardState} from './types';
 import {constructWidgetFromQuery} from './utils';
 
 const ALLOWED_PARAMS = [
@@ -54,9 +56,9 @@ function ViewEditDashboard(props: Props) {
 
   useEffect(() => {
     const constructedWidget = constructWidgetFromQuery(location.query);
-    setNewWidget(constructedWidget);
     // Clean up url after constructing widget from query string, only allow GHS params
     if (constructedWidget) {
+      setNewWidget(constructedWidget);
       setDashboardInitialState(DashboardState.EDIT);
       browserHistory.replace({
         pathname: location.pathname,

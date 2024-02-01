@@ -6,14 +6,10 @@ from typing import (
     Any,
     Callable,
     Deque,
-    Dict,
     Iterable,
-    List,
     Mapping,
     Optional,
     Sequence,
-    Set,
-    Tuple,
     TypedDict,
     TypeVar,
     cast,
@@ -52,7 +48,7 @@ MAX_TRACE_SIZE: int = 100
 
 
 _T = TypeVar("_T")
-NodeSpans = List[Dict[str, Any]]
+NodeSpans = list[dict[str, Any]]
 SnubaTransaction = TypedDict(
     "SnubaTransaction",
     {
@@ -68,7 +64,7 @@ SnubaTransaction = TypedDict(
         "root": str,
         "project.id": int,
         "project": str,
-        "issue.ids": List[int],
+        "issue.ids": list[int],
     },
 )
 SnubaError = TypedDict(
@@ -104,8 +100,8 @@ class TracePerformanceIssue(TypedDict):
     event_id: str
     issue_id: int
     issue_short_id: Optional[str]
-    span: List[str]
-    suspect_spans: List[str]
+    span: list[str]
+    suspect_spans: list[str]
     project_id: int
     project_slug: str
     title: str
@@ -129,8 +125,8 @@ LightResponse = TypedDict(
         "parent_span_id": Optional[str],
         "parent_event_id": Optional[str],
         "generation": Optional[int],
-        "errors": List[TraceError],
-        "performance_issues": List[TracePerformanceIssue],
+        "errors": list[TraceError],
+        "performance_issues": list[TracePerformanceIssue],
     },
 )
 FullResponse = TypedDict(
@@ -147,16 +143,16 @@ FullResponse = TypedDict(
         "parent_event_id": Optional[str],
         "profile_id": Optional[str],
         "generation": Optional[int],
-        "errors": List[TraceError],
-        "performance_issues": List[TracePerformanceIssue],
+        "errors": list[TraceError],
+        "performance_issues": list[TracePerformanceIssue],
         "timestamp": str,
         "start_timestamp": str,
         # Any because children are more FullResponse objects
-        "children": List[Any],
+        "children": list[Any],
         # Only on the detailed response
-        "measurements": Dict[str, int],
-        "tags": List[Tuple[str, str]],
-        "_meta": Dict[str, Any],
+        "measurements": dict[str, int],
+        "tags": list[tuple[str, str]],
+        "_meta": dict[str, Any],
         "transaction.status": str,
     },
 )
@@ -173,9 +169,9 @@ class TraceEvent:
         span_serialized: bool = False,
     ) -> None:
         self.event: SnubaTransaction = event
-        self.errors: List[TraceError] = []
-        self.children: List[TraceEvent] = []
-        self.performance_issues: List[TracePerformanceIssue] = []
+        self.errors: list[TraceError] = []
+        self.children: list[TraceEvent] = []
+        self.performance_issues: list[TracePerformanceIssue] = []
 
         # Can be None on the light trace when we don't know the parent
         self.parent_event_id: Optional[str] = parent
@@ -206,8 +202,8 @@ class TraceEvent:
             if group is None:
                 continue
 
-            suspect_spans: List[str] = []
-            unique_spans: Set[str] = set()
+            suspect_spans: list[str] = []
+            unique_spans: set[str] = set()
             start: Optional[float] = None
             end: Optional[float] = None
             if light:
@@ -378,7 +374,7 @@ def is_root(item: SnubaTransaction) -> bool:
     return item.get("root", "0") == "1"
 
 
-def child_sort_key(item: TraceEvent) -> List[int]:
+def child_sort_key(item: TraceEvent) -> list[int]:
     if item.fetched_nodestore and item.nodestore_event is not None:
         return [
             item.nodestore_event.data["start_timestamp"],
@@ -406,7 +402,7 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
 
 def query_trace_data(
     trace_id: str, params: Mapping[str, str], limit: int
-) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
+) -> tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     transaction_query = QueryBuilder(
         Dataset.Transactions,
         params,
@@ -505,14 +501,17 @@ def augment_transactions_with_spans(
     issue_occurrences = []
     occurrence_spans = set()
     error_spans = {e["trace.span"] for e in errors if e["trace.span"]}
+    projects = set()
 
     for transaction in transactions:
         transaction["occurrence_spans"] = []
         transaction["issue_occurrences"] = []
 
+        project = transaction["project.id"]
+        projects.add(project)
+
         # Pull out occurrence data
         transaction_problem_map[transaction["id"]] = transaction
-        project = transaction["project.id"]
         if project not in problem_project_map:
             problem_project_map[project] = []
         problem_project_map[project].append(transaction["occurrence_id"])
@@ -554,9 +553,13 @@ def augment_transactions_with_spans(
     # Fetch parent span ids of segment spans and their corresponding
     # transaction id so we can link parent/child transactions in
     # a trace.
+    spans_params = params.copy()
+    spans_params["project_objects"] = [p for p in params["project_objects"] if p.id in projects]
+    spans_params["project_id"] = list(projects.union(set(problem_project_map.keys())))
+
     parents_results = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
-        params,
+        spans_params,
         query=f"trace:{trace_id} span_id:[{','.join(query_spans)}]",
         selected_columns=[
             "transaction.id",
@@ -615,25 +618,25 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     @staticmethod
     def construct_parent_map(
         events: Sequence[SnubaTransaction],
-    ) -> Dict[str, List[SnubaTransaction]]:
+    ) -> dict[str, list[SnubaTransaction]]:
         """A mapping of span ids to their transactions
 
         - Transactions are associated to each other via parent_span_id
         """
-        parent_map: Dict[str, List[SnubaTransaction]] = defaultdict(list)
+        parent_map: dict[str, list[SnubaTransaction]] = defaultdict(list)
         for item in events:
             if not is_root(item):
                 parent_map[item["trace.parent_span"]].append(item)
         return parent_map
 
     @staticmethod
-    def construct_error_map(events: Sequence[SnubaError]) -> Dict[str, List[SnubaError]]:
+    def construct_error_map(events: Sequence[SnubaError]) -> dict[str, list[SnubaError]]:
         """A mapping of span ids to their errors
 
         key depends on the event type:
         - Errors are associated to transactions via span_id
         """
-        parent_map: Dict[str, List[SnubaError]] = defaultdict(list)
+        parent_map: dict[str, list[SnubaError]] = defaultdict(list)
         for item in events:
             parent_map[item["trace.span"]].append(item)
         return parent_map
@@ -651,7 +654,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 "trace_view.transactions.grouped", format_grouped_length(len_transactions)
             )
             set_measurement("trace_view.transactions", len_transactions)
-            projects: Set[int] = set()
+            projects: set[int] = set()
             for transaction in transactions:
                 projects.add(transaction["project.id"])
 
@@ -707,11 +710,11 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
 
-        warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization.slug}
+        warning_extra: dict[str, str] = {"trace": trace_id, "organization": organization.slug}
 
         # Look for all root transactions in the trace (i.e., transactions
         # that explicitly have no parent span id)
-        roots: List[SnubaTransaction] = []
+        roots: list[SnubaTransaction] = []
         for item in transactions:
             if is_root(item):
                 roots.append(item)
@@ -753,7 +756,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         errors: Sequence[SnubaError],
         event_id: str,
         allow_orphan_errors: bool,
-    ) -> Tuple[SnubaTransaction, Event]:
+    ) -> tuple[SnubaTransaction, Event]:
         """Given an event_id return the related transaction event
 
         The event_id could be for an error, since we show the quick-trace
@@ -808,7 +811,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
         roots: Sequence[SnubaTransaction],
-        warning_extra: Dict[str, str],
+        warning_extra: dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
         allow_orphan_errors: bool = False,
@@ -825,7 +828,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         )
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
-        trace_results: List[TraceEvent] = []
+        trace_results: list[TraceEvent] = []
         current_generation: Optional[int] = None
         root_id: Optional[str] = None
 
@@ -955,7 +958,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     # Concurrently fetches nodestore data to construct and return a dict mapping eventid of a txn
     # to the associated nodestore event.
     @staticmethod
-    def nodestore_event_map(events: Sequence[SnubaTransaction]) -> Dict[str, Optional[Event]]:
+    def nodestore_event_map(events: Sequence[SnubaTransaction]) -> dict[str, Optional[Event]]:
         map = {}
         with ThreadPoolExecutor(max_workers=20) as executor:
             future_to_event = {
@@ -978,7 +981,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
         roots: Sequence[SnubaTransaction],
-        warning_extra: Dict[str, str],
+        warning_extra: dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
         allow_orphan_errors: bool = False,
@@ -1008,8 +1011,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         )
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
-        parent_events: Dict[str, TraceEvent] = {}
-        results_map: Dict[Optional[str], List[TraceEvent]] = defaultdict(list)
+        parent_events: dict[str, TraceEvent] = {}
+        results_map: dict[Optional[str], list[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
         params = self.get_snuba_params(
             self.request, self.request.organization, check_global_views=False
@@ -1134,7 +1137,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
         # We are now left with orphan errors in the error_map,
         # that we need to serialize and return with our results.
-        orphan_errors: List[TraceError] = []
+        orphan_errors: list[TraceError] = []
         if allow_orphan_errors and iteration < limit:
             for errors in error_map.values():
                 for error in errors:
@@ -1145,8 +1148,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 if iteration > limit:
                     break
 
-        trace_roots: List[TraceEvent] = []
-        orphans: List[TraceEvent] = []
+        trace_roots: list[TraceEvent] = []
+        orphans: list[TraceEvent] = []
         for index, result in enumerate(results_map.values()):
             for subtrace in result:
                 self.update_children(subtrace, limit)
@@ -1182,16 +1185,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
         roots: Sequence[SnubaTransaction],
-        warning_extra: Dict[str, str],
+        warning_extra: dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
         allow_orphan_errors: bool = False,
         allow_load_more: bool = False,
     ) -> Sequence[FullResponse]:
-        root_traces: List[TraceEvent] = []
-        orphans: List[TraceEvent] = []
-        visited_transactions: Set[str] = set()
-        visited_errors: Set[str] = set()
+        root_traces: list[TraceEvent] = []
+        orphans: list[TraceEvent] = []
+        visited_transactions: set[str] = set()
+        visited_errors: set[str] = set()
         if not allow_orphan_errors:
             raise ParseError("Must allow orphan errors to useSpans")
         if detailed:
@@ -1281,7 +1284,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     def visit_transactions(
         self, to_visit, transactions, errors, visited_transactions, visited_errors
     ):
-        serialized_events: List[TraceEvent] = []
+        serialized_events: list[TraceEvent] = []
         for transaction in to_visit:
             if transaction["id"] in visited_transactions:
                 continue

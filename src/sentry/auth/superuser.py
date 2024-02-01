@@ -13,18 +13,22 @@ from __future__ import annotations
 
 import ipaddress
 import logging
-from datetime import datetime, timedelta
-from typing import Tuple
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from django.conf import settings
 from django.core.signing import BadSignature
-from django.utils import timezone
+from django.http import HttpRequest
+from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
+from rest_framework.request import Request
 
+from sentry import features
 from sentry.api.exceptions import SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
+from sentry.services.hybrid_cloud.auth.model import RpcAuthState
 from sentry.utils import json, metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted
@@ -66,8 +70,47 @@ UNSET = object()
 
 ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
 
+SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
 
-def is_active_superuser(request):
+SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuser"})
+
+
+def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
+    superuser_scopes = SUPERUSER_SCOPES
+    if (
+        not is_self_hosted()
+        and features.has("auth:enterprise-superuser-read-write", actor=user)
+        and "superuser.write" not in auth_state.permissions
+    ):
+        superuser_scopes = SUPERUSER_READONLY_SCOPES
+
+    return superuser_scopes
+
+
+def superuser_has_permission(request: HttpRequest | Request) -> bool:
+    """
+    This is used in place of is_active_superuser() in APIs / permission classes.
+    Checks if superuser has permission for the request.
+    Superuser read-only is restricted to GET and OPTIONS requests.
+    These checks do not affect self-hosted.
+    """
+    if is_self_hosted():
+        return True
+
+    if is_active_superuser(request):
+        if features.has("auth:enterprise-superuser-read-write", actor=request.user):
+            if request.access.has_permission("superuser.write"):
+                return True
+
+            # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
+            return request.method == "GET" or request.method == "OPTIONS"
+
+        return True
+
+    return False
+
+
+def is_active_superuser(request: HttpRequest | Request) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     su = getattr(request, "superuser", None) or Superuser(request)
@@ -98,7 +141,7 @@ class Superuser(ElevatedMode):
     def _check_expired_on_org_change(self) -> bool:
         if self.expires is not None:
             session_start_time = self.expires - MAX_AGE
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
             if current_datetime - session_start_time > MAX_AGE_PRIVILEGED_ORG_ACCESS:
                 logger.warning(
                     "superuser.privileged_org_access_expired",
@@ -144,7 +187,7 @@ class Superuser(ElevatedMode):
             return False
         return self._is_active
 
-    def is_privileged_request(self) -> Tuple[bool, InactiveReason]:
+    def is_privileged_request(self) -> tuple[bool, InactiveReason]:
         """
         Returns ``(bool is_privileged, RequestStatus reason)``
         """
@@ -221,10 +264,10 @@ class Superuser(ElevatedMode):
             return
 
         if current_datetime is None:
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
 
         try:
-            data["idl"] = datetime.utcfromtimestamp(float(data["idl"])).replace(tzinfo=timezone.utc)
+            data["idl"] = datetime.fromtimestamp(float(data["idl"]), timezone.utc)
         except (TypeError, ValueError):
             logger.warning(
                 "superuser.invalid-idle-expiration",
@@ -241,7 +284,7 @@ class Superuser(ElevatedMode):
             return
 
         try:
-            data["exp"] = datetime.utcfromtimestamp(float(data["exp"])).replace(tzinfo=timezone.utc)
+            data["exp"] = datetime.fromtimestamp(float(data["exp"]), timezone.utc)
         except (TypeError, ValueError):
             logger.warning(
                 "superuser.invalid-expiration",
@@ -261,7 +304,7 @@ class Superuser(ElevatedMode):
 
     def _populate(self, current_datetime=None) -> None:
         if current_datetime is None:
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
 
         request = self.request
         user = getattr(request, "user", None)
@@ -302,7 +345,7 @@ class Superuser(ElevatedMode):
         # the superuser check happens right here)
         assert user.is_superuser
         if current_datetime is None:
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
         self.token = token
         self.uid = str(user.id)
         # the absolute maximum age of this session
@@ -339,7 +382,7 @@ class Superuser(ElevatedMode):
         """
         request = self.request
         if current_datetime is None:
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
 
         token = get_random_string(12)
 

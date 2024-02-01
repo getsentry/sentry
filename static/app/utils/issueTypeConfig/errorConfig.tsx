@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {t, tct} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
@@ -75,6 +75,11 @@ const ErrorInfoChecks: Array<ErrorInfo> = [
     errorTitle: 'TypeError: Load failed',
     projectCheck: false,
     errorHelpType: ErrorHelpType.LOAD_FAILED,
+  },
+  {
+    errorTitle: 'Failed to fetch',
+    projectCheck: false,
+    errorHelpType: ErrorHelpType.FAILED_TO_FETCH,
   },
   {
     errorTitle: 'socket hang up',
@@ -185,13 +190,28 @@ const errorHelpTypeResourceMap: Record<
   [ErrorHelpType.LOAD_FAILED]: {
     resources: {
       description: tct(
-        '[errorTypes] occur on Apple devices when there is an error with Fetch API.  To learn more about how to fix these errors, check out these resources:',
+        '[errorTypes] occur on Apple devices when there is an error with Fetch API. To learn more about how to fix these errors, check out these resources:',
         {errorTypes: <b>Load Failed errors</b>}
       ),
       links: [
         {
           text: t('Fixing Load Failed errors in JavaScript'),
           link: 'https://sentry.io/answers/load-failed-javascript/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [ErrorHelpType.FAILED_TO_FETCH]: {
+    resources: {
+      description: tct(
+        '[errorTypes] occur when there is an error with Fetch API. To learn more about how to fix these errors, check out these resources:',
+        {errorTypes: <b>Failed to Fetch errors</b>}
+      ),
+      links: [
+        {
+          text: t('Fixing Failed to Fetch errors in JavaScript'),
+          link: 'https://sentry.io/answers/failed-to-fetch-javascript/',
         },
       ],
       linksByPlatform: {},

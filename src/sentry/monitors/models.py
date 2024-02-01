@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
+import zoneinfo
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Sequence
 from uuid import uuid4
 
 import jsonschema
-import pytz
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
@@ -97,7 +97,7 @@ class MonitorStatus:
     TIMEOUT = 7
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             # TODO: It is unlikely a MonitorEnvironment should ever be in the
             # 'active' state, since for a monitor environment to be created
@@ -257,7 +257,7 @@ class Monitor(Model):
         return super().save(*args, **kwargs)
 
     @property
-    def schedule(self) -> Union[CrontabSchedule, IntervalSchedule]:
+    def schedule(self) -> CrontabSchedule | IntervalSchedule:
         schedule_type = self.config["schedule_type"]
         schedule = self.config["schedule"]
 
@@ -270,7 +270,7 @@ class Monitor(Model):
 
     @property
     def timezone(self):
-        return pytz.timezone(self.config.get("timezone") or "UTC")
+        return zoneinfo.ZoneInfo(self.config.get("timezone") or "UTC")
 
     def get_schedule_type_display(self):
         return ScheduleType.get_name(self.config["schedule_type"])
@@ -339,7 +339,7 @@ class Monitor(Model):
         alert_rule = self.get_alert_rule()
         if alert_rule:
             data = alert_rule.data
-            alert_rule_data: Dict[str, Optional[Any]] = dict()
+            alert_rule_data: dict[str, Any | None] = dict()
 
             # Build up alert target data
             targets = []
@@ -369,7 +369,7 @@ class Monitor(Model):
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
@@ -699,3 +699,4 @@ class MonitorIncident(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorincident"
+        indexes = [models.Index(fields=["monitor_environment", "resolving_checkin"])]

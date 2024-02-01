@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence, cast
+from typing import Optional, Sequence, cast
 from unittest.mock import ANY, patch
 
 import pytest
@@ -8,7 +8,9 @@ from django.utils import timezone
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.metadata.code_locations import get_cache_key_for_code_location
+from sentry.sentry_metrics.querying.metadata.metrics_code_locations import (
+    get_cache_key_for_code_location,
+)
 from sentry.sentry_metrics.querying.utils import get_redis_client_for_metrics_meta
 from sentry.snuba.metrics import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
@@ -33,8 +35,8 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
     def _mock_code_location(
         self,
         filename: str,
-        pre_context: Optional[List[str]] = None,
-        post_context: Optional[List[str]] = None,
+        pre_context: Optional[list[str]] = None,
+        post_context: Optional[list[str]] = None,
     ) -> str:
         code_location = {
             "function": "foo",
@@ -182,10 +184,11 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert len(codeLocations) == 0
 
     @patch(
-        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher._get_code_locations"
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher._get_code_locations"
     )
     @patch(
-        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.BATCH_SIZE", 10
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.BATCH_SIZE",
+        10,
     )
     def test_get_locations_batching(self, get_code_locations_mock):
         get_code_locations_mock.return_value = []
@@ -313,7 +316,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         assert frame["postContext"] == []
 
     @patch(
-        "sentry.sentry_metrics.querying.metadata.code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
+        "sentry.sentry_metrics.querying.metadata.metrics_code_locations.CodeLocationsFetcher.MAXIMUM_KEYS",
         50,
     )
     def test_get_locations_with_too_many_combinations(self):
@@ -325,7 +328,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             metric=[mri],
             project=[project.id],
             statsPeriod="90d",
-            status_code=500,
+            status_code=400,
             codeLocations="true",
         )
 
@@ -335,11 +338,13 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         transaction_id = uuid.uuid4().hex
         trace_id = uuid.uuid4().hex
 
+        segment_span_id = "56230207e8e4a6ab"
         self.store_segment(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
             trace_id=trace_id,
             transaction_id=transaction_id,
+            span_id=segment_span_id,
             duration=30,
         )
         span_id_1 = "98230207e6e4a6ad"
@@ -384,6 +389,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 1
         assert metric_spans[0]["transactionId"] == transaction_id
+        assert metric_spans[0]["transactionSpanId"] == segment_span_id
         assert metric_spans[0]["duration"] == 30
         assert metric_spans[0]["spansNumber"] == 3
         assert sorted(metric_spans[0]["metricSummaries"], key=lambda value: value["min"]) == [
@@ -481,6 +487,80 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 1
         assert metric_spans[0]["transactionId"] == transaction_id_2
+
+    def test_get_metric_spans_with_latest_release(self):
+        mri = "g:custom/page_load@millisecond"
+
+        project_1 = self.create_project(
+            name="Bar", slug="bar", teams=[self.team], fire_project_created=True
+        )
+        project_2 = self.create_project(
+            name="Foo", slug="foo", teams=[self.team], fire_project_created=True
+        )
+
+        # We create two releases per project, to make sure the latest one is used.
+        self.create_release(project=project_1, version="bar-1.0")
+        release_1 = self.create_release(project=project_1, version="bar-2.0")
+        self.create_release(project=project_2, version="foo-1.0")
+        release_2 = self.create_release(project=project_2, version="foo-2.0")
+
+        trace_id = uuid.uuid4().hex
+        transaction_id_1 = uuid.uuid4().hex
+        transaction_id_2 = uuid.uuid4().hex
+
+        for project_id, transaction_id, release, duration in (
+            (project_1.id, transaction_id_1, release_1, 20),
+            (project_2.id, transaction_id_2, release_2, 30),
+        ):
+            self.store_segment(
+                project_id=project_id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                duration=duration,
+            )
+            self.store_indexed_span(
+                project_id=project_id,
+                timestamp=before_now(minutes=5),
+                trace_id=trace_id,
+                transaction_id=transaction_id,
+                store_metrics_summary={
+                    mri: [
+                        {
+                            "min": 10.0,
+                            "max": 100.0,
+                            "sum": 110.0,
+                            "count": 2,
+                            "tags": {"release": release.version},
+                        }
+                    ]
+                },
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[project_1.id, project_2.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            query="release:latest",
+        )
+
+        metric_spans = response.data["metricSpans"]
+        assert len(metric_spans) == 2
+        assert metric_spans[0]["transactionId"] == transaction_id_2
+        assert metric_spans[1]["transactionId"] == transaction_id_1
+
+    def test_get_metric_spans_with_latest_release_not_found(self):
+        self.get_error_response(
+            self.organization.slug,
+            metric=["g:custom/page_load@millisecond"],
+            project=[self.project.id],
+            statsPeriod="1d",
+            metricSpans="true",
+            query="release:latest",
+            status_code=404,
+        )
 
     def test_get_metric_spans_with_bounds(self):
         mri = "g:custom/page_load@millisecond"

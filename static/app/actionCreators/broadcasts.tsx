@@ -1,4 +1,4 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 
 export function getAllBroadcasts(api: Client, orgSlug: string) {
   return api.requestPromise(`/organizations/${orgSlug}/broadcasts/`, {method: 'GET'});
