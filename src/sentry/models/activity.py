@@ -43,9 +43,9 @@ class ActivityManager(BaseManager["Activity"]):
         else:
             initial_priority = (
                 PRIORITY_LEVEL_TO_STR[
-                    group.get_event_metadata()["initial_priority"]
+                    group.get_event_metadata().get("initial_priority")
                 ]  # inital_priority is only available when the feature flag is on
-                if group.get_event_metadata()["initial_priority"]
+                if group.get_event_metadata().get("initial_priority")
                 else None
             )
 

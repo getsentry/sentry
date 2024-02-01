@@ -57,7 +57,7 @@ class ActivityTest(TestCase):
     @with_feature("projects:issue-priority")
     def test_get_activities_for_group_no_priority_ff_on(self):
         group = self.create_group()
-        group.data.get("metadata", {})["initial_priority"] = None
+        group.data.get("metadata", {})[""] = None
         group.save()
         user1 = self.create_user()
 
