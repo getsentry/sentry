@@ -6,7 +6,7 @@ import itertools
 from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Optional, Sequence, TypeVar
+from typing import Any, Sequence, TypeVar
 
 from snuba_sdk import (
     Column,
@@ -267,7 +267,7 @@ class SnubaTSDB(BaseTSDB):
         if model in self.non_outcomes_snql_query_settings:
             # no way around having to explicitly map legacy condition format to SnQL since this function
             # is used everywhere that expects `conditions` to be legacy format
-            parsed_conditions: list = []
+            parsed_conditions = []
             for cond in conditions or ():
                 if not is_condition(cond):
                     or_conditions = []
