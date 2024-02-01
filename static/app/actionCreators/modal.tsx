@@ -6,6 +6,7 @@ import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types'
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
+import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
 import type {
   Event,
@@ -372,7 +373,7 @@ export async function openNavigateToExternalLinkModal(
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-export async function openProjectCreationModal(options: {organization: Organization}) {
+export async function openProjectCreationModal(options: {defaultCategory: Category}) {
   const mod = await import('sentry/components/modals/projectCreationModal');
   const {default: Modal, modalCss} = mod;
 

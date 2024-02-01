@@ -14,23 +14,29 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import type {Category} from 'sentry/components/platformPicker';
 import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedSDK, Organization, Team} from 'sentry/types';
+import {OnboardingSelectedSDK, Team} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueAlertFragment} from 'sentry/views/projectInstall/createProject';
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 type Props = ModalRenderProps & {
-  organization: Organization;
+  defaultCategory?: Category;
 };
 
-export default function ProjectCreationModal({Header, closeModal, organization}: Props) {
+export default function ProjectCreationModal({
+  Header,
+  closeModal,
+  defaultCategory,
+}: Props) {
   const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(undefined);
   const [step, setStep] = useState(0);
   const [alertRuleConfig, setAlertRuleConfig] = useState<IssueAlertFragment | undefined>(
@@ -40,6 +46,7 @@ export default function ProjectCreationModal({Header, closeModal, organization}:
   const [team, setTeam] = useState<Team | undefined>(undefined);
   const [creating, setCreating] = useState(false);
   const api = useApi();
+  const organization = useOrganization();
 
   function handlePlatformChange(selectedPlatform: Platform | null) {
     if (selectedPlatform) {
@@ -115,6 +122,7 @@ export default function ProjectCreationModal({Header, closeModal, organization}:
       addSuccessMessage(`Created project ${projectData.slug}`);
       closeModal();
     } catch (err) {
+      setCreating(false);
       addErrorMessage(`Failed to create project ${projectName}`);
     }
   }, [api, alertRuleConfig, organization, platform, projectName, team, closeModal]);
@@ -128,11 +136,13 @@ export default function ProjectCreationModal({Header, closeModal, organization}:
         <Fragment>
           <Subtitle>Choose a Platform</Subtitle>
           <PlatformPicker
-            defaultCategory="browser"
+            defaultCategory={defaultCategory}
             setPlatform={handlePlatformChange}
             organization={organization}
             platform={platform?.key}
-            modal
+            showFilterBar={false}
+            navClassName="centered"
+            listClassName="centered"
           />
         </Fragment>
       )}
