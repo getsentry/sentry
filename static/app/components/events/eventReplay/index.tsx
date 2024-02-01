@@ -76,6 +76,7 @@ function EventReplayContent({
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
   const commonProps = {
+    analyticsContext: 'issue_details',
     replaySlug: replayId,
     orgSlug: organization.slug,
     eventTimestampMs,

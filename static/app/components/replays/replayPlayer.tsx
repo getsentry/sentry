@@ -28,6 +28,8 @@ function useVideoSizeLogger({
 }) {
   const organization = useOrganization();
   const [didLog, setDidLog] = useState<boolean>(false);
+  const {analyticsContext} = useReplayContext();
+
   useEffect(() => {
     if (didLog || (videoDimensions.width === 0 && videoDimensions.height === 0)) {
       return;
@@ -48,10 +50,11 @@ function useVideoSizeLogger({
     trackAnalytics('replay.render-player', {
       organization,
       aspect_ratio,
+      context: analyticsContext,
       scale_bucket,
     });
     setDidLog(true);
-  }, [organization, windowDimensions, videoDimensions, didLog]);
+  }, [organization, windowDimensions, videoDimensions, didLog, analyticsContext]);
 }
 
 function BasePlayerRoot({className, isPreview = false}: Props) {
