@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
 import moment from 'moment';
 import type {LocationRange} from 'pegjs';
@@ -1050,6 +1051,7 @@ function tryParseSearch<T extends {config: SearchConfig}>(
   try {
     return grammar.parse(query, config);
   } catch (e) {
+    Sentry.captureException(e);
     return null;
   }
 }
