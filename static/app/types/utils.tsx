@@ -23,3 +23,14 @@ export type DeepPartial<T> = T extends object
       [P in keyof T]?: DeepPartial<T[P]>;
     }
   : T;
+
+// https://github.com/microsoft/TypeScript/pull/40002
+export type FixedTuple<T, N extends number> = N extends N
+  ? number extends N
+    ? T[]
+    : _TupleOf<T, N, []> // eslint-disable-line @typescript-eslint/ban-types
+  : never;
+
+type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N
+  ? R
+  : _TupleOf<T, N, [T, ...R]>;
