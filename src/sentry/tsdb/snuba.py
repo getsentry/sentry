@@ -352,6 +352,7 @@ class SnubaTSDB(BaseTSDB):
         model_dataset = model_query_settings.dataset
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
+        assert isinstance(keys, Sequence)
         keys_map_tmp = dict(zip(columns, self.flatten_keys_top_level(keys)))
         keys_map = {k: v for k, v in keys_map_tmp.items() if k is not None and v is not None}
         if environment_ids is not None:
