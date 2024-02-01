@@ -35,17 +35,16 @@ class ActivityManager(BaseManager["Activity"]):
         from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
 
         activities = []
-        priority = None
         activity_qs = self.filter(group=group).order_by("-datetime")
 
         if not features.has("projects:issue-priority", group.project):
             activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
-        else:
-            priority = (
-                PRIORITY_LEVEL_TO_STR[group.get_event_metadata()["initial_priority"]]
-                if group.get_event_metadata()["initial_priority"]
-                else None
-            )
+
+        priority = (
+            PRIORITY_LEVEL_TO_STR[group.get_event_metadata()["initial_priority"]]
+            if group.get_event_metadata()["initial_priority"]
+            else None
+        )
 
         prev_sig = None
         sig = None

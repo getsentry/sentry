@@ -147,6 +147,7 @@ class ActivityTest(TestCase):
         assert len(act_for_group) == 2
         assert act_for_group[0] == activities[-2]
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
+        assert act_for_group[-1].data["priority"] is None
 
     def test_get_activities_for_group_simple(self):
         project = self.create_project(name="test_activities_group")
