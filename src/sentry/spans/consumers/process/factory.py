@@ -1,0 +1,58 @@
+import logging
+from typing import Any, Mapping
+
+from arroyo.backends.kafka.consumer import KafkaPayload
+from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.commit import CommitOffsets
+from arroyo.processing.strategies.run_task import RunTask
+from arroyo.types import BrokerValue, Commit, Message, Partition
+from sentry_kafka_schemas import get_codec
+from sentry_kafka_schemas.codecs import Codec
+from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
+
+from sentry.spans.buffer.redis import RedisSpansBuffer
+from sentry.tasks.spans import process_segment
+
+logger = logging.getLogger(__name__)
+SPAN_SCHEMA: Codec[SpanEvent] = get_codec("snuba-spans")
+
+PROCESS_SEGMENT_DELAY = 2 * 60  # 2 minutes
+
+
+def _deserialize_span(value: bytes) -> Mapping[str, Any]:
+    return SPAN_SCHEMA.decode(value)
+
+
+def process_message(message: Message[KafkaPayload]):
+    assert isinstance(message.value, BrokerValue)
+    try:
+        span = _deserialize_span(message.payload.value)
+        segment_id = span["segment_id"]
+    except Exception:
+        logger.exception("Failed to process span payload")
+
+    client = RedisSpansBuffer()
+    new_segment = client.write_span(segment_id, message.payload.value)
+    if new_segment:
+        # Should we instead do a cron job to monitor tasks
+        # https://docs.celeryq.dev/en/stable/userguide/calling.html#eta-and-countdown
+        process_segment.apply_async(
+            args=[segment_id],
+            countdown=PROCESS_SEGMENT_DELAY,
+        )
+
+
+class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    # will this create race conditions for when I schedule a celery task?
+    def create_with_partitions(
+        self,
+        commit: Commit,
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        # commit offsets here?
+        # RunTaskInThreads vs RunTaskWithMultiprocessing?? - do we use the latter so we can tune it?
+        # https://getsentry.github.io/arroyo/strategies/run_task_with_multiprocessing.html
+        return RunTask(
+            function=process_message,
+            next_step=CommitOffsets(commit),
+        )

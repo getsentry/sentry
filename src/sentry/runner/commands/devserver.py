@@ -330,6 +330,9 @@ def devserver(
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
 
+            if settings.SENTRY_USE_SPANS_BUFFER:
+                kafka_consumers.add("ingest-spans")
+
         if occurrence_ingest:
             kafka_consumers.add("ingest-occurrences")
 

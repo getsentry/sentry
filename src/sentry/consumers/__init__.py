@@ -334,6 +334,10 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
     },
+    "ingest-spans": {
+        "topic": settings.KAFKA_SNUBA_SPANS,
+        "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
+    },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
 
