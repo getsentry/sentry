@@ -205,17 +205,17 @@ export function isCumulativeOp(op: string = '') {
   return ['sum', 'count', 'count_unique'].includes(op);
 }
 
-export function updateQuery(
+function updateQuery(
   router: InjectedRouter,
-  queryUpdater:
-    | Record<string, any>
-    | ((query: Record<string, any>) => Record<string, any>)
+  partialQuery: Record<string, any>,
+  options?: {replace: boolean}
 ) {
-  router.push({
+  const updateFunction = options?.replace ? router.replace : router.push;
+  updateFunction({
     ...router.location,
     query: {
       ...router.location.query,
-      ...queryUpdater,
+      ...partialQuery,
     },
   });
 }
@@ -239,8 +239,8 @@ export function useUpdateQuery() {
   // without needing to generate a new callback every time the location changes
   const routerRef = useInstantRef(router);
   return useCallback(
-    (partialQuery: Record<string, any>) => {
-      updateQuery(routerRef.current, partialQuery);
+    (partialQuery: Record<string, any>, options?: {replace: boolean}) => {
+      updateQuery(routerRef.current, partialQuery, options);
     },
     [routerRef]
   );
