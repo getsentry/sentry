@@ -4,7 +4,7 @@ Utilities related to proxying a request to a region silo
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
+from typing import Iterator
 from urllib.parse import urljoin
 from wsgiref.util import is_hop_by_hop
 

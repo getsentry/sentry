@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import ipaddress
 import socket
-from collections.abc import Iterable, Mapping
 from hashlib import sha1
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
 import sentry_sdk
 import urllib3

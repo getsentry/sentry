@@ -3,8 +3,7 @@ from __future__ import annotations
 import abc
 import inspect
 import logging
-from collections.abc import Callable, Iterable, Mapping
-from typing import Any, Protocol
+from typing import Any, Callable, Iterable, Mapping, Protocol
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME

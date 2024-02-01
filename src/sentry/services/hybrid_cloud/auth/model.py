@@ -5,8 +5,7 @@
 
 import contextlib
 import datetime
-from collections.abc import Collection, Generator, Mapping
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Collection, Generator, Mapping, Optional, Union
 
 from pydantic.fields import Field
 
@@ -30,11 +29,11 @@ class RpcApiKey(RpcModel):
 class RpcApiToken(RpcModel):
     id: int = -1
     user_id: int = -1
-    organization_id: int | None = None
-    application_id: int | None = None
+    organization_id: Optional[int] = None
+    application_id: Optional[int] = None
     application_is_active: bool = False
     token: str = ""
-    expires_at: datetime.datetime | None = None
+    expires_at: Optional[datetime.datetime] = None
     allowed_origins: list[str] = Field(default_factory=list)
     scope_list: list[str] = Field(default_factory=list)
 
@@ -53,11 +52,11 @@ class AuthenticatedToken(RpcModel):
     allowed_origins: list[str] = Field(default_factory=list)
     audit_log_data: dict[str, Any] = Field(default_factory=dict)
     scopes: list[str] = Field(default_factory=list)
-    entity_id: int | None = None
+    entity_id: Optional[int] = None
     kind: str = "system"
-    user_id: int | None = None  # only relevant for ApiToken
-    organization_id: int | None = None
-    application_id: int | None = None  # only relevant for ApiToken
+    user_id: Optional[int] = None  # only relevant for ApiToken
+    organization_id: Optional[int] = None
+    application_id: Optional[int] = None  # only relevant for ApiToken
 
     def token_has_org_access(self, organization_id: int) -> bool:
         return self.kind == "api_token" and self.organization_id == organization_id
@@ -91,7 +90,7 @@ class AuthenticatedToken(RpcModel):
         else:
             raise KeyError(f"Token {token} is a not a registered AuthenticatedToken type!")
 
-        entity_id: int | None = None
+        entity_id: Optional[int] = None
         # System tokens have a string id but don't really represent a true entity
         if kind != "system":
             entity_id = getattr(token, "entity_id", getattr(token, "id", None))
@@ -127,8 +126,8 @@ class AuthenticationContext(RpcModel):
     The default of all values should be a valid, non authenticated context.
     """
 
-    auth: AuthenticatedToken | None = None
-    user: RpcUser | None = None
+    auth: Optional[AuthenticatedToken] = None
+    user: Optional[RpcUser] = None
 
     def _get_user(self) -> Union[RpcUser, "AnonymousUser"]:
         """
@@ -204,7 +203,7 @@ class RpcAuthProvider(RpcModel):
 
         return manager.get(self.provider, **self.config)
 
-    def get_scim_token(self) -> str | None:
+    def get_scim_token(self) -> Optional[str]:
         from sentry.models.authprovider import get_scim_token
 
         return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
@@ -221,5 +220,5 @@ class RpcAuthIdentity(RpcModel):
 
 class RpcOrganizationAuthConfig(RpcModel):
     organization_id: int = -1
-    auth_provider: RpcAuthProvider | None = None
+    auth_provider: Optional[RpcAuthProvider] = None
     has_api_key: bool = False

@@ -1,6 +1,5 @@
-from collections.abc import Iterator, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, Iterator, Optional, Sequence
 
 from django.conf import settings
 
@@ -29,10 +28,10 @@ class CacheKVStorage(KVStorage[Any, Any]):
     def __init__(self, backend: BaseCache) -> None:
         self.backend = backend
 
-    def get(self, key: Any) -> Any | None:
+    def get(self, key: Any) -> Optional[Any]:
         return self.backend.get(key)
 
-    def set(self, key: Any, value: Any, ttl: timedelta | None = None) -> None:
+    def set(self, key: Any, value: Any, ttl: Optional[timedelta] = None) -> None:
         self.backend.set(key, value, timeout=int(ttl.total_seconds()) if ttl is not None else None)
 
     def delete(self, key: Any) -> None:
@@ -68,7 +67,7 @@ class CacheKeyWrapper(KVStorage[str, V]):
         self,
         storage: KVStorage[str, V],
         prefix: str = BaseCache.prefix,
-        version: Any | None = None,
+        version: Optional[Any] = None,
     ):
         if version is None:
             version = settings.CACHE_VERSION
@@ -77,7 +76,7 @@ class CacheKeyWrapper(KVStorage[str, V]):
         self.prefix = prefix
         self.version = version
 
-    def get(self, key: str) -> V | None:
+    def get(self, key: str) -> Optional[V]:
         return self.storage.get(wrap_key(self.prefix, self.version, key))
 
     def get_many(self, keys: Sequence[str]) -> Iterator[tuple[str, V]]:
@@ -85,7 +84,7 @@ class CacheKeyWrapper(KVStorage[str, V]):
         for key, value in results:
             yield unwrap_key(self.prefix, self.version, key), value
 
-    def set(self, key: str, value: V, ttl: timedelta | None = None) -> None:
+    def set(self, key: str, value: V, ttl: Optional[timedelta] = None) -> None:
         return self.storage.set(
             wrap_key(self.prefix, self.version, key),
             value,

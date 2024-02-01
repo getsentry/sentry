@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+from typing import Any, Mapping
 
 from django.utils.html import format_html
 from django.utils.safestring import SafeString

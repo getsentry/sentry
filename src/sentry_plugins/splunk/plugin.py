@@ -1,6 +1,5 @@
 import logging
-from collections.abc import MutableMapping
-from typing import Any
+from typing import Any, MutableMapping
 
 from sentry import tagstore
 from sentry.eventstore.models import Event

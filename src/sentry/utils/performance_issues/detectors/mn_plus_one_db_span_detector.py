@@ -3,8 +3,7 @@ from __future__ import annotations
 import hashlib
 from abc import ABC, abstractmethod
 from collections import deque
-from collections.abc import Sequence
-from typing import Any
+from typing import Any, Sequence
 
 from sentry import features
 from sentry.eventstore.models import Event

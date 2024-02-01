@@ -1,4 +1,4 @@
-from collections.abc import Collection, Sequence
+from typing import Collection, Optional, Sequence
 
 import pytest
 
@@ -26,7 +26,7 @@ class LimiterHelper:
         self.quota = Quota(window_seconds=3600, granularity_seconds=60, limit=10)
         self.timestamp = 3600
 
-    def add_value(self, value: int) -> int | None:
+    def add_value(self, value: int) -> Optional[int]:
         values = self.add_values([value])
         if values:
             (value,) = values

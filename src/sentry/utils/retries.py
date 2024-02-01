@@ -4,8 +4,7 @@ import logging
 import random
 import time
 from abc import ABC, abstractmethod
-from collections.abc import Callable
-from typing import TypeVar
+from typing import Callable, Optional, TypeVar
 
 from django.utils.encoding import force_bytes
 
@@ -89,7 +88,7 @@ class ConditionalRetryPolicy(RetryPolicy):
     def __init__(
         self,
         test_function: Callable[[int, Exception], bool],
-        delay_function: Callable[[int], float] | None = None,
+        delay_function: Optional[Callable[[int], float]] = None,
     ) -> None:
         self.__test_function = test_function
         self.__delay_function = delay_function if delay_function is not None else lambda i: 0.0

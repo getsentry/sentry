@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 from django.conf import settings
 from django.urls import reverse

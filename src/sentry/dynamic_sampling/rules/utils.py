@@ -1,7 +1,8 @@
 from enum import Enum
-from typing import Any, Literal, NotRequired, TypedDict, Union
+from typing import Any, Literal, Optional, TypedDict, Union
 
 from django.conf import settings
+from typing_extensions import NotRequired
 
 from sentry.models.dynamicsampling import CUSTOM_RULE_START
 from sentry.utils import json, redis
@@ -94,7 +95,7 @@ class EqConditionOptions(TypedDict):
 class EqCondition(TypedDict):
     op: Literal["eq"]
     name: str
-    value: list[str] | None
+    value: Union[list[str], None]
     options: EqConditionOptions
 
 
@@ -106,19 +107,19 @@ class GlobCondition(TypedDict):
 
 class Condition(TypedDict):
     op: Literal["and", "or", "not"]
-    inner: EqCondition | GlobCondition | list[EqCondition | GlobCondition]
+    inner: Union[Union[EqCondition, GlobCondition], list[Union[EqCondition, GlobCondition]]]
 
 
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    condition: Condition | GlobCondition | EqCondition
+    condition: Union[Condition, GlobCondition, EqCondition]
     id: int
 
 
 class DecayingFn(TypedDict):
     type: str
-    decayedValue: NotRequired[str | None]
+    decayedValue: NotRequired[Optional[str]]
 
 
 class DecayingRule(Rule):
@@ -130,7 +131,7 @@ class DecayingRule(Rule):
 PolymorphicRule = Union[Rule, DecayingRule]
 
 
-def get_rule_type(rule: Rule) -> RuleType | None:
+def get_rule_type(rule: Rule) -> Optional[RuleType]:
     # Edge case handled naively in which we check if the ID is within the possible bounds. This is done because the
     # latest release rules have ids from 1500 to 1500 + (limit - 1). For example if the limit is 2, we will only have
     # ids: 1500, 1501.
@@ -166,7 +167,7 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
     ).__hash__()
 
 
-def get_sampling_value(rule: PolymorphicRule) -> tuple[str, float] | None:
+def get_sampling_value(rule: PolymorphicRule) -> Optional[tuple[str, float]]:
     sampling = rule["samplingValue"]
     if sampling["type"] == "reservoir":
         return sampling["type"], float(sampling["limit"])
@@ -176,14 +177,14 @@ def get_sampling_value(rule: PolymorphicRule) -> tuple[str, float] | None:
         return None
 
 
-def _deep_sorted(value: Any | dict[Any, Any]) -> Any | dict[Any, Any]:
+def _deep_sorted(value: Union[Any, dict[Any, Any]]) -> Union[Any, dict[Any, Any]]:
     if isinstance(value, dict):
         return {key: _deep_sorted(value) for key, value in sorted(value.items())}
     else:
         return value
 
 
-def get_user_biases(user_set_biases: list[ActivatableBias] | None) -> list[ActivatableBias]:
+def get_user_biases(user_set_biases: Optional[list[ActivatableBias]]) -> list[ActivatableBias]:
     if user_set_biases is None:
         return DEFAULT_BIASES
 
@@ -198,7 +199,7 @@ def get_user_biases(user_set_biases: list[ActivatableBias] | None) -> list[Activ
     return returned_biases
 
 
-def get_enabled_user_biases(user_set_biases: list[ActivatableBias] | None) -> set[str]:
+def get_enabled_user_biases(user_set_biases: Optional[list[ActivatableBias]]) -> set[str]:
     users_biases = get_user_biases(user_set_biases)
     return {bias["id"] for bias in users_biases if bias["active"]}
 

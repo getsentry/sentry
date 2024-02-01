@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from collections.abc import Sequence
-from typing import Any
+from typing import Any, Sequence
 
 from django.db.models.signals import post_save
 

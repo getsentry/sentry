@@ -1,5 +1,4 @@
-from collections.abc import Mapping
-from typing import Any
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from django.db.models.signals import post_save
@@ -15,7 +14,7 @@ def bulk_transition_group_to_ongoing(
     from_status: int,
     from_substatus: int,
     group_ids: list[int],
-    activity_data: Mapping[str, Any] | None = None,
+    activity_data: Optional[Mapping[str, Any]] = None,
 ) -> None:
     with sentry_sdk.start_span(description="groups_to_transistion") as span:
         # make sure we don't update the Group when its already updated by conditionally updating the Group

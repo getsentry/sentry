@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, Callable, Mapping, MutableMapping, Sequence
 
 from sentry.utils import json, metrics
 

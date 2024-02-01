@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Mapping, Sequence
-from typing import Any
+from typing import Any, Generator, Mapping, Sequence
 
 from rest_framework import serializers
 

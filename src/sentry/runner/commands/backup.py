@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from io import BytesIO
-from typing import TextIO
+from typing import Callable, Generator, Sequence, TextIO
 
 import click
 

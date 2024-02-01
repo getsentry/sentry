@@ -1,8 +1,7 @@
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, NotRequired, Optional, Union
+from typing import Any, Mapping, Optional, Sequence, Union
 
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -10,7 +9,7 @@ from snuba_sdk.conditions import BooleanCondition, Condition
 from snuba_sdk.entity import Entity
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -52,14 +51,14 @@ class EventsResponse(TypedDict):
 
 @dataclass
 class SnubaParams:
-    start: datetime | None
-    end: datetime | None
+    start: Optional[datetime]
+    end: Optional[datetime]
     # The None value in this sequence is because the filter params could include that
-    environments: Sequence[Environment | None]
+    environments: Sequence[Union[Environment, None]]
     projects: Sequence[Project]
-    user: RpcUser | None
+    user: Optional[RpcUser]
     teams: Sequence[Team]
-    organization: Organization | None
+    organization: Optional[Organization]
 
     def __post_init__(self) -> None:
         if self.start:
@@ -68,7 +67,7 @@ class SnubaParams:
             self.end = self.end.replace(tzinfo=timezone.utc)
 
         # Only used in the trend query builder
-        self.aliases: dict[str, Alias] | None = {}
+        self.aliases: Optional[dict[str, Alias]] = {}
 
     @property
     def environment_names(self) -> Sequence[str]:
@@ -95,7 +94,7 @@ class SnubaParams:
         return [team.id for team in self.teams]
 
     @property
-    def interval(self) -> float | None:
+    def interval(self) -> Optional[float]:
         if self.start and self.end:
             return (self.end - self.start).total_seconds()
         return None
@@ -106,12 +105,12 @@ class QueryBuilderConfig:
     auto_fields: bool = False
     auto_aggregations: bool = False
     use_aggregate_conditions: bool = False
-    functions_acl: list[str] | None = None
-    equation_config: dict[str, bool] | None = None
+    functions_acl: Optional[list[str]] = None
+    equation_config: Optional[dict[str, bool]] = None
     # This allows queries to be resolved without adding time constraints. Currently this is just
     # used to allow metric alerts to be built and validated before creation in snuba.
     skip_time_conditions: bool = False
-    parser_config_overrides: Mapping[str, Any] | None = None
+    parser_config_overrides: Optional[Mapping[str, Any]] = None
     has_metrics: bool = False
     transform_alias_to_input_format: bool = False
     use_metrics_layer: bool = False
@@ -120,6 +119,6 @@ class QueryBuilderConfig:
     # of a top events request
     skip_tag_resolution: bool = False
     on_demand_metrics_enabled: bool = False
-    on_demand_metrics_type: Any | None = None
+    on_demand_metrics_type: Optional[Any] = None
     skip_field_validation_for_entity_subscription_deletion: bool = False
-    allow_metric_aggregates: bool | None = False
+    allow_metric_aggregates: Optional[bool] = False

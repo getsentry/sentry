@@ -32,10 +32,9 @@ __all__ = (
 )
 
 import re
-from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import cast
+from typing import Optional, Sequence, cast
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -216,7 +215,7 @@ class ParsedMRIField:
         return f"{self.op}({self.mri.name})"
 
 
-def parse_mri_field(field: str | None) -> ParsedMRIField | None:
+def parse_mri_field(field: Optional[str]) -> Optional[ParsedMRIField]:
     if field is None:
         return None
 
@@ -276,7 +275,7 @@ def format_mri_field_value(field: str, value: str) -> str:
         return value
 
 
-def parse_mri(mri_string: str | None) -> ParsedMRI | None:
+def parse_mri(mri_string: Optional[str]) -> Optional[ParsedMRI]:
     """
     Parse a mri string to determine its entity, namespace, name and unit.
     """
@@ -290,7 +289,7 @@ def parse_mri(mri_string: str | None) -> ParsedMRI | None:
     return ParsedMRI(**match.groupdict())
 
 
-def is_mri(mri_string: str | None) -> bool:
+def is_mri(mri_string: Optional[str]) -> bool:
     """
     Returns true if the passed value is a mri.
     """

@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
-from re import Match
-from typing import TypedDict
+from typing import Match, Optional, TypedDict
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -58,7 +57,7 @@ TREND_TYPES = [IMPROVED, REGRESSION]
 class TrendQueryBuilder(QueryBuilder):
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: AggregateFilter
-    ) -> WhereType | None:
+    ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
 
         if name in self.params.aliases:
@@ -69,9 +68,9 @@ class TrendQueryBuilder(QueryBuilder):
     def resolve_function(
         self,
         function: str,
-        match: Match[str] | None = None,
+        match: Optional[Match[str]] = None,
         resolve_only=False,
-        overwrite_alias: str | None = None,
+        overwrite_alias: Optional[str] = None,
     ) -> SelectType:
         if function in self.params.aliases:
             return self.params.aliases[function].resolved_function

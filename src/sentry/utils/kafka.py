@@ -2,6 +2,7 @@ import logging
 import signal
 import time
 from threading import Thread
+from typing import Optional
 
 from sentry import options
 
@@ -36,7 +37,7 @@ def delay_shutdown(consumer_name, processor) -> None:
     processor.signal_shutdown()
 
 
-def run_processor_with_signals(processor, consumer_name: str | None = None):
+def run_processor_with_signals(processor, consumer_name: Optional[str] = None):
     def handler(signum, frame):
         t = Thread(target=delay_shutdown, args=(consumer_name, processor))
         t.start()

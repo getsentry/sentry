@@ -1,6 +1,5 @@
-from collections.abc import Mapping
 from functools import cached_property
-from typing import Any
+from typing import Any, Mapping
 
 import pytest
 

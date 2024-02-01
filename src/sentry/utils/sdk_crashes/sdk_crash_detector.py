@@ -1,5 +1,4 @@
-from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 from packaging.version import InvalidVersion, Version
 

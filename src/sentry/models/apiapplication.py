@@ -1,11 +1,12 @@
 import secrets
-from typing import ClassVar, Self
+from typing import ClassVar
 from urllib.parse import urlparse
 
 import petname
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (

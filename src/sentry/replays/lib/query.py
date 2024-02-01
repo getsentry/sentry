@@ -1,6 +1,6 @@
 """Dynamic query parsing library."""
 import uuid
-from typing import Any
+from typing import Any, Optional, Union
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import Column, Condition, Function, Identifier, Lambda, Op
@@ -27,14 +27,14 @@ OPERATOR_MAP = {
 class Field:
     def __init__(
         self,
-        name: str | None = None,
-        field_alias: str | None = None,
-        query_alias: str | None = None,
+        name: Optional[str] = None,
+        field_alias: Optional[str] = None,
+        query_alias: Optional[str] = None,
         is_filterable: bool = True,
         is_sortable: bool = True,
         is_uuid: bool = False,
-        operators: list | None = None,
-        validators: list | None = None,
+        operators: Optional[list] = None,
+        validators: Optional[list] = None,
     ) -> None:
         self.attribute_name = None
         self.field_alias = field_alias or name
@@ -65,7 +65,7 @@ class Field:
 
         return parsed_values, []
 
-    def deserialize_value(self, value: list[str] | str) -> tuple[Any, list[str]]:
+    def deserialize_value(self, value: Union[list[str], str]) -> tuple[Any, list[str]]:
         if isinstance(value, list):
             return self.deserialize_values(value)
 
@@ -88,7 +88,7 @@ class Field:
         self,
         field_alias: str,
         operator: Op,
-        value: list[str] | str,
+        value: Union[list[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
         return Condition(Column(self.query_alias or self.attribute_name), operator, value)
@@ -104,7 +104,7 @@ class UUIDField(Field):
     _python_type = str
 
     def as_condition(
-        self, field_alias: str, operator: Op, value: list[str] | str, is_wildcard: bool
+        self, field_alias: str, operator: Op, value: Union[list[str], str], is_wildcard: bool
     ) -> Condition:
         if isinstance(value, list):
             uuids = _transform_uuids(value)
@@ -129,7 +129,7 @@ class IPAddress(Field):
         self,
         field_alias: str,
         operator: Op,
-        value: list[str] | str,
+        value: Union[list[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
         if isinstance(value, list):
@@ -145,7 +145,7 @@ class String(Field):
     _python_type = str
 
     def as_condition(
-        self, field_alias: str, operator: Op, value: list[str] | str, is_wildcard: bool
+        self, field_alias: str, operator: Op, value: Union[list[str], str], is_wildcard: bool
     ) -> Condition:
         if is_wildcard:
             return Condition(
@@ -162,7 +162,7 @@ class Selector(Field):
     _python_type = str
 
     def as_condition(
-        self, field_alias: str, operator: Op, value: list[str] | str, is_wildcard: bool
+        self, field_alias: str, operator: Op, value: Union[list[str], str], is_wildcard: bool
     ) -> Condition:
         # This list of queries implies an `OR` operation between each item in the set. To `AND`
         # selector queries apply them separately.
@@ -223,7 +223,7 @@ class ListField(Field):
     _python_type = None
 
     def as_condition(
-        self, _: str, operator: Op, value: list[str] | str, is_wildcard: bool = False
+        self, _: str, operator: Op, value: Union[list[str], str], is_wildcard: bool = False
     ) -> Condition:
         if operator in [Op.EQ, Op.NEQ]:
             if is_wildcard:
@@ -253,7 +253,7 @@ class ListField(Field):
     def _has_condition(
         self,
         operator: Op,
-        value: list[str] | str,
+        value: Union[list[str], str],
     ) -> Condition:
         if isinstance(value, list):
             return self._has_any_condition(Op.IN if operator == Op.EQ else Op.NOT_IN, value)
@@ -279,7 +279,7 @@ class ListField(Field):
     def _has_any_condition(
         self,
         operator: Op,
-        values: list[str] | str,
+        values: Union[list[str], str],
     ) -> Condition:
         if not isinstance(values, list):
             return self._has_condition(Op.EQ if operator == Op.IN else Op.NEQ, values)
@@ -327,7 +327,7 @@ class Tag(Field):
         self,
         field_alias: str,
         operator: Op,
-        value: list[str] | str,
+        value: Union[list[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
 
@@ -353,7 +353,9 @@ class Tag(Field):
             1,
         )
 
-    def _filter_tag_by_value(self, key: str, values: list[str] | str, operator: Op) -> Condition:
+    def _filter_tag_by_value(
+        self, key: str, values: Union[list[str], str], operator: Op
+    ) -> Condition:
         """Helper function that allows filtering a tag by multiple values."""
         expected = 0 if operator not in (Op.EQ, Op.IN) else 1
         function = "hasAny" if isinstance(values, list) else "has"
@@ -377,7 +379,7 @@ class InvalidField(Field):
     _python_type = str
 
     def as_condition(
-        self, _: str, operator: Op, value: list[str] | str, is_wildcard: bool = False
+        self, _: str, operator: Op, value: Union[list[str], str], is_wildcard: bool = False
     ) -> Condition:
         raise ParseError()
 
@@ -387,20 +389,20 @@ class InvalidField(Field):
     def _has_condition(
         self,
         operator: Op,
-        value: list[str] | str,
+        value: Union[list[str], str],
     ) -> Condition:
         raise ParseError()
 
     def _has_any_condition(
         self,
         operator: Op,
-        values: list[str] | str,
+        values: Union[list[str], str],
     ) -> Condition:
         raise ParseError()
 
 
 class QueryConfig:
-    def __init__(self, only: tuple[str] | None = None) -> None:
+    def __init__(self, only: Optional[tuple[str]] = None) -> None:
         self.fields = {}
         for field_name in only or self.__class__.__dict__:
             field = getattr(self, field_name)
@@ -414,7 +416,7 @@ class QueryConfig:
     def get(self, field_name: str, default=None) -> Field:
         return self.fields.get(field_name, default)
 
-    def insert(self, field_name: str | None, value: Field) -> None:
+    def insert(self, field_name: Optional[str], value: Field) -> None:
         if field_name is None:
             return None
         elif field_name in self.fields:
@@ -427,7 +429,7 @@ class QueryConfig:
 
 
 def generate_valid_conditions(
-    query: list[SearchFilter | ParenExpression | str], query_config: QueryConfig
+    query: list[Union[SearchFilter, ParenExpression, str]], query_config: QueryConfig
 ) -> list[Expression]:
     """Convert search filters to snuba conditions."""
     result: list[Expression] = []
@@ -499,7 +501,7 @@ def filter_to_condition(search_filter: SearchFilter, query_config: QueryConfig) 
 def attempt_compressed_condition(
     result: list[Expression],
     condition: Condition,
-    condition_type: And | Or,
+    condition_type: Union[And, Or],
 ):
     """Unnecessary query optimization.
 
@@ -515,7 +517,7 @@ def attempt_compressed_condition(
 
 
 def get_valid_sort_commands(
-    sort: str | None,
+    sort: Optional[str],
     default: OrderBy,
     query_config: QueryConfig,
 ) -> list[OrderBy]:
@@ -593,7 +595,7 @@ def _wildcard_search_function(value, identifier):
 # Helpers
 
 
-def _transform_uuids(values: list[str]) -> list[str] | None:
+def _transform_uuids(values: list[str]) -> Optional[list[str]]:
     try:
         return [str(uuid.UUID(value)) for value in values]
     except ValueError:

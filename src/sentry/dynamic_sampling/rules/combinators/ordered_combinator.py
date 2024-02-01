@@ -1,5 +1,5 @@
 import collections
-from collections import OrderedDict
+from typing import OrderedDict
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator

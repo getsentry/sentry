@@ -1,7 +1,6 @@
 import math
-from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from django.http import Http404
@@ -260,9 +259,9 @@ class HistogramPaginator(GenericOffsetPaginator):
 def query_tag_data(
     params: Mapping[str, str],
     referrer: str,
-    filter_query: str | None = None,
-    aggregate_column: str | None = None,
-) -> dict | None:
+    filter_query: Optional[str] = None,
+    aggregate_column: Optional[str] = None,
+) -> Optional[dict]:
     """
     Fetch general data about all the transactions with this transaction name to feed into the facet query
     :return: Returns the row with aggregate and count if the query was successful
@@ -310,11 +309,11 @@ def query_top_tags(
     tag_key: str,
     limit: int,
     referrer: str,
-    orderby: list[str] | None,
-    offset: int | None = None,
-    aggregate_column: str | None = None,
-    filter_query: str | None = None,
-) -> list[Any] | None:
+    orderby: Optional[list[str]],
+    offset: Optional[int] = None,
+    aggregate_column: Optional[str] = None,
+    filter_query: Optional[str] = None,
+) -> Optional[list[Any]]:
     """
     Fetch counts by tag value, finding the top tag values for a tag key by a limit.
     :return: Returns the row with the value, the aggregate and the count if the query was successful
@@ -371,14 +370,14 @@ def query_facet_performance(
     params: Mapping[str, str],
     tag_data: Mapping[str, Any],
     referrer: str,
-    aggregate_column: str | None = None,
-    filter_query: str | None = None,
-    orderby: str | None = None,
-    limit: int | None = None,
-    offset: int | None = None,
-    all_tag_keys: bool | None = None,
-    tag_key: bool | None = None,
-    include_count_delta: bool | None = None,
+    aggregate_column: Optional[str] = None,
+    filter_query: Optional[str] = None,
+    orderby: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    all_tag_keys: Optional[bool] = None,
+    tag_key: Optional[bool] = None,
+    include_count_delta: Optional[bool] = None,
 ) -> dict:
     # Dynamically sample so at least 50000 transactions are selected
     sample_start_count = 50000
@@ -510,8 +509,8 @@ def query_facet_performance_key_histogram(
     num_buckets_per_key: int,
     limit: int,
     referrer: str,
-    aggregate_column: str | None = None,
-    filter_query: str | None = None,
+    aggregate_column: Optional[str] = None,
+    filter_query: Optional[str] = None,
 ) -> dict:
     precision = 0
 

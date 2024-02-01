@@ -7,7 +7,7 @@ debug files.  These tasks enable this functionality.
 import logging
 import pathlib
 import tempfile
-from collections.abc import Mapping
+from typing import Mapping
 
 import requests
 import sentry_sdk

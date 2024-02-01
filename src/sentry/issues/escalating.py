@@ -6,9 +6,8 @@ from __future__ import annotations
 import logging
 import math
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, Mapping, Sequence, TypedDict
 
 import jsonschema
 from django.db.models.signals import post_save

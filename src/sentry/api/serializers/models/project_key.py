@@ -1,6 +1,5 @@
-from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, Mapping, Optional
 
 from typing_extensions import TypedDict
 
@@ -47,15 +46,15 @@ class ProjectKeySerializerResponse(TypedDict):
     id: str
     name: str
     label: str
-    public: str | None
-    secret: str | None
+    public: Optional[str]
+    secret: Optional[str]
     projectId: int
     isActive: bool
-    rateLimit: RateLimit | None
+    rateLimit: Optional[RateLimit]
     dsn: DSN
     browserSdkVersion: str
     browserSdk: BrowserSDK
-    dateCreated: datetime | None
+    dateCreated: Optional[datetime]
     dynamicSdkLoaderOptions: DynamicSDKLoaderOptions
 
 

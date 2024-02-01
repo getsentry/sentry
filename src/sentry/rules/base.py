@@ -3,8 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections import namedtuple
-from collections.abc import Callable, Sequence
-from typing import Any, ClassVar
+from typing import Any, Callable, ClassVar, Sequence
 
 from django import forms
 

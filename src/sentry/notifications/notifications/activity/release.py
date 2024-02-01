@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release

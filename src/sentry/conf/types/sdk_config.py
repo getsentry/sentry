@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any, Literal, NotRequired
+from typing import Any, Callable, Literal
 
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 
 class SdkConfig(TypedDict):

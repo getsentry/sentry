@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import re
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import reduce
-from typing import Any, Literal, NamedTuple, Union
+from typing import Any, Literal, Mapping, NamedTuple, Sequence, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError

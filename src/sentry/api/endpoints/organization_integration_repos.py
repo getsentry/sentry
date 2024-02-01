@@ -1,4 +1,4 @@
-from typing import Any, TypedDict
+from typing import Any, Optional, TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,7 +18,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 class IntegrationRepository(TypedDict):
     name: str
     identifier: str
-    defaultBranch: str | None
+    defaultBranch: Optional[str]
 
 
 @region_silo_endpoint

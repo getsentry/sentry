@@ -2,8 +2,7 @@ import json  # noqa: S003
 import os
 import re
 from collections import OrderedDict
-from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, Mapping, TypedDict
 
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 

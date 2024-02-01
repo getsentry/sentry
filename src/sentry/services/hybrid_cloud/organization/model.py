@@ -2,10 +2,9 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-from collections.abc import Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
-from typing import Any
+from typing import Any, Mapping, Optional, Sequence
 
 from django.dispatch import Signal
 from django.utils import timezone
@@ -53,8 +52,8 @@ class RpcTeam(RpcModel):
     status: int = Field(default_factory=_DefaultEnumHelpers.get_default_team_status_value)
     organization_id: int = -1
     slug: str = ""
-    actor_id: int | None = None
-    org_role: str | None = None
+    actor_id: Optional[int] = None
+    org_role: Optional[str] = None
     name: str = ""
 
     def class_name(self) -> str:
@@ -80,7 +79,7 @@ class RpcTeamMember(RpcModel):
     team_id: int = -1
 
     @property
-    def role(self) -> TeamRole | None:
+    def role(self) -> Optional[TeamRole]:
         return team_roles.get(self.role_id) if self.role_id else None
 
 
@@ -90,7 +89,7 @@ class RpcOrganizationMemberTeam(RpcModel):
     organizationmember_id: int = -1
     organization_id: int = -1
     is_active: bool = False
-    role: str | None = None
+    role: Optional[str] = None
 
 
 class RpcOrganizationMemberFlags(RpcModel):
@@ -120,7 +119,7 @@ class RpcOrganizationMemberFlags(RpcModel):
 class RpcOrganizationMemberSummary(RpcModel):
     id: int = -1
     organization_id: int = -1
-    user_id: int | None = None  # This can be null when the user is deleted.
+    user_id: Optional[int] = None  # This can be null when the user is deleted.
     flags: RpcOrganizationMemberFlags = Field(default_factory=lambda: RpcOrganizationMemberFlags())
 
 
@@ -138,7 +137,7 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     legacy_token: str = ""
     email: str = ""
 
-    def get_audit_log_metadata(self, user_email: str | None = None) -> Mapping[str, Any]:
+    def get_audit_log_metadata(self, user_email: Optional[str] = None) -> Mapping[str, Any]:
         from sentry.models.organizationmember import invite_status_names
 
         team_ids = [mt.team_id for mt in self.member_teams]
@@ -211,7 +210,7 @@ class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin, HasOption):
         return hash((self.id, self.slug))
 
     def get_option(
-        self, key: str, default: Value | None = None, validate: ValidateFunction | None = None
+        self, key: str, default: Optional[Value] = None, validate: Optional[ValidateFunction] = None
     ) -> Value:
         from sentry.services.hybrid_cloud.organization import organization_service
 
@@ -275,13 +274,13 @@ class RpcUserOrganizationContext(RpcModel):
     """
 
     # user_id is None iff the get_organization_by_id call is not provided a user_id context.
-    user_id: int | None = None
+    user_id: Optional[int] = None
     # The organization is always non-null because the null wrapping is around this object instead.
     # A None organization => a None RpcUserOrganizationContext
     organization: RpcOrganization = Field(default_factory=lambda: RpcOrganization())
     # member can be None when the given user_id does not have membership with the given organization.
     # Note that all related fields of this organization member are filtered by visibility and is_active=True.
-    member: RpcOrganizationMember | None = None
+    member: Optional[RpcOrganizationMember] = None
 
     def __post_init__(self) -> None:
         # Ensures that outer user_id always agrees with the inner member object.
@@ -296,7 +295,7 @@ class RpcUserInviteContext(RpcUserOrganizationContext):
     member state of the invite if none such exists.
     """
 
-    invite_organization_member_id: int | None = 0
+    invite_organization_member_id: Optional[int] = 0
 
 
 class RpcRegionUser(RpcModel):
@@ -307,7 +306,7 @@ class RpcRegionUser(RpcModel):
 
     id: int = -1
     is_active: bool = True
-    email: str | None = None
+    email: Optional[str] = None
 
 
 class RpcOrganizationSignal(IntEnum):
@@ -346,18 +345,18 @@ class RpcOrganizationDeleteState(IntEnum):
 
 class RpcOrganizationDeleteResponse(RpcModel):
     response_state: RpcOrganizationDeleteState
-    updated_organization: RpcOrganization | None = None
+    updated_organization: Optional[RpcOrganization] = None
     schedule_guid: str = ""
 
 
 class RpcAuditLogEntryActor(RpcModel):
-    actor_label: str | None
+    actor_label: Optional[str]
     actor_id: int
-    actor_key: str | None
-    ip_address: str | None
+    actor_key: Optional[str]
+    ip_address: Optional[str]
 
 
 class OrganizationMemberUpdateArgs(TypedDict, total=False):
-    flags: RpcOrganizationMemberFlags | None
+    flags: Optional[RpcOrganizationMemberFlags]
     role: str
     invite_status: int

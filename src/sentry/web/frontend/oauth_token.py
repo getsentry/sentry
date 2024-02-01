@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
@@ -152,7 +153,7 @@ class OAuthTokenView(View):
         return {"token": refresh_token}
 
     def process_token_details(
-        self, token: ApiToken, id_token: OpenIDToken | None = None
+        self, token: ApiToken, id_token: Optional[OpenIDToken] = None
     ) -> HttpResponse:
         token_information = {
             "access_token": token.token,

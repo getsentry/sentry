@@ -36,7 +36,6 @@ from enum import Enum
 from types import UnionType
 from typing import Any, Literal, Union
 from typing import get_type_hints as _get_type_hints
-from typing import is_typeddict
 
 from drf_spectacular.drainage import get_override
 from drf_spectacular.plumbing import (
@@ -47,6 +46,7 @@ from drf_spectacular.plumbing import (
     is_basic_type,
 )
 from drf_spectacular.types import OpenApiTypes
+from typing_extensions import is_typeddict
 
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 

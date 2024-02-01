@@ -4,10 +4,9 @@ import itertools
 import logging
 import re
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from time import time
-from typing import ClassVar
+from typing import ClassVar, Mapping, Sequence
 
 import sentry_sdk
 from django.db import IntegrityError, models, router

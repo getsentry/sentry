@@ -1,8 +1,7 @@
 """ Write transactions into redis sets """
 import logging
 import random
-from collections.abc import Iterator, Mapping
-from typing import Any
+from typing import Any, Iterator, Mapping, Optional
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -115,7 +114,7 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
             safe_execute(_bump_rule_lifetime, project, event_data, _with_transaction=False)
 
 
-def _should_store_transaction_name(event_data: Mapping[str, Any]) -> str | None:
+def _should_store_transaction_name(event_data: Mapping[str, Any]) -> Optional[str]:
     """Returns whether the given event must be stored as input for the
     transaction clusterer."""
     transaction_name = event_data.get("transaction")
@@ -193,7 +192,7 @@ def record_span_descriptions(
         safe_execute(_record_sample, ClustererNamespace.SPANS, project, description)
 
 
-def _get_span_description_to_store(span: Mapping[str, Any]) -> str | None:
+def _get_span_description_to_store(span: Mapping[str, Any]) -> Optional[str]:
     if not span.get("op") in ("resource.css", "resource.script", "resource.img"):
         return None
 

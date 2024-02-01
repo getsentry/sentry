@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Mapping
 
 import pytest
 from django.utils.functional import cached_property

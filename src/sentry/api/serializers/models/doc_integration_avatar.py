@@ -1,4 +1,4 @@
-from collections.abc import MutableMapping
+from typing import MutableMapping
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar

@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 import sentry_sdk
 from snuba_sdk import Column, Function
@@ -13,8 +14,8 @@ ClickhouseHistogram = list[tuple[float, float, float]]
 def rebucket_histogram(
     data: ClickhouseHistogram,
     histogram_buckets: int = 100,
-    histogram_from: float | None = None,
-    histogram_to: float | None = None,
+    histogram_from: Optional[float] = None,
+    histogram_to: Optional[float] = None,
 ) -> ClickhouseHistogram:
     if not data or not histogram_buckets:
         return []
@@ -73,9 +74,9 @@ def rebucket_histogram(
 
 def zoom_histogram(
     histogram_buckets: int = 100,
-    histogram_from: float | None = None,
-    histogram_to: float | None = None,
-) -> Function | None:
+    histogram_from: Optional[float] = None,
+    histogram_to: Optional[float] = None,
+) -> Optional[Function]:
     # The histogram "zoom" function is only there to limit the number of
     # histogram merge states we have to merge in order to get greater accuracy
     # on lower zoom levels. Since the maximum number of histogram buckets in

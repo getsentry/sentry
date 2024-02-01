@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Mapping, MutableMapping
 
 from django.db import models
 

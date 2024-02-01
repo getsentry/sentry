@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Mapping, MutableMapping, Sequence
 from urllib.parse import urlparse
 
 import rest_framework

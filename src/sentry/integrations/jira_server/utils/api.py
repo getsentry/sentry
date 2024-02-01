@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping
 
 from sentry.integrations.utils import sync_group_assignee_inbound
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration

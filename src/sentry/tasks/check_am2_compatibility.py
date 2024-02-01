@@ -1,8 +1,7 @@
 from collections import defaultdict
-from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from django.db.models import Q
@@ -402,7 +401,7 @@ class CheckAM2Compatibility:
     @classmethod
     def get_outdated_sdks(cls, found_sdks_per_project):
         outdated_sdks_per_project: Mapping[
-            str, Mapping[str, set[tuple[str, str | None]]]
+            str, Mapping[str, set[tuple[str, Optional[str]]]]
         ] = defaultdict(lambda: defaultdict(set))
 
         for project, found_sdks in found_sdks_per_project.items():
@@ -412,7 +411,7 @@ class CheckAM2Compatibility:
                 if sdk_name not in SDKS_SUPPORTING_PERFORMANCE:
                     continue
 
-                sdk_versions_set: set[tuple[str, str | None]] = set()
+                sdk_versions_set: set[tuple[str, Optional[str]]] = set()
                 found_supported_version = False
                 min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
 

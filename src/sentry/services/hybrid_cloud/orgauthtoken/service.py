@@ -5,6 +5,7 @@
 
 from abc import abstractmethod
 from datetime import datetime
+from typing import Optional
 
 from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -26,8 +27,8 @@ class OrgAuthTokenService(RpcService):
         *,
         organization_id: int,
         org_auth_token_id: int,
-        date_last_used: datetime | None = None,
-        project_last_used_id: int | None = None,
+        date_last_used: Optional[datetime] = None,
+        project_last_used_id: Optional[int] = None,
     ) -> None:
         pass
 

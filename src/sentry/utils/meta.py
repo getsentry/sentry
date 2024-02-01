@@ -1,5 +1,7 @@
 from collections.abc import Mapping
-from typing import Literal, NotRequired, TypedDict
+from typing import Literal, TypedDict, Union
+
+from typing_extensions import NotRequired
 
 RemarkType = Literal["a", "x", "s", "m", "p", "e"]
 
@@ -178,7 +180,7 @@ class Meta:
         if "rem" not in meta or meta["rem"] is None:
             meta["rem"] = []
 
-        rem_list: list[str | int] = [rem["rule_id"], rem["type"]]
+        rem_list: list[Union[str, int]] = [rem["rule_id"], rem["type"]]
 
         range_start = rem.get("range_start")
         if range_start is not None:

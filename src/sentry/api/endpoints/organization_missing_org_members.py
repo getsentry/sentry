@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
 from datetime import timedelta
 from email.headerregistry import Address
 from functools import reduce
-from typing import Any
+from typing import Any, Sequence
 
 from django.db.models import Q
 from django.utils import timezone

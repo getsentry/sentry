@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import inspect
 import itertools
-from collections.abc import Callable, Iterable, Sequence
-from typing import Any
+from typing import Any, Callable, Iterable, Sequence
 
 import pydantic
 from django.utils.functional import LazyObject

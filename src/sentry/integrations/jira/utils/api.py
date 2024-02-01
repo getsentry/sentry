@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from typing import Any
+from typing import Any, Mapping
 
 from rest_framework import status
 from rest_framework.response import Response

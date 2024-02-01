@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Final, cast
+from typing import Any, Final, Iterable, Mapping, MutableMapping, Sequence, cast
 
 import sentry_sdk
 from django.db import connection

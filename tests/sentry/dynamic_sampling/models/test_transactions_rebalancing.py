@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from typing import Mapping
 
 import pytest
 

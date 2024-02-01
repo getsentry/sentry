@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Optional
 
 from django import forms
 
@@ -35,7 +35,7 @@ class IssueSeverityFilter(EventFilter):
     label = "The issue's severity is {match} {value}"
     prompt = "The issue's severity is ..."
 
-    def _passes(self, group: Group | None) -> bool:
+    def _passes(self, group: Optional[Group]) -> bool:
         has_issue_severity_alerts = features.has(
             "projects:first-event-severity-alerting", self.project
         )

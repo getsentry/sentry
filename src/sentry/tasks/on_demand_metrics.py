@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
-from typing import Any
+from typing import Any, Sequence
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded

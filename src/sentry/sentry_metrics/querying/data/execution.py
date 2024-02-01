@@ -1,8 +1,7 @@
 import math
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Any, Optional, cast
+from typing import Any, Mapping, Optional, Sequence, cast
 
 import sentry_sdk
 from snuba_sdk import Column, Direction, MetricsQuery, Request
@@ -99,9 +98,9 @@ class ExecutableQuery:
 
     identifier: str
     metrics_query: MetricsQuery
-    group_bys: Sequence[str] | None
-    order_by: str | None
-    limit: int | None
+    group_bys: Optional[Sequence[str]]
+    order_by: Optional[str]
+    limit: Optional[int]
 
     def replace_date_range(self, start: datetime, end: datetime) -> "ExecutableQuery":
         return replace(
@@ -142,7 +141,7 @@ class ExecutableQuery:
 
     def add_group_filters(
         self,
-        groups_collection: GroupsCollection | None,
+        groups_collection: Optional[GroupsCollection],
     ) -> "ExecutableQuery":
         """
         Adds a series of filters to the query which will make sure that the results returned only belong to the supplied
@@ -183,8 +182,8 @@ class ExecutableQuery:
 
 @dataclass(frozen=True)
 class QueryResult:
-    series_executable_query: ExecutableQuery | None
-    totals_executable_query: ExecutableQuery | None
+    series_executable_query: Optional[ExecutableQuery]
+    totals_executable_query: Optional[ExecutableQuery]
     result: Mapping[str, Any]
 
     def __post_init__(self):
@@ -241,7 +240,7 @@ class QueryResult:
         return _extract_groups_from_seq(self.totals or self.series)
 
     @property
-    def group_bys(self) -> list[str] | None:
+    def group_bys(self) -> Optional[list[str]]:
         # We return the groups directly from the query and not the actual groups returned by the query. This is done so
         # that we can correctly render groups in case they are not returned from the db.
         return cast(
@@ -563,9 +562,9 @@ class QueryExecutor:
         self,
         identifier: str,
         query: MetricsQuery,
-        group_bys: Sequence[str] | None,
-        order_by: str | None,
-        limit: int | None,
+        group_bys: Optional[Sequence[str]],
+        order_by: Optional[str],
+        limit: Optional[int],
     ):
         """
         Lazily schedules a query for execution.

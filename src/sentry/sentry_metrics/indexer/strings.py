@@ -1,4 +1,4 @@
-from collections.abc import Collection, Mapping
+from typing import Collection, Mapping, Optional
 
 from django.conf import settings
 
@@ -263,13 +263,13 @@ class StaticStringIndexer(StringIndexer):
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
     @metric_path_key_compatible_resolve
-    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         # TODO: remove this metric after investigation is over
         if use_case_id is UseCaseID.ESCALATING_ISSUES:
             metrics.incr("sentry_metrics.indexer.string_indexer_resolve_escalating_issues")
@@ -278,7 +278,7 @@ class StaticStringIndexer(StringIndexer):
         return self.indexer.resolve(use_case_id, org_id, string)
 
     @metric_path_key_compatible_rev_resolve
-    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> str | None:
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
 
@@ -310,12 +310,12 @@ class StaticStringIndexer(StringIndexer):
 
         return {**org_strings, **shared_strings}
 
-    def resolve_shared_org(self, string: str) -> int | None:
+    def resolve_shared_org(self, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return None
 
-    def reverse_shared_org_resolve(self, id: int) -> str | None:
+    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
         return None

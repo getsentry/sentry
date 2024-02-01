@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sentry import analytics, features
 from sentry.models.group import Group, GroupStatus
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -16,7 +18,7 @@ from sentry.tasks.base import instrumented_task, retry, track_group_async_operat
 )
 @retry(exclude=(Integration.DoesNotExist,))
 @track_group_async_operation
-def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
+def sync_status_outbound(group_id: int, external_issue_id: int) -> Optional[bool]:
     groups = Group.objects.filter(
         id=group_id, status__in=[GroupStatus.UNRESOLVED, GroupStatus.RESOLVED]
     )

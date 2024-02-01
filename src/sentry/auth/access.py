@@ -13,10 +13,9 @@ __all__ = [
 ]
 
 import abc
-from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any
+from typing import Any, Collection, Iterable, Mapping
 
 import sentry_sdk
 from django.conf import settings

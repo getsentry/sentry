@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
 from contextlib import nullcontext
 from random import random
-from typing import Any, Literal, Self, Union, overload
+from typing import Any, Callable, Literal, Mapping, Sequence, Union, overload
 
 import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
 from requests.exceptions import ConnectionError, HTTPError, Timeout
+from typing_extensions import Self
 
 from sentry import audit_log, features
 from sentry.constants import ObjectStatus

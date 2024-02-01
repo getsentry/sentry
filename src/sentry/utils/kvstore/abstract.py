@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Sequence
 from datetime import timedelta
-from typing import Generic, TypeVar
+from typing import Generic, Iterator, Optional, Sequence, TypeVar
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -20,7 +19,7 @@ class KVStorage(ABC, Generic[K, V]):
     """
 
     @abstractmethod
-    def get(self, key: K) -> V | None:
+    def get(self, key: K) -> Optional[V]:
         """
         Fetch a value from the store by its key. Returns the value if it
         exists, otherwise ``None``.
@@ -41,7 +40,7 @@ class KVStorage(ABC, Generic[K, V]):
                 yield key, value
 
     @abstractmethod
-    def set(self, key: K, value: V, ttl: timedelta | None = None) -> None:
+    def set(self, key: K, value: V, ttl: Optional[timedelta] = None) -> None:
         """
         Set a value in the store by its key, overwriting any data that
         already existed at that key.

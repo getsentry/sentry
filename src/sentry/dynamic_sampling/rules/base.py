@@ -1,6 +1,6 @@
 import logging
-from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
+from typing import OrderedDict
 
 import sentry_sdk
 

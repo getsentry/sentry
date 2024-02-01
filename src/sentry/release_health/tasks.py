@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Sequence
+from typing import Sequence
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError

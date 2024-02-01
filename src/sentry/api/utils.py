@@ -6,10 +6,9 @@ import re
 import sys
 import time
 import traceback
-from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Literal, overload
+from typing import Any, Generator, Literal, Mapping, overload
 from urllib.parse import urlparse
 
 import sentry_sdk

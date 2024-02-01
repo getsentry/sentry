@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import Any, Mapping, MutableMapping
 
 from django.urls import reverse
 

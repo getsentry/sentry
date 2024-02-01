@@ -4,10 +4,9 @@ import logging
 import random
 import uuid
 from collections import defaultdict, namedtuple
-from collections.abc import Callable
 from functools import reduce
 from hashlib import md5
-from typing import ContextManager, TypeVar
+from typing import Callable, ContextManager, TypeVar
 
 from django.utils import timezone
 from django.utils.encoding import force_bytes

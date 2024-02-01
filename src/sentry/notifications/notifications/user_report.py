@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 
 from django.utils.encoding import force_str
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import ipaddress
-from collections.abc import Generator
+from typing import Generator
 from unittest import mock
 
 from sentry.net import socket as net_socket

@@ -1,6 +1,6 @@
-from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Generator, Optional, Sequence
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -21,13 +21,13 @@ class CodeLocationQuery:
 
 @dataclass(frozen=True)
 class CodeLocationPayload:
-    function: str | None
-    module: str | None
-    filename: str | None
-    abs_path: str | None
-    lineno: int | None
+    function: Optional[str]
+    module: Optional[str]
+    filename: Optional[str]
+    abs_path: Optional[str]
+    lineno: Optional[int]
     pre_context: Sequence[str]
-    context_line: str | None
+    context_line: Optional[str]
     post_context: Sequence[str]
 
 

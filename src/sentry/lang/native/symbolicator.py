@@ -5,9 +5,9 @@ import logging
 import random
 import time
 import uuid
-from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
+from typing import Callable
 from urllib.parse import urljoin
 
 import sentry_sdk

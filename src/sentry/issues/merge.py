@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TypedDict
+from typing import Sequence, TypedDict
 from uuid import uuid4
 
 import rest_framework

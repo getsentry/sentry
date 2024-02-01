@@ -1,7 +1,6 @@
 import re
 from itertools import islice
-from re import Match
-from typing import Any
+from typing import Any, Match
 
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent

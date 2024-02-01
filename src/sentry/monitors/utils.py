@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Optional, Union
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -48,7 +49,7 @@ def signal_monitor_created(project: Project, user, from_upsert: bool):
     check_and_signal_first_monitor_created(project, user, from_upsert)
 
 
-def get_max_runtime(max_runtime: int | None) -> timedelta:
+def get_max_runtime(max_runtime: Optional[int]) -> timedelta:
     """
     Computes a timedelta given a max_runtime. Limits the returned timedelta
     to MAX_TIMEOUT. If an empty max_runtime is provided the default TIMEOUT
@@ -59,8 +60,8 @@ def get_max_runtime(max_runtime: int | None) -> timedelta:
 
 # Generates a timeout_at value for new check-ins
 def get_timeout_at(
-    monitor_config: dict, status: CheckInStatus, date_added: datetime | None
-) -> datetime | None:
+    monitor_config: dict, status: CheckInStatus, date_added: Optional[datetime]
+) -> Optional[datetime]:
     if status == CheckInStatus.IN_PROGRESS:
         return date_added.replace(second=0, microsecond=0) + get_max_runtime(
             (monitor_config or {}).get("max_runtime")
@@ -72,20 +73,20 @@ def get_timeout_at(
 # Generates a timeout_at value for existing check-ins that are being updated
 def get_new_timeout_at(
     checkin: MonitorCheckIn, new_status: CheckInStatus, date_updated: datetime
-) -> datetime | None:
+) -> Optional[datetime]:
     return get_timeout_at(checkin.monitor.get_validated_config(), new_status, date_updated)
 
 
 # Used to check valid implicit durations for closing check-ins without a duration specified
 # as payload is already validated. Max value is > 24 days.
-def valid_duration(duration: int | None) -> bool:
+def valid_duration(duration: Optional[int]) -> bool:
     if duration and (duration < 0 or duration > BoundedPositiveIntegerField.MAX_VALUE):
         return False
 
     return True
 
 
-def get_checkin_margin(checkin_margin: int | None) -> timedelta:
+def get_checkin_margin(checkin_margin: Optional[int]) -> timedelta:
     """
     Computes a timedelta given the checkin_margin (missed margin).
     If an empty value is provided the DEFAULT_CHECKIN_MARGIN will be used.
@@ -178,7 +179,7 @@ def fetch_associated_groups(
     )
 
     group_id_data: dict[int, set[str]] = defaultdict(set)
-    trace_groups: dict[str, list[dict[str, int | str]]] = defaultdict(list)
+    trace_groups: dict[str, list[dict[str, Union[int, str]]]] = defaultdict(list)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
     # if query completes successfully, add an array of objects with group id and short id

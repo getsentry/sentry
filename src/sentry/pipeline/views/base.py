@@ -1,6 +1,5 @@
 import abc
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping
 
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request

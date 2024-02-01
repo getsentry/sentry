@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from functools import wraps
-from typing import Literal
+from typing import Callable, Literal
 
 from django.db import models
 

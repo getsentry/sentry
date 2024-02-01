@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from typing import Mapping
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import FetchType, Metadata, UseCaseKeyCollection

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, MutableMapping, MutableSequence, Sequence
 from functools import reduce
-from typing import Any
+from typing import Any, Callable, MutableMapping, MutableSequence, Sequence
 
 logger = logging.getLogger("sentry.utils.pipeline")
 

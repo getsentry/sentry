@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, cast
+from typing import Any, Mapping, Sequence, cast
 
 import sentry_sdk
 from requests import PreparedRequest

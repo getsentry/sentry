@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from typing import Mapping, Optional
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
@@ -20,8 +20,8 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
-        input_block_size: int | None,
-        output_block_size: int | None,
+        input_block_size: Optional[int],
+        output_block_size: Optional[int],
     ):
         super().__init__()
         self.max_batch_size = max_batch_size

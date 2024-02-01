@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import zipfile
-from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
-from typing import IO, Any
+from typing import IO, Any, Callable, Iterable, Mapping
 
 import sentry_sdk
 from django.conf import settings

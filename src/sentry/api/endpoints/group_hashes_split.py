@@ -1,6 +1,5 @@
 import datetime
-from collections.abc import Sequence
-from typing import Any
+from typing import Any, Optional, Sequence
 
 import sentry_sdk
 from django.db import router, transaction
@@ -126,7 +125,7 @@ class NoHierarchicalHash(Exception):
     pass
 
 
-def _split_group(group: Group, hash: str, hierarchical_hashes: Sequence[str] | None = None):
+def _split_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequence[str]] = None):
     # Sanity check to see if what we're splitting here is a hierarchical hash.
     if hierarchical_hashes is None:
         hierarchical_hashes = _get_full_hierarchical_hashes(group, hash)
@@ -146,7 +145,7 @@ def _split_group(group: Group, hash: str, hierarchical_hashes: Sequence[str] | N
     grouphash.save()
 
 
-def _get_full_hierarchical_hashes(group: Group, hash: str) -> Sequence[str] | None:
+def _get_full_hierarchical_hashes(group: Group, hash: str) -> Optional[Sequence[str]]:
     query = (
         Query(Entity("events"))
         .set_select(
@@ -182,7 +181,7 @@ def _get_full_hierarchical_hashes(group: Group, hash: str) -> Sequence[str] | No
     return data[0]["hierarchical_hashes"]
 
 
-def _unsplit_group(group: Group, hash: str, hierarchical_hashes: Sequence[str] | None = None):
+def _unsplit_group(group: Group, hash: str, hierarchical_hashes: Optional[Sequence[str]] = None):
     if hierarchical_hashes is None:
         hierarchical_hashes = _get_full_hierarchical_hashes(group, hash)
 
@@ -242,9 +241,9 @@ def _add_hash(
     trees: list[dict[str, Any]],
     group: Group,
     user,
-    parent_hash: str | None,
+    parent_hash: Optional[str],
     hash: str,
-    child_hash: str | None,
+    child_hash: Optional[str],
     event_count: int,
     last_seen,
     latest_event_id,

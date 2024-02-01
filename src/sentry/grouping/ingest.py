@@ -3,8 +3,7 @@ from __future__ import annotations
 import copy
 import random
 import time
-from collections.abc import MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, MutableMapping, Sequence
 
 import sentry_sdk
 from django.conf import settings

@@ -1,4 +1,5 @@
 import hashlib
+from typing import Optional
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -39,7 +40,7 @@ def upsert_organization_by_org_id_with_outbox_message(
 
 def mark_organization_as_pending_deletion_with_outbox_message(
     *, org_id: int
-) -> Organization | None:
+) -> Optional[Organization]:
     with outbox_context(transaction.atomic(router.db_for_write(Organization))):
         update_count = Organization.objects.filter(
             id=org_id, status=OrganizationStatus.ACTIVE
@@ -56,7 +57,7 @@ def mark_organization_as_pending_deletion_with_outbox_message(
 
 def unmark_organization_as_pending_deletion_with_outbox_message(
     *, org_id: int
-) -> Organization | None:
+) -> Optional[Organization]:
     with outbox_context(transaction.atomic(router.db_for_write(Organization))):
         update_count = Organization.objects.filter(
             id=org_id,

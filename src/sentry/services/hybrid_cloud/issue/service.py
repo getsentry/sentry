@@ -5,6 +5,7 @@
 
 
 from abc import abstractmethod
+from typing import Optional
 
 from sentry.services.hybrid_cloud.issue.model import RpcGroupShareMetadata
 from sentry.services.hybrid_cloud.region import ByOrganizationId, ByOrganizationSlug, ByRegionName
@@ -37,14 +38,14 @@ class IssueService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
-    def get_shared_for_org(self, *, slug: str, share_id: str) -> RpcGroupShareMetadata | None:
+    def get_shared_for_org(self, *, slug: str, share_id: str) -> Optional[RpcGroupShareMetadata]:
         pass
 
     @regional_rpc_method(resolve=ByRegionName(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_shared_for_region(
         self, *, region_name: str, share_id: str
-    ) -> RpcGroupShareMetadata | None:
+    ) -> Optional[RpcGroupShareMetadata]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId(), return_none_if_mapping_not_found=True)

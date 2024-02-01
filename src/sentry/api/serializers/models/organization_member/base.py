@@ -1,6 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
 from django.db.models import Prefetch, prefetch_related_objects
 
@@ -21,7 +20,7 @@ from .utils import get_organization_id
 
 @register(OrganizationMember)
 class OrganizationMemberSerializer(Serializer):
-    def __init__(self, expand: Sequence[str] | None = None) -> None:
+    def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
         self.expand = expand or []
 
     def __sorted_org_roles_for_user(self, item: OrganizationMember) -> Sequence[Mapping[str, Any]]:

@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import Mapping, Sequence
 from types import LambdaType
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase

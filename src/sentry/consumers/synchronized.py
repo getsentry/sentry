@@ -1,10 +1,18 @@
 import logging
-from collections.abc import Callable, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime
 from threading import Event, Lock
 from time import time
-from typing import Generic, TypeVar
+from typing import (
+    Callable,
+    Generator,
+    Generic,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    TypeVar,
+)
 
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaPayload
@@ -183,8 +191,8 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
     def subscribe(
         self,
         topics: Sequence[Topic],
-        on_assign: Callable[[Mapping[Partition, int]], None] | None = None,
-        on_revoke: Callable[[Sequence[Partition]], None] | None = None,
+        on_assign: Optional[Callable[[Mapping[Partition, int]], None]] = None,
+        on_revoke: Optional[Callable[[Sequence[Partition]], None]] = None,
     ) -> None:
         def assignment_callback(offsets: Mapping[Partition, int]) -> None:
             for partition in offsets:
@@ -207,7 +215,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
     def unsubscribe(self) -> None:
         return self.__consumer.unsubscribe()
 
-    def poll(self, timeout: float | None = None) -> BrokerValue[TStrategyPayload] | None:
+    def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[TStrategyPayload]]:
         self.__check_commit_log_worker_running()
 
         # Resume any partitions that can be resumed (where the local
@@ -291,7 +299,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
     def commit_offsets(self) -> Mapping[Partition, int]:
         return self.__consumer.commit_offsets()
 
-    def close(self, timeout: float | None = None) -> None:
+    def close(self, timeout: Optional[float] = None) -> None:
         # TODO: Be careful to ensure there are not any deadlock conditions
         # here. Should this actually wait for the commit log worker?
         self.__commit_log_worker_stop_requested.set()

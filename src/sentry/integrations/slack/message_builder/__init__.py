@@ -1,5 +1,4 @@
-from collections.abc import Mapping
-from typing import Any, Union
+from typing import Any, Mapping, Union
 
 from sentry.issues.grouptype import GroupCategory
 

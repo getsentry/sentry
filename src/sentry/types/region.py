@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Container, Iterable
 from enum import Enum
-from typing import Any
+from typing import Any, Collection, Container, Iterable
 from urllib.parse import urljoin
 
 import sentry_sdk

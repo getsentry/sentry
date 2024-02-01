@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from collections.abc import Callable
+from typing import Callable, Optional
 
 from django.db.models.base import Model
 
@@ -55,7 +55,7 @@ class ImportExportService(RpcService):
         self,
         *,
         model_name: str = "",
-        scope: RpcImportScope | None = None,
+        scope: Optional[RpcImportScope] = None,
         flags: RpcImportFlags = DEFAULT_IMPORT_FLAGS,
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
@@ -88,7 +88,7 @@ class ImportExportService(RpcService):
         *,
         model_name: str = "",
         from_pk: int = 0,
-        scope: RpcExportScope | None = None,
+        scope: Optional[RpcExportScope] = None,
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         indent: int = 2,

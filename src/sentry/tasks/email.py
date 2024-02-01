@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from sentry.auth import access
 from sentry.models.group import Group
@@ -11,7 +12,7 @@ from sentry.utils.email import send_messages
 logger = logging.getLogger(__name__)
 
 
-def _get_user_from_email(group: Group, email: str) -> RpcUser | None:
+def _get_user_from_email(group: Group, email: str) -> Optional[RpcUser]:
     for user in user_service.get_many_by_email(emails=[email]):
         # Make sure that the user actually has access to this project
         context = access.from_user(user=user, organization=group.organization)

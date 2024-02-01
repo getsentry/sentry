@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import enum
-from collections.abc import Callable, Mapping
-from re import Pattern
-from typing import Any, NamedTuple, Optional, Protocol
+from typing import Any, Callable, Mapping, NamedTuple, Optional, Pattern, Protocol
 
 from django.http.request import HttpRequest
 

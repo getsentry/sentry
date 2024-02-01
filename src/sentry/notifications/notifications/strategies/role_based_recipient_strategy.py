@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta
-from collections.abc import Iterable, MutableMapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable, MutableMapping
 
 from sentry import roles
 from sentry.models.organizationmember import OrganizationMember

@@ -9,6 +9,7 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from io import BytesIO
+from typing import Optional
 
 from django.conf import settings
 from django.db.utils import IntegrityError
@@ -28,10 +29,10 @@ class RecordingSegmentStorageMeta:
     project_id: int
     replay_id: str
     segment_id: int
-    retention_days: int | None
-    date_added: datetime | None = None
-    file_id: int | None = None
-    file: File | None = None
+    retention_days: Optional[int]
+    date_added: Optional[datetime] = None
+    file_id: Optional[int] = None
+    file: Optional[File] = None
 
 
 class Blob(ABC):
@@ -41,7 +42,7 @@ class Blob(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get(self, segment: RecordingSegmentStorageMeta) -> bytes | None:
+    def get(self, segment: RecordingSegmentStorageMeta) -> Optional[bytes]:
         """Return blob from remote storage."""
         raise NotImplementedError
 
@@ -128,7 +129,7 @@ class StorageBlob(Blob):
         storage.delete(self.make_key(segment))
 
     @metrics.wraps("replays.lib.storage.StorageBlob.get")
-    def get(self, segment: RecordingSegmentStorageMeta) -> bytes | None:
+    def get(self, segment: RecordingSegmentStorageMeta) -> Optional[bytes]:
         try:
             storage = get_storage(self._make_storage_options())
             blob = storage.open(self.make_key(segment))
@@ -152,7 +153,7 @@ class StorageBlob(Blob):
     def make_key(self, segment: RecordingSegmentStorageMeta) -> str:
         return make_filename(segment)
 
-    def _make_storage_options(self) -> dict | None:
+    def _make_storage_options(self) -> Optional[dict]:
         backend = options.get("replay.storage.backend")
         if backend:
             return {"backend": backend, "options": options.get("replay.storage.options")}

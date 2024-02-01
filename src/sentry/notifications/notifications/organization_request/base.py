@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification

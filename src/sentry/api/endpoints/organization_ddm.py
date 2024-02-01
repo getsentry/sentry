@@ -1,7 +1,6 @@
-from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Sequence
 
 from rest_framework.request import Request
 from rest_framework.response import Response

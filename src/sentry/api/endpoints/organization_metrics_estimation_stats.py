@@ -1,8 +1,7 @@
-from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum
 from types import ModuleType
-from typing import TypedDict, Union, cast
+from typing import Optional, Sequence, TypedDict, Union, cast
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError
@@ -23,7 +22,7 @@ from sentry.utils.snuba import SnubaTSResult
 
 
 class CountResult(TypedDict):
-    count: float | None
+    count: Optional[float]
 
 
 # Type returned by get_events_stats_data is actually a [int, List[CountResult]] where the first
@@ -164,7 +163,7 @@ def get_stats_generator(use_discover: bool, remove_on_demand: bool):
         params: dict[str, str],
         rollup: int,
         zerofill_results: bool,  # not used but required by get_event_stats_data
-        comparison_delta: datetime | None,  # not used but required by get_event_stats_data
+        comparison_delta: Optional[datetime],  # not used but required by get_event_stats_data
     ) -> SnubaTSResult:
         # use discover or metrics_performance depending on the dataset
         if use_discover:

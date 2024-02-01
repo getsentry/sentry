@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping
+from typing import Mapping
 from unittest import TestCase
 
 from sentry.sentry_metrics.indexer.base import (

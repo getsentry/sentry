@@ -3,6 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+from typing import Optional
 
 from pydantic.fields import Field
 from typing_extensions import TypedDict
@@ -27,10 +28,10 @@ class RpcProject(RpcModel, HasOption):
     name: str = ""
     organization_id: int = -1
     status: int = Field(default_factory=_project_status_visible)
-    platform: str | None = None
+    platform: Optional[str] = None
 
     def get_option(
-        self, key: str, default: Value | None = None, validate: ValidateFunction | None = None
+        self, key: str, default: Optional[Value] = None, validate: Optional[ValidateFunction] = None
     ) -> Value:
         from sentry.services.hybrid_cloud.project import project_service
 

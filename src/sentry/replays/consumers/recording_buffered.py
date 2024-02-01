@@ -39,9 +39,8 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import TypedDict
+from typing import Mapping, TypedDict
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload

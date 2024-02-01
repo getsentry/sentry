@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 from sentry.hybridcloud.rpc.services.caching import back_with_silo_cache
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -37,9 +37,9 @@ class UserService(RpcService):
         self,
         *,
         filter: UserFilterArgs,
-        as_user: RpcUser | None = None,
-        auth_context: AuthenticationContext | None = None,
-        serializer: UserSerializeType | None = None,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+        serializer: Optional[UserSerializeType] = None,
     ) -> list[OpaqueSerializedResponse]:
         pass
 
@@ -61,7 +61,7 @@ class UserService(RpcService):
         emails: list[str],
         is_active: bool = True,
         is_verified: bool = True,
-        organization_id: int | None = None,
+        organization_id: Optional[int] = None,
     ) -> list[RpcUser]:
         """
         Return a list of users matching the filters
@@ -73,7 +73,7 @@ class UserService(RpcService):
     @rpc_method
     @abstractmethod
     def get_by_username(
-        self, *, username: str, with_valid_password: bool = True, is_active: bool | None = None
+        self, *, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
     ) -> list[RpcUser]:
         """
         Return a list of users that match a username and falling back to email
@@ -115,7 +115,7 @@ class UserService(RpcService):
     def flush_nonce(self, *, user_id: int) -> None:
         pass
 
-    def get_user(self, user_id: int) -> RpcUser | None:
+    def get_user(self, user_id: int) -> Optional[RpcUser]:
         user = get_user(user_id)
         if user.is_anonymous:
             return None
@@ -125,12 +125,12 @@ class UserService(RpcService):
     @abstractmethod
     def get_user_by_social_auth(
         self, *, organization_id: int, provider: str, uid: str
-    ) -> RpcUser | None:
+    ) -> Optional[RpcUser]:
         pass
 
     @rpc_method
     @abstractmethod
-    def get_first_superuser(self) -> RpcUser | None:
+    def get_first_superuser(self) -> Optional[RpcUser]:
         pass
 
     @rpc_method
@@ -139,8 +139,8 @@ class UserService(RpcService):
         self,
         *,
         email: str,
-        ident: str | None = None,
-        referrer: str | None = None,
+        ident: Optional[str] = None,
+        referrer: Optional[str] = None,
     ) -> tuple[RpcUser, bool]:
         pass
 
@@ -150,8 +150,8 @@ class UserService(RpcService):
         self,
         *,
         email: str,
-        ident: str | None = None,
-    ) -> RpcUser | None:
+        ident: Optional[str] = None,
+    ) -> Optional[RpcUser]:
         pass
 
     @rpc_method

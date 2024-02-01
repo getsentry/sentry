@@ -1,12 +1,13 @@
 from datetime import datetime
+from typing import Optional
 
 from typing_extensions import TypedDict
 
 
 class SerializedAvatarFields(TypedDict, total=False):
     avatarType: str
-    avatarUuid: str | None
-    avatarUrl: str | None
+    avatarUuid: Optional[str]
+    avatarUrl: Optional[str]
 
 
 class _Status(TypedDict):

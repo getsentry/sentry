@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from datetime import datetime
+from typing import Optional
 
 from django.utils import timezone
 from pydantic.fields import Field
@@ -17,15 +18,15 @@ class RpcOrganizationMemberMapping(RpcModel):
     date_added: datetime = Field(default_factory=timezone.now)
 
     role: str = ""
-    user_id: int | None = None
-    email: str | None = None
-    inviter_id: int | None = None
-    invite_status: int | None = None
+    user_id: Optional[int] = None
+    email: Optional[str] = None
+    inviter_id: Optional[int] = None
+    invite_status: Optional[int] = None
 
 
 class RpcOrganizationMemberMappingUpdate(RpcModel):
     role: str
-    user_id: int | None
-    email: str | None
-    inviter_id: int | None
-    invite_status: int | None
+    user_id: Optional[int]
+    email: Optional[str]
+    inviter_id: Optional[int]
+    invite_status: Optional[int]

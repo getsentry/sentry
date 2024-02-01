@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Mapping
 
 import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError

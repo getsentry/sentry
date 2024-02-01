@@ -4,12 +4,11 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
 from math import floor
-from typing import Any, TypedDict, cast
+from typing import Any, Mapping, Sequence, TypedDict, cast
 
 import sentry_sdk
 from django.db.models import Q

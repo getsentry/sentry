@@ -1,5 +1,4 @@
-from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import Any, Mapping, MutableMapping, Optional
 
 from typing_extensions import TypedDict
 
@@ -43,7 +42,7 @@ class ExternalActorSerializer(Serializer):
         obj: ExternalActor,
         attrs: Mapping[str, Any],
         user: User,
-        key: str | None = None,
+        key: Optional[str] = None,
         **kwargs: Any,
     ) -> ExternalActorResponse:
         provider = get_provider_string(obj.provider)

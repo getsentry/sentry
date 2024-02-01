@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.utils import timezone
 
 from sentry.debug_files.artifact_bundle_indexing import FlatFileIdentifier, FlatFileMeta
@@ -10,7 +12,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def _mock_flat_file_index(
-    project_id: int, release: str | None, dist: str | None
+    project_id: int, release: Optional[str], dist: Optional[str]
 ) -> ArtifactBundleFlatFileIndex:
     index = ArtifactBundleFlatFileIndex.objects.create(
         project_id=project_id,

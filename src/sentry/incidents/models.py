@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 from enum import Enum
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar
 from uuid import uuid4
 
 from django.conf import settings
@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags

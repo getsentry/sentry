@@ -5,9 +5,8 @@ import logging
 import os
 import random
 import zlib
-from collections.abc import Sequence
 from hashlib import md5
-from typing import Any, Literal
+from typing import Any, Literal, Sequence
 
 import msgpack
 import sentry_sdk

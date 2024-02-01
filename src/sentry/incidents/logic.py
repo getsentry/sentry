@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Mapping, Sequence
 from uuid import uuid4
 
 from django.db import router, transaction

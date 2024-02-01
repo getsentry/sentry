@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import logging
 import posixpath
-from collections.abc import Callable
-from typing import Any
+from typing import Any, Callable
 
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError

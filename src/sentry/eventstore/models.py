@@ -3,11 +3,10 @@ from __future__ import annotations
 import abc
 import logging
 import string
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Generator, Mapping, MutableMapping, Optional, Sequence, cast
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date

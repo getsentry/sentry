@@ -1,5 +1,5 @@
-from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from typing import Mapping, Optional, Sequence
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError
@@ -220,7 +220,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             params: dict[str, str],
             rollup: int,
             zerofill_results: bool,
-            comparison_delta: datetime | None,
+            comparison_delta: Optional[datetime],
         ) -> SnubaTSResult:
             if top_events > 0:
                 return dataset.top_events_timeseries(

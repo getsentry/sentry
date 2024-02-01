@@ -1,7 +1,7 @@
 import logging
 import sys
-from collections.abc import Sequence
 from enum import Enum
+from typing import Optional, Sequence
 
 from django.conf import settings
 
@@ -437,7 +437,7 @@ class OptionsManager:
         """
         return self.registry.values()
 
-    def filter(self, flag: int | None = None):
+    def filter(self, flag: Optional[int] = None):
         """
         Return an iterator that's filtered by which flags are set on a key.
         """
@@ -447,7 +447,7 @@ class OptionsManager:
             return (k for k in self.all() if k.flags is DEFAULT_FLAGS)
         return (k for k in self.all() if k.flags & flag)
 
-    def get_last_update_channel(self, key: str) -> UpdateChannel | None:
+    def get_last_update_channel(self, key: str) -> Optional[UpdateChannel]:
         """
         Checks how the given key was last changed
         (by automator, legacy, or CLI)
@@ -457,7 +457,7 @@ class OptionsManager:
         opt = self.lookup_key(key)
         return self.store.get_last_update_channel(opt)
 
-    def can_update(self, key: str, value, channel: UpdateChannel) -> NotWritableReason | None:
+    def can_update(self, key: str, value, channel: UpdateChannel) -> Optional[NotWritableReason]:
         """
         Return the reason the provided channel cannot update the option
         to the provided value or None if there is no reason and the update

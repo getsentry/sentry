@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.http import StreamingHttpResponse
 
 from sentry.models.auditlogentry import AuditLogEntry
@@ -36,7 +38,7 @@ def assert_commit_shape(commit):
         assert patch["path"]
 
 
-def assert_status_code(response, minimum: int, maximum: int | None = None):
+def assert_status_code(response, minimum: int, maximum: Optional[int] = None):
     # Omit max to assert status_code == minimum.
     maximum = maximum or minimum + 1
     assert minimum <= response.status_code < maximum, (

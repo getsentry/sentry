@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import itertools
-from collections import Counter
-from collections.abc import Mapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Counter, Mapping
 
 from django.utils import dateformat
 

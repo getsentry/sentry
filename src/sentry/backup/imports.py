@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import BinaryIO
+from typing import BinaryIO, Iterator
 from uuid import uuid4
 
 from django.core import serializers

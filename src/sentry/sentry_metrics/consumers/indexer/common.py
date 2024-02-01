@@ -1,8 +1,7 @@
 import logging
 import time
-from collections.abc import Mapping, MutableSequence
 from dataclasses import dataclass
-from typing import NamedTuple
+from typing import Mapping, MutableSequence, NamedTuple, Optional, Union
 
 from arroyo import Partition
 from arroyo.backends.kafka import KafkaPayload
@@ -32,7 +31,7 @@ DEFAULT_QUEUED_MIN_MESSAGES = 100000
 
 @dataclass(frozen=True)
 class IndexerOutputMessageBatch:
-    data: MutableSequence[Message[KafkaPayload | RoutingPayload | InvalidMessage]]
+    data: MutableSequence[Message[Union[KafkaPayload, RoutingPayload, InvalidMessage]]]
     cogs_data: Mapping[UseCaseID, int]
 
 
@@ -91,9 +90,9 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
         self.__max_batch_time = max_batch_time
 
         self.__next_step = next_step
-        self.__batch: MetricsBatchBuilder | None = None
+        self.__batch: Optional[MetricsBatchBuilder] = None
         self.__closed = False
-        self.__batch_start: float | None = None
+        self.__batch_start: Optional[float] = None
         # If we received MessageRejected from subsequent steps, this is set to true.
         # It is reset to false upon the next successful submit.
         self.__apply_backpressure = False
@@ -145,7 +144,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):
     def close(self) -> None:
         self.__closed = True
 
-    def join(self, timeout: float | None = None) -> None:
+    def join(self, timeout: Optional[float] = None) -> None:
         if self.__batch:
             last = self.__batch.messages[-1]
             logger.debug(

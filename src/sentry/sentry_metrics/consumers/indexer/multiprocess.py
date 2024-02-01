@@ -1,8 +1,7 @@
 import logging
 import time
-from collections.abc import Mapping, MutableMapping
 from functools import partial
-from typing import Any
+from typing import Any, Mapping, MutableMapping, Optional, Union
 
 from arroyo.backends.abstract import Producer as AbstractProducer
 from arroyo.backends.kafka import KafkaPayload
@@ -20,7 +19,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         self,
         output_topic: str,
         commit_function: Commit,
-        producer: AbstractProducer[KafkaPayload] | None = None,
+        producer: Optional[AbstractProducer[KafkaPayload]] = None,
     ) -> None:
         snuba_metrics = kafka_config.get_topic_definition(output_topic)
         self.__producer = Producer(
@@ -69,7 +68,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
             self.__commit_function(self.__produced_message_offsets)
             self.__produced_message_offsets = {}
 
-    def submit(self, message: Message[KafkaPayload | FilteredPayload]) -> None:
+    def submit(self, message: Message[Union[KafkaPayload, FilteredPayload]]) -> None:
         if isinstance(message.payload, FilteredPayload):
             # FilteredPayload will not be commited, this may cause the the indexer to consume
             # and produce invalid message to the DLQ twice if the last messages it consume
@@ -97,7 +96,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
     def close(self) -> None:
         self.__closed = True
 
-    def join(self, timeout: float | None = None) -> None:
+    def join(self, timeout: Optional[float] = None) -> None:
         """
         We ignore the timeout provided by the caller because we want to allow the producer to
         have at least 5 seconds to flush all messages.

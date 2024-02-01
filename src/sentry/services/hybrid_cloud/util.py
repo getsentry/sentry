@@ -1,5 +1,4 @@
-from collections.abc import Callable, Iterable
-from typing import Any
+from typing import Any, Callable, Iterable
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils.env import in_test_environment

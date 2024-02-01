@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
+from typing import Optional
 
 from sentry.services.hybrid_cloud.hook import RpcServiceHook
 from sentry.services.hybrid_cloud.region import ByOrganizationId
@@ -26,12 +27,12 @@ class HookService(RpcService):
     def create_service_hook(
         self,
         *,
-        application_id: int | None = None,
+        application_id: Optional[int] = None,
         actor_id: int = -1,
-        installation_id: int | None = None,
+        installation_id: Optional[int] = None,
         organization_id: int = -1,
-        project_ids: list[int] | None = None,
-        events: list[str] | None = None,
+        project_ids: Optional[list[int]] = None,
+        events: Optional[list[str]] = None,
         url: str = "",
     ) -> RpcServiceHook:
         pass
@@ -42,8 +43,8 @@ class HookService(RpcService):
         self,
         *,
         organization_id: int,
-        application_id: int | None,
-        webhook_url: str | None,
+        application_id: Optional[int],
+        webhook_url: Optional[str],
         events: list[str],
     ) -> list[RpcServiceHook]:
         pass

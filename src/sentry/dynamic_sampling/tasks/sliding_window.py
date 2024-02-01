@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from typing import Mapping, Sequence
 
 from snuba_sdk import (
     Column,

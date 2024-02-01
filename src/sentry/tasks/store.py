@@ -1,9 +1,8 @@
 import logging
-from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from time import time
-from typing import Any
+from typing import Any, Callable, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -67,8 +66,8 @@ def should_process(data: CanonicalKeyDict) -> bool:
 def submit_process(
     from_reprocessing: bool,
     cache_key: str,
-    event_id: str | None,
-    start_time: int | None,
+    event_id: Optional[str],
+    start_time: Optional[int],
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
@@ -94,10 +93,10 @@ class SaveEventTaskKind:
 def submit_save_event(
     task_kind: SaveEventTaskKind,
     project_id: int,
-    cache_key: str | None,
-    event_id: str | None,
-    start_time: int | None,
-    data: Event | None,
+    cache_key: Optional[str],
+    event_id: Optional[str],
+    start_time: Optional[int],
+    data: Optional[Event],
 ) -> None:
     if cache_key:
         data = None
@@ -123,11 +122,11 @@ def submit_save_event(
 
 def _do_preprocess_event(
     cache_key: str,
-    data: Event | None,
-    start_time: int | None,
-    event_id: str | None,
-    process_task: Callable[[str | None, int | None, str | None, bool], None],
-    project: Project | None,
+    data: Optional[Event],
+    start_time: Optional[int],
+    event_id: Optional[str],
+    process_task: Callable[[Optional[str], Optional[int], Optional[str], bool], None],
+    project: Optional[Project],
     has_attachments: bool = False,
 ) -> None:
     from sentry.tasks.symbolication import (
@@ -226,10 +225,10 @@ def _do_preprocess_event(
 )
 def preprocess_event(
     cache_key: str,
-    data: Event | None = None,
-    start_time: int | None = None,
-    event_id: str | None = None,
-    project: Project | None = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project: Optional[Project] = None,
     has_attachments: bool = False,
     **kwargs: Any,
 ) -> None:
@@ -253,10 +252,10 @@ def preprocess_event(
 )
 def preprocess_event_from_reprocessing(
     cache_key: str,
-    data: Event | None = None,
-    start_time: int | None = None,
-    event_id: str | None = None,
-    project: Project | None = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project: Optional[Project] = None,
     **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
@@ -296,10 +295,10 @@ def retry_process_event(process_task_name: str, task_kwargs: dict[str, Any], **k
 
 def do_process_event(
     cache_key: str,
-    start_time: int | None,
-    event_id: str | None,
-    process_task: Callable[[str | None, int | None, str | None, bool], None],
-    data: Event | None = None,
+    start_time: Optional[int],
+    event_id: Optional[str],
+    process_task: Callable[[Optional[str], Optional[int], Optional[str], bool], None],
+    data: Optional[Event] = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
@@ -481,8 +480,8 @@ def do_process_event(
 )
 def process_event(
     cache_key: str,
-    start_time: int | None = None,
-    event_id: str | None = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
@@ -518,8 +517,8 @@ def process_event(
 )
 def process_event_from_reprocessing(
     cache_key: str,
-    start_time: int | None = None,
-    event_id: str | None = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
@@ -536,7 +535,9 @@ def process_event_from_reprocessing(
     )
 
 
-def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bool = False) -> None:
+def delete_raw_event(
+    project_id: int, event_id: Optional[str], allow_hint_clear: bool = False
+) -> None:
     set_current_event_project(project_id)
 
     if event_id is None:
@@ -566,11 +567,11 @@ def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bo
 
 def create_failed_event(
     cache_key: str,
-    data: Event | None,
+    data: Optional[Event],
     project_id: int,
     issues: list[dict[str, str]],
-    event_id: str | None,
-    start_time: int | None = None,
+    event_id: Optional[str],
+    start_time: Optional[int] = None,
     reprocessing_rev: Any = None,
 ) -> bool:
     """If processing failed we put the original data from the cache into a
@@ -662,11 +663,11 @@ def create_failed_event(
 
 
 def _do_save_event(
-    cache_key: str | None = None,
-    data: Event | None = None,
-    start_time: int | None = None,
-    event_id: str | None = None,
-    project_id: int | None = None,
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -779,7 +780,9 @@ def _do_save_event(
             time_synthetic_monitoring_event(data, project_id, start_time)
 
 
-def time_synthetic_monitoring_event(data: Event, project_id: int, start_time: float | None) -> bool:
+def time_synthetic_monitoring_event(
+    data: Event, project_id: int, start_time: Optional[float]
+) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
     functions, emit timing metrics for:
@@ -835,11 +838,11 @@ def time_synthetic_monitoring_event(data: Event, project_id: int, start_time: fl
     silo_mode=SiloMode.REGION,
 )
 def save_event(
-    cache_key: str | None = None,
-    data: Event | None = None,
-    start_time: int | None = None,
-    event_id: str | None = None,
-    project_id: int | None = None,
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
@@ -853,11 +856,11 @@ def save_event(
     silo_mode=SiloMode.REGION,
 )
 def save_event_transaction(
-    cache_key: str | None = None,
-    data: Event | None = None,
-    start_time: int | None = None,
-    event_id: str | None = None,
-    project_id: int | None = None,
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
@@ -870,11 +873,11 @@ def save_event_transaction(
     silo_mode=SiloMode.REGION,
 )
 def save_event_feedback(
-    cache_key: str | None = None,
-    data: Event | None = None,
-    start_time: int | None = None,
-    event_id: str | None = None,
-    project_id: int | None = None,
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
     create_feedback_issue(data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
@@ -888,11 +891,11 @@ def save_event_feedback(
     silo_mode=SiloMode.REGION,
 )
 def save_event_attachments(
-    cache_key: str | None = None,
-    data: Event | None = None,
-    start_time: int | None = None,
-    event_id: str | None = None,
-    project_id: int | None = None,
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
@@ -905,11 +908,11 @@ def save_event_attachments(
     soft_time_limit=60,
 )
 def save_event_highcpu(
-    cache_key: str | None = None,
-    data: Event | None = None,
-    start_time: int | None = None,
-    event_id: str | None = None,
-    project_id: int | None = None,
+    cache_key: Optional[str] = None,
+    data: Optional[Event] = None,
+    start_time: Optional[int] = None,
+    event_id: Optional[str] = None,
+    project_id: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)

@@ -3,11 +3,10 @@ from __future__ import annotations
 import datetime
 import secrets
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, MutableMapping, TypedDict
 from urllib.parse import urlencode
 
 from django.conf import settings

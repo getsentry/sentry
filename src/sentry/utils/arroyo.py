@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import pickle
-from collections.abc import Callable, Mapping
 from functools import partial
-from typing import Any
+from typing import Any, Callable, Mapping
 
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
     MultiprocessingPool as ArroyoMultiprocessingPool,

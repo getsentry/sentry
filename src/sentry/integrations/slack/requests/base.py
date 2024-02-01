@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from rest_framework import status as status_
 from rest_framework.request import Request

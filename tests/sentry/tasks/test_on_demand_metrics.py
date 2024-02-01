@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from typing import Optional, Sequence
 from unittest import mock
 
 import pytest
@@ -49,10 +49,10 @@ def create_widget(
     query: str,
     project: Project,
     title="Dashboard",
-    id: int | None = None,
-    columns: Sequence[str] | None = None,
-    dashboard: Dashboard | None = None,
-    widget: DashboardWidget | None = None,
+    id: Optional[int] = None,
+    columns: Optional[Sequence[str]] = None,
+    dashboard: Optional[Dashboard] = None,
+    widget: Optional[DashboardWidget] = None,
 ) -> tuple[DashboardWidgetQuery, DashboardWidget, Dashboard]:
     columns = columns or []
     dashboard = dashboard or Dashboard.objects.create(

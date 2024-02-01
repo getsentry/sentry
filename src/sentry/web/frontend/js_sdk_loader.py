@@ -1,5 +1,5 @@
 import time
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -22,10 +22,10 @@ CACHE_CONTROL = (
 
 class SdkConfig(TypedDict):
     dsn: str
-    tracesSampleRate: float | None
-    replaysSessionSampleRate: float | None
-    replaysOnErrorSampleRate: float | None
-    debug: bool | None
+    tracesSampleRate: Optional[float]
+    replaysSessionSampleRate: Optional[float]
+    replaysOnErrorSampleRate: Optional[float]
+    debug: Optional[bool]
 
 
 class LoaderInternalConfig(TypedDict):
@@ -38,8 +38,8 @@ class LoaderInternalConfig(TypedDict):
 
 class LoaderContext(TypedDict):
     config: SdkConfig
-    jsSdkUrl: str | None
-    publicKey: str | None
+    jsSdkUrl: Optional[str]
+    publicKey: Optional[str]
     isLazy: bool
 
 
@@ -54,7 +54,7 @@ class JavaScriptSdkLoader(BaseView):
         pass
 
     def _get_loader_config(
-        self, key: ProjectKey | None, sdk_version: str | None
+        self, key: Optional[ProjectKey], sdk_version: Optional[str]
     ) -> LoaderInternalConfig:
         """Returns a string that is used to modify the bundle name"""
 
@@ -110,10 +110,10 @@ class JavaScriptSdkLoader(BaseView):
 
     def _get_context(
         self,
-        key: ProjectKey | None,
-        sdk_version: str | None,
+        key: Optional[ProjectKey],
+        sdk_version: Optional[str],
         loader_config: LoaderInternalConfig,
-    ) -> tuple[LoaderContext, str | None]:
+    ) -> tuple[LoaderContext, Optional[str]]:
         """Sets context information needed to render the loader"""
         if not key:
             return (
@@ -163,7 +163,7 @@ class JavaScriptSdkLoader(BaseView):
         )
 
     def get(
-        self, request: Request, public_key: str | None, minified: str | None = None
+        self, request: Request, public_key: Optional[str], minified: Optional[str] = None
     ) -> HttpResponse:
         """Returns a js file that can be integrated into a website"""
         start_time = time.time()

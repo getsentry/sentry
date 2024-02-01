@@ -1,5 +1,5 @@
 import dataclasses
-from collections.abc import Iterable
+from typing import Iterable
 from unittest.mock import MagicMock, patch
 
 import pytest

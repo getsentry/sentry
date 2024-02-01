@@ -17,8 +17,7 @@ format.
 from __future__ import annotations
 
 import datetime
-from collections.abc import Callable
-from typing import Generic, Protocol
+from typing import Callable, Generic, Protocol
 from uuid import UUID
 
 from snuba_sdk import Column, Condition, Function

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from collections.abc import Sequence
+from typing import Sequence
 
 import sentry_sdk
 from django.http.response import HttpResponse, HttpResponseBase

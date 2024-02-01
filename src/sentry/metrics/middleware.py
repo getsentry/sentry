@@ -1,6 +1,6 @@
-from collections.abc import Generator
 from contextlib import contextmanager
 from threading import local
+from typing import Generator, Optional, Union
 
 from django.conf import settings
 
@@ -120,11 +120,11 @@ class MiddlewareWrapper(MetricsBackend):
     def incr(
         self,
         key: str,
-        instance: str | None = None,
-        tags: Tags | None = None,
-        amount: float | int = 1,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        amount: Union[float, int] = 1,
         sample_rate: float = 1,
-        unit: str | None = None,
+        unit: Optional[str] = None,
         stacklevel: int = 0,
     ) -> None:
         current_tags = get_current_global_tags()
@@ -140,8 +140,8 @@ class MiddlewareWrapper(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: str | None = None,
-        tags: Tags | None = None,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
@@ -156,10 +156,10 @@ class MiddlewareWrapper(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: str | None = None,
-        tags: Tags | None = None,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
         sample_rate: float = 1,
-        unit: str | None = None,
+        unit: Optional[str] = None,
         stacklevel: int = 0,
     ) -> None:
         current_tags = get_current_global_tags()
@@ -175,10 +175,10 @@ class MiddlewareWrapper(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: str | None = None,
-        tags: Tags | None = None,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
         sample_rate: float = 1,
-        unit: str | None = None,
+        unit: Optional[str] = None,
         stacklevel: int = 0,
     ) -> None:
         current_tags = get_current_global_tags()

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import Any, Iterable, Mapping
 
 import sentry_sdk
 

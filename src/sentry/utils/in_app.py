@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 # Absolute paths where iOS mounts application files.
 IOS_APP_PATHS = (
@@ -31,7 +32,7 @@ def _is_support_framework(package: str) -> bool:
 
 
 # TODO(ja): Translate these rules to grouping enhancers
-def is_known_third_party(package: str, os: str | None) -> bool:
+def is_known_third_party(package: str, os: Optional[str]) -> bool:
     """
     Checks whether this package matches one of the well-known system image
     locations across platforms. The given package must not be ``None``.

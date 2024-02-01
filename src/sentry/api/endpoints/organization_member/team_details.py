@@ -1,5 +1,4 @@
-from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import Any, Mapping, MutableMapping
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status

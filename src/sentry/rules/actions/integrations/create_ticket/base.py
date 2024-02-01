@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Generator, Mapping
-from typing import Any
+from typing import Any, Generator, Mapping
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule

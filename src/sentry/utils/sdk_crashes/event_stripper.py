@@ -1,6 +1,5 @@
-from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum, auto
-from typing import Any
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path
@@ -122,8 +121,8 @@ def strip_event_data(
 
 
 def _strip_event_data_with_allowlist(
-    data: Mapping[str, Any], allowlist: Mapping[str, Any] | None
-) -> Mapping[str, Any] | None:
+    data: Mapping[str, Any], allowlist: Optional[Mapping[str, Any]]
+) -> Optional[Mapping[str, Any]]:
     """
     Recursively traverses the data and only keeps values based on the allowlist.
     """

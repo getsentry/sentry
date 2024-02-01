@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import MutableMapping, Sequence
-from typing import Any
+from typing import Any, MutableMapping, Sequence
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus

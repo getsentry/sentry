@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from django.db import router, transaction
 from django.dispatch import receiver
@@ -28,7 +28,7 @@ class OrganizationProvisioningException(Exception):
 
 
 class OrganizationProvisioningService:
-    def _validate_or_default_region(self, region_name: str | None):
+    def _validate_or_default_region(self, region_name: Optional[str]):
         silo_mode = SiloMode.get_current_mode()
         if region_name is None and silo_mode == SiloMode.CONTROL:
             raise OrganizationProvisioningException(
@@ -71,7 +71,7 @@ class OrganizationProvisioningService:
     def provision_organization_in_region(
         self,
         provisioning_options: OrganizationProvisioningOptions,
-        region_name: str | None = None,
+        region_name: Optional[str] = None,
     ) -> RpcOrganization:
         """
         Creates a new Organization in the destination region. If called from a
@@ -90,12 +90,12 @@ class OrganizationProvisioningService:
         )
 
     def idempotent_provision_organization_in_region(
-        self, provisioning_options: OrganizationProvisioningOptions, region_name: str | None
+        self, provisioning_options: OrganizationProvisioningOptions, region_name: Optional[str]
     ) -> RpcOrganization:
         raise NotImplementedError()
 
     def _control_based_slug_change(
-        self, organization_id: int, slug: str, region_name: str | None = None
+        self, organization_id: int, slug: str, region_name: Optional[str] = None
     ):
         destination_region_name = self._validate_or_default_region(region_name=region_name)
 
@@ -121,7 +121,7 @@ class OrganizationProvisioningService:
             )
 
     def change_organization_slug(
-        self, organization_id: int, slug: str, region_name: str | None = None
+        self, organization_id: int, slug: str, region_name: Optional[str] = None
     ) -> RpcOrganization:
         """
         Updates an organization with the given slug if available.
@@ -139,7 +139,7 @@ class OrganizationProvisioningService:
         )
 
     def bulk_create_organization_slugs(
-        self, org_ids_and_slugs: set[tuple[int, str]], region_name: str | None = None
+        self, org_ids_and_slugs: set[tuple[int, str]], region_name: Optional[str] = None
     ):
         """
         CAUTION: DO NOT USE THIS OUTSIDE OF THE IMPORT/RELOCATION CONTEXT

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping
+from typing import Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import Author, get_users_for_authors

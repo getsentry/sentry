@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from enum import Enum
+from typing import Optional
 
 import sentry_sdk
 from django.db import DatabaseError
@@ -261,7 +262,7 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
     return Response(response_data, status=200)
 
 
-def get_rule_condition(query: str | None) -> RuleCondition:
+def get_rule_condition(query: Optional[str]) -> RuleCondition:
     """
     Gets the rule condition given a query.
 

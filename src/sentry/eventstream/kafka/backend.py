@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage

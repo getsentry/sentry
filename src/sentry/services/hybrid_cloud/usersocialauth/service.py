@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
+from typing import Optional
 
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -35,7 +36,7 @@ class UserSocialAuthService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
+    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> Optional[RpcUserSocialAuth]:
         """
         Returns the first RpcUserSocialAuth based on the given filters.
         """

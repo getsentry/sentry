@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Sequence
-from typing import Any
+from typing import Any, Generator, Sequence
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent

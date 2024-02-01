@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 # This static list is the first step towards a smarter implementation of the latest release boosting. The idea behind
 # this implementation is to obtain a list of time to adoptions per platform and use that as the boost duration.
@@ -131,7 +132,7 @@ DEFAULT_TTA = 3600
 
 @dataclass(frozen=True)
 class Platform:
-    name: str | None = None
+    name: Optional[str] = None
 
     @property
     def time_to_adoption(self) -> int:

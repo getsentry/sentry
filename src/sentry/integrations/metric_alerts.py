@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Optional
 from urllib import parse
 
 from django.db.models import Max
@@ -151,9 +152,9 @@ def incident_attachment_info(
 
 def metric_alert_attachment_info(
     alert_rule: AlertRule,
-    selected_incident: Incident | None = None,
-    new_status: IncidentStatus | None = None,
-    metric_value: float | None = None,
+    selected_incident: Optional[Incident] = None,
+    new_status: Optional[IncidentStatus] = None,
+    metric_value: Optional[float] = None,
 ):
     latest_incident = None
     if selected_incident is None:

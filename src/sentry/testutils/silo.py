@@ -8,10 +8,19 @@ import re
 import sys
 import threading
 import typing
-from collections.abc import Callable, Collection, Generator, Iterable, MutableSet, Sequence
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
-from typing import Any, Literal, cast
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Generator,
+    Iterable,
+    Literal,
+    MutableSet,
+    Sequence,
+    cast,
+)
 from unittest import TestCase
 
 import pytest

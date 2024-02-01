@@ -1,5 +1,5 @@
 import re
-from collections.abc import Sequence
+from typing import Sequence
 
 from django.db.models import Count, Max
 from rest_framework import serializers

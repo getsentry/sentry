@@ -1,9 +1,19 @@
 import logging
 from collections import defaultdict, deque
-from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from typing import Any, Deque, Optional, TypedDict, TypeVar, cast
+from typing import (
+    Any,
+    Callable,
+    Deque,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    TypedDict,
+    TypeVar,
+    cast,
+)
 
 import sentry_sdk
 from django.http import Http404, HttpRequest, HttpResponse
@@ -89,7 +99,7 @@ class TraceError(TypedDict):
 class TracePerformanceIssue(TypedDict):
     event_id: str
     issue_id: int
-    issue_short_id: str | None
+    issue_short_id: Optional[str]
     span: list[str]
     suspect_spans: list[str]
     project_id: int
@@ -98,8 +108,8 @@ class TracePerformanceIssue(TypedDict):
     level: str
     culprit: str
     type: int
-    start: float | None
-    end: float | None
+    start: Optional[float]
+    end: Optional[float]
 
 
 LightResponse = TypedDict(
@@ -152,10 +162,10 @@ class TraceEvent:
     def __init__(
         self,
         event: SnubaTransaction,
-        parent: str | None,
-        generation: int | None,
+        parent: Optional[str],
+        generation: Optional[int],
         light: bool = False,
-        snuba_params: ParamsType | None = None,
+        snuba_params: Optional[ParamsType] = None,
         span_serialized: bool = False,
     ) -> None:
         self.event: SnubaTransaction = event
@@ -164,11 +174,11 @@ class TraceEvent:
         self.performance_issues: list[TracePerformanceIssue] = []
 
         # Can be None on the light trace when we don't know the parent
-        self.parent_event_id: str | None = parent
-        self.generation: int | None = generation
+        self.parent_event_id: Optional[str] = parent
+        self.generation: Optional[int] = generation
 
         # Added as required because getting the nodestore_event is expensive
-        self._nodestore_event: Event | None = None
+        self._nodestore_event: Optional[Event] = None
         self.fetched_nodestore: bool = span_serialized
         self.span_serialized = span_serialized
         if span_serialized:
@@ -176,7 +186,7 @@ class TraceEvent:
         self.load_performance_issues(light, snuba_params)
 
     @property
-    def nodestore_event(self) -> Event | None:
+    def nodestore_event(self) -> Optional[Event]:
         with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
             if self._nodestore_event is None and not self.fetched_nodestore:
                 self.fetched_nodestore = True
@@ -194,8 +204,8 @@ class TraceEvent:
 
             suspect_spans: list[str] = []
             unique_spans: set[str] = set()
-            start: float | None = None
-            end: float | None = None
+            start: Optional[float] = None
+            end: Optional[float] = None
             if light:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
@@ -353,10 +363,10 @@ class TraceEvent:
 
 
 def find_event(
-    items: Iterable[_T | None],
-    function: Callable[[_T | None], Any],
-    default: _T | None = None,
-) -> _T | None:
+    items: Iterable[Optional[_T]],
+    function: Callable[[Optional[_T]], Any],
+    default: Optional[_T] = None,
+) -> Optional[_T]:
     return next(filter(function, items), default)
 
 
@@ -679,7 +689,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             if trace_view_load_more_enabled
             else MAX_TRACE_SIZE
         )
-        event_id: str | None = request.GET.get("event_id")
+        event_id: Optional[str] = request.GET.get("event_id")
 
         # Only need to validate event_id as trace_id is validated in the URL
         if event_id and not is_event_id(event_id):
@@ -802,7 +812,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         errors: Sequence[SnubaError],
         roots: Sequence[SnubaTransaction],
         warning_extra: dict[str, str],
-        event_id: str | None,
+        event_id: Optional[str],
         detailed: bool = False,
         allow_orphan_errors: bool = False,
         allow_load_more: bool = False,
@@ -819,8 +829,8 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         trace_results: list[TraceEvent] = []
-        current_generation: int | None = None
-        root_id: str | None = None
+        current_generation: Optional[int] = None
+        root_id: Optional[str] = None
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
             # Check if the event is an orphan_error
@@ -948,7 +958,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
     # Concurrently fetches nodestore data to construct and return a dict mapping eventid of a txn
     # to the associated nodestore event.
     @staticmethod
-    def nodestore_event_map(events: Sequence[SnubaTransaction]) -> dict[str, Event | None]:
+    def nodestore_event_map(events: Sequence[SnubaTransaction]) -> dict[str, Optional[Event]]:
         map = {}
         with ThreadPoolExecutor(max_workers=20) as executor:
             future_to_event = {
@@ -972,7 +982,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         errors: Sequence[SnubaError],
         roots: Sequence[SnubaTransaction],
         warning_extra: dict[str, str],
-        event_id: str | None,
+        event_id: Optional[str],
         detailed: bool = False,
         allow_orphan_errors: bool = False,
         allow_load_more: bool = False,
@@ -1002,13 +1012,13 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
         parent_events: dict[str, TraceEvent] = {}
-        results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
+        results_map: dict[Optional[str], list[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
         params = self.get_snuba_params(
             self.request, self.request.organization, check_global_views=False
         )
         # The root of the orphan tree we're currently navigating through
-        orphan_root: SnubaTransaction | None = None
+        orphan_root: Optional[SnubaTransaction] = None
         if roots:
             results_map[None] = []
         for root in roots:
@@ -1176,7 +1186,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         errors: Sequence[SnubaError],
         roots: Sequence[SnubaTransaction],
         warning_extra: dict[str, str],
-        event_id: str | None,
+        event_id: Optional[str],
         detailed: bool = False,
         allow_orphan_errors: bool = False,
         allow_load_more: bool = False,
