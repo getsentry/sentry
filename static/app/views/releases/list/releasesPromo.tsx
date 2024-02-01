@@ -149,7 +149,7 @@ const ReleasesPromo = ({organization, project}: Props) => {
     });
   }, [organization, project.id]);
 
-  const fetchToken = async sentryAppSlug => {
+  const generateAndSetNewToken = async (sentryAppSlug: string) => {
     const newToken = await generateToken(sentryAppSlug);
     return setToken(newToken);
   };
@@ -251,7 +251,7 @@ sentry-cli releases finalize "$VERSION"`,
                 alignMenu="left"
                 onSelect={({label, value}) => {
                   selectItem({label, value});
-                  fetchToken(value.slug);
+                  generateAndSetNewToken(value.slug);
                 }}
                 itemSize="small"
                 searchPlaceholder={t('Select Internal Integration')}
@@ -279,7 +279,7 @@ sentry-cli releases finalize "$VERSION"`,
                                   label,
                                   value,
                                 });
-                                fetchToken(value.slug);
+                                generateAndSetNewToken(value.slug);
                                 trackQuickstartCreatedIntegration(integration);
                               },
                               onCancel: () => {
