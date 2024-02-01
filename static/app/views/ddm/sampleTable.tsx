@@ -24,8 +24,12 @@ import type {MRI} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/formatters';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
-import type {MetricCorrelation, SelectionRange} from 'sentry/utils/metrics/types';
-import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
+import type {
+  MetricCorrelation,
+  SelectionRange,
+  SpanSummary,
+} from 'sentry/utils/metrics/types';
+import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -35,7 +39,7 @@ import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 /**
  * Limits the number of spans to the top n + an "other" entry
  */
-function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: number) {
+function sortAndLimitSpans(samples?: SpanSummary[], limit: number = 5) {
   if (!samples) {
     return [];
   }
@@ -84,7 +88,7 @@ export function SampleTable({
 
   const [columnOrder, setColumnOrder] = useState(defaultColumnOrder);
 
-  const {data, isFetching} = useCorrelatedSamples(mri, metricMetaOptions);
+  const {data, isFetching} = useMetricSamples(mri, metricMetaOptions);
 
   const handleColumnResize = useCallback(
     (columnIndex: number, nextColumn: GridColumn) => {
@@ -99,13 +103,6 @@ export function SampleTable({
     },
     [setColumnOrder]
   );
-
-  const rows = data?.metrics
-    .map(m => m.metricSpans)
-    .flat()
-    .filter(Boolean)
-    // We only want to show the first 10 correlations
-    .slice(0, 10) as MetricCorrelation[];
 
   function trackClick(target: 'event-id' | 'transaction' | 'trace-id' | 'profile') {
     trackAnalytics('ddm.sample-table-interaction', {
@@ -230,7 +227,7 @@ export function SampleTable({
         return <NoValue>{t('(no value)')}</NoValue>;
       }
 
-      const preparedSpans = sortAndLimitSpans(row.spansSummary, 5);
+      const preparedSpans = sortAndLimitSpans(row.spansSummary);
 
       return (
         <StyledColorBar
@@ -309,7 +306,7 @@ export function SampleTable({
         isLoading={isFetching}
         columnOrder={columnOrder}
         columnSortBy={[]}
-        data={rows}
+        data={data ?? []}
         grid={{
           renderHeadCell,
           renderBodyCell,
