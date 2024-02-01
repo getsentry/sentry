@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal
 
 from django.conf import settings
 from django.core.cache import cache
@@ -39,10 +39,10 @@ class AbuseQuota:
     scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
     # Old org option name still used for compatibility reasons,
     # takes precedence over `option` and `compat_option_sentry`.
-    compat_option_org: Optional[str] = None
+    compat_option_org: str | None = None
     # Old Sentry option name still used for compatibility reasons,
     # takes precedence over `option`.
-    compat_option_sentry: Optional[str] = None
+    compat_option_sentry: str | None = None
 
 
 class QuotaConfig:
@@ -204,13 +204,13 @@ class SeatAssignmentResult:
     """
     Can the seat assignment be made?
     """
-    reason: Optional[str] = None
+    reason: str | None = None
     """
     The human readable reason the assignment can be made or not.
     """
 
 
-def index_data_category(event_type: Optional[str], organization) -> DataCategory:
+def index_data_category(event_type: str | None, organization) -> DataCategory:
     if event_type == "transaction" and features.has(
         "organizations:transaction-metrics-extraction", organization
     ):
@@ -518,8 +518,8 @@ class Quota(Service):
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
     def get_blended_sample_rate(
-        self, project: Optional[Project] = None, organization_id: Optional[int] = None
-    ) -> Optional[float]:
+        self, project: Project | None = None, organization_id: int | None = None
+    ) -> float | None:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
         if the the organization doesn't have dynamic sampling.
@@ -534,7 +534,7 @@ class Quota(Service):
 
     def get_transaction_sampling_tier_for_volume(
         self, organization_id: int, volume: int
-    ) -> Optional[tuple[int, float]]:
+    ) -> tuple[int, float] | None:
         """
         Returns the transaction sampling tier closest to a specific volume.
 

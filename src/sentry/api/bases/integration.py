@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 import traceback
-from typing import Any, Optional
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -27,7 +27,7 @@ PARANOID_GET = (
 
 def _handle_exception(
     exc: Exception,
-) -> Optional[Response]:
+) -> Response | None:
     if hasattr(exc, "code") and exc.code == 503:
         sys.stderr.write(traceback.format_exc())
         event_id = capture_exception(exc)

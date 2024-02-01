@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Mapping, Sequence
 
 from django.utils import timezone
 from django.utils.timesince import timesince
@@ -473,7 +473,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def build(self, notification_uuid: str | None = None) -> Union[SlackBlock, SlackAttachment]:
+    def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         if self.escape_text:

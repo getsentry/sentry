@@ -4,7 +4,7 @@ import random
 from copy import deepcopy
 from datetime import datetime, timezone
 from time import time
-from typing import Any, Mapping, MutableMapping, Optional
+from typing import Any, Mapping, MutableMapping
 
 import msgpack
 import sentry_sdk
@@ -54,7 +54,7 @@ class VroomTimeout(Exception):
     silo_mode=SiloMode.REGION,
 )
 def process_profile_task(
-    profile: Optional[Profile] = None,
+    profile: Profile | None = None,
     payload: Any = None,
     sampled: bool = True,
     **kwargs: Any,
@@ -893,7 +893,7 @@ def _track_outcome(
     profile: Profile,
     project: Project,
     outcome: Outcome,
-    reason: Optional[str] = None,
+    reason: str | None = None,
 ) -> None:
     if not project.flags.has_profiles:
         first_profile_received.send_robust(project=project, sender=Project)

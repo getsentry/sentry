@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 from enum import IntEnum, auto, unique
-from typing import Any, NamedTuple, Optional
+from typing import Any, NamedTuple
 
 from sentry.utils import json
 
@@ -17,7 +17,7 @@ class InstanceID(NamedTuple):
     # The order that this model appeared in the JSON inputs. Because we validate that the same
     # number of models of each kind are present on both the left and right side when validating, we
     # can use the ordinal as a unique identifier.
-    ordinal: Optional[int] = None
+    ordinal: int | None = None
 
     def pretty(self) -> str:
         out = f"InstanceID(model: {self.model!r}"
@@ -145,10 +145,10 @@ class Finding(ABC):
     on: InstanceID
 
     # The original `pk` of the model in question, if one is specified in the `InstanceID`.
-    left_pk: Optional[int] = None
+    left_pk: int | None = None
 
     # The post-import `pk` of the model in question, if one is specified in the `InstanceID`.
-    right_pk: Optional[int] = None
+    right_pk: int | None = None
 
     reason: str = ""
 

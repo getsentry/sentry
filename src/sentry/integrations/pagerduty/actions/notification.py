@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Sequence
+from typing import Sequence
 
 import sentry_sdk
 
@@ -39,7 +39,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 return pds
         return None
 
-    def after(self, event, state, notification_uuid: Optional[str] = None):
+    def after(self, event, state, notification_uuid: str | None = None):
         integration = self.get_integration()
         log_context = {
             "organization_id": self.project.organization_id,

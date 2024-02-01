@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from snuba_sdk import Column, Function
 from snuba_sdk.query import SelectableExpression
@@ -15,7 +15,7 @@ def apply_performance_conditions(conditions: list[Any], group: Group) -> list[An
 
 
 def manual_group_on_time_aggregation(rollup: int, time_column_alias: str) -> SelectableExpression:
-    def rollup_agg(rollup_granularity: int, alias: str) -> Optional[SelectableExpression]:
+    def rollup_agg(rollup_granularity: int, alias: str) -> SelectableExpression | None:
         if rollup_granularity == 60:
             return Function(
                 "toUnixTimestamp", [Function("toStartOfMinute", [Column("timestamp")])], alias

@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from random import random
 from time import time
-from typing import Any, Optional
+from typing import Any
 
 from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
@@ -36,7 +36,7 @@ class Key:
     ttl: int
     grace: int
     cache_key: str
-    grouping_info: Optional[GroupingInfo]
+    grouping_info: GroupingInfo | None
 
     def has_any_flag(self, flags: set[int]) -> bool:
         """
@@ -213,7 +213,7 @@ class OptionsStore:
                     )
         return value
 
-    def get_last_update_channel(self, key) -> Optional[UpdateChannel]:
+    def get_last_update_channel(self, key) -> UpdateChannel | None:
         """
         Gets how the option was last updated to check for drift.
         """

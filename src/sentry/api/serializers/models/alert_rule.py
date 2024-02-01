@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, Union
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from django.db.models import Max, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema_serializer
@@ -31,21 +31,21 @@ from sentry.snuba.models import SnubaQueryEventType
 
 
 class AlertRuleSerializerResponseOptional(TypedDict, total=False):
-    environment: Optional[str]
-    projects: Optional[list[str]]
-    excludedProjects: Optional[list[dict]]
-    queryType: Optional[int]
-    resolveThreshold: Optional[float]
-    dataset: Optional[str]
-    thresholdType: Optional[int]
-    eventTypes: Optional[list[str]]
-    owner: Optional[str]
-    originalAlertRuleId: Optional[str]
-    comparisonDelta: Optional[float]
-    weeklyAvg: Optional[float]
-    totalThisWeek: Optional[int]
-    snooze: Optional[bool]
-    latestIncident: Optional[datetime]
+    environment: str | None
+    projects: list[str] | None
+    excludedProjects: list[dict] | None
+    queryType: int | None
+    resolveThreshold: float | None
+    dataset: str | None
+    thresholdType: int | None
+    eventTypes: list[str] | None
+    owner: str | None
+    originalAlertRuleId: str | None
+    comparisonDelta: float | None
+    weeklyAvg: float | None
+    totalThisWeek: int | None
+    snooze: bool | None
+    latestIncident: datetime | None
 
 
 @extend_schema_serializer(
@@ -201,7 +201,7 @@ class AlertRuleSerializer(Serializer):
         return result
 
     def serialize(
-        self, obj: AlertRule, attrs: Mapping[Any, Any], user: Union[User, RpcUser], **kwargs: Any
+        self, obj: AlertRule, attrs: Mapping[Any, Any], user: User | RpcUser, **kwargs: Any
     ) -> AlertRuleSerializerResponse:
         from sentry.incidents.endpoints.utils import translate_threshold
         from sentry.incidents.logic import translate_aggregate_field

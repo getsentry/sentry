@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 
 from django.db import router, transaction
 from django.db.models import Count, F
@@ -32,7 +32,7 @@ class DatabaseBackedAuthService(AuthService):
             serialize_api_key(k) for k in ApiKey.objects.filter(organization_id=organization_id)
         ]
 
-    def get_organization_key(self, *, key: str) -> Optional[RpcApiKey]:
+    def get_organization_key(self, *, key: str) -> RpcApiKey | None:
         try:
             return serialize_api_key(ApiKey.objects.get(key=key))
         except ApiKey.DoesNotExist:
@@ -44,8 +44,8 @@ class DatabaseBackedAuthService(AuthService):
         organization_id: int,
         provider_key: str,
         provider_config: Mapping[str, Any],
-        user_id: Optional[int] = None,
-        sender: Optional[str] = None,
+        user_id: int | None = None,
+        sender: str | None = None,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProvider))):
             auth_provider_query = AuthProvider.objects.filter(
@@ -95,7 +95,7 @@ class DatabaseBackedAuthService(AuthService):
 
     def get_auth_provider_with_config(
         self, *, provider: str, config: Mapping[str, Any]
-    ) -> Optional[RpcAuthProvider]:
+    ) -> RpcAuthProvider | None:
         existing_provider = AuthProvider.objects.filter(provider=provider, config=config).first()
         if existing_provider is None:
             return None
@@ -134,7 +134,7 @@ class DatabaseBackedAuthService(AuthService):
             ).values_list("organization_id", flat=True)
         )
 
-    def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
+    def get_auth_provider(self, organization_id: int) -> RpcAuthProvider | None:
         try:
             auth_provider = AuthProvider.objects.get(organization_id=organization_id)
         except AuthProvider.DoesNotExist:

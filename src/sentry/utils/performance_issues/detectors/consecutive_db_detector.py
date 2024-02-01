@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import timedelta
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Sequence
 
 from django.utils.translation import gettext_lazy as _
 
@@ -261,7 +261,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return self.settings["detection_enabled"]
 
     @classmethod
-    def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
+    def is_event_eligible(cls, event, project: Project | None = None) -> bool:
         request = event.get("request", None) or None
         sdk_name = get_sdk_name(event) or ""
 
@@ -276,7 +276,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return "php" not in sdk_name.lower()
 
 
-def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:
+def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
     query = span.get("description", None)
     if is_source and query:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Final, Iterable, Mapping, MutableMapping, Optional, Sequence, Union, cast
+from typing import Any, Final, Iterable, Mapping, MutableMapping, Sequence, cast
 
 import sentry_sdk
 from django.db import connection
@@ -223,12 +223,12 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     id: str
     slug: str
     name: str  # TODO: add deprecation about this field (not used in app)
-    platform: Optional[str]
+    platform: str | None
     dateCreated: datetime
     isBookmarked: bool
     isMember: bool
     features: list[str]
-    firstEvent: Optional[datetime]
+    firstEvent: datetime | None
     firstTransactionEvent: bool
     access: list[str]
     hasAccess: bool
@@ -575,19 +575,19 @@ class LatestReleaseDict(TypedDict):
 
 
 class _OrganizationProjectOptionalResponse(TypedDict, total=False):
-    latestDeploys: Optional[dict[str, dict[str, str]]]
+    latestDeploys: dict[str, dict[str, str]] | None
 
 
 class OrganizationProjectResponse(
     _OrganizationProjectOptionalResponse, ProjectSerializerBaseResponse
 ):
-    team: Optional[TeamResponseDict]
+    team: TeamResponseDict | None
     teams: list[TeamResponseDict]
     eventProcessing: EventProcessingDict
     platforms: list[str]
     hasUserReports: bool
     environments: list[str]
-    latestRelease: Optional[LatestReleaseDict]
+    latestRelease: LatestReleaseDict | None
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
@@ -827,7 +827,7 @@ class Plugin(TypedDict):
 
 
 class DetailedProjectResponse(ProjectWithTeamResponseDict):
-    latestRelease: Optional[LatestReleaseDict]
+    latestRelease: LatestReleaseDict | None
     options: dict[str, Any]
     digestsMinDelay: int
     digestsMaxDelay: int
@@ -837,29 +837,29 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     dataScrubber: bool
     dataScrubberDefaults: bool
     safeFields: list[str]
-    storeCrashReports: Optional[int]
+    storeCrashReports: int | None
     sensitiveFields: list[str]
     subjectTemplate: str
     securityToken: str
-    securityTokenHeader: Optional[str]
+    securityTokenHeader: str | None
     verifySSL: bool
     scrubIPAddresses: bool
     scrapeJavaScript: bool
     groupingConfig: str
     groupingEnhancements: str
-    groupingEnhancementsBase: Optional[str]
+    groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
-    secondaryGroupingConfig: Optional[str]
+    secondaryGroupingConfig: str | None
     groupingAutoUpdate: bool
     fingerprintingRules: str
     organization: OrganizationSerializerResponse
     plugins: list[Plugin]
     platforms: list[str]
     processingIssues: int
-    defaultEnvironment: Optional[str]
-    relayPiiConfig: Optional[str]
+    defaultEnvironment: str | None
+    relayPiiConfig: str | None
     builtinSymbolSources: list[str]
-    dynamicSamplingBiases: list[dict[str, Union[str, bool]]]
+    dynamicSamplingBiases: list[dict[str, str | bool]]
     eventProcessing: dict[str, bool]
     symbolSources: str
 

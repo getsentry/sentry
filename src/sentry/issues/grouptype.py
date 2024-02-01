@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 
@@ -54,7 +54,7 @@ class GroupTypeRegistry:
         return list(self._registry.values())
 
     def get_visible(
-        self, organization: Organization, actor: Optional[Any] = None
+        self, organization: Organization, actor: Any | None = None
     ) -> list[type[GroupType]]:
         with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
             released = [gt for gt in self.all() if gt.released]
@@ -85,7 +85,7 @@ class GroupTypeRegistry:
     def get_by_category(self, category: int) -> set[int]:
         return self._category_lookup[category]
 
-    def get_by_slug(self, slug: str) -> Optional[type[GroupType]]:
+    def get_by_slug(self, slug: str) -> type[GroupType] | None:
         if slug not in self._slug_lookup:
             return None
         return self._slug_lookup[slug]
@@ -115,7 +115,7 @@ class GroupType:
     slug: str
     description: str
     category: int
-    noise_config: Optional[NoiseConfig] = None
+    noise_config: NoiseConfig | None = None
     # If True this group type should be released everywhere. If False, fall back to features to
     # decide if this is released.
     released: bool = False
@@ -141,7 +141,7 @@ class GroupType:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
     @classmethod
-    def is_visible(cls, organization: Organization, user: Optional[User] = None) -> bool:
+    def is_visible(cls, organization: Organization, user: User | None = None) -> bool:
         if cls.released:
             return True
 
@@ -201,7 +201,7 @@ def get_group_types_by_category(category: int) -> set[int]:
     return registry.get_by_category(category)
 
 
-def get_group_type_by_slug(slug: str) -> Optional[type[GroupType]]:
+def get_group_type_by_slug(slug: str) -> type[GroupType] | None:
     # TODO: Replace uses of this with the registry
     return registry.get_by_slug(slug)
 

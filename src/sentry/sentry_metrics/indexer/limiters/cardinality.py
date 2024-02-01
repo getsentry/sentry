@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Mapping, MutableMapping, Optional, Sequence, TypedDict
+from typing import Mapping, MutableMapping, Sequence, TypedDict
 
 from sentry import options
 from sentry.ratelimits.cardinality import (
@@ -30,8 +30,8 @@ OrgId = int
 class CardinalityLimiterState:
     _cardinality_limiter: CardinalityLimiter
     _metric_path_key: UseCaseKey
-    _grants: Optional[Sequence[GrantedQuota]]
-    _timestamp: Optional[Timestamp]
+    _grants: Sequence[GrantedQuota] | None
+    _timestamp: Timestamp | None
     keys_to_remove: Sequence[BrokerMeta]
 
 
@@ -40,7 +40,7 @@ def _build_quota_key(use_case_id: UseCaseID, org_id: OrgId) -> str:
 
 
 @metrics.wraps("sentry_metrics.indexer.construct_quotas")
-def _construct_quotas(use_case_id: UseCaseID) -> Optional[Quota]:
+def _construct_quotas(use_case_id: UseCaseID) -> Quota | None:
     """
     Construct write limit's quotas based on current sentry options.
 

@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, MutableMapping, Optional
+from typing import Any, Callable, Mapping, MutableMapping
 
 import sentry_sdk
 
@@ -17,7 +17,7 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors.algorithm")
 
 @dataclass(frozen=True)
 class MovingAverageDetectorState(DetectorState):
-    timestamp: Optional[datetime]
+    timestamp: datetime | None
     count: int
     moving_avg_short: float
     moving_avg_long: float
@@ -96,7 +96,7 @@ class DetectorAlgorithm(ABC):
         self,
         raw: Mapping[str | bytes, bytes | float | int | str],
         payload: DetectorPayload,
-    ) -> tuple[TrendType, float, Optional[DetectorState]]:
+    ) -> tuple[TrendType, float, DetectorState | None]:
         ...
 
 
@@ -121,7 +121,7 @@ class MovingAverageRelativeChangeDetector(DetectorAlgorithm):
         self,
         raw_state: Mapping[str | bytes, bytes | float | int | str],
         payload: DetectorPayload,
-    ) -> tuple[TrendType, float, Optional[DetectorState]]:
+    ) -> tuple[TrendType, float, DetectorState | None]:
         try:
             old = MovingAverageDetectorState.from_redis_dict(raw_state)
         except Exception as e:
