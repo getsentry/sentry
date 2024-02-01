@@ -86,8 +86,8 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             actual_group_arg = mock_call.call_args[0][0]
             assert actual_group_arg.id == group.id
 
-            exceptions_arg = mock_call.call_args[0][2]
-            assert dict(event.data.get("exception", {}).get("values", [])) == dict(exceptions_arg)
+            entries_arg = mock_call.call_args[0][2]
+            assert any([entry.get("type") == "exception" for entry in entries_arg])
 
         group = Group.objects.get(id=group.id)
 
@@ -159,7 +159,8 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             data={
                 **data,
                 "release": release.version,
-                "exception": {"values": [{"type": "breadcrumbs", "data": {"values": []}}]},
+                "exception": None,
+                "stacktrace": None,
             },
             project_id=self.project.id,
         )
