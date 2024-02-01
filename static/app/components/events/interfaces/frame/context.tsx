@@ -186,7 +186,7 @@ function Context({
                         ))}
                       </ContextLineCode>
                     </ContextLineWrapper>
-                    {hasComponents && (
+                    {!hasInFrameFeature && hasComponents && (
                       <ErrorBoundary mini>
                         <OpenInContextLine
                           key={i}
