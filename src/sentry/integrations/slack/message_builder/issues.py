@@ -58,15 +58,15 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
-SUPPORTED_PROVIDER_TO_COMMIT_URL = {
-    "github": "{base_url}/commit/{commit_id}",
-    "integrations:github": "{base_url}/commit/{commit_id}",
-    "integrations:github_enterprise": "{base_url}/commit/{commit_id}",
-    "integrations:vsts": "{base_url}/commit/{commit_id}",
-    "integrations:gitlab": "{base_url}/commit/{commit_id}",
-    "bitbucket": "{base_url}/commits/{commit_id}",
-    "integrations:bitbucket": "{base_url}/commits/{commit_id}",
-}
+SUPPORTED_COMMIT_PROVIDERS = (
+    "github",
+    "integrations:github",
+    "integrations:github_enterprise",
+    "integrations:vsts",
+    "integrations:gitlab",
+    "bitbucket",
+    "integrations:bitbucket",
+)
 
 logger = logging.getLogger(__name__)
 
@@ -313,8 +313,12 @@ def get_suspect_commit_text(
         repo = pull_request.get("repository", {})
         repo_base = repo.get("url")
         provider = repo.get("provider", {}).get("id")
-        if repo_base and provider in SUPPORTED_PROVIDER_TO_COMMIT_URL:
-            commit_link = f"<{SUPPORTED_PROVIDER_TO_COMMIT_URL[provider].format(base_url=repo_base, commit_id=commit_id)}|{commit_id[:6]}>"
+        if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
+            if "bitbucket" in provider:
+                commit_link = f"<{repo_base}/commits/{commit_id}"
+            else:
+                commit_link = f"<{repo_base}/commit/{commit_id}"
+            commit_link += f"|{commit_id[:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
         else:  # for unsupported providers
             suspect_commit_text += f"{commit_id[:6]} by {author_display}"
