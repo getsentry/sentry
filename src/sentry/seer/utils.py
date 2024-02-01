@@ -1,7 +1,7 @@
 from typing import List, Optional, TypedDict
 
 from django.conf import settings
-from urllib3 import HTTPResponse, Retry
+from urllib3 import Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import json
@@ -70,7 +70,7 @@ class SimilarIssuesEmbeddingsReponse(TypedDict):
 
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
-) -> SimilarIssuesEmbeddingsReponse | HTTPResponse:
+) -> SimilarIssuesEmbeddingsReponse:
     """Call /v0/issues/similar-issues endpoint from timeseries-analysis-service."""
     response = seer_connection_pool.urlopen(
         "POST",
