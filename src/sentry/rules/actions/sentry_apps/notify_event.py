@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Generator, Mapping, Optional, Sequence
+from typing import Any, Generator, Mapping, Sequence
 
 from rest_framework import serializers
 
@@ -141,7 +141,7 @@ class NotifyEventSentryAppAction(SentryAppEventAction):
             )
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         sentry_app = self._get_sentry_app(event)
         yield self.future(

@@ -6,7 +6,7 @@
 import datetime
 import hmac
 from hashlib import sha256
-from typing import Any, Dict, List, Mapping, Optional, Protocol
+from typing import Any, Mapping, Optional, Protocol
 
 from pydantic.fields import Field
 from typing_extensions import TypedDict
@@ -34,7 +34,7 @@ class RpcSentryAppService(RpcModel):
 
 class RpcSentryApp(RpcModel):
     id: int = -1
-    scope_list: List[str] = Field(default_factory=list)
+    scope_list: list[str] = Field(default_factory=list)
     application_id: int = -1
     application: Optional[RpcApiApplication] = None
     proxy_user_id: Optional[int] = None  # can be null on deletion.
@@ -42,7 +42,7 @@ class RpcSentryApp(RpcModel):
     name: str = ""
     slug: str = ""
     uuid: str = ""
-    events: List[str] = Field(default_factory=list)
+    events: list[str] = Field(default_factory=list)
     webhook_url: Optional[str] = None
     is_alertable: bool = False
     is_published: bool = False
@@ -50,7 +50,7 @@ class RpcSentryApp(RpcModel):
     is_internal: bool = True
     is_publish_request_inprogress: bool = False
     status: str = ""
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     def show_auth_info(self, access: Any) -> bool:
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
@@ -142,9 +142,9 @@ class RpcSentryAppEventData(RpcModel, metaclass=RpcModelProtocolMeta):
 
 
 class SentryAppInstallationFilterArgs(TypedDict, total=False):
-    installation_ids: List[int]
-    app_ids: List[int]
+    installation_ids: list[int]
+    app_ids: list[int]
     organization_id: int
-    uuids: List[str]
+    uuids: list[str]
     status: int
     api_token_id: str

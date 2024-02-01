@@ -10,7 +10,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union
+from typing import Any, Literal, Mapping, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -596,8 +596,6 @@ class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
-    pass
-
 
 class PerformanceIssueTestCase(BaseTestCase):
     # We need Django to flush all databases.
@@ -922,8 +920,8 @@ class RuleTestCase(TestCase):
     def passes_activity(
         self,
         rule: RuleBase,
-        condition_activity: Optional[ConditionActivity] = None,
-        event_map: Optional[Dict[str, Any]] = None,
+        condition_activity: ConditionActivity | None = None,
+        event_map: dict[str, Any] | None = None,
     ):
         if condition_activity is None:
             condition_activity = self.get_condition_activity()
@@ -1435,13 +1433,13 @@ class BaseSpansTestCase(SnubaTestCase):
         project_id: int,
         trace_id: str,
         transaction_id: str,
-        span_id: Optional[str] = None,
-        profile_id: Optional[str] = None,
-        transaction: Optional[str] = None,
+        span_id: str | None = None,
+        profile_id: str | None = None,
+        transaction: str | None = None,
         duration: int = 10,
-        tags: Optional[Mapping[str, Any]] = None,
-        measurements: Optional[Mapping[str, Union[int, float]]] = None,
-        timestamp: Optional[datetime] = None,
+        tags: Mapping[str, Any] | None = None,
+        measurements: Mapping[str, int | float] | None = None,
+        timestamp: datetime | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1479,15 +1477,15 @@ class BaseSpansTestCase(SnubaTestCase):
         project_id: int,
         trace_id: str,
         transaction_id: str,
-        span_id: Optional[str] = None,
-        profile_id: Optional[str] = None,
-        transaction: Optional[str] = None,
-        op: Optional[str] = None,
+        span_id: str | None = None,
+        profile_id: str | None = None,
+        transaction: str | None = None,
+        op: str | None = None,
         duration: int = 10,
-        tags: Optional[Mapping[str, Any]] = None,
-        timestamp: Optional[datetime] = None,
+        tags: Mapping[str, Any] | None = None,
+        timestamp: datetime | None = None,
         store_only_summary: bool = False,
-        store_metrics_summary: Optional[Mapping[str, Sequence[Mapping[str, Any]]]] = None,
+        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1603,11 +1601,11 @@ class BaseMetricsTestCase(SnubaTestCase):
         project_id: int,
         type: Literal["counter", "set", "distribution", "gauge"],
         name: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         timestamp: int,
         value: Any,
         use_case_id: UseCaseID,
-        aggregation_option: Optional[AggregationOption] = None,
+        aggregation_option: AggregationOption | None = None,
     ) -> None:
         mapping_meta = {}
 
@@ -1657,7 +1655,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             value = [value]
         elif type == "gauge":
             # In case we pass either an int or float, we will emit a gauge with all the same values.
-            if not isinstance(value, Dict):
+            if not isinstance(value, dict):
                 value = {
                     "min": value,
                     "max": value,
@@ -1746,7 +1744,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         """
         raise NotImplementedError
 
-    def _extract_entity_from_mri(self, mri_string: str) -> Optional[str]:
+    def _extract_entity_from_mri(self, mri_string: str) -> str | None:
         """
         Extracts the entity name from the MRI given a map of shorthands used to represent that entity in the MRI.
         """
@@ -1758,17 +1756,17 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def _store_metric(
         self,
         name: str,
-        tags: Dict[str, str],
-        value: int | float | Dict[str, int | float],
+        tags: dict[str, str],
+        value: int | float | dict[str, int | float],
         use_case_id: UseCaseID,
-        type: Optional[str] = None,
-        org_id: Optional[int] = None,
-        project_id: Optional[int] = None,
+        type: str | None = None,
+        org_id: int | None = None,
+        project_id: int | None = None,
         days_before_now: int = 0,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
-        aggregation_option: Optional[AggregationOption] = None,
+        aggregation_option: AggregationOption | None = None,
     ):
         # We subtract one second in order to account for right non-inclusivity in the query. If we wouldn't do this
         # some data won't be returned (this applies only if we use self.now() in the "end" bound of the query).
@@ -1835,16 +1833,16 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def store_performance_metric(
         self,
         name: str,
-        tags: Dict[str, str],
-        value: int | float | Dict[str, int | float],
-        type: Optional[str] = None,
-        org_id: Optional[int] = None,
-        project_id: Optional[int] = None,
+        tags: dict[str, str],
+        value: int | float | dict[str, int | float],
+        type: str | None = None,
+        org_id: int | None = None,
+        project_id: int | None = None,
         days_before_now: int = 0,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
-        aggregation_option: Optional[AggregationOption] = None,
+        aggregation_option: AggregationOption | None = None,
     ):
         self._store_metric(
             type=type,
@@ -1864,11 +1862,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def store_release_health_metric(
         self,
         name: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         value: int,
-        type: Optional[str] = None,
-        org_id: Optional[int] = None,
-        project_id: Optional[int] = None,
+        type: str | None = None,
+        org_id: int | None = None,
+        project_id: int | None = None,
         days_before_now: int = 0,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
@@ -1891,16 +1889,16 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def store_custom_metric(
         self,
         name: str,
-        tags: Dict[str, str],
-        value: int | float | Dict[str, int | float],
-        type: Optional[str] = None,
-        org_id: Optional[int] = None,
-        project_id: Optional[int] = None,
+        tags: dict[str, str],
+        value: int | float | dict[str, int | float],
+        type: str | None = None,
+        org_id: int | None = None,
+        project_id: int | None = None,
         days_before_now: int = 0,
         hours_before_now: int = 0,
         minutes_before_now: int = 0,
         seconds_before_now: int = 0,
-        aggregation_option: Optional[AggregationOption] = None,
+        aggregation_option: AggregationOption | None = None,
     ):
         self._store_metric(
             type=type,
@@ -1920,17 +1918,17 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def build_metrics_query(
         self,
         select: Sequence[MetricField],
-        project_ids: Optional[Sequence[int]] = None,
-        where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
-        having: Optional[ConditionGroup] = None,
-        groupby: Optional[Sequence[MetricGroupByField]] = None,
-        orderby: Optional[Sequence[MetricOrderByField]] = None,
-        limit: Optional[Limit] = None,
-        offset: Optional[Offset] = None,
+        project_ids: Sequence[int] | None = None,
+        where: Sequence[BooleanCondition | Condition | MetricConditionField] | None = None,
+        having: ConditionGroup | None = None,
+        groupby: Sequence[MetricGroupByField] | None = None,
+        orderby: Sequence[MetricOrderByField] | None = None,
+        limit: Limit | None = None,
+        offset: Offset | None = None,
         include_totals: bool = True,
         include_series: bool = True,
-        before_now: Optional[str] = None,
-        granularity: Optional[str] = None,
+        before_now: str | None = None,
+        granularity: str | None = None,
     ):
         # TODO: fix this method which gets the range after now instead of before now.
         (start, end, granularity_in_seconds) = get_date_range(
@@ -2035,13 +2033,13 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         self,
         value: list[Any] | Any,
         metric: str = "transaction.duration",
-        internal_metric: Optional[str] = None,
-        entity: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
-        timestamp: Optional[datetime] = None,
-        project: Optional[int] = None,
+        internal_metric: str | None = None,
+        entity: str | None = None,
+        tags: dict[str, str] | None = None,
+        timestamp: datetime | None = None,
+        project: int | None = None,
         use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
-        aggregation_option: Optional[AggregationOption] = None,
+        aggregation_option: AggregationOption | None = None,
     ) -> None:
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -2077,8 +2075,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         self,
         value: int | float,
         spec: OnDemandMetricSpec,
-        additional_tags: Optional[Dict[str, str]] = None,
-        timestamp: Optional[datetime] = None,
+        additional_tags: dict[str, str] | None = None,
+        timestamp: datetime | None = None,
     ) -> None:
         """Convert on-demand metric and store it"""
         relay_metric_spec = spec.to_metric_spec(self.project)
@@ -2101,13 +2099,13 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_span_metric(
         self,
-        value: List[int] | int,
+        value: list[int] | int,
         metric: str = "span.self_time",
-        internal_metric: Optional[str] = None,
-        entity: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
-        timestamp: Optional[datetime] = None,
-        project: Optional[int] = None,
+        internal_metric: str | None = None,
+        entity: str | None = None,
+        tags: dict[str, str] | None = None,
+        timestamp: datetime | None = None,
+        project: int | None = None,
         use_case_id: UseCaseID = UseCaseID.SPANS,
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric

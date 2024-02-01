@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Type
-
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
@@ -37,7 +35,7 @@ class TombstoneBase(Model):
     created_at = models.DateTimeField(null=False, default=timezone.now)
 
     @staticmethod
-    def class_for_silo_mode(silo_mode: SiloMode) -> Type[TombstoneBase] | None:
+    def class_for_silo_mode(silo_mode: SiloMode) -> type[TombstoneBase] | None:
         if silo_mode == SiloMode.REGION:
             return RegionTombstone
         if silo_mode == SiloMode.CONTROL:

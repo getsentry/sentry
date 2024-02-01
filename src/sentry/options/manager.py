@@ -1,7 +1,7 @@
 import logging
 import sys
 from enum import Enum
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence
 
 from django.conf import settings
 
@@ -41,7 +41,7 @@ class UpdateChannel(Enum):
     KILLSWITCH = "killswitch"
 
     @classmethod
-    def choices(cls) -> Sequence[Tuple[str, str]]:
+    def choices(cls) -> Sequence[tuple[str, str]]:
         return [(i.name, i.value) for i in cls]
 
 

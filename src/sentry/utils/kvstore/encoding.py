@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Iterator, Optional, Sequence, Tuple
+from typing import Iterator, Optional, Sequence
 
 from sentry.utils.codecs import Codec, TDecoded, TEncoded
 from sentry.utils.kvstore.abstract import K, KVStorage
@@ -27,7 +27,7 @@ class KVStorageCodecWrapper(KVStorage[K, TDecoded]):
 
         return self.value_codec.decode(value)
 
-    def get_many(self, keys: Sequence[K]) -> Iterator[Tuple[K, TDecoded]]:
+    def get_many(self, keys: Sequence[K]) -> Iterator[tuple[K, TDecoded]]:
         for key, value in self.store.get_many(keys):
             yield key, self.value_codec.decode(value)
 
