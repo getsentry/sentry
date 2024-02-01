@@ -6,6 +6,8 @@ from django.db import router, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.transaction import Atomic
 
+from sentry.utils.env import in_test_environment
+
 _default_atomic_impl = transaction.atomic
 _default_on_commit = transaction.on_commit
 _default_get_connection = transaction.get_connection
@@ -91,7 +93,7 @@ def validate_transaction_using_for_silo_mode(using: Optional[str]):
     if using is None:
         raise TransactionMissingDBException("'using' must be specified when creating a transaction")
 
-    if not is_in_test_case_body():
+    if in_test_environment() and not is_in_test_case_body():
         return
 
     current_silo_mode = SiloMode.get_current_mode()
