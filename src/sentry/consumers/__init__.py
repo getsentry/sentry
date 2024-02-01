@@ -102,6 +102,12 @@ def ingest_monitors_options() -> list[click.Option]:
             default=10,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
         ),
+        click.Option(
+            ["--max-workers", "max_workers"],
+            type=int,
+            default=None,
+            help="The maximum number of threads to spawn in parallel mode.",
+        ),
     ]
     return options
 
