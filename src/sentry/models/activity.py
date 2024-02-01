@@ -41,12 +41,11 @@ class ActivityManager(BaseManager["Activity"]):
         if not features.has("projects:issue-priority", group.project):
             activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
         else:
+            event_metadata = group.get_event_metadata()
+            # Check if 'initial_priority' is available and the feature flag is on
+            initial_priority_key = event_metadata.get("initial_priority")
             initial_priority = (
-                PRIORITY_LEVEL_TO_STR[
-                    group.get_event_metadata().get("initial_priority")
-                ]  # inital_priority is only available when the feature flag is on
-                if group.get_event_metadata().get("initial_priority")
-                else None
+                PRIORITY_LEVEL_TO_STR[initial_priority_key] if initial_priority_key else None
             )
 
         prev_sig = None
