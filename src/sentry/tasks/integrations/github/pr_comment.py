@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, List
+from typing import Any
 
 import sentry_sdk
 from django.db import connection
@@ -58,7 +58,7 @@ def format_comment_url(url, referrer):
     return url + "?referrer=" + referrer
 
 
-def format_comment(issues: List[PullRequestIssue]):
+def format_comment(issues: list[PullRequestIssue]):
     issue_list = "\n".join(
         [
             MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
@@ -120,7 +120,7 @@ def get_top_5_issues_by_count(issue_list: list[int], project: Project) -> list[d
     return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
 
 
-def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
+def get_comment_contents(issue_list: list[int]) -> list[PullRequestIssue]:
     """Retrieve the issue information that will be used for comment contents"""
     issues = Group.objects.filter(id__in=issue_list).all()
     return [
@@ -136,6 +136,9 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id)
 
     gh_repo_id, pr_key, org_id, issue_list = pr_to_issue_query(pullrequest_id)[0]
+
+    # cap to 1000 issues in which the merge commit is the suspect commit
+    issue_list = issue_list[:1000]
 
     try:
         organization = Organization.objects.get_from_cache(id=org_id)

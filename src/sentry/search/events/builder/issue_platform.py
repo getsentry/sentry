@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.search.events.builder import TimeseriesQueryBuilder
@@ -15,8 +15,8 @@ class IssuePlatformTimeseriesQueryBuilder(TimeseriesQueryBuilder):
         params: ParamsType,
         interval: int,
         query: Optional[str] = None,
-        selected_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
+        selected_columns: Optional[list[str]] = None,
+        equations: Optional[list[str]] = None,
         limit: Optional[int] = 10000,
         config: Optional[QueryBuilderConfig] = None,
     ):

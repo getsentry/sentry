@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Mapping, Sequence
 
 from django.utils import timezone
 from django.utils.timesince import timesince
@@ -473,7 +473,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def build(self, notification_uuid: str | None = None) -> Union[SlackBlock, SlackAttachment]:
+    def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         if self.escape_text:
@@ -568,23 +568,27 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
-        # build tags block
-        tags = get_tags(event_for_tags, self.tags)
-        if tags:
-            blocks.append(self.get_tags_block(tags))
+        if self.group.issue_category == GroupCategory.ERROR:
+            # XXX(CEO): in the short term we're not adding these to non-error issues (e.g. crons)
+            # since they don't make sense, but in the future we'll read some config from the grouptype
 
-        # add event count, user count, substate, first seen
-        context = {
-            "Events": get_group_global_count(self.group),
-            "Users Affected": self.group.count_users_seen(),
-            "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
-            "First Seen": time_since(self.group.first_seen),
-        }
-        context_text = ""
-        for k, v in context.items():
-            if k and v:
-                context_text += f"{k}: *{v}*   "
-        blocks.append(self.get_context_block(context_text[:-3]))
+            # build tags block
+            tags = get_tags(event_for_tags, self.tags)
+            if tags:
+                blocks.append(self.get_tags_block(tags))
+
+            # add event count, user count, substate, first seen
+            context = {
+                "Events": get_group_global_count(self.group),
+                "Users Affected": self.group.count_users_seen(),
+                "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
+                "First Seen": time_since(self.group.first_seen),
+            }
+            context_text = ""
+            for k, v in context.items():
+                if k and v:
+                    context_text += f"{k}: *{v}*   "
+            blocks.append(self.get_context_block(context_text[:-3]))
 
         # build actions
         actions = []

@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
-from typing import Optional, Set, Tuple
+from typing import Optional
 
 from sentry.hybridcloud.rpc_services.control_organization_provisioning.model import (
     RpcOrganizationSlugReservation,
@@ -30,7 +30,6 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         :param org_provision_args: Provisioning and post-provisioning options for the organization.
         :return: RpcOrganizationSlugReservation containing the organization ID and slug.
         """
-        pass
 
     @abstractmethod
     @rpc_method
@@ -49,7 +48,6 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         :param org_provision_args: Provisioning and post-provisioning options for the organization.
         :return: RpcOrganization the organization ID and slug.
         """
-        pass
 
     @abstractmethod
     @rpc_method
@@ -76,12 +74,11 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         case of a slug collision.
         :return:
         """
-        pass
 
     @abstractmethod
     @rpc_method
     def bulk_create_organization_slug_reservations(
-        self, *, region_name: str, organization_ids_and_slugs: Set[Tuple[int, str]]
+        self, *, region_name: str, organization_ids_and_slugs: set[tuple[int, str]]
     ) -> None:
         """
         Only really intended for bulk organization import usage. Creates unique organization slug
@@ -92,7 +89,6 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         :param organization_ids_and_slugs: A set of ID and base slug tuples to reserve slugs for
         :return:
         """
-        pass
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

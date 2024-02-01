@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any
 
 import responses
 
@@ -9,8 +9,8 @@ from sentry.silo.util import PROXY_PATH
 
 def add_control_silo_proxy_response(
     method: str | responses.BaseResponse | None,
-    path: Optional[str],
-    additional_matchers: Optional[List[Any]] = None,
+    path: str | None,
+    additional_matchers: list[Any] | None = None,
     **additional_response_kwargs: Any,
 ):
     if additional_matchers is None:

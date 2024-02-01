@@ -1,13 +1,18 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
 import {LinkButton} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import type {
+  GridColumn,
+  GridColumnHeader,
+  GridColumnOrder,
+} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -20,8 +25,12 @@ import type {MRI} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/formatters';
 import {getMetricsCorrelationSpanUrl} from 'sentry/utils/metrics';
-import type {MetricCorrelation, SelectionRange} from 'sentry/utils/metrics/types';
-import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
+import type {
+  MetricCorrelation,
+  SelectionRange,
+  SpanSummary,
+} from 'sentry/utils/metrics/types';
+import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -31,7 +40,7 @@ import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
 /**
  * Limits the number of spans to the top n + an "other" entry
  */
-function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: number) {
+function sortAndLimitSpans(samples?: SpanSummary[], limit: number = 5) {
   if (!samples) {
     return [];
   }
@@ -49,7 +58,6 @@ function sortAndLimitSpans(samples: MetricCorrelation['spansSummary'], limit: nu
 }
 
 interface SamplesTableProps extends SelectionRange {
-  highlightedRow?: string | null;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   query?: string;
@@ -57,7 +65,7 @@ interface SamplesTableProps extends SelectionRange {
 
 type Column = GridColumnHeader<keyof MetricCorrelation>;
 
-const columnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
+const defaultColumnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
   {key: 'transactionId', width: COL_WIDTH_UNDEFINED, name: 'Event ID'},
   {key: 'segmentName', width: COL_WIDTH_UNDEFINED, name: 'Transaction'},
   {key: 'spansNumber', width: COL_WIDTH_UNDEFINED, name: 'Number of Spans'},
@@ -68,9 +76,8 @@ const columnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
   {key: 'profileId', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
 ];
 
-export function SampleTable({
+export const SampleTable = memo(function InnerSampleTable({
   mri,
-  highlightedRow,
   onRowHover,
   ...metricMetaOptions
 }: SamplesTableProps) {
@@ -78,14 +85,23 @@ export function SampleTable({
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const {data, isFetching} = useCorrelatedSamples(mri, metricMetaOptions);
+  const [columnOrder, setColumnOrder] = useState(defaultColumnOrder);
 
-  const rows = data?.metrics
-    .map(m => m.metricSpans)
-    .flat()
-    .filter(Boolean)
-    // We only want to show the first 10 correlations
-    .slice(0, 10) as MetricCorrelation[];
+  const {data, isFetching} = useMetricSamples(mri, metricMetaOptions);
+
+  const handleColumnResize = useCallback(
+    (columnIndex: number, nextColumn: GridColumn) => {
+      setColumnOrder(prevColumnOrder => {
+        const newColumnOrder = [...prevColumnOrder];
+        newColumnOrder[columnIndex] = {
+          ...newColumnOrder[columnIndex],
+          width: nextColumn.width,
+        };
+        return newColumnOrder;
+      });
+    },
+    [setColumnOrder]
+  );
 
   function trackClick(target: 'event-id' | 'transaction' | 'trace-id' | 'profile') {
     trackAnalytics('ddm.sample-table-interaction', {
@@ -116,87 +132,60 @@ export function SampleTable({
     }
 
     const project = projects.find(p => parseInt(p.id, 10) === row.projectId);
-    const highlighted = row.transactionId === highlightedRow;
 
     if (key === 'transactionId') {
       return (
-        <BodyCell
-          rowId={row.transactionId}
-          onHover={onRowHover}
-          highlighted={highlighted}
+        <Link
+          to={getMetricsCorrelationSpanUrl(
+            organization,
+            project?.slug,
+            row.spansDetails[0]?.spanId,
+            row.transactionId,
+            row.transactionSpanId
+          )}
+          onClick={() => trackClick('event-id')}
+          target="_blank"
         >
-          <Link
-            to={getMetricsCorrelationSpanUrl(
-              organization,
-              project?.slug,
-              row.spansDetails[0]?.spanId,
-              row.transactionId,
-              row.transactionSpanId
-            )}
-            onClick={() => trackClick('event-id')}
-            target="_blank"
-          >
-            {row.transactionId.slice(0, 8)}
-          </Link>
-        </BodyCell>
+          {row.transactionId.slice(0, 8)}
+        </Link>
       );
     }
     if (key === 'segmentName') {
       return (
-        <BodyCell
-          rowId={row.transactionId}
-          onHover={onRowHover}
-          highlighted={highlighted}
-        >
-          <TextOverflow>
-            <Tooltip title={project?.slug}>
-              <StyledPlatformIcon platform={project?.platform || 'default'} />
-            </Tooltip>
-            <Link
-              to={normalizeUrl(
-                `/organizations/${organization.slug}/performance/summary/?${qs.stringify({
-                  ...extractSelectionParameters(location.query),
-                  project: project?.id,
-                  transaction: row.segmentName,
-                  referrer: 'metrics',
-                })}`
-              )}
-              onClick={() => trackClick('transaction')}
-            >
-              {row.segmentName}
-            </Link>
-          </TextOverflow>
-        </BodyCell>
+        <TextOverflow>
+          <Tooltip title={project?.slug}>
+            <StyledPlatformIcon platform={project?.platform || 'default'} />
+          </Tooltip>
+          <Link
+            to={normalizeUrl(
+              `/organizations/${organization.slug}/performance/summary/?${qs.stringify({
+                ...extractSelectionParameters(location.query),
+                project: project?.id,
+                transaction: row.segmentName,
+                referrer: 'metrics',
+              })}`
+            )}
+            onClick={() => trackClick('transaction')}
+          >
+            {row.segmentName}
+          </Link>
+        </TextOverflow>
       );
     }
     if (key === 'duration') {
       // We get duration in miliseconds, but getDuration expects seconds
-      return (
-        <BodyCell
-          rowId={row.transactionId}
-          onHover={onRowHover}
-          highlighted={highlighted}
-        >
-          {getDuration(row.duration / 1000, 2, true)}
-        </BodyCell>
-      );
+      return getDuration(row.duration / 1000, 2, true);
     }
     if (key === 'traceId') {
       return (
-        <BodyCell
-          rowId={row.transactionId}
-          onHover={onRowHover}
-          highlighted={highlighted}
+        <Link
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/performance/trace/${row.traceId}/`
+          )}
+          onClick={() => trackClick('trace-id')}
         >
-          <Link
-            to={normalizeUrl(
-              `/organizations/${organization.slug}/performance/trace/${row.traceId}/`
-            )}
-            onClick={() => trackClick('trace-id')}
-          >
-            {row.traceId.slice(0, 8)}
-          </Link>
-        </BodyCell>
+          {row.traceId.slice(0, 8)}
+        </Link>
       );
     }
     if (key === 'spansSummary') {
@@ -210,7 +199,7 @@ export function SampleTable({
         return <NoValue>{t('(no value)')}</NoValue>;
       }
 
-      const preparedSpans = sortAndLimitSpans(row.spansSummary, 5);
+      const preparedSpans = sortAndLimitSpans(row.spansSummary);
 
       return (
         <StyledColorBar
@@ -245,13 +234,11 @@ export function SampleTable({
     }
     if (key === 'timestamp') {
       return (
-        <BodyCell
-          rowId={row.transactionId}
-          onHover={onRowHover}
-          highlighted={highlighted}
-        >
-          <DateTime date={row.timestamp} />
-        </BodyCell>
+        <Tooltip title={row.timestamp} showOnlyOnOverflow>
+          <TextOverflow>
+            <DateTime date={row.timestamp} />
+          </TextOverflow>
+        </Tooltip>
       );
     }
     if (key === 'profileId') {
@@ -272,60 +259,80 @@ export function SampleTable({
       );
     }
 
-    return (
-      <BodyCell rowId={row.transactionId} onHover={onRowHover} highlighted={highlighted}>
-        {row[col.key]}
-      </BodyCell>
-    );
+    return row[col.key];
   }
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const currentHoverIdRef = useRef<string | null>(null);
+
+  // TODO(aknaus): Clean up by adding propper event listeners to the grid component
+  const handleMouseMove = useMemo(
+    () =>
+      debounce((event: React.MouseEvent) => {
+        const wrapper = wrapperRef.current;
+        const target = event.target;
+
+        if (!wrapper || !(target instanceof Element)) {
+          onRowHover?.(undefined);
+          currentHoverIdRef.current = null;
+          return;
+        }
+
+        const tableRow = (target as Element).closest('tbody >tr');
+        if (!tableRow) {
+          onRowHover?.(undefined);
+          currentHoverIdRef.current = null;
+          return;
+        }
+
+        const rows = Array.from(wrapper.querySelectorAll('tbody > tr'));
+        const rowIndex = rows.indexOf(tableRow);
+        const rowId = data?.[rowIndex]?.transactionId;
+
+        if (!rowId) {
+          onRowHover?.(undefined);
+          currentHoverIdRef.current = null;
+          return;
+        }
+        if (currentHoverIdRef.current !== rowId) {
+          onRowHover?.(rowId);
+          currentHoverIdRef.current = rowId;
+        }
+      }, 10),
+    [data, onRowHover]
+  );
+
   return (
-    <Wrapper>
+    <Wrapper
+      ref={wrapperRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => onRowHover?.(undefined)}
+      isEmpty={!data?.length}
+    >
       <GridEditable
         isLoading={isFetching}
         columnOrder={columnOrder}
         columnSortBy={[]}
-        data={rows}
+        data={data ?? []}
         grid={{
           renderHeadCell,
           renderBodyCell,
+          onResizeColumn: handleColumnResize,
         }}
         emptyMessage={mri ? t('No samples found') : t('Choose a metric to display data.')}
         location={location}
       />
     </Wrapper>
   );
-}
+});
 
-function BodyCell({children, rowId, highlighted, onHover}: any) {
-  const handleMouseOver = useCallback(() => {
-    onHover(rowId);
-  }, [onHover, rowId]);
-
-  const handleMouseOut = useCallback(() => {
-    onHover(null);
-  }, [onHover]);
-
-  return (
-    <BodyCellWrapper
-      onMouseOver={handleMouseOver}
-      onMouseOut={handleMouseOut}
-      highlighted={highlighted}
-    >
-      {children}
-    </BodyCellWrapper>
-  );
-}
-
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{isEmpty?: boolean}>`
   tr:hover {
     td {
-      background: ${p => p.theme.backgroundSecondary};
+      background: ${p => (p.isEmpty ? 'none' : p.theme.backgroundSecondary)};
     }
   }
 `;
-
-const BodyCellWrapper = styled('span')<{highlighted?: boolean}>``;
 
 const AlignCenter = styled('span')`
   display: block;

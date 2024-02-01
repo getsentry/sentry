@@ -1,6 +1,6 @@
 import abc
 from datetime import timedelta
-from typing import FrozenSet, List, Optional
+from typing import Optional
 
 from django.utils import timezone
 
@@ -37,14 +37,13 @@ class AccessService(abc.ABC):
         """If an owner is trying to gain access, allow bypassing SSO if there are no
         other owners with SSO enabled.
         """
+
+    @abc.abstractmethod
+    def get_all_org_roles(self, member_id: int, organization_id: int) -> list[str]:
         pass
 
     @abc.abstractmethod
-    def get_all_org_roles(self, member_id: int, organization_id: int) -> List[str]:
-        pass
-
-    @abc.abstractmethod
-    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
+    def get_top_dog_team_member_ids(self, organization_id: int) -> list[int]:
         pass
 
     def auth_identity_is_valid(
@@ -127,7 +126,7 @@ class AccessService(abc.ABC):
         return RpcAuthState(sso_state=sso_state, permissions=permissions)
 
     @abc.abstractmethod
-    def get_permissions_for_user(self, user_id: int) -> FrozenSet[str]:
+    def get_permissions_for_user(self, user_id: int) -> frozenset[str]:
         pass
 
 

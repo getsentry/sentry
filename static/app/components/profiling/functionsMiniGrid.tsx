@@ -60,23 +60,29 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
             return null;
           }
 
-          const exampleProfileIdRaw = f['examples()']![0];
-          const exampleProfileId = exampleProfileIdRaw.replaceAll('-', '');
+          let rendered = <Fragment>{f.function}</Fragment>;
+
+          const examples = f['examples()'];
+          if (defined(examples?.[0])) {
+            const exampleProfileId = examples![0].replaceAll('-', '');
+            rendered = (
+              <Link
+                to={linkToFlamechartRoute(
+                  exampleProfileId,
+                  f.function as string,
+                  f.package as string
+                )}
+                onClick={onLinkClick}
+              >
+                {f.function}
+              </Link>
+            );
+          }
+
           return (
             <Fragment key={idx}>
               <FunctionsMiniGridCell title={f.function as string}>
-                <FunctionNameTextTruncate>
-                  <Link
-                    to={linkToFlamechartRoute(
-                      exampleProfileId,
-                      f.function as string,
-                      f.package as string
-                    )}
-                    onClick={onLinkClick}
-                  >
-                    {f.function}
-                  </Link>
-                </FunctionNameTextTruncate>
+                <FunctionNameTextTruncate>{rendered}</FunctionNameTextTruncate>
               </FunctionsMiniGridCell>
               <FunctionsMiniGridCell align="right">
                 <PerformanceDuration nanoseconds={f['sum()'] as number} abbreviation />

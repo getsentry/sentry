@@ -27,6 +27,18 @@ function OrganizationContainer({children}: Props) {
     return <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>;
   }
 
+  // XXX(epurkhiser): There is a special case scenarion when we're unable to
+  // load an organization due to access issues. Right now this is VERY SPECIFIC
+  // to being able to enable 2FA
+  //
+  // In this scenario we render the children **explicitly without an
+  // organization in context**.
+  //
+  // TODO(epurkhiser): This scenario desprately should be improved
+  if (error && errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS) {
+    return children;
+  }
+
   if (error) {
     const errorBody =
       errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS ? (

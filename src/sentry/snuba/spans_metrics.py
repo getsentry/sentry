@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
+from typing import Optional, Sequence
 
 from snuba_sdk import Column
 
@@ -75,13 +75,13 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: dict[str, str],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    functions_acl: Optional[list[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
