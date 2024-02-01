@@ -12,6 +12,8 @@ import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/u
 import {TraceTimelineEvents} from './traceTimelineEvents';
 import {useTraceTimelineEvents} from './useTraceTimelineEvents';
 
+const PLACEHOLDER_SIZE = '45px';
+
 interface TraceTimelineProps {
   event: Event;
 }
@@ -24,13 +26,17 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const hasFeature = hasTraceTimelineFeature(organization, user);
   const {isError, isLoading, data} = useTraceTimelineEvents({event}, hasFeature);
 
-  if (!hasFeature) {
+  if (!hasFeature || !event.contexts?.trace?.trace_id) {
     return null;
   }
 
-  if (isError || (!isLoading && data.length === 0)) {
-    // display placeholder to reduce layout shift
-    return <div style={{height: 45}} />;
+  const noEvents = !isLoading && data.length === 0;
+  // Timelines with only the current event are not useful
+  const onlySelfEvent =
+    !isLoading && data.length > 0 && data.every(item => item.id === event.id);
+  if (isError || noEvents || onlySelfEvent) {
+    // display empty placeholder to reduce layout shift
+    return <div style={{height: PLACEHOLDER_SIZE}} data-test-id="trace-timeline-empty" />;
   }
 
   return (
@@ -38,7 +44,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
       <div>
         <Stacked ref={timelineRef}>
           {isLoading ? (
-            <Placeholder height="45px" />
+            <Placeholder height={PLACEHOLDER_SIZE} />
           ) : (
             <TimelineEventsContainer>
               <TimelineOutline />
