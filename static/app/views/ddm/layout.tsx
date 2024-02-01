@@ -17,7 +17,9 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
 import {PageHeaderActions} from 'sentry/views/ddm/pageHeaderActions';
@@ -26,20 +28,25 @@ import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
 import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
 export const DDMLayout = memo(() => {
+  const organization = useOrganization();
   const {metricsMeta, isLoading} = useDDMContext();
   const hasMetrics = !isLoading && metricsMeta.length > 0;
   const {activateSidebar} = useMetricsOnboardingSidebar();
 
   const addCustomMetric = useCallback(
-    (referrer: string) => {
+    (referrer: 'header' | 'onboarding_panel') => {
       Sentry.metrics.increment('ddm.add_custom_metric', 1, {
         tags: {
           referrer,
         },
       });
+      trackAnalytics('ddm.open-onboarding', {
+        organization,
+        source: referrer,
+      });
       activateSidebar();
     },
-    [activateSidebar]
+    [activateSidebar, organization]
   );
 
   return (
@@ -60,7 +67,7 @@ export const DDMLayout = memo(() => {
         <Layout.HeaderActions>
           <PageHeaderActions
             showCustomMetricButton={hasMetrics}
-            addCustomMetric={addCustomMetric}
+            addCustomMetric={() => addCustomMetric('header')}
           />
         </Layout.HeaderActions>
       </Layout.Header>
