@@ -13,6 +13,7 @@ import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOver
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
@@ -172,27 +173,32 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
     );
   }, [props.func, props.project]);
 
+  let rendered = <TextTruncateOverflow>{frame.name}</TextTruncateOverflow>;
+  if (defined(props.func['examples()']?.[0])) {
+    rendered = (
+      <Link
+        onClick={props.onSlowestFunctionClick}
+        to={generateProfileFlamechartRouteWithQuery({
+          orgSlug: props.organization.slug,
+          projectSlug: props.project?.slug ?? '',
+          profileId: props.func['examples()']?.[0] as string,
+          query: {
+            // specify the frame to focus, the flamegraph will switch
+            // to the appropriate thread when these are specified
+            frameName: frame.name as string,
+            framePackage: frame.package as string,
+          },
+        })}
+      >
+        {rendered}
+      </Link>
+    );
+  }
+
   return (
     <SlowestFunctionRow>
       <SlowestFunctionMainRow>
-        <div>
-          <Link
-            onClick={props.onSlowestFunctionClick}
-            to={generateProfileFlamechartRouteWithQuery({
-              orgSlug: props.organization.slug,
-              projectSlug: props.project?.slug ?? '',
-              profileId: (props.func['examples()']?.[0] as string) ?? '',
-              query: {
-                // specify the frame to focus, the flamegraph will switch
-                // to the appropriate thread when these are specified
-                frameName: frame.name as string,
-                framePackage: frame.package as string,
-              },
-            })}
-          >
-            <TextTruncateOverflow>{frame.name}</TextTruncateOverflow>
-          </Link>
-        </div>
+        <div>{rendered}</div>
         <div>
           <PerformanceDuration nanoseconds={props.func['sum()'] as number} abbreviation />
         </div>
