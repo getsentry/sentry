@@ -146,10 +146,10 @@ class SentryAppInstallationPermissionTest(TestCase):
         request.superuser = Superuser(request)
         request.superuser.set_logged_in(request.user)
 
-        assert self.permission.has_object_permission(request, None, self.sentry_app)
+        assert self.permission.has_object_permission(request, None, self.installation)
 
         request.method = "POST"
-        assert self.permission.has_object_permission(request, None, self.sentry_app)
+        assert self.permission.has_object_permission(request, None, self.installation)
 
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
@@ -158,12 +158,12 @@ class SentryAppInstallationPermissionTest(TestCase):
         request.superuser = Superuser(request)
         request.superuser.set_logged_in(request.user)
 
-        assert self.permission.has_object_permission(request, None, self.sentry_app)
+        assert self.permission.has_object_permission(request, None, self.installation)
 
         request.method = "POST"
 
         with pytest.raises(Http404):
-            self.permission.has_object_permission(request, None, self.sentry_app)
+            self.permission.has_object_permission(request, None, self.installation)
 
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
@@ -173,12 +173,12 @@ class SentryAppInstallationPermissionTest(TestCase):
         request.superuser.set_logged_in(request.user)
         request.access = self.create_request_access(permissions=["superuser.write"])
 
-        assert self.permission.has_object_permission(request, None, self.sentry_app)
+        assert self.permission.has_object_permission(request, None, self.installation)
 
         request.method = "POST"
 
         with pytest.raises(Http404):
-            self.permission.has_object_permission(request, None, self.sentry_app)
+            self.permission.has_object_permission(request, None, self.installation)
 
 
 @control_silo_test
