@@ -24,13 +24,13 @@ import {
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
-import type {
-  MetricCorrelation,
-  MetricWidgetQueryParams,
+import {
+  type MetricCorrelation,
+  MetricDisplayType,
+  type MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
-import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
+import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {MetricChart} from 'sentry/views/ddm/chart';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
@@ -124,19 +124,6 @@ export const MetricWidget = memo(
       onChange(index, {displayType: value});
     };
 
-    const samplesQuery = useMetricSamples(metricsQuery.mri, {
-      ...focusArea?.selection?.range,
-      query: metricsQuery.query,
-    });
-
-    const samples = useMemo(() => {
-      return {
-        data: samplesQuery.data,
-        onClick: onSampleClick,
-        higlightedId: highlightedSampleId,
-      };
-    }, [samplesQuery.data, onSampleClick, highlightedSampleId]);
-
     const widgetTitle = metricsQuery.title ?? stringifyMetricWidget(metricsQuery);
 
     return (
@@ -180,8 +167,9 @@ export const MetricWidget = memo(
                 environments={environments}
                 onChange={handleChange}
                 focusArea={focusArea}
-                samples={samples}
+                onSampleClick={onSampleClick}
                 chartHeight={300}
+                highlightedSampleId={highlightedSampleId}
                 {...widget}
               />
             ) : (
@@ -205,14 +193,9 @@ interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   chartHeight?: number;
   focusArea?: FocusAreaProps;
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
+  highlightedSampleId?: string;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
-  samples?: SamplesProps;
-}
-
-export interface SamplesProps {
-  data?: MetricCorrelation[];
-  higlightedId?: string;
-  onClick?: (sample: Sample) => void;
+  onSampleClick?: (sample: Sample) => void;
 }
 
 export const MetricWidgetBody = memo(
@@ -220,12 +203,13 @@ export const MetricWidgetBody = memo(
     onChange,
     displayType,
     focusedSeries,
+    highlightedSampleId,
     sort,
     widgetIndex,
     getChartPalette = createChartPalette,
     focusArea,
     chartHeight,
-    samples,
+    onSampleClick,
     ...metricsQuery
   }: MetricWidgetBodyProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
@@ -247,6 +231,11 @@ export const MetricWidgetBody = memo(
       },
       {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
     );
+
+    const {data: samplesData} = useCorrelatedSamples(mri, {
+      ...focusArea?.selection?.range,
+      query,
+    });
 
     const chartRef = useRef<ReactEchartsRef>(null);
 
@@ -288,6 +277,17 @@ export const MetricWidgetBody = memo(
       focusedSeries?.seriesName,
       metricsQuery.groupBy,
     ]);
+
+    const correlations = useMemo(() => {
+      return (
+        samplesData
+          ? samplesData.metrics
+              .map(m => m.metricSpans)
+              .flat()
+              .filter(correlation => !!correlation)
+          : []
+      ) as MetricCorrelation[];
+    }, [samplesData]);
 
     const handleSortChange = useCallback(
       newSort => {
@@ -331,7 +331,9 @@ export const MetricWidgetBody = memo(
           operation={metricsQuery.op}
           widgetIndex={widgetIndex}
           height={chartHeight}
-          scatter={samples}
+          highlightedSampleId={highlightedSampleId}
+          correlations={correlations}
+          onSampleClick={onSampleClick}
           focusArea={focusArea}
         />
         {metricsQuery.showSummaryTable && (
