@@ -24,7 +24,6 @@ class PipelineView(BaseView, abc.ABC):
         Called on request, the active pipeline is passed in which can and
         should be used to bind data and traverse the pipeline.
         """
-        pass
 
     @staticmethod
     def render_react_view(

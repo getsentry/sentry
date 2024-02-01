@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping
 
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
@@ -19,7 +19,7 @@ class EscalatingActivityNotification(GroupActivityNotification):
 
         return self.title
 
-    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         forecast = int(self.activity.data.get("forecast", 0))
         expired_snooze = self.activity.data.get("expired_snooze")
 

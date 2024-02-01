@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Dict, MutableMapping
+from typing import Any, MutableMapping
 
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
 from .base import BaseEvent, compute_title_with_tree_label
 
-Metadata = Dict[str, Any]
+Metadata = dict[str, Any]
 
 
 def get_crash_location(data):

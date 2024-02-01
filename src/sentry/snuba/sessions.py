@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Sequence, Set, Tuple
+from typing import Optional, Sequence
 
 from snuba_sdk import Request
 from snuba_sdk.column import Column
@@ -131,11 +131,11 @@ def _check_has_health_data(projects_list, now=None):
 
 def _check_releases_have_health_data(
     organization_id: int,
-    project_ids: List[int],
-    release_versions: List[str],
+    project_ids: list[int],
+    release_versions: list[str],
     start: datetime,
     end: datetime,
-) -> Set[str]:
+) -> set[str]:
     """
     Returns a set of all release versions that have health data within a given period of time.
     """
@@ -872,7 +872,7 @@ def _get_num_sessions_per_project(
     end: datetime,
     environment_ids: Optional[Sequence[int]] = None,
     rollup: Optional[int] = None,  # rollup in seconds
-) -> Sequence[Tuple[int, int]]:
+) -> Sequence[tuple[int, int]]:
 
     filters = {"project_id": list(project_ids)}
 

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Tuple
 
 from rest_framework.request import Request
 
@@ -27,7 +26,7 @@ class ElevatedMode(ABC):
         pass
 
     @abstractmethod
-    def is_privileged_request(self) -> Tuple[bool, InactiveReason]:
+    def is_privileged_request(self) -> tuple[bool, InactiveReason]:
         pass
 
     @abstractmethod

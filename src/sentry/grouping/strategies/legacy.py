@@ -1,6 +1,6 @@
 import posixpath
 import re
-from typing import Any, Optional, Tuple
+from typing import Any, Optional
 
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
@@ -94,7 +94,7 @@ def is_recursion_legacy(frame1: Frame, frame2: Frame) -> bool:
     return True
 
 
-def remove_module_outliers_legacy(module: str, platform: str) -> Tuple[str, Optional[str]]:
+def remove_module_outliers_legacy(module: str, platform: str) -> tuple[str, Optional[str]]:
     """Remove things that augment the module but really should not."""
     if platform == "java":
         if module[:35] == "sun.reflect.GeneratedMethodAccessor":
@@ -111,7 +111,7 @@ def remove_module_outliers_legacy(module: str, platform: str) -> Tuple[str, Opti
     return module, None
 
 
-def remove_filename_outliers_legacy(filename: str, platform: str) -> Tuple[str, Optional[str]]:
+def remove_filename_outliers_legacy(filename: str, platform: str) -> tuple[str, Optional[str]]:
     """
     Attempt to normalize filenames by removing common platform outliers.
 
@@ -143,7 +143,7 @@ def remove_filename_outliers_legacy(filename: str, platform: str) -> Tuple[str, 
     return filename, None
 
 
-def remove_function_outliers_legacy(function: str) -> Tuple[str, Optional[str]]:
+def remove_function_outliers_legacy(function: str) -> tuple[str, Optional[str]]:
     """
     Attempt to normalize functions by removing common platform outliers.
 

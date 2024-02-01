@@ -6,19 +6,7 @@ import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -142,7 +130,7 @@ class GroupInfo:
     group: Group
     is_new: bool
     is_regression: bool
-    group_release: Optional[GroupRelease] = None
+    group_release: GroupRelease | None = None
     is_new_group_environment: bool = False
 
 
@@ -159,7 +147,7 @@ def set_tag(data: dict[str, Any], key: str, value: Any) -> None:
         data.setdefault("tags", []).append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
 
 
-def get_tag(data: dict[str, Any], key: str) -> Optional[Any]:
+def get_tag(data: dict[str, Any], key: str) -> Any | None:
     for k, v in get_path(data, "tags", filter=True) or ():
         if k == key:
             return v
@@ -237,9 +225,7 @@ def has_pending_commit_resolution(group: Group) -> bool:
         return True
 
 
-def get_max_crashreports(
-    model: Union[Project, Organization], allow_none: bool = False
-) -> Optional[int]:
+def get_max_crashreports(model: Project | Organization, allow_none: bool = False) -> int | None:
     value = model.get_option("sentry:store_crash_reports")
     return convert_crashreport_count(value, allow_none=allow_none)
 
@@ -250,7 +236,7 @@ def crashreports_exceeded(current_count: int, max_count: int) -> bool:
     return current_count >= max_count
 
 
-def get_stored_crashreports(cache_key: Optional[str], event: Event, max_crashreports: int) -> int:
+def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreports: int) -> int:
     # There are two common cases: Storing crash reports is disabled, or is
     # unbounded. In both cases, there is no need in caching values or querying
     # the database.
@@ -311,17 +297,17 @@ class EventManager:
         self,
         data: dict[str, Any],
         version: str = "5",
-        project: Optional[Project] = None,
-        grouping_config: Optional[GroupingConfig] = None,
-        client_ip: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        auth: Optional[Any] = None,
-        key: Optional[Any] = None,
-        content_encoding: Optional[str] = None,
+        project: Project | None = None,
+        grouping_config: GroupingConfig | None = None,
+        client_ip: str | None = None,
+        user_agent: str | None = None,
+        auth: Any | None = None,
+        key: Any | None = None,
+        content_encoding: str | None = None,
         is_renormalize: bool = False,
-        remove_other: Optional[bool] = None,
-        project_config: Optional[Any] = None,
-        sent_at: Optional[datetime] = None,
+        remove_other: bool | None = None,
+        project_config: Any | None = None,
+        sent_at: datetime | None = None,
     ):
         self._data = CanonicalKeyDict(data)
         self.version = version
@@ -344,11 +330,11 @@ class EventManager:
         self.project_config = project_config
         self.sent_at = sent_at
 
-    def normalize(self, project_id: Optional[int] = None) -> None:
+    def normalize(self, project_id: int | None = None) -> None:
         with metrics.timer("events.store.normalize.duration"):
             self._normalize_impl(project_id=project_id)
 
-    def _normalize_impl(self, project_id: Optional[int] = None) -> None:
+    def _normalize_impl(self, project_id: int | None = None) -> None:
         if self._project and project_id and project_id != self._project.id:
             raise RuntimeError(
                 "Initialized EventManager with one project ID and called save() with another one"
@@ -389,11 +375,11 @@ class EventManager:
     @metrics.wraps("event_manager.save")
     def save(
         self,
-        project_id: Optional[int],
+        project_id: int | None,
         raw: bool = False,
         assume_normalized: bool = False,
-        start_time: Optional[int] = None,
-        cache_key: Optional[str] = None,
+        start_time: int | None = None,
+        cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
     ) -> Event:
         """
@@ -474,7 +460,7 @@ class EventManager:
         projects: ProjectsMapping,
         metric_tags: MutableTags,
         raw: bool = False,
-        cache_key: Optional[str] = None,
+        cache_key: str | None = None,
     ) -> Event:
         jobs = [job]
 
@@ -844,7 +830,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
                             sentry_sdk.capture_exception()
 
 
-def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
+def _get_environment_from_transaction(data: EventDict) -> str | None:
     environment = data.get("environment", None)
     # We handle the case in which the users sets the empty string as environment, for us that
     # is equal to having no environment at all.
@@ -925,7 +911,7 @@ def _materialize_metadata_many(jobs: Sequence[Job]) -> None:
         job["culprit"] = data["culprit"]
 
 
-def _get_group_creation_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
+def _get_group_creation_kwargs(job: Job | PerformanceJob) -> dict[str, Any]:
     kwargs = {
         "platform": job["platform"],
         "message": job["event"].search_message,
@@ -958,7 +944,7 @@ def _get_or_create_group_environment_many(jobs: Sequence[Job], projects: Project
 
 
 def _get_or_create_group_environment(
-    environment: Environment, release: Optional[Release], groups: Sequence[GroupInfo]
+    environment: Environment, release: Release | None, groups: Sequence[GroupInfo]
 ) -> None:
     for group_info in groups:
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
@@ -1005,7 +991,7 @@ def _increment_release_associated_counts_many(
 def _increment_release_associated_counts(
     project: Project,
     environment: Environment,
-    release: Optional[Release],
+    release: Release | None,
     groups: Sequence[GroupInfo],
 ) -> None:
     if not release:
@@ -1046,7 +1032,7 @@ def _get_or_create_group_release_many(jobs: Sequence[Job], projects: ProjectsMap
 
 def _get_or_create_group_release(
     environment: Environment,
-    release: Optional[Release],
+    release: Release | None,
     event: BaseEvent,
     groups: Sequence[GroupInfo],
 ) -> None:
@@ -1249,14 +1235,14 @@ def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
     )
 
 
-def _get_event_user(project: Project, data: Mapping[str, Any]) -> Optional[EventUser]:
+def _get_event_user(project: Project, data: Mapping[str, Any]) -> EventUser | None:
     with metrics.timer("event_manager.get_event_user") as metrics_tags:
         return _get_event_user_impl(project, data, metrics_tags)
 
 
 def _get_event_user_impl(
     project: Project, data: Mapping[str, Any], metrics_tags: MutableTags
-) -> Optional[EventUser]:
+) -> EventUser | None:
     user_data = data.get("user")
     if not user_data:
         metrics_tags["event_has_user"] = "false"
@@ -1288,7 +1274,7 @@ def get_event_type(data: Mapping[str, Any]) -> EventType:
     return eventtypes.get(data.get("type", "default"))()
 
 
-EventMetadata = Dict[str, Any]
+EventMetadata = dict[str, Any]
 
 
 def materialize_metadata(
@@ -1339,10 +1325,10 @@ def get_culprit(data: Mapping[str, Any]) -> str:
 def _save_aggregate(
     event: Event,
     job: Job,
-    release: Optional[Release],
-    received_timestamp: Union[int, float],
+    release: Release | None,
+    received_timestamp: int | float,
     metric_tags: MutableTags,
-) -> Optional[GroupInfo]:
+) -> GroupInfo | None:
     project = event.project
 
     primary_hashes, secondary_hashes, hashes = get_hash_values(project, job, metric_tags)
@@ -1617,7 +1603,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     )
 
 
-def _handle_regression(group: Group, event: Event, release: Optional[Release]) -> Optional[bool]:
+def _handle_regression(group: Group, event: Event, release: Release | None) -> bool | None:
     if not group.is_resolved():
         return None
 
@@ -1760,7 +1746,7 @@ def _handle_regression(group: Group, event: Event, release: Optional[Release]) -
 
 
 def _process_existing_aggregate(
-    group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Optional[Release]
+    group: Group, event: Event, incoming_group_values: Mapping[str, Any], release: Release | None
 ) -> bool:
     last_seen = max(event.datetime, group.last_seen)
     updated_group_values: dict[str, Any] = {"last_seen": last_seen}
@@ -1885,7 +1871,7 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         return PriorityLevel.MEDIUM
 
 
-def _get_severity_score(event: Event) -> Tuple[float, str]:
+def _get_severity_score(event: Event) -> tuple[float, str]:
     # Short circuit the severity value if we know the event is fatal or info/debug
     level = str(event.data.get("level", "error"))
     if LOG_LEVELS_MAP[level] == logging.FATAL:
@@ -2054,7 +2040,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     )
 
 
-def get_attachments(cache_key: Optional[str], job: Job) -> list[Attachment]:
+def get_attachments(cache_key: str | None, job: Job) -> list[Attachment]:
     """
     Retrieves the list of attachments for this event.
 
@@ -2176,13 +2162,13 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
 
 @sentry_sdk.tracing.trace
 def save_attachment(
-    cache_key: Optional[str],
+    cache_key: str | None,
     attachment: Attachment,
     project: Project,
     event_id: str,
-    key_id: Optional[int] = None,
-    group_id: Optional[int] = None,
-    start_time: Optional[Union[float, int]] = None,
+    key_id: int | None = None,
+    group_id: int | None = None,
+    start_time: float | int | None = None,
 ) -> None:
     """
     Persists a cached event attachments into the file store.
@@ -2257,7 +2243,7 @@ def save_attachment(
     )
 
 
-def save_attachments(cache_key: Optional[str], attachments: list[Attachment], job: Job) -> None:
+def save_attachments(cache_key: str | None, attachments: list[Attachment], job: Job) -> None:
     """
     Persists cached event attachments into the file store.
 
@@ -2352,7 +2338,7 @@ def _save_grouphash_and_group(
     event: Event,
     new_grouphash: str,
     **group_kwargs: Any,
-) -> Tuple[Group, bool]:
+) -> tuple[Group, bool]:
     group = None
     with transaction.atomic(router.db_for_write(GroupHash)):
         group_hash, created = GroupHash.objects.get_or_create(project=project, hash=new_grouphash)

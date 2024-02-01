@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import secrets
-from typing import Any, ClassVar, Optional, Tuple
+from typing import Any, ClassVar
 from urllib.parse import urlparse
 
 import petname
@@ -298,7 +298,7 @@ class ProjectKey(Model):
 
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # If there is a key collision, generate new keys.
         matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()
         if not self.public_key or matching_public_key:

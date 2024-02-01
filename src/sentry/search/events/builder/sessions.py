@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 from snuba_sdk import Column, Entity, Flags, Granularity, Query, Request
 
@@ -29,7 +29,7 @@ class SessionsV2QueryBuilder(QueryBuilder):
         self.granularity = Granularity(granularity) if granularity is not None else None
         super().__init__(*args, **kwargs)
 
-    def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
+    def resolve_groupby(self, groupby_columns: Optional[list[str]] = None) -> list[SelectType]:
         """
         The default QueryBuilder `resolve_groupby` function needs to be overridden here because, it only adds the
         columns in the groupBy clause to the query if the query has `aggregates` present in it. For this specific case

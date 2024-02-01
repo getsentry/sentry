@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Sequence, TypedDict
+from typing import Any, Sequence, TypedDict
 
 from django.utils import timezone
 
@@ -38,7 +38,7 @@ def handle_archived_until_escalating(
     acting_user: User | None,
     projects: Sequence[Project],
     sender: Any,
-) -> Dict[str, bool]:
+) -> dict[str, bool]:
     """
     Handle issues that are archived until escalating and create a forecast for them.
 
@@ -77,7 +77,7 @@ def handle_archived_until_escalating(
 def handle_ignored(
     group_ids: Sequence[Group],
     group_list: Sequence[Group],
-    status_details: Dict[str, Any],
+    status_details: dict[str, Any],
     acting_user: User | None,
     user: User | RpcUser,
 ) -> IgnoredStatusDetails:

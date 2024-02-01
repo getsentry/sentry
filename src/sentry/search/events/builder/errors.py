@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import List, Optional
 
 from snuba_sdk import (
     AliasedExpression,
@@ -32,7 +31,7 @@ class ErrorsQueryBuilderMixin:
         self.entities = set()
         super().__init__(*args, **kwargs)
 
-    def parse_query(self, query: Optional[str]) -> ParsedTerms:
+    def parse_query(self, query: str | None) -> ParsedTerms:
         parsed_terms = super().parse_query(query)
         parsed_terms = convert_query_values(
             parsed_terms,
@@ -67,10 +66,10 @@ class ErrorsQueryBuilderMixin:
 
     def resolve_query(
         self,
-        query: Optional[str] = None,
-        selected_columns: Optional[List[str]] = None,
-        groupby_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        groupby_columns: list[str] | None = None,
+        equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
         super().resolve_query(query, selected_columns, groupby_columns, equations, orderby)

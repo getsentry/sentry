@@ -22,7 +22,9 @@ import {
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
+  isSpanMetric,
   isTransactionDuration,
+  stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import type {
@@ -52,7 +54,10 @@ type InlineEditorProps = {
 };
 
 const isShownByDefault = (metric: MetricMeta) =>
-  isMeasurement(metric) || isCustomMetric(metric) || isTransactionDuration(metric);
+  isCustomMetric(metric) ||
+  isTransactionDuration(metric) ||
+  isMeasurement(metric) ||
+  isSpanMetric(metric);
 
 export const InlineEditor = memo(function InlineEditor({
   metricsQuery,
@@ -109,6 +114,7 @@ export const InlineEditor = memo(function InlineEditor({
               <WidgetTitleInput
                 value={title}
                 size="sm"
+                placeholder={stringifyMetricWidget(metricsQuery)}
                 onChange={e => {
                   onTitleChange?.(e.target.value);
                 }}

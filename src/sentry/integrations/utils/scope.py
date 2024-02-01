@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Mapping
+from typing import Any, Mapping
 
 from sentry_sdk import configure_scope
 
@@ -39,7 +39,7 @@ def clear_tags_and_context() -> None:
 
 def get_org_integrations(
     integration_id: int,
-) -> List[RpcOrganizationIntegration]:
+) -> list[RpcOrganizationIntegration]:
     """
     Given the id of an `Integration`, return a list of associated `RpcOrganizationIntegration` objects.
 

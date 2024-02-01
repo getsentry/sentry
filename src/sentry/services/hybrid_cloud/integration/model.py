@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
@@ -22,7 +22,7 @@ class RpcIntegration(RpcModel):
     provider: str
     external_id: str
     name: str
-    metadata: Dict[str, Any]
+    metadata: dict[str, Any]
     status: int
 
     def __hash__(self) -> int:
@@ -55,7 +55,7 @@ class RpcOrganizationIntegration(RpcModel):
     default_auth_id: Optional[int]
     organization_id: int
     integration_id: int
-    config: Dict[str, Any]
+    config: dict[str, Any]
     status: int  # As ObjectStatus
     grace_period_end: Optional[datetime]
 

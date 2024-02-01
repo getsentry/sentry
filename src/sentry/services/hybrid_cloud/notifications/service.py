@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
-from typing import List, Mapping, MutableMapping, Optional, Set, Tuple
+from typing import Mapping, MutableMapping, Optional
 
 from sentry.notifications.types import (
     NotificationScopeEnum,
@@ -36,7 +36,7 @@ class NotificationsService(RpcService):
         external_provider: ExternalProviderEnum,
         user_id: Optional[int] = None,
         team_id: Optional[int] = None,
-        types: Optional[List[NotificationSettingEnum]] = None,
+        types: Optional[list[NotificationSettingEnum]] = None,
     ) -> None:
         pass
 
@@ -76,9 +76,9 @@ class NotificationsService(RpcService):
         self,
         *,
         user_id: int,
-        project_ids: List[int],
+        project_ids: list[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, Tuple[bool, bool, bool]]:
+    ) -> Mapping[int, tuple[bool, bool, bool]]:
         pass
 
     @rpc_method
@@ -86,9 +86,9 @@ class NotificationsService(RpcService):
     def get_participants(
         self,
         *,
-        recipients: List[RpcActor],
+        recipients: list[RpcActor],
         type: NotificationSettingEnum,
-        project_ids: Optional[List[int]] = None,
+        project_ids: Optional[list[int]] = None,
         organization_id: Optional[int] = None,
     ) -> MutableMapping[int, MutableMapping[int, str]]:
         pass
@@ -96,8 +96,8 @@ class NotificationsService(RpcService):
     @rpc_method
     @abstractmethod
     def get_users_for_weekly_reports(
-        self, *, organization_id: int, user_ids: List[int]
-    ) -> List[int]:
+        self, *, organization_id: int, user_ids: list[int]
+    ) -> list[int]:
         pass
 
     @rpc_method
@@ -105,12 +105,12 @@ class NotificationsService(RpcService):
     def get_notification_recipients(
         self,
         *,
-        recipients: List[RpcActor],
+        recipients: list[RpcActor],
         type: NotificationSettingEnum,
         organization_id: Optional[int] = None,
-        project_ids: Optional[List[int]] = None,
+        project_ids: Optional[list[int]] = None,
         actor_type: Optional[ActorType] = None,
-    ) -> Mapping[str, Set[RpcActor]]:
+    ) -> Mapping[str, set[RpcActor]]:
         pass
 
 

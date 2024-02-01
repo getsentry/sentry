@@ -123,12 +123,16 @@ describe('CompactSelect', function () {
 
     // press arrow up and second option in the first region gets focus
     await userEvent.keyboard('{ArrowUp}');
-    expect(screen.getByRole('option', {name: 'Choice Two'})).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByRole('option', {name: 'Choice Two'})).toHaveFocus();
+    });
 
     // press arrow down 3 times and focus moves to the third and fourth option, before
     // wrapping back to the first option
     await userEvent.keyboard('{ArrowDown>3}');
-    expect(screen.getByRole('option', {name: 'Choice One'})).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByRole('option', {name: 'Choice One'})).toHaveFocus();
+    });
   });
 
   it('has separate, async self-contained select regions', async function () {

@@ -123,6 +123,7 @@ export function PageOverviewSidebar({
         fid: projectScore.fidWeight,
         lcp: projectScore.lcpWeight,
         ttfb: projectScore.ttfbWeight,
+        inp: projectScore.inpWeight,
       }
     : undefined;
 
