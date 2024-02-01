@@ -1,7 +1,7 @@
 import type {BaseButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconPause, IconPlay, IconPrevious} from 'sentry/icons';
+import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 function ReplayPlayPauseButton(props: BaseButtonProps) {
@@ -10,7 +10,7 @@ function ReplayPlayPauseButton(props: BaseButtonProps) {
   return isFinished ? (
     <Button
       title={t('Restart Replay')}
-      icon={<IconPrevious size="md" />}
+      icon={<IconRefresh size="md" />}
       onClick={restart}
       aria-label={t('Restart Replay')}
       priority="primary"
