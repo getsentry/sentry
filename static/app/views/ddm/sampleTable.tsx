@@ -1,6 +1,7 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, memo, useCallback, useMemo, useRef, useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 import * as qs from 'query-string';
 
@@ -57,7 +58,6 @@ function sortAndLimitSpans(samples?: SpanSummary[], limit: number = 5) {
 }
 
 interface SamplesTableProps extends SelectionRange {
-  highlightedRow?: string | null;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   query?: string;
@@ -76,9 +76,8 @@ const defaultColumnOrder: GridColumnOrder<keyof MetricCorrelation>[] = [
   {key: 'profileId', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
 ];
 
-export function SampleTable({
+export const SampleTable = memo(function InnerSampleTable({
   mri,
-  highlightedRow,
   onRowHover,
   ...metricMetaOptions
 }: SamplesTableProps) {
@@ -133,87 +132,60 @@ export function SampleTable({
     }
 
     const project = projects.find(p => parseInt(p.id, 10) === row.projectId);
-    const highlighted = row.transactionId === highlightedRow;
 
     if (key === 'transactionId') {
       return (
-        <BodyCell
-          rowId={row.transactionId}
-          onHover={onRowHover}
-          highlighted={highlighted}
+        <Link
+          to={getMetricsCorrelationSpanUrl(
+            organization,
+            project?.slug,
+            row.spansDetails[0]?.spanId,
+            row.transactionId,
+            row.transactionSpanId
+          )}
+          onClick={() => trackClick('event-id')}
+          target="_blank"
         >
-          <Link
-            to={getMetricsCorrelationSpanUrl(
-              organization,
-              project?.slug,
-              row.spansDetails[0]?.spanId,
-              row.transactionId,
-              row.transactionSpanId
-            )}
-            onClick={() => trackClick('event-id')}
-            target="_blank"
-          >
-            {row.transactionId.slice(0, 8)}
-          </Link>
-        </BodyCell>
+          {row.transactionId.slice(0, 8)}
+        </Link>
       );
     }
     if (key === 'segmentName') {
       return (
-        <BodyCell
-          rowId={row.transactionId}
-          onHover={onRowHover}
-          highlighted={highlighted}
-        >
-          <TextOverflow>
-            <Tooltip title={project?.slug}>
-              <StyledPlatformIcon platform={project?.platform || 'default'} />
-            </Tooltip>
-            <Link
-              to={normalizeUrl(
-                `/organizations/${organization.slug}/performance/summary/?${qs.stringify({
-                  ...extractSelectionParameters(location.query),
-                  project: project?.id,
-                  transaction: row.segmentName,
-                  referrer: 'metrics',
-                })}`
-              )}
-              onClick={() => trackClick('transaction')}
-            >
-              {row.segmentName}
-            </Link>
-          </TextOverflow>
-        </BodyCell>
+        <TextOverflow>
+          <Tooltip title={project?.slug}>
+            <StyledPlatformIcon platform={project?.platform || 'default'} />
+          </Tooltip>
+          <Link
+            to={normalizeUrl(
+              `/organizations/${organization.slug}/performance/summary/?${qs.stringify({
+                ...extractSelectionParameters(location.query),
+                project: project?.id,
+                transaction: row.segmentName,
+                referrer: 'metrics',
+              })}`
+            )}
+            onClick={() => trackClick('transaction')}
+          >
+            {row.segmentName}
+          </Link>
+        </TextOverflow>
       );
     }
     if (key === 'duration') {
       // We get duration in miliseconds, but getDuration expects seconds
-      return (
-        <BodyCell
-          rowId={row.transactionId}
-          onHover={onRowHover}
-          highlighted={highlighted}
-        >
-          {getDuration(row.duration / 1000, 2, true)}
-        </BodyCell>
-      );
+      return getDuration(row.duration / 1000, 2, true);
     }
     if (key === 'traceId') {
       return (
-        <BodyCell
-          rowId={row.transactionId}
-          onHover={onRowHover}
-          highlighted={highlighted}
+        <Link
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/performance/trace/${row.traceId}/`
+          )}
+          onClick={() => trackClick('trace-id')}
         >
-          <Link
-            to={normalizeUrl(
-              `/organizations/${organization.slug}/performance/trace/${row.traceId}/`
-            )}
-            onClick={() => trackClick('trace-id')}
-          >
-            {row.traceId.slice(0, 8)}
-          </Link>
-        </BodyCell>
+          {row.traceId.slice(0, 8)}
+        </Link>
       );
     }
     if (key === 'spansSummary') {
@@ -262,17 +234,11 @@ export function SampleTable({
     }
     if (key === 'timestamp') {
       return (
-        <BodyCell
-          rowId={row.transactionId}
-          onHover={onRowHover}
-          highlighted={highlighted}
-        >
-          <Tooltip title={row.timestamp} showOnlyOnOverflow>
-            <TextOverflow>
-              <DateTime date={row.timestamp} />
-            </TextOverflow>
-          </Tooltip>
-        </BodyCell>
+        <Tooltip title={row.timestamp} showOnlyOnOverflow>
+          <TextOverflow>
+            <DateTime date={row.timestamp} />
+          </TextOverflow>
+        </Tooltip>
       );
     }
     if (key === 'profileId') {
@@ -293,15 +259,55 @@ export function SampleTable({
       );
     }
 
-    return (
-      <BodyCell rowId={row.transactionId} onHover={onRowHover} highlighted={highlighted}>
-        {row[col.key]}
-      </BodyCell>
-    );
+    return row[col.key];
   }
 
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const currentHoverIdRef = useRef<string | null>(null);
+
+  // TODO(aknaus): Clean up by adding propper event listeners to the grid component
+  const handleMouseMove = useMemo(
+    () =>
+      debounce((event: React.MouseEvent) => {
+        const wrapper = wrapperRef.current;
+        const target = event.target;
+
+        if (!wrapper || !(target instanceof Element)) {
+          onRowHover?.(undefined);
+          currentHoverIdRef.current = null;
+          return;
+        }
+
+        const tableRow = (target as Element).closest('tbody >tr');
+        if (!tableRow) {
+          onRowHover?.(undefined);
+          currentHoverIdRef.current = null;
+          return;
+        }
+
+        const rows = Array.from(wrapper.querySelectorAll('tbody > tr'));
+        const rowIndex = rows.indexOf(tableRow);
+        const rowId = data?.[rowIndex]?.transactionId;
+
+        if (!rowId) {
+          onRowHover?.(undefined);
+          currentHoverIdRef.current = null;
+          return;
+        }
+        if (currentHoverIdRef.current !== rowId) {
+          onRowHover?.(rowId);
+          currentHoverIdRef.current = rowId;
+        }
+      }, 10),
+    [data, onRowHover]
+  );
+
   return (
-    <Wrapper>
+    <Wrapper
+      ref={wrapperRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => onRowHover?.(undefined)}
+    >
       <GridEditable
         isLoading={isFetching}
         columnOrder={columnOrder}
@@ -317,27 +323,7 @@ export function SampleTable({
       />
     </Wrapper>
   );
-}
-
-function BodyCell({children, rowId, highlighted, onHover}: any) {
-  const handleMouseOver = useCallback(() => {
-    onHover(rowId);
-  }, [onHover, rowId]);
-
-  const handleMouseOut = useCallback(() => {
-    onHover(null);
-  }, [onHover]);
-
-  return (
-    <BodyCellWrapper
-      onMouseOver={handleMouseOver}
-      onMouseOut={handleMouseOut}
-      highlighted={highlighted}
-    >
-      {children}
-    </BodyCellWrapper>
-  );
-}
+});
 
 const Wrapper = styled('div')`
   tr:hover {
@@ -346,8 +332,6 @@ const Wrapper = styled('div')`
     }
   }
 `;
-
-const BodyCellWrapper = styled('span')<{highlighted?: boolean}>``;
 
 const AlignCenter = styled('span')`
   display: block;
