@@ -1943,7 +1943,7 @@ def test_event_type(
     query: str,
     config_assertion: bool,
     expected_hashes: list[str],
-    expected_condition: Optional[RuleCondition],
+    expected_condition: RuleCondition | None,
 ) -> None:
     aggr = "count()"
 
