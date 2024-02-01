@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, TypeVar, Union
+from typing import Any, Callable, Mapping, MutableMapping, Sequence, TypeVar
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -26,9 +26,9 @@ def register(type: Any) -> Callable[[type[K]], type[K]]:
 
 
 def serialize(
-    objects: Union[Any, Sequence[Any]],
-    user: Optional[Any] = None,
-    serializer: Optional[Any] = None,
+    objects: Any | Sequence[Any],
+    user: Any | None = None,
+    serializer: Any | None = None,
     **kwargs: Any,
 ) -> Any:
     """
@@ -83,7 +83,7 @@ class Serializer:
 
     def __call__(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> Optional[Mapping[str, Any]]:
+    ) -> Mapping[str, Any] | None:
         """See documentation for `serialize`."""
         if obj is None:
             return None
@@ -104,7 +104,7 @@ class Serializer:
 
     def _serialize(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> Optional[Mapping[str, JSONData]]:
+    ) -> Mapping[str, JSONData] | None:
         try:
             return self.serialize(obj, attrs, user, **kwargs)
         except Exception:

@@ -6,7 +6,7 @@ import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, ClassVar, Optional, Union, cast
+from typing import Any, ClassVar, cast
 from urllib.parse import parse_qs, urlparse
 
 from sentry import options
@@ -162,7 +162,7 @@ class PerformanceDetector(ABC):
         return True
 
     @classmethod
-    def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
+    def is_event_eligible(cls, event, project: Project | None = None) -> bool:
         return True
 
 
@@ -381,7 +381,7 @@ def fingerprint_http_spans(spans: list[Span]) -> str:
 
 
 def get_span_evidence_value(
-    span: Union[dict[str, Union[str, float]], None] = None, include_op: bool = True
+    span: dict[str, str | float] | None = None, include_op: bool = True
 ) -> str:
     """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from django.db.models import Q
 
@@ -147,7 +147,7 @@ def get_participants_for_group(group: Group, user_id: int | None = None) -> Part
 
 
 def get_reason(
-    user: Union[User, RpcActor],
+    user: User | RpcActor,
     value: NotificationSettingsOptionEnum,
     user_ids: set[int],
 ) -> int | None:
@@ -526,9 +526,9 @@ def combine_recipients_by_provider(
 def get_notification_recipients(
     recipients: Iterable[RpcActor],
     type: NotificationSettingEnum,
-    organization_id: Optional[int] = None,
-    project_ids: Optional[list[int]] = None,
-    actor_type: Optional[ActorType] = None,
+    organization_id: int | None = None,
+    project_ids: list[int] | None = None,
+    actor_type: ActorType | None = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     recipients_by_provider = notifications_service.get_notification_recipients(
         recipients=list(recipients),
@@ -549,9 +549,9 @@ def get_notification_recipients(
 def get_notification_recipients_v2(
     recipients: Iterable[RpcActor],
     type: NotificationSettingEnum,
-    organization_id: Optional[int] = None,
-    project_ids: Optional[list[int]] = None,
-    actor_type: Optional[ActorType] = None,
+    organization_id: int | None = None,
+    project_ids: list[int] | None = None,
+    actor_type: ActorType | None = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     return get_notification_recipients(
         recipients=recipients,

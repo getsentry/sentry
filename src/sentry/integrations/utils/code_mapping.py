@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import NamedTuple, Union
+from typing import NamedTuple
 
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -258,7 +258,7 @@ class CodeMappingTreesHelper:
 
         return list(self.code_mappings.values())
 
-    def _find_code_mapping(self, frame_filename: FrameFilename) -> Union[CodeMapping, None]:
+    def _find_code_mapping(self, frame_filename: FrameFilename) -> CodeMapping | None:
         """Look for the file path through all the trees and generate code mappings for it"""
         _code_mappings: list[CodeMapping] = []
         # XXX: This will need optimization by changing the data structure of the trees
@@ -420,7 +420,7 @@ class CodeMappingTreesHelper:
 
 
 def create_code_mapping(
-    organization_integration: Union[OrganizationIntegration, RpcOrganizationIntegration],
+    organization_integration: OrganizationIntegration | RpcOrganizationIntegration,
     project: Project,
     code_mapping: CodeMapping,
 ) -> RepositoryProjectPathConfig:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Sequence
+from typing import Any, Sequence
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -310,7 +310,7 @@ def _determine_extraction_state(
 
 def _get_widget_query_low_cardinality(
     widget_query: DashboardWidgetQuery, organization: Organization
-) -> Optional[bool]:
+) -> bool | None:
     """
     Checks cardinality of existing widget queries before allowing the metric spec, so that
     group-by clauses with high cardinality tags are not added to the on_demand metric.

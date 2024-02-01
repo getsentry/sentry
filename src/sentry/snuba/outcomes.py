@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Mapping, MutableMapping, Optional, Sequence, TypeVar
+from typing import Any, Generic, Mapping, MutableMapping, Sequence, TypeVar
 
 from django.http import QueryDict
 from snuba_sdk import Request
@@ -61,12 +61,12 @@ T = TypeVar("T")
 
 class Field(ABC):
     @abstractmethod
-    def get_snuba_columns(self, raw_groupby: Optional[Sequence[str]] = None) -> list[str]:
+    def get_snuba_columns(self, raw_groupby: Sequence[str] | None = None) -> list[str]:
         raise NotImplementedError()
 
     @abstractmethod
     def extract_from_row(
-        self, row: Optional[Mapping[str, Any]], group: Optional[Mapping[str, Any]] = None
+        self, row: Mapping[str, Any] | None, group: Mapping[str, Any] | None = None
     ) -> int:
         raise NotImplementedError()
 
@@ -76,11 +76,11 @@ class Field(ABC):
 
 
 class QuantityField(Field):
-    def get_snuba_columns(self, raw_groupby: Optional[Sequence[str]] = None) -> list[str]:
+    def get_snuba_columns(self, raw_groupby: Sequence[str] | None = None) -> list[str]:
         return ["quantity"]
 
     def extract_from_row(
-        self, row: Optional[Mapping[str, Any]], group: Optional[Mapping[str, Any]] = None
+        self, row: Mapping[str, Any] | None, group: Mapping[str, Any] | None = None
     ) -> int:
         if row is None:
             return 0
@@ -91,11 +91,11 @@ class QuantityField(Field):
 
 
 class TimesSeenField(Field):
-    def get_snuba_columns(self, raw_groupby: Optional[Sequence[str]] = None) -> list[str]:
+    def get_snuba_columns(self, raw_groupby: Sequence[str] | None = None) -> list[str]:
         return ["times_seen"]
 
     def extract_from_row(
-        self, row: Optional[Mapping[str, Any]], group: Optional[Mapping[str, Any]] = None
+        self, row: Mapping[str, Any] | None, group: Mapping[str, Any] | None = None
     ) -> int:
         if row is None:
             return 0
@@ -231,7 +231,7 @@ class QueryDefinition:
         cls,
         query: QueryDict,
         params: Mapping[Any, Any],
-        allow_minute_resolution: Optional[bool] = True,
+        allow_minute_resolution: bool | None = True,
     ) -> QueryDefinition:
         """
         Create a QueryDefinition from a Django request QueryDict
@@ -257,18 +257,18 @@ class QueryDefinition:
     def __init__(
         self,
         fields: list[str],
-        start: Optional[str] = None,
-        end: Optional[str] = None,
-        stats_period: Optional[str] = None,
-        organization_id: Optional[int] = None,
-        project_ids: Optional[list[int]] = None,
-        key_id: Optional[str | int] = None,
-        interval: Optional[str] = None,
-        outcome: Optional[list[str]] = None,
-        group_by: Optional[list[str]] = None,
-        category: Optional[list[str]] = None,
-        reason: Optional[str] = None,
-        allow_minute_resolution: Optional[bool] = True,
+        start: str | None = None,
+        end: str | None = None,
+        stats_period: str | None = None,
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+        key_id: str | int | None = None,
+        interval: str | None = None,
+        outcome: list[str] | None = None,
+        group_by: list[str] | None = None,
+        category: list[str] | None = None,
+        reason: str | None = None,
+        allow_minute_resolution: bool | None = True,
     ):
         params: MutableMapping[str, Any] = {"organization_id": organization_id}
         if project_ids is not None:
@@ -450,7 +450,7 @@ def _outcomes_dataset(rollup: int) -> tuple[Dataset, str]:
 def massage_outcomes_result(
     query: QueryDefinition,
     result_totals: ResultSet,
-    result_timeseries: Optional[ResultSet],
+    result_timeseries: ResultSet | None,
 ) -> dict[str, list[Any]]:
     result: dict[str, list[Any]] = massage_sessions_result(
         query, result_totals, result_timeseries, ts_col=TS_COL

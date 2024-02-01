@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import re
 from collections import defaultdict
-from typing import Any, MutableMapping, Optional
+from typing import Any, MutableMapping
 
 from django.db.transaction import get_connection
 
@@ -16,7 +16,7 @@ _fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.
 _fencing_counters: MutableMapping[str, int] = defaultdict(int)
 
 
-def match_fence_query(query: str) -> Optional[re.Match[str]]:
+def match_fence_query(query: str) -> re.Match[str] | None:
     return _fence_re.match(query)
 
 

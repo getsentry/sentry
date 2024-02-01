@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import namedtuple
-from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -86,7 +86,7 @@ class Rule(namedtuple("Rule", "matcher owners")):
     def load(cls, data: Mapping[str, Any]) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
-    def test(self, data: Mapping[str, Any]) -> Union[bool, Any]:
+    def test(self, data: Mapping[str, Any]) -> bool | Any:
         return self.matcher.test(data)
 
 
@@ -160,7 +160,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         self,
         frames: Sequence[Mapping[str, Any]],
         keys: Sequence[str],
-        match_frame_value_func: Callable[[Optional[str], str], bool] = lambda val, pattern: bool(
+        match_frame_value_func: Callable[[str | None, str], bool] = lambda val, pattern: bool(
             glob_match(val, pattern, ignorecase=True, path_normalize=True)
         ),
     ) -> bool:
@@ -227,10 +227,10 @@ class Owner(namedtuple("Owner", "type identifier")):
 class OwnershipVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
 
-    def visit_ownership(self, node: Node, children: Sequence[Optional[Rule]]) -> Sequence[Rule]:
+    def visit_ownership(self, node: Node, children: Sequence[Rule | None]) -> Sequence[Rule]:
         return [_f for _f in children if _f]
 
-    def visit_line(self, node: Node, children: tuple[Node, Sequence[Optional[Rule]], Any]) -> Any:
+    def visit_line(self, node: Node, children: tuple[Node, Sequence[Rule | None], Any]) -> Any:
         _, line, _ = children
         comment_or_rule_or_empty = line[0]
         if comment_or_rule_or_empty:
@@ -276,7 +276,7 @@ class OwnershipVisitor(NodeVisitor):
     def visit_quoted_identifier(self, node: Node, children: Sequence[Any]) -> str:
         return str(node.text[1:-1].encode("ascii", "backslashreplace").decode("unicode-escape"))
 
-    def generic_visit(self, node: Node, children: Sequence[Any]) -> Union[Sequence[Node], Node]:
+    def generic_visit(self, node: Node, children: Sequence[Any]) -> Sequence[Node] | Node:
         return children or node
 
 

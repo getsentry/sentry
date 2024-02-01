@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Generator, Optional, Sequence, Union
+from typing import Any, Generator, Sequence
 
 from snuba_sdk import (
     Column,
@@ -44,12 +44,12 @@ def query_replays_collection(
     end: datetime,
     environment: list[str],
     fields: list[str],
-    sort: Optional[str],
-    limit: Optional[str],
-    offset: Optional[str],
+    sort: str | None,
+    limit: str | None,
+    offset: str | None,
     search_filters: Sequence[SearchFilter],
-    organization: Optional[Organization] = None,
-    actor: Optional[Any] = None,
+    organization: Organization | None = None,
+    actor: Any | None = None,
 ) -> dict:
     """Query aggregated replay collection."""
     paginators = make_pagination_values(limit, offset)
@@ -72,7 +72,7 @@ def query_replay_instance(
     replay_id: str,
     start: datetime,
     end: datetime,
-    organization: Optional[Organization] = None,
+    organization: Organization | None = None,
 ):
     """Query aggregated replay instance."""
     if isinstance(project_id, list):
@@ -214,7 +214,7 @@ def query_replays_dataset_tagkey_values(
 
 def anyIfNonZeroIP(
     column_name: str,
-    alias: Optional[str] = None,
+    alias: str | None = None,
     aliased: bool = True,
 ) -> Function:
     return Function(
@@ -226,7 +226,7 @@ def anyIfNonZeroIP(
 
 def anyIf(
     column_name: str,
-    alias: Optional[str] = None,
+    alias: str | None = None,
     aliased: bool = True,
 ) -> Function:
     """Returns any value of a non group-by field. in our case, they are always the same,
@@ -307,7 +307,7 @@ def make_pagination_values(limit: Any, offset: Any) -> Paginators:
     return Paginators(limit, offset)
 
 
-def _coerce_to_integer_default(value: Optional[str], default: int) -> int:
+def _coerce_to_integer_default(value: str | None, default: int) -> int:
     """Return an integer or default."""
     if value is None:
         return default
@@ -321,7 +321,7 @@ def _coerce_to_integer_default(value: Optional[str], default: int) -> int:
 def _strip_uuid_dashes(
     input_name: str,
     input_value: Expression,
-    alias: Optional[str] = None,
+    alias: str | None = None,
     aliased: bool = True,
 ):
     return Function(
@@ -748,7 +748,7 @@ def collect_aliases(fields: list[str]) -> list[str]:
     return list(result)
 
 
-def select_from_fields(fields: list[str]) -> list[Union[Column, Function]]:
+def select_from_fields(fields: list[str]) -> list[Column | Function]:
     """Return a list of columns to select."""
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
 

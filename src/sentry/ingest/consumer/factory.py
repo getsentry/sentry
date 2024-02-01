@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, Optional, TypeVar
+from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, TypeVar
 
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
@@ -30,8 +30,8 @@ class MultiProcessConfig(NamedTuple):
     num_processes: int
     max_batch_size: int
     max_batch_time: int
-    input_block_size: Optional[int]
-    output_block_size: Optional[int]
+    input_block_size: int | None
+    output_block_size: int | None
 
 
 TInput = TypeVar("TInput")
@@ -42,7 +42,7 @@ def maybe_multiprocess_step(
     mp: MultiProcessConfig | None,
     function: Callable[[Message[TInput]], TOutput],
     next_step: ProcessingStrategy[FilteredPayload | TOutput],
-    pool: Optional[MultiprocessingPool],
+    pool: MultiprocessingPool | None,
 ) -> ProcessingStrategy[FilteredPayload | TInput]:
     if mp is not None:
         assert pool is not None
@@ -69,8 +69,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         num_processes: int,
         max_batch_size: int,
         max_batch_time: int,
-        input_block_size: Optional[int],
-        output_block_size: Optional[int],
+        input_block_size: int | None,
+        output_block_size: int | None,
     ):
         self.consumer_type = consumer_type
         self.is_attachment_topic = consumer_type == ConsumerType.Attachments
@@ -81,9 +81,7 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # XXX: Attachment topic has two multiprocessing strategies chained together so we use
         # two pools.
         if self.is_attachment_topic:
-            self._attachments_pool: Optional[MultiprocessingPool] = MultiprocessingPool(
-                num_processes
-            )
+            self._attachments_pool: MultiprocessingPool | None = MultiprocessingPool(num_processes)
         else:
             self._attachments_pool = None
         if num_processes > 1:
@@ -150,8 +148,8 @@ def get_ingest_consumer(
     max_batch_size: int,
     max_batch_time: int,
     num_processes: int,
-    input_block_size: Optional[int],
-    output_block_size: Optional[int],
+    input_block_size: int | None,
+    output_block_size: int | None,
     force_topic: str | None,
     force_cluster: str | None,
 ) -> StreamProcessor[KafkaPayload]:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, Sequence, Union
+from typing import Sequence
 
 from django.core.cache import cache
 
@@ -11,14 +11,14 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import BaseMetricsTestCase  # NOQA:S007
 
 
-def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: Optional[str]) -> str:
+def build_mri(metric_name: str, type: str, use_case_id: UseCaseID, unit: str | None) -> str:
     mri_unit = "none" if unit is None else unit
     return f"{type}:{use_case_id.value}/{metric_name}@{mri_unit}"
 
 
 def get_retention_from_org_id(org_id: int) -> int:
     cache_key = f"sentry_metrics:org_retention_days:{org_id}"
-    cached_retention: Optional[int] = cache.get(cache_key)
+    cached_retention: int | None = cache.get(cache_key)
 
     if cached_retention is not None:
         return cached_retention
@@ -47,9 +47,9 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         org_id: int,
         project_id: int,
         metric_name: str,
-        value: Union[int, float],
+        value: int | float,
         tags: dict[str, str],
-        unit: Optional[str],
+        unit: str | None,
     ) -> None:
 
         """
@@ -75,7 +75,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         metric_name: str,
         value: Sequence[int],
         tags: dict[str, str],
-        unit: Optional[str],
+        unit: str | None,
     ) -> None:
 
         """
@@ -101,9 +101,9 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         org_id: int,
         project_id: int,
         metric_name: str,
-        value: Sequence[Union[int, float]],
+        value: Sequence[int | float],
         tags: dict[str, str],
-        unit: Optional[str],
+        unit: str | None,
     ) -> None:
 
         """

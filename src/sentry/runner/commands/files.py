@@ -8,7 +8,6 @@ from sentry.utils import json
 @click.group()
 def files():
     """Manage files from filestore."""
-    pass
 
 
 @files.command()

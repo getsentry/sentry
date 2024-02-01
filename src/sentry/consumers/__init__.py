@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Mapping, Optional, Sequence
+from typing import Mapping, Sequence
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -30,7 +30,7 @@ def convert_max_batch_time(ctx, param, value):
 
 
 def multiprocessing_options(
-    default_max_batch_size: Optional[int] = None, default_max_batch_time_ms: Optional[int] = 1000
+    default_max_batch_size: int | None = None, default_max_batch_time_ms: int | None = 1000
 ):
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
@@ -350,19 +350,19 @@ def print_deprecation_warning(name, group_id):
 def get_stream_processor(
     consumer_name: str,
     consumer_args: Sequence[str],
-    topic: Optional[str],
-    cluster: Optional[str],
+    topic: str | None,
+    cluster: str | None,
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    join_timeout: Optional[float],
-    max_poll_interval_ms: Optional[int],
-    synchronize_commit_log_topic: Optional[str],
-    synchronize_commit_group: Optional[str],
-    healthcheck_file_path: Optional[str],
+    join_timeout: float | None,
+    max_poll_interval_ms: int | None,
+    synchronize_commit_log_topic: str | None,
+    synchronize_commit_group: str | None,
+    healthcheck_file_path: str | None,
     enable_dlq: bool,
     validate_schema: bool = False,
-    group_instance_id: Optional[str] = None,
+    group_instance_id: str | None = None,
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]

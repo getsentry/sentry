@@ -255,7 +255,6 @@ class SAML2Provider(Provider, abc.ABC):
         The setup AuthView(s) must bind the `idp` parameter into the helper
         state.
         """
-        pass
 
     def attribute_mapping(self):
         """

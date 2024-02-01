@@ -6,7 +6,7 @@ import dataclasses
 import datetime
 import threading
 from enum import IntEnum
-from typing import Any, Collection, Generator, Iterable, Mapping, Optional, TypeVar, cast
+from typing import Any, Collection, Generator, Iterable, Mapping, TypeVar, cast
 
 import sentry_sdk
 from django import db
@@ -105,7 +105,7 @@ class OutboxCategory(IntEnum):
     def connect_region_model_updates(self, model: type[ReplicatedRegionModel]) -> None:
         def receiver(
             object_identifier: int,
-            payload: Optional[Mapping[str, Any]],
+            payload: Mapping[str, Any] | None,
             shard_identifier: int,
             *args,
             **kwds,
@@ -127,7 +127,7 @@ class OutboxCategory(IntEnum):
     def connect_control_model_updates(self, model: type[HasControlReplicationHandlers]) -> None:
         def receiver(
             object_identifier: int,
-            payload: Optional[Mapping[str, Any]],
+            payload: Mapping[str, Any] | None,
             shard_identifier: int,
             region_name: str,
             *args,
@@ -217,7 +217,7 @@ class OutboxCategory(IntEnum):
     def infer_identifiers(
         self,
         scope: OutboxScope,
-        model: Optional[BaseModel],
+        model: BaseModel | None,
         *,
         object_identifier: int | None,
         shard_identifier: int | None,
@@ -672,7 +672,7 @@ class OutboxBase(Model):
                     _test_processing_barrier.wait()
 
     @classmethod
-    def get_shard_depths_descending(cls, limit: Optional[int] = 10) -> list[dict[str, int | str]]:
+    def get_shard_depths_descending(cls, limit: int | None = 10) -> list[dict[str, int | str]]:
         """
         Queries all outbox shards for their total depth, aggregated by their
         sharding columns as specified by the outbox class implementation.

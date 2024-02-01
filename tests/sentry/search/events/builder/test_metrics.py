@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime
 import math
 from datetime import timezone
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -40,7 +39,7 @@ def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
 
 
 def _metric_percentile_definition(
-    org_id: int, quantile: str, field: str = "transaction.duration", alias: Optional[str] = None
+    org_id: int, quantile: str, field: str = "transaction.duration", alias: str | None = None
 ) -> Function:
     if alias is None:
         alias = f"p{quantile}_{field.replace('.', '_')}"
@@ -2053,7 +2052,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                     on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
                 ),
             )
-            spec_in_use: Optional[OnDemandMetricSpec] = (
+            spec_in_use: OnDemandMetricSpec | None = (
                 query_builder._on_demand_metric_spec_map[field]
                 if query_builder._on_demand_metric_spec_map
                 else None

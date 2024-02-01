@@ -100,7 +100,6 @@ class RelocationCancelEndpoint(Endpoint):
                     {"detail": ERR_COULD_NOT_CANCEL_RELOCATION},
                     status=400,
                 )
-            pass
         else:
             try:
                 updated = Relocation.objects.filter(

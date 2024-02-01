@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
@@ -38,7 +36,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             a for a in super().get_integrations() if a.metadata.get("installation_type") != "tenant"
         ]
 
-    def after(self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None):
+    def after(self, event: GroupEvent, state: EventState, notification_uuid: str | None = None):
         channel = self.get_option("channel_id")
 
         integration = self.get_integration()

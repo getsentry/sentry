@@ -3,7 +3,6 @@ from __future__ import annotations
 import urllib.parse
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
@@ -177,7 +176,7 @@ class HTTPOverheadDetector(PerformanceDetector):
         for location in self.location_to_indicators:
             self._store_performance_problem(location)
 
-    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
         return features.has(
             "organizations:performance-issues-http-overhead-detector",
             organization,

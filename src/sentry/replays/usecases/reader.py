@@ -5,7 +5,7 @@ import uuid
 import zlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Iterator, Optional
+from typing import Iterator
 
 import sentry_sdk
 from django.conf import settings
@@ -280,7 +280,7 @@ def download_segment(
     segment: RecordingSegmentStorageMeta,
     transaction: Span,
     current_hub: sentry_sdk.Hub,
-) -> Optional[bytes]:
+) -> bytes | None:
     """Return the segment blob data."""
     with sentry_sdk.Hub(current_hub):
         with transaction.start_child(

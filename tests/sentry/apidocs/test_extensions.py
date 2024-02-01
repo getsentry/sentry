@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Mapping, Optional, TypedDict, Union
+from typing import Any, Literal, Mapping, TypedDict
 
 import pytest
 from drf_spectacular.openapi import AutoSchema
@@ -29,8 +29,8 @@ class BasicSerializerResponse(BasicSerializerOptional):
     d: list[int]
     e: NestedDict
     f: Literal[3]
-    g: Union[str, bool]
-    h: Optional[str]
+    g: str | bool
+    h: str | None
     excluded: str
 
 

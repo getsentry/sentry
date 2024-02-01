@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Iterable, Mapping, Optional, Sequence, Union
+from typing import TYPE_CHECKING, ClassVar, Iterable, Mapping, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -72,9 +72,9 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
     def subscribe_actor(
         self,
         group: Group,
-        actor: Union[Team, User, RpcUser],
+        actor: Team | User | RpcUser,
         reason: int = GroupSubscriptionReason.unknown,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         from sentry import features
         from sentry.models.team import Team
         from sentry.models.user import User

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry import options
 from sentry.ratelimits.sliding_windows import (
@@ -27,7 +27,7 @@ from sentry.utils import metrics
 OrgId = int
 
 
-def _build_quota_key(namespace: str, org_id: Optional[OrgId] = None) -> str:
+def _build_quota_key(namespace: str, org_id: OrgId | None = None) -> str:
     if org_id is not None:
         return f"metrics-indexer-{namespace}-org-{org_id}"
     else:
@@ -99,7 +99,7 @@ class WritesLimiter:
         self.namespace = namespace
         self.rate_limiter: RedisSlidingWindowRateLimiter = RedisSlidingWindowRateLimiter(**options)
 
-    def _build_quota_key(self, use_case_id: UseCaseID, org_id: Optional[OrgId] = None) -> str:
+    def _build_quota_key(self, use_case_id: UseCaseID, org_id: OrgId | None = None) -> str:
         if org_id is not None:
             return f"metrics-indexer-{use_case_id.value}-org-{org_id}"
         else:

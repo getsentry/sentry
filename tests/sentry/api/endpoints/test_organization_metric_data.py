@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
@@ -608,7 +608,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             project_id=self.project2.id,
         )
 
-        def count_sessions(project_id: Optional[int]) -> int:
+        def count_sessions(project_id: int | None) -> int:
             kwargs: dict[str, Any] = dict(
                 field="sum(sentry.sessions.session)",
                 statsPeriod="1h",

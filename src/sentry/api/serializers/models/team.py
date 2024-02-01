@@ -10,7 +10,6 @@ from typing import (
     Mapping,
     MutableMapping,
     MutableSequence,
-    Optional,
     Sequence,
 )
 
@@ -153,7 +152,7 @@ class _TeamSerializerResponseOptional(TypedDict, total=False):
     externalTeams: list[ExternalActorResponse]
     organization: OrganizationSerializerResponse
     projects: list[ProjectSerializerResponse]
-    orgRole: Optional[str]  # TODO(cathy): Change to new key
+    orgRole: str | None  # TODO(cathy): Change to new key
 
 
 class BaseTeamSerializerResponse(TypedDict):
@@ -162,7 +161,7 @@ class BaseTeamSerializerResponse(TypedDict):
     name: str
     dateCreated: datetime
     isMember: bool
-    teamRole: Optional[str]
+    teamRole: str | None
     flags: dict[str, Any]
     access: frozenset[str]  # scopes granted by teamRole
     hasAccess: bool
@@ -416,7 +415,7 @@ def get_team_memberships(team_ids: list[int]) -> list[TeamMembership]:
 class TeamSCIMSerializer(Serializer):
     def __init__(
         self,
-        expand: Optional[Sequence[str]] = None,
+        expand: Sequence[str] | None = None,
     ) -> None:
         self.expand = expand or []
 

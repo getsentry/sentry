@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from django.db.models import QuerySet
 
@@ -80,8 +80,8 @@ class DatabaseBackedIdentityService(IdentityService):
         ):
             ai.delete()
 
-    def update_data(self, *, identity_id: int, data: Any) -> Optional[RpcIdentity]:
-        identity: Optional[Identity] = Identity.objects.filter(id=identity_id).first()
+    def update_data(self, *, identity_id: int, data: Any) -> RpcIdentity | None:
+        identity: Identity | None = Identity.objects.filter(id=identity_id).first()
         if identity is None:
             return None
         identity.update(data=data)
@@ -110,10 +110,10 @@ class DatabaseBackedIdentityService(IdentityService):
         def base_query(self, ids_only: bool = False) -> QuerySet[Identity]:
             return Identity.objects
 
-        def filter_arg_validator(self) -> Callable[[IdentityFilterArgs], Optional[str]]:
+        def filter_arg_validator(self) -> Callable[[IdentityFilterArgs], str | None]:
             return self._filter_has_any_key_validator(*IdentityFilterArgs.__annotations__.keys())
 
-        def serialize_api(self, serializer: Optional[None]) -> Serializer:
+        def serialize_api(self, serializer: None) -> Serializer:
             raise NotImplementedError("API Serialization not supported for IdentityService")
 
         def serialize_rpc(self, identity: Identity) -> RpcIdentity:

@@ -4,7 +4,7 @@ import logging
 import uuid
 from datetime import timedelta
 from random import randrange
-from typing import Any, Callable, Collection, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Callable, Collection, Mapping, MutableMapping, Sequence
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -264,9 +264,7 @@ class RuleProcessor:
         history.record(rule, self.group, self.event.event_id, notification_uuid)
         self.activate_downstream_actions(rule, notification_uuid)
 
-    def activate_downstream_actions(
-        self, rule: Rule, notification_uuid: Optional[str] = None
-    ) -> None:
+    def activate_downstream_actions(self, rule: Rule, notification_uuid: str | None = None) -> None:
         state = self.get_state()
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])

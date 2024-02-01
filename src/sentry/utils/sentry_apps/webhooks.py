@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from requests import Response
 from requests.exceptions import ConnectionError, Timeout
@@ -70,9 +70,7 @@ def check_broken(sentryapp: SentryApp | RpcSentryApp, org_id: str):
         )
 
 
-def record_timeout(
-    sentryapp: SentryApp | RpcSentryApp, org_id: str, e: Union[ConnectionError, Timeout]
-):
+def record_timeout(sentryapp: SentryApp | RpcSentryApp, org_id: str, e: ConnectionError | Timeout):
     """
     Record Unpublished Sentry App timeout or connection error in integration buffer to check if it is broken and should be disabled
     """

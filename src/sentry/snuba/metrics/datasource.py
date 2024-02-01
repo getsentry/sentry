@@ -26,7 +26,7 @@ from copy import copy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from operator import itemgetter
-from typing import Any, Mapping, Optional, Sequence, Union, cast
+from typing import Any, Mapping, Sequence, cast
 
 from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
@@ -104,8 +104,8 @@ def _get_metrics_for_entity(
     project_ids: Sequence[int],
     org_id: int,
     use_case_id: UseCaseID,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> list[SnubaDataType]:
     return run_metrics_query(
         entity_key=entity_key,
@@ -126,8 +126,8 @@ def _get_metrics_by_project_for_entity(
     project_ids: Sequence[int],
     org_id: int,
     use_case_id: UseCaseID,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> list[SnubaDataType]:
     return run_metrics_query(
         entity_key=entity_key,
@@ -329,8 +329,8 @@ def get_stored_metrics_of_projects(
 def get_custom_measurements(
     project_ids: Sequence[int],
     organization_id: int,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
 ) -> Sequence[MetricMeta]:
     assert project_ids
@@ -435,11 +435,11 @@ def _validate_requested_derived_metrics_in_input_metrics(
 
 def _fetch_tags_or_values_for_metrics(
     projects: Sequence[Project],
-    metric_names: Optional[Sequence[str]],
+    metric_names: Sequence[str] | None,
     referrer: str,
     column: str,
     use_case_id: UseCaseID,
-) -> tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
+) -> tuple[Sequence[Tag] | Sequence[TagValue], str | None]:
     metric_mris = []
 
     # For now this function supports all MRIs but only the usage of public names for static MRIs. In case
@@ -456,11 +456,11 @@ def _fetch_tags_or_values_for_metrics(
 
 def _fetch_tags_or_values_for_mri(
     projects: Sequence[Project],
-    metric_mris: Optional[Sequence[str]],
+    metric_mris: Sequence[str] | None,
     referrer: str,
     column: str,
     use_case_id: UseCaseID,
-) -> tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
+) -> tuple[Sequence[Tag] | Sequence[TagValue], str | None]:
     """
     Function that takes as input projects, metric_mris, and a column, and based on the column
     selection, either returns tags or tag values for the combination of projects and metric_names
@@ -528,7 +528,7 @@ def _fetch_tags_or_values_for_mri(
         raise InvalidParams(error_str)
 
     tag_or_value_id_lists = tag_or_value_ids_per_metric_id.values()
-    tag_or_value_ids: set[Union[int, str, None]]
+    tag_or_value_ids: set[int | str | None]
     if metric_mris:
         # If there are metric_ids that map to the metric_names provided as an arg that were not
         # found in the dataset, then we raise an instance of InvalidParams exception
@@ -622,7 +622,7 @@ def get_single_metric_info(
 
 
 def get_all_tags(
-    projects: Sequence[Project], metric_names: Optional[Sequence[str]], use_case_id: UseCaseID
+    projects: Sequence[Project], metric_names: Sequence[str] | None, use_case_id: UseCaseID
 ) -> Sequence[Tag]:
     """Get all metric tags for the given projects and metric_names."""
     assert projects
@@ -644,7 +644,7 @@ def get_all_tags(
 def get_tag_values(
     projects: Sequence[Project],
     tag_name: str,
-    metric_names: Optional[Sequence[str]],
+    metric_names: Sequence[str] | None,
     use_case_id: UseCaseID,
 ) -> Sequence[TagValue]:
     """Get all known values for a specific tag for the given projects and metric_names."""
@@ -705,7 +705,7 @@ class GroupLimitFilters:
 
 def _get_group_limit_filters(
     metrics_query: MetricsQuery, results: list[Mapping[str, int]], use_case_id: UseCaseID
-) -> Optional[GroupLimitFilters]:
+) -> GroupLimitFilters | None:
     if not metrics_query.groupby or not results:
         return None
 

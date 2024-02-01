@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Sequence
 
 from django.conf import settings
 from django.db import models
@@ -68,9 +68,9 @@ class ActivityManager(BaseManager["Activity"]):
         self,
         group: Group,
         type: ActivityType,
-        user: Optional[User | RpcUser] = None,
-        user_id: Optional[int] = None,
-        data: Optional[Mapping[str, Any]] = None,
+        user: User | RpcUser | None = None,
+        user_id: int | None = None,
+        data: Mapping[str, Any] | None = None,
         send_notification: bool = True,
     ) -> Activity:
         if user:

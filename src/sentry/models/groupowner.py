@@ -4,7 +4,7 @@ import itertools
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Optional, TypedDict
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import models
@@ -68,7 +68,7 @@ class GroupOwner(Model):
         )
     )
     context: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
-    user_id: models.Field[Optional[int], Optional[int]] = HybridCloudForeignKey(
+    user_id: models.Field[int | None, int | None] = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True
     )
     team = FlexibleForeignKey("sentry.Team", null=True)

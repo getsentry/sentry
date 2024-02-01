@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, ClassVar, Iterable, Optional
+from typing import Any, Callable, ClassVar, Iterable
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -100,7 +100,7 @@ def is_static_relay(request):
     return relay_info is not None
 
 
-def relay_from_id(request, relay_id) -> tuple[Optional[Relay], bool]:
+def relay_from_id(request, relay_id) -> tuple[Relay | None, bool]:
     """
     Tries to find a Relay for a given id
     If the id is statically registered than no DB access will be done.

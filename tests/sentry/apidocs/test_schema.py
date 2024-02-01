@@ -35,7 +35,6 @@ def test_description():
 
 
             """
-            pass
 
         @extend_schema(operation_id="Ignore Docstring")
         def post(self, request):
@@ -43,13 +42,11 @@ def test_description():
             Autoschema Description
             Extended Lines
             """
-            pass
 
         def put(self, request):
             """
             Autoschema Description
             """
-            pass
 
         # Should not result in an error when generating a schema
         def delete(self, request):

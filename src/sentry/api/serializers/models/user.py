@@ -4,7 +4,7 @@ import itertools
 import warnings
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Union, cast
+from typing import Any, Callable, Mapping, MutableMapping, Sequence, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -34,7 +34,7 @@ from sentry.utils.avatar import get_gravatar_url
 
 
 def manytoone_to_dict(
-    queryset: QuerySet, key: str, filter_func: Optional[Callable[[Any], bool]] = None
+    queryset: QuerySet, key: str, filter_func: Callable[[Any], bool] | None = None
 ) -> MutableMapping[Any, Any]:
     result = defaultdict(list)
     for row in queryset:
@@ -156,7 +156,7 @@ class UserSerializer(Serializer):
 
     def serialize(
         self, obj: User, attrs: MutableMapping[str, Any], user: User | AnonymousUser | RpcUser
-    ) -> Union[UserSerializerResponse, UserSerializerResponseSelf]:
+    ) -> UserSerializerResponse | UserSerializerResponseSelf:
         experiment_assignments = experiments.all(user=user)
 
         d: UserSerializerResponse = {

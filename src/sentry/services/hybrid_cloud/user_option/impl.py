@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from django.db.models import QuerySet
 
@@ -24,8 +24,8 @@ class DatabaseBackedUserOptionService(UserOptionService):
         self,
         *,
         filter: UserOptionFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
+        as_user: RpcUser | None = None,
+        auth_context: AuthenticationContext | None = None,
     ) -> list[OpaqueSerializedResponse]:
         return self._FQ.serialize_many(filter, as_user, auth_context)
 
@@ -58,10 +58,10 @@ class DatabaseBackedUserOptionService(UserOptionService):
         def base_query(self, ids_only: bool = False) -> QuerySet[UserOption]:
             return UserOption.objects
 
-        def filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
+        def filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], str | None]:
             return self._filter_has_any_key_validator("user_ids")
 
-        def serialize_api(self, serializer: Optional[None]) -> Serializer:
+        def serialize_api(self, serializer: None) -> Serializer:
             # User options should not be serialized in this way
             raise NotImplementedError
 

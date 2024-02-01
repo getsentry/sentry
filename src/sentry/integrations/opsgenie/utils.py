@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
@@ -44,7 +44,7 @@ def build_incident_attachment(
     return payload
 
 
-def get_team(team_id: Optional[str], org_integration: Optional[RpcOrganizationIntegration]):
+def get_team(team_id: str | None, org_integration: RpcOrganizationIntegration | None):
     if not org_integration:
         return None
     teams = org_integration.config.get("team_table")

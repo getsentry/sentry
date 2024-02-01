@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import BinaryIO, Iterator, Optional
+from typing import BinaryIO, Iterator
 from uuid import uuid4
 
 from django.core import serializers
@@ -210,7 +210,7 @@ def _import(
     def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = json.loads(content)
-        last_seen_model_name: Optional[NormalizedModelName] = None
+        last_seen_model_name: NormalizedModelName | None = None
         batch: list[type[Model]] = []
         for model in models:
             model_name = NormalizedModelName(model["model"])

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -70,9 +70,9 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def remove_old_assignees(
         self,
         group: Group,
-        previous_assignee: Optional[GroupAssignee],
-        new_assignee_id: Optional[int] = None,
-        new_assignee_type: Optional[str] = None,
+        previous_assignee: GroupAssignee | None,
+        new_assignee_id: int | None = None,
+        new_assignee_type: str | None = None,
     ) -> None:
         from sentry.models.team import Team
 

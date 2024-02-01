@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, Match, Optional, Sequence, Union, cast
+from typing import Any, Callable, Mapping, Match, Sequence, Union, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -115,7 +115,7 @@ class BaseQueryBuilder:
         )
 
     def _dataclass_params(
-        self, snuba_params: Optional[SnubaParams], params: ParamsType
+        self, snuba_params: SnubaParams | None, params: ParamsType
     ) -> SnubaParams:
         """Shim so the query builder can start using the dataclass"""
         if snuba_params is not None:
@@ -136,7 +136,7 @@ class BaseQueryBuilder:
             organization = projects[0].organization if projects else None
 
         # Yes this is a little janky, but its temporary until we can have everyone passing the dataclass directly
-        environments: Sequence[Union[Environment, None]] = []
+        environments: Sequence[Environment | None] = []
         if "environment_objects" in params:
             environments = cast(Sequence[Union[Environment, None]], params["environment_objects"])
         if "environment" in params and organization is not None:
@@ -178,19 +178,19 @@ class BaseQueryBuilder:
         self,
         dataset: Dataset,
         params: ParamsType,
-        config: Optional[QueryBuilderConfig] = None,
-        snuba_params: Optional[SnubaParams] = None,
-        query: Optional[str] = None,
-        selected_columns: Optional[list[str]] = None,
-        groupby_columns: Optional[list[str]] = None,
-        equations: Optional[list[str]] = None,
+        config: QueryBuilderConfig | None = None,
+        snuba_params: SnubaParams | None = None,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        groupby_columns: list[str] | None = None,
+        equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
-        limit: Optional[int] = 50,
-        offset: Optional[int] = 0,
-        limitby: Optional[tuple[str, int]] = None,
+        limit: int | None = 50,
+        offset: int | None = 0,
+        limitby: tuple[str, int] | None = None,
         turbo: bool = False,
-        sample_rate: Optional[float] = None,
-        array_join: Optional[str] = None,
+        sample_rate: float | None = None,
+        array_join: str | None = None,
     ):
         if config is None:
             self.builder_config = QueryBuilderConfig()
@@ -203,7 +203,7 @@ class BaseQueryBuilder:
         self.params = self._dataclass_params(snuba_params, params)
 
         org_id = params.get("organization_id")
-        self.organization_id: Optional[int] = (
+        self.organization_id: int | None = (
             org_id if org_id is not None and isinstance(org_id, int) else None
         )
         self.raw_equations = equations
@@ -267,8 +267,8 @@ class BaseQueryBuilder:
         self.limitby = self.resolve_limitby(limitby)
         self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
-        self.start: Optional[datetime] = None
-        self.end: Optional[datetime] = None
+        self.start: datetime | None = None
+        self.end: datetime | None = None
         self.resolve_query(
             query=query,
             selected_columns=selected_columns,
@@ -306,10 +306,10 @@ class BaseQueryBuilder:
 
     def resolve_query(
         self,
-        query: Optional[str] = None,
-        selected_columns: Optional[list[str]] = None,
-        groupby_columns: Optional[list[str]] = None,
-        equations: Optional[list[str]] = None,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        groupby_columns: list[str] | None = None,
+        equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
@@ -332,7 +332,7 @@ class BaseQueryBuilder:
     ) -> tuple[
         Mapping[str, Callable[[str], SelectType]],
         Mapping[str, fields.SnQLFunction],
-        Mapping[str, Callable[[event_search.SearchFilter], Optional[WhereType]]],
+        Mapping[str, Callable[[event_search.SearchFilter], WhereType | None]],
         Mapping[str, Callable[[Direction], OrderBy]],
     ]:
         self.config: DatasetConfig
@@ -372,10 +372,10 @@ class BaseQueryBuilder:
 
         return field_alias_converter, function_converter, search_filter_converter, orderby_converter
 
-    def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
+    def resolve_limit(self, limit: int | None) -> Limit | None:
         return None if limit is None else Limit(limit)
 
-    def resolve_limitby(self, limitby: Optional[tuple[str, int]]) -> Optional[LimitBy]:
+    def resolve_limitby(self, limitby: tuple[str, int] | None) -> LimitBy | None:
         if limitby is None:
             return None
 
@@ -419,7 +419,7 @@ class BaseQueryBuilder:
 
     def resolve_conditions(
         self,
-        query: Optional[str],
+        query: str | None,
     ) -> tuple[list[WhereType], list[WhereType]]:
         sentry_sdk.set_tag("query.query_string", query if query else "<No Query>")
         sentry_sdk.set_tag(
@@ -456,7 +456,7 @@ class BaseQueryBuilder:
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
         # start or end a query with an operator.
-        prev: Union[event_filter.ParsedTerm, None] = None
+        prev: event_filter.ParsedTerm | None = None
         new_terms = []
         term = None
         for term in terms:
@@ -603,7 +603,7 @@ class BaseQueryBuilder:
         return conditions
 
     def resolve_select(
-        self, selected_columns: Optional[list[str]], equations: Optional[list[str]]
+        self, selected_columns: list[str] | None, equations: list[str] | None
     ) -> list[SelectType]:
         """Given a public list of discover fields, construct the corresponding
         list of Snql Columns or Functions. Duplicate columns are ignored
@@ -689,9 +689,9 @@ class BaseQueryBuilder:
     def resolve_function(
         self,
         function: str,
-        match: Optional[Match[str]] = None,
+        match: Match[str] | None = None,
         resolve_only: bool = False,
-        overwrite_alias: Optional[str] = None,
+        overwrite_alias: str | None = None,
     ) -> SelectType:
         """Given a public function, resolve to the corresponding Snql function
 
@@ -769,7 +769,7 @@ class BaseQueryBuilder:
     def get_function_result_type(
         self,
         function: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         """Given a function, resolve it and then get the result_type
 
         params to this function should match that of resolve_function
@@ -783,7 +783,7 @@ class BaseQueryBuilder:
         if function_details is None:
             return None
 
-        result_type: Optional[str] = function_details.instance.get_result_type(
+        result_type: str | None = function_details.instance.get_result_type(
             function_details.field, function_details.arguments
         )
         return result_type
@@ -794,14 +794,14 @@ class BaseQueryBuilder:
         arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
-    ) -> Optional[SelectType]:
+    ) -> SelectType | None:
         if snql_function.snql_aggregate is not None:
             if not resolve_only:
                 self.aggregates.append(snql_function.snql_aggregate(arguments, alias))
             return snql_function.snql_aggregate(arguments, alias)
         return None
 
-    def resolve_equation(self, equation: Operation, alias: Optional[str] = None) -> SelectType:
+    def resolve_equation(self, equation: Operation, alias: str | None = None) -> SelectType:
         """Convert this tree of Operations to the equivalent snql functions"""
         lhs = self._resolve_equation_operand(equation.lhs)
         rhs = self._resolve_equation_operand(equation.rhs)
@@ -826,7 +826,7 @@ class BaseQueryBuilder:
 
         orderby_columns: list[str] = orderby if orderby else []
 
-        resolved_orderby: Union[str, SelectType, None]
+        resolved_orderby: str | SelectType | None
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
             bare_orderby = self.tag_to_prefixed_map.get(bare_orderby, bare_orderby)
@@ -905,7 +905,7 @@ class BaseQueryBuilder:
         else:
             return self.resolve_field(field, alias=alias)
 
-    def resolve_groupby(self, groupby_columns: Optional[list[str]] = None) -> list[SelectType]:
+    def resolve_groupby(self, groupby_columns: list[str] | None = None) -> list[SelectType]:
         self.validate_aggregate_arguments()
         if self.aggregates:
             groupby_columns = (
@@ -976,7 +976,7 @@ class BaseQueryBuilder:
     def get_custom_measurement_names_set(self) -> set[str]:
         return {measurement["name"] for measurement in self.custom_measurement_map}
 
-    def get_measument_by_name(self, name: str) -> Optional[MetricMeta]:
+    def get_measument_by_name(self, name: str) -> MetricMeta | None:
         # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
         if not is_measurement(name):
             return None
@@ -986,7 +986,7 @@ class BaseQueryBuilder:
                 return measurement
         return None
 
-    def get_field_type(self, field: str) -> Optional[str]:
+    def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
             return self.meta_resolver_map[field]
         if is_percentage_measurement(field):
@@ -1108,7 +1108,7 @@ class BaseQueryBuilder:
     def add_conditions(self, conditions: list[Condition]) -> None:
         self.where += conditions
 
-    def parse_query(self, query: Optional[str]) -> event_filter.ParsedTerms:
+    def parse_query(self, query: str | None) -> event_filter.ParsedTerms:
         """Given a user's query, string construct a list of filters that can be
         then used to construct the conditions of the Query"""
         if query is None:
@@ -1129,12 +1129,12 @@ class BaseQueryBuilder:
 
         return parsed_terms
 
-    def format_search_filter(self, term: event_search.SearchFilter) -> Optional[WhereType]:
+    def format_search_filter(self, term: event_search.SearchFilter) -> WhereType | None:
         converted_filter = self.convert_search_filter_to_condition(term)
         return converted_filter if converted_filter else None
 
     def _combine_conditions(
-        self, lhs: list[WhereType], rhs: list[WhereType], operator: Union[And, Or]
+        self, lhs: list[WhereType], rhs: list[WhereType], operator: And | Or
     ) -> list[WhereType]:
         combined_conditions = [
             conditions[0] if len(conditions) == 1 else And(conditions=conditions)
@@ -1158,7 +1158,7 @@ class BaseQueryBuilder:
 
     def convert_aggregate_filter_to_condition(
         self, aggregate_filter: event_search.AggregateFilter
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         name = aggregate_filter.key.name
         value = aggregate_filter.value.value
         unit = self.get_function_result_type(aggregate_filter.key.name)
@@ -1183,7 +1183,7 @@ class BaseQueryBuilder:
     def convert_search_filter_to_condition(
         self,
         search_filter: event_search.SearchFilter,
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         name = search_filter.key.name
         value = search_filter.value.value
         if value and (unit := self.get_field_type(name)):
@@ -1201,7 +1201,7 @@ class BaseQueryBuilder:
 
     def default_filter_converter(
         self, search_filter: event_search.SearchFilter
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -1298,7 +1298,7 @@ class BaseQueryBuilder:
 
     def _environment_filter_converter(
         self, search_filter: event_search.SearchFilter
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         # conditions added to env_conditions can be OR'ed
         env_conditions = []
         value = search_filter.value.value
@@ -1325,7 +1325,7 @@ class BaseQueryBuilder:
             return env_conditions[0]
 
     # Query Fields helper methods
-    def _resolve_equation_operand(self, operand: OperandType) -> Union[SelectType, float]:
+    def _resolve_equation_operand(self, operand: OperandType) -> SelectType | float:
         if isinstance(operand, Operation):
             return self.resolve_equation(operand)
         elif isinstance(operand, float):
@@ -1350,7 +1350,7 @@ class BaseQueryBuilder:
         """ "Given a public field, check if it's a supported function"""
         return function in self.function_converter
 
-    def parse_function(self, match: Match[str]) -> tuple[str, Optional[str], list[str], str]:
+    def parse_function(self, match: Match[str]) -> tuple[str, str | None, list[str], str]:
         """Given a FUNCTION_PATTERN match, separate the function name, arguments
         and alias out
         """
@@ -1361,7 +1361,7 @@ class BaseQueryBuilder:
             raise self.config.missing_function_error(f"{function} is not a valid function")
 
         arguments = fields.parse_arguments(function, match.group("columns"))
-        alias: Union[str, Any, None] = match.group("alias")
+        alias: str | Any | None = match.group("alias")
 
         if alias is None:
             alias = fields.get_function_alias_with_columns(
@@ -1400,7 +1400,7 @@ class BaseQueryBuilder:
         )
 
     @classmethod
-    def handle_invalid_float(cls, value: Optional[float]) -> Optional[float]:
+    def handle_invalid_float(cls, value: float | None) -> float | None:
         if value is None:
             return value
         elif math.isnan(value):
@@ -1507,7 +1507,7 @@ class QueryBuilder(BaseQueryBuilder):
     def get_function_result_type(
         self,
         function: str,
-    ) -> Optional[str]:
+    ) -> str | None:
         if function in constants.TREND_FUNCTION_TYPE_MAP:
             # HACK: Don't invalid query here if we don't recognize the function
             # this is cause non-snql tests still need to run and will check here
@@ -1517,7 +1517,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         return super().get_function_result_type(function)
 
-    def get_field_type(self, field: str) -> Optional[str]:
+    def get_field_type(self, field: str) -> str | None:
         if (
             field == "transaction.duration"
             or is_duration_measurement(field)
@@ -1527,7 +1527,7 @@ class QueryBuilder(BaseQueryBuilder):
 
         return super().get_field_type(field)
 
-    def format_search_filter(self, term: event_search.SearchFilter) -> Optional[WhereType]:
+    def format_search_filter(self, term: event_search.SearchFilter) -> WhereType | None:
         """For now this function seems a bit redundant inside QueryFilter but
         most of the logic from the existing format_search_filter hasn't been
         converted over yet
@@ -1547,7 +1547,7 @@ class QueryBuilder(BaseQueryBuilder):
 
     def default_filter_converter(
         self, search_filter: event_search.SearchFilter
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -1592,10 +1592,10 @@ class QueryBuilder(BaseQueryBuilder):
 class UnresolvedQuery(QueryBuilder):
     def resolve_query(
         self,
-        query: Optional[str] = None,
-        selected_columns: Optional[list[str]] = None,
-        groupby_columns: Optional[list[str]] = None,
-        equations: Optional[list[str]] = None,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        groupby_columns: list[str] | None = None,
+        equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
         pass
@@ -1607,11 +1607,11 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         dataset: Dataset,
         params: ParamsType,
         interval: int,
-        query: Optional[str] = None,
-        selected_columns: Optional[list[str]] = None,
-        equations: Optional[list[str]] = None,
-        limit: Optional[int] = 10000,
-        config: Optional[QueryBuilderConfig] = None,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        equations: list[str] | None = None,
+        limit: int | None = 10000,
+        config: QueryBuilderConfig | None = None,
     ):
         config = config if config is not None else QueryBuilderConfig()
         config.auto_fields = False
@@ -1639,10 +1639,10 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
 
     def resolve_query(
         self,
-        query: Optional[str] = None,
-        selected_columns: Optional[list[str]] = None,
-        groupby_columns: Optional[list[str]] = None,
-        equations: Optional[list[str]] = None,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        groupby_columns: list[str] | None = None,
+        equations: list[str] | None = None,
         orderby: list[str] | str | None = None,
     ) -> None:
         self.resolve_time_conditions()
@@ -1727,12 +1727,12 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         interval: int,
         top_events: list[dict[str, Any]],
         other: bool = False,
-        query: Optional[str] = None,
-        selected_columns: Optional[list[str]] = None,
-        timeseries_columns: Optional[list[str]] = None,
-        equations: Optional[list[str]] = None,
-        config: Optional[QueryBuilderConfig] = None,
-        limit: Optional[int] = 10000,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        timeseries_columns: list[str] | None = None,
+        equations: list[str] | None = None,
+        config: QueryBuilderConfig | None = None,
+        limit: int | None = 10000,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -1776,7 +1776,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
     def resolve_top_event_conditions(
         self, top_events: list[dict[str, Any]], other: bool
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         """Given a list of top events construct the conditions"""
         conditions = []
         for field in self.fields:
@@ -1882,11 +1882,11 @@ class HistogramQueryBuilder(QueryBuilder):
         self,
         num_buckets: int,
         histogram_column: str,
-        histogram_rows: Optional[int],
+        histogram_rows: int | None,
         histogram_params: HistogramParams,
-        key_column: Optional[str],
-        field_names: Optional[list[Union[str, Any, None]]],
-        groupby_columns: Optional[list[str]],
+        key_column: str | None,
+        field_names: list[str | Any | None] | None,
+        groupby_columns: list[str] | None,
         *args: Any,
         **kwargs: Any,
     ):

@@ -1,17 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Callable, Mapping, MutableMapping, Sequence, cast
 
 import sentry_sdk
 from rest_framework import serializers
@@ -356,14 +346,14 @@ class OrganizationSerializer(Serializer):
 
 
 class _OnboardingTasksAttrs(TypedDict):
-    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+    user: UserSerializerResponse | UserSerializerResponseSelf | None
 
 
 class OnboardingTasksSerializerResponse(TypedDict):
 
     task: str  # TODO: literal/enum
     status: str  # TODO: literal/enum
-    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+    user: UserSerializerResponse | UserSerializerResponseSelf | None
     completionSeen: datetime
     dateCompleted: datetime
     data: Any  # JSON object
@@ -425,7 +415,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     scrubIPAddresses: bool
     scrapeJavaScript: bool
     allowJoinRequests: bool
-    relayPiiConfig: Optional[str]
+    relayPiiConfig: str | None
     trustedRelays: Any  # TODO
     access: frozenset[str]
     pendingAccessRequests: int
@@ -572,7 +562,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
             context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
-        desired_sample_rate: Optional[float] = get_sliding_window_org_sample_rate(obj.id)
+        desired_sample_rate: float | None = get_sliding_window_org_sample_rate(obj.id)
         if desired_sample_rate is not None:
             context["desiredSampleRate"] = desired_sample_rate
 

@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import Any, Mapping, Sequence
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -317,8 +317,8 @@ def delete_comment(activity):
 def build_incident_query_builder(
     incident: Incident,
     entity_subscription: EntitySubscription,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     windowed_stats: bool = False,
 ) -> QueryBuilder:
     snuba_query = incident.alert_rule.snuba_query
@@ -390,10 +390,10 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
 
 def get_incident_aggregates(
     incident: Incident,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     windowed_stats: bool = False,
-) -> dict[str, Union[float, int]]:
+) -> dict[str, float | int]:
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
     """
@@ -474,7 +474,7 @@ def create_alert_rule(
     dataset=Dataset.Events,
     user=None,
     event_types=None,
-    comparison_delta: Optional[int] = None,
+    comparison_delta: int | None = None,
     **kwargs,
 ):
     """
@@ -1177,7 +1177,7 @@ def update_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction,
     type: ActionService | None = None,
     target_type: ActionTarget | None = None,
-    target_identifier: Optional[str] = None,
+    target_identifier: str | None = None,
     integration_id: int | None = None,
     sentry_app_id: int | None = None,
     use_async_lookup: bool = False,
@@ -1392,7 +1392,7 @@ def get_alert_rule_trigger_action_pagerduty_service(
 
 
 def get_alert_rule_trigger_action_opsgenie_team(
-    target_value: Optional[str],
+    target_value: str | None,
     organization: RpcOrganizationIntegration,
     integration_id: int,
     use_async_lookup=False,

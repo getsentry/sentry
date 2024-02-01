@@ -4,7 +4,7 @@ import operator
 from collections import defaultdict
 from enum import Enum
 from functools import reduce
-from typing import Any, Iterator, Mapping, MutableMapping, Sequence, TypedDict, Union
+from typing import Any, Iterator, Mapping, MutableMapping, Sequence, TypedDict
 
 from django.core.cache import cache
 from django.db.models import Q
@@ -47,7 +47,7 @@ def score_path_match_length(path_a: str, path_b: str) -> int:
     return score
 
 
-def get_frame_paths(event: Union[Event, GroupEvent]) -> Union[Any, Sequence[Any]]:
+def get_frame_paths(event: Event | GroupEvent) -> Any | Sequence[Any]:
     return find_stack_frames(event.data)
 
 
@@ -124,12 +124,12 @@ def _match_commits_path(
 
 
 class AuthorCommits(TypedDict):
-    author: Union[Author, None]
+    author: Author | None
     commits: Sequence[tuple[Commit, int]]
 
 
 class AuthorCommitsSerialized(TypedDict):
-    author: Union[Author, None]
+    author: Author | None
     commits: Sequence[MutableMapping[str, Any]]
 
 
@@ -179,7 +179,7 @@ def _get_committers(
 
 def get_previous_releases(
     project: Project, start_version: str, limit: int = 5
-) -> Union[Any, Sequence[Release]]:
+) -> Any | Sequence[Release]:
     # given a release version + project, return the previous
     # `limit` releases (includes the release specified by `version`)
     key = "get_previous_releases:1:%s" % hash_values([project.id, start_version, limit])

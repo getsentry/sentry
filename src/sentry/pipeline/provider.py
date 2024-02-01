@@ -24,13 +24,11 @@ class PipelineProvider(abc.ABC):
         A unique identifier (e.g. 'slack'). Used to lookup sibling classes and
         the `key` used when creating Integration objects.
         """
-        pass
 
     @property
     @abc.abstractmethod
     def name(self) -> str:
         """A human readable name (e.g. 'Slack')."""
-        pass
 
     @abc.abstractmethod
     def get_pipeline_views(self) -> Sequence[PipelineView]:
@@ -39,7 +37,6 @@ class PipelineProvider(abc.ABC):
         interface. Each view will be dispatched in order.
         >>> return [OAuthInitView(), OAuthCallbackView()]
         """
-        pass
 
     def update_config(self, config: Mapping[str, Any]) -> None:
         """

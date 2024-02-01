@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import ClassVar, Union
+from typing import ClassVar
 
 from django.db import models
 from django.utils import timezone
@@ -120,7 +120,7 @@ INTEGRATION_MODELS_BY_TYPE = {
 
 class IntegrationFeatureManager(BaseManager["IntegrationFeature"]):
     def get_by_targets_as_dict(
-        self, targets: list[Union[SentryApp, DocIntegration]], target_type: IntegrationTypes
+        self, targets: list[SentryApp | DocIntegration], target_type: IntegrationTypes
     ):
         """
         Returns a dict mapping target_id (key) to List[IntegrationFeatures] (value)
@@ -161,7 +161,7 @@ class IntegrationFeatureManager(BaseManager["IntegrationFeature"]):
     def clean_update(
         self,
         incoming_features: list[int],
-        target: Union[SentryApp, DocIntegration],
+        target: SentryApp | DocIntegration,
         target_type: IntegrationTypes,
     ):
         # Delete any unused features

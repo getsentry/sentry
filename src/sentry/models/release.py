@@ -6,7 +6,7 @@ import re
 from collections import namedtuple
 from dataclasses import dataclass
 from time import time
-from typing import ClassVar, Mapping, Optional, Sequence, Union
+from typing import ClassVar, Mapping, Sequence
 
 import sentry_sdk
 from django.db import IntegrityError, models, router
@@ -157,8 +157,8 @@ class ReleaseStatus:
 @dataclass
 class SemverFilter:
     operator: str
-    version_parts: Sequence[Union[int, str]]
-    package: Optional[str] = None
+    version_parts: Sequence[int | str]
+    package: str | None = None
     negated: bool = False
 
 
@@ -186,7 +186,7 @@ class ReleaseQuerySet(BaseQuerySet):
         organization_id: int,
         operator: str,
         build: str,
-        project_ids: Optional[Sequence[int]] = None,
+        project_ids: Sequence[int] | None = None,
         negated: bool = False,
     ) -> models.QuerySet:
         """
@@ -219,7 +219,7 @@ class ReleaseQuerySet(BaseQuerySet):
         self,
         organization_id: int,
         semver_filter: SemverFilter,
-        project_ids: Optional[Sequence[int]] = None,
+        project_ids: Sequence[int] | None = None,
     ) -> models.QuerySet:
         """
         Filters releases based on a based `SemverFilter` instance.
@@ -264,8 +264,8 @@ class ReleaseQuerySet(BaseQuerySet):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Optional[Sequence[int]] = None,
-        environments: Optional[list[str]] = None,
+        project_ids: Sequence[int] | None = None,
+        environments: list[str] | None = None,
     ) -> models.QuerySet:
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
@@ -384,7 +384,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         organization_id: int,
         operator: str,
         build: str,
-        project_ids: Optional[Sequence[int]] = None,
+        project_ids: Sequence[int] | None = None,
         negated: bool = False,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver_build(
@@ -399,7 +399,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         self,
         organization_id: int,
         semver_filter: SemverFilter,
-        project_ids: Optional[Sequence[int]] = None,
+        project_ids: Sequence[int] | None = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
 
@@ -408,8 +408,8 @@ class ReleaseModelManager(BaseManager["Release"]):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Optional[Sequence[int]] = None,
-        environments: Optional[list[str]] = None,
+        project_ids: Sequence[int] | None = None,
+        environments: list[str] | None = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments

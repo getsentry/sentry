@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections
 from itertools import zip_longest
-from typing import Any, Generator, Iterable, Iterator, MutableMapping, Optional, Union
+from typing import Any, Generator, Iterable, Iterator, MutableMapping
 
 from drf_spectacular.utils import extend_schema_serializer
 from typing_extensions import TypedDict
@@ -11,33 +11,33 @@ from sentry.replays.validators import VALID_FIELD_SET
 
 
 class DeviceResponseType(TypedDict, total=False):
-    name: Optional[str]
-    brand: Optional[str]
-    model: Optional[str]
-    family: Optional[str]
+    name: str | None
+    brand: str | None
+    model: str | None
+    family: str | None
 
 
 class SDKResponseType(TypedDict, total=False):
-    name: Optional[str]
-    version: Optional[str]
+    name: str | None
+    version: str | None
 
 
 class OSResponseType(TypedDict, total=False):
-    name: Optional[str]
-    version: Optional[str]
+    name: str | None
+    version: str | None
 
 
 class BrowserResponseType(TypedDict, total=False):
-    name: Optional[str]
-    version: Optional[str]
+    name: str | None
+    version: str | None
 
 
 class UserResponseType(TypedDict, total=False):
-    id: Optional[str]
-    username: Optional[str]
-    email: Optional[str]
-    ip: Optional[str]
-    display_name: Optional[str]
+    id: str | None
+    username: str | None
+    email: str | None
+    ip: str | None
+    display_name: str | None
 
 
 @extend_schema_serializer(exclude_fields=["info_ids", "warning_ids"])
@@ -46,33 +46,33 @@ class ReplayDetailsResponse(TypedDict, total=False):
     project_id: str
     trace_ids: list[str]
     error_ids: list[str]
-    environment: Optional[str]
-    tags: Union[dict[str, list[str]], list]
+    environment: str | None
+    tags: dict[str, list[str]] | list
     user: UserResponseType
     sdk: SDKResponseType
     os: OSResponseType
     browser: BrowserResponseType
     device: DeviceResponseType
-    is_archived: Optional[bool]
-    urls: Optional[list[str]]
+    is_archived: bool | None
+    urls: list[str] | None
     clicks: list[dict[str, Any]]
-    count_dead_clicks: Optional[int]
-    count_rage_clicks: Optional[int]
-    count_errors: Optional[int]
-    duration: Optional[int]
-    finished_at: Optional[str]
-    started_at: Optional[str]
-    activity: Optional[int]
-    count_urls: Optional[int]
+    count_dead_clicks: int | None
+    count_rage_clicks: int | None
+    count_errors: int | None
+    duration: int | None
+    finished_at: str | None
+    started_at: str | None
+    activity: int | None
+    count_urls: int | None
     replay_type: str
-    count_segments: Optional[int]
-    platform: Optional[str]
+    count_segments: int | None
+    platform: str | None
     releases: list[str]
-    dist: Optional[str]
-    warning_ids: Optional[list[str]]
-    info_ids: Optional[list[str]]
-    count_warnings: Optional[int]
-    count_infos: Optional[int]
+    dist: str | None
+    warning_ids: list[str] | None
+    info_ids: list[str] | None
+    count_warnings: int | None
+    count_infos: int | None
 
 
 def process_raw_response(

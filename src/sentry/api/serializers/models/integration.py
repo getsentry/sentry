@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from typing_extensions import TypedDict
 
@@ -24,10 +24,10 @@ logger = logging.getLogger(__name__)
 class OrganizationIntegrationResponse(TypedDict):
     id: str
     name: str
-    icon: Optional[str]
-    domainName: Optional[str]
-    accountType: Optional[str]
-    scopes: Optional[list[str]]
+    icon: str | None
+    domainName: str | None
+    accountType: str | None
+    scopes: list[str] | None
     status: str
     provider: Any
     configOrganization: Any
@@ -35,7 +35,7 @@ class OrganizationIntegrationResponse(TypedDict):
     externalId: str
     organizationId: int
     organizationIntegrationStatus: str
-    gracePeriodEnd: Optional[str]
+    gracePeriodEnd: str | None
 
 
 # converts the provider to JSON
@@ -71,7 +71,7 @@ class IntegrationSerializer(Serializer):
 
 class IntegrationConfigSerializer(IntegrationSerializer):
     def __init__(
-        self, organization_id: Optional[int] = None, params: Optional[Mapping[str, Any]] = None
+        self, organization_id: int | None = None, params: Mapping[str, Any] | None = None
     ) -> None:
         self.organization_id = organization_id
         self.params = params or {}
@@ -115,7 +115,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
 @register(OrganizationIntegration)
 class OrganizationIntegrationSerializer(Serializer):
-    def __init__(self, params: Optional[Mapping[str, Any]] = None) -> None:
+    def __init__(self, params: Mapping[str, Any] | None = None) -> None:
         self.params = params
 
     def get_attrs(

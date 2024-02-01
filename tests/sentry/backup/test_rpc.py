@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 from functools import cached_property
-from typing import Optional
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -177,7 +176,7 @@ class RpcImportRetryTests(TestCase):
             model_name: NormalizedModelName,
             flags: ImportFlags,
             import_chunk_type: type[models.base.Model],
-        ) -> Optional[RpcImportOk]:
+        ) -> RpcImportOk | None:
             nonlocal mock_call_count
             mock_call_count += 1
             if mock_call_count > 1:

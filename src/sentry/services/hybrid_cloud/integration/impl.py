@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Iterable
 
 from django.utils import timezone
 
@@ -107,7 +107,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         status: int | None = None,
         providers: list[str] | None = None,
         org_integration_status: int | None = None,
-        organization_integration_id: Optional[int] = None,
+        organization_integration_id: int | None = None,
         limit: int | None = None,
     ) -> list[RpcIntegration]:
         integration_kwargs: dict[str, Any] = {}
@@ -141,7 +141,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         provider: str | None = None,
         external_id: str | None = None,
         organization_id: int | None = None,
-        organization_integration_id: Optional[int] = None,
+        organization_integration_id: int | None = None,
         status: int | None = None,
     ) -> RpcIntegration | None:
         integration_kwargs: dict[str, Any] = {}
@@ -174,11 +174,11 @@ class DatabaseBackedIntegrationService(IntegrationService):
         org_integration_ids: list[int] | None = None,
         integration_id: int | None = None,
         organization_id: int | None = None,
-        organization_ids: Optional[list[int]] = None,
+        organization_ids: list[int] | None = None,
         status: int | None = None,
         providers: list[str] | None = None,
         has_grace_period: bool | None = None,
-        grace_period_expired: Optional[bool] = None,
+        grace_period_expired: bool | None = None,
         limit: int | None = None,
     ) -> list[RpcOrganizationIntegration]:
         oi_kwargs: dict[str, Any] = {}
@@ -339,9 +339,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
         return ois[0] if len(ois) > 0 else None
 
-    def add_organization(
-        self, *, integration_id: int, org_ids: list[int]
-    ) -> Optional[RpcIntegration]:
+    def add_organization(self, *, integration_id: int, org_ids: list[int]) -> RpcIntegration | None:
         try:
             integration = Integration.objects.get(id=integration_id)
         except Integration.DoesNotExist:
@@ -359,7 +357,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         organization: RpcOrganizationSummary,
         new_status: int,
         incident_attachment_json: str,
-        metric_value: Optional[str] = None,
+        metric_value: str | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
         sentry_app = SentryApp.objects.get(id=sentry_app_id)

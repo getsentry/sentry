@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 from datetime import timedelta
-from typing import Optional
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -92,10 +91,10 @@ class SlowDBQueryDetector(PerformanceDetector):
                 ],
             )
 
-    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
         return features.has("organizations:performance-slow-db-issue", organization, actor=None)
 
-    def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
+    def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings[0]["detection_enabled"]
 
     @classmethod

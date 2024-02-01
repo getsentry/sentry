@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
@@ -50,7 +50,7 @@ STRING_TO_DATETIME = "%Y-%m-%d %H:%M:%S.%f"
 TIME_TO_USE_EXISTING_THRESHOLD = 24 * 60 * 60  # 1 day
 
 
-def calculate_threshold(project: Project) -> Optional[float]:
+def calculate_threshold(project: Project) -> float | None:
     """
     Calculates the velocity threshold based on event frequency in the project for the past week.
     """
@@ -150,7 +150,7 @@ def update_threshold(
     project: Project,
     threshold_key: str,
     stale_date_key: str,
-    stale_threshold: Optional[float] = None,
+    stale_threshold: float | None = None,
 ) -> float:
     """
     Runs the calculation for the threshold and saves it and the date it is last updated to Redis.
@@ -174,7 +174,7 @@ def update_threshold(
 
 
 def fallback_to_stale_or_zero(
-    threshold_key: str, stale_date_key: str, stale_threshold: Optional[float]
+    threshold_key: str, stale_date_key: str, stale_threshold: float | None
 ) -> float:
     """
     Returns the backup threshold for when the current threshold can't be calculated. If we have a

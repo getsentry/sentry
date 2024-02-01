@@ -93,4 +93,3 @@ def repair(with_docs):
         fix_group_counters()
     except SiloLimit.AvailabilityError:
         click.echo("Skipping repair operations due to silo restrictions")
-        pass

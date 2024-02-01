@@ -103,7 +103,6 @@ class RelocationPauseEndpoint(Endpoint):
                     {"detail": ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(step=step.name)},
                     status=400,
                 )
-            pass
         else:
             try:
                 updated = Relocation.objects.filter(

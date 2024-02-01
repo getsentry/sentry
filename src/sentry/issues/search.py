@@ -68,7 +68,7 @@ class MergeableRow(TypedDict, total=False):
 
 
 def group_categories_from(
-    search_filters: Optional[Sequence[SearchFilter]],
+    search_filters: Sequence[SearchFilter] | None,
 ) -> set[int]:
     """Iterates over search_filters for any Group-specific filters
 
@@ -105,12 +105,12 @@ def _query_params_for_error(
     aggregations: Sequence[Any],
     organization_id: int,
     project_ids: Sequence[int],
-    environments: Optional[Sequence[Environment]],
-    group_ids: Optional[Sequence[int]],
+    environments: Sequence[Environment] | None,
+    group_ids: Sequence[int] | None,
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
-    actor: Optional[Any] = None,
-) -> Optional[SnubaQueryParams]:
+    actor: Any | None = None,
+) -> SnubaQueryParams | None:
     if group_ids:
         filters = {"group_id": sorted(group_ids), **filters}
     error_conditions = _updated_conditions(
@@ -141,12 +141,12 @@ def _query_params_for_perf(
     aggregations: Sequence[Any],
     organization_id: int,
     project_ids: Sequence[int],
-    environments: Optional[Sequence[Environment]],
-    group_ids: Optional[Sequence[int]],
+    environments: Sequence[Environment] | None,
+    group_ids: Sequence[int] | None,
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
-    actor: Optional[Any] = None,
-) -> Optional[SnubaQueryParams]:
+    actor: Any | None = None,
+) -> SnubaQueryParams | None:
     organization = Organization.objects.filter(id=organization_id).first()
     if organization:
         transaction_conditions = _updated_conditions(
@@ -205,13 +205,13 @@ def _query_params_for_generic(
     aggregations: Sequence[Any],
     organization_id: int,
     project_ids: Sequence[int],
-    environments: Optional[Sequence[Environment]],
-    group_ids: Optional[Sequence[int]],
+    environments: Sequence[Environment] | None,
+    group_ids: Sequence[int] | None,
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
-    actor: Optional[Any] = None,
-    categories: Optional[Sequence[GroupCategory]] = None,
-) -> Optional[SnubaQueryParams]:
+    actor: Any | None = None,
+    categories: Sequence[GroupCategory] | None = None,
+) -> SnubaQueryParams | None:
     organization = Organization.objects.filter(id=organization_id).first()
     if organization and features.has(
         "organizations:issue-platform", organization=organization, actor=actor
@@ -294,7 +294,7 @@ def _updated_conditions(
     value: str,
     organization_id: int,
     project_ids: Sequence[int],
-    environments: Optional[Sequence[Environment]],
+    environments: Sequence[Environment] | None,
     conditions: Sequence[Any],
 ) -> Sequence[Any]:
     search_filter = SearchFilter(

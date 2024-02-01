@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, MutableMapping, Optional
+from typing import Any, Callable, MutableMapping
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -49,9 +49,9 @@ class DatabaseBackedUserService(UserService):
         self,
         *,
         filter: UserFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
-        serializer: Optional[UserSerializeType] = None,
+        as_user: RpcUser | None = None,
+        auth_context: AuthenticationContext | None = None,
+        serializer: UserSerializeType | None = None,
     ) -> list[OpaqueSerializedResponse]:
         return self._FQ.serialize_many(filter, as_user, auth_context, serializer)
 
@@ -66,7 +66,7 @@ class DatabaseBackedUserService(UserService):
         emails: list[str],
         is_active: bool = True,
         is_verified: bool = True,
-        organization_id: Optional[int] = None,
+        organization_id: int | None = None,
     ) -> list[RpcUser]:
         user_emails_query = UserEmail.objects.filter(in_iexact("email", emails))
 
@@ -163,7 +163,7 @@ class DatabaseBackedUserService(UserService):
 
     def get_user_by_social_auth(
         self, *, organization_id: int, provider: str, uid: str
-    ) -> Optional[RpcUser]:
+    ) -> RpcUser | None:
         user = User.objects.filter(
             social_auth__provider=provider,
             social_auth__uid=uid,
@@ -173,14 +173,14 @@ class DatabaseBackedUserService(UserService):
             return None
         return serialize_rpc_user(user)
 
-    def get_first_superuser(self) -> Optional[RpcUser]:
+    def get_first_superuser(self) -> RpcUser | None:
         user = User.objects.filter(is_superuser=True, is_active=True).first()
         if user is None:
             return None
         return serialize_rpc_user(user)
 
     def get_or_create_user_by_email(
-        self, *, email: str, ident: Optional[str] = None, referrer: Optional[str] = None
+        self, *, email: str, ident: str | None = None, referrer: str | None = None
     ) -> tuple[RpcUser, bool]:
         with transaction.atomic(router.db_for_write(User)):
             rpc_user = self.get_user_by_email(email=email, ident=ident)
@@ -203,8 +203,8 @@ class DatabaseBackedUserService(UserService):
         self,
         *,
         email: str,
-        ident: Optional[str] = None,
-    ) -> Optional[RpcUser]:
+        ident: str | None = None,
+    ) -> RpcUser | None:
         user_query = User.objects.filter(email__iexact=email, is_active=True)
         if user_query.exists():
             # Users are not supposed to have the same email but right now our auth pipeline let this happen
@@ -311,10 +311,10 @@ class DatabaseBackedUserService(UserService):
                 }
             )
 
-        def filter_arg_validator(self) -> Callable[[UserFilterArgs], Optional[str]]:
+        def filter_arg_validator(self) -> Callable[[UserFilterArgs], str | None]:
             return self._filter_has_any_key_validator("user_ids", "organization_id", "emails")
 
-        def serialize_api(self, serializer_type: Optional[UserSerializeType]) -> Serializer:
+        def serialize_api(self, serializer_type: UserSerializeType | None) -> Serializer:
             serializer: Serializer = UserSerializer()
             if serializer_type == UserSerializeType.DETAILED:
                 serializer = DetailedUserSerializer()

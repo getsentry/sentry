@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Mapping, MutableMapping, Optional
+from typing import Mapping, MutableMapping
 
 from django.db import router, transaction
 
@@ -24,9 +24,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self,
         *,
         external_provider: ExternalProviderEnum,
-        user_id: Optional[int] = None,
-        team_id: Optional[int] = None,
-        types: Optional[list[NotificationSettingEnum]] = None,
+        user_id: int | None = None,
+        team_id: int | None = None,
+        types: list[NotificationSettingEnum] | None = None,
     ) -> None:
         assert (team_id and not user_id) or (
             user_id and not team_id
@@ -144,8 +144,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
         *,
         recipients: list[RpcActor],
         type: NotificationSettingEnum,
-        project_ids: Optional[list[int]] = None,
-        organization_id: Optional[int] = None,
+        project_ids: list[int] | None = None,
+        organization_id: int | None = None,
     ) -> MutableMapping[
         int, MutableMapping[int, str]
     ]:  # { actor_id : { provider_str: value_str } }
@@ -177,9 +177,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         *,
         recipients: list[RpcActor],
         type: NotificationSettingEnum,
-        organization_id: Optional[int] = None,
-        project_ids: Optional[list[int]] = None,
-        actor_type: Optional[ActorType] = None,
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+        actor_type: ActorType | None = None,
     ) -> Mapping[str, set[RpcActor]]:
         controller = NotificationController(
             recipients=recipients,

@@ -4,7 +4,7 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Optional, Sequence, TypeVar, cast
+from typing import Sequence, TypeVar, cast
 
 from django.conf import settings
 from django.db import router, transaction
@@ -60,7 +60,7 @@ ALERT_RULE_TRIGGER_STAT_KEYS = ("alert_triggered", "resolve_triggered")
 # check is applied
 # ToDo(ahmed): This is still experimental. If we decide that it makes sense to keep this
 #  functionality, then maybe we should move this to constants
-CRASH_RATE_ALERT_MINIMUM_THRESHOLD: Optional[int] = None
+CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
 
 T = TypeVar("T")
 
@@ -178,7 +178,7 @@ class SubscriptionProcessor:
 
     def get_comparison_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate, aggregation_value: float
-    ) -> Optional[float]:
+    ) -> float | None:
         # For comparison alerts run a query over the comparison period and use it to calculate the
         # % change.
         delta = timedelta(seconds=self.alert_rule.comparison_delta)
@@ -228,7 +228,7 @@ class SubscriptionProcessor:
 
     def get_crash_rate_alert_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
-    ) -> Optional[float]:
+    ) -> float | None:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values.
         The subscription update looks like
@@ -280,7 +280,7 @@ class SubscriptionProcessor:
 
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate
-    ) -> Optional[float]:
+    ) -> float | None:
         """Handle both update formats. Once all subscriptions have been updated
         to v2, we can remove v1 and replace this function with current v2.
         """
@@ -301,7 +301,7 @@ class SubscriptionProcessor:
 
     def _get_crash_rate_alert_metrics_aggregation_value_v1(
         self, subscription_update: QuerySubscriptionUpdate
-    ) -> Optional[float]:
+    ) -> float | None:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
         metrics dataset.
@@ -350,7 +350,7 @@ class SubscriptionProcessor:
 
     def _get_crash_rate_alert_metrics_aggregation_value_v2(
         self, subscription_update: QuerySubscriptionUpdate
-    ) -> Optional[float]:
+    ) -> float | None:
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
         metrics dataset.
@@ -386,9 +386,7 @@ class SubscriptionProcessor:
 
         return aggregation_value
 
-    def get_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate
-    ) -> Optional[float]:
+    def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
         if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
             aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
         elif self.subscription.snuba_query.dataset == Dataset.Metrics.value:

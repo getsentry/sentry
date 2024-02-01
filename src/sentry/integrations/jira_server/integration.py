@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Sequence
 from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -1014,7 +1014,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: Optional[RpcUser],
+        user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:

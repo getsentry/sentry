@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Collection, Mapping, Optional, Sequence, cast
+from typing import TYPE_CHECKING, Any, Collection, Mapping, Sequence, cast
 from uuid import uuid4
 
 import sentry_sdk
@@ -111,7 +111,7 @@ class AuthIdentityHandler:
     organization: RpcOrganization
     request: HttpRequest
     identity: Mapping[str, Any]
-    referrer: Optional[str] = "in-app"
+    referrer: str | None = "in-app"
 
     @cached_property
     def user(self) -> User | AnonymousUser:
@@ -703,9 +703,9 @@ class AuthHelper(Pipeline):
         request: HttpRequest,
         organization: RpcOrganization,
         flow: int,
-        auth_provider: Optional[AuthProvider] = None,
-        provider_key: Optional[str] = None,
-        referrer: Optional[str] = "in-app",
+        auth_provider: AuthProvider | None = None,
+        provider_key: str | None = None,
+        referrer: str | None = "in-app",
     ) -> None:
         assert provider_key or auth_provider
         self.flow = flow

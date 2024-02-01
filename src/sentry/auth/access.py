@@ -15,7 +15,7 @@ __all__ = [
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, Iterable, Mapping, Optional
+from typing import Any, Collection, Iterable, Mapping
 
 import sentry_sdk
 from django.conf import settings
@@ -1016,7 +1016,7 @@ from_user_and_api_user_org_context = from_user_and_rpc_user_org_context
 
 
 def from_request(
-    request: Any, organization: Optional[Organization] = None, scopes: Iterable[str] | None = None
+    request: Any, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
     is_superuser = is_active_superuser(request)
 

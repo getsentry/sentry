@@ -28,8 +28,6 @@ class TooManyRules(ValueError):
     Raised when a there is already the max number of rules active for an organization
     """
 
-    pass
-
 
 def get_rule_hash(condition: Any, project_ids: Sequence[int]) -> str:
     """

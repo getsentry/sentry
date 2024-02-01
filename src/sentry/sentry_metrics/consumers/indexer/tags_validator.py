@@ -32,8 +32,6 @@ class ReleaseHealthTagsValidator(TagsValidator):
     The release health pipeline has the same limits as the default tags limit enforcer.
     """
 
-    pass
-
 
 class GenericMetricsTagsValidator(TagsValidator):
     """

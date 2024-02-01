@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import Literal, Optional, Sequence, Union
+from typing import Literal, Sequence, Union
 
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
@@ -35,12 +35,10 @@ from .utils import (
 
 @dataclass(frozen=True)
 class MetricField:
-    op: Optional[MetricOperationType]
+    op: MetricOperationType | None
     metric_mri: str
-    params: Optional[
-        dict[str, Union[None, str, int, float, Sequence[tuple[Union[str, int], ...]]]]
-    ] = None
-    alias: Optional[str] = None
+    params: dict[str, None | str | int | float | Sequence[tuple[str | int, ...]]] | None = None
+    alias: str | None = None
 
     def __post_init__(self) -> None:
         # Validate that it is a valid MRI format
@@ -82,12 +80,12 @@ class MetricField:
 
 @dataclass(frozen=True)
 class MetricActionByField:
-    field: Union[str, MetricField]
+    field: str | MetricField
 
 
 @dataclass(frozen=True)
 class MetricGroupByField(MetricActionByField):
-    alias: Optional[str] = None
+    alias: str | None = None
 
     def __post_init__(self) -> None:
         if not self.alias:
@@ -121,7 +119,7 @@ class MetricConditionField:
 
     lhs: MetricField
     op: Op
-    rhs: Union[int, float, str]
+    rhs: int | float | str
 
 
 Groupable = Union[str, Literal["project_id"]]
@@ -151,19 +149,19 @@ class MetricsQuery(MetricsQueryValidationRunner):
     granularity: Granularity
     # ToDo(ahmed): In the future, once we start parsing conditions, the only conditions that should be here should be
     #  instances of MetricConditionField
-    start: Optional[datetime] = None
-    end: Optional[datetime] = None
-    where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None
-    having: Optional[ConditionGroup] = None
-    groupby: Optional[Sequence[MetricGroupByField]] = None
-    orderby: Optional[Sequence[MetricOrderByField]] = None
-    limit: Optional[Limit] = None
+    start: datetime | None = None
+    end: datetime | None = None
+    where: Sequence[BooleanCondition | Condition | MetricConditionField] | None = None
+    having: ConditionGroup | None = None
+    groupby: Sequence[MetricGroupByField] | None = None
+    orderby: Sequence[MetricOrderByField] | None = None
+    limit: Limit | None = None
     # In cases where limit involves calculation (eg. top N series), we want to cap the limit since it'll be blocked otherwise.
-    max_limit: Optional[Limit] = None
-    offset: Optional[Offset] = None
+    max_limit: Limit | None = None
+    offset: Offset | None = None
     include_totals: bool = True
     include_series: bool = True
-    interval: Optional[int] = None
+    interval: int | None = None
     # This field is used as a temporary fix to allow the metrics layer to support alerts by generating snql that
     # doesn't take into account time bounds as the alerts service uses subscriptable queries that react in real time
     # to dataset changes.

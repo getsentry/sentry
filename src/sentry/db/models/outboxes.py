@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import TYPE_CHECKING, Any, Collection, Iterable, Mapping, Optional, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Collection, Iterable, Mapping, Protocol, TypeVar
 
 from django.db import connections, router, transaction
 from django.dispatch import receiver
@@ -39,7 +39,7 @@ class RegionOutboxProducingModel(Model):
     replication_version: int = 1
 
     @contextlib.contextmanager
-    def prepare_outboxes(self, *, outbox_before_super: bool, flush: Optional[bool] = None):
+    def prepare_outboxes(self, *, outbox_before_super: bool, flush: bool | None = None):
         from sentry.models.outbox import outbox_context
 
         if flush is None:

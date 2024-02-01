@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any
 
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -103,9 +103,9 @@ def query_selector_collection(
     project_ids: list[int],
     start: datetime,
     end: datetime,
-    sort: Optional[str],
-    limit: Optional[str],
-    offset: Optional[str],
+    sort: str | None,
+    limit: str | None,
+    offset: str | None,
     search_filters: list[Condition],
     organization: Organization,
 ) -> dict:
@@ -133,9 +133,9 @@ def query_selector_dataset(
     project_ids: list[int],
     start: datetime,
     end: datetime,
-    search_filters: list[Union[SearchFilter, ParenExpression, str]],
-    pagination: Optional[Paginators],
-    sort: Optional[str],
+    search_filters: list[SearchFilter | ParenExpression | str],
+    pagination: Paginators | None,
+    sort: str | None,
     tenant_ids: dict[str, Any] | None = None,
 ):
     query_options = {}

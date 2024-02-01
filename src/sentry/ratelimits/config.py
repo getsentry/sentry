@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Mapping, Union
+from typing import Mapping
 
 from django.conf import settings
 
@@ -72,7 +72,7 @@ def get_default_rate_limits_for_group(group_name: str, category: RateLimitCatego
 @dataclass(frozen=True)
 class RateLimitConfig:
     group: str = field(default="default")
-    limit_overrides: Union[RateLimitOverrideDict, _sentinel] = field(default=_sentinel())
+    limit_overrides: RateLimitOverrideDict | _sentinel = field(default=_sentinel())
 
     def has_custom_limit(self) -> bool:
         return not isinstance(self.limit_overrides, _sentinel)
@@ -87,7 +87,7 @@ class RateLimitConfig:
 
     @classmethod
     def from_rate_limit_override_dict(
-        cls, rate_limit_override_dict: Union[RateLimitConfig, RateLimitOverrideDict]
+        cls, rate_limit_override_dict: RateLimitConfig | RateLimitOverrideDict
     ) -> RateLimitConfig:
         if isinstance(rate_limit_override_dict, cls):
             return rate_limit_override_dict

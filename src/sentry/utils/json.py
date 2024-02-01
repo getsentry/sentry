@@ -155,7 +155,7 @@ def prune_empty_keys(obj: Mapping[TKey, TValue | None]) -> dict[TKey, TValue]:
     ...
 
 
-def prune_empty_keys(obj: None | Mapping[TKey, TValue | None]) -> None | dict[TKey, TValue]:
+def prune_empty_keys(obj: Mapping[TKey, TValue | None] | None) -> dict[TKey, TValue] | None:
     if obj is None:
         return None
 

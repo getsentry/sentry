@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 from enum import Enum
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 from uuid import uuid4
 
 from django.conf import settings
@@ -221,7 +221,7 @@ class Incident(Model):
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
@@ -310,7 +310,7 @@ class IncidentActivity(Model):
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None

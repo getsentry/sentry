@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import uuid
 import zipfile
-from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar, Container, Iterable, Mapping, Optional
+from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar, Container, Iterable, Mapping
 
 from django.db import models
 from django.db.models import Q
@@ -153,9 +153,9 @@ class ProjectDebugFile(Model):
         return KNOWN_DIF_FORMATS.get(ct, "unknown")
 
     @property
-    def file_type(self) -> Optional[str]:
+    def file_type(self) -> str | None:
         if self.data:
-            val: Optional[Any] = self.data.get("type")
+            val: Any | None = self.data.get("type")
             if isinstance(val, str) or val is None:
                 return val
             else:
@@ -246,8 +246,8 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
-    fileobj: Optional[BinaryIO] = None,
-    file: Optional[File] = None,
+    fileobj: BinaryIO | None = None,
+    file: File | None = None,
 ) -> tuple[ProjectDebugFile, bool]:
     """Creates the :class:`ProjectDebugFile` entry for the provided DIF.
 
@@ -341,7 +341,7 @@ def create_dif_from_id(
     return dif, True
 
 
-def _analyze_progard_filename(filename: str) -> Optional[str]:
+def _analyze_progard_filename(filename: str) -> str | None:
     match = _proguard_file_re.search(filename)
     if match is None:
         return None
@@ -379,9 +379,9 @@ class DifMeta:
         arch: str,
         debug_id: str,
         path: str,
-        code_id: Optional[str] = None,
-        name: Optional[str] = None,
-        data: Optional[Any] = None,
+        code_id: str | None = None,
+        name: str | None = None,
+        data: Any | None = None,
     ):
         self.file_format = file_format
         self.arch = arch
@@ -400,8 +400,8 @@ class DifMeta:
         cls,
         obj: Object,
         path: str,
-        name: Optional[str] = None,
-        debug_id: Optional[str] = None,
+        name: str | None = None,
+        debug_id: str | None = None,
     ) -> DifMeta:
         if debug_id is not None:
             try:
@@ -462,8 +462,8 @@ def determine_dif_kind(path: str) -> DifKind:
 
 def detect_dif_from_path(
     path: str,
-    name: Optional[str] = None,
-    debug_id: Optional[str] = None,
+    name: str | None = None,
+    debug_id: str | None = None,
     accept_unknown: bool = False,
 ) -> list[DifMeta]:
     """Detects which kind of Debug Information File (DIF) the file at `path` is.
