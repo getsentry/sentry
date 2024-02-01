@@ -395,14 +395,32 @@ def convert_widget_query_to_metric(
     return metrics_specs
 
 
+def get_specs_per_version(specs: Sequence[HashedMetricSpec]) -> dict[int, list[HashedMetricSpec]]:
+    """This splits a list of specs into versioned specs for per-version logic"""
+    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    for hash, spec, spec_version in specs:
+        specs_per_version.setdefault(spec_version.version, [])
+        specs_per_version[spec_version.version].append((hash, spec, spec_version))
+
+    return specs_per_version
+
+
 def _can_widget_query_use_stateful_extraction(
     widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
 ) -> bool:
     """Stateful extraction for metrics is not always used, in cases where a query has been recently modified.
     Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries.
     """
-    spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]
-    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+
+    specs_per_version = get_specs_per_version(metrics_specs)
+
+    stateful_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
+    default_version_specs = specs_per_version[stateful_extraction_version]
+    spec_hashes = [hashed_spec[0] for hashed_spec in default_version_specs]
+
+    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.filter(
+        spec_version=stateful_extraction_version
+    )
 
     if len(on_demand_entries) == 0:
         # 0 on-demand entries is expected, and happens when the on-demand task hasn't caught up yet for newly created widgets or widgets recently modified to have on-demand state.
@@ -450,9 +468,13 @@ def _can_widget_query_use_stateful_extraction(
 def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery) -> bool:
     """Separate from the check on whether to use stateful extraction in the first place,
     this assumes stateful extraction can be used, and returns the enabled state."""
-    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
 
-    if len(on_demand_entries) != len(OnDemandMetricSpecVersioning.get_spec_versions()):
+    stateful_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
+    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.filter(
+        spec_version=stateful_extraction_version
+    )
+
+    if len(on_demand_entries) != 1:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("on_demand_entries", on_demand_entries)
             scope.set_extra("spec_version", OnDemandMetricSpecVersioning.get_spec_versions())
