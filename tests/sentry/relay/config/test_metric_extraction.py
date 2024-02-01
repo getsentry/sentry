@@ -1447,8 +1447,9 @@ def test_stateful_get_metric_extraction_config_enabled_with_multiple_versions(
         extraction_row_default = next(
             filter(lambda row: row.spec_version == 1, on_demand_entries), None
         )
-        extraction_row_default.extraction_state = "disabled:manual"
-        extraction_row_default.save()
+        if extraction_row_default:
+            extraction_row_default.extraction_state = "disabled:manual"
+            extraction_row_default.save()
 
         config = get_metric_extraction_config(default_project)
 
