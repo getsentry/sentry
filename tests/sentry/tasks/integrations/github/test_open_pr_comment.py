@@ -328,7 +328,54 @@ class TestGetFilenames(GithubCommentTestCase):
         ]
 
         project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
-            self.organization.id, filename
+            self.organization.id, self.gh_repo.id, filename
+        )
+        assert project_list == set(projects)
+        assert sentry_filenames == set(correct_filenames)
+
+    def test_get_projects_and_filenames_from_source_file_filters_repo(self):
+        projects = [self.create_project() for _ in range(3)]
+
+        source_stack_pairs = [
+            ("src/sentry", "sentry/"),
+            ("src/", ""),
+            ("src/sentry/", "sentry/"),
+        ]
+        for i, pair in enumerate(source_stack_pairs):
+            source_root, stack_root = pair
+            self.create_code_mapping(
+                project=projects[i],
+                repo=self.gh_repo,
+                source_root=source_root,
+                stack_root=stack_root,
+                default_branch="master",
+            )
+
+        # other codemapping in different repo, will not match
+        project = self.create_project()
+        repo = self.create_repo(
+            name="getsentry/santry",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            project=project,
+            url="https://github.com/getsentry/santry",
+        )
+        self.create_code_mapping(
+            project=project,
+            repo=repo,
+            source_root="",
+            stack_root="./",
+            default_branch="master",
+        )
+
+        filename = "src/sentry/tasks/integrations/github/open_pr_comment.py"
+        correct_filenames = [
+            "sentry//tasks/integrations/github/open_pr_comment.py",
+            "sentry/tasks/integrations/github/open_pr_comment.py",
+        ]
+
+        project_list, sentry_filenames = get_projects_and_filenames_from_source_file(
+            self.organization.id, self.gh_repo.id, filename
         )
         assert project_list == set(projects)
         assert sentry_filenames == set(correct_filenames)
