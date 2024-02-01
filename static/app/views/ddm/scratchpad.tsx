@@ -82,7 +82,9 @@ export function MetricScratchpad() {
           focusArea={focusArea}
           showQuerySymbols={showQuerySymbols}
           onSampleClick={handleSampleClick}
-          highlightedSampleId={highlightedSampleId}
+          highlightedSampleId={
+            selectedWidgetIndex === index ? highlightedSampleId : undefined
+          }
         />
       ))}
     </Wrapper>
