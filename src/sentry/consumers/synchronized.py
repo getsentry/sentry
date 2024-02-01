@@ -38,12 +38,9 @@ class Synchronized(Generic[T]):
     (replacing) the value.
     """
 
-    def __init__(self, value: T, lock: Optional[Lock] = None) -> None:
-        if lock is None:
-            lock = Lock()
-
+    def __init__(self, value: T) -> None:
         self.__value = value
-        self.__lock = lock
+        self.__lock = Lock()
 
     # TODO: For future use, it might make sense to expose the other lock
     # arguments on `get` and `set`, such as `timeout`, `block`, etc.
