@@ -117,7 +117,7 @@ export function getMetricsApiRequestQuery(
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
-    query,
+    query: sanitizeQuery(query),
     project: projects,
     environment: environments,
     field,
@@ -129,6 +129,10 @@ export function getMetricsApiRequestQuery(
   };
 
   return {...queryToSend, ...overrides};
+}
+
+function sanitizeQuery(query?: string) {
+  return query?.trim();
 }
 
 const ddmHighFidelityLadder = new GranularityLadder([
