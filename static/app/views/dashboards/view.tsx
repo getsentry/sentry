@@ -56,9 +56,9 @@ function ViewEditDashboard(props: Props) {
 
   useEffect(() => {
     const constructedWidget = constructWidgetFromQuery(location.query);
-    setNewWidget(constructedWidget);
     // Clean up url after constructing widget from query string, only allow GHS params
     if (constructedWidget) {
+      setNewWidget(constructedWidget);
       setDashboardInitialState(DashboardState.EDIT);
       browserHistory.replace({
         pathname: location.pathname,
