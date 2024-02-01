@@ -6,9 +6,12 @@ from unittest.mock import MagicMock, patch
 from sentry.issues.occurrence_consumer import _process_message
 from sentry.issues.priority import PriorityLevel
 from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprints
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_occurrence_consumer import IssueOccurrenceTestBase, get_test_message
 
@@ -28,10 +31,6 @@ def get_test_message_status_change(
     }
 
     return payload
-
-
-from sentry.models.activity import Activity, ActivityType
-from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 
 
 class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
