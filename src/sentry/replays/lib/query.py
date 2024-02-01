@@ -133,9 +133,9 @@ class IPAddress(Field):
         is_wildcard: bool = False,
     ) -> Condition:
         if isinstance(value, list):
-            value = [Function("IPv4StringToNum", parameters=[v]) for v in value]
+            value = [Function("toIPv4", parameters=[v]) for v in value]
         else:
-            value = Function("IPv4StringToNum", parameters=[value])
+            value = Function("toIPv4", parameters=[value])
 
         return Condition(Column(self.query_alias or self.attribute_name), operator, value)
 
