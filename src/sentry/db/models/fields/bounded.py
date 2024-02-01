@@ -68,7 +68,7 @@ if settings.SENTRY_USE_BIG_INTS:
         def db_type(self, connection: BaseDatabaseWrapper) -> str:
             return "bigserial"
 
-        def get_related_db_type(self, connection: BaseDatabaseWrapper) -> str | None:
+        def rel_db_type(self, connection: BaseDatabaseWrapper) -> str | None:
             return BoundedBigIntegerField().db_type(connection)
 
         def get_internal_type(self) -> str:
