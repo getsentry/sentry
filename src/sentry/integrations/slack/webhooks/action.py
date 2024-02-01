@@ -627,7 +627,6 @@ class SlackActionEndpoint(Endpoint):
                 actions=action_list,
                 tags=original_tags_from_request,
                 rules=[rule] if rule else None,
-                issue_details=True,
             ).build()
             # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
             # response so the unfurling endpoint understands the payload
