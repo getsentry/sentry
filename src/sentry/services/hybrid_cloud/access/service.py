@@ -1,6 +1,6 @@
 import abc
 from datetime import timedelta
-from typing import Optional
+from typing import FrozenSet, List, Optional
 
 from django.utils import timezone
 
@@ -37,13 +37,14 @@ class AccessService(abc.ABC):
         """If an owner is trying to gain access, allow bypassing SSO if there are no
         other owners with SSO enabled.
         """
-
-    @abc.abstractmethod
-    def get_all_org_roles(self, member_id: int, organization_id: int) -> list[str]:
         pass
 
     @abc.abstractmethod
-    def get_top_dog_team_member_ids(self, organization_id: int) -> list[int]:
+    def get_all_org_roles(self, member_id: int, organization_id: int) -> List[str]:
+        pass
+
+    @abc.abstractmethod
+    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
         pass
 
     def auth_identity_is_valid(
@@ -109,6 +110,7 @@ class AccessService(abc.ABC):
         *,
         user_id: int,
         is_superuser: bool,
+        is_staff: bool,
         organization_id: Optional[int],
         org_member: Optional[RpcOrganizationMemberSummary],
     ) -> RpcAuthState:
@@ -116,7 +118,9 @@ class AccessService(abc.ABC):
             organization_id=organization_id, is_super_user=is_superuser, member=org_member
         )
 
-        if is_superuser:
+        # Unfortunately we are unable to combine the is_superuser and is_staff
+        # into a single argument b/c query_sso_state specifically needs is_superuser
+        if is_superuser or is_staff:
             # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
             # have them, you can only use them when you are acting, as a superuser.  This is intentional.
             permissions = list(self.get_permissions_for_user(user_id))
@@ -126,7 +130,7 @@ class AccessService(abc.ABC):
         return RpcAuthState(sso_state=sso_state, permissions=permissions)
 
     @abc.abstractmethod
-    def get_permissions_for_user(self, user_id: int) -> frozenset[str]:
+    def get_permissions_for_user(self, user_id: int) -> FrozenSet[str]:
         pass
 
 
