@@ -342,16 +342,30 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "unique_examples",
                     snql_aggregate=lambda args, alias: Function(
-                        "arrayMap",
+                        "arrayFilter",
                         [
-                            # TODO: should this transform be moved to snuba?
+                            # Filter out the profile ids for processed profiles
                             Lambda(
                                 ["x"],
                                 Function(
-                                    "replaceAll", [Function("toString", [Identifier("x")]), "-", ""]
+                                    "notEquals",
+                                    [Identifier("x"), uuid.UUID(int=0).hex],
                                 ),
                             ),
-                            Function("groupUniqArrayMerge(5)", [SnQLColumn("examples")]),
+                            Function(
+                                "arrayMap",
+                                [
+                                    # TODO: should this transform be moved to snuba?
+                                    Lambda(
+                                        ["x"],
+                                        Function(
+                                            "replaceAll",
+                                            [Function("toString", [Identifier("x")]), "-", ""],
+                                        ),
+                                    ),
+                                    Function("groupUniqArrayMerge(5)", [SnQLColumn("examples")]),
+                                ],
+                            ),
                         ],
                         alias,
                     ),
