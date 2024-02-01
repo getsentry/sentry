@@ -312,6 +312,10 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
+export function isSpanMetric({mri}: {mri: MRI}) {
+  return mri.includes(':spans/');
+}
+
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
   if (isCustomMetric(metricsQuery)) {
     return MRIToField(metricsQuery.mri, metricsQuery.op!);

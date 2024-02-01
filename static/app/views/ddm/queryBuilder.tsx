@@ -13,6 +13,7 @@ import {
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
+  isSpanMetric,
   isTransactionDuration,
 } from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
@@ -41,7 +42,10 @@ type QueryBuilderProps = {
 };
 
 const isShownByDefault = (metric: MetricMeta) =>
-  isMeasurement(metric) || isCustomMetric(metric) || isTransactionDuration(metric);
+  isCustomMetric(metric) ||
+  isTransactionDuration(metric) ||
+  isMeasurement(metric) ||
+  isSpanMetric(metric);
 
 function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
   return meta.find(metric => metric.mri === mri)?.operations.filter(isAllowedOp) ?? [];
