@@ -36,9 +36,18 @@ class ActivityManager(BaseManager["Activity"]):
 
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
+        initial_priority = None
 
         if not features.has("projects:issue-priority", group.project):
             activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
+        else:
+            initial_priority = (
+                PRIORITY_LEVEL_TO_STR[
+                    group.get_event_metadata()["initial_priority"]
+                ]  # inital_priority is only available when the feature flag is on
+                if group.get_event_metadata()["initial_priority"]
+                else None
+            )
 
         prev_sig = None
         sig = None
@@ -54,11 +63,6 @@ class ActivityManager(BaseManager["Activity"]):
             if sig != prev_sig:
                 activities.append(item)
 
-        initial_priority = (
-            PRIORITY_LEVEL_TO_STR[group.get_event_metadata()["initial_priority"]]
-            if group.get_event_metadata()["initial_priority"]
-            else None
-        )
         activities.append(
             Activity(
                 id=0,
