@@ -39,7 +39,7 @@ class PriorityChangeReason(Enum):
     ONGOING = "ongoing"
 
 
-PRIORITY_CHANGE_REASON_STR_TO_ENUM: dict[str, int] = {
+PRIORITY_CHANGE_REASON_STR_TO_ENUM: dict[str, PriorityChangeReason] = {
     "escalating": PriorityChangeReason.ESCALATING,
     "ongoing": PriorityChangeReason.ONGOING,
 }
