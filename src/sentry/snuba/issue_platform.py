@@ -1,6 +1,6 @@
 from copy import deepcopy
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
+from typing import Optional, Sequence
 
 import sentry_sdk
 
@@ -106,12 +106,12 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: dict[str, str],
     rollup: int,
     referrer: Optional[str] = None,
     zerofill_results: bool = True,
     comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    functions_acl: Optional[list[str]] = None,
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,

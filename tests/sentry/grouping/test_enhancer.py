@@ -19,6 +19,8 @@ def dump_obj(obj):
     for key, value in obj.__dict__.items():
         if key.startswith("_"):
             continue
+        elif key == "rust_enhancements":
+            continue
         elif isinstance(value, list):
             rv[key] = [dump_obj(x) for x in value]
         elif isinstance(value, dict):
@@ -30,6 +32,7 @@ def dump_obj(obj):
 
 @pytest.mark.parametrize("version", [1, 2])
 @django_db_all
+@override_options({"grouping.rust_enhancers.parse_rate": 1.0})
 def test_basic_parsing(insta_snapshot, version):
     enhancement = Enhancements.from_config_string(
         """
@@ -85,6 +88,10 @@ def test_callee_recursion():
         Enhancements.from_config_string(" category:foo | [ category:bar ] | [ category:baz ] +app")
 
 
+@django_db_all
+@override_options(
+    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
+)
 def test_flipflop_inapp():
     enhancement = Enhancements.from_config_string(
         """
@@ -479,6 +486,10 @@ def test_sentinel_and_prefix(action, type):
     assert getattr(component, f"is_{type}_frame") is expected
 
 
+@django_db_all
+@override_options(
+    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
+)
 @pytest.mark.parametrize(
     "frame",
     [

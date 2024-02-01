@@ -7,15 +7,10 @@ from typing import (
     TYPE_CHECKING,
     AbstractSet,
     Any,
-    Dict,
-    FrozenSet,
-    List,
     Mapping,
     MutableMapping,
     MutableSequence,
-    Optional,
     Sequence,
-    Set,
 )
 
 from django.db.models import Count
@@ -91,7 +86,7 @@ def get_member_totals(team_list: Sequence[Team], user: User) -> Mapping[str, int
     return {item["id"]: item["member_count"] for item in query}
 
 
-def get_member_orgs_and_roles(org_ids: Set[int], user_id: int) -> Mapping[int, Sequence[str]]:
+def get_member_orgs_and_roles(org_ids: set[int], user_id: int) -> Mapping[int, Sequence[str]]:
     org_members = OrganizationMember.objects.filter(
         user_id=user_id, organization__in=org_ids
     ).values_list("organization_id", "id", "role")
@@ -119,7 +114,7 @@ def get_member_orgs_and_roles(org_ids: Set[int], user_id: int) -> Mapping[int, S
 
 
 def get_org_roles(
-    org_ids: Set[int], user: User, optimization: SingularRpcAccessOrgOptimization | None = None
+    org_ids: set[int], user: User, optimization: SingularRpcAccessOrgOptimization | None = None
 ) -> Mapping[int, Sequence[str]]:
     """
     Get the roles the user has in each org
@@ -154,10 +149,10 @@ def get_access_requests(item_list: Sequence[Team], user: User) -> AbstractSet[Te
 
 
 class _TeamSerializerResponseOptional(TypedDict, total=False):
-    externalTeams: List[ExternalActorResponse]
+    externalTeams: list[ExternalActorResponse]
     organization: OrganizationSerializerResponse
-    projects: List[ProjectSerializerResponse]
-    orgRole: Optional[str]  # TODO(cathy): Change to new key
+    projects: list[ProjectSerializerResponse]
+    orgRole: str | None  # TODO(cathy): Change to new key
 
 
 class BaseTeamSerializerResponse(TypedDict):
@@ -166,9 +161,9 @@ class BaseTeamSerializerResponse(TypedDict):
     name: str
     dateCreated: datetime
     isMember: bool
-    teamRole: Optional[str]
-    flags: Dict[str, Any]
-    access: FrozenSet[str]  # scopes granted by teamRole
+    teamRole: str | None
+    flags: dict[str, Any]
+    access: frozenset[str]  # scopes granted by teamRole
     hasAccess: bool
     isPending: bool
     memberCount: int
@@ -222,7 +217,7 @@ class BaseTeamSerializer(Serializer):
         self, item_list: Sequence[Team], user: User, **kwargs: Any
     ) -> MutableMapping[Team, MutableMapping[str, Any]]:
         request = env.request
-        org_ids: Set[int] = {t.organization_id for t in item_list}
+        org_ids: set[int] = {t.organization_id for t in item_list}
 
         assert len(org_ids) == 1, "Cross organization query for teams"
 
@@ -380,14 +375,14 @@ class SCIMTeamMemberListItem(TypedDict):
 
 
 class OrganizationTeamSCIMSerializerRequired(TypedDict):
-    schemas: List[str]
+    schemas: list[str]
     id: str
     displayName: str
     meta: SCIMMeta
 
 
 class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequired, total=False):
-    members: List[SCIMTeamMemberListItem]
+    members: list[SCIMTeamMemberListItem]
 
 
 @dataclasses.dataclass
@@ -395,11 +390,11 @@ class TeamMembership:
     user_id: int
     user_email: str
     member_id: int
-    team_ids: List[int]
+    team_ids: list[int]
 
 
-def get_team_memberships(team_ids: List[int]) -> List[TeamMembership]:
-    members: Dict[int, TeamMembership] = {}
+def get_team_memberships(team_ids: list[int]) -> list[TeamMembership]:
+    members: dict[int, TeamMembership] = {}
     for omt in RangeQuerySetWrapper(
         OrganizationMemberTeam.objects.filter(team_id__in=team_ids).prefetch_related(
             "organizationmember"
@@ -420,7 +415,7 @@ def get_team_memberships(team_ids: List[int]) -> List[TeamMembership]:
 class TeamSCIMSerializer(Serializer):
     def __init__(
         self,
-        expand: Optional[Sequence[str]] = None,
+        expand: Sequence[str] | None = None,
     ) -> None:
         self.expand = expand or []
 
@@ -434,8 +429,8 @@ class TeamSCIMSerializer(Serializer):
         teams_by_id: Mapping[int, Team] = {t.id: t for t in item_list}
 
         if teams_by_id and "members" in self.expand:
-            team_ids: List[int] = [t.id for t in item_list]
-            team_memberships: List[TeamMembership] = get_team_memberships(team_ids=team_ids)
+            team_ids: list[int] = [t.id for t in item_list]
+            team_memberships: list[TeamMembership] = get_team_memberships(team_ids=team_ids)
 
             for team_member in team_memberships:
                 for team_id in team_member.team_ids:

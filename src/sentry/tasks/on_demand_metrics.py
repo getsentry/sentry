@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Sequence, Set
+from typing import Any, Sequence
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -266,22 +266,35 @@ def _set_widget_on_demand_state(
     widget_query: DashboardWidgetQuery,
     specs: Sequence[HashedMetricSpec],
     is_low_cardinality: bool | None,
-    enabled_features: Set[str],
+    enabled_features: set[str],
 ):
-    extraction_state = _determine_extraction_state(specs, is_low_cardinality, enabled_features)
-    spec_hashes = [hashed_spec[0] for hashed_spec in specs]
+    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    for hash, spec, spec_version in specs:
+        specs_per_version.setdefault(spec_version.version, [])
+        specs_per_version[spec_version.version].append((hash, spec, spec_version))
 
-    DashboardWidgetQueryOnDemand.objects.update_or_create(
-        dashboard_widget_query=widget_query,
-        defaults={
-            "spec_hashes": spec_hashes,
-            "extraction_state": extraction_state,
-        },
-    )
+    for version, specs_for_version in specs_per_version.items():
+        extraction_state = _determine_extraction_state(specs, is_low_cardinality, enabled_features)
+        spec_hashes = [hashed_spec[0] for hashed_spec in specs_for_version]
+
+        (on_demand, _) = DashboardWidgetQueryOnDemand.objects.get_or_create(
+            dashboard_widget_query=widget_query,
+            spec_version=version,
+            defaults={
+                "spec_hashes": spec_hashes,
+                "extraction_state": extraction_state,
+            },
+        )
+
+        if on_demand.can_extraction_be_auto_overridden():
+            on_demand.extraction_state = extraction_state
+
+        on_demand.spec_hashes = spec_hashes
+        on_demand.save()
 
 
 def _determine_extraction_state(
-    specs: Sequence[HashedMetricSpec], is_low_cardinality: bool | None, enabled_features: Set[str]
+    specs: Sequence[HashedMetricSpec], is_low_cardinality: bool | None, enabled_features: set[str]
 ) -> OnDemandExtractionState:
     if not specs:
         return OnDemandExtractionState.DISABLED_NOT_APPLICABLE
@@ -297,7 +310,7 @@ def _determine_extraction_state(
 
 def _get_widget_query_low_cardinality(
     widget_query: DashboardWidgetQuery, organization: Organization
-) -> Optional[bool]:
+) -> bool | None:
     """
     Checks cardinality of existing widget queries before allowing the metric spec, so that
     group-by clauses with high cardinality tags are not added to the on_demand metric.

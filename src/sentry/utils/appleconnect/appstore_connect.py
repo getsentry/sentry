@@ -7,7 +7,7 @@ import pathlib
 import time
 from collections import namedtuple
 from http import HTTPStatus
-from typing import Any, Callable, Dict, Generator, List, Mapping, NewType, Optional, Tuple, Union
+from typing import Any, Callable, Generator, Mapping, NewType, Optional, Union
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -26,19 +26,13 @@ REQUEST_TIMEOUT = 30.0
 class RequestError(Exception):
     """An error from the response."""
 
-    pass
-
 
 class UnauthorizedError(RequestError):
     """Unauthorised: invalid, expired or revoked authentication token."""
 
-    pass
-
 
 class ForbiddenError(RequestError):
     """Forbidden: authentication token does not have sufficient permissions."""
-
-    pass
 
 
 class NoDsymUrl(enum.Enum):
@@ -137,8 +131,7 @@ def _get_appstore_json(
             full_url = ""
         full_url += url
         logger.debug("GET %s", full_url)
-        with sentry_sdk.start_transaction(op="http", description="AppStoreConnect request"):
-            response = session.get(full_url, headers=headers, timeout=REQUEST_TIMEOUT)
+        response = session.get(full_url, headers=headers, timeout=REQUEST_TIMEOUT)
         if not response.ok:
             err_info = {
                 "url": full_url,
@@ -215,7 +208,7 @@ class _IncludedRelations:
     """
 
     def __init__(self, page_data: JSONData):
-        self._items: Dict[Tuple[_RelType, _RelId], JSONData] = {}
+        self._items: dict[tuple[_RelType, _RelId], JSONData] = {}
         for relation in page_data.get("included", []):
             rel_type = _RelType(relation["type"])
             rel_id = _RelId(relation["id"])
@@ -242,7 +235,7 @@ class _IncludedRelations:
         rel_id = _RelId(rel_ptr_data["id"])
         return self._items[(rel_type, rel_id)]
 
-    def get_multiple_related(self, data: JSONData, relation: str) -> Optional[List[JSONData]]:
+    def get_multiple_related(self, data: JSONData, relation: str) -> Optional[list[JSONData]]:
         """Returns a list of all the related objects of the named relation type.
 
         This is like :meth:`get_related` but is for relation types which have a list of
@@ -273,7 +266,7 @@ def get_build_info(
     app_id: str,
     *,
     include_expired: bool = False,
-) -> List[BuildInfo]:
+) -> list[BuildInfo]:
     """Returns the build infos for an application.
 
     The release build version information has the following structure:
@@ -361,7 +354,7 @@ def get_build_info(
         return build_info
 
 
-def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
+def _get_dsym_url(bundles: Optional[list[JSONData]]) -> Union[NoDsymUrl, str]:
     """Returns the dSYMs URL from the extracted from the build bundles."""
     # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
     # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
@@ -415,7 +408,7 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
 AppInfo = namedtuple("AppInfo", ["name", "bundle_id", "app_id"])
 
 
-def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[List[AppInfo]]:
+def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[list[AppInfo]]:
     """
     Returns the available applications from an account
     :return: a list of available applications or None if the login failed, an empty list

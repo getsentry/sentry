@@ -6,7 +6,7 @@ from typing_extensions import override
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organization import OrganizationStatus
@@ -29,6 +29,13 @@ class UserPermission(SentryPermission):
         if is_active_superuser(request):
             return True
         return False
+
+
+class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
+    """
+    Allows staff to access any endpoints this permission is used on. Note that
+    UserPermission already includes a check for Superuser
+    """
 
 
 class OrganizationUserPermission(UserPermission):

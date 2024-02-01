@@ -1,7 +1,7 @@
 from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Mapping, Optional, Sequence, Union
 
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -32,20 +32,20 @@ Alias = namedtuple("Alias", "converter aggregate resolved_function")
 
 @dataclass
 class QueryFramework:
-    orderby: List[OrderBy]
-    having: List[WhereType]
-    functions: List[CurriedFunction]
+    orderby: list[OrderBy]
+    having: list[WhereType]
+    functions: list[CurriedFunction]
     entity: Entity
 
 
 class EventsMeta(TypedDict):
-    fields: Dict[str, str]
-    tips: Dict[str, str]
+    fields: dict[str, str]
+    tips: dict[str, str]
     isMetricsData: NotRequired[bool]
 
 
 class EventsResponse(TypedDict):
-    data: List[Dict[str, Any]]
+    data: list[dict[str, Any]]
     meta: EventsMeta
 
 
@@ -67,7 +67,7 @@ class SnubaParams:
             self.end = self.end.replace(tzinfo=timezone.utc)
 
         # Only used in the trend query builder
-        self.aliases: Optional[Dict[str, Alias]] = {}
+        self.aliases: Optional[dict[str, Alias]] = {}
 
     @property
     def environment_names(self) -> Sequence[str]:
@@ -105,8 +105,8 @@ class QueryBuilderConfig:
     auto_fields: bool = False
     auto_aggregations: bool = False
     use_aggregate_conditions: bool = False
-    functions_acl: Optional[List[str]] = None
-    equation_config: Optional[Dict[str, bool]] = None
+    functions_acl: Optional[list[str]] = None
+    equation_config: Optional[dict[str, bool]] = None
     # This allows queries to be resolved without adding time constraints. Currently this is just
     # used to allow metric alerts to be built and validated before creation in snuba.
     skip_time_conditions: bool = False

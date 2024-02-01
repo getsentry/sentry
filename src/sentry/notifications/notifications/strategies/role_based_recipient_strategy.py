@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta
-from typing import TYPE_CHECKING, Iterable, MutableMapping, Optional
+from typing import TYPE_CHECKING, Iterable, MutableMapping
 
 from sentry import roles
 from sentry.models.organizationmember import OrganizationMember
@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 
 class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     member_by_user_id: MutableMapping[int, OrganizationMember] = {}
-    role: Optional[OrganizationRole] = None
-    scope: Optional[str] = None
+    role: OrganizationRole | None = None
+    scope: str | None = None
 
     def __init__(self, organization: Organization):
         self.organization = organization

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import Callable, Iterator, Optional, Sequence, TypedDict, Union, cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -75,7 +75,7 @@ class ProjectTransactions(TypedDict, total=True):
 
     project_id: int
     org_id: int
-    transaction_counts: List[Tuple[str, float]]
+    transaction_counts: list[tuple[str, float]]
     total_num_transactions: Optional[float]
     total_num_classes: Optional[int]
 
@@ -262,7 +262,7 @@ class FetchProjectTransactionTotals:
         self.org_ids = list(orgs)
         self.offset = 0
         self.has_more_results = True
-        self.cache: List[Dict[str, Union[int, float]]] = []
+        self.cache: list[dict[str, Union[int, float]]] = []
         self.last_org_id: Optional[int] = None
 
     def __iter__(self):
@@ -407,7 +407,7 @@ class FetchProjectTransactionVolumes:
 
     def __init__(
         self,
-        orgs: List[int],
+        orgs: list[int],
         large_transactions: bool,
         max_transactions: int,
     ):
@@ -423,7 +423,7 @@ class FetchProjectTransactionVolumes:
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
         self.has_more_results = True
-        self.cache: List[ProjectTransactions] = []
+        self.cache: list[ProjectTransactions] = []
 
         if self.large_transactions:
             self.transaction_ordering = Direction.DESC
@@ -517,7 +517,7 @@ class FetchProjectTransactionVolumes:
         return self._get_from_cache()
 
     def _add_results_to_cache(self, data):
-        transaction_counts: List[Tuple[str, float]] = []
+        transaction_counts: list[tuple[str, float]] = []
         current_org_id: Optional[int] = None
         current_proj_id: Optional[int] = None
 
@@ -667,7 +667,7 @@ def next_totals(
     in a for loop). If it finds the match it will return the total for the match.
 
     """
-    current: List[Optional[ProjectTransactionsTotals]] = [None]
+    current: list[Optional[ProjectTransactionsTotals]] = [None]
     # protection for the case when the caller passes a list instead of an iterator
     totals = iter(totals)
 

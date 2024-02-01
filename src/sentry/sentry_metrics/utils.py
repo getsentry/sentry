@@ -1,4 +1,4 @@
-from typing import Collection, Dict, Mapping, Optional, Sequence, Set, Union, cast
+from typing import Collection, Mapping, Optional, Sequence, Union, cast
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
@@ -67,9 +67,9 @@ def bulk_reverse_resolve_tag_value(
     }
 
     """
-    ret_val: Dict[Union[int, str], str] = {}
+    ret_val: dict[Union[int, str], str] = {}
 
-    indexes_to_resolve: Set[int] = set()
+    indexes_to_resolve: set[int] = set()
     for value in values:
         if isinstance(value, str):
             ret_val[value] = value  # we already have a string no need to reverse resolve it
