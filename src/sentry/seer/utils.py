@@ -64,13 +64,13 @@ class SimilarIssuesEmbeddingsData(TypedDict):
     should_group: bool
 
 
-class SimilarIssuesEmbeddingsReponse(TypedDict):
+class SimilarIssuesEmbeddingsResponse(TypedDict):
     responses: List[Optional[SimilarIssuesEmbeddingsData]]
 
 
 def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
-) -> SimilarIssuesEmbeddingsReponse:
+) -> SimilarIssuesEmbeddingsResponse:
     """Call /v0/issues/similar-issues endpoint from timeseries-analysis-service."""
     response = seer_connection_pool.urlopen(
         "POST",
@@ -82,5 +82,5 @@ def get_similar_issues_embeddings(
     try:
         return json.loads(response.data.decode("utf-8"))
     except AttributeError:
-        empty_response: SimilarIssuesEmbeddingsReponse = {"responses": []}
+        empty_response: SimilarIssuesEmbeddingsResponse = {"responses": []}
         return empty_response
