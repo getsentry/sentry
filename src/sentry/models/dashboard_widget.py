@@ -182,7 +182,7 @@ class DashboardWidgetQueryOnDemand(Model):
         app_label = "sentry"
         db_table = "sentry_dashboardwidgetqueryondemand"
 
-    __repr__ = sane_repr("extraction_state", "extraction_enabled")
+    __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
 @region_silo_only_model
