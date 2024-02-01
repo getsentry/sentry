@@ -1,7 +1,6 @@
 import type {ComponentProps} from 'react';
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import screenfull from 'screenfull';
 
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
@@ -92,10 +91,6 @@ function ReplayPreviewPlayer({
   });
   const isFullscreen = useIsFullscreen();
 
-  // If the browser supports going fullscreen or not. iPhone Safari won't do
-  // it. https://caniuse.com/fullscreen
-  const showFullscreenButton = screenfull.isEnabled;
-
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
@@ -136,9 +131,7 @@ function ReplayPreviewPlayer({
               <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
                 {t('See Full Replay')}
               </LinkButton>
-              {showFullscreenButton ? (
-                <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
-              ) : null}
+              <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
             </ButtonBar>
           </ButtonGrid>
         </ErrorBoundary>
