@@ -26,6 +26,7 @@ from sentry.snuba.metrics.extraction import (
     fetch_on_demand_metric_spec,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.tasks.on_demand_metrics import process_widget_specs
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -1401,6 +1402,58 @@ def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_
         assert config
         # Revert to 2 after {"include_environment_tag"} becomes the default
         assert len(config["metrics"]) == 4
+
+
+@django_db_all
+@override_options(
+    {
+        "on_demand.max_widget_cardinality.count": 1,
+        "on_demand_metrics.check_widgets.enable": True,
+        "on_demand_metrics.widgets.use_stateful_extraction": True,
+    }
+)
+def test_stateful_get_metric_extraction_config_enabled_with_multiple_versions(
+    default_project: Project,
+) -> None:
+    duration = 1000
+    with Feature(
+        {
+            ON_DEMAND_METRICS_WIDGETS: True,
+            "organizations:on-demand-metrics-query-spec-version-two": True,
+        }
+    ):
+        widget_query = create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        process_widget_specs([widget_query.id])
+
+        # Check that state was correctly updated.
+        on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+        assert [entry.extraction_state for entry in on_demand_entries] == [
+            "enabled:enrolled",
+            "enabled:enrolled",
+        ]
+
+        config = get_metric_extraction_config(default_project)
+
+        # Check that the first version being enabled outputs both specs.
+        assert config
+
+        # Check that changing the default spec changes behaviour.
+        extraction_row_default = next(
+            filter(lambda row: row.spec_version == 1, on_demand_entries), None
+        )
+        extraction_row_default.extraction_state = "disabled:manual"
+        extraction_row_default.save()
+
+        config = get_metric_extraction_config(default_project)
+
+        # In the future with separate version decisions, assert that there is only one spec in config here.
+        assert not config
 
 
 @django_db_all
