@@ -361,7 +361,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             openInNewTab
             hasInFrameFeature={hasInFrameFeature}
           >
-            <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
+            <StyledIconWrapper aria-label={t('GitHub')}>
+              {getIntegrationIcon('github', 'sm')}
+            </StyledIconWrapper>
           </OpenInLink>
         </Tooltip>
       </StacktraceLinkWrapper>
