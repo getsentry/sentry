@@ -2820,7 +2820,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
         assert (
-            blocks[5]["elements"][0]["text"]
+            blocks[3]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
