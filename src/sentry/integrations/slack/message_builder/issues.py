@@ -58,6 +58,16 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+SUPPORTED_COMMIT_PROVIDERS = (
+    "github",
+    "integrations:github",
+    "integrations:github_enterprise",
+    "integrations:vsts",
+    "integrations:gitlab",
+    "bitbucket",
+    "integrations:bitbucket",
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -300,10 +310,18 @@ def get_suspect_commit_text(
 
     author_display = author.get("name") if author.get("name") is not None else author.get("email")
     if pull_request:
-        repo_base = pull_request.get("repository", {}).get("url")
-        if repo_base:
-            commit_link = f"<{repo_base}/commit/{commit_id}|{commit_id[0:6]}>"
+        repo = pull_request.get("repository", {})
+        repo_base = repo.get("url")
+        provider = repo.get("provider", {}).get("id")
+        if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
+            if "bitbucket" in provider:
+                commit_link = f"<{repo_base}/commits/{commit_id}"
+            else:
+                commit_link = f"<{repo_base}/commit/{commit_id}"
+            commit_link += f"|{commit_id[:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
+        else:  # for unsupported providers
+            suspect_commit_text += f"{commit_id[:6]} by {author_display}"
 
         pr_date = pull_request.get("dateCreated")
         if pr_date:
@@ -316,7 +334,7 @@ def get_suspect_commit_text(
                 f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
             )
     else:
-        suspect_commit_text += f"{commit_id} by {author_display}"
+        suspect_commit_text += f"{commit_id[:6]} by {author_display}"
     return suspect_commit_text
 
 
