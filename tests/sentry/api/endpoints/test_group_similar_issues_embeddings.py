@@ -9,7 +9,7 @@ from sentry.api.endpoints.group_similar_issues_embeddings import (
 )
 from sentry.api.serializers.base import serialize
 from sentry.models.group import Group
-from sentry.seer.utils import SimilarIssuesEmbeddingsData, SimilarIssuesEmbeddingsReponse
+from sentry.seer.utils import SimilarIssuesEmbeddingsData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -117,7 +117,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @with_feature("organizations:issues-similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
     def test_simple(self, mock_seer_request):
-        seer_return_value: SimilarIssuesEmbeddingsReponse = {
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
                     "message_similarity": 0.95,
@@ -154,11 +154,18 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("organizations:issues-similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    def test_empty_return(self, mock_seer_request):
+        mock_seer_request.return_value = HTTPResponse([])
+        response = self.client.get(self.path)
+        assert response.data == {"responses": []}
+
+    @with_feature("organizations:issues-similarity-embeddings")
+    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
         Test that optional parameters, k and threshold, can not be included.
         """
-        seer_return_value: SimilarIssuesEmbeddingsReponse = {
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
                     "message_similarity": 0.95,
