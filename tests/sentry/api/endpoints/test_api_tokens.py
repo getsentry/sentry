@@ -127,7 +127,7 @@ class ApiTokensSuperUserTest(APITestCase):
         response = self.client.get(self.url, {"userId": self.user.id})
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
-        assert response.data[0]["token"] == user_token.token
+        assert response.data[0]["id"] == str(user_token.id)
 
     def test_get_as_su_implicit_userid(self):
         super_user = self.create_user(is_superuser=True)
@@ -138,8 +138,8 @@ class ApiTokensSuperUserTest(APITestCase):
         response = self.client.get(self.url)
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
-        assert response.data[0]["token"] != user_token.token
-        assert response.data[0]["token"] == superuser_token.token
+        assert response.data[0]["id"] != str(user_token.id)
+        assert response.data[0]["id"] == str(superuser_token.id)
 
     def test_get_as_user(self):
         super_user = self.create_user(is_superuser=True)
@@ -149,7 +149,7 @@ class ApiTokensSuperUserTest(APITestCase):
         response = self.client.get(self.url, {"userId": self.user.id})
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
-        assert response.data[0]["token"] == su_token.token
+        assert response.data[0]["id"] == str(su_token.id)
 
     def test_delete_as_su(self):
         super_user = self.create_user(is_superuser=True)

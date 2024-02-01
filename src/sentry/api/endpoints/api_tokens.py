@@ -66,12 +66,7 @@ class ApiTokensEndpoint(Endpoint):
                 "application"
             )
         )
-        """
-        TODO:
-        - when the delete endpoint no longer requires the full token value, update this to stop including token
-        - update the endpoint to use pagination instead of unbounded return
-        """
-        return Response(serialize(token_list, request.user))
+        return Response(serialize(token_list, request.user, include_token=False))
 
     @method_decorator(never_cache)
     def post(self, request: Request) -> Response:
