@@ -1,6 +1,6 @@
 __all__ = ["DatadogMetricsBackend"]
 
-from typing import Any, Optional, Union
+from typing import Any
 
 from datadog import initialize
 from datadog.threadstats.base import ThreadStats
@@ -12,7 +12,7 @@ from .base import MetricsBackend, Tags
 
 
 class DatadogMetricsBackend(MetricsBackend):
-    def __init__(self, prefix: Optional[str] = None, **kwargs: Any) -> None:
+    def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
         # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         self.tags = kwargs.pop("tags", None)
         if "host" in kwargs:
@@ -38,11 +38,11 @@ class DatadogMetricsBackend(MetricsBackend):
     def incr(
         self,
         key: str,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
-        amount: Union[float, int] = 1,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        amount: float | int = 1,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         tags = dict(tags or ())
@@ -61,8 +61,8 @@ class DatadogMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
@@ -82,10 +82,10 @@ class DatadogMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         tags = dict(tags or ())
@@ -104,10 +104,10 @@ class DatadogMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         # We keep the same implementation for Datadog.

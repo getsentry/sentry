@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import re
-
-from typing_extensions import TypeGuard
+from typing import TypeGuard
 
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (

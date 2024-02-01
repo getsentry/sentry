@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Sequence, TypedDict
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, TypedDict
 
 from sentry import features, options
 from sentry.db.models.fields.node import NodeData

@@ -1,5 +1,6 @@
 import logging
-from typing import Any, MutableMapping, Optional
+from collections.abc import MutableMapping
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -142,7 +143,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         metrics.incr("relay.project_configs.post_v3.fetched", amount=len(proj_configs))
         return {"configs": proj_configs, "pending": pending}
 
-    def _get_cached_or_schedule(self, public_key) -> Optional[dict]:
+    def _get_cached_or_schedule(self, public_key) -> dict | None:
         """
         Returns the config of a project if it's in the cache; else, schedules a
         task to compute and write it into the cache.

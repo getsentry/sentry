@@ -1,5 +1,6 @@
 from abc import abstractmethod
-from typing import Iterable, NewType
+from collections.abc import Iterable
+from typing import NewType
 
 #: Rule to replace high-cardinality patterns in a transaction name.
 #: For now, format these rules as simple strings

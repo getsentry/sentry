@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import copy
-from typing import Mapping, MutableMapping, TypeVar
+from collections.abc import Mapping, MutableMapping
+from typing import TypeVar
 
 from django.conf import settings
 

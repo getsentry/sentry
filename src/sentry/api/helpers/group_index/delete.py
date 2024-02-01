@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import Sequence
+from collections.abc import Sequence
 from uuid import uuid4
 
 import rest_framework

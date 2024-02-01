@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime
 from hashlib import md5
-from typing import Any, Mapping, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings

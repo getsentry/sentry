@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from functools import reduce
-from typing import Mapping
 
 from snuba_sdk import Column, Condition, Op
 

@@ -22,11 +22,12 @@ __all__ = (
 
 import logging
 from collections import defaultdict, deque
+from collections.abc import Mapping, Sequence
 from copy import copy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from operator import itemgetter
-from typing import Any, Mapping, Sequence, cast
+from typing import Any, cast
 
 from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup

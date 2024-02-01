@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import sentry_sdk
 from django.db.models import QuerySet
@@ -25,7 +25,7 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
     def get_many(self, *, filter: UserSocialAuthFilterArgs) -> list[RpcUserSocialAuth]:
         return self._FQ.get_many(filter=filter)
 
-    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> Optional[RpcUserSocialAuth]:
+    def get_one_or_none(self, *, filter: UserSocialAuthFilterArgs) -> RpcUserSocialAuth | None:
         auths = self.get_many(filter=filter)
         if len(auths) == 0:
             return None
@@ -81,12 +81,12 @@ class DatabaseBackedUserSocialAuthService(UserSocialAuthService):
         def base_query(self, ids_only: bool = False) -> QuerySet[UserSocialAuth]:
             return UserSocialAuth.objects.filter()
 
-        def filter_arg_validator(self) -> Callable[[UserSocialAuthFilterArgs], Optional[str]]:
+        def filter_arg_validator(self) -> Callable[[UserSocialAuthFilterArgs], str | None]:
             return self._filter_has_any_key_validator(
                 *UserSocialAuthFilterArgs.__annotations__.keys()
             )
 
-        def serialize_api(self, serializer: Optional[None]) -> Serializer:
+        def serialize_api(self, serializer: None) -> Serializer:
             raise NotImplementedError("API Serialization not supported for UserSocialAuthService")
 
         def serialize_rpc(self, auth: UserSocialAuth) -> RpcUserSocialAuth:

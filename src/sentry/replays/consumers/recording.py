@@ -1,7 +1,8 @@
 import dataclasses
 import logging
 import random
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -42,11 +43,11 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
     def __init__(
         self,
-        input_block_size: Optional[int],
+        input_block_size: int | None,
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
-        output_block_size: Optional[int],
+        output_block_size: int | None,
         num_threads: int = 4,  # Defaults to 4 for self-hosted.
         force_synchronous: bool = False,  # Force synchronous runner (only used in test suite).
     ) -> None:

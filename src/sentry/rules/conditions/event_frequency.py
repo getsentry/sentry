@@ -4,8 +4,9 @@ import abc
 import contextlib
 import logging
 import re
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any
 
 from django import forms
 from django.core.cache import cache

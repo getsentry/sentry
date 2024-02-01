@@ -5,17 +5,9 @@ import inspect
 import itertools
 import logging
 import threading
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from concurrent import futures
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    Sequence,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from django.utils.functional import LazyObject, empty
 from rest_framework.request import Request

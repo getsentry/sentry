@@ -3,7 +3,8 @@ from __future__ import annotations
 import re
 import threading
 import types
-from typing import MutableSequence, NoReturn, Sequence
+from collections.abc import MutableSequence, Sequence
+from typing import NoReturn
 
 import click
 

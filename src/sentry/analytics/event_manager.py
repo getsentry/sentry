@@ -1,6 +1,7 @@
 __all__ = ("default_manager", "EventManager")
 
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from sentry.analytics.event import Event
 

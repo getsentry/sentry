@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from typing import TypeAlias
+
 from django.conf import settings
 from django.urls import resolve
 from rest_framework.test import APIRequestFactory, force_authenticate
-from typing_extensions import TypeAlias
 
 from sentry.auth.superuser import Superuser
 from sentry.utils import json

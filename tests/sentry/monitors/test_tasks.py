@@ -1,6 +1,6 @@
 import zoneinfo
+from collections.abc import MutableMapping
 from datetime import timedelta, timezone
-from typing import MutableMapping
 from unittest import mock
 
 import msgpack

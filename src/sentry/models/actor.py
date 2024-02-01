@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from typing import TYPE_CHECKING, Sequence, overload
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, overload
 
 import sentry_sdk
 from django.conf import settings

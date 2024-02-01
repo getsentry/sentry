@@ -1,19 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    TypedDict,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.tasks.post_process import post_process_group

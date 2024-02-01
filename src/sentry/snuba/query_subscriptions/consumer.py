@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Callable
 from datetime import timezone
-from typing import Callable
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date

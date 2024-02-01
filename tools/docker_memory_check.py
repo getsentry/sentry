@@ -4,7 +4,7 @@ import argparse
 import json
 import os.path
 import sys
-from typing import Sequence
+from collections.abc import Sequence
 
 
 def should_use_color(setting: str) -> bool:

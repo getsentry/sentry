@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping
 from enum import IntEnum
-from typing import Any, Collection, Mapping
+from typing import Any
 
 from django.db import models
 from django.utils import timezone

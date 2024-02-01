@@ -1,5 +1,5 @@
+from collections.abc import Iterator, Sequence
 from datetime import timedelta
-from typing import Iterator, Optional, Sequence
 
 from sentry.utils.codecs import Codec, TDecoded, TEncoded
 from sentry.utils.kvstore.abstract import K, KVStorage
@@ -20,7 +20,7 @@ class KVStorageCodecWrapper(KVStorage[K, TDecoded]):
         self.store = store
         self.value_codec = value_codec
 
-    def get(self, key: K) -> Optional[TDecoded]:
+    def get(self, key: K) -> TDecoded | None:
         value = self.store.get(key)
         if value is None:
             return None
@@ -31,7 +31,7 @@ class KVStorageCodecWrapper(KVStorage[K, TDecoded]):
         for key, value in self.store.get_many(keys):
             yield key, self.value_codec.decode(value)
 
-    def set(self, key: K, value: TDecoded, ttl: Optional[timedelta] = None) -> None:
+    def set(self, key: K, value: TDecoded, ttl: timedelta | None = None) -> None:
         return self.store.set(key, self.value_codec.encode(value), ttl)
 
     def delete(self, key: K) -> None:

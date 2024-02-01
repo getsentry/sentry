@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Sequence, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 from django.utils.timezone import is_aware
 

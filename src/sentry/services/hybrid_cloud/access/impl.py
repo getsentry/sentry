@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.db.models import Q
 
 from sentry import roles
@@ -63,7 +61,7 @@ class ControlAccessService(AccessService):
             return frozenset()
         return user.roles | user.permissions
 
-    def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
+    def get_auth_provider(self, organization_id: int) -> RpcAuthProvider | None:
         try:
             return serialize_auth_provider(
                 AuthProvider.objects.get(organization_id=organization_id)
@@ -73,7 +71,7 @@ class ControlAccessService(AccessService):
 
     def get_auth_identity_for_user(
         self, auth_provider_id: int, user_id: int
-    ) -> Optional[RpcAuthIdentity]:
+    ) -> RpcAuthIdentity | None:
         try:
             return serialize_auth_identity(
                 AuthIdentity.objects.get(auth_provider_id=auth_provider_id, user_id=user_id)
@@ -143,7 +141,7 @@ class RegionAccessService(AccessService):
             )
         )
 
-    def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
+    def get_auth_provider(self, organization_id: int) -> RpcAuthProvider | None:
         try:
             ap = AuthProviderReplica.objects.get(organization_id=organization_id)
             return serialize_auth_provider_replica(ap)
@@ -152,7 +150,7 @@ class RegionAccessService(AccessService):
 
     def get_auth_identity_for_user(
         self, auth_provider_id: int, user_id: int
-    ) -> Optional[RpcAuthIdentity]:
+    ) -> RpcAuthIdentity | None:
         try:
             ai = AuthIdentityReplica.objects.get(auth_provider_id=auth_provider_id, user_id=user_id)
             return serialize_auth_identity_replica(ai)

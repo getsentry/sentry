@@ -4,9 +4,10 @@ import ipaddress
 import logging
 import re
 import uuid
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence, TypedDict, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings

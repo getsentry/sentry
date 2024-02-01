@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Mapping, MutableMapping
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.html import format_html

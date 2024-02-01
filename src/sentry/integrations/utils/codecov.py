@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from enum import Enum
-from typing import Any, Sequence, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import requests
 from rest_framework import status
 from sentry_sdk import configure_scope
-from typing_extensions import NotRequired
 
 from sentry import options
 from sentry.integrations.utils.stacktrace_link import ReposityLinkOutcome

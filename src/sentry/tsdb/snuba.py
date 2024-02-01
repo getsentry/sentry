@@ -3,10 +3,10 @@ from __future__ import annotations
 import dataclasses
 import functools
 import itertools
-from collections.abc import Mapping, Set
+from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Sequence
+from typing import Any
 
 from snuba_sdk import (
     Column,
@@ -693,7 +693,7 @@ class SnubaTSDB(BaseTSDB):
           },
         }, ...
         """
-        from typing import MutableMapping
+        from collections.abc import MutableMapping
 
         if isinstance(result, MutableMapping):
             for key, val in result.items():

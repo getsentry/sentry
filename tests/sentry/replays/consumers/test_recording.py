@@ -3,8 +3,8 @@ from __future__ import annotations
 import time
 import uuid
 import zlib
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Mapping
 from unittest.mock import ANY, patch
 
 import msgpack

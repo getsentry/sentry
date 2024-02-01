@@ -2,9 +2,8 @@ __all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
 
 import functools
 import logging
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
-from typing import Generator
 from unittest.mock import patch
 
 import pytest

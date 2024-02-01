@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime
-from typing import Optional, Sequence
 
 import sentry_sdk
 from snuba_sdk import Condition
@@ -180,8 +180,8 @@ class EventStorage(Service):
         self,
         organization_id: int,
         group_id: int,
-        start: Optional[datetime],
-        end: Optional[datetime],
+        start: datetime | None,
+        end: datetime | None,
         conditions: Sequence[Condition],
         orderby: Sequence[str],
         limit=100,

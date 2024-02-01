@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from collections import OrderedDict as ordereddict
 from collections import defaultdict
 from copy import deepcopy
 from difflib import unified_diff
-from typing import OrderedDict
 
 from sentry.backup.comparators import ComparatorMap, ForeignKeyComparator, get_default_comparators
 from sentry.backup.dependencies import ImportKind, NormalizedModelName, PrimaryKeyMap, get_model

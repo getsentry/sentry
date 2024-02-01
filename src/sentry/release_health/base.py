@@ -1,19 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Literal,
-    Mapping,
-    Sequence,
-    TypedDict,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeVar, Union
 
 # from sentry.models.organization import Organization
 from sentry.utils.services import Service

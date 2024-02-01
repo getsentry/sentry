@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from typing_extensions import TypedDict
 
@@ -26,7 +27,7 @@ class OrganizationRoleSerializerResponse(BaseRoleSerializerResponse):
 
 
 class TeamRoleSerializerResponse(BaseRoleSerializerResponse):
-    isMinimumRoleFor: Optional[str]
+    isMinimumRoleFor: str | None
 
 
 class RoleSerializer(Serializer):

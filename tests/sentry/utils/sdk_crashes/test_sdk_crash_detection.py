@@ -1,5 +1,5 @@
 import abc
-from typing import Sequence
+from collections.abc import Sequence
 from unittest.mock import patch
 
 import pytest

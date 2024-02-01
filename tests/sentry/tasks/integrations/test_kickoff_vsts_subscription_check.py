@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from time import time
-from typing import Any, Mapping, Optional
+from typing import Any
 
 import responses
 
@@ -26,7 +27,7 @@ def assert_no_subscription(external_id: str, subscription_id: str) -> None:
 
 
 def assert_subscription(
-    external_id: str, subscription_id: str, check_time: Optional[float] = None
+    external_id: str, subscription_id: str, check_time: float | None = None
 ) -> None:
     subscription_data = _get_subscription_data(external_id)
 

@@ -1,4 +1,5 @@
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request

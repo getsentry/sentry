@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import functools
 import logging
+from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
-from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, TypedDict
+from typing import Any, Optional, Protocol, TypedDict
 
 from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue

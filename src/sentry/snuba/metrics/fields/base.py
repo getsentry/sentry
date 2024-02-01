@@ -3,21 +3,10 @@ from __future__ import annotations
 import copy
 import inspect
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Collection, Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Collection,
-    Deque,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Deque, Optional, Union
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy

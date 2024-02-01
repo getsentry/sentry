@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections import OrderedDict, defaultdict
+from collections.abc import MutableMapping
 from datetime import datetime, timedelta
-from typing import MutableMapping
 
 from django.db.models import Count, DateTimeField, Func
 from django.db.models.functions import Extract

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import resource
+from collections.abc import Callable, Iterable
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Iterable
+from typing import Any
 
 from celery import current_task
 

@@ -1,10 +1,9 @@
 import secrets
-from typing import ClassVar
+from typing import ClassVar, Self
 
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (

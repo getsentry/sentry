@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Mapping, MutableMapping, Sequence, cast
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from typing import Any, cast
 
 from sentry.api.serializers import serialize
 from sentry.models.organizationmember import OrganizationMember

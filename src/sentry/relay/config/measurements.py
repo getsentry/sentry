@@ -1,7 +1,8 @@
 """ Relay configuration related to transaction measurements. """
 
 
-from typing import Literal, Sequence, TypedDict
+from collections.abc import Sequence
+from typing import Literal, TypedDict
 
 #: The maximum number of custom measurements to be extracted from transactions.
 CUSTOM_MEASUREMENT_LIMIT = 10

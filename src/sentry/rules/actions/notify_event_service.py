@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Generator, Sequence
+from collections.abc import Generator, Sequence
+from typing import Any
 
 from django import forms
 

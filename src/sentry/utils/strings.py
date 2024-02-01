@@ -6,7 +6,8 @@ import codecs
 import re
 import string
 import zlib
-from typing import Any, Callable, overload
+from collections.abc import Callable
+from typing import Any, overload
 
 from django.utils.encoding import force_str, smart_str
 

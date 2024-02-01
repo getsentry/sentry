@@ -4,8 +4,9 @@ import copy
 import logging
 import random
 import sys
+from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
-from typing import TYPE_CHECKING, Any, Generator, Mapping, NamedTuple, Sequence
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
 from django.conf import settings

@@ -1,4 +1,4 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 from sentry.models.actor import ActorTuple, get_actor_for_user
 from sentry.models.environment import Environment, EnvironmentProject

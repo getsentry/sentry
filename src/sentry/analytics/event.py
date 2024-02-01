@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import datetime as dt
 from base64 import b64encode
-from collections.abc import Mapping
-from typing import Any, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 from uuid import uuid1
 
 from django.utils import timezone
