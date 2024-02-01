@@ -137,6 +137,9 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     gh_repo_id, pr_key, org_id, issue_list = pr_to_issue_query(pullrequest_id)[0]
 
+    # cap to 1000 issues in which the merge commit is the suspect commit
+    issue_list = issue_list[:1000]
+
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
