@@ -2,14 +2,15 @@ import logging
 import math
 import random
 from collections import namedtuple
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Optional, Sequence
+from typing import Any, NotRequired
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Condition, Function, Op
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -272,10 +273,10 @@ def timeseries_query(
     query: str,
     params: dict[str, Any],
     rollup: int,
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     zerofill_results: bool = True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[list[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
@@ -574,8 +575,8 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    per_page: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
-    cursor: Optional[int] = 0,
+    per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: int | None = 0,
 ):
     """
     High-level API for getting 'facet map' results.

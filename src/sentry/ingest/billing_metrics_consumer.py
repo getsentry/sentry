@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any, Mapping, Optional, cast
+from typing import Any, cast
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
@@ -181,12 +182,12 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         except Project.DoesNotExist:
             pass
 
-    def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> Optional[str]:
+    def _resolve(self, mapping_meta: Mapping[str, Any], indexed_value: int) -> str | None:
         for _, inner_meta in mapping_meta.items():
             if (string_value := inner_meta.get(str(indexed_value))) is not None:
                 return string_value
 
         return None
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         self.__next_step.join(timeout)

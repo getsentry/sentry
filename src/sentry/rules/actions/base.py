@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Generator
+from collections.abc import Generator
 
 from sentry.eventstore.models import GroupEvent
 from sentry.rules.base import CallbackFuture, EventState, RuleBase
