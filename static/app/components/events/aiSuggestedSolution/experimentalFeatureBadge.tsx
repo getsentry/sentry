@@ -9,9 +9,4 @@ export function ExperimentalFeatureBadge() {
 
 const CenteredFeatureBadge = styled(FeatureBadge)`
   height: ${space(2)};
-  span {
-    height: ${space(2)};
-    line-height: ${space(2)};
-    padding-top: 1px;
-  }
 `;

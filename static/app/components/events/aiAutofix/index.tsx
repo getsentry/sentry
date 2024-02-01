@@ -1,11 +1,11 @@
+import {AutofixCard} from 'sentry/components/events/aiAutofix/autofixCard';
 import {Banner} from 'sentry/components/events/aiAutofix/banner';
-import {FixResult} from 'sentry/components/events/aiAutofix/fixResult';
+import type {GroupWithAutofix} from 'sentry/components/events/aiAutofix/types';
 import {useAiAutofix} from 'sentry/components/events/aiAutofix/useAiAutofix';
-import type {Group} from 'sentry/types';
 
-type Props = {
-  group: Group;
-};
+interface Props {
+  group: GroupWithAutofix;
+}
 
 export function AiAutofix({group}: Props) {
   const {autofixData, triggerAutofix, additionalContext, setAdditionalContext} =
@@ -14,7 +14,7 @@ export function AiAutofix({group}: Props) {
   return (
     <div>
       {autofixData ? (
-        <FixResult autofixData={autofixData} onRetry={triggerAutofix} />
+        <AutofixCard data={autofixData} onRetry={triggerAutofix} />
       ) : (
         <Banner
           onButtonClick={triggerAutofix}
