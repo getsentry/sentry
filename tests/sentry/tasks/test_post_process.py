@@ -2359,18 +2359,6 @@ class PostProcessGroupPerformanceTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        group_states = (
-            [
-                {
-                    "id": event.group_id,
-                    "is_new": is_new,
-                    "is_regression": is_regression,
-                    "is_new_group_environment": is_new_group_environment,
-                }
-            ]
-            if event.group_id
-            else None
-        )
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         with self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()):
@@ -2379,7 +2367,7 @@ class PostProcessGroupPerformanceTest(
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 cache_key=cache_key,
-                group_states=group_states,
+                group_id=event.group_id,
                 project_id=event.project_id,
             )
         return cache_key
@@ -2441,12 +2429,6 @@ class PostProcessGroupPerformanceTest(
     ):
         event = self.create_performance_issue()
         assert event.group
-        # cache_key = write_event_to_cache(event)
-        group_state = dict(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-        )
 
         # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda),
         # but because post-processing is async, this causes the assert to fail because it doesn't
@@ -2457,10 +2439,11 @@ class PostProcessGroupPerformanceTest(
         mock_process_rules.side_effect = None
 
         post_process_group(
-            **group_state,
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
             cache_key="dummykey",
             group_id=event.group_id,
-            group_states=[{"id": event.group.id, **group_state}],
             occurrence_id=event.occurrence_id,
             project_id=self.project.id,
         )
@@ -2499,18 +2482,6 @@ class PostProcessGroupAggregateEventTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        group_states = (
-            [
-                {
-                    "id": event.group_id,
-                    "is_new": is_new,
-                    "is_regression": is_regression,
-                    "is_new_group_environment": is_new_group_environment,
-                }
-            ]
-            if event.group_id
-            else None
-        )
         if cache_key is None:
             cache_key = write_event_to_cache(event)
         with self.feature(
@@ -2521,7 +2492,7 @@ class PostProcessGroupAggregateEventTest(
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
                 cache_key=cache_key,
-                group_states=group_states,
+                group_id=event.group_id,
                 project_id=event.project_id,
             )
         return cache_key
@@ -2556,7 +2527,6 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             is_new_group_environment=False,
             cache_key=cache_key,
             group_id=None,
-            group_states=None,
         )
 
         assert mock_store_transaction_name.mock_calls == [
