@@ -72,7 +72,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
     def get_formatted_results(
         self, responses: Sequence[Optional[SimilarIssuesEmbeddingsData]], user: User | AnonymousUser
-    ) -> Sequence[Tuple[Any, Mapping[str, Any]]]:  # TODO: fix typing
+    ) -> Sequence[Tuple[Mapping[str, Any], Mapping[str, Any]]]:
         """Format the responses using to be used by the frontend."""
         group_data = {}
         for response in responses:
