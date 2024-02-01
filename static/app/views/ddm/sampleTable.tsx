@@ -301,7 +301,7 @@ export function SampleTable({
   }
 
   return (
-    <Wrapper>
+    <Wrapper isEmpty={!data?.length}>
       <GridEditable
         isLoading={isFetching}
         columnOrder={columnOrder}
@@ -339,10 +339,10 @@ function BodyCell({children, rowId, highlighted, onHover}: any) {
   );
 }
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{isEmpty?: boolean}>`
   tr:hover {
     td {
-      background: ${p => p.theme.backgroundSecondary};
+      background: ${p => (p.isEmpty ? 'none' : p.theme.backgroundSecondary)};
     }
   }
 `;
