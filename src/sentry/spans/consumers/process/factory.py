@@ -34,8 +34,7 @@ def process_message(message: Message[KafkaPayload]):
     client = RedisSpansBuffer()
     new_segment = client.write_span(segment_id, message.payload.value)
     if new_segment:
-        # Should we instead do a cron job to monitor tasks
-        # https://docs.celeryq.dev/en/stable/userguide/calling.html#eta-and-countdown
+        # This function currently does nothing.
         process_segment.apply_async(
             args=[segment_id],
             countdown=PROCESS_SEGMENT_DELAY,
@@ -43,15 +42,11 @@ def process_message(message: Message[KafkaPayload]):
 
 
 class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    # will this create race conditions for when I schedule a celery task?
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        # commit offsets here?
-        # RunTaskInThreads vs RunTaskWithMultiprocessing?? - do we use the latter so we can tune it?
-        # https://getsentry.github.io/arroyo/strategies/run_task_with_multiprocessing.html
         return RunTask(
             function=process_message,
             next_step=CommitOffsets(commit),
