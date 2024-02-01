@@ -400,7 +400,6 @@ describe('GroupActivity', function () {
       ],
       organization: OrganizationFixture({}),
     });
-
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue until it escalates'
     );
