@@ -180,6 +180,7 @@ SHARED_TAG_STRINGS = {
     "group": PREFIX + 263,
     # Resource span
     "file_extension": PREFIX + 264,
+    "app_start_type": PREFIX + 265,  # Mobile app start type
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
