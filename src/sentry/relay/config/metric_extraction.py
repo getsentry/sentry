@@ -564,7 +564,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
     query_killswitch = options.get("on_demand.max_widget_cardinality.killswitch")
     if query_killswitch:
-        return False
+        return True
 
     # No columns or only errors means no high-cardinality tags.
     if not widget_query.columns or "event.type:error" in widget_query.conditions:
