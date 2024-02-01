@@ -327,9 +327,11 @@ export function ProductSelection({
         },
       });
 
-      HookStore.get('callback:on-create-project-product-selection').map(cb =>
-        cb({defaultProducts, organization, selectedProducts})
-      );
+      if (organization.features.includes('project-create-replay-feedback')) {
+        HookStore.get('callback:on-create-project-product-selection').map(cb =>
+          cb({defaultProducts, organization, selectedProducts})
+        );
+      }
     },
     [defaultProducts, organization, router, urlProducts]
   );
