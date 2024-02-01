@@ -94,6 +94,8 @@ def validate_transaction_using_for_silo_mode(using: Optional[str]):
         raise TransactionMissingDBException("'using' must be specified when creating a transaction")
 
     if in_test_environment() and not is_in_test_case_body():
+        # During setup and teardown of a test environment, allow treating it as one
+        # DB. But make sure we enforce as normal during the actual test case.
         return
 
     current_silo_mode = SiloMode.get_current_mode()
