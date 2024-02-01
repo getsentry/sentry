@@ -255,7 +255,7 @@ def update_groups(
     res_type = None
     activity_type = None
     activity_data: MutableMapping[str, Any | None] | None = None
-    if "priority" in result:
+    if features.has("projects:issue-priority", projects[0], actor=user) and "priority" in result:
         handle_priority(result["priority"], group_list, project_lookup, acting_user)
     if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
@@ -771,7 +771,7 @@ def handle_has_seen(
 
 def handle_priority(
     priority: str, group_list: Sequence[Group], project_lookup: dict[int, Any], acting_user: User
-) -> str | None:
+) -> None:
     user_id = acting_user.id if acting_user else None
     activity_data = {"priority": priority}
     for group in group_list:
