@@ -8,7 +8,6 @@ from social_auth.utils import ctype_to_model, model_to_ctype
 
 @no_silo_test
 class TestSocialAuthUtils(TestCase):
-
     def test_model_to_ctype(self):
         val = model_to_ctype(1)
         assert val == 1
