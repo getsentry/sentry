@@ -253,14 +253,16 @@ def _get_widget_on_demand_specs(
 
     widget_specs = convert_widget_query_to_metric(project_for_query, widget_query, True)
 
-    unique_specs = []
-    hashes = set()
-    for hashed_metric_spec in widget_specs:
-        if hashed_metric_spec[0] not in hashes:
-            unique_specs.append(hashed_metric_spec)
-            hashes.add(hashed_metric_spec[0])
+    specs_per_version: dict[int, dict[str, HashedMetricSpec]] = {}
+    for hash, spec, spec_version in widget_specs:
+        specs_per_version.setdefault(spec_version.version, {})
+        specs_per_version[spec_version.version][hash] = (hash, spec, spec_version)
 
-    return unique_specs
+    specs: list[HashedMetricSpec] = []
+    for _, _specs_for_version in specs_per_version.items():
+        specs += _specs_for_version.values()
+
+    return specs
 
 
 def _set_widget_on_demand_state(
