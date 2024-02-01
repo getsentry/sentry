@@ -1744,6 +1744,77 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
             assert spec.spec_version.flags == {"include_environment_tag"}
 
 
+@django_db_all
+@override_options({"on_demand_metrics.check_widgets.enable": True})
+def test_include_environment_for_widgets_with_multiple_env(default_project: Project) -> None:
+    aggrs = [
+        "count()",
+        "count_unique(user)",
+        "count_miserable(user,300)",
+        "count_if(transaction.duration,equals,300)",
+        "eps()",
+        "epm()",
+        "failure_count()",
+    ]
+    query = 'transaction:"GET /api/chartcuterie/healthcheck/live"'
+    columns = [
+        "transaction",
+        "transaction",
+        "project",
+        "environment",
+        "transaction.op",
+        "transaction.status",
+        "query.error_reason",
+        "query.num_projects",
+        "discover.use_snql",
+        "query.period",
+        "query.num_projects.grouped",
+        "query.period.grouped",
+        "query_size_group",
+    ]
+
+    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
+        widget_query = create_widget(aggrs, query, default_project, columns=columns)
+        config = get_metric_extraction_config(default_project)
+        assert config
+
+        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
+            config = get_metric_extraction_config(default_project)
+            process_widget_specs([widget_query.id])
+            assert config
+            assert [
+                next(filter(lambda t: t["key"] == "query_hash", spec["tags"]))["value"]
+                for spec in config["metrics"]
+            ] == [
+                "4b08d58c",
+                "470072b4",
+                "6bc4f99b",
+                "e50094f0",
+                "0a272be4",
+            ]
+
+        on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+        assert [entry.spec_hashes for entry in on_demand_entries if entry.spec_version == 1] == [
+            [
+                "4b08d58c",
+                "470072b4",
+                "6bc4f99b",
+                "e50094f0",
+                "0a272be4",
+            ]
+        ]
+
+        assert [entry.spec_hashes for entry in on_demand_entries if entry.spec_version == 2] == [
+            [
+                "4b08d58c",
+                "470072b4",
+                "6bc4f99b",
+                "e50094f0",
+                "0a272be4",
+            ]
+        ]
+
+
 # Remove this test once we drop the current spec version
 @django_db_all
 def test_alert_and_widget_colliding(default_project: Project) -> None:
