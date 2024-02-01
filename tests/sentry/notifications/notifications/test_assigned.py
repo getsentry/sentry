@@ -3,15 +3,16 @@ from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
 from sentry.models.activity import Activity
-from sentry.models.options.user_option import UserOption
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import get_attachment, get_channel, install_slack
+from sentry.testutils.helpers import get_attachment, get_channel
+from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = [requires_snuba]
 
 
+@region_silo_test
 class AssignedNotificationAPITest(APITestCase):
     def validate_email(self, outbox, index, email, txt_msg, html_msg):
         msg = outbox[index]
@@ -34,8 +35,7 @@ class AssignedNotificationAPITest(APITestCase):
     def setup_user(self, user, team):
         member = self.create_member(user=user, organization=self.organization, role="member")
         self.create_team_membership(team, member, role="admin")
-
-        UserOption.objects.create(user=user, key="self_notifications", value="1")
+        self.create_user_option(user=user, key="self_notifications", value="1")
 
         self.access_token = "xoxb-access-token"
         self.identity = self.create_identity(
@@ -44,8 +44,17 @@ class AssignedNotificationAPITest(APITestCase):
 
     def setUp(self):
         super().setUp()
-
-        self.integration = install_slack(self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "domain_name": "sentry.slack.com",
+                "installation_type": "born_as_bot",
+            },
+            name="Awesome Team",
+            provider="slack",
+        )
         self.provider = self.create_identity_provider(integration=self.integration)
 
         self.login_as(self.user)

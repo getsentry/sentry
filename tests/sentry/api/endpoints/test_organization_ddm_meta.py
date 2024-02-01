@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence, cast
+from typing import Optional, Sequence, cast
 from unittest.mock import ANY, patch
 
 import pytest
@@ -35,8 +35,8 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
     def _mock_code_location(
         self,
         filename: str,
-        pre_context: Optional[List[str]] = None,
-        post_context: Optional[List[str]] = None,
+        pre_context: Optional[list[str]] = None,
+        post_context: Optional[list[str]] = None,
     ) -> str:
         code_location = {
             "function": "foo",
@@ -328,7 +328,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
             metric=[mri],
             project=[project.id],
             statsPeriod="90d",
-            status_code=500,
+            status_code=400,
             codeLocations="true",
         )
 
@@ -338,11 +338,13 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         transaction_id = uuid.uuid4().hex
         trace_id = uuid.uuid4().hex
 
+        segment_span_id = "56230207e8e4a6ab"
         self.store_segment(
             project_id=self.project.id,
             timestamp=before_now(minutes=5),
             trace_id=trace_id,
             transaction_id=transaction_id,
+            span_id=segment_span_id,
             duration=30,
         )
         span_id_1 = "98230207e6e4a6ad"
@@ -387,6 +389,7 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
         metric_spans = response.data["metricSpans"]
         assert len(metric_spans) == 1
         assert metric_spans[0]["transactionId"] == transaction_id
+        assert metric_spans[0]["transactionSpanId"] == segment_span_id
         assert metric_spans[0]["duration"] == 30
         assert metric_spans[0]["spansNumber"] == 3
         assert sorted(metric_spans[0]["metricSummaries"], key=lambda value: value["min"]) == [

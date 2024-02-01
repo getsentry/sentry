@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List, Optional
+from typing import Optional
 
 from sentry.digests import Record, get_option_key
 from sentry.digests.backends.base import InvalidState
@@ -92,7 +92,7 @@ def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str
             )
 
 
-def get_notification_uuid_from_records(records: List[Record]) -> Optional[str]:
+def get_notification_uuid_from_records(records: list[Record]) -> Optional[str]:
     for record in records:
         try:
             notification_uuid = record.value.notification_uuid

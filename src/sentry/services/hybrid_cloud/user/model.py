@@ -5,7 +5,7 @@
 
 import datetime
 from enum import IntEnum
-from typing import Any, FrozenSet, List, Optional
+from typing import Any, Optional
 
 from pydantic.fields import Field
 from typing_extensions import TypedDict
@@ -40,7 +40,7 @@ class RpcUser(RpcModel):
     pk: int = -1
     name: str = ""
     email: str = ""
-    emails: FrozenSet[str] = frozenset()
+    emails: frozenset[str] = frozenset()
     username: str = ""
     actor_id: Optional[int] = None
     display_name: str = ""
@@ -56,11 +56,11 @@ class RpcUser(RpcModel):
     is_password_expired: bool = False
     session_nonce: Optional[str] = None
 
-    roles: FrozenSet[str] = frozenset()
-    permissions: FrozenSet[str] = frozenset()
+    roles: frozenset[str] = frozenset()
+    permissions: frozenset[str] = frozenset()
     avatar: Optional[RpcAvatar] = None
-    useremails: List[RpcUserEmail] = Field(default_factory=list)
-    authenticators: List[RpcAuthenticator] = Field(default_factory=list)
+    useremails: list[RpcUserEmail] = Field(default_factory=list)
+    authenticators: list[RpcAuthenticator] = Field(default_factory=list)
 
     def __hash__(self) -> int:
         # Mimic the behavior of hashing a Django ORM entity, for compatibility with
@@ -82,10 +82,10 @@ class RpcUser(RpcModel):
     def has_verified_emails(self) -> bool:
         return len(self.get_verified_emails()) > 0
 
-    def get_unverified_emails(self) -> List[RpcUserEmail]:
+    def get_unverified_emails(self) -> list[RpcUserEmail]:
         return [e for e in self.useremails if not e.is_verified]
 
-    def get_verified_emails(self) -> List[RpcUserEmail]:
+    def get_verified_emails(self) -> list[RpcUserEmail]:
         return [e for e in self.useremails if e.is_verified]
 
     def has_usable_password(self) -> bool:
@@ -127,13 +127,13 @@ class UserSerializeType(IntEnum):  # annoying
 
 
 class UserFilterArgs(TypedDict, total=False):
-    user_ids: List[int]
+    user_ids: list[int]
     is_active: bool
     organization_id: int
-    emails: List[str]
+    emails: list[str]
     email_verified: bool
     query: str
-    authenticator_types: Optional[List[int]]
+    authenticator_types: Optional[list[int]]
 
 
 class UserUpdateArgs(TypedDict, total=False):

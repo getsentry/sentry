@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
 from django.db import ProgrammingError, migrations
 
@@ -35,7 +34,7 @@ EXTERNAL_PROVIDERS = {
 }
 
 
-def get_provider_name(value: int) -> Optional[str]:
+def get_provider_name(value: int) -> str | None:
     return EXTERNAL_PROVIDERS.get(ExternalProviders(value))
 
 
@@ -48,11 +47,11 @@ integers to their string values.
 """
 
 
-def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
+def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> str | None:
     return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
 
 
-def get_notification_scope_name(value: int) -> Optional[str]:
+def get_notification_scope_name(value: int) -> str | None:
     return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
 
 

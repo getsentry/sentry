@@ -1,7 +1,6 @@
 import abc
 from abc import abstractmethod
 from datetime import timedelta
-from typing import Type
 from unittest.mock import Mock
 
 from django.db.models import QuerySet
@@ -33,7 +32,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 
     @property
     @abstractmethod
-    def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
+    def ScheduledDeletion(self) -> type[BaseScheduledDeletion]:
         raise NotImplementedError("Subclasses should implement")
 
     @abstractmethod
@@ -192,7 +191,7 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
 @region_silo_test
 class RunRegionScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     @property
-    def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
+    def ScheduledDeletion(self) -> type[BaseScheduledDeletion]:
         return RegionScheduledDeletion
 
     def run_scheduled_deletions(self) -> None:
@@ -219,7 +218,7 @@ class RunRegionScheduledDeletionTest(RegionalRunScheduleDeletionTest):
 @control_silo_test
 class RunControlScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     @property
-    def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
+    def ScheduledDeletion(self) -> type[BaseScheduledDeletion]:
         return ScheduledDeletion
 
     def run_scheduled_deletions(self) -> None:

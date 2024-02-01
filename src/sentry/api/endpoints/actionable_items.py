@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Union
 
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -27,7 +27,7 @@ class ActionableItemResponse(TypedDict):
 
 
 class SourceMapProcessingResponse(TypedDict):
-    errors: List[ActionableItemResponse]
+    errors: list[ActionableItemResponse]
 
 
 # This endpoint is used to retrieve actionable items that a user can perform on an event. It is a private endpoint

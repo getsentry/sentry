@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Literal, TypedDict, Union
+from typing import Literal, TypedDict, Union
 
 from django.utils.functional import cached_property
 from django.utils.text import slugify
@@ -35,7 +35,7 @@ class CheckinPayload(TypedDict):
     status: str
     environment: NotRequired[str]
     duration: NotRequired[int]
-    monitor_config: NotRequired[Dict]
+    monitor_config: NotRequired[dict]
     contexts: NotRequired[CheckinContexts]
 
 

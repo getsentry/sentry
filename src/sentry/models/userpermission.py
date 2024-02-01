@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import FrozenSet, List
-
 from django.db import models
 
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
@@ -37,13 +35,13 @@ class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
     __repr__ = sane_repr("user_id", "permission")
 
     @classmethod
-    def for_user(cls, user_id: int) -> FrozenSet[str]:
+    def for_user(cls, user_id: int) -> frozenset[str]:
         """
         Return a set of permission for the given user ID.
         """
         return frozenset(cls.objects.filter(user=user_id).values_list("permission", flat=True))
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         regions = find_regions_for_user(self.user_id)
         return [
             outbox

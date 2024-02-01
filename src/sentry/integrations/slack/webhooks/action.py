@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, MutableMapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 import requests as requests_
 import sentry_sdk
@@ -38,7 +38,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviderEnum
 from sentry.utils import json
-from sentry.web.decorators import transaction_start
 
 from ..utils import logger
 
@@ -693,7 +692,7 @@ class SlackActionEndpoint(Endpoint):
     @classmethod
     def get_action_list(
         cls, slack_request: SlackActionRequest, use_block_kit: bool
-    ) -> List[MessageAction]:
+    ) -> list[MessageAction]:
         action_data = slack_request.data.get("actions")
         if use_block_kit and action_data:
             # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
@@ -732,7 +731,6 @@ class SlackActionEndpoint(Endpoint):
             if "name" in action_data
         ]
 
-    @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)

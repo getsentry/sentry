@@ -207,14 +207,15 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget} =
     useMetricWidgets();
-  const [focusAreaSelection, setFocusAreaSelection] = useState<
-    FocusAreaSelection | undefined
-  >();
-
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
   const pageFilters = usePageFilters().selection;
   const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
+
+  const focusAreaSelection = useMemo<FocusAreaSelection | undefined>(
+    () => router.location.query.focusArea && JSON.parse(router.location.query.focusArea),
+    [router.location.query.focusArea]
+  );
 
   const handleAddFocusArea = useCallback(
     (area: FocusAreaSelection) => {
@@ -224,37 +225,22 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       }
 
       const dateRange = getAbsoluteDateTimeRange(pageFilters.datetime);
-      if (area.range.start < dateRange.start) {
-        area.range.start = dateRange.start;
-      }
-      if (area.range.end > dateRange.end) {
-        area.range.end = dateRange.end;
+      if (area.range.end < dateRange.start || area.range.start > dateRange.end) {
+        Sentry.metrics.increment('ddm.enhance.range-outside');
+        return;
       }
 
       Sentry.metrics.increment('ddm.enhance.add');
-      setFocusAreaSelection(area);
       setSelectedWidgetIndex(area.widgetIndex);
-      updateQuery({focusArea: JSON.stringify(area)});
+      updateQuery({focusArea: JSON.stringify(area)}, {replace: true});
     },
     [updateQuery, pageFilters.datetime]
   );
 
   const handleRemoveFocusArea = useCallback(() => {
     Sentry.metrics.increment('ddm.enhance.remove');
-    setFocusAreaSelection(undefined);
-    updateQuery({focusArea: undefined});
+    updateQuery({focusArea: undefined}, {replace: true});
   }, [updateQuery]);
-
-  // Load focus area from URL
-  useEffect(() => {
-    if (focusAreaSelection) {
-      return;
-    }
-    const urlFocusArea = router.location.query.focusArea;
-    if (urlFocusArea) {
-      handleAddFocusArea(JSON.parse(urlFocusArea));
-    }
-  }, [router, handleAddFocusArea, focusAreaSelection]);
 
   const focusArea = useMemo<FocusAreaProps>(() => {
     return {

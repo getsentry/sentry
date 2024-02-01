@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.utils import timezone as django_timezone
 
-from sentry.sentry_metrics.querying.api import run_metrics_query
+from sentry.sentry_metrics.querying.data import run_metrics_query
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
@@ -26,8 +26,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def setUp(self):
         super().setUp()
 
-        release_1 = self.create_release(project=self.project, version="1.0")
-        release_2 = self.create_release(project=self.project, version="2.0")
+        release_1 = self.create_release(
+            project=self.project, version="1.0", date_added=MOCK_DATETIME
+        )
+        release_2 = self.create_release(
+            project=self.project, version="2.0", date_added=MOCK_DATETIME + timedelta(minutes=5)
+        )
 
         for value, transaction, platform, env, release, time in (
             (1, "/hello", "android", "prod", release_1.version, self.now()),
@@ -621,7 +625,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
     def test_query_with_custom_set(self):
-        mri = "s:custom/user_click@none"
+        mri = "s:custom/User.Click.2@none"
         for user in ("marco", "marco", "john"):
             self.store_metric(
                 self.project.organization.id,
@@ -653,7 +657,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[0]["series"] == {field: [0, 2, 0]}
         assert groups[0]["totals"] == {field: 2}
 
-    @patch("sentry.sentry_metrics.querying.api.SNUBA_QUERY_LIMIT", 5)
+    @patch("sentry.sentry_metrics.querying.data.execution.SNUBA_QUERY_LIMIT", 5)
     def test_query_with_too_many_results(self) -> None:
         field = f"sum({TransactionMRI.DURATION.value})"
         results = run_metrics_query(
@@ -688,8 +692,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert groups[2]["series"] == {field: [0.0, 9.0]}
         assert groups[2]["totals"] == {field: 9.0}
 
-    @patch("sentry.sentry_metrics.querying.api.SNUBA_QUERY_LIMIT", 5)
-    @patch("sentry.sentry_metrics.querying.api.DEFAULT_QUERY_INTERVALS", [])
+    @patch("sentry.sentry_metrics.querying.data.execution.SNUBA_QUERY_LIMIT", 5)
+    @patch("sentry.sentry_metrics.querying.data.execution.DEFAULT_QUERY_INTERVALS", [])
     def test_query_with_too_many_results_and_no_interval_found(self) -> None:
         with pytest.raises(MetricsQueryExecutionError):
             run_metrics_query(

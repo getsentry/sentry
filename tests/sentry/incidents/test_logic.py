@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 import responses
 from django.core import mail
+from django.test import override_settings
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -433,6 +434,7 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
         assert list(get_incident_subscribers(incident)) == [subscription]
 
 
+@region_silo_test
 class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
     def test(self):
         name = "hello"
@@ -562,6 +564,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
 
     # This test will fail unless real migrations are run. Refer to migration 0061.
     @pytest.mark.migrations  # requires custom migration 0061
+    @override_settings(SILO_MODE=SiloMode.MONOLITH)
     def test_two_archived_with_same_name(self):
         name = "allowed"
         alert_rule_1 = create_alert_rule(

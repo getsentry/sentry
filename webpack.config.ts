@@ -14,11 +14,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
-import {Configuration as DevServerConfig} from 'webpack-dev-server';
+import type {Configuration as DevServerConfig} from 'webpack-dev-server';
 import WebpackHookPlugin from 'webpack-hook-plugin';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
-import IntegrationDocsFetchPlugin from './build-utils/integration-docs-fetch-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin';
 import SentryInstrumentation from './build-utils/sentry-instrumentation';
 import {extractIOSDeviceNames} from './scripts/extract-ios-device-names';
@@ -510,16 +509,6 @@ if (IS_TEST) {
     'fixtures',
     'js-stubs'
   );
-}
-if (IS_TEST || IS_ACCEPTANCE_TEST) {
-  appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
-    __dirname,
-    'fixtures/integration-docs/_platforms.json'
-  );
-} else {
-  const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});
-  appConfig.plugins?.push(plugin);
-  appConfig.resolve!.alias!['integration-docs-platforms'] = plugin.modulePath;
 }
 
 if (IS_ACCEPTANCE_TEST) {

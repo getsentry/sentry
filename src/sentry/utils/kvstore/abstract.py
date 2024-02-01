@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
-from typing import Generic, Iterator, Optional, Sequence, Tuple, TypeVar
+from typing import Generic, Iterator, Optional, Sequence, TypeVar
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -26,7 +26,7 @@ class KVStorage(ABC, Generic[K, V]):
         """
         raise NotImplementedError
 
-    def get_many(self, keys: Sequence[K]) -> Iterator[Tuple[K, V]]:
+    def get_many(self, keys: Sequence[K]) -> Iterator[tuple[K, V]]:
         """
         Fetch multiple values from the store by their keys. Returns an
         iterator of ``(key, value)`` pairs of items that were present in the
