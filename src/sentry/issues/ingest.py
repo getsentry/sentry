@@ -85,7 +85,7 @@ class IssueArgs(TypedDict):
     type: int
     data: OccurrenceMetadata
     first_release: Release | None
-    priority: Optional[int]
+    priority: int | None
 
 
 def _create_issue_kwargs(

@@ -2390,7 +2390,6 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                 evidence_display=problem.evidence_display,
                 detection_time=event.datetime,
                 level=job["level"],
-                initial_issue_priority=problem.type.default_priority,
             )
 
             produce_occurrence_to_kafka(payload_type=PayloadType.OCCURRENCE, occurrence=occurrence)
