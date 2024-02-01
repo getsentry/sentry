@@ -4,10 +4,12 @@ import abc
 import contextlib
 import dataclasses
 import datetime
+import logging
 import threading
 from enum import IntEnum
 from typing import Any, Collection, Generator, Iterable, Mapping, TypeVar, cast
 
+import mmh3
 import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
@@ -19,6 +21,7 @@ from django.utils import timezone
 from sentry_sdk.tracing import Span
 from typing_extensions import Self
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseModel,
@@ -31,6 +34,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.outboxes import HasControlReplicationHandlers, ReplicatedRegionModel
+from sentry.db.postgres.advisory_lock import advisory_lock
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     enforce_constraints,
@@ -406,6 +410,7 @@ def _ensure_not_null(k: str, v: Any) -> Any:
 class OutboxBase(Model):
     sharding_columns: Iterable[str]
     coalesced_columns: Iterable[str]
+    logger: logging.Logger = logging.getLogger("outbox_logger")
 
     @classmethod
     def from_outbox_name(cls, name: str) -> type[Self]:
@@ -556,6 +561,57 @@ class OutboxBase(Model):
 
             yield next_shard_row
 
+    def get_advisory_lock_key(self):
+        key_components = [str(getattr(self, col)) for col in self.sharding_columns]
+        return mmh3.hash64(".".join(key_components))[0]
+
+    @contextlib.contextmanager
+    def process_shard_advisory_locked(
+        self, latest_shard_row: OutboxBase | None
+    ) -> Generator[OutboxBase | None, None, None]:
+        flush_all: bool = not bool(latest_shard_row)
+        next_shard_row: OutboxBase | None
+        using: str = db.router.db_for_write(type(self))
+        lock_id = self.get_advisory_lock_key()
+
+        self.logger.info(
+            "outbox.attempting_lock", extra={"lock_id": lock_id, "thread_id": threading.get_ident()}
+        )
+        try:
+            with advisory_lock(
+                using=using,
+                lock_id=lock_id,
+                lock_timeout_seconds=5,
+                lock_metric_name="outbox.advisory_lock",
+            ):
+                next_shard_row = self.selected_messages_in_shard(
+                    latest_shard_row=latest_shard_row
+                ).first()
+
+                yield next_shard_row
+        except OperationalError as e:
+            self.logger.info("outbox.contentious_operation")
+            # We've elapsed the full lock timeout and need to handle this contention.
+            # Partial flushes (synchronous drains) rely on work being completed up
+            # to the specified message ID. We can safely return if the latest head
+            # shard row is newer than the provided latest shard row, which upholds our read after
+            # write invariant.
+            #
+            # Full flushes (asynchronous drains) shouldn't raise an exception on
+            # contention and should proceed to processing any remaining unlocked shards.
+            if not flush_all:
+                next_shard_row = self.selected_messages_in_shard(
+                    latest_shard_row=latest_shard_row
+                ).first()
+                if next_shard_row.id > latest_shard_row.id:
+                    self.logger.info("outbox.synchronous_flush_contention_work_already_complete")
+                    yield None
+                    return
+
+                sentry_sdk.capture_exception(e)
+                self.logger.info("outbox.encountered_critical_contention")
+                raise
+
     @contextlib.contextmanager
     def process_coalesced(
         self, is_synchronous_flush: bool
@@ -644,6 +700,7 @@ class OutboxBase(Model):
     def drain_shard(
         self, flush_all: bool = False, _test_processing_barrier: threading.Barrier | None = None
     ) -> None:
+        use_advisory_lock = options.get("hybrid_cloud.use_outbox_advisory_lock")
         in_test_assert_no_transaction(
             "drain_shard should only be called outside of any active transaction!"
         )
@@ -658,14 +715,23 @@ class OutboxBase(Model):
                 return
 
         shard_row: OutboxBase | None
+
+        process_context_manager = self.process_shard
+        if use_advisory_lock:
+            process_context_manager = self.process_shard_advisory_locked
+
         while True:
-            with self.process_shard(latest_shard_row) as shard_row:
+            with process_context_manager(latest_shard_row) as shard_row:
                 if shard_row is None:
                     break
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
+                logging.info(
+                    "outbox.processing_shard_row",
+                    extra={"thread_id": threading.get_ident(), "shard_row": shard_row},
+                )
                 shard_row.process(is_synchronous_flush=not flush_all)
 
                 if _test_processing_barrier:

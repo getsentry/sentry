@@ -31,6 +31,7 @@ from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
@@ -177,6 +178,37 @@ class ControlOutboxTest(TestCase):
                 t.start()
                 t.join()
 
+    def test_prepare_next_from_shard_no_conflict_with_processing_advisory_locked(self):
+        with outbox_runner():
+            org = Factories.create_organization()
+            user1 = Factories.create_user()
+            Factories.create_member(organization_id=org.id, user_id=user1.id)
+
+        with outbox_context(flush=False):
+            outbox = user1.outboxes_for_update()[0]
+            outbox.save()
+            with outbox.process_shard_advisory_locked(None) as next_shard_row:
+                assert next_shard_row is not None
+
+                def test_with_other_connection():
+                    try:
+                        assert (
+                            ControlOutbox.prepare_next_from_shard(
+                                {
+                                    k: getattr(next_shard_row, k)
+                                    for k in ControlOutbox.sharding_columns
+                                }
+                            )
+                            is None
+                        )
+                    finally:
+                        for c in connections.all():
+                            c.close()
+
+                t = threading.Thread(target=test_with_other_connection)
+                t.start()
+                t.join()
+
     def test_control_outbox_for_webhooks(self):
         [outbox] = ControlOutbox.for_webhook_update(
             shard_identifier=WebhookProviderIdentifier.GITHUB,
@@ -263,6 +295,7 @@ class ControlOutboxTest(TestCase):
 
 @region_silo_test
 class OutboxDrainTest(TransactionTestCase):
+    @override_options({"hybrid_cloud.use_outbox_advisory_lock": True})
     def test_drain_shard_not_flush_all__upper_bound(self):
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
@@ -289,6 +322,7 @@ class OutboxDrainTest(TransactionTestCase):
         assert RegionOutbox.objects.filter(id=outbox2.id).first()
 
     @patch("sentry.models.outbox.process_region_outbox.send")
+    @override_options({"hybrid_cloud.use_outbox_advisory_lock": True})
     def test_drain_shard_not_flush_all__concurrent_processing(self, mock_process_region_outbox):
         outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
         outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
@@ -326,6 +360,7 @@ class OutboxDrainTest(TransactionTestCase):
 
         assert mock_process_region_outbox.call_count == 2
 
+    @override_options({"hybrid_cloud.use_outbox_advisory_lock": True})
     def test_drain_shard_flush_all__upper_bound(self):
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
@@ -356,6 +391,7 @@ class OutboxDrainTest(TransactionTestCase):
         assert not RegionOutbox.objects.filter(id=outbox2.id).first()
 
     @patch("sentry.models.outbox.process_region_outbox.send")
+    @override_options({"hybrid_cloud.use_outbox_advisory_lock": True})
     def test_drain_shard_flush_all__concurrent_processing__cooperation(
         self, mock_process_region_outbox
     ):
