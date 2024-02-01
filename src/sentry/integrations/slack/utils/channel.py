@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from django.core.exceptions import ValidationError
 
@@ -25,7 +25,7 @@ strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 
 # Different list types in slack that we'll use to resolve a channel name. Format is
 # (<list_name>, <result_name>, <prefix>).
-LIST_TYPES: List[Tuple[str, str, str]] = [
+LIST_TYPES: list[tuple[str, str, str]] = [
     ("conversations", "channels", CHANNEL_PREFIX),
     ("users", "members", MEMBER_PREFIX),
 ]
@@ -40,7 +40,7 @@ def get_channel_id(
     integration: Integration | RpcIntegration,
     channel_name: str,
     use_async_lookup: bool = False,
-) -> Tuple[str, Optional[str], bool]:
+) -> tuple[str, Optional[str], bool]:
     """
     Fetches the internal slack id of a channel.
     :param organization: unused
@@ -104,7 +104,7 @@ def get_channel_id_with_timeout(
     integration: Integration | RpcIntegration,
     name: Optional[str],
     timeout: int,
-) -> Tuple[str, Optional[str], bool]:
+) -> tuple[str, Optional[str], bool]:
     """
     Fetches the internal slack id of a channel using scheduled message.
     :param integration: The slack integration
@@ -125,7 +125,7 @@ def get_channel_id_with_timeout(
     time_to_quit = time.time() + timeout
 
     client = SlackClient(integration_id=integration.id)
-    id_data: Optional[Tuple[str, Optional[str], bool]] = None
+    id_data: Optional[tuple[str, Optional[str], bool]] = None
     found_duplicate = False
     prefix = ""
     channel_id = None

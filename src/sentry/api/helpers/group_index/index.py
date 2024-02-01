@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 import sentry_sdk
 from django.db.models import Q
@@ -33,7 +33,7 @@ EndpointFunction = Callable[..., Response]
 
 # List of conditions that mark a SearchFilter as an advanced search. Format is
 # (lambda SearchFilter(): <boolean condition>, '<feature_name')
-advanced_search_features: Sequence[Tuple[Callable[[SearchFilter], Any], str]] = [
+advanced_search_features: Sequence[tuple[Callable[[SearchFilter], Any], str]] = [
     (lambda search_filter: search_filter.is_negation, "negative search"),
     (lambda search_filter: search_filter.value.is_wildcard(), "wildcard search"),
 ]
@@ -208,7 +208,7 @@ def calculate_stats_period(
     stats_period: Optional[str],
     start: Optional[datetime],
     end: Optional[datetime],
-) -> Tuple[Optional[str], Optional[datetime], Optional[datetime]]:
+) -> tuple[Optional[str], Optional[datetime], Optional[datetime]]:
     if stats_period is None:
         # default
         stats_period = "24h"
@@ -230,7 +230,7 @@ def prep_search(
     request: Request,
     project: "Project",
     extra_query_kwargs: Optional[Mapping[str, Any]] = None,
-) -> Tuple[CursorResult[Group], Mapping[str, Any]]:
+) -> tuple[CursorResult[Group], Mapping[str, Any]]:
     try:
         environment = cls._get_environment_from_request(request, project.organization_id)
     except Environment.DoesNotExist:
@@ -256,7 +256,7 @@ def prep_search(
 def get_first_last_release(
     request: Request,
     group: "Group",
-) -> Tuple[Optional[Mapping[str, Any]], Optional[Mapping[str, Any]]]:
+) -> tuple[Optional[Mapping[str, Any]], Optional[Mapping[str, Any]]]:
     first_release = group.get_first_release()
     if first_release is not None:
         last_release = group.get_last_release()

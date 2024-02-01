@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from types import TracebackType
-from typing import Generator, Type
+from typing import Generator
 
 from sentry_sdk.tracing import Span
 
@@ -72,7 +72,7 @@ class RpcMetricSpan:
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         tb: TracebackType | None,
     ) -> None:

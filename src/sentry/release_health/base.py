@@ -7,14 +7,10 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Collection,
-    Dict,
-    List,
     Literal,
     Mapping,
     Optional,
     Sequence,
-    Set,
-    Tuple,
     TypedDict,
     TypeVar,
     Union,
@@ -89,26 +85,26 @@ class SessionsQuery(TypedDict):
 
 SessionsQueryValue = Union[None, float]
 
-ProjectWithCount = Tuple[ProjectId, int]
+ProjectWithCount = tuple[ProjectId, int]
 
 
 class SessionsQueryGroup(TypedDict):
-    by: Dict[str, Union[str, int]]
-    series: Dict[str, List[SessionsQueryValue]]
-    totals: Dict[str, SessionsQueryValue]
+    by: dict[str, Union[str, int]]
+    series: dict[str, list[SessionsQueryValue]]
+    totals: dict[str, SessionsQueryValue]
 
 
 class SessionsQueryResult(TypedDict):
     start: DateString
     end: DateString
-    intervals: List[DateString]
-    groups: List[SessionsQueryGroup]
+    intervals: list[DateString]
+    groups: list[SessionsQueryGroup]
     query: str
 
 
 FormattedIsoTime = str
 
-ProjectRelease = Tuple[ProjectId, ReleaseName]
+ProjectRelease = tuple[ProjectId, ReleaseName]
 ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
 
 # taken from sentry.snuba.sessions.STATS_PERIODS
@@ -166,7 +162,7 @@ class ReleaseAdoption(TypedDict):
     project_sessions_24h: Optional[int]
 
 
-ReleasesAdoption = Mapping[Tuple[ProjectId, ReleaseName], ReleaseAdoption]
+ReleasesAdoption = Mapping[tuple[ProjectId, ReleaseName], ReleaseAdoption]
 
 
 class ReleaseHealthOverview(TypedDict, total=False):
@@ -227,9 +223,9 @@ class SessionCountsAndPercentiles(DurationPercentiles, SessionCounts):
 
 # NOTE: Tuple is the wrong type, it's a fixed-length list. Unfortunately mypy
 # is too opinionated to support fixed-length lists.
-ProjectReleaseUserStats = Tuple[Sequence[Tuple[int, UserCountsAndPercentiles]], UserCounts]
-ProjectReleaseSessionStats = Tuple[
-    Sequence[Tuple[int, SessionCountsAndPercentiles]],
+ProjectReleaseUserStats = tuple[Sequence[tuple[int, UserCountsAndPercentiles]], UserCounts]
+ProjectReleaseSessionStats = tuple[
+    Sequence[tuple[int, SessionCountsAndPercentiles]],
     SessionCounts,
 ]
 
@@ -365,7 +361,7 @@ class ReleaseHealthBackend(Service):
         self,
         projects_list: Collection[ProjectOrRelease],
         now: Optional[datetime] = None,
-    ) -> Set[ProjectOrRelease]:
+    ) -> set[ProjectOrRelease]:
         """
         Function that returns a set of all project_ids or (project, release) if they have health data
         within the last 90 days based on a list of projects or a list of project, release combinations
@@ -383,7 +379,7 @@ class ReleaseHealthBackend(Service):
         release_versions: Sequence[ReleaseName],
         start: datetime,
         end: datetime,
-    ) -> Set[ReleaseName]:
+    ) -> set[ReleaseName]:
         """
         Returns a set of all release versions that have health data within a given period of time.
         """

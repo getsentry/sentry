@@ -1,6 +1,6 @@
 import unittest
 from copy import deepcopy
-from typing import Any, Dict
+from typing import Any
 
 import responses
 from sentry_relay.processing import StoreNormalizer
@@ -26,7 +26,7 @@ class ErrorMappingTest(unittest.TestCase):
         )
 
         for x in range(3):
-            data: Dict[str, Any] = {
+            data: dict[str, Any] = {
                 "platform": "javascript",
                 "exception": {
                     "values": [
@@ -81,7 +81,7 @@ class ErrorMappingTest(unittest.TestCase):
             content_type="application/json",
         )
 
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "platform": "javascript",
             "exception": {
                 "values": [
@@ -128,7 +128,7 @@ class ErrorMappingTest(unittest.TestCase):
             content_type="application/json",
         )
 
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "platform": "javascript",
             "exception": {
                 "values": [
@@ -278,7 +278,7 @@ class ErrorMappingTest(unittest.TestCase):
 
     @responses.activate
     def test_skip_none_values(self):
-        expected: Dict[str, Any] = {"exception": {"values": [None, {}]}}
+        expected: dict[str, Any] = {"exception": {"values": [None, {}]}}
 
         actual = deepcopy(expected)
         assert not rewrite_exception(actual)

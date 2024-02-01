@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from django.utils import timezone
 
@@ -25,7 +25,7 @@ def update_user_reports(**kwargs: Any) -> None:
     )
 
     # We do one query per project, just to avoid the small case that two projects have the same event ID
-    project_map: Dict[int, Any] = {}
+    project_map: dict[int, Any] = {}
     for r in user_reports:
         project_map.setdefault(r.project_id, []).append(r)
 

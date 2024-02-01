@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import asdict
 from datetime import timezone
-from typing import Any, Dict, Mapping, Optional, Sequence, TypedDict
+from typing import Any, Mapping, Optional, Sequence, TypedDict
 
 from django.utils.datastructures import OrderedSet
 from isodate import parse_datetime
@@ -45,8 +45,8 @@ class GitHubGraphQlResponse(TypedDict):
     errors: list[dict[str, str]]
 
 
-FilePathMapping = Dict[str, Dict[str, OrderedSet]]
-GitHubRepositoryResponse = Dict[str, GitHubRefResponse]
+FilePathMapping = dict[str, dict[str, OrderedSet]]
+GitHubRepositoryResponse = dict[str, GitHubRefResponse]
 
 
 def generate_file_path_mapping(files: Sequence[SourceLineInfo]) -> FilePathMapping:

@@ -10,7 +10,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Union
+from typing import Any, Literal, Mapping, Optional, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -596,8 +596,6 @@ class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
     # We need Django to flush all databases.
     databases: set[str] | str = "__all__"
 
-    pass
-
 
 class PerformanceIssueTestCase(BaseTestCase):
     # We need Django to flush all databases.
@@ -923,7 +921,7 @@ class RuleTestCase(TestCase):
         self,
         rule: RuleBase,
         condition_activity: Optional[ConditionActivity] = None,
-        event_map: Optional[Dict[str, Any]] = None,
+        event_map: Optional[dict[str, Any]] = None,
     ):
         if condition_activity is None:
             condition_activity = self.get_condition_activity()
@@ -1603,7 +1601,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         project_id: int,
         type: Literal["counter", "set", "distribution", "gauge"],
         name: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         timestamp: int,
         value: Any,
         use_case_id: UseCaseID,
@@ -1657,7 +1655,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             value = [value]
         elif type == "gauge":
             # In case we pass either an int or float, we will emit a gauge with all the same values.
-            if not isinstance(value, Dict):
+            if not isinstance(value, dict):
                 value = {
                     "min": value,
                     "max": value,
@@ -1758,8 +1756,8 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def _store_metric(
         self,
         name: str,
-        tags: Dict[str, str],
-        value: int | float | Dict[str, int | float],
+        tags: dict[str, str],
+        value: int | float | dict[str, int | float],
         use_case_id: UseCaseID,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
@@ -1835,8 +1833,8 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def store_performance_metric(
         self,
         name: str,
-        tags: Dict[str, str],
-        value: int | float | Dict[str, int | float],
+        tags: dict[str, str],
+        value: int | float | dict[str, int | float],
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
@@ -1864,7 +1862,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def store_release_health_metric(
         self,
         name: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
         value: int,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
@@ -1891,8 +1889,8 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def store_custom_metric(
         self,
         name: str,
-        tags: Dict[str, str],
-        value: int | float | Dict[str, int | float],
+        tags: dict[str, str],
+        value: int | float | dict[str, int | float],
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
@@ -2037,7 +2035,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         metric: str = "transaction.duration",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
         use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
@@ -2077,7 +2075,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         self,
         value: int | float,
         spec: OnDemandMetricSpec,
-        additional_tags: Optional[Dict[str, str]] = None,
+        additional_tags: Optional[dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
     ) -> None:
         """Convert on-demand metric and store it"""
@@ -2101,11 +2099,11 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def store_span_metric(
         self,
-        value: List[int] | int,
+        value: list[int] | int,
         metric: str = "span.self_time",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
         use_case_id: UseCaseID = UseCaseID.SPANS,

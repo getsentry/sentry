@@ -1,7 +1,7 @@
 import math
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, cast
+from typing import Any, Mapping, Optional, Sequence, cast
 
 import sentry_sdk
 from snuba_sdk import Column, Direction, MetricsQuery, Request
@@ -43,7 +43,7 @@ def _extract_groups_from_seq(seq: Sequence[Mapping[str, Any]]) -> GroupsCollecti
 
 def _build_composite_key_from_dict(
     data: Mapping[str, Any], alignment_keys: Sequence[str]
-) -> Tuple[Tuple[str, str], ...]:
+) -> tuple[tuple[str, str], ...]:
     """
     Builds a hashable composite key given a series of keys that are looked up in the supplied data.
     """
@@ -240,11 +240,11 @@ class QueryResult:
         return _extract_groups_from_seq(self.totals or self.series)
 
     @property
-    def group_bys(self) -> Optional[List[str]]:
+    def group_bys(self) -> Optional[list[str]]:
         # We return the groups directly from the query and not the actual groups returned by the query. This is done so
         # that we can correctly render groups in case they are not returned from the db.
         return cast(
-            Optional[List[str]],
+            Optional[list[str]],
             (
                 cast(ExecutableQuery, self.series_executable_query or self.totals_executable_query)
             ).group_bys,
@@ -303,7 +303,7 @@ class QueryResult:
         if not alignment_keys:
             return self
 
-        indexed_series: Dict[Tuple[Tuple[str, str], ...], List[int]] = {}
+        indexed_series: dict[tuple[tuple[str, str], ...], list[int]] = {}
         for index, data in enumerate(self.series):
             composite_key = _build_composite_key_from_dict(data, alignment_keys)
             # Since serieses have also the time component, we store multiple indexes of multiple times for the same
@@ -331,7 +331,7 @@ class QueryExecutor:
         # to avoid an infinite recursion.
         self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS)
         # List of queries scheduled for execution.
-        self._scheduled_queries: List[ExecutableQuery] = []
+        self._scheduled_queries: list[ExecutableQuery] = []
         # Tracks the number of queries that have been executed (for measuring purposes).
         self._number_of_executed_queries = 0
 

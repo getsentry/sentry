@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import functools
-from typing import Any, List
+from typing import Any
 
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest
@@ -68,7 +68,7 @@ def assert_no_webhook_outboxes():
 def assert_webhook_outboxes(
     factory_request: WSGIRequest,
     webhook_identifier: WebhookProviderIdentifier,
-    region_names: List[str],
+    region_names: list[str],
 ):
     assert_webhook_outboxes_with_shard_id(
         factory_request=factory_request,
@@ -80,7 +80,7 @@ def assert_webhook_outboxes(
 def assert_webhook_outboxes_with_shard_id(
     factory_request: WSGIRequest,
     expected_shard_id: int,
-    region_names: List[str],
+    region_names: list[str],
 ):
     """
     A test method for asserting that a webhook outbox is properly queued for

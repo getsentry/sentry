@@ -2,18 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence, Union
 
 from django.db.models import Q
 
@@ -71,7 +60,7 @@ class ParticipantMap:
 
     def get_participants_by_provider(
         self, provider: ExternalProviders
-    ) -> set[Tuple[RpcActor, int]]:
+    ) -> set[tuple[RpcActor, int]]:
         return {(k, v) for k, v in self._dict.get(provider, {}).items()}
 
     def add(self, provider: ExternalProviders, participant: RpcActor, reason: int) -> None:
@@ -84,7 +73,7 @@ class ParticipantMap:
         for provider, actor_group in other._dict.items():
             self.add_all(provider, actor_group)
 
-    def get_participant_sets(self) -> Iterable[Tuple[ExternalProviders, Iterable[RpcActor]]]:
+    def get_participant_sets(self) -> Iterable[tuple[ExternalProviders, Iterable[RpcActor]]]:
         return ((provider, participants.keys()) for (provider, participants) in self._dict.items())
 
     def delete_participant_by_id(
@@ -105,7 +94,7 @@ class ParticipantMap:
     def split_participants_and_context(
         self,
     ) -> Iterable[
-        Tuple[ExternalProviders, Iterable[RpcActor], Mapping[RpcActor, Mapping[str, Any]]]
+        tuple[ExternalProviders, Iterable[RpcActor], Mapping[RpcActor, Mapping[str, Any]]]
     ]:
         for provider, participants_with_reasons in self._dict.items():
             extra_context = {
@@ -218,7 +207,7 @@ def get_owners(
     project: Project,
     event: Event | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> Tuple[List[RpcActor], str]:
+) -> tuple[list[RpcActor], str]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -233,7 +222,7 @@ def get_owners(
 
     if not owners:
         outcome = "empty"
-        recipients: List[RpcActor] = list()
+        recipients: list[RpcActor] = list()
 
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
@@ -280,7 +269,7 @@ def get_owner_reason(
     return None
 
 
-def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:
+def get_suspect_commit_users(project: Project, event: Event) -> list[RpcUser]:
     """
     Returns a list of users that are suspect committers for the given event.
 
@@ -538,7 +527,7 @@ def get_notification_recipients(
     recipients: Iterable[RpcActor],
     type: NotificationSettingEnum,
     organization_id: Optional[int] = None,
-    project_ids: Optional[List[int]] = None,
+    project_ids: Optional[list[int]] = None,
     actor_type: Optional[ActorType] = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     recipients_by_provider = notifications_service.get_notification_recipients(
@@ -561,7 +550,7 @@ def get_notification_recipients_v2(
     recipients: Iterable[RpcActor],
     type: NotificationSettingEnum,
     organization_id: Optional[int] = None,
-    project_ids: Optional[List[int]] = None,
+    project_ids: Optional[list[int]] = None,
     actor_type: Optional[ActorType] = None,
 ) -> Mapping[ExternalProviders, set[RpcActor]]:
     return get_notification_recipients(

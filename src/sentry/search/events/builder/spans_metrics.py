@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 from snuba_sdk import Condition, Granularity
 
@@ -45,8 +45,8 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         return None
 
     def resolve_select(
-        self, selected_columns: Optional[List[str]], equations: Optional[List[str]]
-    ) -> List[SelectType]:
+        self, selected_columns: Optional[list[str]], equations: Optional[list[str]]
+    ) -> list[SelectType]:
         if selected_columns and "transaction" in selected_columns:
             self.has_transaction = True
         return super().resolve_select(selected_columns, equations)
@@ -64,7 +64,7 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
 
 
 class TimeseriesSpansMetricsQueryBuilder(SpansMetricsQueryBuilder, TimeseriesMetricQueryBuilder):
-    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+    def resolve_split_granularity(self) -> tuple[list[Condition], Optional[Granularity]]:
         """Don't do this for timeseries"""
         return [], self.granularity
 

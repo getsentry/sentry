@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Optional, Union
 
 from django.conf import settings
 
@@ -21,13 +21,13 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         self._deny_prefixes = tuple(kwargs.pop("deny_prefixes", []))
 
     def _initialize_backends(
-        self, primary_backend: Optional[str], primary_backend_args: Dict[str, Any]
+        self, primary_backend: Optional[str], primary_backend_args: dict[str, Any]
     ):
         # If we don't have a primary metrics backend we default to the dummy, which won't do anything.
         if primary_backend is None:
             self._primary_backend: MetricsBackend = DummyMetricsBackend()
         else:
-            cls: Type[MetricsBackend] = import_string(primary_backend)
+            cls: type[MetricsBackend] = import_string(primary_backend)
             self._primary_backend = cls(**primary_backend_args)
 
         self._minimetrics: MiniMetricsMetricsBackend = MiniMetricsMetricsBackend()

@@ -4,15 +4,12 @@ from collections import defaultdict
 from typing import (
     Any,
     Callable,
-    Dict,
     Iterable,
     Mapping,
     MutableMapping,
     MutableSequence,
     Optional,
     Sequence,
-    Set,
-    Tuple,
     Union,
     cast,
 )
@@ -51,7 +48,7 @@ MAX_NAME_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 ACCEPTED_METRIC_TYPES = {"s", "c", "d", "g"}  # set, counter, distribution, gauge
 
 OrgId = int
-Headers = MutableSequence[Tuple[str, bytes]]
+Headers = MutableSequence[tuple[str, bytes]]
 
 
 def valid_metric_name(name: Optional[str]) -> bool:
@@ -94,8 +91,8 @@ class IndexerBatch:
         # Invalid messages and filtered messages are both skipped during processing
         # (reconstruct_messages), but we want to put the invalid messages into the
         # DLQ while discarding the filtered messages
-        self.invalid_msg_meta: Set[BrokerMeta] = set()
-        self.filtered_msg_meta: Set[BrokerMeta] = set()
+        self.invalid_msg_meta: set[BrokerMeta] = set()
+        self.filtered_msg_meta: set[BrokerMeta] = set()
         self.parsed_payloads_by_meta: MutableMapping[BrokerMeta, ParsedMessage] = {}
 
         self._extract_messages()
@@ -268,8 +265,8 @@ class IndexerBatch:
         self.filtered_msg_meta.update(keys_to_remove)
 
     @metrics.wraps("process_messages.extract_strings")
-    def extract_strings(self) -> Mapping[UseCaseID, Mapping[OrgId, Set[str]]]:
-        strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]] = defaultdict(
+    def extract_strings(self) -> Mapping[UseCaseID, Mapping[OrgId, set[str]]]:
+        strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]] = defaultdict(
             lambda: defaultdict(set)
         )
 
@@ -313,8 +310,8 @@ class IndexerBatch:
         cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         for message in self.outer_message.payload:
-            used_tags: Set[str] = set()
-            output_message_meta: Dict[str, Dict[str, str]] = defaultdict(dict)
+            used_tags: set[str] = set()
+            output_message_meta: dict[str, dict[str, str]] = defaultdict(dict)
             assert isinstance(message.value, BrokerValue)
             broker_meta = BrokerMeta(message.value.partition, message.value.offset)
             if broker_meta in self.filtered_msg_meta:
@@ -338,7 +335,7 @@ class IndexerBatch:
             tags = old_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
-            new_tags: Dict[str, Union[str, int]] = {}
+            new_tags: dict[str, Union[str, int]] = {}
             exceeded_global_quotas = 0
             exceeded_org_quotas = 0
 
@@ -475,7 +472,7 @@ class IndexerBatch:
                     # to 2. This is used by the consumer to determine how to decode the
                     # tag values.
                     new_payload_v2: GenericMetric = {
-                        "tags": cast(Dict[str, str], new_tags),
+                        "tags": cast(dict[str, str], new_tags),
                         "version": 2,
                         "retention_days": old_payload_value.get("retention_days", 90),
                         "mapping_meta": output_message_meta,

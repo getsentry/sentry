@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from django.db.models import F
 
@@ -52,9 +52,9 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         self,
         *,
         region_name: str,
-        project_ids: List[str],
+        project_ids: list[str],
         role: ProjectKeyRole,
-    ) -> List[RpcProjectKey]:
+    ) -> list[RpcProjectKey]:
         # TODO: This query is unbounded and will need to be addressed in the future.
         project_keys = ProjectKey.objects.filter(
             project__in=project_ids,

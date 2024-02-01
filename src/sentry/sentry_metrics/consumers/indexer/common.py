@@ -1,7 +1,7 @@
 import logging
 import time
 from dataclasses import dataclass
-from typing import List, Mapping, MutableSequence, NamedTuple, Optional, Union
+from typing import Mapping, MutableSequence, NamedTuple, Optional, Union
 
 from arroyo import Partition
 from arroyo.backends.kafka import KafkaPayload
@@ -21,7 +21,7 @@ class BrokerMeta(NamedTuple):
     offset: int
 
 
-MessageBatch = List[Message[KafkaPayload]]
+MessageBatch = list[Message[KafkaPayload]]
 
 logger = logging.getLogger(__name__)
 

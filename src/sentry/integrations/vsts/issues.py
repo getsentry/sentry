@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence
 
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -29,14 +29,14 @@ class VstsIssueSync(IssueSyncMixin):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "work_item_type"]
 
-    def create_default_repo_choice(self, default_repo: str) -> Tuple[str, str]:
+    def create_default_repo_choice(self, default_repo: str) -> tuple[str, str]:
         # default_repo should be the project_id
         project = self.get_client(base_url=self.instance).get_project(default_repo)
         return (project["id"], project["name"])
 
     def get_project_choices(
         self, group: Optional["Group"] = None, **kwargs: Any
-    ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
+    ) -> tuple[Optional[str], Sequence[tuple[str, str]]]:
         client = self.get_client(base_url=self.instance)
         try:
             projects = client.get_projects()
@@ -76,7 +76,7 @@ class VstsIssueSync(IssueSyncMixin):
 
     def get_work_item_choices(
         self, project: str, group: Optional["Group"] = None
-    ) -> Tuple[Optional[str], Sequence[Tuple[str, str]]]:
+    ) -> tuple[Optional[str], Sequence[tuple[str, str]]]:
         client = self.get_client(base_url=self.instance)
         try:
             item_categories = client.get_work_item_categories(project)["value"]
@@ -120,7 +120,7 @@ class VstsIssueSync(IssueSyncMixin):
             # Workitems (issues) are associated with the project not the repository.
         default_project, project_choices = self.get_project_choices(group, **kwargs)
 
-        work_item_choices: Sequence[Tuple[str, str]] = []
+        work_item_choices: Sequence[tuple[str, str]] = []
         default_work_item: Optional[str] = None
         if default_project:
             default_work_item, work_item_choices = self.get_work_item_choices(
@@ -322,7 +322,7 @@ class VstsIssueSync(IssueSyncMixin):
             should_unresolve=(not data["new_state"] in done_states or data["old_state"] is None),
         )
 
-    def _get_done_statuses(self, project: str) -> Set[str]:
+    def _get_done_statuses(self, project: str) -> set[str]:
         client = self.get_client(base_url=self.instance)
         try:
             all_states = client.get_work_item_states(project)["value"]

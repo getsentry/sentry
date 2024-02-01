@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Union
+from typing import Any, Union
 
 from celery.signals import task_postrun
 from django.core.signals import request_finished
@@ -12,7 +12,7 @@ from sentry.db.models.manager.base import BaseManager, _local_cache
 
 class OptionManager(BaseManager[M]):
     @property
-    def _option_cache(self) -> Dict[str, Dict[str, Any]]:
+    def _option_cache(self) -> dict[str, dict[str, Any]]:
         if not hasattr(_local_cache, "option_cache"):
             _local_cache.option_cache = {}
 

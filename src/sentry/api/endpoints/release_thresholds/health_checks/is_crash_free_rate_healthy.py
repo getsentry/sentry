@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Tuple
+from typing import TYPE_CHECKING, Any
 
 from dateutil import parser
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 def get_groups_totals(
-    sessions_data: Dict[str, Any],
+    sessions_data: dict[str, Any],
     release_version: str,
     project_id: int,
     field: str,
@@ -47,7 +47,7 @@ def get_groups_totals(
     return total
 
 
-def get_interval_indexes(intervals: list[str], start: datetime, end: datetime) -> Tuple[int, int]:
+def get_interval_indexes(intervals: list[str], start: datetime, end: datetime) -> tuple[int, int]:
     """
     :param intervals: if timestamps from fetched sessions data
     :param start: timestamp
@@ -73,9 +73,9 @@ def get_interval_indexes(intervals: list[str], start: datetime, end: datetime) -
 
 def is_crash_free_rate_healthy_check(
     ethreshold: EnrichedThreshold,
-    sessions_data: Dict[str, Any],
+    sessions_data: dict[str, Any],
     display: str,
-) -> Tuple[bool, float]:  # (is_healthy, metric_value)
+) -> tuple[bool, float]:  # (is_healthy, metric_value)
     """
     Derives percent from crash total over total count
 

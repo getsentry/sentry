@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, ClassVar, Iterable, List, Mapping, Optional, Tuple
+from typing import TYPE_CHECKING, ClassVar, Iterable, Mapping, Optional
 
 from django.conf import settings
 from django.db import models
@@ -68,7 +68,7 @@ class UserEmail(ControlOutboxProducingModel):
 
     __repr__ = sane_repr("user_id", "email")
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         regions = find_regions_for_user(self.user_id)
         return [
             outbox
@@ -120,7 +120,7 @@ class UserEmail(ControlOutboxProducingModel):
 
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> Optional[tuple[int, ImportKind]]:
         # The `UserEmail` was automatically generated `post_save()`, but only if it was the user's
         # primary email. We just need to update it with the data being imported. Note that if we've
         # reached this point, we cannot be merging into an existing user, and are instead modifying

@@ -1,5 +1,3 @@
-from typing import List
-
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
@@ -89,7 +87,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "ListOrgTeamResponse", List[TeamSerializerResponse]
+                "ListOrgTeamResponse", list[TeamSerializerResponse]
             ),
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

@@ -1,5 +1,3 @@
-from typing import List
-
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -120,7 +118,7 @@ class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
 
 
 class SCIMListBaseResponse(TypedDict):
-    schemas: List[str]
+    schemas: list[str]
     totalResults: int
     startIndex: int
     itemsPerPage: int

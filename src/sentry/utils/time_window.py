@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -8,14 +8,14 @@ class TimeWindow:
     start: float
     end: float
 
-    def as_tuple(self) -> Tuple[float, float]:
+    def as_tuple(self) -> tuple[float, float]:
         return (self.start, self.end)
 
     @property
     def duration_ms(self) -> float:
         return (self.end - self.start) * 1000
 
-    def __add__(self, other: "TimeWindow") -> Tuple[Optional["TimeWindow"], "TimeWindow"]:
+    def __add__(self, other: "TimeWindow") -> tuple[Optional["TimeWindow"], "TimeWindow"]:
         if self.start < other.start:
             if self.end < other.start:
                 return self, other
@@ -25,7 +25,7 @@ class TimeWindow:
                 return other, self
             return None, TimeWindow(start=other.start, end=max(self.end, other.end))
 
-    def __sub__(self, other: "TimeWindow") -> Tuple[Optional["TimeWindow"], "TimeWindow"]:
+    def __sub__(self, other: "TimeWindow") -> tuple[Optional["TimeWindow"], "TimeWindow"]:
         if self.start < other.start:
             if self.end > other.end:
                 return (
@@ -39,13 +39,13 @@ class TimeWindow:
             return None, TimeWindow(start=max(self.start, other.end), end=self.end)
 
 
-def union_time_windows(time_windows: List[TimeWindow]) -> List[TimeWindow]:
+def union_time_windows(time_windows: list[TimeWindow]) -> list[TimeWindow]:
     if not time_windows:
         return []
 
     previous, *time_windows = sorted(time_windows, key=lambda window: window.as_tuple())
 
-    unioned: List[TimeWindow] = []
+    unioned: list[TimeWindow] = []
 
     for current in time_windows:
         window, previous = previous + current
@@ -57,11 +57,11 @@ def union_time_windows(time_windows: List[TimeWindow]) -> List[TimeWindow]:
     return unioned
 
 
-def remove_time_windows(source: TimeWindow, time_windows: List[TimeWindow]) -> List[TimeWindow]:
+def remove_time_windows(source: TimeWindow, time_windows: list[TimeWindow]) -> list[TimeWindow]:
     if not time_windows:
         return [source]
 
-    removed: List[TimeWindow] = []
+    removed: list[TimeWindow] = []
 
     for current in time_windows:
         window, source = source - current

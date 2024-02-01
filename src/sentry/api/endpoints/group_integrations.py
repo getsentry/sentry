@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, List, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -26,7 +26,7 @@ class IntegrationIssueSerializer(IntegrationSerializer):
         self.group = group
 
     def get_attrs(
-        self, item_list: List[RpcIntegration], user: User, **kwargs: Any
+        self, item_list: list[RpcIntegration], user: User, **kwargs: Any
     ) -> MutableMapping[RpcIntegration, MutableMapping[str, Any]]:
         external_issues = ExternalIssue.objects.filter(
             id__in=GroupLink.objects.get_group_issues(self.group).values_list(

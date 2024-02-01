@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Tuple
+from typing import Any
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -33,7 +33,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         external_team_id: int,
         *args: Any,
         **kwargs: Any,
-    ) -> Tuple[Any, Any]:
+    ) -> tuple[Any, Any]:
         args, kwargs = super().convert_args(request, organization_slug, team_slug, *args, **kwargs)
         kwargs["external_team"] = self.get_external_actor_or_404(
             external_team_id, kwargs["team"].organization

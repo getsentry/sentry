@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from typing import Any, Sequence, Tuple, TypedDict
+from typing import Any, Sequence, TypedDict
 
 import requests
 from rest_framework import status
@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 
-LineCoverage = Sequence[Tuple[int, int]]
+LineCoverage = Sequence[tuple[int, int]]
 CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
 )
@@ -38,7 +38,7 @@ def codecov_enabled(organization: Organization) -> bool:
     return bool(organization.flags.codecov_access)
 
 
-def has_codecov_integration(organization: Organization) -> Tuple[bool, str | None]:
+def has_codecov_integration(organization: Organization) -> tuple[bool, str | None]:
     """
     Checks if the organization has a Codecov integration.
 
@@ -85,7 +85,7 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
     )
 
 
-def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage | None, str | None]:
+def get_codecov_data(repo: str, service: str, path: str) -> tuple[LineCoverage | None, str | None]:
     codecov_token = options.get("codecov.client-secret")
     if not codecov_token:
         return None, None

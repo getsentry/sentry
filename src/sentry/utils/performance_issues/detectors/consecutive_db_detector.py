@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import timedelta
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from django.utils.translation import gettext_lazy as _
 
@@ -174,7 +174,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         return (end - start) * 1000
 
-    def _get_parallelizable_spans(self) -> List[str]:
+    def _get_parallelizable_spans(self) -> list[str]:
         if not self.independent_db_spans or len(self.independent_db_spans) < 1:
             return [""]
 

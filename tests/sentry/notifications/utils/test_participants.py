@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections
 from datetime import datetime, timedelta
-from typing import Iterable, Mapping, Optional, Sequence, Set, Union
+from typing import Iterable, Mapping, Optional, Sequence, Union
 
 import pytest
 from django.utils import timezone
@@ -65,7 +65,7 @@ STACKTRACE = {
 class _ParticipantsTest(TestCase):
     def assert_recipients_are(
         self,
-        actual: Mapping[ExternalProviders, Set[RpcActor]],
+        actual: Mapping[ExternalProviders, set[RpcActor]],
         *,
         email: Iterable[int] = (),
         slack: Iterable[int] = (),
@@ -87,7 +87,7 @@ class _ParticipantsTest(TestCase):
 class GetSendToMemberTest(_ParticipantsTest):
     def get_send_to_member(
         self, project: Optional[Project] = None, user_id: Optional[int] = None
-    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
+    ) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             project=project or self.project,
             target_type=ActionTargetType.MEMBER,
@@ -164,7 +164,7 @@ class GetSendToTeamTest(_ParticipantsTest):
 
     def get_send_to_team(
         self, project: Optional[Project] = None, team_id: Optional[int] = None
-    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
+    ) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             project=project or self.project,
             target_type=ActionTargetType.TEAM,
@@ -259,7 +259,7 @@ class GetSendToTeamTest(_ParticipantsTest):
 
 @region_silo_test
 class GetSendToOwnersTest(_ParticipantsTest):
-    def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, Set[RpcActor]]:
+    def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             self.project,
             target_type=ActionTargetType.ISSUE_OWNERS,
@@ -899,7 +899,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         event: Event,
         project: Project,
         fallthrough_choice: Optional[FallthroughChoiceType] = None,
-    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
+    ) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             project,
             target_type=ActionTargetType.ISSUE_OWNERS,

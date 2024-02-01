@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, ClassVar, Collection, FrozenSet, Mapping, Optional, Sequence
+from typing import Any, ClassVar, Collection, Mapping, Optional, Sequence
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -440,7 +440,7 @@ class Organization(
         except NoReverseMatch:
             return reverse(Organization.get_url_viewname())
 
-    def get_scopes(self, role: Role) -> FrozenSet[str]:
+    def get_scopes(self, role: Role) -> frozenset[str]:
         """
         Note that scopes for team-roles are filtered through this method too.
         """

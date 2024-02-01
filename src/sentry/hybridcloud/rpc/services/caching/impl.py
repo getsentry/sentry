@@ -1,4 +1,4 @@
-from typing import Dict, Generator, List, Mapping, Type, TypeVar, Union
+from typing import Generator, Mapping, TypeVar, Union
 
 from django.core.cache import cache
 
@@ -30,7 +30,7 @@ def _versioned_key(key: str, version: int) -> str:
     return f"{key}.{version}"
 
 
-def _version_model(mode: SiloMode) -> Type[CacheVersionBase]:
+def _version_model(mode: SiloMode) -> type[CacheVersionBase]:
     if mode == SiloMode.REGION:
         return RegionCacheVersion
     raise ValueError
@@ -43,7 +43,7 @@ def _delete_cache(key: str, mode: SiloMode) -> Generator[None, None, int]:
 
 
 def _get_cache(
-    keys: List[str], mode: SiloMode
+    keys: list[str], mode: SiloMode
 ) -> Generator[None, None, Mapping[str, Union[str, int]]]:
     versions = {cv.key: cv.version for cv in _version_model(mode).objects.filter(key__in=keys)}
     yield
@@ -51,7 +51,7 @@ def _get_cache(
     versioned_keys = [_versioned_key(key, versions.get(key, 0)) for key in keys]
     existing = cache.get_many(versioned_keys)
     yield
-    result: Dict[str, Union[str, int]] = {}
+    result: dict[str, Union[str, int]] = {}
     for k, versioned_key in zip(keys, versioned_keys):
         if versioned_key in existing:
             result[k] = existing[versioned_key]

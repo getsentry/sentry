@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 
 @dataclass(frozen=True)
 class SpanGroupingResults:
     id: str
-    results: Dict[str, str]
+    results: dict[str, str]
 
     @classmethod
     def from_event(cls, event_data: Any) -> Optional["SpanGroupingResults"]:
@@ -13,7 +13,7 @@ class SpanGroupingResults:
         if grouping_config is None or grouping_config.get("id") is None:
             return None
 
-        results: Dict[str, str] = {}
+        results: dict[str, str] = {}
 
         # check the spans in the transaction
         for span in event_data.get("spans", []):

@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, MutableMapping, cast
+from typing import Any, MutableMapping, cast
 
 import requests
 import sentry_sdk
@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
     default_retry_delay=5,
 )
 def convert_to_async_slack_response(
-    region_names: List[str],
-    payload: Dict[str, Any],
+    region_names: list[str],
+    payload: dict[str, Any],
     response_url: str,
 ):
     webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
@@ -97,8 +97,8 @@ def convert_to_async_slack_response(
     default_retry_delay=5,
 )
 def convert_to_async_discord_response(
-    region_names: List[str],
-    payload: Dict[str, Any],
+    region_names: list[str],
+    payload: dict[str, Any],
     response_url: str,
 ):
     """

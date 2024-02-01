@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import List, Optional
+from typing import Optional
 
 from pydantic.fields import Field
 from typing_extensions import TypedDict
@@ -19,7 +19,7 @@ def _project_status_visible() -> int:
 
 
 class ProjectFilterArgs(TypedDict, total=False):
-    project_ids: List[int]
+    project_ids: list[int]
 
 
 class RpcProject(RpcModel, HasOption):

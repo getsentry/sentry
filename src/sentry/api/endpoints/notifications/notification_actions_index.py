@@ -1,5 +1,4 @@
 import logging
-from typing import Dict
 
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
@@ -99,7 +98,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         queryset = queryset.filter(project_query).distinct()
         trigger_type_query = request.GET.getlist("triggerType")
         if trigger_type_query:
-            triggers: Dict[str, int] = {v: k for k, v in NotificationAction.get_trigger_types()}
+            triggers: dict[str, int] = {v: k for k, v in NotificationAction.get_trigger_types()}
             trigger_types = map(lambda t: triggers.get(t), trigger_type_query)
             queryset = queryset.filter(trigger_type__in=trigger_types)
         logger.info(

@@ -1,5 +1,5 @@
 import re
-from typing import Generator, List, Optional, Sequence, Tuple
+from typing import Generator, Optional, Sequence
 
 from parsimonious.exceptions import IncompleteParseError
 from snuba_sdk import Timeseries
@@ -23,7 +23,7 @@ from sentry.sentry_metrics.querying.visitors import (
 class VisitableQueryExpression:
     def __init__(self, query: QueryExpression):
         self._query = query
-        self._visitors: List[QueryExpressionVisitor[QueryExpression]] = []
+        self._visitors: list[QueryExpressionVisitor[QueryExpression]] = []
 
     def add_visitor(
         self, visitor: QueryExpressionVisitor[QueryExpression]
@@ -145,7 +145,7 @@ class QueryParser:
 
     def generate_queries(
         self, environments: Sequence[Environment]
-    ) -> Generator[Tuple[str, Timeseries], None, None]:
+    ) -> Generator[tuple[str, Timeseries], None, None]:
         """
         Generates multiple timeseries queries given a base query.
         """

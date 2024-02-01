@@ -5,13 +5,10 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    List,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
-    Set,
-    Tuple,
     Union,
     cast,
 )
@@ -81,8 +78,8 @@ if TYPE_CHECKING:
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
 # Enabling feature-flagging frontend components without an extra API call/endpoint to verify
 # the OrganizationOption.
-OptionFeature = Tuple[str, Callable[[OrganizationOption], bool]]
-ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
+OptionFeature = tuple[str, Callable[[OrganizationOption], bool]]
+ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
     "sentry:project-rate-limit": [
         ("legacy-rate-limits", lambda opt: True),
     ],
@@ -411,8 +408,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     isDefault: bool
     defaultRole: bool
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
-    orgRoleList: List[OrganizationRoleSerializerResponse]
-    teamRoleList: List[TeamRoleSerializerResponse]
+    orgRoleList: list[OrganizationRoleSerializerResponse]
+    teamRoleList: list[TeamRoleSerializerResponse]
     openMembership: bool
     allowSharedIssues: bool
     enhancedPrivacy: bool
@@ -638,7 +635,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
 
-        collapse_projects: Set[str] = set()
+        collapse_projects: set[str] = set()
         if killswitch_matches_context(
             "api.organization.disable-last-deploys",
             {

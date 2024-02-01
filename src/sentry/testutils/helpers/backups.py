@@ -6,7 +6,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from functools import cached_property, cmp_to_key
 from pathlib import Path
-from typing import Tuple
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -155,7 +154,7 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
     return output
 
 
-def generate_rsa_key_pair() -> Tuple[bytes, bytes]:
+def generate_rsa_key_pair() -> tuple[bytes, bytes]:
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )

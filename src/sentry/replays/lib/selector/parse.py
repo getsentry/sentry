@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from cssselect import Selector, SelectorSyntaxError
 from cssselect import parse as cssselect_parse
@@ -12,7 +12,7 @@ class QueryType:
     def __init__(self):
         self.alt: Optional[str] = None
         self.aria_label: Optional[str] = None
-        self.classes: List[str] = []
+        self.classes: list[str] = []
         self.id: Optional[str] = None
         self.component_name: Optional[str] = None
         self.role: Optional[str] = None
@@ -21,14 +21,14 @@ class QueryType:
         self.title: Optional[str] = None
 
 
-def parse_selector(css_selector: str) -> List[QueryType]:
+def parse_selector(css_selector: str) -> list[QueryType]:
     try:
-        selectors: List[Selector] = cssselect_parse(css_selector)
+        selectors: list[Selector] = cssselect_parse(css_selector)
     except SelectorSyntaxError:
         # Invalid selector syntax. No query data can be extracted.
         return []
 
-    queries: List[QueryType] = []
+    queries: list[QueryType] = []
     for selector in selectors:
         if selector.pseudo_element is not None:
             raise ParseError("Pseudo-elements are not supported.")

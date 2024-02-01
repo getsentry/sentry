@@ -9,15 +9,12 @@ from typing import (
     Any,
     Callable,
     Collection,
-    Dict,
     Generator,
     Generic,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
-    Tuple,
-    Type,
 )
 
 from django.conf import settings
@@ -52,7 +49,7 @@ class ModelManagerTriggerCondition(IntEnum):
     DELETE = auto()
 
 
-ModelManagerTriggerAction = Callable[[Type[Model]], None]
+ModelManagerTriggerAction = Callable[[type[Model]], None]
 
 
 class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  # type: ignore
@@ -73,8 +70,8 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         self._cache_version: Optional[str] = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
 
-        self._triggers: Dict[
-            object, Tuple[ModelManagerTriggerCondition, ModelManagerTriggerAction]
+        self._triggers: dict[
+            object, tuple[ModelManagerTriggerCondition, ModelManagerTriggerAction]
         ] = {}
         super().__init__(*args, **kwargs)
 
@@ -453,7 +450,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
         return final_results
 
-    def create_or_update(self, **kwargs: Any) -> Tuple[Any, bool]:
+    def create_or_update(self, **kwargs: Any) -> tuple[Any, bool]:
         return create_or_update(self.model, **kwargs)
 
     def uncache_object(self, instance_id: int) -> None:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Optional
 
 from django.db import router, transaction
 
@@ -39,8 +39,8 @@ class DatabaseBackedProjectService(ProjectService):
         self,
         *,
         region_name: str,
-        organization_ids: List[int],
-    ) -> List[RpcProject]:
+        organization_ids: list[int],
+    ) -> list[RpcProject]:
         projects = Project.objects.filter(
             organization__in=organization_ids,
             status=ObjectStatus.ACTIVE,
@@ -74,7 +74,7 @@ class DatabaseBackedProjectService(ProjectService):
         filter: ProjectFilterArgs,
         as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
-    ) -> List[OpaqueSerializedResponse]:
+    ) -> list[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
 
         if as_user is None and auth_context:

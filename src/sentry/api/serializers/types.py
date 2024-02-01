@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 from typing_extensions import TypedDict
 
@@ -32,6 +32,6 @@ class OrganizationSerializerResponse(TypedDict):
     require2FA: bool
     requireEmailVerification: bool
     avatar: SerializedAvatarFields
-    features: List[str]
+    features: list[str]
     links: _Links
     hasAuthProvider: bool

@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import sentry_sdk
 from django.db import router, transaction
@@ -238,7 +238,7 @@ def _get_group_filters(group: Group):
 
 
 def _add_hash(
-    trees: List[Dict[str, Any]],
+    trees: list[dict[str, Any]],
     group: Group,
     user,
     parent_hash: Optional[str],

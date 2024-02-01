@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import namedtuple
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, Union
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -116,7 +116,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return cls(data["type"], data["pattern"])
 
     @staticmethod
-    def munge_if_needed(data: PathSearchable) -> Tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
+    def munge_if_needed(data: PathSearchable) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
         sdk_name = get_sdk_name(data)
@@ -230,17 +230,17 @@ class OwnershipVisitor(NodeVisitor):
     def visit_ownership(self, node: Node, children: Sequence[Optional[Rule]]) -> Sequence[Rule]:
         return [_f for _f in children if _f]
 
-    def visit_line(self, node: Node, children: Tuple[Node, Sequence[Optional[Rule]], Any]) -> Any:
+    def visit_line(self, node: Node, children: tuple[Node, Sequence[Optional[Rule]], Any]) -> Any:
         _, line, _ = children
         comment_or_rule_or_empty = line[0]
         if comment_or_rule_or_empty:
             return comment_or_rule_or_empty
 
-    def visit_rule(self, node: Node, children: Tuple[Node, Matcher, Sequence[Owner]]) -> Rule:
+    def visit_rule(self, node: Node, children: tuple[Node, Matcher, Sequence[Owner]]) -> Rule:
         _, matcher, owners = children
         return Rule(matcher, owners)
 
-    def visit_matcher(self, node: Node, children: Tuple[Node, str, str]) -> Matcher:
+    def visit_matcher(self, node: Node, children: tuple[Node, str, str]) -> Matcher:
         _, tag, identifier = children
         return Matcher(tag, identifier)
 
@@ -251,11 +251,11 @@ class OwnershipVisitor(NodeVisitor):
         type, _ = tag
         return str(type[0].text)
 
-    def visit_owners(self, node: Node, children: Tuple[Any, Sequence[Owner]]) -> Sequence[Owner]:
+    def visit_owners(self, node: Node, children: tuple[Any, Sequence[Owner]]) -> Sequence[Owner]:
         _, owners = children
         return owners
 
-    def visit_owner(self, node: Node, children: Tuple[Node, bool, str]) -> Owner:
+    def visit_owner(self, node: Node, children: tuple[Node, bool, str]) -> Owner:
         _, is_team, pattern = children
         type = "team" if is_team else "user"
         # User emails are case insensitive, so coerce them
@@ -313,7 +313,7 @@ def convert_schema_to_rules_text(schema: Mapping[str, Any]) -> str:
     return text
 
 
-def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
+def parse_code_owners(data: str) -> tuple[list[str], list[str], list[str]]:
     """Parse a CODEOWNERS text and returns the list of team names, list of usernames"""
     teams = []
     usernames = []
@@ -340,7 +340,7 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
     return teams, usernames, emails
 
 
-def get_codeowners_path_and_owners(rule: str) -> Tuple[str, Sequence[str]]:
+def get_codeowners_path_and_owners(rule: str) -> tuple[str, Sequence[str]]:
     # Regex does a negative lookbehind for a backslash. Matches on whitespace without a preceding backslash.
     pattern = re.compile(r"(?<!\\)\s")
     path, *code_owners = (i for i in pattern.split(rule.strip()) if i)
@@ -477,7 +477,7 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
 
 
 def remove_deleted_owners_from_schema(
-    rules: List[Dict[str, Any]], owners_id: Dict[str, int]
+    rules: list[dict[str, Any]], owners_id: dict[str, int]
 ) -> None:
     valid_rules = rules
 
@@ -495,7 +495,7 @@ def remove_deleted_owners_from_schema(
     rules = valid_rules
 
 
-def add_owner_ids_to_schema(rules: List[Dict[str, Any]], owners_id: Dict[str, int]) -> None:
+def add_owner_ids_to_schema(rules: list[dict[str, Any]], owners_id: dict[str, int]) -> None:
     for rule in rules:
         for rule_owner in rule["owners"]:
             if rule_owner["identifier"] in owners_id.keys():

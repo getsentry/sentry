@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from datetime import datetime, timedelta
-from typing import Collection, Iterable, Mapping, MutableMapping, Optional, Sequence, Set
+from typing import Collection, Iterable, Mapping, MutableMapping, Optional, Sequence
 
 from django.conf import settings
 from django.core.cache import caches
@@ -211,7 +211,7 @@ class CachingIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         cache_keys = UseCaseKeyCollection(strings)
         metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)

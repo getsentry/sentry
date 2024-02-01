@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Iterator, List, Mapping, Optional, Protocol, Tuple
+from typing import Any, Iterator, Mapping, Optional, Protocol
 
 import sentry_sdk
 from snuba_sdk import (
@@ -220,7 +220,7 @@ class GetActiveOrgs:
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
         self.offset = 0
-        self.last_result: List[Tuple[int, int]] = []
+        self.last_result: list[tuple[int, int]] = []
         self.has_more_results = True
         self.max_orgs = max_orgs
         self.max_projects = max_projects
@@ -231,7 +231,7 @@ class GetActiveOrgs:
     def __iter__(self):
         return self
 
-    def __next__(self) -> List[int]:
+    def __next__(self) -> list[int]:
         self.log_state.num_iterations += 1
         if self._enough_results_cached():
             # we have enough in the cache to satisfy the current iteration
@@ -377,7 +377,7 @@ class GetActiveOrgsVolumes:
         time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep=True,
-        orgs: Optional[List[int]] = None,
+        orgs: Optional[list[int]] = None,
     ):
         self.include_keep = include_keep
         self.orgs = orgs
@@ -404,7 +404,7 @@ class GetActiveOrgsVolumes:
             self.keep_count_column = None
 
         self.offset = 0
-        self.last_result: List[OrganizationDataVolume] = []
+        self.last_result: list[OrganizationDataVolume] = []
         self.has_more_results = True
         self.max_orgs = max_orgs
         self.log_state = DynamicSamplingLogState()
@@ -414,7 +414,7 @@ class GetActiveOrgsVolumes:
     def __iter__(self):
         return self
 
-    def __next__(self) -> List[OrganizationDataVolume]:
+    def __next__(self) -> list[OrganizationDataVolume]:
         self.log_state.num_iterations += 1
         if self._enough_results_cached():
             # we have enough in the cache to satisfy the current iteration
@@ -502,7 +502,7 @@ class GetActiveOrgsVolumes:
         """
         return len(self.last_result) >= self.max_orgs
 
-    def _get_from_cache(self) -> List[OrganizationDataVolume]:
+    def _get_from_cache(self) -> list[OrganizationDataVolume]:
         """
         Returns a batch from cache and removes the elements returned from the cache
         """
@@ -517,7 +517,7 @@ class GetActiveOrgsVolumes:
 
 
 def fetch_orgs_with_total_root_transactions_count(
-    org_ids: List[int], window_size: int
+    org_ids: list[int], window_size: int
 ) -> Mapping[OrganizationId, int]:
     """
     Fetches for each org the total root transaction count.

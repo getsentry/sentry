@@ -1,6 +1,5 @@
 import re
 from abc import ABC, abstractmethod
-from typing import Set
 
 
 class PathReplacer(ABC):
@@ -36,7 +35,7 @@ class KeepAfterPatternMatchPathReplacer(PathReplacer):
 
     def __init__(
         self,
-        patterns: Set[str],
+        patterns: set[str],
         fallback_path: str,
     ):
         self.patterns = {re.compile(element, re.IGNORECASE) for element in patterns}

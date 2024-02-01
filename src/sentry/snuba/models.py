@@ -1,6 +1,6 @@
 from datetime import timedelta
 from enum import Enum
-from typing import ClassVar, Optional, Tuple
+from typing import ClassVar, Optional
 
 from django.db import models
 from django.utils import timezone
@@ -123,7 +123,7 @@ class QuerySubscription(Model):
     # in an identical duplicate of the `QuerySubscription` model with a unique `subscription_id`.
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> Optional[tuple[int, ImportKind]]:
         # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
         # source module in such a way that this is no longer an issue.
         from sentry.snuba.subscriptions import create_snuba_subscription

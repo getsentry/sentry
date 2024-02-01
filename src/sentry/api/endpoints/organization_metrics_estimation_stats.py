@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from types import ModuleType
-from typing import Dict, List, Optional, Sequence, TypedDict, Union, cast
+from typing import Optional, Sequence, TypedDict, Union, cast
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError
@@ -27,7 +27,7 @@ class CountResult(TypedDict):
 
 # Type returned by get_events_stats_data is actually a [int, List[CountResult]] where the first
 # param is the timestamp
-MetricVolumeRow = List[Union[int, List[CountResult]]]
+MetricVolumeRow = list[Union[int, list[CountResult]]]
 
 
 class StatsQualityEstimation(Enum):
@@ -119,7 +119,7 @@ class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBas
         return Response(discover_stats, status=200)
 
 
-def _count_non_zero_intervals(stats: List[MetricVolumeRow]) -> int:
+def _count_non_zero_intervals(stats: list[MetricVolumeRow]) -> int:
     """
     Counts the number of intervals with non-zero values
     """
@@ -130,7 +130,7 @@ def _count_non_zero_intervals(stats: List[MetricVolumeRow]) -> int:
     return non_zero_intervals
 
 
-def estimate_stats_quality(stats: List[MetricVolumeRow]) -> StatsQualityEstimation:
+def estimate_stats_quality(stats: list[MetricVolumeRow]) -> StatsQualityEstimation:
     """
     Estimates the quality of the stats estimation based on the number of intervals with no data
     """
@@ -160,7 +160,7 @@ def get_stats_generator(use_discover: bool, remove_on_demand: bool):
     def get_discover_stats(
         query_columns: Sequence[str],
         query: str,
-        params: Dict[str, str],
+        params: dict[str, str],
         rollup: int,
         zerofill_results: bool,  # not used but required by get_event_stats_data
         comparison_delta: Optional[datetime],  # not used but required by get_event_stats_data
@@ -188,10 +188,10 @@ def get_stats_generator(use_discover: bool, remove_on_demand: bool):
 
 
 def estimate_volume(
-    indexed_data: List[MetricVolumeRow],
-    base_index: List[MetricVolumeRow],
-    base_metrics: List[MetricVolumeRow],
-) -> List[MetricVolumeRow]:
+    indexed_data: list[MetricVolumeRow],
+    base_index: list[MetricVolumeRow],
+    base_metrics: list[MetricVolumeRow],
+) -> list[MetricVolumeRow]:
     """
     Estimates the volume of an on-demand metric by scaling the counts of the indexed metric with an estimated
     sampling rate deduced from the factor of base_indexed and base_metrics time series.
@@ -231,17 +231,17 @@ def estimate_volume(
 
 
 def _get_value(elm: MetricVolumeRow) -> float:
-    ret_val = cast(List[CountResult], elm[1])[0].get("count")
+    ret_val = cast(list[CountResult], elm[1])[0].get("count")
     if ret_val is None:
         return 0.0
     return ret_val
 
 
 def _set_value(elm: MetricVolumeRow, value: float) -> None:
-    cast(List[CountResult], elm[1])[0]["count"] = value
+    cast(list[CountResult], elm[1])[0]["count"] = value
 
 
-def _is_data_aligned(left: List[MetricVolumeRow], right: List[MetricVolumeRow]) -> bool:
+def _is_data_aligned(left: list[MetricVolumeRow], right: list[MetricVolumeRow]) -> bool:
     """
     Checks if the two timeseries are aligned (represent the same time intervals).
 

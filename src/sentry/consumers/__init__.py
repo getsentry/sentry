@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import List, Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -52,14 +52,14 @@ def multiprocessing_options(
     ]
 
 
-def ingest_replay_recordings_options() -> List[click.Option]:
+def ingest_replay_recordings_options() -> list[click.Option]:
     """Return a list of ingest-replay-recordings options."""
     options = multiprocessing_options(default_max_batch_size=10)
     options.append(click.Option(["--threads", "num_threads"], type=int, default=4))
     return options
 
 
-def ingest_replay_recordings_buffered_options() -> List[click.Option]:
+def ingest_replay_recordings_buffered_options() -> list[click.Option]:
     """Return a list of ingest-replay-recordings-buffered options."""
     options = [
         click.Option(
@@ -81,7 +81,7 @@ def ingest_replay_recordings_buffered_options() -> List[click.Option]:
     return options
 
 
-def ingest_monitors_options() -> List[click.Option]:
+def ingest_monitors_options() -> list[click.Option]:
     """Return a list of ingest-monitors options."""
     options = [
         click.Option(

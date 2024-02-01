@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Tuple
+from typing import Any, Optional
 
 import requests
 from django.conf import settings
@@ -19,14 +19,14 @@ class WebhookPresenter(OptionsPresenter):
 
     def __init__(self, source: str) -> None:
         self.source = source
-        self.drifted_options: List[Tuple[str, Any]] = []
-        self.channel_updated_options: List[str] = []
-        self.updated_options: List[Tuple[str, Any, Any]] = []
-        self.set_options: List[Tuple[str, Any]] = []
-        self.unset_options: List[str] = []
-        self.not_writable_options: List[Tuple[str, str]] = []
-        self.unregistered_options: List[str] = []
-        self.invalid_type_options: List[Tuple[str, type, type]] = []
+        self.drifted_options: list[tuple[str, Any]] = []
+        self.channel_updated_options: list[str] = []
+        self.updated_options: list[tuple[str, Any, Any]] = []
+        self.set_options: list[tuple[str, Any]] = []
+        self.unset_options: list[str] = []
+        self.not_writable_options: list[tuple[str, str]] = []
+        self.unregistered_options: list[str] = []
+        self.invalid_type_options: list[tuple[str, type, type]] = []
 
     @staticmethod
     def is_webhook_enabled():

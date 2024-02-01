@@ -1,5 +1,3 @@
-from typing import List
-
 from django.db import router, transaction
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
@@ -91,7 +89,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
         ],
         responses={
-            200: inline_sentry_response_serializer("MonitorList", List[MonitorSerializerResponse]),
+            200: inline_sentry_response_serializer("MonitorList", list[MonitorSerializerResponse]),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

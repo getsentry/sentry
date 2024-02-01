@@ -9,17 +9,17 @@ features and more performant.
 
 import copy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Mapping, Optional, Sequence, Union
 
 import click
 
 from sentry import options
 from sentry.utils import metrics
 
-Condition = Dict[str, Optional[str]]
-KillswitchConfig = List[Condition]
-LegacyKillswitchConfig = Union[KillswitchConfig, List[int]]
-Context = Dict[str, Any]
+Condition = dict[str, Optional[str]]
+KillswitchConfig = list[Condition]
+LegacyKillswitchConfig = Union[KillswitchConfig, list[int]]
+Context = dict[str, Any]
 
 
 def _update_project_configs(
@@ -75,7 +75,7 @@ class KillswitchCallback:
 @dataclass
 class KillswitchInfo:
     description: str
-    fields: Dict[str, str]
+    fields: dict[str, str]
     on_change: Optional[KillswitchCallback] = None
 
 

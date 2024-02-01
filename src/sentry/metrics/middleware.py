@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from threading import local
-from typing import Generator, List, Optional, Union
+from typing import Generator, Optional, Union
 
 from django.conf import settings
 
@@ -47,10 +47,10 @@ def _filter_tags(key: str, tags: MutableTags) -> MutableTags:
 
 
 _THREAD_LOCAL_TAGS = local()
-_GLOBAL_TAGS: List[Tags] = []
+_GLOBAL_TAGS: list[Tags] = []
 
 
-def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> List[Tags]:
+def _add_global_tags(_all_threads: bool = False, **tags: TagValue) -> list[Tags]:
     if _all_threads:
         stack = _GLOBAL_TAGS
     else:

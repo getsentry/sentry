@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import zipfile
 from enum import Enum
-from typing import IO, Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import IO, Any, Callable, Iterable, Mapping, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -38,7 +38,7 @@ class SourceFileType(Enum):
     INDEXED_RAM_BUNDLE = 4
 
     @classmethod
-    def choices(cls) -> List[Tuple[int, str]]:
+    def choices(cls) -> list[tuple[int, str]]:
         return [(key.value, key.name) for key in cls]
 
     @classmethod
@@ -58,7 +58,7 @@ class ArtifactBundleIndexingState(Enum):
     WAS_INDEXED = 1
 
     @classmethod
-    def choices(cls) -> List[Tuple[int, str]]:
+    def choices(cls) -> list[tuple[int, str]]:
         return [(key.value, key.name) for key in cls]
 
 
@@ -91,7 +91,7 @@ class ArtifactBundle(Model):
     @classmethod
     def get_release_associations(
         cls, organization_id: int, artifact_bundle: ArtifactBundle
-    ) -> List[Mapping[str, str | None]]:
+    ) -> list[Mapping[str, str | None]]:
         # We sort by id, since it's the best (already existing) field to define total order of
         # release associations that is somehow consistent with upload sequence.
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
@@ -380,7 +380,7 @@ class ArtifactBundleArchive:
             # Building the map for url lookup.
             self._entries_by_url[url] = (file_path, info)
 
-    def get_all_urls(self) -> List[str]:
+    def get_all_urls(self) -> list[str]:
         return [url for url in self._entries_by_url.keys()]
 
     def get_all_debug_ids(self) -> Iterable[tuple[str, SourceFileType]]:
@@ -397,25 +397,25 @@ class ArtifactBundleArchive:
 
         return bundle_id
 
-    def get_files(self) -> Dict[str, dict]:
+    def get_files(self) -> dict[str, dict]:
         return self.manifest.get("files", {})
 
-    def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
+    def get_file_by_url(self, url: str) -> tuple[IO, dict]:
         file_path, info = self._entries_by_url[url]
         return self._zip_file.open(file_path), info.get("headers", {})
 
     def get_file_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType
-    ) -> Tuple[IO[bytes], dict]:
+    ) -> tuple[IO[bytes], dict]:
         file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
 
-    def get_file(self, file_path: str) -> Tuple[IO, dict]:
+    def get_file(self, file_path: str) -> tuple[IO, dict]:
         files = self.manifest.get("files", {})
         file_info = files.get(file_path, {})
         return self._zip_file.open(file_path), file_info.get("headers", {})
 
-    def get_files_by(self, block: Callable[[str, dict], bool]) -> Dict[str, dict]:
+    def get_files_by(self, block: Callable[[str, dict], bool]) -> dict[str, dict]:
         files = self.manifest.get("files", {})
         results = {}
 
@@ -425,7 +425,7 @@ class ArtifactBundleArchive:
 
         return results
 
-    def get_files_by_url_or_debug_id(self, query: Optional[str]) -> Dict[str, dict]:
+    def get_files_by_url_or_debug_id(self, query: Optional[str]) -> dict[str, dict]:
         def filter_function(_: str, info: dict) -> bool:
             if query is None:
                 return True

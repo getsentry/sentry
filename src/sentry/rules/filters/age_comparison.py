@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, Sequence, Tuple
+from typing import Any, Sequence
 
 from django import forms
 from django.utils import timezone
@@ -21,7 +21,7 @@ timeranges = {
 }
 
 
-def get_timerange_choices() -> Sequence[Tuple[str, str]]:
+def get_timerange_choices() -> Sequence[tuple[str, str]]:
     return [
         (key, label)
         for key, (label, duration) in sorted(
@@ -80,7 +80,7 @@ class AgeComparisonFilter(EventFilter):
         return self._passes(event.group.first_seen, timezone.now())
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             group = Group.objects.get_from_cache(id=condition_activity.group_id)

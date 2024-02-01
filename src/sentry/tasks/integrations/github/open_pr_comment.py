@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 from django.db.models import Value
 from django.db.models.functions import StrIndex
@@ -92,7 +92,7 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
 
-def format_open_pr_comment(issue_tables: List[str]) -> str:
+def format_open_pr_comment(issue_tables: list[str]) -> str:
     return OPEN_PR_COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
 
 
@@ -104,7 +104,7 @@ def format_open_pr_comment_subtitle(title_length, subtitle):
 
 # for a single file, create a table
 def format_issue_table(
-    diff_filename: str, issues: List[PullRequestIssue], patch_parsers: Dict[str, Any], toggle: bool
+    diff_filename: str, issues: list[PullRequestIssue], patch_parsers: dict[str, Any], toggle: bool
 ) -> str:
     language_parser = patch_parsers.get(diff_filename.split(".")[-1], None)
 
@@ -136,7 +136,7 @@ def format_issue_table(
 
 
 # for a single file, get the contents
-def get_issue_table_contents(issue_list: List[Dict[str, Any]]) -> List[PullRequestIssue]:
+def get_issue_table_contents(issue_list: list[dict[str, Any]]) -> list[PullRequestIssue]:
     group_id_to_info = {}
     for issue in issue_list:
         group_id = issue["group_id"]
@@ -163,7 +163,7 @@ def get_issue_table_contents(issue_list: List[Dict[str, Any]]) -> List[PullReque
 # TODO(cathy): Change the client typing to allow for multiple SCM Integrations
 def safe_for_comment(
     gh_client: GitHubAppsClient, repository: Repository, pull_request: PullRequest
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     logger.info("github.open_pr_comment.check_safe_for_comment")
     try:
         pr_files = gh_client.get_pullrequest_files(
@@ -234,7 +234,7 @@ def safe_for_comment(
     return filtered_pr_files
 
 
-def get_pr_files(pr_files: List[Dict[str, str]]) -> List[PullRequestFile]:
+def get_pr_files(pr_files: list[dict[str, str]]) -> list[PullRequestFile]:
     # new files will not have sentry issues associated with them
     # only fetch Python files
     pullrequest_files = [
@@ -250,7 +250,7 @@ def get_projects_and_filenames_from_source_file(
     org_id: int,
     repo_id: int,
     pr_filename: str,
-) -> Tuple[Set[Project], Set[str]]:
+) -> tuple[set[Project], set[str]]:
     # fetch the code mappings in which the source_root is a substring at the start of pr_filename
     code_mappings = (
         RepositoryProjectPathConfig.objects.filter(
@@ -261,7 +261,7 @@ def get_projects_and_filenames_from_source_file(
         .filter(substring_match=1)
     )
 
-    project_list: Set[Project] = set()
+    project_list: set[Project] = set()
     sentry_filenames = set()
 
     if len(code_mappings):
@@ -274,8 +274,8 @@ def get_projects_and_filenames_from_source_file(
 
 
 def get_top_5_issues_by_count_for_file(
-    projects: List[Project], sentry_filenames: List[str], function_names: List[str]
-) -> List[Dict[str, Any]]:
+    projects: list[Project], sentry_filenames: list[str], function_names: list[str]
+) -> list[dict[str, Any]]:
     """
     Given a list of projects, Github filenames reverse-codemapped into filenames in Sentry,
     and function names representing the list of functions changed in a PR file, return a
@@ -549,8 +549,8 @@ def open_pr_comment_workflow(pr_id: int) -> None:
     comment_body = format_open_pr_comment(issue_tables)
 
     # list all issues in the comment
-    issue_list: List[Dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
-    issue_id_list: List[int] = [issue["group_id"] for issue in issue_list]
+    issue_list: list[dict[str, Any]] = list(itertools.chain.from_iterable(top_issues_per_file))
+    issue_id_list: list[int] = [issue["group_id"] for issue in issue_list]
 
     # pick one language from the list of languages in the PR for analytics
     languages = [

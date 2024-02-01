@@ -4,18 +4,7 @@ import logging
 import uuid
 from datetime import timedelta
 from random import randrange
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-)
+from typing import Any, Callable, Collection, Mapping, MutableMapping, Optional, Sequence
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -77,7 +66,7 @@ class RuleProcessor:
         self.has_escalated = has_escalated
 
         self.grouped_futures: MutableMapping[
-            str, Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]
+            str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
         ] = {}
 
     def get_rules(self) -> Sequence[Rule]:
@@ -91,7 +80,7 @@ class RuleProcessor:
     def bulk_get_rule_status(self, rules: Sequence[Rule]) -> Mapping[int, GroupRuleStatus]:
         keys = [self._build_rule_status_cache_key(rule.id) for rule in rules]
         cache_results: Mapping[str, GroupRuleStatus] = cache.get_many(keys)
-        missing_rule_ids: Set[int] = set()
+        missing_rule_ids: set[int] = set()
         rule_statuses: MutableMapping[int, GroupRuleStatus] = {}
         for key, rule in zip(keys, rules):
             rule_status = cache_results.get(key)
@@ -105,7 +94,7 @@ class RuleProcessor:
             statuses = GroupRuleStatus.objects.filter(
                 group=self.group, rule_id__in=missing_rule_ids
             )
-            to_cache: List[GroupRuleStatus] = list()
+            to_cache: list[GroupRuleStatus] = list()
             for status in statuses:
                 rule_statuses[status.rule_id] = status
                 missing_rule_ids.remove(status.rule_id)
@@ -312,7 +301,7 @@ class RuleProcessor:
 
     def apply(
         self,
-    ) -> Collection[Tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], List[RuleFuture]]]:
+    ) -> Collection[tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]]:
         # we should only apply rules on unresolved issues
         if not self.event.group.is_unresolved():
             return {}.values()

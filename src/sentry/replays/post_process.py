@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections
 from itertools import zip_longest
-from typing import Any, Dict, Generator, Iterable, Iterator, List, MutableMapping, Optional, Union
+from typing import Any, Generator, Iterable, Iterator, MutableMapping, Optional, Union
 
 from drf_spectacular.utils import extend_schema_serializer
 from typing_extensions import TypedDict
@@ -44,18 +44,18 @@ class UserResponseType(TypedDict, total=False):
 class ReplayDetailsResponse(TypedDict, total=False):
     id: str
     project_id: str
-    trace_ids: List[str]
-    error_ids: List[str]
+    trace_ids: list[str]
+    error_ids: list[str]
     environment: Optional[str]
-    tags: Union[Dict[str, List[str]], List]
+    tags: Union[dict[str, list[str]], list]
     user: UserResponseType
     sdk: SDKResponseType
     os: OSResponseType
     browser: BrowserResponseType
     device: DeviceResponseType
     is_archived: Optional[bool]
-    urls: Optional[List[str]]
-    clicks: List[Dict[str, Any]]
+    urls: Optional[list[str]]
+    clicks: list[dict[str, Any]]
     count_dead_clicks: Optional[int]
     count_rage_clicks: Optional[int]
     count_errors: Optional[int]
@@ -67,23 +67,23 @@ class ReplayDetailsResponse(TypedDict, total=False):
     replay_type: str
     count_segments: Optional[int]
     platform: Optional[str]
-    releases: List[str]
+    releases: list[str]
     dist: Optional[str]
-    warning_ids: Optional[List[str]]
-    info_ids: Optional[List[str]]
+    warning_ids: Optional[list[str]]
+    info_ids: Optional[list[str]]
     count_warnings: Optional[int]
     count_infos: Optional[int]
 
 
 def process_raw_response(
-    response: List[Dict[str, Any]], fields: List[str]
-) -> List[ReplayDetailsResponse]:
+    response: list[dict[str, Any]], fields: list[str]
+) -> list[ReplayDetailsResponse]:
     """Process the response further into the expected output."""
     return list(generate_restricted_fieldset(fields, generate_normalized_output(response)))
 
 
 def generate_restricted_fieldset(
-    fields: List[str],
+    fields: list[str],
     response: Generator[ReplayDetailsResponse, None, None],
 ) -> Iterator[ReplayDetailsResponse]:
     """Return only the fields requested by the client."""
@@ -101,7 +101,7 @@ def _strip_dashes(field: str) -> str:
 
 
 def generate_normalized_output(
-    response: List[Dict[str, Any]],
+    response: list[dict[str, Any]],
 ) -> Generator[ReplayDetailsResponse, None, None]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
@@ -184,13 +184,13 @@ def generate_normalized_output(
         yield ret_item
 
 
-def generate_sorted_urls(url_groups: List[tuple[int, List[str]]]) -> Iterator[str]:
+def generate_sorted_urls(url_groups: list[tuple[int, list[str]]]) -> Iterator[str]:
     """Return a flat list of ordered urls."""
     for _, url_group in sorted(url_groups, key=lambda item: item[0]):
         yield from url_group
 
 
-def dict_unique_list(items: Iterable[tuple[str, str]]) -> Dict[str, List[str]]:
+def dict_unique_list(items: Iterable[tuple[str, str]]) -> dict[str, list[str]]:
     """Populate a dictionary with the first key, value pair seen.
 
     There is a potential for duplicate keys to exist in the result set.  When we filter these keys
@@ -256,7 +256,7 @@ CLICK_FIELD_MAP = {
 
 def extract_click_fields(
     item: MutableMapping[str, Any],
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     pops all of the click fields from the item and returns a list of the individual clicks as objects
     """

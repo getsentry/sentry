@@ -1,6 +1,6 @@
 import itertools
 from collections import defaultdict
-from typing import Collection, DefaultDict, Dict, Mapping, Optional, Set
+from typing import Collection, DefaultDict, Mapping, Optional
 
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -25,10 +25,10 @@ class RawSimpleIndexer(StringIndexer):
         self._strings: DefaultDict[
             UseCaseID, DefaultDict[OrgId, DefaultDict[str, Optional[int]]]
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(self._counter.__next__)))
-        self._reverse: Dict[int, str] = {}
+        self._reverse: dict[int, str] = {}
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         db_read_keys = UseCaseKeyCollection(strings)
         db_read_key_results = UseCaseKeyResults()
@@ -78,7 +78,7 @@ class RawSimpleIndexer(StringIndexer):
     ) -> Mapping[int, str]:
         # Performance is not an issue for this indexer, so we can fall back on reverse_resolve
 
-        ret_val: Dict[int, str] = {}
+        ret_val: dict[int, str] = {}
         for ident in ids:
             val = self.reverse_resolve(use_case_id, org_id, ident)
             if val is not None:

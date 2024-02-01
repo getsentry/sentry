@@ -1,5 +1,5 @@
 import logging
-from typing import List, cast
+from typing import cast
 
 from sentry_relay.processing import validate_rule_condition
 
@@ -18,10 +18,10 @@ class CustomRuleBias(Bias):
     Boosts at 100% sample rate all the traces that have a replay_id.
     """
 
-    def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
+    def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
         rules = CustomDynamicSamplingRule.get_project_rules(project)
 
-        ret_val: List[PolymorphicRule] = []
+        ret_val: list[PolymorphicRule] = []
 
         for rule in rules:
             try:

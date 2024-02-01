@@ -1,5 +1,4 @@
 import logging
-from typing import Set
 from urllib.error import HTTPError as UrllibHTTPError
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
@@ -109,7 +108,7 @@ class NotificationPlugin(Plugin):
     def notify_about_activity(self, activity):
         pass
 
-    def get_notification_recipients(self, project, user_option: str) -> Set:
+    def get_notification_recipients(self, project, user_option: str) -> set:
         from sentry.models.options.user_option import UserOption
 
         alert_settings = {

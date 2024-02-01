@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import DefaultDict, Dict
+from typing import DefaultDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ALL_ACCESS_PROJECTS
@@ -11,7 +11,7 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 @register(DiscoverSavedQuery)
 class DiscoverSavedQuerySerializer(Serializer):
     def get_attrs(self, item_list, user):
-        result: DefaultDict[str, Dict] = defaultdict(lambda: {"created_by": {}})
+        result: DefaultDict[str, dict] = defaultdict(lambda: {"created_by": {}})
 
         service_serialized = user_service.serialize_many(
             filter={

@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence
 
 import pytest
 from arroyo import Partition, Topic
@@ -34,7 +34,7 @@ class MockCardinalityLimiter(CardinalityLimiter):
 
     def check_within_quotas(
         self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
-    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
+    ) -> tuple[Timestamp, Sequence[GrantedQuota]]:
         if timestamp is None:
             timestamp = int(time.time())
         else:

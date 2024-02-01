@@ -2,7 +2,7 @@ import re
 from collections import namedtuple
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Optional
 
 from sentry.dynamic_sampling.rules.helpers.time_to_adoptions import Platform
 from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redis_client_for_ds
@@ -71,7 +71,7 @@ class BoostedReleases:
     Class that hides the complexity of extending boosted releases.
     """
 
-    boosted_releases: List[BoostedRelease] = field(default_factory=list)
+    boosted_releases: list[BoostedRelease] = field(default_factory=list)
 
     def add_release(
         self, cache_key: str, id: int, timestamp: float, environment: Optional[str]
@@ -82,7 +82,7 @@ class BoostedReleases:
 
     def to_extended_boosted_releases(
         self, project_id: int
-    ) -> Tuple[List[ExtendedBoostedRelease], List[str]]:
+    ) -> tuple[list[ExtendedBoostedRelease], list[str]]:
         # We get release models in order to have all the information to extend the releases we get from the cache.
         models = self._get_releases_models()
 
@@ -110,10 +110,10 @@ class BoostedReleases:
 
         return extended_boosted_releases, expired_boosted_releases
 
-    def _get_last_release_ids(self) -> List[int]:
+    def _get_last_release_ids(self) -> list[int]:
         return [boosted_release.id for boosted_release in self.boosted_releases]
 
-    def _get_releases_models(self) -> Dict[int, Release]:
+    def _get_releases_models(self) -> dict[int, Release]:
         return {
             release.id: release
             for release in Release.objects.filter(id__in=self._get_last_release_ids())
@@ -160,7 +160,7 @@ class ProjectBoostedReleases:
         # it after a specific timeout.
         self.redis_client.pexpire(cache_key, self.BOOSTED_RELEASES_HASH_EXPIRATION)
 
-    def get_extended_boosted_releases(self) -> List[ExtendedBoostedRelease]:
+    def get_extended_boosted_releases(self) -> list[ExtendedBoostedRelease]:
         """
         Returns a list of boosted releases augmented with additional information such as release version and platform.
         In addition, this function performs the cleanup of expired boosted releases.
@@ -251,7 +251,7 @@ class ProjectBoostedReleases:
     @staticmethod
     def _extract_data_from_cache_key(
         cache_key: str,
-    ) -> Optional[Tuple[int, Optional[str]]]:
+    ) -> Optional[tuple[int, Optional[str]]]:
         """
         Extracts the release id and the environment from the cache key, in order to avoid storing the metadata also
         in the value field.

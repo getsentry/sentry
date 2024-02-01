@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Sequence, Set
+from typing import Any, Optional, Sequence
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -266,7 +266,7 @@ def _set_widget_on_demand_state(
     widget_query: DashboardWidgetQuery,
     specs: Sequence[HashedMetricSpec],
     is_low_cardinality: bool | None,
-    enabled_features: Set[str],
+    enabled_features: set[str],
 ):
     specs_per_version: dict[int, list[HashedMetricSpec]] = {}
     for hash, spec, spec_version in specs:
@@ -294,7 +294,7 @@ def _set_widget_on_demand_state(
 
 
 def _determine_extraction_state(
-    specs: Sequence[HashedMetricSpec], is_low_cardinality: bool | None, enabled_features: Set[str]
+    specs: Sequence[HashedMetricSpec], is_low_cardinality: bool | None, enabled_features: set[str]
 ) -> OnDemandExtractionState:
     if not specs:
         return OnDemandExtractionState.DISABLED_NOT_APPLICABLE

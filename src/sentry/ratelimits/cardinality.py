@@ -1,4 +1,4 @@
-from typing import Mapping, Optional, Sequence, Tuple
+from typing import Mapping, Optional, Sequence
 
 from sentry_redis_tools.cardinality_limiter import CardinalityLimiter as CardinalityLimiterBase
 from sentry_redis_tools.cardinality_limiter import GrantedQuota, Quota
@@ -62,7 +62,7 @@ class RedisCardinalityLimiter(CardinalityLimiter):
 
     def check_within_quotas(
         self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
-    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
+    ) -> tuple[Timestamp, Sequence[GrantedQuota]]:
         return self.impl.check_within_quotas(requests, timestamp)
 
     def use_quotas(

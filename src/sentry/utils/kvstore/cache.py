@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Iterator, Optional, Sequence, Tuple
+from typing import Any, Iterator, Optional, Sequence
 
 from django.conf import settings
 
@@ -79,7 +79,7 @@ class CacheKeyWrapper(KVStorage[str, V]):
     def get(self, key: str) -> Optional[V]:
         return self.storage.get(wrap_key(self.prefix, self.version, key))
 
-    def get_many(self, keys: Sequence[str]) -> Iterator[Tuple[str, V]]:
+    def get_many(self, keys: Sequence[str]) -> Iterator[tuple[str, V]]:
         results = self.storage.get_many([wrap_key(self.prefix, self.version, key) for key in keys])
         for key, value in results:
             yield unwrap_key(self.prefix, self.version, key), value

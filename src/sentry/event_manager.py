@@ -9,12 +9,10 @@ from datetime import datetime, timedelta, timezone
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
-    Tuple,
     TypedDict,
     Union,
     cast,
@@ -1289,7 +1287,7 @@ def get_event_type(data: Mapping[str, Any]) -> EventType:
     return eventtypes.get(data.get("type", "default"))()
 
 
-EventMetadata = Dict[str, Any]
+EventMetadata = dict[str, Any]
 
 
 def materialize_metadata(
@@ -1886,7 +1884,7 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         return PriorityLevel.MEDIUM
 
 
-def _get_severity_score(event: Event) -> Tuple[float, str]:
+def _get_severity_score(event: Event) -> tuple[float, str]:
     # Short circuit the severity value if we know the event is fatal or info/debug
     level = str(event.data.get("level", "error"))
     if LOG_LEVELS_MAP[level] == logging.FATAL:
@@ -2353,7 +2351,7 @@ def _save_grouphash_and_group(
     event: Event,
     new_grouphash: str,
     **group_kwargs: Any,
-) -> Tuple[Group, bool]:
+) -> tuple[Group, bool]:
     group = None
     with transaction.atomic(router.db_for_write(GroupHash)):
         group_hash, created = GroupHash.objects.get_or_create(project=project, hash=new_grouphash)

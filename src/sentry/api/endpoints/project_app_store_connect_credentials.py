@@ -36,7 +36,7 @@ Status checks:
     See :class:`AppStoreConnectCredentialsValidateEndpoint`.
 """
 import logging
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 from uuid import uuid4
 
 import requests
@@ -275,7 +275,7 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
     bundleId = serializers.CharField(min_length=1, required=False)
 
     def validate_appconnectPrivateKey(
-        self, private_key_json: Optional[Union[str, Dict[str, bool]]]
+        self, private_key_json: Optional[Union[str, dict[str, bool]]]
     ) -> Optional[json.JSONData]:
         return validate_secret(private_key_json)
 

@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 from enum import Enum, unique
-from typing import Any, Dict, Literal, Optional, Set, Tuple, Union
+from typing import Any, Literal, Optional, Union
 
 from pydantic import Field, StrictInt, StrictStr
 from typing_extensions import Annotated
@@ -35,7 +35,7 @@ class RpcFilter(RpcModel):
     # strings here.
     #
     # TODO(getsentry/team-ospo#190): Unify with the base filter type.
-    values: Set[Union[StrictStr, StrictInt]]
+    values: set[Union[StrictStr, StrictInt]]
 
     def from_rpc(self) -> Filter:
         model = get_model(NormalizedModelName(self.model_name))
@@ -63,7 +63,7 @@ class RpcPrimaryKeyMap(RpcModel):
     """
 
     # Pydantic duplicates global default models on a per-instance basis, so using `{}` here is safe.
-    mapping: Dict[str, Dict[int, Tuple[int, ImportKind, Optional[str]]]] = {}
+    mapping: dict[str, dict[int, tuple[int, ImportKind, Optional[str]]]] = {}
 
     def from_rpc(self) -> PrimaryKeyMap:
         pk_map = PrimaryKeyMap()
@@ -157,7 +157,7 @@ class RpcImportError(RpcModel, Finding):
     def pretty(self) -> str:
         return f"RpcImportError(\n    kind: {self.get_kind().value},{self._pretty_inner()}\n)"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = dict(self)
         del d["is_err"]
         return d
@@ -245,7 +245,7 @@ class RpcExportError(RpcModel, Finding):
     def pretty(self) -> str:
         return f"RpcExportError(\n    kind: {self.get_kind().value},{self._pretty_inner()}\n)"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = dict(self)
         del d["is_err"]
         return d

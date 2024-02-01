@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 from datetime import datetime
 from itertools import chain
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Optional, Sequence
 
 import sentry_sdk
 from rest_framework import serializers
@@ -34,12 +34,12 @@ from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
 @dataclasses.dataclass(frozen=True)
 class SpanPerformanceColumn:
-    suspect_op_group_columns: List[str]
-    suspect_op_group_sort: List[str]
-    suspect_example_functions: List[str]
+    suspect_op_group_columns: list[str]
+    suspect_op_group_sort: list[str]
+    suspect_example_functions: list[str]
 
 
-SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
+SPAN_PERFORMANCE_COLUMNS: dict[str, SpanPerformanceColumn] = {
     "count": SpanPerformanceColumn(
         ["count()", "sumArray(spans_exclusive_time)"],
         ["count()", "sumArray(spans_exclusive_time)"],
@@ -86,7 +86,7 @@ SPAN_PERFORMANCE_COLUMNS: Dict[str, SpanPerformanceColumn] = {
 class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
     def get_snuba_params(
         self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         params = super().get_snuba_params(request, organization, check_global_views)
 
         if len(params.get("project_id", [])) != 1:
@@ -94,7 +94,7 @@ class OrganizationEventsSpansEndpointBase(OrganizationEventsV2EndpointBase):
 
         return params
 
-    def get_orderby_column(self, request: Request) -> Tuple[str, str]:
+    def get_orderby_column(self, request: Request) -> tuple[str, str]:
         orderbys = super().get_orderby(request)
 
         if orderbys is None:
@@ -325,7 +325,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
         def get_event_stats(
             query_columns: Sequence[str],
             query: str,
-            params: Dict[str, str],
+            params: dict[str, str],
             rollup: int,
             zerofill_results: bool,
             comparison_delta: Optional[datetime] = None,
@@ -415,7 +415,7 @@ class ExampleTransaction:
     start_timestamp: float
     finish_timestamp: float
     non_overlapping_exclusive_time: float
-    spans: List[ExampleSpan]
+    spans: list[ExampleSpan]
 
     def serialize(self) -> Any:
         return {
@@ -483,21 +483,21 @@ class EventID:
 
 def query_suspect_span_groups(
     params: ParamsType,
-    fields: List[str],
+    fields: list[str],
     query: Optional[str],
-    span_ops: Optional[List[str]],
-    exclude_span_ops: Optional[List[str]],
-    span_groups: Optional[List[str]],
+    span_ops: Optional[list[str]],
+    exclude_span_ops: Optional[list[str]],
+    span_groups: Optional[list[str]],
     direction: str,
     orderby: str,
     limit: int,
     offset: int,
     min_exclusive_time: Optional[float] = None,
     max_exclusive_time: Optional[float] = None,
-) -> List[SuspectSpan]:
+) -> list[SuspectSpan]:
     suspect_span_columns = SPAN_PERFORMANCE_COLUMNS[orderby]
 
-    selected_columns: List[str] = [
+    selected_columns: list[str] = [
         column
         for column in suspect_span_columns.suspect_op_group_columns + fields
         if not is_equation(column)
@@ -508,7 +508,7 @@ def query_suspect_span_groups(
         "any(id)",
     ]
 
-    equations: List[str] = [
+    equations: list[str] = [
         strip_equation(column)
         for column in suspect_span_columns.suspect_op_group_columns + fields
         if is_equation(column)
@@ -667,12 +667,12 @@ def query_example_transactions(
     offset: Optional[int] = None,
     min_exclusive_time: Optional[float] = None,
     max_exclusive_time: Optional[float] = None,
-) -> Dict[Span, List[EventID]]:
+) -> dict[Span, list[EventID]]:
     # there aren't any suspects, early return to save an empty query
     if per_suspect == 0:
         return {}
 
-    selected_columns: List[str] = [
+    selected_columns: list[str] = [
         "id",
         "project.id",
     ]
@@ -719,7 +719,7 @@ def query_example_transactions(
     snql_query = builder.get_snql_query()
     results = raw_snql_query(snql_query, "api.organization-events-spans-performance-examples")
 
-    examples: Dict[Span, List[EventID]] = {Span(span.op, span.group): []}
+    examples: dict[Span, list[EventID]] = {Span(span.op, span.group): []}
 
     for example in results["data"]:
         value = EventID(params["project_id"][0], example["id"])
@@ -796,7 +796,7 @@ def get_example_transaction(
             continue
         description = span["description"]
 
-    spans: List[ExampleSpan] = [
+    spans: list[ExampleSpan] = [
         ExampleSpan(
             id=span["span_id"],
             start_timestamp=span["start_timestamp"],
@@ -831,7 +831,7 @@ def get_example_transaction(
     )
 
 
-def get_exclusive_time_windows(span: ExampleSpan, spans: List[Any]) -> List[TimeWindow]:
+def get_exclusive_time_windows(span: ExampleSpan, spans: list[Any]) -> list[TimeWindow]:
     non_overlapping_children_time_windows = union_time_windows(
         [
             TimeWindow(start=child["start_timestamp"], end=child["timestamp"])

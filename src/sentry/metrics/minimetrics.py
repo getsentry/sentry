@@ -1,6 +1,6 @@
 import random
 from functools import wraps
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Iterable, Optional, Union
 
 import sentry_sdk
 from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
@@ -41,7 +41,7 @@ def patch_sentry_sdk():
 
     @wraps(real_emit)
     def patched_emit(
-        self, flushable_buckets: Iterable[Tuple[int, Dict[Any, Metric]]], code_locations: Any
+        self, flushable_buckets: Iterable[tuple[int, dict[Any, Metric]]], code_locations: Any
     ):
         if not flushable_buckets and not code_locations:
             return
@@ -98,7 +98,7 @@ def patch_sentry_sdk():
     MetricsAggregator._emit = patched_emit  # type: ignore
 
 
-def before_emit_metric(key: str, tags: Dict[str, Any]) -> bool:
+def before_emit_metric(key: str, tags: dict[str, Any]) -> bool:
     if not options.get("delightful_metrics.enable_common_tags"):
         tags.pop("transaction", None)
         tags.pop("release", None)
@@ -106,7 +106,7 @@ def before_emit_metric(key: str, tags: Dict[str, Any]) -> bool:
     return True
 
 
-def should_summarize_metric(key: str, tags: Dict[str, Any]) -> bool:
+def should_summarize_metric(key: str, tags: dict[str, Any]) -> bool:
     return random.random() < options.get("delightful_metrics.metrics_summary_sample_rate")
 
 

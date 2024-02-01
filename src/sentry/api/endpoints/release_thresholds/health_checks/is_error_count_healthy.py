@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any
 
 from dateutil import parser
 
@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 
 
 def is_error_count_healthy(
-    ethreshold: EnrichedThreshold, timeseries: List[Dict[str, Any]]
-) -> Tuple[bool, int]:
+    ethreshold: EnrichedThreshold, timeseries: list[dict[str, Any]]
+) -> tuple[bool, int]:
     """
     Iterate through timeseries given threshold window and determine health status
     enriched threshold (ethreshold) includes `start`, `end`, and a constructed `key` identifier

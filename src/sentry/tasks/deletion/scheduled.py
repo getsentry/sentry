@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Any, Type
+from typing import Any
 
 import sentry_sdk
 from celery import Task
@@ -45,7 +45,7 @@ def reattempt_deletions():
     _reattempt_deletions(RegionScheduledDeletion)
 
 
-def _reattempt_deletions(model_class: Type[BaseScheduledDeletion]) -> None:
+def _reattempt_deletions(model_class: type[BaseScheduledDeletion]) -> None:
     # If a deletion is in progress and was scheduled to run more than
     # a day ago we can assume the previous job died/failed.
     # Turning off the in_progress flag will result in the job being picked
@@ -78,7 +78,7 @@ def run_scheduled_deletions() -> None:
     )
 
 
-def _run_scheduled_deletions(model_class: Type[BaseScheduledDeletion], process_task: Task) -> None:
+def _run_scheduled_deletions(model_class: type[BaseScheduledDeletion], process_task: Task) -> None:
     queryset = model_class.objects.filter(in_progress=False, date_scheduled__lte=timezone.now())
     for item in queryset:
         with transaction.atomic(router.db_for_write(model_class)):
@@ -131,7 +131,7 @@ def run_deletion(deletion_id, first_pass=True, **kwargs: Any):
 def _run_deletion(
     deletion_id: int,
     first_pass: bool,
-    model_class: Type[BaseScheduledDeletion],
+    model_class: type[BaseScheduledDeletion],
     process_task: Task,
 ) -> None:
     from sentry import deletions

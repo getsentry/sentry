@@ -1,7 +1,7 @@
 import logging
 import random
 from time import time
-from typing import Any, Callable, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -89,7 +89,7 @@ def get_native_symbolication_function(data: Any) -> Optional[Callable[[Symbolica
 
 def get_symbolication_function(
     data: Any,
-) -> Tuple[bool, Optional[Callable[[Symbolicator, Any], Any]]]:
+) -> tuple[bool, Optional[Callable[[Symbolicator, Any], Any]]]:
     if data["platform"] in ("javascript", "node"):
         return True, process_js_stacktraces
     else:

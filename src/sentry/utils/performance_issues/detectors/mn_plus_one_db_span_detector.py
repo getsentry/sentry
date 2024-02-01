@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 from sentry import features
 from sentry.eventstore.models import Event
@@ -30,7 +30,7 @@ class MNPlusOneState(ABC):
     """Abstract base class for the MNPlusOneDBSpanDetector state machine."""
 
     @abstractmethod
-    def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
+    def next(self, span: Span) -> tuple[MNPlusOneState, Optional[PerformanceProblem]]:
         raise NotImplementedError
 
     def finish(self) -> Optional[PerformanceProblem]:
@@ -62,13 +62,13 @@ class SearchingForMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "recent_spans")
 
     def __init__(
-        self, settings: Dict[str, Any], event: Event, initial_spans: Optional[Sequence[Span]] = None
+        self, settings: dict[str, Any], event: Event, initial_spans: Optional[Sequence[Span]] = None
     ) -> None:
         self.settings = settings
         self.event = event
         self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
 
-    def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
+    def next(self, span: Span) -> tuple[MNPlusOneState, Optional[PerformanceProblem]]:
         # Can't be a potential MN+1 without at least 2 previous spans.
         if len(self.recent_spans) <= 1:
             self.recent_spans.append(span)
@@ -124,7 +124,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "pattern", "spans", "pattern_index")
 
     def __init__(
-        self, settings: Dict[str, Any], event: Event, pattern: Sequence[Span], first_span: Span
+        self, settings: dict[str, Any], event: Event, pattern: Sequence[Span], first_span: Span
     ) -> None:
         self.settings = settings
         self.event = event

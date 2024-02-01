@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import urllib.parse
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 from sentry import features, http, options
 from sentry.datascrubbing import scrub_data
@@ -147,7 +147,7 @@ def store_crash(crash, project: Project, url: str) -> None:
     event_manager.save(project_id=project.id)
 
 
-def translate_crash_to_event(crash, project: Project, url: str) -> Dict[str, Any]:
+def translate_crash_to_event(crash, project: Project, url: str) -> dict[str, Any]:
     event: dict[str, Any] = {
         "event_id": uuid.uuid4().hex,
         "project": project.id,

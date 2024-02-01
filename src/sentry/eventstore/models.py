@@ -6,17 +6,7 @@ import string
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generator,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Generator, Mapping, MutableMapping, Optional, Sequence, cast
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -132,7 +122,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return self.datetime.isoformat()
 
     @property
-    def tags(self) -> Sequence[Tuple[str, str]]:
+    def tags(self) -> Sequence[tuple[str, str]]:
         """
         Tags property uses tags from snuba if loaded otherwise falls back to
         nodestore.

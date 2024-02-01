@@ -1,11 +1,11 @@
-from typing import Any, List, Mapping, Union
+from typing import Any, Mapping, Union
 
 from sentry.issues.grouptype import GroupCategory
 
 # TODO(mgaeta): Continue fleshing out these types.
 SlackAttachment = Mapping[str, Any]
 SlackBlock = Mapping[str, Any]
-SlackBody = Union[SlackAttachment, SlackBlock, List[SlackAttachment]]
+SlackBody = Union[SlackAttachment, SlackBlock, list[SlackAttachment]]
 
 # Attachment colors used for issues with no actions take.
 LEVEL_TO_COLOR = {

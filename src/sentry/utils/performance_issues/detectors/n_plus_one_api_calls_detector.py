@@ -4,7 +4,7 @@ import hashlib
 import os
 from collections import defaultdict
 from datetime import timedelta
-from typing import List, Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence
 from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
@@ -204,13 +204,13 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             ],
         )
 
-    def _get_parameters(self) -> List[str]:
+    def _get_parameters(self) -> list[str]:
         if not self.spans or len(self.spans) == 0:
             return []
 
         urls = [get_url_from_span(span) for span in self.spans]
 
-        all_parameters: Mapping[str, List[str]] = defaultdict(list)
+        all_parameters: Mapping[str, list[str]] = defaultdict(list)
 
         for url in urls:
             parsed_url = urlparse(url)

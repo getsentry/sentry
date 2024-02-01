@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Dict, Type
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -67,7 +66,7 @@ class ConfigurableThresholds(Enum):
     HTTP_OVERHEAD_REQUEST_DELAY = "http_request_delay_threshold"
 
 
-internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
+internal_only_project_settings_to_group_map: dict[str, type[GroupType]] = {
     InternalProjectOptions.UNCOMPRESSED_ASSET.value: PerformanceUncompressedAssetsGroupType,
     InternalProjectOptions.CONSECUTIVE_HTTP_SPANS.value: PerformanceConsecutiveHTTPQueriesGroupType,
     InternalProjectOptions.LARGE_HTTP_PAYLOAD.value: PerformanceLargeHTTPPayloadGroupType,
@@ -82,7 +81,7 @@ internal_only_project_settings_to_group_map: Dict[str, Type[GroupType]] = {
     InternalProjectOptions.TRANSACTION_DURATION_REGRESSION.value: PerformanceP95EndpointRegressionGroupType,
 }
 
-configurable_thresholds_to_internal_settings_map: Dict[str, str] = {
+configurable_thresholds_to_internal_settings_map: dict[str, str] = {
     ConfigurableThresholds.N_PLUS_ONE_DB_DURATION.value: InternalProjectOptions.N_PLUS_ONE_DB.value,
     ConfigurableThresholds.UNCOMPRESSED_ASSET_DURATION.value: InternalProjectOptions.UNCOMPRESSED_ASSET.value,
     ConfigurableThresholds.UNCOMPRESSED_ASSET_SIZE.value: InternalProjectOptions.UNCOMPRESSED_ASSET.value,

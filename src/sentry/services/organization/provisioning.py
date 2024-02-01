@@ -1,4 +1,4 @@
-from typing import Any, Optional, Set, Tuple
+from typing import Any, Optional
 
 from django.db import router, transaction
 from django.dispatch import receiver
@@ -139,7 +139,7 @@ class OrganizationProvisioningService:
         )
 
     def bulk_create_organization_slugs(
-        self, org_ids_and_slugs: Set[Tuple[int, str]], region_name: Optional[str] = None
+        self, org_ids_and_slugs: set[tuple[int, str]], region_name: Optional[str] = None
     ):
         """
         CAUTION: DO NOT USE THIS OUTSIDE OF THE IMPORT/RELOCATION CONTEXT

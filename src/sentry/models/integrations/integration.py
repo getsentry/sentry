@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, List
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import IntegrityError, models, router, transaction
 
@@ -95,8 +95,8 @@ class Integration(DefaultFieldsModel):
             return super().delete(*args, **kwds)
 
     @staticmethod
-    def outboxes_for_update(identifier: int) -> List[ControlOutbox]:
-        org_ids: List[int] = OrganizationIntegration.objects.filter(
+    def outboxes_for_update(identifier: int) -> list[ControlOutbox]:
+        org_ids: list[int] = OrganizationIntegration.objects.filter(
             integration_id=identifier
         ).values_list("organization_id", flat=True)
         return [

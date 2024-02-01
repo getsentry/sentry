@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, MutableMapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 import requests as requests_
 import sentry_sdk
@@ -692,7 +692,7 @@ class SlackActionEndpoint(Endpoint):
     @classmethod
     def get_action_list(
         cls, slack_request: SlackActionRequest, use_block_kit: bool
-    ) -> List[MessageAction]:
+    ) -> list[MessageAction]:
         action_data = slack_request.data.get("actions")
         if use_block_kit and action_data:
             # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"

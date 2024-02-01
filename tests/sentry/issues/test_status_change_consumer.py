@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.issues.occurrence_consumer import _process_message
@@ -16,7 +16,7 @@ def get_test_message_status_change(
     fingerprint: list[str] | None = None,
     new_status: int = GroupStatus.RESOLVED,
     new_substatus: int | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     payload = {
         "project_id": project_id,
         "fingerprint": fingerprint or ["group-1"],

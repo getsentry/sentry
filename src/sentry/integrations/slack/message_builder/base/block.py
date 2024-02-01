@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple, TypedDict
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, TypedDict
 
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
@@ -126,10 +126,10 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
-    def get_action_block(actions: Sequence[Tuple[str, Optional[str], str]]) -> SlackBlock:
+    def get_action_block(actions: Sequence[tuple[str, Optional[str], str]]) -> SlackBlock:
         class SlackBlockType(TypedDict):
             type: str
-            elements: List[Dict[str, Any]]
+            elements: list[dict[str, Any]]
 
         action_block: SlackBlockType = {"type": "actions", "elements": []}
         for text, url, value in actions:

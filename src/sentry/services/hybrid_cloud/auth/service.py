@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthProvider, RpcOrganizationAuthConfig
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -24,20 +24,19 @@ class AuthService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def get_org_auth_config(
-        self, *, organization_ids: List[int]
-    ) -> List[RpcOrganizationAuthConfig]:
+        self, *, organization_ids: list[int]
+    ) -> list[RpcOrganizationAuthConfig]:
         pass
 
     # TODO: Denormalize this scim enabled flag onto organizations?
     # This is potentially a large list
     @rpc_method
     @abc.abstractmethod
-    def get_org_ids_with_scim(self) -> List[int]:
+    def get_org_ids_with_scim(self) -> list[int]:
         """
         This method returns a list of org ids that have scim enabled
         :return:
         """
-        pass
 
     @rpc_method
     @abc.abstractmethod
@@ -45,7 +44,6 @@ class AuthService(RpcService):
         """
         This method returns the auth provider for an org, if one exists
         """
-        pass
 
     @rpc_method
     @abc.abstractmethod
@@ -68,7 +66,7 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_organization_api_keys(self, *, organization_id: int) -> List[RpcApiKey]:
+    def get_organization_api_keys(self, *, organization_id: int) -> list[RpcApiKey]:
         pass
 
     @rpc_method

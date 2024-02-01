@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Dict
 from urllib.parse import urljoin
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
@@ -35,7 +34,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = ()
     permission_classes = ()
-    log_extra: Dict[str, str | int] = {}
+    log_extra: dict[str, str | int] = {}
     enforce_rate_limit = False
     """
     This endpoint is used to proxy requests from region silos to the third-party

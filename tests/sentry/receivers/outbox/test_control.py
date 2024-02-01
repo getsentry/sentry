@@ -1,5 +1,4 @@
 from hashlib import sha1
-from typing import Type
 from unittest import mock
 from unittest.mock import patch
 
@@ -428,7 +427,7 @@ class ProcessControlOutboxTest(TestCase):
             parent_mock.attach_mock(mock_cache.get, "cache_get")
             parent_mock.attach_mock(mock_cache.set, "cache_set")
 
-            expected_exception: Type[Exception] = ApiTimeoutError
+            expected_exception: type[Exception] = ApiTimeoutError
             if api_host_error == ApiConnectionResetError:
                 expected_exception = ApiConnectionResetError
 

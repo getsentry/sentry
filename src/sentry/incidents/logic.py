@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Mapping, Optional, Sequence, Union
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -393,7 +393,7 @@ def get_incident_aggregates(
     start: Optional[datetime] = None,
     end: Optional[datetime] = None,
     windowed_stats: bool = False,
-) -> Dict[str, Union[float, int]]:
+) -> dict[str, Union[float, int]]:
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
     """
@@ -1123,8 +1123,8 @@ def create_alert_rule_trigger_action(
     use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
-    installations: List[RpcSentryAppInstallation] | None = None,
-    integrations: List[RpcIntegration] | None = None,
+    installations: list[RpcSentryAppInstallation] | None = None,
+    integrations: list[RpcIntegration] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
@@ -1183,8 +1183,8 @@ def update_alert_rule_trigger_action(
     use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
-    installations: List[RpcSentryAppInstallation] | None = None,
-    integrations: List[RpcIntegration] | None = None,
+    installations: list[RpcSentryAppInstallation] | None = None,
+    integrations: list[RpcIntegration] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
@@ -1454,7 +1454,7 @@ def get_actions_for_trigger(trigger):
     return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
 
 
-def get_available_action_integrations_for_org(organization) -> List[RpcIntegration]:
+def get_available_action_integrations_for_org(organization) -> list[RpcIntegration]:
     """
     Returns a list of integrations that the organization has installed. Integrations are
     filtered by the list of registered providers.
@@ -1474,7 +1474,7 @@ def get_available_action_integrations_for_org(organization) -> List[RpcIntegrati
     )
 
 
-def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, str]]:
+def get_pagerduty_services(organization_id, integration_id) -> list[tuple[int, str]]:
     from sentry.integrations.pagerduty.utils import get_services
 
     org_int = integration_service.get_organization_integration(
@@ -1484,7 +1484,7 @@ def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, s
     return [(s["id"], s["service_name"]) for s in services]
 
 
-def get_opsgenie_teams(organization_id, integration_id) -> list[Tuple[str, str]]:
+def get_opsgenie_teams(organization_id, integration_id) -> list[tuple[str, str]]:
     org_int = integration_service.get_organization_integration(
         organization_id=organization_id, integration_id=integration_id
     )

@@ -1,7 +1,7 @@
 import logging
 import time
 from contextlib import contextmanager
-from typing import Any, Iterable, Optional, Tuple
+from typing import Any, Iterable, Optional
 
 from rb.clients import LocalClient
 from redis.exceptions import ResponseError
@@ -141,7 +141,7 @@ class RedisBackend(Backend):
 
     def __schedule_partition(
         self, host: int, deadline: float, timestamp: float
-    ) -> Iterable[Tuple[bytes, float]]:
+    ) -> Iterable[tuple[bytes, float]]:
         return script(
             self.cluster.get_local_client(host),
             ["-"],

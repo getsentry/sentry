@@ -1,4 +1,4 @@
-from typing import Iterable, Mapping, Optional, Tuple
+from typing import Iterable, Mapping, Optional
 
 from django.http import Http404
 
@@ -19,7 +19,7 @@ def get_identity_or_404(
     user: User,
     integration_id: int,
     organization_id: Optional[int] = None,
-) -> Tuple[RpcOrganization, Integration, IdentityProvider]:
+) -> tuple[RpcOrganization, Integration, IdentityProvider]:
     """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
     if provider not in EXTERNAL_PROVIDERS:
         raise Http404

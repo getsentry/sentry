@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import posixpath
-from typing import Any, Callable, Optional, Set
+from typing import Any, Callable, Optional
 
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
@@ -465,7 +465,7 @@ def get_native_symbolication_function(data) -> Optional[Callable[[Symbolicator, 
         return None
 
 
-def get_required_attachment_types(data) -> Set[str]:
+def get_required_attachment_types(data) -> set[str]:
     if is_minidump_event(data):
         return {MINIDUMP_ATTACHMENT_TYPE}
     elif is_applecrashreport_event(data):

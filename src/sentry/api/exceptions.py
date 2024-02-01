@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Optional
 
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.urls import reverse
@@ -42,7 +42,7 @@ class ParameterValidationError(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "parameter-validation-error"
 
-    def __init__(self, message: str, context: Optional[List[str]] = None) -> None:
+    def __init__(self, message: str, context: Optional[list[str]] = None) -> None:
         super().__init__(message=message, context=".".join(context or []))
 
 

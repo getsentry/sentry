@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from django.db import router, transaction
 from django.db.models import Count, F
@@ -27,7 +27,7 @@ from sentry.silo import unguarded_write
 
 
 class DatabaseBackedAuthService(AuthService):
-    def get_organization_api_keys(self, *, organization_id: int) -> List[RpcApiKey]:
+    def get_organization_api_keys(self, *, organization_id: int) -> list[RpcApiKey]:
         return [
             serialize_api_key(k) for k in ApiKey.objects.filter(organization_id=organization_id)
         ]
@@ -102,8 +102,8 @@ class DatabaseBackedAuthService(AuthService):
         return serialize_auth_provider(existing_provider)
 
     def get_org_auth_config(
-        self, *, organization_ids: List[int]
-    ) -> List[RpcOrganizationAuthConfig]:
+        self, *, organization_ids: list[int]
+    ) -> list[RpcOrganizationAuthConfig]:
         aps = {
             ap.organization_id: ap
             for ap in AuthProvider.objects.filter(organization_id__in=organization_ids)
@@ -127,7 +127,7 @@ class DatabaseBackedAuthService(AuthService):
 
     def get_org_ids_with_scim(
         self,
-    ) -> List[int]:
+    ) -> list[int]:
         return list(
             AuthProvider.objects.filter(
                 flags=F("flags").bitor(AuthProvider.flags.scim_enabled)

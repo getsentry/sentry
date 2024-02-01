@@ -5,18 +5,7 @@
 
 import contextlib
 import datetime
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Dict,
-    Generator,
-    List,
-    Mapping,
-    Optional,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Collection, Generator, Mapping, Optional, Union
 
 from pydantic.fields import Field
 
@@ -32,9 +21,9 @@ class RpcApiKey(RpcModel):
     organization_id: int = -1
     key: str = ""
     status: int = 0
-    allowed_origins: List[str] = Field(default_factory=list)
+    allowed_origins: list[str] = Field(default_factory=list)
     label: str = ""
-    scope_list: List[str] = Field(default_factory=list)
+    scope_list: list[str] = Field(default_factory=list)
 
 
 class RpcApiToken(RpcModel):
@@ -45,8 +34,8 @@ class RpcApiToken(RpcModel):
     application_is_active: bool = False
     token: str = ""
     expires_at: Optional[datetime.datetime] = None
-    allowed_origins: List[str] = Field(default_factory=list)
-    scope_list: List[str] = Field(default_factory=list)
+    allowed_origins: list[str] = Field(default_factory=list)
+    scope_list: list[str] = Field(default_factory=list)
 
 
 class RpcMemberSsoState(RpcModel):
@@ -56,13 +45,13 @@ class RpcMemberSsoState(RpcModel):
 
 class RpcAuthState(RpcModel):
     sso_state: RpcMemberSsoState
-    permissions: List[str]
+    permissions: list[str]
 
 
 class AuthenticatedToken(RpcModel):
-    allowed_origins: List[str] = Field(default_factory=list)
-    audit_log_data: Dict[str, Any] = Field(default_factory=dict)
-    scopes: List[str] = Field(default_factory=list)
+    allowed_origins: list[str] = Field(default_factory=list)
+    audit_log_data: dict[str, Any] = Field(default_factory=dict)
+    scopes: list[str] = Field(default_factory=list)
     entity_id: Optional[int] = None
     kind: str = "system"
     user_id: Optional[int] = None  # only relevant for ApiToken
@@ -73,7 +62,7 @@ class AuthenticatedToken(RpcModel):
         return self.kind == "api_token" and self.organization_id == organization_id
 
     @classmethod
-    def kinds(cls) -> Mapping[str, Collection[Type[Any]]]:
+    def kinds(cls) -> Mapping[str, Collection[type[Any]]]:
         from sentry.auth.system import SystemToken
         from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
         from sentry.models.apikey import ApiKey
@@ -120,10 +109,10 @@ class AuthenticatedToken(RpcModel):
     def get_audit_log_data(self) -> Mapping[str, Any]:
         return self.audit_log_data
 
-    def get_allowed_origins(self) -> List[str]:
+    def get_allowed_origins(self) -> list[str]:
         return self.allowed_origins
 
-    def get_scopes(self) -> List[str]:
+    def get_scopes(self) -> list[str]:
         return self.scopes
 
     def has_scope(self, scope: str) -> bool:

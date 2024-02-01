@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, Collection, Dict, Iterable, Mapping, Optional, Sequence, cast
+from typing import Any, Collection, Iterable, Mapping, Optional, Sequence, cast
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
@@ -54,7 +54,7 @@ class SsoSession:
         self.authenticated_at_time = time
         self.session_key = self.django_session_key(organization_id)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {self.SSO_LOGIN_TIMESTAMP: self.authenticated_at_time.timestamp()}
 
     @classmethod

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, MutableMapping, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, TypeVar
 
 from django.db import models
 
@@ -178,7 +178,6 @@ class ActionRegistration(metaclass=ABCMeta):
         """
         Handles delivering the message via the service from the action and specified data.
         """
-        pass
 
     @classmethod
     def validate_action(cls, data: NotificationActionInputData) -> None:
@@ -188,12 +187,11 @@ class ActionRegistration(metaclass=ABCMeta):
         :param data: The input data sent to the API before updating/creating NotificationActions
         :raises serializers.ValidationError: Indicates that the incoming action would apply to this registration but is not valid.
         """
-        pass
 
     @classmethod
     def serialize_available(
-        cls, organization: Organization, integrations: Optional[List[RpcIntegration]] = None
-    ) -> List[JSONData]:
+        cls, organization: Organization, integrations: Optional[list[RpcIntegration]] = None
+    ) -> list[JSONData]:
         """
         Optional class method to serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
 
@@ -306,7 +304,7 @@ class NotificationAction(AbstractNotificationAction):
         key = cls.get_registry_key(trigger_type, service_type, target_type)
         return cls._registry.get(key)
 
-    def get_audit_log_data(self) -> Dict[str, str]:
+    def get_audit_log_data(self) -> dict[str, str]:
         """
         Returns audit log data for NOTIFICATION_ACTION_ADD, NOTIFICATION_ACTION_EDIT
         and NOTIFICATION_ACTION_REMOVE events

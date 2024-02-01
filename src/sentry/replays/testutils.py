@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import uuid
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any
 
 from sentry.utils import json
 
@@ -20,8 +20,8 @@ class EventType(Enum):
     Plugin = 6
 
 
-SegmentList = List[Dict[str, Any]]
-RRWebNode = Dict[str, Any]
+SegmentList = list[dict[str, Any]]
+RRWebNode = dict[str, Any]
 
 
 def sec(timestamp: datetime.datetime) -> int:

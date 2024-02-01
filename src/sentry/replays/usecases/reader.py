@@ -5,7 +5,7 @@ import uuid
 import zlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Iterator, List, Optional
+from typing import Iterator, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -39,7 +39,7 @@ def fetch_segments_metadata(
     replay_id: str,
     offset: int,
     limit: int,
-) -> List[RecordingSegmentStorageMeta]:
+) -> list[RecordingSegmentStorageMeta]:
     """Return a list of recording segment storage metadata."""
     if settings.SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP:
         segments = fetch_filestore_segments_meta(project_id, replay_id, offset, limit)
@@ -72,9 +72,9 @@ def fetch_filestore_segments_meta(
     replay_id: str,
     offset: int,
     limit: int,
-) -> List[RecordingSegmentStorageMeta]:
+) -> list[RecordingSegmentStorageMeta]:
     """Return filestore metadata derived from our Postgres table."""
-    segments: List[ReplayRecordingSegment] = (
+    segments: list[ReplayRecordingSegment] = (
         ReplayRecordingSegment.objects.filter(project_id=project_id, replay_id=replay_id)
         .order_by("segment_id")
         .all()[offset : limit + offset]
@@ -134,7 +134,7 @@ def fetch_direct_storage_segments_meta(
     replay_id: str,
     offset: int,
     limit: int,
-) -> List[RecordingSegmentStorageMeta]:
+) -> list[RecordingSegmentStorageMeta]:
     """Return direct-storage metadata derived from our Clickhouse table."""
     if not has_archived_segment(project_id, replay_id):
         return _fetch_segments_from_snuba(project_id, replay_id, offset, limit)
@@ -193,7 +193,7 @@ def _fetch_segments_from_snuba(
     offset: int,
     limit: int,
     segment_id: int | None = None,
-) -> List[RecordingSegmentStorageMeta]:
+) -> list[RecordingSegmentStorageMeta]:
     conditions = []
     if segment_id:
         conditions.append(Condition(Column("segment_id"), Op.EQ, segment_id))
@@ -245,7 +245,7 @@ def segment_row_to_storage_meta(
 # BLOB DOWNLOAD BEHAVIOR.
 
 
-def download_segments(segments: List[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
+def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
     """Download segment data from remote storage."""
 
     # start a sentry transaction to pass to the thread pool workers

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
@@ -18,8 +18,8 @@ from sentry.types.group import GroupSubStatus
 
 def update_inbox(
     in_inbox: bool,
-    group_list: List[Group],
-    project_lookup: Dict[int, Project],
+    group_list: list[Group],
+    project_lookup: dict[int, Project],
     acting_user: User | None,
     http_referrer: str,
     sender: Any,

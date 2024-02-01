@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Dict, Match, Optional, TypedDict
+from typing import Match, Optional, TypedDict
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -232,7 +232,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         }
 
     @staticmethod
-    def get_snql_function_aliases(trend_columns: TrendColumns, trend_type: str) -> Dict[str, Alias]:
+    def get_snql_function_aliases(trend_columns: TrendColumns, trend_type: str) -> dict[str, Alias]:
         """Construct a dict of aliases
 
         this is because certain conditions behave differently depending on the trend type

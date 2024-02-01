@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, List
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 
@@ -40,14 +40,14 @@ class CommitAuthor(Model):
 
     __repr__ = sane_repr("organization_id", "email", "name")
 
-    users: List[RpcUser] | None = None
+    users: list[RpcUser] | None = None
 
-    def preload_users(self) -> List[RpcUser]:
+    def preload_users(self) -> list[RpcUser]:
         self.users = None
         self.users = self.find_users()
         return self.users
 
-    def find_users(self) -> List[RpcUser]:
+    def find_users(self) -> list[RpcUser]:
         from sentry.models.organizationmember import OrganizationMember
         from sentry.services.hybrid_cloud.user.service import user_service
 

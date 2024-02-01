@@ -11,18 +11,12 @@ from enum import Enum
 from typing import (
     Any,
     Callable,
-    Dict,
-    FrozenSet,
     Iterable,
-    List,
     Literal,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
-    Set,
-    Tuple,
-    Type,
     TypedDict,
     Union,
     cast,
@@ -101,7 +95,7 @@ ALL_STATUSES = frozenset(iter(SessionStatus))
 
 
 #: Used to filter results by session.status
-StatusFilter = Optional[FrozenSet[SessionStatus]]
+StatusFilter = Optional[frozenset[SessionStatus]]
 
 MAX_POSTGRES_LIMIT = 100
 
@@ -139,7 +133,7 @@ class GroupKey:
 
 
 class Group(TypedDict):
-    series: MutableMapping[SessionsQueryFunction, List[SessionsQueryValue]]
+    series: MutableMapping[SessionsQueryFunction, list[SessionsQueryValue]]
     totals: MutableMapping[SessionsQueryFunction, SessionsQueryValue]
 
 
@@ -160,7 +154,7 @@ class Field(ABC):
         self.name = name
         self._raw_groupby = raw_groupby
         self._status_filter = status_filter
-        self._hidden_fields: Set[MetricField] = set()
+        self._hidden_fields: set[MetricField] = set()
         self.metric_fields = self._get_metric_fields(raw_groupby, status_filter)
 
     @abstractmethod
@@ -387,7 +381,7 @@ class SimpleForwardingField(Field):
         return [self._metric_field]
 
 
-FIELD_MAP: Mapping[SessionsQueryFunction, Type[Field]] = {
+FIELD_MAP: Mapping[SessionsQueryFunction, type[Field]] = {
     "sum(session)": SumSessionField,
     "count_unique(user)": CountUniqueUser,
     "avg(session.duration)": DurationField,
@@ -444,7 +438,7 @@ def run_sessions_query(
     project_ids = query.params["project_id"]
     limit = Limit(query.limit) if query.limit else None
 
-    ordered_preflight_filters: Dict[GroupByFieldName, Sequence[str]] = {}
+    ordered_preflight_filters: dict[GroupByFieldName, Sequence[str]] = {}
     try:
         orderby = _parse_orderby(query, fields)
     except NonPreflightOrderByException:
@@ -622,7 +616,7 @@ def run_sessions_query(
 
 
 def _order_by_preflight_query_results(
-    ordered_preflight_filters: Dict[GroupByFieldName, Sequence[str]],
+    ordered_preflight_filters: dict[GroupByFieldName, Sequence[str]],
     groupby: GroupByFieldName,
     result_groups: Sequence[SessionsQueryGroup],
     default_group_gen_func: Callable[[], Group],
@@ -670,7 +664,7 @@ def _order_by_preflight_query_results(
     """
     if len(ordered_preflight_filters) == 1:
         orderby_field = list(ordered_preflight_filters.keys())[0]
-        grp_value_to_result_grp_mapping: Dict[Union[int, str], List[SessionsQueryGroup]] = {}
+        grp_value_to_result_grp_mapping: dict[Union[int, str], list[SessionsQueryGroup]] = {}
 
         for result_group in result_groups:
             grp_value = result_group["by"][orderby_field]
@@ -716,7 +710,7 @@ def _empty_result(query: QueryDefinition) -> SessionsQueryResult:
 
 def _extract_status_filter_from_conditions(
     conditions: ConditionGroup,
-) -> Tuple[ConditionGroup, StatusFilter]:
+) -> tuple[ConditionGroup, StatusFilter]:
     """Split conditions into metrics conditions and a filter on session.status"""
     if not conditions:
         return conditions, None
@@ -732,7 +726,7 @@ def _extract_status_filter_from_conditions(
 
 def _transform_single_condition(
     condition: Union[Condition, BooleanCondition]
-) -> Tuple[Optional[Union[Condition, BooleanCondition]], StatusFilter]:
+) -> tuple[Optional[Union[Condition, BooleanCondition]], StatusFilter]:
     if isinstance(condition, Condition):
         if condition.lhs == Function("ifNull", parameters=[Column("session.status"), ""]):
             # HACK: metrics tags are never null. We should really
@@ -770,7 +764,7 @@ def _transform_single_condition(
 
 def _get_filters_for_preflight_query_condition(
     tag_name: str, condition: Union[Condition, BooleanCondition]
-) -> Tuple[Optional[Op], Optional[Set[str]]]:
+) -> tuple[Optional[Op], Optional[set[str]]]:
     """
     Function that takes a tag name and a condition, and checks if that condition is for that tag
     and if so returns a tuple of the op applied either Op.IN or Op.NOT_IN and a set of the tag
@@ -802,7 +796,7 @@ def _get_filters_for_preflight_query_condition(
     return None, None
 
 
-def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
+def _parse_session_status(status: Any) -> frozenset[SessionStatus]:
     try:
         return frozenset([SessionStatus(status)])
     except ValueError:
@@ -871,7 +865,7 @@ def _generate_preflight_query_conditions(
     org_id: int,
     project_ids: Sequence[ProjectId],
     limit: Limit,
-    env_condition: Optional[Tuple[Op, Set[str]]] = None,
+    env_condition: Optional[tuple[Op, set[str]]] = None,
 ) -> Sequence[str]:
     """
     Function that fetches the preflight query filters that need to be applied to the subsequent

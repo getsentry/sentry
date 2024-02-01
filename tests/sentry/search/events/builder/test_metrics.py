@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import math
 from datetime import timezone
-from typing import List, Optional, Tuple
+from typing import Optional
 from unittest import mock
 
 import pytest
@@ -68,7 +68,7 @@ def _metric_percentile_definition(
     )
 
 
-def _metric_conditions(org_id: int, metrics: list[str]) -> List[Condition]:
+def _metric_conditions(org_id: int, metrics: list[str]) -> list[Condition]:
     def _resolve_must_succeed(*a, **k):
         ret = indexer.resolve(*a, **k)
         assert ret is not None
@@ -2814,7 +2814,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         ]
 
     def _test_user_misery(
-        self, user_to_frustration: list[Tuple[str, bool]], expected_user_misery: float
+        self, user_to_frustration: list[tuple[str, bool]], expected_user_misery: float
     ) -> None:
         threshold = 300
         field = f"user_misery({threshold})"

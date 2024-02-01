@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import tempfile
 from pathlib import Path
-from typing import Type
 
 import yaml
 from django.db.models import Model
@@ -64,7 +63,7 @@ class ReleaseTests(BackupTestCase):
         return False
 
     @expect_models(RELEASE_TESTED, "__all__")
-    def test_at_head(self, expected_models: list[Type[Model]]):
+    def test_at_head(self, expected_models: list[type[Model]]):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Convert the existing snapshot from YAML to an equivalent temporary JSON file.
             snapshot_path = self.get_snapshot_path("head")

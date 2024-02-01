@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Optional
 
 from django.conf import settings
 from django.core.cache import cache
@@ -72,7 +72,7 @@ class UserIP(Model):
 
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> Optional[tuple[int, ImportKind]]:
         # Ensures that the IP address is valid. Exclude the codes, as they should be `None` until we
         # `log()` them below.
         self.full_clean(exclude=["country_code", "region_code", "user"])

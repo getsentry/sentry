@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Callable, Generic, Type, TypeVar
+from typing import Callable, Generic, TypeVar
 
 from snuba_sdk import Condition
 
@@ -23,7 +23,7 @@ T = TypeVar("T")
 
 
 class ComputedField(Generic[T]):
-    def __init__(self, parse: Callable[[str], T], query: Type[ComputedBase]) -> None:
+    def __init__(self, parse: Callable[[str], T], query: type[ComputedBase]) -> None:
         self.parse = parse
         self.query = query
 

@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
+from typing import Literal, Optional, Sequence, Union
 
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
@@ -38,7 +38,7 @@ class MetricField:
     op: Optional[MetricOperationType]
     metric_mri: str
     params: Optional[
-        Dict[str, Union[None, str, int, float, Sequence[Tuple[Union[str, int], ...]]]]
+        dict[str, Union[None, str, int, float, Sequence[tuple[Union[str, int], ...]]]]
     ] = None
     alias: Optional[str] = None
 
@@ -242,9 +242,9 @@ class MetricsQuery(MetricsQueryValidationRunner):
             if isinstance(metric_order_by_field.field, MetricField):
                 self._validate_field(metric_order_by_field.field)
 
-        orderby_metric_fields: Set[MetricField] = set()
-        metric_entities: Set[MetricEntity] = set()
-        group_by_str_fields: Set[str] = self.action_by_str_fields(on_group_by=True)
+        orderby_metric_fields: set[MetricField] = set()
+        metric_entities: set[MetricEntity] = set()
+        group_by_str_fields: set[str] = self.action_by_str_fields(on_group_by=True)
         for metric_order_by_field in self.orderby:
             if isinstance(metric_order_by_field.field, MetricField):
                 orderby_metric_fields.add(metric_order_by_field.field)
@@ -278,8 +278,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
 
-    def action_by_str_fields(self, on_group_by: bool) -> Set[str]:
-        action_by_str_fields: Set[str] = set()
+    def action_by_str_fields(self, on_group_by: bool) -> set[str]:
+        action_by_str_fields: set[str] = set()
 
         for action_by_field in (self.groupby if on_group_by else self.orderby) or []:
             if isinstance(action_by_field.field, str):

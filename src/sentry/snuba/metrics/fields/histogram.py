@@ -1,5 +1,5 @@
 import math
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import sentry_sdk
 from snuba_sdk import Column, Function
@@ -8,7 +8,7 @@ from sentry.exceptions import InvalidParams
 
 MAX_HISTOGRAM_BUCKET = 250
 
-ClickhouseHistogram = List[Tuple[float, float, float]]
+ClickhouseHistogram = list[tuple[float, float, float]]
 
 
 def rebucket_histogram(

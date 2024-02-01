@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, List, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping
 from urllib.parse import urlparse, urlunparse
 
 from django.utils.encoding import force_str
@@ -19,7 +19,7 @@ class SentryAppComponentPreparer:
     component: SentryAppComponent
     install: SentryAppInstallation
     project_slug: str | None = None
-    values: List[Mapping[str, Any]] = dataclasses.field(default_factory=list)
+    values: list[Mapping[str, Any]] = dataclasses.field(default_factory=list)
 
     def run(self) -> None:
         if self.component.type == "issue-link":

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from urllib.parse import urlencode
 
 from django.urls import reverse
@@ -95,7 +95,7 @@ def generate_incident_activity_email(
 
 def build_activity_context(
     activity: IncidentActivity, user: RpcUser, activity_user: Optional[RpcUser] = None
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if activity_user is None:
         activity_user = user_service.get_user(user_id=activity.user_id)
 

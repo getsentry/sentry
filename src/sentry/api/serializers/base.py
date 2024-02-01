@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Type, TypeVar, Union
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, TypeVar, Union
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -15,10 +15,10 @@ K = TypeVar("K")
 registry: MutableMapping[Any, Any] = {}
 
 
-def register(type: Any) -> Callable[[Type[K]], Type[K]]:
+def register(type: Any) -> Callable[[type[K]], type[K]]:
     """A wrapper that adds the wrapped Serializer to the Serializer registry (see above) for the key `type`."""
 
-    def wrapped(cls: Type[K]) -> Type[K]:
+    def wrapped(cls: type[K]) -> type[K]:
         registry[type] = cls()
         return cls
 

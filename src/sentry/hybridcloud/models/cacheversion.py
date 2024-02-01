@@ -1,5 +1,3 @@
-from typing import List
-
 from django.db import models, router, transaction
 from django.db.models import F
 
@@ -24,7 +22,7 @@ class CacheVersionBase(Model):
             return cls.objects.filter(key=key).values("version").first()["version"]
 
     @classmethod
-    def get_versions(cls, keys: List[str]) -> List[int]:
+    def get_versions(cls, keys: list[str]) -> list[int]:
         return list(cls.objects.filter(key__in=keys).values_list("version", flat=True))
 
 

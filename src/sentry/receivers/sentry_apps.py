@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping
+from typing import Any, Mapping
 
 from sentry import features
 from sentry.models.group import Group
@@ -120,6 +120,6 @@ def send_workflow_webhooks(
             send_sentry_function_webhook.delay(fn.external_id, event, issue.id, data)
 
 
-def installations_to_notify(organization, event) -> List[RpcSentryAppInstallation]:
+def installations_to_notify(organization, event) -> list[RpcSentryAppInstallation]:
     installations = app_service.get_installed_for_organization(organization_id=organization.id)
     return [i for i in installations if event in i.sentry_app.events]

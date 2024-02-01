@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import DefaultDict, Generator, Iterable, List, Optional, Set, Tuple
+from typing import DefaultDict, Generator, Iterable, Optional
 
 import sentry_sdk
 
@@ -74,7 +74,7 @@ class RegressionDetector(ABC):
     @classmethod
     def all_payloads(
         cls,
-        projects: List[Project],
+        projects: list[Project],
         start: datetime,
     ) -> Generator[DetectorPayload, None, None]:
         projects_per_query = options.get("statistical_detectors.query.batch_size")
@@ -90,16 +90,16 @@ class RegressionDetector(ABC):
     @abstractmethod
     def query_payloads(
         cls,
-        projects: List[Project],
+        projects: list[Project],
         start: datetime,
     ) -> Iterable[DetectorPayload]:
         ...
 
     @classmethod
     def detect_trends(
-        cls, projects: List[Project], start: datetime, batch_size=100
+        cls, projects: list[Project], start: datetime, batch_size=100
     ) -> Generator[TrendBundle, None, None]:
-        unique_project_ids: Set[int] = set()
+        unique_project_ids: set[int] = set()
 
         total_count = 0
         regressed_count = 0
@@ -166,8 +166,8 @@ class RegressionDetector(ABC):
 
     @classmethod
     def all_timeseries(
-        cls, objects: List[Tuple[Project, int | str]], start: datetime, function: str, chunk_size=25
-    ) -> Generator[Tuple[int, int | str, SnubaTSResult], None, None]:
+        cls, objects: list[tuple[Project, int | str]], start: datetime, function: str, chunk_size=25
+    ) -> Generator[tuple[int, int | str, SnubaTSResult], None, None]:
         # Snuba allows 10,000 data points per request. 14 days * 1hr * 24hr =
         # 336 data points per transaction name, so we can safely get 25 transaction
         # timeseries.
@@ -181,16 +181,16 @@ class RegressionDetector(ABC):
     @abstractmethod
     def query_timeseries(
         cls,
-        objects: List[Tuple[Project, int | str]],
+        objects: list[tuple[Project, int | str]],
         start: datetime,
         function: str,
-    ) -> Iterable[Tuple[int, int | str, SnubaTSResult]]:
+    ) -> Iterable[tuple[int, int | str, SnubaTSResult]]:
         ...
 
     @classmethod
     def detect_regressions(
         cls,
-        objects: List[Tuple[Project, int | str]],
+        objects: list[tuple[Project, int | str]],
         start: datetime,
         function: str,
         timeseries_per_batch=10,
@@ -240,7 +240,7 @@ class RegressionDetector(ABC):
         if ratelimit is None:
             ratelimit = options.get("statistical_detectors.ratelimit.ema")
 
-        regressions_by_project: DefaultDict[int, List[Tuple[float, TrendBundle]]] = defaultdict(
+        regressions_by_project: DefaultDict[int, list[tuple[float, TrendBundle]]] = defaultdict(
             list
         )
 
@@ -448,7 +448,7 @@ class RegressionDetector(ABC):
     @classmethod
     def _filter_escalating_groups(
         cls,
-        bundles_to_escalate: List[TrendBundle],
+        bundles_to_escalate: list[TrendBundle],
         batch_size=100,
     ) -> Generator[TrendBundle, None, None]:
         for bundles in chunked(bundles_to_escalate, batch_size):
@@ -486,7 +486,7 @@ class RegressionDetector(ABC):
         cls,
         regressions: Generator[BreakpointData, None, None],
         batch_size=100,
-    ) -> Generator[Tuple[int, datetime | None, BreakpointData], None, None]:
+    ) -> Generator[tuple[int, datetime | None, BreakpointData], None, None]:
         active_regressions = []
 
         for regression_chunk in chunked(regressions, batch_size):
@@ -606,7 +606,7 @@ def generate_fingerprint(regression_type: RegressionType, name: str | int) -> st
         raise ValueError(f"Unsupported RegressionType: {regression_type}")
 
 
-def generate_issue_group_key(project_id: int, fingerprint: str) -> Tuple[int, str]:
+def generate_issue_group_key(project_id: int, fingerprint: str) -> tuple[int, str]:
     data = {
         "fingerprint": [fingerprint],
     }

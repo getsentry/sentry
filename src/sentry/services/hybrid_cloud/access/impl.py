@@ -1,4 +1,4 @@
-from typing import FrozenSet, List, Optional, Set
+from typing import Optional
 
 from django.db.models import Q
 
@@ -26,7 +26,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 
 
 class ControlAccessService(AccessService):
-    def get_all_org_roles(self, member_id: int, organization_id: int) -> List[str]:
+    def get_all_org_roles(self, member_id: int, organization_id: int) -> list[str]:
         try:
             member = OrganizationMemberMapping.objects.get(
                 organizationmember_id=member_id, organization_id=organization_id
@@ -37,7 +37,7 @@ class ControlAccessService(AccessService):
         team_ids = OrganizationMemberTeamReplica.objects.filter(
             organizationmember_id=member_id, organization_id=organization_id
         ).values_list("team_id", flat=True)
-        all_roles: Set[str] = set(
+        all_roles: set[str] = set(
             TeamReplica.objects.filter(team_id__in=team_ids)
             .exclude(org_role=None)
             .values_list("org_role", flat=True)
@@ -45,7 +45,7 @@ class ControlAccessService(AccessService):
         all_roles.add(member.role)
         return list(all_roles)
 
-    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
+    def get_top_dog_team_member_ids(self, organization_id: int) -> list[int]:
         owner_teams = list(
             TeamReplica.objects.filter(
                 organization_id=organization_id, org_role=roles.get_top_dog().id
@@ -57,7 +57,7 @@ class ControlAccessService(AccessService):
             )
         )
 
-    def get_permissions_for_user(self, user_id: int) -> FrozenSet[str]:
+    def get_permissions_for_user(self, user_id: int) -> frozenset[str]:
         user = user_service.get_user(user_id)
         if user is None:
             return frozenset()
@@ -114,7 +114,7 @@ class ControlAccessService(AccessService):
 
 
 class RegionAccessService(AccessService):
-    def get_all_org_roles(self, member_id: int, organization_id: int) -> List[str]:
+    def get_all_org_roles(self, member_id: int, organization_id: int) -> list[str]:
         try:
             member = OrganizationMember.objects.get(id=member_id, organization_id=organization_id)
         except OrganizationMember.DoesNotExist:
@@ -123,7 +123,7 @@ class RegionAccessService(AccessService):
         team_ids = OrganizationMemberTeam.objects.filter(
             organizationmember_id=member.id
         ).values_list("team_id", flat=True)
-        all_roles: Set[str] = set(
+        all_roles: set[str] = set(
             Team.objects.filter(id__in=team_ids)
             .exclude(org_role=None)
             .values_list("org_role", flat=True)
@@ -131,7 +131,7 @@ class RegionAccessService(AccessService):
         all_roles.add(member.role)
         return list(all_roles)
 
-    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
+    def get_top_dog_team_member_ids(self, organization_id: int) -> list[int]:
         owner_teams = list(
             Team.objects.filter(
                 organization_id=organization_id, org_role=roles.get_top_dog().id
@@ -184,7 +184,7 @@ class RegionAccessService(AccessService):
             auth_provider_id=auth_provider.id, user_id__in=user_ids
         ).exists()
 
-    def get_permissions_for_user(self, user_id: int) -> FrozenSet[str]:
+    def get_permissions_for_user(self, user_id: int) -> frozenset[str]:
         user = user_service.get_user(user_id)
         if user is None:
             return frozenset()

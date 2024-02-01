@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, TypedDict, Union
+from typing import Any, Optional, Sequence, TypedDict, Union
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path, safe_execute, set_path
 
-EventMetadata = Dict[str, Any]
+EventMetadata = dict[str, Any]
 
 
 class TreeLabelPart(TypedDict):
@@ -66,7 +66,7 @@ def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> Stripped
 
 
 def _write_tree_labels(tree_labels: Sequence[Optional[TreeLabel]], event_data: NodeData) -> None:
-    event_labels: List[Optional[StrippedTreeLabel]] = []
+    event_labels: list[Optional[StrippedTreeLabel]] = []
     event_data["hierarchical_tree_labels"] = event_labels
 
     for level, tree_label in enumerate(tree_labels):

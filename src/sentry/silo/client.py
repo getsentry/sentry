@@ -3,7 +3,7 @@ from __future__ import annotations
 import ipaddress
 import socket
 from hashlib import sha1
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Set
+from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
 import sentry_sdk
 import urllib3
@@ -30,7 +30,7 @@ from sentry.types.region import (
 )
 
 if TYPE_CHECKING:
-    from typing import FrozenSet
+    pass
 
 REQUEST_ATTEMPTS_LIMIT = 10
 CACHE_TIMEOUT = 43200  # 12 hours = 60 * 60 * 12 seconds
@@ -126,11 +126,11 @@ class BaseSiloClient(BaseApiClient):
         return client_response
 
 
-def get_region_ip_addresses() -> FrozenSet[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv6Address]:
     """
     Infers the Region Silo IP addresses from the SENTRY_REGION_CONFIG setting.
     """
-    region_ip_addresses: Set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
+    region_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
     for address in find_all_region_addresses():
         url = urllib3.util.parse_url(address)

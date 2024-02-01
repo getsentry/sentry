@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
-from typing import Any, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence
 
 from django.utils.datastructures import OrderedSet
 
@@ -105,7 +105,7 @@ def find_commit_context_for_event(
     platform: str,
     sdk_name: Optional[str],
     extra: Mapping[str, Any],
-) -> tuple[List[Tuple[Mapping[str, Any], RepositoryProjectPathConfig]], IntegrationInstallation]:
+) -> tuple[list[tuple[Mapping[str, Any], RepositoryProjectPathConfig]], IntegrationInstallation]:
     """
 
     Get all the Commit Context for an event frame using a source code integration for all the matching code mappings

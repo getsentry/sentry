@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
-from typing import TYPE_CHECKING, Any, List, Optional, Type
+from typing import TYPE_CHECKING, Any, Optional
 
 import sentry_sdk
 from pydantic.fields import Field
@@ -37,10 +37,10 @@ class RpcPaginationArgs(RpcModel):
         self,
         *,
         description: str,
-        paginator_cls: Type[PaginatorLike],
+        paginator_cls: type[PaginatorLike],
         order_by: str,
         queryset: Any,
-        cursor_cls: Type[Cursor] = Cursor,
+        cursor_cls: type[Cursor] = Cursor,
         count_hits: Optional[bool] = None,
     ) -> "RpcPaginationResult":
         cursor = get_cursor(self.encoded_cursor, cursor_cls)
@@ -78,7 +78,7 @@ class RpcCursorState(RpcModel):
 
 
 class RpcPaginationResult(RpcModel):
-    ids: List[int] = Field(default_factory=list)
+    ids: list[int] = Field(default_factory=list)
     hits: Optional[int] = None
     max_hits: Optional[int] = None
     next: RpcCursorState = Field(default_factory=lambda: RpcCursorState())

@@ -4,7 +4,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, Dict, Type
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs as urlparse_parse_qs
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from urllib.request import urlopen
@@ -23,14 +23,14 @@ if TYPE_CHECKING:
     from .models import UserSocialAuth
 
 
-def get_backend(instance: UserSocialAuth | RpcUserSocialAuth) -> Type[SocialAuthBackend] | None:
+def get_backend(instance: UserSocialAuth | RpcUserSocialAuth) -> type[SocialAuthBackend] | None:
     # Make import here to avoid recursive imports :-/
     from social_auth.backends import get_backends
 
     return get_backends().get(instance.provider)
 
 
-def tokens(instance: UserSocialAuth | RpcUserSocialAuth) -> Dict[str, Any]:
+def tokens(instance: UserSocialAuth | RpcUserSocialAuth) -> dict[str, Any]:
     """Return access_token stored in extra_data or None"""
     backend = instance.get_backend()
     if backend:

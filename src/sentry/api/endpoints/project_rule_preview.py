@@ -1,4 +1,4 @@
-from typing import Any, Dict, Mapping
+from typing import Any, Mapping
 
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -87,8 +87,8 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
 
 class PreviewSerializer(GroupSerializer):
     def serialize(
-        self, obj: Dict[str, Any], attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> Dict[str, Any]:
+        self, obj: dict[str, Any], attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> dict[str, Any]:
         result = super().serialize(obj, attrs, user, **kwargs)
         group_id = int(result["id"])
         result["inbox"] = kwargs["inbox_details"].get(group_id)

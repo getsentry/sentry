@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import Enum
-from typing import Any, List
+from typing import Any
 
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -158,7 +158,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
             return results
 
-        def get_trends_data(stats_data) -> List[BreakpointData]:
+        def get_trends_data(stats_data) -> list[BreakpointData]:
             if not stats_data:
                 return []
 

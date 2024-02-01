@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 from dataclasses import dataclass
-from typing import Any, Collection, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Collection, Mapping, Optional, Sequence, Union
 
 from sentry import eventstream
 from sentry.eventstore.models import Event
@@ -12,9 +12,9 @@ from sentry.utils.datastructures import BidirectionalMapping
 _DEFAULT_UNMERGE_KEY = "default"
 
 # Weird type, but zero runtime cost in casting it to `Destinations`!
-InitialDestinations = Mapping[str, Tuple[int, None]]
+InitialDestinations = Mapping[str, tuple[int, None]]
 
-Destinations = Mapping[str, Tuple[int, Any]]
+Destinations = Mapping[str, tuple[int, Any]]
 
 EventstreamState = Any
 

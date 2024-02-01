@@ -7,14 +7,10 @@ from enum import Enum
 from typing import (
     Any,
     Callable,
-    Dict,
-    List,
     Literal,
     NamedTuple,
     Optional,
     Sequence,
-    Tuple,
-    Type,
     TypedDict,
     TypeVar,
     Union,
@@ -201,7 +197,7 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
 }
 
 # Maps from Discover's syntax to Relay rule condition operators.
-_SEARCH_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
+_SEARCH_TO_RELAY_OPERATORS: dict[str, CompareOp] = {
     "=": "eq",
     "!=": "eq",  # combined with external negation
     "<": "lt",
@@ -213,7 +209,7 @@ _SEARCH_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
 }
 
 # Maps from parsed count_if condition args to Relay rule condition operators.
-_COUNTIF_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
+_COUNTIF_TO_RELAY_OPERATORS: dict[str, CompareOp] = {
     "equals": "eq",
     "notEquals": "eq",
     "less": "lt",
@@ -223,7 +219,7 @@ _COUNTIF_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
 }
 
 # Maps plain Discover functions to metric aggregation functions.
-_SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
+_SEARCH_TO_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "count": "sum",
     "count_if": "sum",
     "avg": "avg",
@@ -240,7 +236,7 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
 }
 
 # Maps plain Discover functions to derived metric functions which are understood by the metrics layer.
-_SEARCH_TO_DERIVED_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
+_SEARCH_TO_DERIVED_METRIC_AGGREGATES: dict[str, MetricOperationType] = {
     "failure_count": "on_demand_failure_count",
     "failure_rate": "on_demand_failure_rate",
     "apdex": "on_demand_apdex",
@@ -309,7 +305,7 @@ _IGNORED_METRIC_FIELDS = [
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
 
-Variables = Dict[str, Any]
+Variables = dict[str, Any]
 
 query_builder = UnresolvedQuery(
     dataset=Dataset.Transactions, params={}
@@ -328,7 +324,7 @@ class LogicalRuleCondition(TypedDict):
     """RuleCondition that applies a logical operator to a sequence of conditions."""
 
     op: Literal["and", "or"]
-    inner: List[RuleCondition]
+    inner: list[RuleCondition]
 
 
 class NotRuleCondition(TypedDict):
@@ -429,7 +425,7 @@ def _transform_search_filter(search_filter: SearchFilter) -> SearchFilter:
 
 
 def _transform_search_query(query: Sequence[QueryToken]) -> Sequence[QueryToken]:
-    transformed_query: List[QueryToken] = []
+    transformed_query: list[QueryToken] = []
 
     for token in query:
         if isinstance(token, SearchFilter):
@@ -481,7 +477,7 @@ def cleanup_search_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     tokens = list(tokens)
 
     # remove empty parens
-    removed_empty_parens: List[QueryToken] = []
+    removed_empty_parens: list[QueryToken] = []
     for token in tokens:
         if not isinstance(token, ParenExpression):
             removed_empty_parens.append(token)
@@ -527,7 +523,7 @@ def cleanup_search_query(tokens: Sequence[QueryToken]) -> Sequence[QueryToken]:
     return ret_val
 
 
-def _parse_function(aggregate: str) -> Tuple[str, List[str], str]:
+def _parse_function(aggregate: str) -> tuple[str, list[str], str]:
     """
     Parses an aggregate and returns its components.
 
@@ -609,7 +605,7 @@ def should_use_on_demand_metrics(
     return not supported_by.standard_metrics and supported_by.on_demand_metrics
 
 
-def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[str]]]:
+def _extract_aggregate_components(aggregate: str) -> Optional[tuple[str, list[str]]]:
     try:
         if is_equation(aggregate):
             return None
@@ -622,14 +618,14 @@ def _extract_aggregate_components(aggregate: str) -> Optional[Tuple[str, List[st
     return None
 
 
-def _extract_mri(args: List[str]) -> Optional[ParsedMRI]:
+def _extract_mri(args: list[str]) -> Optional[ParsedMRI]:
     if len(args) == 0:
         return None
 
     return parse_mri(args[0])
 
 
-def _get_aggregate_supported_by(function: str, args: List[str]) -> SupportedBy:
+def _get_aggregate_supported_by(function: str, args: list[str]) -> SupportedBy:
     function_support = _get_function_support(function, args)
     args_support = _get_args_support(args, function)
 
@@ -864,7 +860,7 @@ def _remove_on_demand_search_filters(tokens: Sequence[QueryToken]) -> Sequence[Q
     """
     Removes tokens that contain filters that can only be handled by on demand metrics.
     """
-    ret_val: List[QueryToken] = []
+    ret_val: list[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
             if _is_standard_metrics_search_filter(token):
@@ -881,7 +877,7 @@ def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence
     """
     Removes tokens that contain filters that are blacklisted.
     """
-    ret_val: List[QueryToken] = []
+    ret_val: list[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
             if token.key.name not in _IGNORED_METRIC_FIELDS:
@@ -905,7 +901,7 @@ def _remove_redundant_parentheses(tokens: Sequence[QueryToken]) -> Sequence[Quer
     return tokens
 
 
-def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
+def _deep_sorted(value: Union[Any, dict[Any, Any]]) -> Union[Any, dict[Any, Any]]:
     if isinstance(value, dict):
         return {key: _deep_sorted(value) for key, value in sorted(value.items())}
     else:
@@ -939,7 +935,7 @@ def _compare_lists(list_1: Sequence[Any], list_2: Sequence[Any]) -> bool:
     return True
 
 
-TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], List[TagSpec]]
+TagsSpecsGenerator = Callable[[Project, Optional[Sequence[str]]], list[TagSpec]]
 
 
 def _get_threshold(arguments: Optional[Sequence[str]]) -> float:
@@ -949,7 +945,7 @@ def _get_threshold(arguments: Optional[Sequence[str]]) -> float:
     return float(arguments[0])
 
 
-def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> List[TagSpec]:
+def failure_tag_spec(_1: Project, _2: Optional[Sequence[str]]) -> list[TagSpec]:
     """This specification tags transactions with a boolean saying if it failed."""
     return [
         {
@@ -1050,7 +1046,7 @@ def count_web_vitals_spec(project: Project, arguments: Optional[Sequence[str]]) 
     ]
 
 
-def user_misery_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> List[TagSpec]:
+def user_misery_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -> list[TagSpec]:
     """A metric that counts the number of unique users who were frustrated; "frustration" is
     measured as a response time four times the satisfactory response time threshold (in milliseconds).
     It highlights transactions that have the highest impact on users."""
@@ -1067,7 +1063,7 @@ def user_misery_tag_spec(project: Project, arguments: Optional[Sequence[str]]) -
 
 
 # This is used to map a metric to a function which generates a specification
-_DERIVED_METRICS: Dict[MetricOperationType, TagsSpecsGenerator | None] = {
+_DERIVED_METRICS: dict[MetricOperationType, TagsSpecsGenerator | None] = {
     "on_demand_failure_count": failure_tag_spec,
     "on_demand_failure_rate": failure_tag_spec,
     "on_demand_apdex": apdex_tag_spec,
@@ -1249,7 +1245,7 @@ class OnDemandMetricSpec:
         is extracted."""
         return self._process_query()
 
-    def tags_conditions(self, project: Project) -> List[TagSpec]:
+    def tags_conditions(self, project: Project) -> list[TagSpec]:
         """Returns a list of tag conditions that will specify how tags are injected into metrics by Relay."""
         tags_specs_generator = _DERIVED_METRICS.get(self.op)
         if tags_specs_generator is None:
@@ -1266,7 +1262,7 @@ class OnDemandMetricSpec:
             "field": field,
         }
 
-    def tags_groupbys(self, groupbys: Sequence[str]) -> List[TagSpec]:
+    def tags_groupbys(self, groupbys: Sequence[str]) -> list[TagSpec]:
         """Returns a list of tag specs generate for added groupbys, as they need to be stored separately for queries to work."""
         return [self._tag_for_field(groupby) for groupby in groupbys]
 
@@ -1301,7 +1297,7 @@ class OnDemandMetricSpec:
 
         return metric_spec
 
-    def _process_field(self) -> Tuple[MetricOperationType, str, Optional[Sequence[str]]]:
+    def _process_field(self) -> tuple[MetricOperationType, str, Optional[Sequence[str]]]:
         parsed_field = self._parse_field(self.field)
         op = self._get_op(parsed_field.function, parsed_field.arguments)
         metric_type = self._get_metric_type(parsed_field.function)
@@ -1347,9 +1343,9 @@ class OnDemandMetricSpec:
         return rule_condition
 
     def _extend_parsed_query(self, parsed_query_result: QueryParsingResult) -> QueryParsingResult:
-        conditions = cast(List[QueryToken], parsed_query_result.conditions)
+        conditions = cast(list[QueryToken], parsed_query_result.conditions)
 
-        new_conditions: List[QueryToken] = []
+        new_conditions: list[QueryToken] = []
         if self.environment is not None:
             new_conditions.append(
                 SearchFilter(
@@ -1507,7 +1503,7 @@ def _map_field_name(search_key: str) -> str:
     raise ValueError(f"Unsupported query field {search_key}")
 
 
-def _get_satisfactory_threshold_and_metric(project: Project) -> Tuple[int, str]:
+def _get_satisfactory_threshold_and_metric(project: Project) -> tuple[int, str]:
     """It returns the statisfactory response time threshold for the project and
     the associated metric ("transaction.duration" or "measurements.lcp")."""
     result = ProjectTransactionThreshold.filter(
@@ -1574,7 +1570,7 @@ class SearchQueryConverter:
         else:
             return None
 
-    def _consume(self, pattern: Union[str, Type[T]]) -> Optional[T]:
+    def _consume(self, pattern: Union[str, type[T]]) -> Optional[T]:
         """
         Consumes the next token if it matches the given pattern.
 

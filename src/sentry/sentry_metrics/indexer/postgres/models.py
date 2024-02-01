@@ -14,7 +14,7 @@ from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH, UseCa
 
 logger = logging.getLogger(__name__)
 
-from typing import Mapping, Type
+from typing import Mapping
 
 
 @region_silo_only_model
@@ -89,7 +89,7 @@ class PerfStringIndexer(BaseIndexer):
         ]
 
 
-IndexerTable = Type[BaseIndexer]
+IndexerTable = type[BaseIndexer]
 
 TABLE_MAPPING: Mapping[UseCaseKey, IndexerTable] = {
     UseCaseKey.RELEASE_HEALTH: StringIndexer,

@@ -4,7 +4,7 @@ import logging
 import operator
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Sequence, Tuple, TypeVar, cast
+from typing import Optional, Sequence, TypeVar, cast
 
 from django.conf import settings
 from django.db import router, transaction
@@ -110,7 +110,7 @@ class SubscriptionProcessor:
         self._active_incident = active_incident
 
     @property
-    def incident_triggers(self) -> Dict[int, IncidentTrigger]:
+    def incident_triggers(self) -> dict[int, IncidentTrigger]:
         if not hasattr(self, "_incident_triggers"):
             incident = self.active_incident
             incident_triggers = {}
@@ -670,7 +670,7 @@ class SubscriptionProcessor:
             return None
 
     def handle_trigger_actions(
-        self, incident_triggers: List[IncidentTrigger], metric_value: float
+        self, incident_triggers: list[IncidentTrigger], metric_value: float
     ) -> None:
         actions = deduplicate_trigger_actions(triggers=deepcopy(self.triggers))
         # Grab the first trigger to get incident id (they are all the same)
@@ -785,7 +785,7 @@ class SubscriptionProcessor:
         )
 
 
-def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscription) -> List[str]:
+def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscription) -> list[str]:
     """
     Builds keys for fetching stats about alert rules
     :return: A list containing the alert rule stat keys
@@ -795,8 +795,8 @@ def build_alert_rule_stat_keys(alert_rule: AlertRule, subscription: QuerySubscri
 
 
 def build_trigger_stat_keys(
-    alert_rule: AlertRule, subscription: QuerySubscription, triggers: List[AlertRuleTrigger]
-) -> List[str]:
+    alert_rule: AlertRule, subscription: QuerySubscription, triggers: list[AlertRuleTrigger]
+) -> list[str]:
     """
     Builds keys for fetching stats about triggers
     :return: A list containing the alert rule trigger stat keys
@@ -829,8 +829,8 @@ def partition(iterable: Sequence[T], n: int) -> Sequence[Sequence[T]]:
 
 
 def get_alert_rule_stats(
-    alert_rule: AlertRule, subscription: QuerySubscription, triggers: List[AlertRuleTrigger]
-) -> Tuple[datetime, Dict[str, int], Dict[str, int]]:
+    alert_rule: AlertRule, subscription: QuerySubscription, triggers: list[AlertRuleTrigger]
+) -> tuple[datetime, dict[str, int], dict[str, int]]:
     """
     Fetches stats about the alert rule, specific to the current subscription
     :return: A tuple containing the stats about the alert rule and subscription.
@@ -864,8 +864,8 @@ def update_alert_rule_stats(
     alert_rule: AlertRule,
     subscription: QuerySubscription,
     last_update: datetime,
-    alert_counts: Dict[int, int],
-    resolve_counts: Dict[int, int],
+    alert_counts: dict[int, int],
+    resolve_counts: dict[int, int],
 ) -> None:
     """
     Updates stats about the alert rule, subscription and triggers if they've changed.

@@ -6,7 +6,7 @@ import re
 from collections import namedtuple
 from dataclasses import dataclass
 from time import time
-from typing import ClassVar, List, Mapping, Optional, Sequence, Union
+from typing import ClassVar, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.db import IntegrityError, models, router
@@ -265,7 +265,7 @@ class ReleaseQuerySet(BaseQuerySet):
         operator: str,
         value,
         project_ids: Optional[Sequence[int]] = None,
-        environments: Optional[List[str]] = None,
+        environments: Optional[list[str]] = None,
     ) -> models.QuerySet:
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
@@ -409,7 +409,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         operator: str,
         value,
         project_ids: Optional[Sequence[int]] = None,
-        environments: Optional[List[str]] = None,
+        environments: Optional[list[str]] = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments
@@ -1278,7 +1278,7 @@ class Release(Model):
             self.save()
 
 
-def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
+def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
     """Get artifact count grouped by IDs"""
     from sentry.models.releasefile import ReleaseFile
 

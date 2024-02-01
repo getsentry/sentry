@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence
 
 import sentry_sdk
 
@@ -98,7 +98,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         key = f"pagerduty:{integration.id}:{service['id']}"
         yield self.future(send_notification, key=key)
 
-    def get_services(self) -> Sequence[Tuple[int, str]]:
+    def get_services(self) -> Sequence[tuple[int, str]]:
         from sentry.services.hybrid_cloud.integration import integration_service
 
         organization_integrations = integration_service.get_organization_integrations(

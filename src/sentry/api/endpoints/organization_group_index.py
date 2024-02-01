@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -61,7 +61,7 @@ def inbox_search(
 ) -> CursorResult:
     now: datetime = timezone.now()
     end: Optional[datetime] = None
-    end_params: List[datetime] = [
+    end_params: list[datetime] = [
         _f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f
     ]
     if end_params:
@@ -107,7 +107,7 @@ def inbox_search(
     ).using_replica()
 
     if environments is not None:
-        environment_ids: List[int] = [environment.id for environment in environments]
+        environment_ids: list[int] = [environment.id for environment in environments]
         qs = qs.filter(
             group_id__in=GroupEnvironment.objects.filter(environment_id__in=environment_ids)
             .values_list("group_id", flat=True)

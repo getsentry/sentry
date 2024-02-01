@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 import pytest
 
@@ -16,8 +16,8 @@ class BackfillGroupUnresolvedNoneStatus(TestMigrations):
     migrate_to = "0475_backfill_groupedmessage_unresolved_none_status"
 
     def _create_unresolved_none_group(
-        self, project: Project, group_history_kwargs: Optional[Sequence[Dict[str, Any]]] = None
-    ) -> Tuple[Group, Sequence[GroupHistory]]:
+        self, project: Project, group_history_kwargs: Optional[Sequence[dict[str, Any]]] = None
+    ) -> tuple[Group, Sequence[GroupHistory]]:
         group = self.create_group(project=project, status=GroupStatus.UNRESOLVED)
         updated = Group.objects.filter(id=group.id).update(substatus=None)
         if updated:

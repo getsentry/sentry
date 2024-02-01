@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from django.core.cache import cache
 
@@ -48,7 +48,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Union[int, float],
-        tags: Dict[str, str],
+        tags: dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -74,7 +74,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Sequence[int],
-        tags: Dict[str, str],
+        tags: dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -102,7 +102,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         project_id: int,
         metric_name: str,
         value: Sequence[Union[int, float]],
-        tags: Dict[str, str],
+        tags: dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -126,4 +126,3 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         """
         Calling this is not required and is mostly for usage in tests
         """
-        pass

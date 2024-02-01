@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import inspect
 import logging
-from typing import Any, Callable, Iterable, Mapping, Protocol, Type
+from typing import Any, Callable, Iterable, Mapping, Protocol
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -54,7 +54,7 @@ audit_logger = logging.getLogger("sentry.audit.ui")
 
 
 class ViewSiloLimit(SiloLimit):
-    def modify_endpoint_class(self, decorated_class: Type[View]) -> type:
+    def modify_endpoint_class(self, decorated_class: type[View]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
         new_class = type(
             decorated_class.__name__,

@@ -1,5 +1,3 @@
-from typing import Dict
-
 from django.urls import reverse
 from rest_framework import status
 
@@ -146,7 +144,7 @@ class OrgAuthTokenCreateTest(APITestCase):
         assert token_payload.get("url") == options.get("system.url-prefix")
 
     def test_no_name(self):
-        payload: Dict[str, str] = {}
+        payload: dict[str, str] = {}
 
         self.login_as(self.user)
         response = self.get_error_response(

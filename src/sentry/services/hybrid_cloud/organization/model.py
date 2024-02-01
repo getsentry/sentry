@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 from datetime import datetime
 from enum import IntEnum
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from django.dispatch import Signal
 from django.utils import timezone
@@ -74,8 +74,8 @@ class RpcTeamMember(RpcModel):
     slug: str = ""
     is_active: bool = False
     role_id: str = ""
-    project_ids: List[int] = Field(default_factory=list)
-    scopes: List[str] = Field(default_factory=list)
+    project_ids: list[int] = Field(default_factory=list)
+    scopes: list[str] = Field(default_factory=list)
     team_id: int = -1
 
     @property
@@ -124,11 +124,11 @@ class RpcOrganizationMemberSummary(RpcModel):
 
 
 class RpcOrganizationMember(RpcOrganizationMemberSummary):
-    member_teams: List[RpcTeamMember] = Field(default_factory=list)
+    member_teams: list[RpcTeamMember] = Field(default_factory=list)
     role: str = ""
     has_global_access: bool = False
-    project_ids: List[int] = Field(default_factory=list)
-    scopes: List[str] = Field(default_factory=list)
+    project_ids: list[int] = Field(default_factory=list)
+    scopes: list[str] = Field(default_factory=list)
     invite_status: int = Field(default_factory=_DefaultEnumHelpers.get_default_invite_status_value)
     token: str = ""
     is_pending: bool = False
@@ -230,8 +230,8 @@ class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin, HasOption):
 class RpcOrganization(RpcOrganizationSummary):
     # Represents the full set of teams and projects associated with the org.  Note that these are not filtered by
     # visibility, but you can apply a manual filter on the status attribute.
-    teams: List[RpcTeam] = Field(default_factory=list)
-    projects: List[RpcProject] = Field(default_factory=list)
+    teams: list[RpcTeam] = Field(default_factory=list)
+    projects: list[RpcProject] = Field(default_factory=list)
 
     flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
     status: int = Field(default_factory=_DefaultEnumHelpers.get_default_organization_status_value)

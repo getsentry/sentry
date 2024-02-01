@@ -3,7 +3,7 @@ import logging
 import uuid
 from copy import deepcopy
 from datetime import timezone
-from typing import Any, Dict, Optional, Sequence, Type
+from typing import Any, Optional, Sequence
 from unittest import mock
 
 import pytest
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 def get_test_message(
     project_id: int, include_event: bool = True, **overrides: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     now = datetime.datetime.now()
     event_id = uuid.uuid4().hex
     payload = {
@@ -205,11 +205,11 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
 
 
 class ParseEventPayloadTest(IssueOccurrenceTestBase):
-    def run_test(self, message: Dict[str, Any]) -> None:
+    def run_test(self, message: dict[str, Any]) -> None:
         _get_kwargs(message)
 
     def run_invalid_schema_test(
-        self, message: Dict[str, Any], expected_error: Type[Exception]
+        self, message: dict[str, Any], expected_error: type[Exception]
     ) -> None:
         with pytest.raises(expected_error):
             self.run_test(message)
@@ -217,8 +217,8 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def run_invalid_payload_test(
         self,
         remove_event_fields: Optional[Sequence[str]] = None,
-        update_event_fields: Optional[Dict[str, Any]] = None,
-        expected_error: Type[Exception] = InvalidEventPayloadError,
+        update_event_fields: Optional[dict[str, Any]] = None,
+        expected_error: type[Exception] = InvalidEventPayloadError,
     ) -> None:
         message = deepcopy(get_test_message(self.project.id))
         if remove_event_fields:

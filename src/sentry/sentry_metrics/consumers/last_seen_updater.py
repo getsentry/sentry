@@ -2,7 +2,7 @@ import datetime
 import functools
 from abc import abstractmethod
 from datetime import timedelta
-from typing import Any, Callable, Mapping, Optional, Set
+from typing import Any, Callable, Mapping, Optional
 
 import rapidjson
 from arroyo.backends.kafka import KafkaPayload
@@ -66,7 +66,7 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter):
 
 
 def _update_stale_last_seen(
-    table: IndexerTable, seen_ints: Set[int], new_last_seen_time: Optional[datetime.datetime] = None
+    table: IndexerTable, seen_ints: set[int], new_last_seen_time: Optional[datetime.datetime] = None
 ) -> int:
     if new_last_seen_time is None:
         new_last_seen_time = timezone.now()
@@ -80,7 +80,7 @@ def _update_stale_last_seen(
     )
 
 
-def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
+def retrieve_db_read_keys(message: Message[KafkaPayload]) -> set[int]:
     try:
         parsed_message = json.loads(message.payload.value, use_rapid_json=True)
         if MAPPING_META in parsed_message:
@@ -124,13 +124,13 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        def accumulator(result: Set[int], value: BaseValue[Set[int]]) -> Set[int]:
+        def accumulator(result: set[int], value: BaseValue[set[int]]) -> set[int]:
             result.update(value.payload)
             return result
 
-        initial_value: Callable[[], Set[int]] = lambda: set()
+        initial_value: Callable[[], set[int]] = lambda: set()
 
-        def do_update(message: Message[Set[int]]) -> None:
+        def do_update(message: Message[set[int]]) -> None:
             table = TABLE_MAPPING[self.__use_case_id]
             seen_ints = message.payload
 
@@ -144,7 +144,7 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.__metrics.incr("last_seen_updater.updated_rows_count", amount=update_count)
             logger.debug("%s keys updated", update_count)
 
-        collect_step: Reduce[Set[int], Set[int]] = Reduce(
+        collect_step: Reduce[set[int], set[int]] = Reduce(
             self.__max_batch_size,
             self.__max_batch_time,
             accumulator,

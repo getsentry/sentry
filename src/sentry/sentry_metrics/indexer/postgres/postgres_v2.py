@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import or_
 from time import sleep
-from typing import Any, Collection, Dict, Mapping, Optional, Sequence, Set
+from typing import Any, Collection, Mapping, Optional, Sequence
 
 import sentry_sdk
 from django.conf import settings
@@ -115,7 +115,7 @@ class PGStringIndexerV2(StringIndexer):
             raise last_seen_exception
 
     def _bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         metric_path_key = self._get_metric_path_key(strings.keys())
 
@@ -234,7 +234,7 @@ class PGStringIndexerV2(StringIndexer):
         return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         return self._bulk_record(strings)
 
@@ -282,7 +282,7 @@ class PGStringIndexerV2(StringIndexer):
     def bulk_reverse_resolve(
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
     ) -> Mapping[int, str]:
-        ret_val: Dict[int, str] = {}
+        ret_val: dict[int, str] = {}
         metric_path_key = METRIC_PATH_MAPPING[use_case_id]
         table = self._get_table_from_metric_path_key(metric_path_key)
         try:

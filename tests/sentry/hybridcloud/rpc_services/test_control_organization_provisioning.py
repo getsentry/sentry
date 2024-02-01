@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Optional
 
 import pytest
 from django.db import IntegrityError, router, transaction
@@ -71,7 +71,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
 
     def get_slug_reservations_for_organization(
         self, organization_id: int
-    ) -> List[OrganizationSlugReservation]:
+    ) -> list[OrganizationSlugReservation]:
         with assume_test_silo_mode(SiloMode.CONTROL):
             return OrganizationSlugReservation.objects.filter(organization_id=organization_id)
 

@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Tuple, TypedDict
+from typing import Optional, TypedDict
 
 from django.conf import settings
 from django.http import HttpResponse
@@ -113,7 +113,7 @@ class JavaScriptSdkLoader(BaseView):
         key: Optional[ProjectKey],
         sdk_version: Optional[str],
         loader_config: LoaderInternalConfig,
-    ) -> Tuple[LoaderContext, Optional[str]]:
+    ) -> tuple[LoaderContext, Optional[str]]:
         """Sets context information needed to render the loader"""
         if not key:
             return (

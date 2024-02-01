@@ -5,7 +5,7 @@
 # If not, the parallel indexer breaks.
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Mapping, MutableMapping, Optional
 
 import sentry_sdk
 
@@ -62,7 +62,7 @@ class MetricsIngestConfiguration:
 
 
 _METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[
-    Tuple[UseCaseKey, IndexerStorage], MetricsIngestConfiguration
+    tuple[UseCaseKey, IndexerStorage], MetricsIngestConfiguration
 ] = dict()
 
 

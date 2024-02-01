@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Sequence, TypedDict, Union
+from typing import Any, Callable, Optional, Sequence, TypedDict, Union
 
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
 from sentry.utils import urls
@@ -34,7 +34,7 @@ class SpanGroupingStrategy:
     # The strategies to use with the default fingerprint
     strategies: Sequence[CallableStrategy]
 
-    def execute(self, event_data: Any) -> Dict[str, str]:
+    def execute(self, event_data: Any) -> dict[str, str]:
         spans = event_data.get("spans", [])
         span_groups = {span["span_id"]: self.get_span_group(span) for span in spans}
 

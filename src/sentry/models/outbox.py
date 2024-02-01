@@ -6,21 +6,7 @@ import dataclasses
 import datetime
 import threading
 from enum import IntEnum
-from typing import (
-    Any,
-    Collection,
-    Dict,
-    Generator,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    TypeVar,
-    cast,
-)
+from typing import Any, Collection, Generator, Iterable, Mapping, Optional, TypeVar, cast
 
 import sentry_sdk
 from django import db
@@ -69,8 +55,8 @@ class InvalidOutboxError(Exception):
     pass
 
 
-_outbox_categories_for_scope: Dict[int, Set[OutboxCategory]] = {}
-_used_categories: Set[OutboxCategory] = set()
+_outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
+_used_categories: set[OutboxCategory] = set()
 
 
 class OutboxCategory(IntEnum):
@@ -116,7 +102,7 @@ class OutboxCategory(IntEnum):
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
 
-    def connect_region_model_updates(self, model: Type[ReplicatedRegionModel]) -> None:
+    def connect_region_model_updates(self, model: type[ReplicatedRegionModel]) -> None:
         def receiver(
             object_identifier: int,
             payload: Optional[Mapping[str, Any]],
@@ -138,7 +124,7 @@ class OutboxCategory(IntEnum):
 
         process_region_outbox.connect(receiver, weak=False, sender=self)
 
-    def connect_control_model_updates(self, model: Type[HasControlReplicationHandlers]) -> None:
+    def connect_control_model_updates(self, model: type[HasControlReplicationHandlers]) -> None:
         def receiver(
             object_identifier: int,
             payload: Optional[Mapping[str, Any]],
@@ -181,7 +167,7 @@ class OutboxCategory(IntEnum):
         payload: Any | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
-        outbox: Type[RegionOutboxBase] | None = None,
+        outbox: type[RegionOutboxBase] | None = None,
     ) -> RegionOutboxBase:
         scope = self.get_scope()
 
@@ -206,8 +192,8 @@ class OutboxCategory(IntEnum):
         payload: Any | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
-        outbox: Type[ControlOutboxBase] | None = None,
-    ) -> List[ControlOutboxBase]:
+        outbox: type[ControlOutboxBase] | None = None,
+    ) -> list[ControlOutboxBase]:
         scope = self.get_scope()
 
         shard_identifier, object_identifier = self.infer_identifiers(
@@ -235,7 +221,7 @@ class OutboxCategory(IntEnum):
         *,
         object_identifier: int | None,
         shard_identifier: int | None,
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         from sentry.models.apiapplication import ApiApplication
         from sentry.models.integrations import Integration
         from sentry.models.organization import Organization
@@ -281,7 +267,7 @@ class OutboxCategory(IntEnum):
         return shard_identifier, object_identifier
 
 
-def scope_categories(enum_value: int, categories: Set[OutboxCategory]) -> int:
+def scope_categories(enum_value: int, categories: set[OutboxCategory]) -> int:
     _outbox_categories_for_scope[enum_value] = categories
     inter = _used_categories.intersection(categories)
     assert not inter, f"OutboxCategories {inter} were already registered to a different scope"
@@ -422,7 +408,7 @@ class OutboxBase(Model):
     coalesced_columns: Iterable[str]
 
     @classmethod
-    def from_outbox_name(cls, name: str) -> Type[Self]:
+    def from_outbox_name(cls, name: str) -> type[Self]:
         from django.apps import apps
 
         app_name, model_name = name.split(".")
@@ -439,7 +425,7 @@ class OutboxBase(Model):
                 return cursor.fetchone()[0]
 
     @classmethod
-    def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> List[Mapping[str, Any]]:
+    def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> list[Mapping[str, Any]]:
         q = cls.objects.values(*cls.sharding_columns).filter(
             scheduled_for__lte=timezone.now(), id__gte=low
         )
@@ -822,7 +808,7 @@ class ControlOutboxBase(OutboxBase):
         cls,
         *,
         shard_identifier: int,
-        region_names: List[str],
+        region_names: list[str],
         request: HttpRequest,
     ) -> Iterable[Self]:
         for region_name in region_names:
@@ -864,9 +850,9 @@ class ControlOutbox(ControlOutboxBase):
         )
 
 
-def outbox_silo_modes() -> List[SiloMode]:
+def outbox_silo_modes() -> list[SiloMode]:
     cur = SiloMode.get_current_mode()
-    result: List[SiloMode] = []
+    result: list[SiloMode] = []
     if cur != SiloMode.REGION:
         result.append(SiloMode.CONTROL)
     if cur != SiloMode.CONTROL:

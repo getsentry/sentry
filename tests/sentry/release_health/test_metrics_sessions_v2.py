@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import List
 
 import pytest
 from django.urls import reverse
@@ -49,7 +48,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         )
         return self.client.get(url, query, format="json")
 
-    def get_sessions_data(self, groupby: List[str], interval):
+    def get_sessions_data(self, groupby: list[str], interval):
         response = self.do_request(
             {
                 "organization_slug": [self.organization1],

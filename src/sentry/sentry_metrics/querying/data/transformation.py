@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence
 
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.data.execution import QueryResult
@@ -89,25 +89,25 @@ def _generate_full_series(
 
 
 class QueryTransformer:
-    def __init__(self, query_results: List[QueryResult]):
+    def __init__(self, query_results: list[QueryResult]):
         self._query_results = query_results
 
         self._start: Optional[datetime] = None
         self._end: Optional[datetime] = None
         self._interval: Optional[int] = None
 
-    def _assert_transformation_preconditions(self) -> Tuple[datetime, datetime, int]:
+    def _assert_transformation_preconditions(self) -> tuple[datetime, datetime, int]:
         assert self._start is not None and self._end is not None and self._interval is not None
         return self._start, self._end, self._interval
 
     def _build_intermediate_results(
         self,
-    ) -> Tuple[OrderedDict[GroupKey, OrderedDict[str, GroupValue]], List[QueryMeta]]:
+    ) -> tuple[OrderedDict[GroupKey, OrderedDict[str, GroupValue]], list[QueryMeta]]:
         """
         Builds a tuple of intermediate groups and metadata which is used to efficiently transform the query results.
         """
         intermediate_groups: OrderedDict[GroupKey, OrderedDict[str, GroupValue]] = OrderedDict()
-        intermediate_meta: List[QueryMeta] = []
+        intermediate_meta: list[QueryMeta] = []
 
         def _add_to_intermediate_groups(values, block):
             for value in values:
@@ -175,8 +175,8 @@ class QueryTransformer:
         # We build the translated groups given the intermediate groups.
         translated_groups = []
         for group_key, group_metrics in intermediate_groups.items():
-            translated_serieses: Dict[str, Sequence[ResultValue]] = {}
-            translated_totals: Dict[str, ResultValue] = {}
+            translated_serieses: dict[str, Sequence[ResultValue]] = {}
+            translated_totals: dict[str, ResultValue] = {}
             for metric_name, metric_values in group_metrics.items():
                 series = metric_values.series
                 total = metric_values.total

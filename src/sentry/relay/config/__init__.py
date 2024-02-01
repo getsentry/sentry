@@ -4,8 +4,6 @@ from datetime import datetime, timezone
 from typing import (
     Any,
     Callable,
-    Dict,
-    List,
     Literal,
     Mapping,
     MutableMapping,
@@ -107,8 +105,8 @@ def get_exposed_features(project: Project) -> Sequence[str]:
 
 def get_public_key_configs(
     project: Project, full_config: bool, project_keys: Optional[Sequence[ProjectKey]] = None
-) -> List[Mapping[str, Any]]:
-    public_keys: List[Mapping[str, Any]] = []
+) -> list[Mapping[str, Any]]:
+    public_keys: list[Mapping[str, Any]] = []
     for project_key in project_keys or ():
         key = {
             "publicKey": project_key.public_key,
@@ -136,7 +134,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
-    error_messages: List[str] = []
+    error_messages: list[str] = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
@@ -173,7 +171,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if blacklisted_ips:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
-    csp_disallowed_sources: List[str] = []
+    csp_disallowed_sources: list[str] = []
     if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
         csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
     csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
@@ -183,7 +181,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     return filter_settings
 
 
-def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
+def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> list[str]:
     try:
         computed_quotas = [
             quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
@@ -213,7 +211,7 @@ def get_metrics_config(project: Project) -> Optional[Mapping[str, Any]]:
     metrics_config = {}
 
     if features.has("organizations:relay-cardinality-limiter", project.organization):
-        cardinality_limits: List[CardinalityLimit] = []
+        cardinality_limits: list[CardinalityLimit] = []
         cardinality_options = {
             "unsupported": "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
         }
@@ -841,7 +839,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 
     is_enabled = setting != "0"
 
-    ret_val: Dict[str, Union[bool, Sequence[str]]] = {"isEnabled": is_enabled}
+    ret_val: dict[str, Union[bool, Sequence[str]]] = {"isEnabled": is_enabled}
 
     # special case for legacy browser.
     # If the number of special cases increases we'll have to factor this functionality somewhere
@@ -877,7 +875,7 @@ TransactionNameStrategy = Literal["strict", "clientBased"]
 
 class TransactionMetricsSettings(TypedDict):
     version: int
-    extractCustomTags: List[str]
+    extractCustomTags: list[str]
     customMeasurements: CustomMeasurementSettings
     acceptTransactionNames: TransactionNameStrategy
 
@@ -896,7 +894,7 @@ def get_transaction_metrics_settings(
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-    custom_tags: List[str] = []
+    custom_tags: list[str] = []
 
     if breakdowns_config is not None:
         # we already have a breakdown configuration that tells relay which

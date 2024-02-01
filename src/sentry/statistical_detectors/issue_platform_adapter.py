@@ -1,7 +1,6 @@
 import hashlib
 import uuid
 from datetime import datetime, timezone
-from typing import Type
 
 from sentry.issues.grouptype import (
     GroupType,
@@ -32,7 +31,7 @@ def send_regression_to_platform(regression: BreakpointData, released: bool):
     # TODO fix this in the breakpoint microservice and in trends v2
     project_id = int(regression["project"])
 
-    issue_type: Type[GroupType] = (
+    issue_type: type[GroupType] = (
         PerformanceP95EndpointRegressionGroupType
         if released
         else PerformanceDurationRegressionGroupType

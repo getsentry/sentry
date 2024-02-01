@@ -1,7 +1,7 @@
 import math
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -45,7 +45,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
     # Some base data for create_span
-    base_span: Dict[str, Any] = {
+    base_span: dict[str, Any] = {
         "is_segment": False,
         "retention_days": 90,
         "tags": {},

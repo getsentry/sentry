@@ -9,7 +9,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional, TypedDict, cast
+from typing import Optional, TypedDict, cast
 
 from sentry import nodestore
 from sentry.models.group import Group
@@ -23,7 +23,7 @@ ONE_EVENT_FORECAST = [10] * 14
 class EscalatingGroupForecastData(TypedDict):
     project_id: int
     group_id: int
-    forecast: List[int]
+    forecast: list[int]
     date_added: float
 
 
@@ -39,7 +39,7 @@ class EscalatingGroupForecast:
 
     project_id: int
     group_id: int
-    forecast: List[int]
+    forecast: list[int]
     date_added: datetime
 
     def save(self) -> None:

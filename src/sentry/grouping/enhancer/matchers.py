@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -113,12 +113,12 @@ class Match:
         return FrameMatch.from_key(key, arg, negated)
 
 
-InstanceKey = Tuple[str, str, bool]
+InstanceKey = tuple[str, str, bool]
 
 
 class FrameMatch(Match):
     # Global registry of matchers
-    instances: Dict[InstanceKey, Match] = {}
+    instances: dict[InstanceKey, Match] = {}
     field: Any = None
 
     @classmethod
@@ -264,7 +264,7 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
-    field_path: List[str]
+    field_path: list[str]
 
     def matches_frame(self, frames, idx, exception_data, cache):
         match_frame = None

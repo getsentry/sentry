@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence, cast
+from typing import Optional, Sequence, cast
 from unittest.mock import ANY, patch
 
 import pytest
@@ -35,8 +35,8 @@ class OrganizationDDMEndpointTest(APITestCase, BaseSpansTestCase):
     def _mock_code_location(
         self,
         filename: str,
-        pre_context: Optional[List[str]] = None,
-        post_context: Optional[List[str]] = None,
+        pre_context: Optional[list[str]] = None,
+        post_context: Optional[list[str]] = None,
     ) -> str:
         code_location = {
             "function": "foo",

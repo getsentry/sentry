@@ -13,14 +13,11 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
     Iterator,
     Mapping,
     MutableMapping,
     NoReturn,
     Sequence,
-    Tuple,
-    Type,
     TypeVar,
     cast,
 )
@@ -71,7 +68,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
     resolving the arguments to the correct region for a remote call.
     """
 
-    def __init__(self, base_service_cls: Type[RpcService], base_method: Callable[..., Any]) -> None:
+    def __init__(self, base_service_cls: type[RpcService], base_method: Callable[..., Any]) -> None:
         self.base_service_cls = base_service_cls
         super().__init__(base_method, is_instance_method=True)
         self._region_resolution = self._extract_region_resolution()
@@ -125,7 +122,7 @@ class _RegionResolutionResult:
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
     def __init__(
         self,
-        base_service_cls: Type[RpcService],
+        base_service_cls: type[RpcService],
         constructors: Mapping[SiloMode, Callable[[], RpcService]],
         signatures: Mapping[str, RpcMethodSignature],
     ) -> None:
@@ -181,7 +178,7 @@ def regional_rpc_method(
     return decorator
 
 
-_global_service_registry: Dict[str, DelegatingRpcService] = {}
+_global_service_registry: dict[str, DelegatingRpcService] = {}
 
 
 class RpcService(abc.ABC):
@@ -378,7 +375,7 @@ class RpcResponseException(RpcException):
 
 def _look_up_service_method(
     service_name: str, method_name: str
-) -> Tuple[DelegatingRpcService, Callable[..., Any]]:
+) -> tuple[DelegatingRpcService, Callable[..., Any]]:
     try:
         service = _global_service_registry[service_name]
     except KeyError:

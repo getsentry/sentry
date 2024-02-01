@@ -1,5 +1,5 @@
 import secrets
-from typing import ClassVar, List
+from typing import ClassVar
 from urllib.parse import urlparse
 
 import petname
@@ -80,7 +80,7 @@ class ApiApplication(Model):
                 outbox.save()
             return super().delete(**kwargs)
 
-    def outboxes_for_update(self) -> List[ControlOutbox]:
+    def outboxes_for_update(self) -> list[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.APP_SCOPE,

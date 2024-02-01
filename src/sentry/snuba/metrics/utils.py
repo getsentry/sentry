@@ -5,14 +5,11 @@ from abc import ABC
 from datetime import datetime, timedelta, timezone
 from typing import (
     Collection,
-    Dict,
     Generator,
-    List,
     Literal,
     Mapping,
     Optional,
     Sequence,
-    Tuple,
     TypedDict,
     Union,
     overload,
@@ -336,7 +333,7 @@ OPERATIONS = (
     + DERIVED_OPERATIONS
 )
 
-DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
+DEFAULT_AGGREGATES: dict[MetricOperationType, Optional[Union[int, list[tuple[float]]]]] = {
     "avg": None,
     "count_unique": 0,
     "count": 0,

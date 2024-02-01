@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import reduce
-from typing import List, Mapping, Optional
+from typing import Mapping, Optional
 
 from snuba_sdk import Column, Condition, Op
 
@@ -88,7 +88,7 @@ def project_slug_converter(
         for slug, project_id in builder.params.project_slug_map.items()
         if slug in slugs
     }
-    missing: List[str] = [slug for slug in slugs if slug not in project_slugs]
+    missing: list[str] = [slug for slug in slugs if slug not in project_slugs]
     if missing and search_filter.operator in constants.EQUALITY_OPERATORS:
         raise InvalidSearchQuery(
             f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."

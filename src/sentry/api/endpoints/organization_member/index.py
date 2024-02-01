@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import F, Q
@@ -109,7 +107,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
         return valid_teams
 
-    def validate_teamRoles(self, teamRoles) -> List[Tuple[Team, str]]:
+    def validate_teamRoles(self, teamRoles) -> list[tuple[Team, str]]:
         roles = {item["role"] for item in teamRoles}
         valid_roles = [r.id for r in team_roles.get_all()] + [None]
         if roles.difference(valid_roles):

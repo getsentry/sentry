@@ -6,18 +6,7 @@ import sys
 from collections import namedtuple
 from enum import Enum
 from functools import cached_property
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    FrozenSet,
-    Mapping,
-    MutableMapping,
-    NoReturn,
-    Optional,
-    Sequence,
-    Type,
-)
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, NoReturn, Optional, Sequence
 from urllib.request import Request
 
 from rest_framework.exceptions import NotFound
@@ -92,7 +81,7 @@ class IntegrationMetadata(IntegrationMetadata):  # type: ignore
             return f"integrations-{f}"
         return None
 
-    def _asdict(self) -> Dict[str, Sequence[Any]]:
+    def _asdict(self) -> dict[str, Sequence[Any]]:
         metadata = super()._asdict()
         metadata["features"] = [
             {
@@ -167,7 +156,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     configuration interface of the integration.
     """
 
-    integration_cls: Optional[Type[IntegrationInstallation]] = None
+    integration_cls: Optional[type[IntegrationInstallation]] = None
     """an Integration class that will manage the functionality once installed"""
 
     setup_dialog_config = {"width": 600, "height": 600}
@@ -195,7 +184,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     time. It will raise an error if any organization from another region attempts to install it.
     """
 
-    features: FrozenSet[IntegrationFeatures] = frozenset()
+    features: frozenset[IntegrationFeatures] = frozenset()
     """can be any number of IntegrationFeatures"""
 
     requires_feature_flag = False
@@ -465,7 +454,6 @@ class IntegrationInstallation:
         that are not covered by the deletion task for OrganizationIntegration
         task.
         """
-        pass
 
     # NotifyBasicMixin noops
 

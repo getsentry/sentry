@@ -4,18 +4,7 @@ import operator
 from collections import defaultdict
 from enum import Enum
 from functools import reduce
-from typing import (
-    Any,
-    Iterator,
-    List,
-    Mapping,
-    MutableMapping,
-    Sequence,
-    Set,
-    Tuple,
-    TypedDict,
-    Union,
-)
+from typing import Any, Iterator, Mapping, MutableMapping, Sequence, TypedDict, Union
 
 from django.core.cache import cache
 from django.db.models import Q
@@ -96,7 +85,7 @@ def _get_commits(releases: Sequence[Release]) -> Sequence[Commit]:
 
 
 def _get_commit_file_changes(
-    commits: Sequence[Commit], path_name_set: Set[str]
+    commits: Sequence[Commit], path_name_set: set[str]
 ) -> Sequence[CommitFileChange]:
     # Get distinct file names and bail if there are no files.
     filenames = {next(tokenize_path(path), None) for path in path_name_set}
@@ -114,9 +103,9 @@ def _get_commit_file_changes(
 
 def _match_commits_path(
     commit_file_changes: Sequence[CommitFileChange], path: str
-) -> Sequence[Tuple[Commit, int]]:
+) -> Sequence[tuple[Commit, int]]:
     # find commits that match the run time path the best.
-    matching_commits: MutableMapping[int, Tuple[Commit, int]] = {}
+    matching_commits: MutableMapping[int, tuple[Commit, int]] = {}
     best_score = 1
     for file_change in commit_file_changes:
         score = score_path_match_length(file_change.filename, path)
@@ -136,7 +125,7 @@ def _match_commits_path(
 
 class AuthorCommits(TypedDict):
     author: Union[Author, None]
-    commits: Sequence[Tuple[Commit, int]]
+    commits: Sequence[tuple[Commit, int]]
 
 
 class AuthorCommitsSerialized(TypedDict):
@@ -146,7 +135,7 @@ class AuthorCommitsSerialized(TypedDict):
 
 class AnnotatedFrame(TypedDict):
     frame: str
-    commits: Sequence[Tuple[Commit, int]]
+    commits: Sequence[tuple[Commit, int]]
 
 
 class SuspectCommitType(Enum):
@@ -158,7 +147,7 @@ class SuspectCommitType(Enum):
 
 def _get_committers(
     annotated_frames: Sequence[AnnotatedFrame],
-    commits: Sequence[Tuple[Commit, int]],
+    commits: Sequence[tuple[Commit, int]],
 ) -> Sequence[AuthorCommits]:
     # extract the unique committers and return their serialized sentry accounts
     committers: MutableMapping[int, int] = defaultdict(int)
@@ -280,7 +269,7 @@ def get_event_file_committers(
         _get_commit_file_changes(commits, path_set) if path_set else []
     )
 
-    commit_path_matches: Mapping[str, Sequence[Tuple[Commit, int]]] = {
+    commit_path_matches: Mapping[str, Sequence[tuple[Commit, int]]] = {
         path: _match_commits_path(file_changes, path) for path in path_set
     }
 
@@ -295,7 +284,7 @@ def get_event_file_committers(
         for frame in app_frames
     ]
 
-    relevant_commits: Sequence[Tuple[Commit, int]] = [
+    relevant_commits: Sequence[tuple[Commit, int]] = [
         match for matches in commit_path_matches.values() for match in matches
     ]
 
@@ -377,7 +366,7 @@ def get_serialized_event_file_committers(
             serialized_commit["score"] = score
             serialized_commits_by_id[commit.id] = serialized_commit
 
-        serialized_committers: List[AuthorCommitsSerialized] = []
+        serialized_committers: list[AuthorCommitsSerialized] = []
         for committer in committers:
             commit_ids = [commit.id for (commit, _) in committer["commits"]]
             commits_result = [serialized_commits_by_id[commit_id] for commit_id in commit_ids]

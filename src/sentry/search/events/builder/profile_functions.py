@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Optional, Protocol
 
 from snuba_sdk import AliasedExpression, And, Column, Condition, CurriedFunction, Op, Or
 from snuba_sdk.function import Function
@@ -98,12 +98,12 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         dataset: Dataset,
         params: ParamsType,
         interval: int,
-        top_events: List[Dict[str, Any]],
+        top_events: list[dict[str, Any]],
         other: bool = False,
         query: Optional[str] = None,
-        selected_columns: Optional[List[str]] = None,
-        timeseries_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
+        selected_columns: Optional[list[str]] = None,
+        timeseries_columns: Optional[list[str]] = None,
+        equations: Optional[list[str]] = None,
         config: Optional[QueryBuilderConfig] = None,
         limit: Optional[int] = 10000,
     ):
@@ -132,7 +132,7 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
             )
 
     @property
-    def translated_groupby(self) -> List[str]:
+    def translated_groupby(self) -> list[str]:
         """Get the names of the groupby columns to create the series names"""
         translated = []
         for groupby in self.groupby:
@@ -151,7 +151,7 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         return resolved in self.aggregates
 
     def resolve_top_event_conditions(
-        self, top_functions: List[Dict[str, Any]], other: bool
+        self, top_functions: list[dict[str, Any]], other: bool
     ) -> Optional[WhereType]:
         assert not other, "Other is not supported"  # TODO: support other
 
