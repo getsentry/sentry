@@ -644,32 +644,37 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit_ordered_s
 
         process_widget_specs([widget_query.id])
 
-        config = get_metric_extraction_config(default_project)
-
-        assert config
-        assert len(config["metrics"]) == 4
-
-        duration_conditions = [spec["condition"]["value"] for spec in config["metrics"]]
-
-        assert duration_conditions == [
-            1400.0,
-            1300.0,
-            1100.0,
-            1000.0,
-        ]  # We only exclude the oldest spec (1200.0 duration)
-
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+            config = get_metric_extraction_config(default_project)
+
+            assert config
+            assert len(config["metrics"]) == 8  # 4 * 2 spec versions
+
+            duration_conditions = [spec["condition"]["value"] for spec in config["metrics"]]  # type: ignore
+
+            assert duration_conditions == [
+                1400.0,
+                1300.0,
+                1100.0,
+                1000.0,
+                1400.0,
+                1300.0,
+                1100.0,
+                1000.0,
+            ]  # We only exclude the oldest spec (1200.0 duration)
+
             assert capture_exception.call_count == 2
             exception = capture_exception.call_args.args[0]
             assert (
                 exception.args[0]
-                == "Spec version 1: Too many (5) on demand metric widgets for org baz"
+                == "Spec version 2: Too many (5) on demand metric widgets for org baz"
             )
 
         # Check that state was correctly updated.
         on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
         assert [entry.extraction_state for entry in on_demand_entries] == [
-            "disabled:spec-limit"
+            "disabled:spec-limit",
+            "disabled:spec-limit",
         ]  # Only see the one entry disabled
 
 

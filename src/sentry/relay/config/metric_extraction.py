@@ -182,7 +182,7 @@ def _get_alert_metric_specs(
                     specs.append(spec)
 
     max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
-    (specs,) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
+    (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
 
     return specs
 
@@ -316,20 +316,20 @@ def _trim_if_above_limit(
 
 def _update_state_with_spec_limit(
     trimmed_specs: Sequence[HashedMetricSpec],
-    widget_query_for_spec_hash: dict[HashedMetricSpec, DashboardWidgetQuery],
+    widget_query_for_spec_hash: dict[str, DashboardWidgetQuery],
 ) -> None:
     """We don't want to picked randomly last-visited widgets to exclude for specs, since we ideally want the extracted specs to be stable.
     This sets the extracted state to disabled for specs over the limit. With stateful extraction that means that we will pick a consistent set of specs
     under the limit and not have churn.
     """
 
-    widget_queries: dict[int, set()] = {}
+    widget_queries: dict[int, set] = {}
 
     for spec in trimmed_specs:
-        spec_hash, spec_version, _ = spec
+        spec_hash, _, spec_version = spec
         widget_query = widget_query_for_spec_hash[spec_hash]
         if widget_query:
-            widget_queries.setdefault(spec_version.version, [])
+            widget_queries.setdefault(spec_version.version, set())
             widget_queries[spec_version.version].add(widget_query)
 
     for (version, widget_query_set) in widget_queries.items():
