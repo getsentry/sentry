@@ -1543,18 +1543,9 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
         create_widget(["count()"], "user.name:Armén", default_project)
         create_widget(["count()"], "user.name:Kevan", default_project, title="Dashboard Foo")
         config = get_metric_extraction_config(default_project)
+
         assert config
         assert config["metrics"] == [
-            {
-                "category": "transaction",
-                "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Armén"},
-                "field": None,
-                "mri": "c:transactions/on_demand@none",
-                "tags": [
-                    {"key": "query_hash", "value": "d3e07bdf"},
-                    {"key": "environment", "field": "event.environment"},
-                ],
-            },
             {
                 "category": "transaction",
                 "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Kevan"},
@@ -1571,7 +1562,7 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
                 "field": None,
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
-                    {"key": "query_hash", "value": "c57cc340"},
+                    {"key": "query_hash", "value": "d3e07bdf"},
                     {"key": "environment", "field": "event.environment"},
                 ],
             },
@@ -1582,6 +1573,16 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
                 "mri": "c:transactions/on_demand@none",
                 "tags": [
                     {"key": "query_hash", "value": "762b5dae"},
+                    {"key": "environment", "field": "event.environment"},
+                ],
+            },
+            {
+                "category": "transaction",
+                "condition": {"name": "event.tags.user.name", "op": "eq", "value": "Armén"},
+                "field": None,
+                "mri": "c:transactions/on_demand@none",
+                "tags": [
+                    {"key": "query_hash", "value": "c57cc340"},
                     {"key": "environment", "field": "event.environment"},
                 ],
             },
