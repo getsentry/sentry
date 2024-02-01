@@ -56,7 +56,7 @@ def is_in_test_case_body() -> bool:
     underscore-prefixed method names being used in a stable way.
 
     Are you landing here because test cases regressed mysteriously after a Pytest
-    upgrade? Check the list of frames and add tweak the condition logic to make this
+    upgrade? Check the list of frames and tweak the condition logic to make this
     function return false as needed. The case `test_is_in_test_case_body` should
     ensure that you aren't making `validate_transaction_using_for_silo_mode` too
     permissive.
