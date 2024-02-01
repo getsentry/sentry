@@ -22,7 +22,8 @@ const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
 
-const mockEventTimestampMs = new Date('2022-09-22T16:59:41Z').getTime();
+const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
+const mockEventTimestampMs = mockEventTimestamp.getTime();
 
 const mockButtonHref = `/organizations/${mockOrgSlug}/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=57&t_main=errors`;
 
@@ -102,7 +103,19 @@ jest.mock('screenfull', () => ({
 describe('ReplayClipPreview', () => {
   beforeEach(() => {
     mockIsFullscreen.mockReturnValue(false);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry-emerging-tech/projects/',
+      body: [],
+    });
   });
+
+  const defaultProps = {
+    analyticsContext: '',
+    orgSlug: mockOrgSlug,
+    replaySlug: mockReplaySlug,
+    eventTimestampMs: mockEventTimestampMs,
+  };
 
   it('Should render a placeholder when is fetching the replay data', () => {
     // Change the mocked hook to return a loading state
@@ -120,13 +133,7 @@ describe('ReplayClipPreview', () => {
       };
     });
 
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
   });
@@ -147,25 +154,13 @@ describe('ReplayClipPreview', () => {
       };
     });
 
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-error')).toBeVisible();
   });
 
   it('Should have the correct time range', () => {
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     // Should be two sliders, one for the scrubber and one for timeline
     const sliders = screen.getAllByRole('slider', {name: 'Seek slider'});
@@ -179,13 +174,7 @@ describe('ReplayClipPreview', () => {
   });
 
   it('Should link to the full replay correctly', () => {
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByRole('button', {name: 'See Full Replay'})).toHaveAttribute(
       'href',
@@ -196,13 +185,7 @@ describe('ReplayClipPreview', () => {
   it('Display URL and breadcrumbs in fullscreen mode', async () => {
     mockIsFullscreen.mockReturnValue(true);
 
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     // Should have URL bar
     expect(screen.getByRole('textbox', {name: 'Current URL'})).toHaveValue(

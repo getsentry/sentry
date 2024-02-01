@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Generator, Optional, Sequence
+from typing import Any, Generator, Sequence
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.client import SlackClient
-from sentry.integrations.slack.message_builder.issues import build_group_attachment
+from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.utils import get_channel_id
 from sentry.models.integrations.integration import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
@@ -48,7 +48,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             }
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
@@ -67,14 +67,14 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 integration, self.project.organization
             )
             if features.has("organizations:slack-block-kit", event.group.project.organization):
-                blocks = build_group_attachment(
-                    event.group,
+                blocks = SlackIssuesMessageBuilder(
+                    group=event.group,
                     event=event,
                     tags=tags,
                     rules=rules,
-                    notification_uuid=notification_uuid,
                     notes=self.get_option("notes", ""),
-                )
+                ).build(notification_uuid=notification_uuid)
+
                 if additional_attachment:
                     for block in additional_attachment:
                         blocks["blocks"].append(block)
@@ -89,13 +89,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     }
             else:
                 attachments = [
-                    build_group_attachment(
-                        event.group,
+                    SlackIssuesMessageBuilder(
+                        group=event.group,
                         event=event,
                         tags=tags,
                         rules=rules,
-                        notification_uuid=notification_uuid,
-                    )
+                    ).build(notification_uuid=notification_uuid)
                 ]
                 # getsentry might add a billing related attachment
                 if additional_attachment:

@@ -1,6 +1,6 @@
 from copy import deepcopy
 from datetime import datetime
-from typing import Collection, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Collection, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 
@@ -71,7 +71,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_release_adoption(
         self,
-        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
+        project_releases: Sequence[tuple[ProjectId, ReleaseName]],
         environments: Optional[Sequence[EnvironmentName]] = None,
         now: Optional[datetime] = None,
         org_id: Optional[OrganizationId] = None,
@@ -126,7 +126,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         self,
         projects_list: Collection[ProjectOrRelease],
         now: Optional[datetime] = None,
-    ) -> Set[ProjectOrRelease]:
+    ) -> set[ProjectOrRelease]:
         return _check_has_health_data(projects_list, now=now)
 
     def check_releases_have_health_data(
@@ -136,7 +136,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         release_versions: Sequence[ReleaseName],
         start: datetime,
         end: datetime,
-    ) -> Set[ReleaseName]:
+    ) -> set[ReleaseName]:
         return _check_releases_have_health_data(
             organization_id,
             project_ids,

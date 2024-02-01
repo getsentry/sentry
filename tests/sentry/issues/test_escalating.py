@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, List, Optional
+from typing import Any
 from unittest import mock
 from unittest.mock import patch
 from uuid import uuid4
@@ -38,7 +38,7 @@ TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 class BaseGroupCounts(BaseMetricsTestCase, TestCase):
     def _create_events_for_group(
         self,
-        project_id: Optional[int] = None,
+        project_id: int | None = None,
         count: int = 1,
         hours_ago: int = 0,
         min_ago: int = 0,
@@ -259,7 +259,7 @@ def test_datetime_number_of_days() -> None:
 
 class DailyGroupCountsEscalating(BaseGroupCounts):
     def save_mock_escalating_group_forecast(
-        self, group: Group, forecast_values=List[int], date_added=datetime
+        self, group: Group, forecast_values=list[int], date_added=datetime
     ) -> None:
         """Save mock data for escalating group forecast in nodestore"""
         escalating_forecast = EscalatingGroupForecast(

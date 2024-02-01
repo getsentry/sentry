@@ -6,17 +6,7 @@ import string
 from copy import deepcopy
 from datetime import datetime, timezone
 from hashlib import md5
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generator,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Generator, Mapping, MutableMapping, Optional, Sequence, cast
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -132,7 +122,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return self.datetime.isoformat()
 
     @property
-    def tags(self) -> Sequence[Tuple[str, str]]:
+    def tags(self) -> Sequence[tuple[str, str]]:
         """
         Tags property uses tags from snuba if loaded otherwise falls back to
         nodestore.
@@ -160,22 +150,22 @@ class BaseEvent(metaclass=abc.ABCMeta):
             # vs ((tag, foo), (tag, bar))
             return []
 
-    def get_tag(self, key: str) -> Optional[str]:
+    def get_tag(self, key: str) -> str | None:
         for t, v in self.tags:
             if t == key:
                 return v
         return None
 
     @property
-    def release(self) -> Optional[str]:
+    def release(self) -> str | None:
         return self.get_tag("sentry:release")
 
     @property
-    def dist(self) -> Optional[str]:
+    def dist(self) -> str | None:
         return self.get_tag("sentry:dist")
 
     @property
-    def transaction(self) -> Optional[str]:
+    def transaction(self) -> str | None:
         return self.get_tag("transaction")
 
     def get_environment(self) -> Environment:
@@ -761,7 +751,7 @@ class GroupEvent(BaseEvent):
         return group_event
 
     @property
-    def occurrence(self) -> Optional[IssueOccurrence]:
+    def occurrence(self) -> IssueOccurrence | None:
         if not self._occurrence and self.occurrence_id:
             self._occurrence = IssueOccurrence.fetch(self.occurrence_id, self.project_id)
             if self._occurrence is None:
@@ -777,7 +767,7 @@ class GroupEvent(BaseEvent):
         self._occurrence = value
 
     @property
-    def occurrence_id(self) -> Optional[str]:
+    def occurrence_id(self) -> str | None:
         if self._occurrence:
             return self.occurrence.id
 

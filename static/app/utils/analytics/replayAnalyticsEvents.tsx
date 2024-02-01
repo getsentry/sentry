@@ -26,7 +26,6 @@ export type ReplayEventParameters = {
     chosen_layout: LayoutKey;
     default_layout: LayoutKey;
   };
-  'replay.details-mask-banner-link-clicked': {};
   'replay.details-network-panel-closed': {
     is_sdk_setup: boolean;
   };
@@ -78,6 +77,7 @@ export type ReplayEventParameters = {
   };
   'replay.list-view-setup-sidebar': {};
   'replay.play-pause': {
+    context: string;
     play: boolean;
     user_email: string;
   };
@@ -94,6 +94,7 @@ export type ReplayEventParameters = {
   };
   'replay.render-player': {
     aspect_ratio: 'portrait' | 'landscape';
+    context: string;
     // What scale is the video as a percent, bucketed into ranges of 10% increments
     // example:
     //  - The video is shown at 25% the normal size
@@ -105,6 +106,7 @@ export type ReplayEventParameters = {
     search_keys: string;
   };
   'replay.toggle-fullscreen': {
+    context: string;
     fullscreen: boolean;
     user_email: string;
   };
@@ -118,7 +120,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-has-hydration-error': 'Replay Details Has Hydration Error',
   'replay.details-layout-changed': 'Changed Replay Details Layout',
-  'replay.details-mask-banner-link-clicked': 'Clicked Replay Details Masking Banner Link',
   'replay.details-network-panel-closed': 'Closed Replay Network Details Panel',
   'replay.details-network-panel-opened': 'Opened Replay Network Details Panel',
   'replay.details-network-tab-changed': 'Changed Replay Network Details Tab',

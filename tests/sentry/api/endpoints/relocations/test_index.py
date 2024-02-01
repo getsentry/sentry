@@ -1,7 +1,6 @@
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Tuple
 from unittest.mock import Mock, call, patch
 from uuid import UUID
 
@@ -267,7 +266,7 @@ class PostRelocationsTest(APITestCase):
             "superuser", is_superuser=True, is_staff=True, is_active=True
         )
 
-    def tmp_keys(self, tmp_dir: str) -> Tuple[Path, Path]:
+    def tmp_keys(self, tmp_dir: str) -> tuple[Path, Path]:
         (priv_key_pem, pub_key_pem) = generate_rsa_key_pair()
         tmp_priv_key_path = Path(tmp_dir).joinpath("key")
         with open(tmp_priv_key_path, "wb") as f:

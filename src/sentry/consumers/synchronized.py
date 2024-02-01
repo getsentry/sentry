@@ -11,7 +11,6 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
-    Set,
     TypeVar,
 )
 
@@ -39,12 +38,9 @@ class Synchronized(Generic[T]):
     (replacing) the value.
     """
 
-    def __init__(self, value: T, lock: Optional[Lock] = None) -> None:
-        if lock is None:
-            lock = Lock()
-
+    def __init__(self, value: T) -> None:
         self.__value = value
-        self.__lock = lock
+        self.__lock = Lock()
 
     # TODO: For future use, it might make sense to expose the other lock
     # arguments on `get` and `set`, such as `timeout`, `block`, etc.
@@ -94,7 +90,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
         consumer: Consumer[TStrategyPayload],
         commit_log_consumer: Consumer[KafkaPayload],
         commit_log_topic: Topic,
-        commit_log_groups: Set[str],
+        commit_log_groups: set[str],
     ) -> None:
         self.__consumer = consumer
 
@@ -122,7 +118,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
         # The set of partitions that have been paused by the caller/user. This
         # takes precedence over whether or not the partition should be paused
         # due to offset synchronization.
-        self.__paused: Set[Partition] = set()
+        self.__paused: set[Partition] = set()
 
     def __run_commit_log_worker(self) -> None:
         # TODO: This needs to roll back to the initial offset.

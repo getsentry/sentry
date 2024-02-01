@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from hashlib import sha1
-from typing import Any, Dict, Mapping
+from typing import Any, Mapping
 
 import sentry_sdk
 from django.dispatch import receiver
@@ -88,7 +88,7 @@ def process_async_webhooks(
         sentry_sdk.capture_exception(Exception("Called process_async_webhooks in REGION mode"))
         return
 
-    logging_context: Dict[str, str | int] = {
+    logging_context: dict[str, str | int] = {
         "outbox_message_object_id": object_identifier,
         "shard_id": shard_identifier,
     }
@@ -109,9 +109,13 @@ def process_async_webhooks(
             "integration_proxy.control.process_async_webhooks",
             tags={"destination_region": region.name},
         ):
+            request_prefix_hash = sha1(
+                f"{shard_identifier}{object_identifier}".encode()
+            ).hexdigest()
             logging_context["region"] = region.name
             logging_context["request_method"] = webhook_payload.method
             logging_context["proxy_path"] = webhook_payload.path
+            logging_context["request_hash"] = request_prefix_hash
 
             logger.info(
                 "integration_proxy.issuing_proxy_request",
@@ -125,7 +129,7 @@ def process_async_webhooks(
                 # We need to send the body as raw bytes to avoid interfering with webhook signatures
                 data=webhook_payload.body.encode("utf-8"),
                 json=False,
-                prefix_hash=sha1(f"{shard_identifier}{object_identifier}".encode()).hexdigest(),
+                prefix_hash=request_prefix_hash,
             )
         logger.info(
             "webhook_proxy.complete",
