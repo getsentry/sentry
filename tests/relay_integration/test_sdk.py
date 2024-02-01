@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 from django.test.utils import override_settings
-from sentry_sdk import Hub, push_scope
+from sentry_sdk import Scope, push_scope
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
@@ -32,36 +32,21 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
     settings.SENTRY_PROJECT = 1
 
     configure_sdk()
-    hub = Hub.current  # XXX: Hub.current gets reset, this is a workaround
 
-    def bind_client(self, new, *, _orig=Hub.bind_client):
-        if new is None:
-            import sys
-            import traceback
+    wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
 
-            print("!!! Hub client was reset to None !!!", file=sys.stderr)  # noqa: S002
-            traceback.print_stack()
-            print("!!!", file=sys.stderr)  # noqa: S002
+    def inner(*args, **kwargs):
+        scope = Scope.get_current_scope()
 
-        return _orig(self, new)
+        event_id = scope.capture_event(*args, **kwargs)
+        scope.client.flush()
 
-    # XXX: trying to figure out why it gets reset
-    with mock.patch.object(Hub, "bind_client", bind_client):
-        wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
+        with push_scope():
+            return wait_for_ingest_consumer(
+                lambda: eventstore.get_event_by_id(settings.SENTRY_PROJECT, event_id)
+            )
 
-        def inner(*args, **kwargs):
-            assert Hub.current.client is not None
-
-            event_id = hub.capture_event(*args, **kwargs)
-            assert hub.client is not None
-            hub.client.flush()
-
-            with push_scope():
-                return wait_for_ingest_consumer(
-                    lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
-                )
-
-        yield inner
+    return inner
 
 
 @no_silo_test
@@ -117,9 +102,10 @@ def test_bind_organization_context(default_organization):
 
     bind_organization_context(default_organization)
 
-    assert Hub.current.scope._tags["organization"] == default_organization.id
-    assert Hub.current.scope._tags["organization.slug"] == default_organization.slug
-    assert Hub.current.scope._contexts["organization"] == {
+    scope = Scope.get_current_scope()
+    assert scope._tags["organization"] == default_organization.id
+    assert scope._tags["organization.slug"] == default_organization.slug
+    assert scope._contexts["organization"] == {
         "id": default_organization.id,
         "slug": default_organization.slug,
     }
@@ -138,7 +124,7 @@ def test_bind_organization_context_with_callback(settings, default_organization)
     settings.SENTRY_ORGANIZATION_CONTEXT_HELPER = add_context
     bind_organization_context(default_organization)
 
-    assert Hub.current.scope._tags["organization.test"] == "1"
+    assert Scope.get_current_scope()._tags["organization.test"] == "1"
 
 
 @no_silo_test
@@ -153,4 +139,4 @@ def test_bind_organization_context_with_callback_error(settings, default_organiz
     settings.SENTRY_ORGANIZATION_CONTEXT_HELPER = add_context
     bind_organization_context(default_organization)
 
-    assert Hub.current.scope._tags["organization"] == default_organization.id
+    assert Scope.get_current_scope()._tags["organization"] == default_organization.id
