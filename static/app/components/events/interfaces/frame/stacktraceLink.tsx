@@ -360,10 +360,9 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             href={frame.sourceLink}
             openInNewTab
             hasInFrameFeature={hasInFrameFeature}
+            aria-label={t('GitHub')}
           >
-            <StyledIconWrapper aria-label={t('GitHub')}>
-              {getIntegrationIcon('github', 'sm')}
-            </StyledIconWrapper>
+            <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
           </OpenInLink>
         </Tooltip>
       </StacktraceLinkWrapper>
