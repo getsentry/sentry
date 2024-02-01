@@ -46,6 +46,8 @@ describe('getContext', () => {
   });
 });
 
+import type {FixedTuple} from 'sentry/types/utils';
+
 describe('upperBound', () => {
   it.each([
     [[], 5, 0],
@@ -63,7 +65,12 @@ describe('upperBound', () => {
   });
 
   it('finds the upper bound frame outside of view', () => {
-    const frames = new Array(10).fill(1).map((_, i) => ({start: i, end: i + 1}));
+    const frames = new Array(10)
+      .fill(1)
+      .map((_, i) => ({start: i, end: i + 1})) as FixedTuple<
+      {end: number; start: number},
+      10
+    >;
     const view = new Rect(4, 0, 2, 0);
 
     expect(upperBound(view.right, frames)).toBe(6);
@@ -89,7 +96,12 @@ describe('lowerBound', () => {
   });
 
   it('finds the lower bound frame outside of view', () => {
-    const frames = new Array(10).fill(1).map((_, i) => ({start: i, end: i + 1}));
+    const frames = new Array(10)
+      .fill(1)
+      .map((_, i) => ({start: i, end: i + 1})) as FixedTuple<
+      {end: number; start: number},
+      10
+    >;
     const view = new Rect(4, 0, 2, 0);
 
     expect(lowerBound(view.left, frames)).toBe(3);
