@@ -22,7 +22,6 @@ import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
 import {StarfishPageFiltersContainer} from 'sentry/views/starfish/components/starfishPageFiltersContainer';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {
   MobileCursors,
@@ -90,9 +89,6 @@ function ScreenLoadSpans() {
     spanDescription,
   } = location.query;
 
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 10);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 10);
-
   return (
     <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
       <Layout.Page>
@@ -140,22 +136,22 @@ function ScreenLoadSpans() {
                       {
                         type: 'duration',
                         dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                        title: t('TTID (%s)', truncatedPrimary),
+                        title: t('TTID (R1)'),
                       },
                       {
                         type: 'duration',
                         dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                        title: t('TTID (%s)', truncatedSecondary),
+                        title: t('TTID (R2)'),
                       },
                       {
                         type: 'duration',
                         dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-                        title: t('TTFD (%s)', truncatedPrimary),
+                        title: t('TTFD (R1)'),
                       },
                       {
                         type: 'duration',
                         dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                        title: t('TTFD (%s)', truncatedSecondary),
+                        title: t('TTFD (R2)'),
                       },
                       {
                         type: 'count',

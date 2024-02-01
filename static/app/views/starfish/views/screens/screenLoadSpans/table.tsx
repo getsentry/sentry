@@ -30,7 +30,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -66,8 +65,6 @@ export function ScreenLoadSpansTable({
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
   const {hasTTFD, isLoading: hasTTFDLoading} = useTTFDConfigured([
     `transaction:"${transaction}"`,
   ]);
@@ -152,14 +149,8 @@ export function ScreenLoadSpansTable({
     'count()': t('Total Count'),
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
     'time_spent_percentage()': t('Total Time Spent'),
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
-      'Duration (%s)',
-      truncatedPrimary
-    ),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
-      'Duration (%s)',
-      truncatedSecondary
-    ),
+    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t('Duration (R1)'),
+    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t('Duration (R2)'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
