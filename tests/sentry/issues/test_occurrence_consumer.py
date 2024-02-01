@@ -417,3 +417,9 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message["initial_issue_priority"] = None
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+
+    def test_priority_overrides_defaults(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["initial_issue_priority"] = PriorityLevel.HIGH
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.HIGH
