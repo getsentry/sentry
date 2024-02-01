@@ -129,11 +129,11 @@ export function useFocusArea({
   }, [onRemove]);
 
   const handleZoomIn = useCallback(() => {
+    handleRemove();
     onZoom?.({
       period: null,
       ...selection?.range,
     });
-    handleRemove();
   }, [selection, handleRemove, onZoom]);
 
   const brushOptions = useMemo(() => {
@@ -199,19 +199,20 @@ function BrushRectOverlay({
   useFullYAxis,
   chartRef,
 }: BrushRectOverlayProps) {
-  const chartInstance = chartRef.current?.getEchartsInstance();
   const [position, setPosition] = useState<AbsolutePosition | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useResizeObserver({
     ref: wrapperRef,
     onResize: () => {
+      const chartInstance = chartRef.current?.getEchartsInstance();
       chartInstance?.resize();
       updatePosition();
     },
   });
 
   const updatePosition = useCallback(() => {
+    const chartInstance = chartRef.current?.getEchartsInstance();
     if (!rect || !chartInstance) {
       return;
     }
@@ -252,7 +253,7 @@ function BrushRectOverlay({
     if (!isEqual(newPosition, position)) {
       setPosition(newPosition);
     }
-  }, [rect, chartInstance, position, useFullYAxis]);
+  }, [chartRef, rect, useFullYAxis, position]);
 
   useEffect(() => {
     updatePosition();

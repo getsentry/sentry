@@ -7,7 +7,7 @@ __all__ = (
 )
 
 from enum import Enum
-from typing import Dict, Optional, Tuple, Union, cast
+from typing import Optional, Union, cast
 
 from sentry.exceptions import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import (
@@ -52,8 +52,8 @@ def create_name_mapping_layers() -> None:
     MRI_TO_NAME.update({v.value: k for k, v in NAME_TO_MRI.items()})
 
 
-NAME_TO_MRI: Dict[str, Enum] = {}
-MRI_TO_NAME: Dict[str, str] = {}
+NAME_TO_MRI: dict[str, Enum] = {}
+MRI_TO_NAME: dict[str, str] = {}
 
 
 def get_mri(external_name: Union[Enum, str]) -> str:
@@ -125,7 +125,7 @@ def get_operation_with_public_name(operation: Optional[str], metric_mri: str) ->
     )
 
 
-def parse_expression(name: str) -> Tuple[Optional[str], str]:
+def parse_expression(name: str) -> tuple[Optional[str], str]:
     matches = MRI_EXPRESSION_REGEX.match(name)
     if matches:
         # operation, metric_mri

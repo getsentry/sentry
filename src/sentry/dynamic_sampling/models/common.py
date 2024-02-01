@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 import sentry_sdk
 
@@ -14,7 +14,7 @@ class RebalancedItem:
     new_sample_rate: float = 0.0
 
 
-def sum_classes_counts(classes: List[RebalancedItem]) -> float:
+def sum_classes_counts(classes: list[RebalancedItem]) -> float:
     ret_val = 0.0
 
     for elm in classes:

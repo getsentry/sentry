@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sentry_sdk
+
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 
 """
@@ -24,7 +26,7 @@ from copy import copy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from operator import itemgetter
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
+from typing import Any, Mapping, Sequence, cast
 
 from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
@@ -102,9 +104,9 @@ def _get_metrics_for_entity(
     project_ids: Sequence[int],
     org_id: int,
     use_case_id: UseCaseID,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
-) -> List[SnubaDataType]:
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> list[SnubaDataType]:
     return run_metrics_query(
         entity_key=entity_key,
         select=[Column("metric_id")],
@@ -124,9 +126,9 @@ def _get_metrics_by_project_for_entity(
     project_ids: Sequence[int],
     org_id: int,
     use_case_id: UseCaseID,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
-) -> List[SnubaDataType]:
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> list[SnubaDataType]:
     return run_metrics_query(
         entity_key=entity_key,
         select=[Column("project_id"), Column("metric_id")],
@@ -143,9 +145,9 @@ def _get_metrics_by_project_for_entity(
 
 def get_available_derived_metrics(
     projects: Sequence[Project],
-    supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
+    supported_metric_ids_in_entities: dict[MetricType, Sequence[int]],
     use_case_id: UseCaseID,
-) -> Set[str]:
+) -> set[str]:
     """
     Function that takes as input a dictionary of the available ids in each entity, and in turn
     goes through each derived metric, and returns back the set of the derived metrics that have
@@ -194,7 +196,7 @@ def get_available_derived_metrics(
 
 def get_metrics_blocking_state_of_projects(
     projects: Sequence[Project], use_case_id: UseCaseID
-) -> Dict[str, Sequence[Tuple[bool, Sequence[str], int]]]:
+) -> dict[str, Sequence[tuple[bool, Sequence[str], int]]]:
     # Blocked metrics are only supported for custom metrics.
     if use_case_id != UseCaseID.CUSTOM:
         return {}
@@ -236,6 +238,7 @@ def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Seq
     for metric_mri, project_ids in stored_metrics.items():
         parsed_mri = parse_mri(metric_mri)
         if parsed_mri is None:
+            sentry_sdk.capture_message(f"Invalid metric MRI {metric_mri} detected")
             continue
 
         blocking_status = []
@@ -326,8 +329,8 @@ def get_stored_metrics_of_projects(
 def get_custom_measurements(
     project_ids: Sequence[int],
     organization_id: int,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
 ) -> Sequence[MetricMeta]:
     assert project_ids
@@ -368,7 +371,7 @@ def get_custom_measurements(
 
 def _get_metrics_filter_ids(
     projects: Sequence[Project], metric_mris: Sequence[str], use_case_id: UseCaseID
-) -> Set[int]:
+) -> set[int]:
     """
     Returns a set of metric_ids that map to input metric names and raises an exception if
     metric cannot be resolved in the indexer
@@ -405,7 +408,7 @@ def _get_metrics_filter_ids(
 def _validate_requested_derived_metrics_in_input_metrics(
     projects: Sequence[Project],
     metric_mris: Sequence[str],
-    supported_metric_ids_in_entities: Dict[MetricType, Sequence[int]],
+    supported_metric_ids_in_entities: dict[MetricType, Sequence[int]],
     use_case_id: UseCaseID,
 ) -> None:
     """
@@ -432,11 +435,11 @@ def _validate_requested_derived_metrics_in_input_metrics(
 
 def _fetch_tags_or_values_for_metrics(
     projects: Sequence[Project],
-    metric_names: Optional[Sequence[str]],
+    metric_names: Sequence[str] | None,
     referrer: str,
     column: str,
     use_case_id: UseCaseID,
-) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
+) -> tuple[Sequence[Tag] | Sequence[TagValue], str | None]:
     metric_mris = []
 
     # For now this function supports all MRIs but only the usage of public names for static MRIs. In case
@@ -453,11 +456,11 @@ def _fetch_tags_or_values_for_metrics(
 
 def _fetch_tags_or_values_for_mri(
     projects: Sequence[Project],
-    metric_mris: Optional[Sequence[str]],
+    metric_mris: Sequence[str] | None,
     referrer: str,
     column: str,
     use_case_id: UseCaseID,
-) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
+) -> tuple[Sequence[Tag] | Sequence[TagValue], str | None]:
     """
     Function that takes as input projects, metric_mris, and a column, and based on the column
     selection, either returns tags or tag values for the combination of projects and metric_names
@@ -525,7 +528,7 @@ def _fetch_tags_or_values_for_mri(
         raise InvalidParams(error_str)
 
     tag_or_value_id_lists = tag_or_value_ids_per_metric_id.values()
-    tag_or_value_ids: Set[Union[int, str, None]]
+    tag_or_value_ids: set[int | str | None]
     if metric_mris:
         # If there are metric_ids that map to the metric_names provided as an arg that were not
         # found in the dataset, then we raise an instance of InvalidParams exception
@@ -619,7 +622,7 @@ def get_single_metric_info(
 
 
 def get_all_tags(
-    projects: Sequence[Project], metric_names: Optional[Sequence[str]], use_case_id: UseCaseID
+    projects: Sequence[Project], metric_names: Sequence[str] | None, use_case_id: UseCaseID
 ) -> Sequence[Tag]:
     """Get all metric tags for the given projects and metric_names."""
     assert projects
@@ -641,7 +644,7 @@ def get_all_tags(
 def get_tag_values(
     projects: Sequence[Project],
     tag_name: str,
-    metric_names: Optional[Sequence[str]],
+    metric_names: Sequence[str] | None,
     use_case_id: UseCaseID,
 ) -> Sequence[TagValue]:
     """Get all known values for a specific tag for the given projects and metric_names."""
@@ -694,20 +697,20 @@ class GroupLimitFilters:
       queries by.
     """
 
-    keys: Tuple[Groupable]
-    aliased_keys: Tuple[str]
-    values: List[Tuple[int]]
+    keys: tuple[Groupable]
+    aliased_keys: tuple[str]
+    values: list[tuple[int]]
     conditions: ConditionGroup
 
 
 def _get_group_limit_filters(
-    metrics_query: MetricsQuery, results: List[Mapping[str, int]], use_case_id: UseCaseID
-) -> Optional[GroupLimitFilters]:
+    metrics_query: MetricsQuery, results: list[Mapping[str, int]], use_case_id: UseCaseID
+) -> GroupLimitFilters | None:
     if not metrics_query.groupby or not results:
         return None
 
     # Creates a mapping of groupBy fields to their equivalent SnQL
-    key_to_condition_dict: Dict[Groupable, Any] = {}
+    key_to_condition_dict: dict[Groupable, Any] = {}
     for metric_groupby_obj in metrics_query.groupby:
         key_to_condition_dict[
             metric_groupby_obj.name
@@ -719,7 +722,7 @@ def _get_group_limit_filters(
             is_column=True,
         )
 
-    aliased_group_keys: Tuple[str] = tuple(
+    aliased_group_keys: tuple[str] = tuple(
         metric_groupby_obj.alias
         for metric_groupby_obj in metrics_query.groupby
         if metric_groupby_obj.alias is not None
@@ -780,8 +783,8 @@ def _apply_group_limit_filters(query: Query, filters: GroupLimitFilters) -> Quer
 
 
 def _sort_results_by_group_filters(
-    results: List[Mapping[str, Any]], filters: GroupLimitFilters
-) -> List[Mapping[str, Any]]:
+    results: list[Mapping[str, Any]], filters: GroupLimitFilters
+) -> list[Mapping[str, Any]]:
     # Create a dictionary that has keys representing the ordered by tuples from the
     # initial query, so that we are able to order it easily in the next code block
     # If for example, we are grouping by (project_id, transaction) -> then this

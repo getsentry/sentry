@@ -1,5 +1,5 @@
 import hashlib
-from typing import Mapping, Set
+from typing import Mapping
 
 from django.conf import settings
 
@@ -21,7 +21,7 @@ class Sha1Indexer(StringIndexer):
         super().__init__()
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         keys = UseCaseKeyCollection(strings)
         res = UseCaseKeyResults()

@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List, Optional, Set, Tuple
+from typing import Optional
 
 from django.db import router, transaction
 
@@ -123,7 +123,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
 
     @staticmethod
     def _get_slug_reservation_by_type_from_list(
-        org_slug_reservations: List[OrganizationSlugReservation],
+        org_slug_reservations: list[OrganizationSlugReservation],
         reservation_type: OrganizationSlugReservationType,
     ) -> Optional[OrganizationSlugReservation]:
         return next(
@@ -255,9 +255,9 @@ class DatabaseBackedControlOrganizationProvisioningService(
         return primary_slug
 
     def bulk_create_organization_slug_reservations(
-        self, *, region_name: str, organization_ids_and_slugs: Set[Tuple[int, str]]
+        self, *, region_name: str, organization_ids_and_slugs: set[tuple[int, str]]
     ) -> None:
-        slug_reservations_to_create: List[OrganizationSlugReservation] = []
+        slug_reservations_to_create: list[OrganizationSlugReservation] = []
 
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
             for org_id, slug in organization_ids_and_slugs:

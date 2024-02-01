@@ -1,7 +1,7 @@
 import zipfile
 from datetime import timedelta
 from io import BytesIO
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -98,7 +98,7 @@ class FlatFileTestCase(TestCase):
 
 class FlatFileIndexingTest(FlatFileTestCase):
     def mock_simple_artifact_bundle(self, with_debug_ids: bool = False):
-        manifest: Dict[str, Any] = {
+        manifest: dict[str, Any] = {
             "path/in/zip/foo": {
                 "url": "~/app.js",
                 "type": "minified_source",

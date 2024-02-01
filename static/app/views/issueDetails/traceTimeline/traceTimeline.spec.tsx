@@ -82,4 +82,43 @@ describe('TraceTimeline', () => {
     await userEvent.hover(screen.getByLabelText('Current Event'));
     expect(await screen.findByText('You are here')).toBeInTheDocument();
   });
+
+  it('displays nothing if the only event is the current event', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: discoverBody,
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    render(<TraceTimeline event={event} />, {organization});
+    expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
+  });
+
+  it('displays nothing if there are no events', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    render(<TraceTimeline event={event} />, {organization});
+    expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
+  });
 });

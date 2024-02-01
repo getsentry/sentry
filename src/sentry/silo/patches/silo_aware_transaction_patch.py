@@ -1,6 +1,6 @@
 import re
 import traceback
-from typing import TYPE_CHECKING, Any, Callable, Optional, Type
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from django.db import router, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -24,7 +24,7 @@ class TransactionMissingDBException(Exception):
     pass
 
 
-def _get_db_for_model_if_available(model: Type["Model"]) -> Optional[str]:
+def _get_db_for_model_if_available(model: type["Model"]) -> Optional[str]:
     from sentry.db.router import SiloConnectionUnavailableError
 
     try:

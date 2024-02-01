@@ -1,5 +1,4 @@
 from random import Random
-from typing import List
 
 from django.core.cache import cache
 
@@ -24,7 +23,7 @@ def test_caching_function():
         return user_service.get_many(filter=dict(user_ids=[user_id]))[0]
 
     users = [Factories.create_user() for _ in range(3)]
-    old: List[RpcUser] = []
+    old: list[RpcUser] = []
 
     for u in users:
         next_user = get_user(u.id)

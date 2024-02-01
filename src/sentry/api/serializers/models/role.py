@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from typing_extensions import TypedDict
 
@@ -12,7 +12,7 @@ class BaseRoleSerializerResponse(TypedDict):
     id: str
     name: str
     desc: str
-    scopes: List[str]
+    scopes: list[str]
 
     allowed: bool
     isAllowed: bool
