@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, NotRequired, TypedDict
+from typing import TYPE_CHECKING, TypedDict
+
+from typing_extensions import NotRequired
 
 from sentry import analytics
 from sentry.api.utils import Timer

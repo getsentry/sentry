@@ -1,6 +1,5 @@
 from collections import defaultdict
-from collections.abc import Sequence
-from typing import Any, TypeVar
+from typing import Any, Sequence, TypeVar
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam

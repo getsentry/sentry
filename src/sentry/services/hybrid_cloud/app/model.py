@@ -5,9 +5,8 @@
 
 import datetime
 import hmac
-from collections.abc import Mapping
 from hashlib import sha256
-from typing import Any, Protocol
+from typing import Any, Mapping, Optional, Protocol
 
 from pydantic.fields import Field
 from typing_extensions import TypedDict
@@ -37,14 +36,14 @@ class RpcSentryApp(RpcModel):
     id: int = -1
     scope_list: list[str] = Field(default_factory=list)
     application_id: int = -1
-    application: RpcApiApplication | None = None
-    proxy_user_id: int | None = None  # can be null on deletion.
+    application: Optional[RpcApiApplication] = None
+    proxy_user_id: Optional[int] = None  # can be null on deletion.
     owner_id: int = -1  # relation to an organization
     name: str = ""
     slug: str = ""
     uuid: str = ""
     events: list[str] = Field(default_factory=list)
-    webhook_url: str | None = None
+    webhook_url: Optional[str] = None
     is_alertable: bool = False
     is_published: bool = False
     is_unpublished: bool = False
@@ -80,9 +79,9 @@ class RpcSentryAppInstallation(RpcModel):
     organization_id: int = -1
     status: int = SentryAppInstallationStatus.PENDING
     sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
-    date_deleted: datetime.datetime | None = None
+    date_deleted: Optional[datetime.datetime] = None
     uuid: str = ""
-    api_token: str | None = None
+    api_token: Optional[str] = None
 
 
 class RpcSentryAppComponent(RpcModel):

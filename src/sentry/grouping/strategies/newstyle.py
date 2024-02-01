@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import itertools
 import re
-from collections.abc import Generator
-from typing import Any
+from typing import Any, Generator
 
 import sentry_sdk
 

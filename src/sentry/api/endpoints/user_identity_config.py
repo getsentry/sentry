@@ -1,5 +1,5 @@
 import itertools
-from collections.abc import Iterable
+from typing import Iterable, Optional
 
 from django.db import router, transaction
 from rest_framework import status
@@ -104,7 +104,7 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
     }
 
     @staticmethod
-    def _get_identity(user, category, identity_id) -> UserIdentityConfig | None:
+    def _get_identity(user, category, identity_id) -> Optional[UserIdentityConfig]:
         identity_id = int(identity_id)
 
         # This fetches and iterates over all the user's identities.

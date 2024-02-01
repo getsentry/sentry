@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import Any, Mapping, MutableMapping
 
 from rest_framework.request import Request
 from rest_framework.response import Response

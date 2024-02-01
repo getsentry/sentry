@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
+from typing import Optional
 
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
@@ -27,7 +28,7 @@ class OrganizationMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get(self, *, organization_id: int) -> RpcOrganizationMapping | None:
+    def get(self, *, organization_id: int) -> Optional[RpcOrganizationMapping]:
         pass
 
     @rpc_method

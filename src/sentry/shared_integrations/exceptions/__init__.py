@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import errno
-from collections.abc import Mapping
-from typing import Any, Protocol
+from typing import Any, Mapping, Protocol
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup

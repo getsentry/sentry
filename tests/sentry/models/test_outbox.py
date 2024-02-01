@@ -1,9 +1,8 @@
 import dataclasses
 import functools
 import threading
-from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any, ContextManager
+from typing import Any, Callable, ContextManager
 from unittest.mock import call, patch
 
 import pytest

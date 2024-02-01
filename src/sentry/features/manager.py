@@ -6,8 +6,7 @@ __all__ = ["FeatureManager"]
 
 import abc
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, MutableMapping, MutableSet, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, MutableSet, Sequence
 
 import sentry_sdk
 from django.conf import settings

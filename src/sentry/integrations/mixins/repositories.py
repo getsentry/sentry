@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping, Sequence
-from typing import Any
+from typing import Any, Collection, Mapping, Sequence
 
 import sentry_sdk
 from sentry_sdk import configure_scope

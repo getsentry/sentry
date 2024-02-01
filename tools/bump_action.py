@@ -6,7 +6,7 @@ import os.path
 import re
 import subprocess
 import sys
-from collections.abc import Sequence
+from typing import Sequence
 
 
 def main(argv: Sequence[str] | None = None) -> int:

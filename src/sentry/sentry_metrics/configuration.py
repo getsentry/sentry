@@ -3,10 +3,9 @@
 # sentry.sentry_metrics.configuration` should work.
 #
 # If not, the parallel indexer breaks.
-from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Mapping, MutableMapping, Optional
 
 import sentry_sdk
 
@@ -51,15 +50,15 @@ class MetricsIngestConfiguration:
     input_topic: str
     output_topic: str
     use_case_id: UseCaseKey
-    internal_metrics_tag: str | None
+    internal_metrics_tag: Optional[str]
     writes_limiter_cluster_options: Mapping[str, Any]
     writes_limiter_namespace: str
     cardinality_limiter_cluster_options: Mapping[str, Any]
     cardinality_limiter_namespace: str
 
     should_index_tag_values: bool
-    schema_validation_rule_option_name: str | None = None
-    is_output_sliced: bool | None = False
+    schema_validation_rule_option_name: Optional[str] = None
+    is_output_sliced: Optional[bool] = False
 
 
 _METRICS_INGEST_CONFIG_BY_USE_CASE: MutableMapping[

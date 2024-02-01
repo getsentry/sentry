@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import enum
 import logging
-from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save

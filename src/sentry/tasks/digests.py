@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Optional
 
 from sentry.digests import Record, get_option_key
 from sentry.digests.backends.base import InvalidState
@@ -43,7 +44,7 @@ def schedule_digests():
     queue="digests.delivery",
     silo_mode=SiloMode.REGION,
 )
-def deliver_digest(key, schedule_timestamp=None, notification_uuid: str | None = None):
+def deliver_digest(key, schedule_timestamp=None, notification_uuid: Optional[str] = None):
     from sentry import digests
     from sentry.mail import mail_adapter
 
@@ -91,7 +92,7 @@ def deliver_digest(key, schedule_timestamp=None, notification_uuid: str | None =
             )
 
 
-def get_notification_uuid_from_records(records: list[Record]) -> str | None:
+def get_notification_uuid_from_records(records: list[Record]) -> Optional[str]:
     for record in records:
         try:
             notification_uuid = record.value.notification_uuid

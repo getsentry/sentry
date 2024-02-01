@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import MutableMapping
 from datetime import timezone
-from typing import Any, ClassVar
+from typing import Any, ClassVar, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status

@@ -3,8 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
-from collections.abc import Mapping
-from typing import Any
+from typing import Any, Mapping
 
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt

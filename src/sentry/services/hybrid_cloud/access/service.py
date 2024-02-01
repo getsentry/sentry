@@ -1,5 +1,6 @@
 import abc
 from datetime import timedelta
+from typing import Optional
 
 from django.utils import timezone
 
@@ -20,13 +21,13 @@ _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
 
 class AccessService(abc.ABC):
     @abc.abstractmethod
-    def get_auth_provider(self, organization_id: int) -> RpcAuthProvider | None:
+    def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
         pass
 
     @abc.abstractmethod
     def get_auth_identity_for_user(
         self, auth_provider_id: int, user_id: int
-    ) -> RpcAuthIdentity | None:
+    ) -> Optional[RpcAuthIdentity]:
         pass
 
     @abc.abstractmethod
@@ -67,9 +68,9 @@ class AccessService(abc.ABC):
     def query_sso_state(
         self,
         *,
-        organization_id: int | None,
+        organization_id: Optional[int],
         is_super_user: bool,
-        member: RpcOrganizationMemberSummary | None,
+        member: Optional[RpcOrganizationMemberSummary],
     ) -> RpcMemberSsoState:
         if organization_id is None:
             return _SSO_NONMEMBER
@@ -108,8 +109,8 @@ class AccessService(abc.ABC):
         *,
         user_id: int,
         is_superuser: bool,
-        organization_id: int | None,
-        org_member: RpcOrganizationMemberSummary | None,
+        organization_id: Optional[int],
+        org_member: Optional[RpcOrganizationMemberSummary],
     ) -> RpcAuthState:
         sso_state = self.query_sso_state(
             organization_id=organization_id, is_super_user=is_superuser, member=org_member

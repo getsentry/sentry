@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Iterable, Mapping, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction

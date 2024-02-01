@@ -1,6 +1,5 @@
-from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Optional, TypedDict
+from typing import Any, Optional, Sequence, TypedDict, Union
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path, safe_execute, set_path
@@ -13,7 +12,7 @@ class TreeLabelPart(TypedDict):
     package: str
     is_sentinel: bool
     is_prefix: bool
-    datapath: Sequence[str | int]
+    datapath: Sequence[Union[str, int]]
 
 
 class StrippedTreeLabelPart(TypedDict):
@@ -66,8 +65,8 @@ def _strip_tree_label(tree_label: TreeLabel, truncate: bool = False) -> Stripped
     return rv
 
 
-def _write_tree_labels(tree_labels: Sequence[TreeLabel | None], event_data: NodeData) -> None:
-    event_labels: list[StrippedTreeLabel | None] = []
+def _write_tree_labels(tree_labels: Sequence[Optional[TreeLabel]], event_data: NodeData) -> None:
+    event_labels: list[Optional[StrippedTreeLabel]] = []
     event_data["hierarchical_tree_labels"] = event_labels
 
     for level, tree_label in enumerate(tree_labels):
@@ -98,7 +97,7 @@ def _write_tree_labels(tree_labels: Sequence[TreeLabel | None], event_data: Node
 class CalculatedHashes:
     hashes: Sequence[str]
     hierarchical_hashes: Sequence[str]
-    tree_labels: Sequence[TreeLabel | None]
+    tree_labels: Sequence[Optional[TreeLabel]]
 
     def write_to_event(self, event_data: NodeData) -> None:
         event_data["hashes"] = self.hashes
@@ -121,7 +120,7 @@ class CalculatedHashes:
         return None
 
     @property
-    def finest_tree_label(self) -> StrippedTreeLabel | None:
+    def finest_tree_label(self) -> Optional[StrippedTreeLabel]:
         try:
             tree_label = self.tree_labels[-1]
             # Also do this for event title in discover because people may

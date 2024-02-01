@@ -1,6 +1,5 @@
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Optional, TypedDict
+from typing import Any, Mapping, Optional, Sequence, TypedDict
 
 import sentry_sdk
 
@@ -28,7 +27,7 @@ class MetricOperation:
     block_tags: set[str]
     unblock_tags: set[str]
     # This can be None, since if it is None, it implies that no state change will be applied to the metric.
-    block_metric: bool | None = None
+    block_metric: Optional[bool] = None
 
     def to_metric_blocking(self) -> "MetricBlocking":
         return MetricBlocking(
@@ -124,7 +123,7 @@ class MetricsBlockingState:
         json_payload = json.dumps(metrics_blocking_state_payload)
         project.update_option(METRICS_BLOCKING_STATE_PROJECT_OPTION_KEY, json_payload)
 
-    def apply_metric_operation(self, metric_operation: MetricOperation) -> MetricBlocking | None:
+    def apply_metric_operation(self, metric_operation: MetricOperation) -> Optional[MetricBlocking]:
         metric_mri = metric_operation.metric_mri
         if (existing_metric := self.metrics.get(metric_mri)) is not None:
             metric_blocking = existing_metric.apply(metric_operation)
@@ -217,7 +216,7 @@ def get_metrics_blocking_state(projects: Sequence[Project]) -> Mapping[int, Metr
 
 def get_metrics_blocking_state_for_relay_config(
     project: Project,
-) -> MetricsBlockingStateRelayConfig | None:
+) -> Optional[MetricsBlockingStateRelayConfig]:
     try:
         metrics_blocking_state = get_metrics_blocking_state([project])[project.id]
     except MalformedBlockedMetricsPayloadError as e:

@@ -1,7 +1,6 @@
 import logging
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Mapping, Optional, Sequence
 
 from sentry import digests
 from sentry.digests import Digest
@@ -44,10 +43,10 @@ class MailAdapter:
         event: Any,
         futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
-        target_identifier: str | None = None,
-        fallthrough_choice: FallthroughChoiceType | None = None,
+        target_identifier: Optional[str] = None,
+        fallthrough_choice: Optional[FallthroughChoiceType] = None,
         skip_digests: bool = False,
-        notification_uuid: str | None = None,
+        notification_uuid: Optional[str] = None,
     ) -> None:
         metrics.incr("mail_adapter.rule_notify")
         rules = []
@@ -133,7 +132,7 @@ class MailAdapter:
         target_type,
         target_identifier=None,
         fallthrough_choice=None,
-        notification_uuid: str | None = None,
+        notification_uuid: Optional[str] = None,
         **kwargs,
     ):
         AlertRuleNotification(
@@ -149,9 +148,9 @@ class MailAdapter:
         project: Project,
         digest: Digest,
         target_type: ActionTargetType,
-        target_identifier: int | None = None,
-        fallthrough_choice: FallthroughChoiceType | None = None,
-        notification_uuid: str | None = None,
+        target_identifier: Optional[int] = None,
+        fallthrough_choice: Optional[FallthroughChoiceType] = None,
+        notification_uuid: Optional[str] = None,
     ) -> None:
         metrics.incr("mail_adapter.notify_digest")
         return DigestNotification(

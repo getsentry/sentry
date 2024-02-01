@@ -1,6 +1,5 @@
 import threading
-from collections.abc import Callable
-from typing import Any
+from typing import Any, Callable
 
 from celery.signals import task_failure, task_success
 from django.core.signals import request_finished

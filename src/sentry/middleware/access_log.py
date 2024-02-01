@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
 from django.conf import settings
 from rest_framework.request import Request

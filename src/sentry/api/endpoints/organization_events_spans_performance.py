@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Callable, Sequence
 from datetime import datetime
 from itertools import chain
-from typing import Any
+from typing import Any, Callable, Sequence
 
 import sentry_sdk
 from rest_framework import serializers

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, Sequence
 
 import sentry_kafka_schemas
 from arroyo import Topic

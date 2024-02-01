@@ -3,8 +3,7 @@ from __future__ import annotations
 import contextlib
 import re
 from collections import defaultdict
-from collections.abc import MutableMapping
-from typing import Any
+from typing import Any, MutableMapping
 
 from django.db.transaction import get_connection
 

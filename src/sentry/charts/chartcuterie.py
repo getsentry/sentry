@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Any
+from typing import Any, Optional, Union
 from urllib.parse import urljoin
 from uuid import uuid4
 
@@ -26,7 +26,7 @@ class Chartcuterie(ChartRenderer):
     """
 
     @property
-    def service_url(self) -> str | None:
+    def service_url(self) -> Optional[str]:
         return options.get("chart-rendering.chartcuterie", {}).get("url")
 
     @property
@@ -53,8 +53,8 @@ class Chartcuterie(ChartRenderer):
             raise InvalidConfiguration("`chart-rendering.chartcuterie.url` is not configured")
 
     def generate_chart(
-        self, style: ChartType, data: Any, upload: bool = True, size: ChartSize | None = None
-    ) -> str | bytes:
+        self, style: ChartType, data: Any, upload: bool = True, size: Optional[ChartSize] = None
+    ) -> Union[str, bytes]:
         request_id = uuid4().hex
 
         payload = {

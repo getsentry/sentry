@@ -7,11 +7,10 @@ import os.path
 import random
 import re
 import time
-from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Any, Literal, Union
+from typing import Any, Literal, Mapping, Sequence, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4

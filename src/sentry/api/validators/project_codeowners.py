@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
-from typing import Any
+from typing import Any, Collection, Mapping
 
 from django.db.models import Subquery
 

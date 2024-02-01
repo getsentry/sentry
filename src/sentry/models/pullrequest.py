@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Mapping, Sequence
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models

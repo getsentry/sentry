@@ -3,9 +3,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
-from collections.abc import Callable, Mapping, MutableMapping
 from datetime import timezone
-from typing import Any
+from typing import Any, Callable, Mapping, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction

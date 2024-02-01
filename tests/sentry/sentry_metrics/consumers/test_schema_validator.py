@@ -1,5 +1,4 @@
-from collections.abc import Mapping
-from typing import Any
+from typing import Any, Mapping, Optional
 
 import pytest
 from sentry_kafka_schemas.codecs import Codec, ValidationError
@@ -185,9 +184,9 @@ bad_sample_release_health_message = IngestMetric(
     ],
 )
 def test_metrics_schema_validator(
-    codec: Codec[Any] | None,
-    option_name: str | None,
-    option_value: Mapping | None,
+    codec: Optional[Codec[Any]],
+    option_name: Optional[str],
+    option_value: Optional[Mapping],
     message: IngestMetric,
     use_case_id: str,
     is_valid: bool,

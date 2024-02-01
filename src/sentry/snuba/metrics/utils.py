@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import re
 from abc import ABC
-from collections.abc import Collection, Generator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Literal, TypedDict, overload
+from typing import Collection, Generator, Literal, Mapping, Sequence, TypedDict, overload
 
 from sentry.snuba.dataset import EntityKey
 

@@ -1,7 +1,6 @@
-from collections.abc import Mapping
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 from django.utils import timezone
 
@@ -155,13 +154,13 @@ def fetch_metric_alert_incidents(
 def build_metric_alert_chart(
     organization: Organization,
     alert_rule: AlertRule,
-    selected_incident: Incident | None = None,
-    period: str | None = None,
-    start: str | None = None,
-    end: str | None = None,
+    selected_incident: Optional[Incident] = None,
+    period: Optional[str] = None,
+    start: Optional[str] = None,
+    end: Optional[str] = None,
     user: Optional["User"] = None,
-    size: ChartSize | None = None,
-) -> str | None:
+    size: Optional[ChartSize] = None,
+) -> Optional[str]:
     """Builds the dataset required for metric alert chart the same way the frontend would"""
     snuba_query: SnubaQuery = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)

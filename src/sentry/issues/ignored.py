@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, Sequence, TypedDict
 
 from django.utils import timezone
 

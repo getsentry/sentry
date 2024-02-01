@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Mapping, Sequence
 
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase

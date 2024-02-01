@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Sequence
 
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import Group

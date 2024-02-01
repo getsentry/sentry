@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
+from typing import Optional
 
 from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -35,10 +36,10 @@ class LogService(RpcService):
     def find_last_log(
         self,
         *,
-        organization_id: int | None,
-        target_object_id: int | None,
-        event: int | None,
-    ) -> AuditLogEvent | None:
+        organization_id: Optional[int],
+        target_object_id: Optional[int],
+        event: Optional[int],
+    ) -> Optional[AuditLogEvent]:
         pass
 
 

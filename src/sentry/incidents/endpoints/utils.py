@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sentry.api.helpers.teams import get_teams
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType
 
@@ -21,7 +23,7 @@ threshold_translators = {
 }
 
 
-def translate_threshold(alert_rule: AlertRule, threshold: float | None):
+def translate_threshold(alert_rule: AlertRule, threshold: Optional[float]):
     """
     Translates our internal percent representation into a delta percentage.
     For ABOVE: A percentage like 170% would become 70% increase

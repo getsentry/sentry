@@ -1,8 +1,7 @@
 import abc
 import dataclasses
-from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Union
+from typing import Any, Collection, Mapping, Optional, Sequence, Union
 
 from sentry import eventstream
 from sentry.eventstore.models import Event
@@ -47,7 +46,9 @@ class UnmergeReplacement(abc.ABC):
             raise TypeError("Either fingerprints or replacement argument is required.")
 
     @abc.abstractmethod
-    def get_unmerge_key(self, event: Event, locked_primary_hashes: Collection[str]) -> str | None:
+    def get_unmerge_key(
+        self, event: Event, locked_primary_hashes: Collection[str]
+    ) -> Optional[str]:
         """
         The unmerge task iterates through all events of a group. This function
         should return which of them should land in the new group.
@@ -91,7 +92,9 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
 
     fingerprints: Collection[str]
 
-    def get_unmerge_key(self, event: Event, locked_primary_hashes: Collection[str]) -> str | None:
+    def get_unmerge_key(
+        self, event: Event, locked_primary_hashes: Collection[str]
+    ) -> Optional[str]:
         primary_hash = event.get_primary_hash()
         if primary_hash in self.fingerprints and primary_hash in locked_primary_hashes:
             return _DEFAULT_UNMERGE_KEY
@@ -149,23 +152,23 @@ class UnmergeArgsBase(abc.ABC):
     project_id: int
     source_id: int
     replacement: UnmergeReplacement
-    actor_id: int | None
+    actor_id: Optional[int]
     batch_size: int
 
     @staticmethod
     def parse_arguments(
         project_id: int,
         source_id: int,
-        destination_id: int | None,
+        destination_id: Optional[int],
         fingerprints: Sequence[str],
-        actor_id: int | None,
-        last_event: Mapping[str, Any] | None = None,
+        actor_id: Optional[int],
+        last_event: Optional[Mapping[str, Any]] = None,
         batch_size: int = 500,
         source_fields_reset: bool = False,
-        eventstream_state: EventstreamState | None = None,
-        replacement: UnmergeReplacement | None = None,
-        locked_primary_hashes: Collection[str] | None = None,
-        destinations: Destinations | None = None,
+        eventstream_state: Optional[EventstreamState] = None,
+        replacement: Optional[UnmergeReplacement] = None,
+        locked_primary_hashes: Optional[Collection[str]] = None,
+        destinations: Optional[Destinations] = None,
     ) -> "UnmergeArgs":
         if destinations is None:
             if destination_id is not None:
@@ -217,7 +220,7 @@ class InitialUnmergeArgs(UnmergeArgsBase):
 
 @dataclass(frozen=True)
 class SuccessiveUnmergeArgs(UnmergeArgsBase):
-    last_event: Any | None
+    last_event: Optional[Any]
     locked_primary_hashes: Collection[str]
 
     # unmerge may only start mutating data on a successive page, once it

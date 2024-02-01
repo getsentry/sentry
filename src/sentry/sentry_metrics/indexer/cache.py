@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 import random
-from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
+from typing import Collection, Iterable, Mapping, MutableMapping, Sequence
 
 from django.conf import settings
 from django.core.cache import caches

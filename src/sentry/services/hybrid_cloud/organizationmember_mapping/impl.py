@@ -3,6 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+from typing import Optional
 
 from django.db import IntegrityError, router, transaction
 
@@ -94,7 +95,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         self,
         organization_id: int,
         organizationmember_id: int,
-    ) -> OrganizationMemberMapping | None:
+    ) -> Optional[OrganizationMemberMapping]:
         return OrganizationMemberMapping.objects.filter(
             organization_id=organization_id, organizationmember_id=organizationmember_id
         ).first()

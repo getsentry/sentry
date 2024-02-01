@@ -1,5 +1,6 @@
 from calendar import IllegalMonthError, monthrange
 from datetime import datetime, timezone
+from typing import Optional
 
 import sentry_sdk
 
@@ -44,7 +45,7 @@ def generate_sliding_window_cache_key(org_id: int) -> str:
 
 def get_sliding_window_sample_rate(
     org_id: int, project_id: int, error_sample_rate_fallback: float
-) -> float | None:
+) -> Optional[float]:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_cache_key(org_id=org_id)
 
@@ -102,8 +103,8 @@ def generate_sliding_window_org_cache_key(org_id: int) -> str:
 
 
 def get_sliding_window_org_sample_rate(
-    org_id: int, default_sample_rate: float | None = None
-) -> float | None:
+    org_id: int, default_sample_rate: Optional[float] = None
+) -> Optional[float]:
     redis_client = get_redis_client_for_ds()
     cache_key = generate_sliding_window_org_cache_key(org_id)
 
@@ -113,7 +114,7 @@ def get_sliding_window_org_sample_rate(
         return default_sample_rate
 
 
-def get_sliding_window_size() -> int | None:
+def get_sliding_window_size() -> Optional[int]:
     try:
         size = options.get("dynamic-sampling:sliding_window.size")
         # We want to explicitly handle the None case, which will signal that the system should be stopped.
@@ -123,7 +124,7 @@ def get_sliding_window_size() -> int | None:
         return FALLBACK_SLIDING_WINDOW_SIZE
 
 
-def extrapolate_monthly_volume(volume: int, hours: int) -> int | None:
+def extrapolate_monthly_volume(volume: int, hours: int) -> Optional[int]:
     # We don't support a lower granularity than 1 hour.
     if hours < 1:
         return None

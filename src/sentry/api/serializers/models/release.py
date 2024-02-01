@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict, Union
+from typing import Any, Mapping, Sequence, TypedDict, Union
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache

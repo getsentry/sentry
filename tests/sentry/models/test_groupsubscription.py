@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from typing import Mapping
 
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription

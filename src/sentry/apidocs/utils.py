@@ -3,9 +3,8 @@ from __future__ import annotations
 import importlib
 import os
 import typing
-from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, Generator
 
 from drf_spectacular.plumbing import UnableToProceedError
 

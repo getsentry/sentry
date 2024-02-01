@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from typing import Callable
 
 from django.core.exceptions import DisallowedHost
 from django.http import HttpResponseRedirect

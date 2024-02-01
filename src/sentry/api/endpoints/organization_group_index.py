@@ -1,7 +1,6 @@
 import functools
-from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Mapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -50,18 +49,18 @@ allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigne
 
 def inbox_search(
     projects: Sequence[Project],
-    environments: Sequence[Environment] | None = None,
+    environments: Optional[Sequence[Environment]] = None,
     limit: int = 100,
-    cursor: Cursor | None = None,
+    cursor: Optional[Cursor] = None,
     count_hits: bool = False,
-    search_filters: Sequence[SearchFilter] | None = None,
-    date_from: datetime | None = None,
-    date_to: datetime | None = None,
-    max_hits: int | None = None,
-    actor: Any | None = None,
+    search_filters: Optional[Sequence[SearchFilter]] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    max_hits: Optional[int] = None,
+    actor: Optional[Any] = None,
 ) -> CursorResult:
     now: datetime = timezone.now()
-    end: datetime | None = None
+    end: Optional[datetime] = None
     end_params: list[datetime] = [
         _f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f
     ]

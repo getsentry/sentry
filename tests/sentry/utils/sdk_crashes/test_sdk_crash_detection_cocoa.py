@@ -1,4 +1,4 @@
-from collections.abc import Collection
+from typing import Collection
 from unittest.mock import patch
 
 from fixtures.sdk_crash_detection.crash_event_cocoa import (

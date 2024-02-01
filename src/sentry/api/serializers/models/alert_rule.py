@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from django.db.models import Max, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema_serializer

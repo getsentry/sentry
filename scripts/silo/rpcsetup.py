@@ -2,9 +2,8 @@
 
 import json  # noqa
 import re
-from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Mapping
 
 import click
 

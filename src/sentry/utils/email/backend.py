@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
-from collections.abc import Sequence
-from typing import Any
+from typing import Any, Sequence
 
 from django.conf import settings
 from django.core.mail import EmailMessage

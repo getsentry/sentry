@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 import os
 import time
-from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from functools import partial
 from operator import attrgetter
 from random import randrange
-from typing import Any
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 
 import lxml.html
 import toronado

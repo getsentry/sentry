@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any, Mapping, Protocol, Sequence
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.models.identity import Identity

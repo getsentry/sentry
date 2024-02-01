@@ -3,8 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 import re
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Mapping, cast
 
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse

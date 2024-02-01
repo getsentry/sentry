@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, cast
+from typing import Any, Collection, Iterable, Mapping, Sequence, cast
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings

@@ -1,3 +1,4 @@
+from typing import Optional
 from unittest import mock
 
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -13,7 +14,7 @@ from sentry.utils.json import loads
 
 
 def assert_msg(
-    message: BrokerValue[KafkaPayload] | None,
+    message: Optional[BrokerValue[KafkaPayload]],
     timestamp: int,
     resource_id: str,
     app_feature: str,

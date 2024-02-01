@@ -1,5 +1,4 @@
-from collections.abc import Callable, Mapping
-from typing import Any, TypeVar
+from typing import Any, Callable, Mapping, TypeVar, Union
 
 from django.db.models import Model
 from django.utils.encoding import smart_str
@@ -13,7 +12,7 @@ Value = Any
 ValidateFunction = Callable[[Value], bool]
 
 
-def __prep_value(model: Any, key: str, value: Model | int | str) -> str:
+def __prep_value(model: Any, key: str, value: Union[Model, int, str]) -> str:
     val = value
     if isinstance(value, Model):
         val = value.pk
@@ -26,7 +25,7 @@ def __prep_key(model: Any, key: str) -> str:
     return key
 
 
-def make_key(model: Any, prefix: str, kwargs: Mapping[str, Model | int | str]) -> str:
+def make_key(model: Any, prefix: str, kwargs: Mapping[str, Union[Model, int, str]]) -> str:
     kwargs_bits = []
     for k, v in sorted(kwargs.items()):
         k = __prep_key(model, k)

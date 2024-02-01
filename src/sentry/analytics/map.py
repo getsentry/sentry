@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, Sequence
 
 from . import Attribute
 from .utils import get_data

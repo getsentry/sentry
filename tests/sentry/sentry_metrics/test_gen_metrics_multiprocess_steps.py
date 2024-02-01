@@ -4,10 +4,9 @@ import logging
 import pickle
 import re
 import time
-from collections.abc import MutableMapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, MutableMapping, Sequence
 from unittest.mock import Mock, call
 
 import pytest

@@ -1,5 +1,4 @@
-from collections.abc import Sequence
-from typing import Any
+from typing import Any, Sequence
 
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.organization import Organization

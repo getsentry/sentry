@@ -1,9 +1,9 @@
-from collections.abc import Sequence
 from enum import Enum, IntEnum
-from typing import ClassVar, Self
+from typing import ClassVar, Sequence
 
 from django.db import models
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus

@@ -3,8 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections import deque
-from collections.abc import Mapping
-from typing import Any, Deque, Union, cast
+from typing import Any, Deque, Mapping, Union, cast
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage

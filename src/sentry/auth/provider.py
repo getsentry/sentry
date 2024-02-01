@@ -1,8 +1,7 @@
 import abc
 import logging
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 from django.utils.encoding import force_str
 from django.views import View

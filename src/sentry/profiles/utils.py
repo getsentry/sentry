@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urlencode, urlparse
 
 import brotli
@@ -77,8 +77,8 @@ _profiling_pool = connection_from_url(
 def get_from_profiling_service(
     method: str,
     path: str,
-    params: dict[Any, Any] | None = None,
-    headers: dict[Any, Any] | None = None,
+    params: Optional[dict[Any, Any]] = None,
+    headers: Optional[dict[Any, Any]] = None,
     json_data: Any = None,
 ) -> VroomResponse:
     kwargs: dict[str, Any] = {"headers": {}}
@@ -114,8 +114,8 @@ def get_from_profiling_service(
 def proxy_profiling_service(
     method: str,
     path: str,
-    params: dict[str, Any] | None = None,
-    headers: dict[str, str] | None = None,
+    params: Optional[dict[str, Any]] = None,
+    headers: Optional[dict[str, str]] = None,
     json_data: Any = None,
 ) -> SentryResponse:
     profiling_response = get_from_profiling_service(

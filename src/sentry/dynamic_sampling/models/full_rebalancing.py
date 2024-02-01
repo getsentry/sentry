@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from sentry.dynamic_sampling.models.base import Model, ModelInput
 from sentry.dynamic_sampling.models.common import RebalancedItem, sum_classes_counts
@@ -9,7 +10,7 @@ class FullRebalancingInput(ModelInput):
     classes: list[RebalancedItem]
     sample_rate: float
     intensity: float
-    min_budget: float | None = None
+    min_budget: Optional[float] = None
 
     def validate(self) -> bool:
         return (

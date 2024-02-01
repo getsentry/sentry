@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
 from django.urls import reverse
 

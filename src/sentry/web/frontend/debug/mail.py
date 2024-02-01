@@ -7,11 +7,10 @@ import time
 import traceback
 import uuid
 import zoneinfo
-from collections.abc import Generator
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from random import Random
-from typing import Any
+from typing import Any, Generator
 from unittest import mock
 from urllib.parse import urlencode
 

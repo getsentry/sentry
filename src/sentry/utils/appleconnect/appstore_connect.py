@@ -6,9 +6,8 @@ import logging
 import pathlib
 import time
 from collections import namedtuple
-from collections.abc import Callable, Generator, Mapping
 from http import HTTPStatus
-from typing import Any, NewType
+from typing import Any, Callable, Generator, Mapping, NewType, Optional, Union
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -78,11 +77,11 @@ class BuildInfo:
     #
     # Empty string if no dSYMs exist, None if there are dSYMs but they're not immediately available,
     # and is some string value if there are dSYMs and they're available.
-    dsym_url: NoDsymUrl | str
+    dsym_url: Union[NoDsymUrl, str]
 
 
 def _get_authorization_header(
-    credentials: AppConnectCredentials, expiry_sec: int | None = None
+    credentials: AppConnectCredentials, expiry_sec: Optional[int] = None
 ) -> Mapping[str, str]:
     """Creates a JWT (javascript web token) for use with app store connect API
 
@@ -160,7 +159,7 @@ def _get_appstore_json(
             ) from e
 
 
-def _get_next_page(response_json: Mapping[str, Any]) -> str | None:
+def _get_next_page(response_json: Mapping[str, Any]) -> Optional[str]:
     """Gets the URL for the next page from an App Store Connect paged response."""
     return safe.get_path(response_json, "links", "next")
 
@@ -185,7 +184,7 @@ def _get_appstore_info_paged(
 
     :return: a generator with the pages.
     """
-    next_url: str | None = url
+    next_url: Optional[str] = url
     while next_url is not None:
         response = _get_appstore_json(session, credentials, next_url)
         yield response
@@ -215,7 +214,7 @@ class _IncludedRelations:
             rel_id = _RelId(relation["id"])
             self._items[(rel_type, rel_id)] = relation
 
-    def get_related(self, data: JSONData, relation: str) -> JSONData | None:
+    def get_related(self, data: JSONData, relation: str) -> Optional[JSONData]:
         """Returns the named relation of the object.
 
         ``data`` must be a JSON object which has a ``relationships`` object and
@@ -236,7 +235,7 @@ class _IncludedRelations:
         rel_id = _RelId(rel_ptr_data["id"])
         return self._items[(rel_type, rel_id)]
 
-    def get_multiple_related(self, data: JSONData, relation: str) -> list[JSONData] | None:
+    def get_multiple_related(self, data: JSONData, relation: str) -> Optional[list[JSONData]]:
         """Returns a list of all the related objects of the named relation type.
 
         This is like :meth:`get_related` but is for relation types which have a list of
@@ -355,7 +354,7 @@ def get_build_info(
         return build_info
 
 
-def _get_dsym_url(bundles: list[JSONData] | None) -> NoDsymUrl | str:
+def _get_dsym_url(bundles: Optional[list[JSONData]]) -> Union[NoDsymUrl, str]:
     """Returns the dSYMs URL from the extracted from the build bundles."""
     # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
     # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
@@ -409,7 +408,7 @@ def _get_dsym_url(bundles: list[JSONData] | None) -> NoDsymUrl | str:
 AppInfo = namedtuple("AppInfo", ["name", "bundle_id", "app_id"])
 
 
-def get_apps(session: Session, credentials: AppConnectCredentials) -> list[AppInfo] | None:
+def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[list[AppInfo]]:
     """
     Returns the available applications from an account
     :return: a list of available applications or None if the login failed, an empty list

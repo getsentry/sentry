@@ -1,6 +1,6 @@
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Optional, Sequence
 
 from sentry import tsdb
 from sentry.models.group import Group
@@ -26,7 +26,7 @@ class IssueReleaseMetricCorrResult:
 
 def is_issue_error_rate_correlated(
     resolved_issue: Group, candidate_suspect_resolutions: list[Group]
-) -> IssueReleaseMetricCorrResult | None:
+) -> Optional[IssueReleaseMetricCorrResult]:
     if (
         not resolved_issue
         or not resolved_issue.resolved_at

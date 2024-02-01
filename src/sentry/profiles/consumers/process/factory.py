@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from typing import Mapping
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory

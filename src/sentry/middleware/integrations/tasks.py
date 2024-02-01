@@ -1,6 +1,5 @@
 import logging
-from collections.abc import MutableMapping
-from typing import Any, cast
+from typing import Any, MutableMapping, cast
 
 import requests
 import sentry_sdk

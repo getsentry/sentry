@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -51,13 +51,13 @@ MATCHERS = {
 }
 
 
-def _get_function_name(frame_data: dict, platform: str | None):
+def _get_function_name(frame_data: dict, platform: Optional[str]):
     function_name = get_function_name_for_frame(frame_data, platform)
 
     return function_name or "<unknown>"
 
 
-def create_match_frame(frame_data: dict, platform: str | None) -> dict:
+def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
     """Create flat dict of values relevant to matchers"""
     match_frame = dict(
         category=get_path(frame_data, "data", "category"),
