@@ -210,13 +210,17 @@ export function MetricWidgetChartContainer({
 }
 
 function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
+  if (!dashboardFilters?.release?.length) {
+    return query;
+  }
+
   const releaseQuery = convertToQuery(dashboardFilters);
 
   return `${query} ${releaseQuery}`;
 }
 
-function convertToQuery(dashboardFilters?: DashboardFilters) {
-  const {release} = dashboardFilters ?? {};
+function convertToQuery(dashboardFilters: DashboardFilters) {
+  const {release} = dashboardFilters;
 
   if (!release?.length) {
     return '';
