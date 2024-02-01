@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
+import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,19 +42,17 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
   return (
     <ErrorBoundary mini>
-      <div>
-        <Stacked ref={timelineRef}>
-          {isLoading ? (
-            <Placeholder height={PLACEHOLDER_SIZE} />
-          ) : (
-            <TimelineEventsContainer>
-              <TimelineOutline />
-              {/* Sets a min width of 200 for testing */}
-              <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
-            </TimelineEventsContainer>
-          )}
-        </Stacked>
-      </div>
+      <Stacked ref={timelineRef}>
+        {isLoading ? (
+          <Placeholder height={PLACEHOLDER_SIZE} />
+        ) : (
+          <TimelineEventsContainer>
+            <TimelineOutline />
+            {/* Sets a min width of 200 for testing */}
+            <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
+          </TimelineEventsContainer>
+        )}
+      </Stacked>
     </ErrorBoundary>
   );
 }
@@ -86,6 +85,7 @@ const Stacked = styled('div')`
   > * {
     grid-area: 1 / 1;
   }
+  margin-top: ${space(1)};
 `;
 
 const TimelineEventsContainer = styled('div')`

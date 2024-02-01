@@ -20,11 +20,11 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
   return (
     <DataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
+      <TraceTimeline event={event} />
       <StyledGlobalAppStoreConnectUpdateAlert
         project={project}
         organization={organization}
       />
-      <TraceTimeline event={event} />
     </DataSection>
   );
 }
