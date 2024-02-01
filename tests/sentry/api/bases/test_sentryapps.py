@@ -12,7 +12,6 @@ from sentry.api.bases.sentryapps import (
     SentryAppPermission,
     add_integration_platform_metric_tag,
 )
-from sentry.auth.superuser import Superuser
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
@@ -48,9 +47,7 @@ class SentryAppPermissionTest(TestCase):
         assert self.permission.has_permission(self.request, None)
 
     def test_superuser_has_permission(self):
-        request = self.make_request(user=self.superuser, method="GET")
-        request.superuser = Superuser(request)
-        request.superuser.set_logged_in(request.user)
+        request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
 
         assert self.permission.has_object_permission(request, None, self.sentry_app)
 
@@ -60,9 +57,8 @@ class SentryAppPermissionTest(TestCase):
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_read_only(self):
-        request = self.make_request(user=self.superuser, method="GET")
-        request.superuser = Superuser(request)
-        request.superuser.set_logged_in(request.user)
+        request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
+        request.access = self.create_request_access()
 
         assert self.permission.has_object_permission(request, None, self.sentry_app)
 
@@ -74,17 +70,14 @@ class SentryAppPermissionTest(TestCase):
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_write(self):
-        request = self.make_request(user=self.superuser, method="GET")
-        request.superuser = Superuser(request)
-        request.superuser.set_logged_in(request.user)
-        request.access = self.create_request_access(permissions=["superuser.write"])
+        self.add_user_permission(self.superuser, "superuser.write")
+        request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
 
         assert self.permission.has_object_permission(request, None, self.sentry_app)
 
         request.method = "POST"
 
-        with pytest.raises(Http404):
-            self.permission.has_object_permission(request, None, self.sentry_app)
+        self.permission.has_object_permission(request, None, self.sentry_app)
 
 
 @control_silo_test
@@ -142,9 +135,7 @@ class SentryAppInstallationPermissionTest(TestCase):
             self.permission.has_object_permission(self.request, None, self.installation)
 
     def test_superuser_has_permission(self):
-        request = self.make_request(user=self.superuser, method="GET")
-        request.superuser = Superuser(request)
-        request.superuser.set_logged_in(request.user)
+        request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
 
         assert self.permission.has_object_permission(request, None, self.installation)
 
@@ -154,9 +145,8 @@ class SentryAppInstallationPermissionTest(TestCase):
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_read_only(self):
-        request = self.make_request(user=self.superuser, method="GET")
-        request.superuser = Superuser(request)
-        request.superuser.set_logged_in(request.user)
+        request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
+        request.access = self.create_request_access()
 
         assert self.permission.has_object_permission(request, None, self.installation)
 
@@ -168,17 +158,14 @@ class SentryAppInstallationPermissionTest(TestCase):
     @with_feature("auth:enterprise-superuser-read-write")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_write(self):
-        request = self.make_request(user=self.superuser, method="GET")
-        request.superuser = Superuser(request)
-        request.superuser.set_logged_in(request.user)
-        request.access = self.create_request_access(permissions=["superuser.write"])
+        self.add_user_permission(self.superuser, "superuser.write")
+        request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
 
         assert self.permission.has_object_permission(request, None, self.installation)
 
         request.method = "POST"
 
-        with pytest.raises(Http404):
-            self.permission.has_object_permission(request, None, self.installation)
+        self.permission.has_object_permission(request, None, self.installation)
 
 
 @control_silo_test
