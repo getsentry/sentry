@@ -405,7 +405,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
 
           {measurementNames.length > 0 && (
             <tr>
-              <td className="key">{t('Custom Metrics')}</td>
+              <td className="key">{t('Measurements')}</td>
               <td className="value">
                 <Measurements>
                   {measurementNames.map(name => {

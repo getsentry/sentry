@@ -38,6 +38,7 @@ import {
   DividerLine,
   DividerLineGhostContainer,
   ErrorBadge,
+  MetricsBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
   RowTitle,
@@ -64,6 +65,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import type {
@@ -770,6 +772,22 @@ function NewTraceDetailsTransactionBar(props: Props) {
     return <ErrorBadge />;
   };
 
+  const renderMetricsBadge = () => {
+    const {organization} = props;
+    const hasMetrics = Object.keys(embeddedChildren?._metrics_summary ?? {}).length > 0;
+
+    if (
+      !hasDDMExperimentalFeature(organization) ||
+      isTraceRoot(transaction) ||
+      isTraceError(transaction) ||
+      !hasMetrics
+    ) {
+      return null;
+    }
+
+    return <MetricsBadge />;
+  };
+
   const renderRectangle = () => {
     const {transaction, traceInfo, barColor} = props;
 
@@ -801,6 +819,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
           <ErrorBadge />
         ) : (
           <Fragment>
+            {renderMetricsBadge()}
             {renderErrorBadge()}
             <DurationPill
               durationDisplay={getDurationDisplay({
