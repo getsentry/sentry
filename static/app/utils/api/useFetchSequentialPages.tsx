@@ -7,7 +7,7 @@ import useApi from 'sentry/utils/useApi';
 
 interface Props {
   /**
-   * Whether or not to start fetched when the hook is mounted
+   * Whether or not to start fetching when the hook is mounted
    */
   enabled: boolean;
 
@@ -150,7 +150,7 @@ export default function useFetchSequentialPages<Data>({
         setState({
           pages: values.map(value => value.data).filter(defined),
           error: values.map(value => value.error),
-          getLastResponseHeader: values.slice(-1)[0]?.getResponseHeader,
+          getLastResponseHeader: values.at(-1)?.getResponseHeader,
           isError: values.map(value => value.isError).some(Boolean),
           isFetching: values.map(value => value.isFetching).every(Boolean),
         });
