@@ -110,10 +110,13 @@ def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None
     if not user_id:
         return
 
+    creator = user_service.get_user(user_id=user_id)
+    if not creator:
+        return
+
     projects = rule.projects.all()
     project_ids = [p.id for p in projects]
 
-    creator = user_service.get_user(user_id=user_id)
     params = {
         "query": rule.query,
         "num_samples": num_samples,
