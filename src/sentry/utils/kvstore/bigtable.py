@@ -3,7 +3,7 @@ import logging
 import struct
 from datetime import timedelta
 from threading import Lock
-from typing import Any, Iterator, Mapping, Optional, Sequence, Tuple
+from typing import Any, Iterator, Mapping, Optional, Sequence
 
 from django.utils import timezone
 from google.api_core import exceptions, retry
@@ -52,7 +52,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         COMPRESSED_ZLIB = 1 << 0
         COMPRESSED_ZSTD = 1 << 1
 
-    compression_strategies: Mapping[str, Tuple[Flags, Codec[bytes, bytes]]] = {
+    compression_strategies: Mapping[str, tuple[Flags, Codec[bytes, bytes]]] = {
         "zlib": (Flags.COMPRESSED_ZLIB, ZlibCodec()),
         "zstd": (Flags.COMPRESSED_ZSTD, ZstdCodec()),
     }
@@ -119,7 +119,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
 
         return self.__decode_row(row)
 
-    def get_many(self, keys: Sequence[str]) -> Iterator[Tuple[str, bytes]]:
+    def get_many(self, keys: Sequence[str]) -> Iterator[tuple[str, bytes]]:
         rows = RowSet()
         for key in keys:
             rows.add_row_key(key)

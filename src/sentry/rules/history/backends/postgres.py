@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, List, Optional, Sequence, TypedDict, cast
+from typing import TYPE_CHECKING, Sequence, TypedDict, cast
 
 from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import TruncHour
@@ -35,7 +35,7 @@ def convert_results(results: Sequence[_Result]) -> Sequence[RuleGroupHistory]:
 # temporary hack for removing unnecessary subqueries from group by list
 # TODO: remove when upgrade to django 3.0
 class NoGroupBySubquery(Subquery):
-    def get_group_by_cols(self, alias=None) -> List:
+    def get_group_by_cols(self, alias=None) -> list:
         return []
 
 
@@ -44,8 +44,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         self,
         rule: Rule,
         group: Group,
-        event_id: Optional[str] = None,
-        notification_uuid: Optional[str] = None,
+        event_id: str | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
         RuleFireHistory.objects.create(
             project=rule.project,

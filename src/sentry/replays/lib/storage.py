@@ -149,7 +149,6 @@ class StorageBlob(Blob):
         except TooManyRequests:
             # if we 429 because of a dupe segment problem, ignore it
             metrics.incr("replays.lib.storage.TooManyRequests")
-            pass
 
     def make_key(self, segment: RecordingSegmentStorageMeta) -> str:
         return make_filename(segment)

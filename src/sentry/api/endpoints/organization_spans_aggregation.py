@@ -1,7 +1,7 @@
 import hashlib
 from collections import defaultdict, namedtuple
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, TypedDict
+from typing import Any, Mapping, Optional, TypedDict
 
 import sentry_sdk
 from rest_framework import status
@@ -40,7 +40,7 @@ EventSpan = namedtuple(
 
 class EventSpans(TypedDict):
     transaction_id: str
-    spans: List[EventSpan]
+    spans: list[EventSpan]
 
 
 AggregateSpanRow = TypedDict(
@@ -59,7 +59,7 @@ AggregateSpanRow = TypedDict(
         "avg(absolute_offset)": float,
         "avg(relative_offset)": float,
         "count()": int,
-        "samples": Set[Tuple[Optional[str], str]],
+        "samples": set[tuple[Optional[str], str]],
     },
 )
 
@@ -68,7 +68,7 @@ NULL_GROUP = "00"
 
 class BaseAggregateSpans:
     def __init__(self) -> None:
-        self.aggregated_tree: Dict[str, AggregateSpanRow] = {}
+        self.aggregated_tree: dict[str, AggregateSpanRow] = {}
         self.current_transaction: Optional[str] = None
 
     def fingerprint_nodes(
@@ -167,7 +167,7 @@ class BaseAggregateSpans:
 
         # Handles sibling spans that have the same group
         span_tree["children"].sort(key=lambda s: s["start_timestamp_ms"])
-        span_hash_seen: Dict[str, int] = defaultdict(int)
+        span_hash_seen: dict[str, int] = defaultdict(int)
 
         for child in span_tree["children"]:
             child_span_hash = child["key"]

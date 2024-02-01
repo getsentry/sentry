@@ -1,8 +1,9 @@
 """
 Task for sending notifications when custom rules have gathered enough samples.
 """
+
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any
 
 from django.http import QueryDict
 
@@ -15,7 +16,7 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task_with_context,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
-from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
@@ -81,7 +82,7 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         # org rule get all projects for org
         projects = rule.organization.project_set.filter(status=ObjectStatus.ACTIVE)
 
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "start": rule.start_date,
         "end": rule.end_date,
         "project_id": [p.id for p in projects],
@@ -109,10 +110,13 @@ def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None
     if not user_id:
         return
 
+    creator = user_service.get_user(user_id=user_id)
+    if not creator:
+        return
+
     projects = rule.projects.all()
     project_ids = [p.id for p in projects]
 
-    creator = User.objects.get_from_cache(id=user_id)
     params = {
         "query": rule.query,
         "num_samples": num_samples,
@@ -137,7 +141,7 @@ def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None
     msg.send_async([creator.email])
 
 
-def create_discover_link(rule: CustomDynamicSamplingRule, projects: List[int]) -> str:
+def create_discover_link(rule: CustomDynamicSamplingRule, projects: list[int]) -> str:
     """
     Creates a discover link for the given rule.
     It will point to a discover query using the same query as the rule

@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from queue import Queue
 from random import random
 from threading import Thread
-from typing import Any, Callable, Generator, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Generator, Optional, TypeVar, Union
 
 from django.conf import settings
 
@@ -37,7 +37,7 @@ F = TypeVar("F", bound=Callable[..., Any])
 def get_default_backend() -> MetricsBackend:
     from sentry.utils.imports import import_string
 
-    cls: Type[MetricsBackend] = import_string(settings.SENTRY_METRICS_BACKEND)
+    cls: type[MetricsBackend] = import_string(settings.SENTRY_METRICS_BACKEND)
 
     return MiddlewareWrapper(cls(**settings.SENTRY_METRICS_OPTIONS))
 
@@ -67,7 +67,7 @@ class InternalMetrics:
         self._started = False
 
     def _start(self) -> None:
-        q: Queue[Tuple[str, Optional[str], Optional[Tags], Union[float, int], float]]
+        q: Queue[tuple[str, Optional[str], Optional[Tags], Union[float, int], float]]
         self.q = q = Queue()
 
         def worker() -> None:

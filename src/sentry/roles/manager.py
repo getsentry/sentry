@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, FrozenSet, Generic, Iterable, Mapping, Sequence, Tuple, Type, TypeVar
+from typing import Any, Generic, Iterable, Mapping, Sequence, TypeVar
 
 from sentry.utils import warnings
 
@@ -22,7 +22,7 @@ class Role(abc.ABC):
     id: str
     name: str
     desc: str
-    scopes: FrozenSet[str]
+    scopes: frozenset[str]
     is_retired: bool = False
 
     def __post_init__(self) -> None:
@@ -30,7 +30,7 @@ class Role(abc.ABC):
 
     @classmethod
     def from_config(
-        cls: Type[R],
+        cls: type[R],
         parent: RoleManager,
         priority: int,
         desc: str = "",
@@ -99,7 +99,7 @@ class RoleLevel(Generic[R]):
     def get_all(self) -> Sequence[R]:
         return self._priority_seq
 
-    def get_choices(self) -> Sequence[Tuple[str, str]]:
+    def get_choices(self) -> Sequence[tuple[str, str]]:
         return self._choices
 
     def get_default(self) -> R:
@@ -152,7 +152,7 @@ class RoleManager:
     @staticmethod
     def _make_minimum_team_role_map(
         organization_roles: RoleLevel[OrganizationRole], team_roles: RoleLevel[TeamRole]
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         def get_mapped_org_role(team_role: TeamRole) -> OrganizationRole | None:
             if team_role.is_minimum_role_for is None:
                 return None
@@ -190,7 +190,7 @@ class RoleManager:
     def get_all(self) -> Sequence[OrganizationRole]:
         return self.organization_roles.get_all()
 
-    def get_choices(self) -> Sequence[Tuple[str, str]]:
+    def get_choices(self) -> Sequence[tuple[str, str]]:
         return self.organization_roles.get_choices()
 
     def get_default(self) -> OrganizationRole:

@@ -64,6 +64,7 @@ export function PerformanceScoreChart({
         fid: projectScore.fidWeight,
         lcp: projectScore.lcpWeight,
         ttfb: projectScore.ttfbWeight,
+        inp: projectScore.inpWeight,
       }
     : undefined;
 

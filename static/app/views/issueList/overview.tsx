@@ -289,12 +289,7 @@ class IssueListOverview extends Component<Props, State> {
 
   componentWillUnmount() {
     const groups = GroupStore.getState() as Group[];
-    if (
-      groups.length > 0 &&
-      !this.state.issuesLoading &&
-      !this.state.realtimeActive &&
-      this.props.organization.features.includes('issue-stream-performance-cache')
-    ) {
+    if (groups.length > 0 && !this.state.issuesLoading && !this.state.realtimeActive) {
       IssueListCacheStore.save(this.getCacheEndpointParams(), {
         groups,
         queryCount: this.state.queryCount,
@@ -355,10 +350,6 @@ class IssueListOverview extends Component<Props, State> {
    * @returns Returns true if the data was loaded from cache
    */
   loadFromCache(): boolean {
-    if (!this.props.organization.features.includes('issue-stream-performance-cache')) {
-      return false;
-    }
-
     const cache = IssueListCacheStore.getFromCache(this.getCacheEndpointParams());
     if (!cache) {
       return false;

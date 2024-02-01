@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Generator, List, Optional, Sequence, Set
+from typing import Generator, Optional, Sequence
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -44,7 +44,7 @@ class MetricCodeLocations:
 def _get_day_timestamps(
     start: datetime,
     end: datetime,
-) -> Set[int]:
+) -> set[int]:
     # We compute the approximate day timestamps, assuming UTC as the timezone.
     start_in_seconds = int(start.timestamp() / DAY_IN_SECONDS) * DAY_IN_SECONDS
     end_in_seconds = int(end.timestamp() / DAY_IN_SECONDS) * DAY_IN_SECONDS
@@ -81,9 +81,9 @@ class CodeLocationsFetcher:
     def __init__(
         self,
         organization: Organization,
-        projects: Set[Project],
-        metric_mris: Set[str],
-        timestamps: Set[int],
+        projects: set[Project],
+        metric_mris: set[str],
+        timestamps: set[int],
     ):
         self._organization = organization
         self._projects = projects
@@ -155,7 +155,7 @@ class CodeLocationsFetcher:
         return frames
 
     def fetch(self) -> Sequence[MetricCodeLocations]:
-        code_locations: List[MetricCodeLocations] = []
+        code_locations: list[MetricCodeLocations] = []
         for queries in self._in_batches(self._code_location_queries(), self.BATCH_SIZE):
             # We are assuming that code locations have each a unique query, thus we don't perform any merging or
             # de-duplication.
@@ -167,7 +167,7 @@ class CodeLocationsFetcher:
     def _in_batches(
         generator: Generator[CodeLocationQuery, None, None], size: int
     ) -> Generator[Sequence[CodeLocationQuery], None, None]:
-        batch: List[CodeLocationQuery] = []
+        batch: list[CodeLocationQuery] = []
         for value in generator:
             if len(batch) < size:
                 batch.append(value)

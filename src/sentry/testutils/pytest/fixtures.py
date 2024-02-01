@@ -12,7 +12,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from string import Template
-from typing import Optional, Tuple
+from typing import Optional
 
 import pytest
 import requests
@@ -309,7 +309,7 @@ class ReadableYamlDumper(yaml.dumper.SafeDumper):
         return True
 
 
-def read_snapshot_file(reference_file: str) -> Tuple[str, str]:
+def read_snapshot_file(reference_file: str) -> tuple[str, str]:
     with open(reference_file, encoding="utf-8") as f:
         match = _yaml_snap_re.match(f.read())
         if match is None:
