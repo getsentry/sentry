@@ -211,7 +211,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         request = self.factory.get(self.path)
         assert not self.endpoint_cls._validate_request(request)
 
-        # Invalid organization integration
+        # Disabled organization integration
         self.org_integration.update(status=ObjectStatus.DISABLED)
         header_kwargs = SiloHttpHeaders(
             HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
@@ -219,9 +219,19 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         request = self.factory.get(self.path, **header_kwargs)
         assert not self.endpoint_cls._validate_request(request)
 
+        # Invalid organization integration value
+        header_kwargs = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION="None",
+        )
+        request = self.factory.get(self.path, **header_kwargs)
+        assert not self.endpoint_cls._validate_request(request)
+
         # Invalid integration
         self.org_integration.update(status=ObjectStatus.ACTIVE)
         self.integration.update(status=ObjectStatus.DISABLED)
+        header_kwargs = SiloHttpHeaders(
+            HTTP_X_SENTRY_SUBNET_ORGANIZATION_INTEGRATION=str(self.org_integration.id),
+        )
         request = self.factory.get(self.path, **header_kwargs)
         assert not self.endpoint_cls._validate_request(request)
 
