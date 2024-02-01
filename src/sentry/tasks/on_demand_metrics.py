@@ -258,7 +258,7 @@ def _get_widget_on_demand_specs(
         specs_per_version.setdefault(spec_version.version, {})
         specs_per_version[spec_version.version][hash] = (hash, spec, spec_version)
 
-    specs = []
+    specs: list[HashedMetricSpec] = []
     for _, _specs_for_version in specs_per_version.items():
         specs += _specs_for_version.values()
 
