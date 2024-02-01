@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import DefaultDict, Generator, Iterable, Optional
+from typing import DefaultDict, Generator, Iterable
 
 import sentry_sdk
 
@@ -42,8 +42,8 @@ class TrendBundle:
     type: TrendType
     score: float
     payload: DetectorPayload
-    state: Optional[DetectorState] = None
-    regression_group: Optional[RegressionGroup] = None
+    state: DetectorState | None = None
+    regression_group: RegressionGroup | None = None
 
 
 @dataclass(frozen=True)
@@ -235,7 +235,7 @@ class RegressionDetector(ABC):
     def limit_regressions_by_project(
         cls,
         bundles: Generator[TrendBundle, None, None],
-        ratelimit: Optional[int] = None,
+        ratelimit: int | None = None,
     ) -> Generator[TrendBundle, None, None]:
         if ratelimit is None:
             ratelimit = options.get("statistical_detectors.ratelimit.ema")
@@ -266,7 +266,7 @@ class RegressionDetector(ABC):
         cls,
         payload: DetectorPayload,
         status: int,
-        substatus: Optional[int] = None,
+        substatus: int | None = None,
     ) -> StatusChangeMessage:
         return StatusChangeMessage(
             # To align with the issue, we need to use the full fingerprint here

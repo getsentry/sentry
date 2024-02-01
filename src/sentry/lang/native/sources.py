@@ -6,7 +6,7 @@ import os
 import random
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import jsonschema
 import sentry_sdk
@@ -267,8 +267,8 @@ def get_internal_artifact_lookup_source_url(project: Project):
 
 
 def get_bundle_index_urls(
-    project: Project, release: Optional[str], dist: Optional[str]
-) -> tuple[Optional[str], Optional[str]]:
+    project: Project, release: str | None, dist: str | None
+) -> tuple[str | None, str | None]:
     if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-sample-rate"):
         return None, None
 

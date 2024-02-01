@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import functools
 import logging
-from typing import Any, Callable, Union
+from typing import Any, Callable
 
 from django.dispatch.dispatcher import NO_RECEIVERS, Signal
 
@@ -78,11 +78,11 @@ class BetterSignal(Signal):
             wrapped.__doc__ = receiver.__doc__
         return wrapped(receiver)
 
-    def send_robust(self, sender, **named) -> list[tuple[Receiver, Union[Exception, Any]]]:
+    def send_robust(self, sender, **named) -> list[tuple[Receiver, Exception | Any]]:
         """
         A reimplementation of send_robust which logs failures, thus recovering stacktraces.
         """
-        responses: list[tuple[Receiver, Union[Exception, Any]]] = []
+        responses: list[tuple[Receiver, Exception | Any]] = []
         if not self.receivers or self.sender_receivers_cache.get(sender) is NO_RECEIVERS:
             return responses
 

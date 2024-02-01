@@ -5,7 +5,7 @@ import logging
 import random
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, NamedTuple, Optional, TypeVar
+from typing import Any, NamedTuple, TypeVar
 
 import sentry_sdk
 from django.db import DatabaseError, router
@@ -121,7 +121,7 @@ class FlatFileIdentifier(NamedTuple):
 
         redis_client.set(cache_key, flat_file_meta.to_string(), ex=FLAT_FILE_IDENTIFIER_CACHE_TTL)
 
-    def get_flat_file_meta_from_cache(self) -> Optional[FlatFileMeta]:
+    def get_flat_file_meta_from_cache(self) -> FlatFileMeta | None:
         cache_key = self._flat_file_meta_cache_key()
         redis_client = get_redis_cluster_for_artifact_bundles()
 
@@ -135,7 +135,7 @@ class FlatFileIdentifier(NamedTuple):
             sentry_sdk.capture_exception(e)
             return None
 
-    def get_flat_file_meta_from_db(self) -> Optional[FlatFileMeta]:
+    def get_flat_file_meta_from_db(self) -> FlatFileMeta | None:
         result = ArtifactBundleFlatFileIndex.objects.filter(
             project_id=self.project_id, release_name=self.release, dist_name=self.dist
         ).first()
@@ -144,7 +144,7 @@ class FlatFileIdentifier(NamedTuple):
 
         return FlatFileMeta(id=result.id, date=result.date_added)
 
-    def get_flat_file_meta(self) -> Optional[FlatFileMeta]:
+    def get_flat_file_meta(self) -> FlatFileMeta | None:
         meta_type = "release" if self.is_indexing_by_release() else "debug_id"
 
         meta = self.get_flat_file_meta_from_cache()
@@ -198,8 +198,8 @@ def mark_bundle_for_flat_file_indexing(
     artifact_bundle: ArtifactBundle,
     has_debug_ids: bool,
     project_ids: list[int],
-    release: Optional[str],
-    dist: Optional[str],
+    release: str | None,
+    dist: str | None,
 ) -> list[FlatFileIdentifier]:
     identifiers = []
 
@@ -554,7 +554,7 @@ class FlatFileIndex:
         for debug_id in debug_ids:
             self._add_sorted_entry(self._files_by_debug_id, debug_id, bundle_index)
 
-    def _add_or_update_bundle(self, bundle_meta: BundleMeta) -> Optional[int]:
+    def _add_or_update_bundle(self, bundle_meta: BundleMeta) -> int | None:
         if len(self._bundles) > MAX_BUNDLES_PER_ENTRY:
             self._is_complete = False
 
@@ -616,7 +616,7 @@ class FlatFileIndex:
 
     def _index_and_bundle_meta_for_id(
         self, artifact_bundle_id: int
-    ) -> Optional[tuple[int, BundleMeta]]:
+    ) -> tuple[int, BundleMeta] | None:
         for index, bundle in enumerate(self._bundles):
             if bundle.id == artifact_bundle_id:
                 return index, bundle

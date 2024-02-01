@@ -4,7 +4,7 @@ import logging
 import secrets
 import warnings
 from string import ascii_letters, digits
-from typing import Any, ClassVar, Mapping, Optional
+from typing import Any, ClassVar, Mapping
 
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
@@ -405,7 +405,7 @@ class User(BaseModel, AbstractBaseUser):
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
@@ -438,7 +438,7 @@ class User(BaseModel, AbstractBaseUser):
 
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # Internal function that factors our some common logic.
         def do_write():
             from sentry.api.endpoints.user_details import (

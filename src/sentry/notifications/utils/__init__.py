@@ -203,7 +203,7 @@ def get_group_settings_link(
 
 
 def get_integration_link(
-    organization: Organization, integration_slug: str, notification_uuid: Optional[str] = None
+    organization: Organization, integration_slug: str, notification_uuid: str | None = None
 ) -> str:
     query_params = {"referrer": "alert_email"}
     if notification_uuid:
@@ -316,7 +316,7 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
 
 
 def get_span_evidence_value(
-    span: Union[dict[str, Union[str, float]], None] = None, include_op: bool = True
+    span: dict[str, str | float] | None = None, include_op: bool = True
 ) -> str:
     """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"
@@ -336,8 +336,8 @@ def get_span_evidence_value(
 
 
 def get_parent_and_repeating_spans(
-    spans: Union[list[dict[str, Union[str, float]]], None], problem: PerformanceProblem
-) -> tuple[Union[dict[str, Union[str, float]], None], Union[dict[str, Union[str, float]], None]]:
+    spans: list[dict[str, str | float]] | None, problem: PerformanceProblem
+) -> tuple[dict[str, str | float] | None, dict[str, str | float] | None]:
     """Parse out the parent and repeating spans given an event's spans"""
     if not spans:
         return (None, None)
@@ -364,13 +364,13 @@ def occurrence_perf_to_email_html(context: Any) -> str:
 
 
 def get_spans(
-    entries: list[dict[str, Union[list[dict[str, Union[str, float]]], str]]]
-) -> Optional[list[dict[str, Union[str, float]]]]:
+    entries: list[dict[str, list[dict[str, str | float]] | str]]
+) -> list[dict[str, str | float]] | None:
     """Get the given event's spans"""
     if not len(entries):
         return None
 
-    spans: Optional[list[dict[str, Union[str, float]]]] = None
+    spans: list[dict[str, str | float]] | None = None
     for entry in entries:
         if entry.get("type") == "spans":
             spans = cast(Optional[list[dict[str, Union[str, float]]]], entry.get("data"))
@@ -453,7 +453,7 @@ def get_replay_id(event: Event | GroupEvent) -> str | None:
 @dataclass
 class PerformanceProblemContext:
     problem: PerformanceProblem
-    spans: Union[list[dict[str, Union[str, float]]], None]
+    spans: list[dict[str, str | float]] | None
     event: Event | None
 
     def __post_init__(self) -> None:
@@ -521,7 +521,7 @@ class PerformanceProblemContext:
     def from_problem_and_spans(
         cls,
         problem: PerformanceProblem,
-        spans: Union[list[dict[str, Union[str, float]]], None],
+        spans: list[dict[str, str | float]] | None,
         event: Event | None = None,
     ) -> PerformanceProblemContext:
         if problem.type == PerformanceNPlusOneAPICallsGroupType:
@@ -653,7 +653,7 @@ class RenderBlockingAssetProblemContext(PerformanceProblemContext):
         }
 
     @property
-    def slow_span(self) -> dict[str, Union[str, float]] | None:
+    def slow_span(self) -> dict[str, str | float] | None:
         if not self.spans:
             return None
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Optional, Sequence, TypedDict, cast
+from typing import TYPE_CHECKING, Sequence, TypedDict, cast
 
 from django.db.models import Count, Max, OuterRef, Subquery
 from django.db.models.functions import TruncHour
@@ -44,8 +44,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         self,
         rule: Rule,
         group: Group,
-        event_id: Optional[str] = None,
-        notification_uuid: Optional[str] = None,
+        event_id: str | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
         RuleFireHistory.objects.create(
             project=rule.project,

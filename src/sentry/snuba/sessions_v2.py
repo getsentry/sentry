@@ -4,7 +4,7 @@ import itertools
 import logging
 import math
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any
 
 from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 
@@ -195,7 +195,7 @@ COLUMN_MAP = {
 
 
 class SimpleGroupBy:
-    def __init__(self, row_name: str, name: Optional[str] = None):
+    def __init__(self, row_name: str, name: str | None = None):
         self.row_name = row_name
         self.name = name or row_name
 
@@ -250,8 +250,8 @@ class QueryDefinition:
         query,
         params,
         query_config: SessionsQueryConfig,
-        limit: Optional[int] = 0,
-        offset: Optional[int] = 0,
+        limit: int | None = 0,
+        offset: int | None = 0,
     ):
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
@@ -659,7 +659,7 @@ def massage_sessions_result_summary(
         }
 
     def get_category_stats(
-        reason, totals, outcome, category, category_stats: None | dict[str, int] = None
+        reason, totals, outcome, category, category_stats: dict[str, int] | None = None
     ):
         if not category_stats:
             category_stats = {

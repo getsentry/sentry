@@ -90,8 +90,8 @@ def convert_actor_or_none_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> list[Optional[Union[User, Team]]]:
+    environments: Sequence[Environment] | None,
+) -> list[User | Team | None]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of actors here, but we can look into batching it if needed.
     actors_or_none = []
@@ -107,7 +107,7 @@ def convert_user_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
+    environments: Sequence[Environment] | None,
 ) -> list[User]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of usernames here, but we can look into batching it if needed.
@@ -118,8 +118,8 @@ def convert_release_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> Union[str, list[str]]:
+    environments: Sequence[Environment] | None,
+) -> str | list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
     releases: set[str] = set()
@@ -135,7 +135,7 @@ def convert_first_release_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
+    environments: Sequence[Environment] | None,
 ) -> list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
@@ -161,10 +161,10 @@ def convert_substatus_value(
 
 
 def convert_status_value(
-    value: Iterable[Union[str, int]],
+    value: Iterable[str | int],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
+    environments: Sequence[Environment] | None,
 ) -> list[int]:
     parsed = []
     for status in value:
@@ -179,7 +179,7 @@ def convert_category_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
+    environments: Sequence[Environment] | None,
 ) -> list[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
     results: list[int] = []
@@ -195,7 +195,7 @@ def convert_type_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
+    environments: Sequence[Environment] | None,
 ) -> list[int]:
     """Convert a value like 'error' or 'performance_n_plus_one_db_queries' to the GroupType value for issue lookup"""
     results = []
@@ -211,7 +211,7 @@ def convert_device_class_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
+    environments: Sequence[Environment] | None,
 ) -> list[str]:
     """Convert high, medium, and low to the underlying device class values"""
     results = set()
@@ -242,8 +242,8 @@ value_converters: Mapping[str, ValueConverter] = {
 def convert_query_values(
     search_filters: ParsedTerms,
     projects: Sequence[Project],
-    user: Optional[User | RpcUser],
-    environments: Optional[Sequence[Environment]],
+    user: User | RpcUser | None,
+    environments: Sequence[Environment] | None,
     value_converters=value_converters,
 ) -> list[SearchFilter]:
     """

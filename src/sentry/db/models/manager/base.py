@@ -5,17 +5,7 @@ import threading
 import weakref
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Generator,
-    Generic,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-)
+from typing import Any, Callable, Collection, Generator, Generic, Mapping, MutableMapping, Sequence
 
 from django.conf import settings
 from django.db import models, router
@@ -67,7 +57,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         #: project slug is not.
         self.cache_fields = kwargs.pop("cache_fields", [])
         self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
-        self._cache_version: Optional[str] = kwargs.pop("cache_version", None)
+        self._cache_version: str | None = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
 
         self._triggers: dict[
@@ -89,7 +79,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             _local_cache_enabled = False
             _local_cache_generation += 1
 
-    def _get_local_cache(self) -> Optional[MutableMapping[str, M]]:
+    def _get_local_cache(self) -> MutableMapping[str, M] | None:
         if not _local_cache_enabled:
             return None
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections
 from datetime import datetime, timedelta
-from typing import Iterable, Mapping, Optional, Sequence, Union
+from typing import Iterable, Mapping, Sequence
 
 import pytest
 from django.utils import timezone
@@ -86,7 +86,7 @@ class _ParticipantsTest(TestCase):
 @region_silo_test
 class GetSendToMemberTest(_ParticipantsTest):
     def get_send_to_member(
-        self, project: Optional[Project] = None, user_id: Optional[int] = None
+        self, project: Project | None = None, user_id: int | None = None
     ) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             project=project or self.project,
@@ -163,7 +163,7 @@ class GetSendToTeamTest(_ParticipantsTest):
             NotificationSettingOption.objects.all().delete()
 
     def get_send_to_team(
-        self, project: Optional[Project] = None, team_id: Optional[int] = None
+        self, project: Project | None = None, team_id: int | None = None
     ) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             project=project or self.project,
@@ -736,7 +736,7 @@ class GetOwnersCase(_ParticipantsTest):
         )
 
     def create_ownership(
-        self, project: Project, rules: Optional[Sequence[Rule]] = None, fallthrough: bool = False
+        self, project: Project, rules: Sequence[Rule] | None = None, fallthrough: bool = False
     ) -> ProjectOwnership:
         return ProjectOwnership.objects.create(
             project_id=project.id,
@@ -745,7 +745,7 @@ class GetOwnersCase(_ParticipantsTest):
         )
 
     def assert_recipients(
-        self, expected: Iterable[Union[Team, User]], received: Iterable[RpcActor]
+        self, expected: Iterable[Team | User], received: Iterable[RpcActor]
     ) -> None:
         assert {RpcActor.from_object(recipient) for recipient in expected} == set(received)
 
@@ -898,7 +898,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         self,
         event: Event,
         project: Project,
-        fallthrough_choice: Optional[FallthroughChoiceType] = None,
+        fallthrough_choice: FallthroughChoiceType | None = None,
     ) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             project,

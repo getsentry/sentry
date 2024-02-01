@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, MutableMapping, Optional, cast
+from typing import Any, MutableMapping, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -48,7 +48,7 @@ def produce_occurrence_to_kafka(
     payload_type: PayloadType = PayloadType.OCCURRENCE,
     occurrence: IssueOccurrence | None = None,
     status_change: StatusChangeMessage | None = None,
-    event_data: Optional[dict[str, Any]] = None,
+    event_data: dict[str, Any] | None = None,
 ) -> None:
     if payload_type == PayloadType.OCCURRENCE:
         payload_data = _prepare_occurrence_message(occurrence, event_data)
@@ -71,7 +71,7 @@ def produce_occurrence_to_kafka(
 
 
 def _prepare_occurrence_message(
-    occurrence: IssueOccurrence | None, event_data: Optional[dict[str, Any]]
+    occurrence: IssueOccurrence | None, event_data: dict[str, Any] | None
 ) -> MutableMapping[str, Any] | None:
     if not occurrence:
         raise ValueError("occurrence must be provided")
