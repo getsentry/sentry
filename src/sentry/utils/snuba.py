@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any, Union
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -595,8 +595,6 @@ def _prepare_start_end(
         start = datetime(2008, 5, 8)
     if not end:
         end = datetime.utcnow() + timedelta(seconds=1)
-    assert isinstance(start, datetime)
-    assert isinstance(end, datetime)
 
     # convert to naive UTC datetimes, as Snuba only deals in UTC
     # and this avoids offset-naive and offset-aware issues
@@ -985,19 +983,7 @@ def _bulk_snuba_query(
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
-            error_query = snuba_param_list[index][0]
-            if isinstance(error_query, Request):
-                query_str = error_query.serialize()
-                query_type = "mql" if isinstance(error_query.query, MetricsQuery) else "snql"
-            else:
-                query_str = json.dumps(error_query)
-                query_type = "snql"
-            sentry_sdk.add_breadcrumb(
-                category="query_info",
-                level="info",
-                message=f"{query_type}_query",
-                data={query_type: query_str},
-            )
+            _log_request_query(snuba_param_list[index][0])
 
             if body.get("error"):
                 error = body["error"]
@@ -1019,6 +1005,18 @@ def _bulk_snuba_query(
         results.append(body)
 
     return results
+
+
+def _log_request_query(req: Request) -> None:
+    """Given a request, logs its associated query in sentry breadcrumbs"""
+    query_str = req.serialize()
+    query_type = "mql" if isinstance(req.query, MetricsQuery) else "snql"
+    sentry_sdk.add_breadcrumb(
+        category="query_info",
+        level="info",
+        message=f"{query_type}_query",
+        data={query_type: query_str},
+    )
 
 
 RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
@@ -1175,7 +1173,7 @@ def nest_groups(
         return {k: nest_groups(v, rest, aggregate_cols) for k, v in inter.items()}
 
 
-def resolve_column(dataset) -> Callable[[Any], Any]:
+def resolve_column(dataset) -> Callable:
     def _resolve_column(col: Any) -> Any:
         if col is None:
             return col
@@ -1246,8 +1244,7 @@ def resolve_condition(cond: list, column_resolver: Callable[[Any], Any]) -> Sequ
             func_args = cond[index + 1]
             for i, arg in enumerate(func_args):
                 if i == 0:
-                    if isinstance(arg, (list, tuple)):
-                        assert isinstance(arg, list)
+                    if isinstance(arg, list):
                         func_args[i] = resolve_condition(arg, column_resolver)
                     else:
                         func_args[i] = column_resolver(arg)
@@ -1261,8 +1258,7 @@ def resolve_condition(cond: list, column_resolver: Callable[[Any], Any]) -> Sequ
         for i, arg in enumerate(func_args):
             # Nested function
             try:
-                if isinstance(arg, (list, tuple)):
-                    assert isinstance(arg, list)
+                if isinstance(arg, list):
                     func_args[i] = resolve_condition(arg, column_resolver)
                 else:
                     func_args[i] = column_resolver(arg)
@@ -1277,9 +1273,8 @@ def resolve_condition(cond: list, column_resolver: Callable[[Any], Any]) -> Sequ
         if isinstance(cond[0], str) and len(cond) == 3:
             cond[0] = column_resolver(cond[0])
             return cond
-        if isinstance(cond[0], (list, tuple)):
+        if isinstance(cond[0], list):
             if get_function_index(cond[0]) is not None:
-                assert isinstance(cond[0], list)
                 cond[0] = resolve_condition(cond[0], column_resolver)
                 return cond
             else:
@@ -1342,7 +1337,7 @@ def aliased_query_params(
         raise ValueError("A dataset is required, and is no longer automatically detected.")
 
     derived_columns = []
-    resolve_func: Callable = resolve_column(dataset)
+    resolve_func = resolve_column(dataset)
     if selected_columns:
         for i, col in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
@@ -1357,7 +1352,9 @@ def aliased_query_params(
 
     if conditions:
         if condition_resolver:
-            column_resolver: Callable = functools.partial(condition_resolver, dataset=dataset)
+            column_resolver: Callable[[Any], Callable] = functools.partial(
+                condition_resolver, dataset=dataset
+            )
         else:
             column_resolver = resolve_func
         resolved_conditions = resolve_conditions(conditions, column_resolver)
