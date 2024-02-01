@@ -22,7 +22,11 @@ from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
-from sentry.issues.priority import PRIORITY_STR_TO_LEVEL_ENUM
+from sentry.issues.priority import (
+    PRIORITY_CHANGE_REASON_STR_TO_ENUM,
+    PRIORITY_STR_TO_LEVEL_ENUM,
+    update_priority,
+)
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
@@ -256,7 +260,12 @@ def update_groups(
     activity_type = None
     activity_data: MutableMapping[str, Any | None] | None = None
     if features.has("projects:issue-priority", projects[0], actor=user) and "priority" in result:
-        handle_priority(result["priority"], group_list, project_lookup, acting_user)
+        handle_priority(
+            priority=result["priority"],
+            reason=result.get("reason", None),
+            group_list=group_list,
+            actor=acting_user,
+        )
     if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
         if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
@@ -769,23 +778,15 @@ def handle_has_seen(
         GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
 
 
-def handle_priority(
-    priority: str, group_list: Sequence[Group], project_lookup: dict[int, Any], acting_user: User
-) -> None:
-    user_id = acting_user.id if acting_user else None
-    activity_data = {"priority": priority}
+def handle_priority(priority: str, reason: str, group_list: Sequence[Group], actor: User) -> None:
     for group in group_list:
-        Group.objects.filter(id=group.id).update(priority=PRIORITY_STR_TO_LEVEL_ENUM[priority])
-        Activity.objects.create(
-            project=project_lookup[group.project_id],
+        update_priority(
             group=group,
-            type=ActivityType.SET_PRIORITY.value,
-            user_id=user_id,
-            data=activity_data,
+            priority=PRIORITY_STR_TO_LEVEL_ENUM[priority] if priority else None,
+            reason=PRIORITY_CHANGE_REASON_STR_TO_ENUM[reason] if reason else None,
+            actor=actor,
         )
-        record_group_history_from_activity_type(
-            group, ActivityType.SET_PRIORITY.value, actor=acting_user
-        )
+        group.update(priority_locked_at=django_timezone.now())
 
 
 def handle_is_public(
