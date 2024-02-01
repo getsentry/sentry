@@ -42,7 +42,7 @@ class ApiTokensEndpoint(Endpoint):
         """
         Gets the user id to use for the request, based on what the current state of the request is.
         If the request is made by a superuser, then they are allowed to act on behalf of other user's data.
-        Therefore, when GET or DELETE endpoints are invoked by the superuser, they can use another user id.
+        Therefore, when GET or DELETE endpoints are invoked by the superuser, we may utilize a provided user_id.
 
         The user_id to use comes from the GET or BODY parameter based on the request type.
         For GET endpoints, the GET dict is used.
