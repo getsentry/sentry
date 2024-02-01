@@ -79,7 +79,7 @@ export function ReleaseSelector({selectorKey, selectorValue, triggerLabelPrefix}
       }}
       triggerLabel={
         <span>
-          <strong>{triggerLabelPrefix}:</strong>{' '}
+          {triggerLabelPrefix}:&nbsp;
           <ReleaseLabelContainer>{triggerLabelContent}</ReleaseLabelContainer>
         </span>
       }
@@ -182,4 +182,5 @@ const DetailsContainer = styled('div')`
 
 const ReleaseLabelContainer = styled('span')`
   display: inline;
+  font-weight: normal;
 `;
