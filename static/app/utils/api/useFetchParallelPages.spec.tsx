@@ -40,6 +40,39 @@ describe('useFetchParallelPages', () => {
     expect(getQueryKey).not.toHaveBeenCalled();
   });
 
+  it('should immediately switch to isFetching=true when the prop is changed', async () => {
+    MockApiClient.addMockResponse({
+      url: MOCK_API_ENDPOINT,
+      body: 'text result',
+    });
+    const getQueryKey = queryKeyFactory();
+
+    const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(
+      useFetchParallelPages,
+      {
+        wrapper: makeWrapper(makeTestQueryClient()),
+        initialProps: {
+          enabled: false,
+          getQueryKey,
+          hits: 13,
+          perPage: 10,
+        },
+      }
+    );
+
+    expect(result.current.isFetching).toBeFalsy();
+    expect(getQueryKey).not.toHaveBeenCalled();
+
+    rerender({enabled: true, getQueryKey, hits: 13, perPage: 10});
+
+    expect(result.current.isFetching).toBeTruthy();
+    expect(getQueryKey).toHaveBeenCalled();
+
+    await waitForNextUpdate();
+
+    expect(result.current.isFetching).toBeFalsy();
+  });
+
   it('should call the queryFn zero times, when hits is 0', () => {
     MockApiClient.addMockResponse({
       url: MOCK_API_ENDPOINT,
