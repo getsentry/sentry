@@ -669,6 +669,9 @@ export const extractSpanURLString = (span: Span, baseURL?: string): URL | null =
   }
 
   const [_method, _url] = (span?.description ?? '').split(' ', 2);
+  if (!_url) {
+    return null;
+  }
 
   return safeURL(_url, baseURL) ?? null;
 };
