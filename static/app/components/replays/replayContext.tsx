@@ -194,14 +194,6 @@ type Props = {
   replay: ReplayReader | null;
 
   /**
-   * If provided, the replay will be clipped to this window.
-   */
-  clipWindow?: {
-    durationMs: number;
-    startTimeOffsetMs: number;
-  };
-
-  /**
    * Time, in seconds, when the video should start
    */
   initialTimeOffsetMs?: ReturnType<typeof useInitialOffsetMs>;
