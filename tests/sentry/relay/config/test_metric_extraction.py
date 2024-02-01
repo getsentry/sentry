@@ -1845,24 +1845,26 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
             assert widget_spec.query_hash != alert_spec.query_hash
 
 
+foo_bar_condition = {"name": "event.tags.foo", "op": "eq", "value": "bar"}
+not_event_type_cond = {
+    "inner": {"op": "eq", "name": "event.tags.event.type", "value": "error"},
+    "op": "not",
+}
+
+
 @django_db_all
 @pytest.mark.parametrize(
     "query, config_assertion, expected_hashes, expected_condition",
     [
-        ("event.type:error", False, [], None),
         ("event.type:default", False, [], None),
-        ('event.type:"error"', False, [], None),
-        ("event.type:transaction", True, ["5367d030", "f7a47137"], None),
         ("!event.type:transaction", False, [], None),
-        (
-            "!event.type:error",
-            True,
-            ["578e7911", "91f78a80"],
-            {
-                "inner": {"op": "eq", "name": "event.tags.event.type", "value": "error"},
-                "op": "not",
-            },
-        ),
+        ('event.type:"error"', False, [], None),
+        ("event.type:error", False, [], None),
+        ("!event.type:error", True, ["578e7911", "91f78a80"], not_event_type_cond),
+        ("event.type:transaction", True, ["5367d030", "f7a47137"], None),
+        # These two have the same hashes because event.type:transaction is completely ignored
+        ("event.type:transaction foo:bar", True, ["bdb73880", "54cee1ce"], foo_bar_condition),
+        ("foo:bar", True, ["bdb73880", "54cee1ce"], foo_bar_condition),
     ],
 )
 def test_event_type(
