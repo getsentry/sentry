@@ -15,7 +15,7 @@ const items = [
   {
     name: 'Orange',
   },
-];
+] as const;
 
 /**
  * For every render, we push all injected params into `autoCompleteState`, we probably want to
