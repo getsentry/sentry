@@ -516,6 +516,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         )
         obj = self.event if self.event is not None else self.group
         action_text = ""
+
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
@@ -583,6 +584,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_rich_text_preformatted_block(text))
 
         # build up actions text
+        if self.actions and self.identity and not action_text:
+            action_text = get_action_text(text, self.actions, self.identity)
+
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
