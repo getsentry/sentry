@@ -19,13 +19,13 @@ type ApiResponse = {
   metrics: MetricMetaCodeLocation[];
 };
 
-type MetricsDDMMetaOpts = SelectionRange & {
+type MetricCorrelationOpts = SelectionRange & {
   codeLocations?: boolean;
   metricSpans?: boolean;
   query?: string;
 };
 
-function useDateTimeParams(options: MetricsDDMMetaOpts) {
+function useDateTimeParams(options: MetricCorrelationOpts) {
   const {selection} = usePageFilters();
 
   const {start, end} = options;
@@ -34,9 +34,9 @@ function useDateTimeParams(options: MetricsDDMMetaOpts) {
     : getDateTimeParams(selection.datetime);
 }
 
-function useMetricsDDMMeta(
+function useMetricsCorrelations(
   mri: MRI | undefined,
-  options: MetricsDDMMetaOpts,
+  options: MetricCorrelationOpts,
   queryOptions: Partial<UseApiQueryOptions<ApiResponse>> = {}
 ) {
   const organization = useOrganization();
@@ -83,14 +83,14 @@ function useMetricsDDMMeta(
   return {...queryInfo, data};
 }
 
-export function useCorrelatedSamples(
+export function useMetricSamples(
   mri: MRI | undefined,
-  options: Omit<MetricsDDMMetaOpts, 'metricSpans'> = {}
+  options: Omit<MetricCorrelationOpts, 'metricSpans'> = {}
 ) {
   const [isUsingFallback, setIsUseFallback] = useState(false);
   const dateTimeParams = useDateTimeParams(options);
 
-  const mainQuery = useMetricsDDMMeta(mri, {
+  const mainQuery = useMetricsCorrelations(mri, {
     ...options,
     ...dateTimeParams,
     metricSpans: true,
@@ -118,7 +118,7 @@ export function useCorrelatedSamples(
     (periodInHours ??
       moment(dateTimeParams.start).diff(moment(dateTimeParams.end), 'hours')) > 1;
 
-  const fallbackQuery = useMetricsDDMMeta(
+  const fallbackQuery = useMetricsCorrelations(
     mri,
     {
       ...options,
@@ -145,14 +145,26 @@ export function useCorrelatedSamples(
     return () => {};
   }, [mainQuery.isLoading, isFallbackEnabled, mainQuery.isError]);
 
-  return isUsingFallback ? fallbackQuery : mainQuery;
+  const queryInfo = isUsingFallback ? fallbackQuery : mainQuery;
+
+  if (!queryInfo.data) {
+    return queryInfo;
+  }
+
+  const data = queryInfo.data.metrics
+    .map(m => m.metricSpans)
+    .flat()
+    .filter(correlation => !!correlation)
+    .slice(0, 10) as MetricCorrelation[];
+
+  return {...queryInfo, data};
 }
 
-export function useMetricsCodeLocations(
+export function useMetricCodeLocations(
   mri: MRI | undefined,
-  options: Omit<MetricsDDMMetaOpts, 'codeLocations'> = {}
+  options: Omit<MetricCorrelationOpts, 'codeLocations'> = {}
 ) {
-  return useMetricsDDMMeta(mri, {...options, codeLocations: true});
+  return useMetricsCorrelations(mri, {...options, codeLocations: true});
 }
 
 const mapToNewResponseShape = (
