@@ -26,7 +26,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {SpanOpSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
@@ -64,8 +63,6 @@ export function SpanOperationTable({
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
@@ -125,14 +122,8 @@ export function SpanOperationTable({
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
-      'Duration (%s)',
-      truncatedPrimary
-    ),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
-      'Duration (%s)',
-      truncatedSecondary
-    ),
+    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t('Duration (R1)'),
+    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t('Duration (R2)'),
     ['time_spent_percentage()']: t('Total Time Spent'),
   };
 

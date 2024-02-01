@@ -26,10 +26,7 @@ import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
-
-const MAX_TABLE_RELEASE_CHARS = 15;
 
 type Props = {
   data: TableData | undefined;
@@ -51,34 +48,18 @@ export function ScreensTable({
   const location = useLocation();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
-  const truncatedPrimary = formatVersionAndCenterTruncate(
-    primaryRelease ?? '',
-    MAX_TABLE_RELEASE_CHARS
-  );
-  const truncatedSecondary = formatVersionAndCenterTruncate(
-    secondaryRelease ?? '',
-    MAX_TABLE_RELEASE_CHARS
-  );
   const eventViewColumns = eventView.getColumns();
 
   const columnNameMap = {
     transaction: t('Screen'),
-    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
-      'TTID (%s)',
-      truncatedPrimary
-    ),
-    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
-      'TTID (%s)',
-      truncatedSecondary
-    ),
-    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
-      'TTFD (%s)',
-      truncatedPrimary
-    ),
-    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
-      'TTFD (%s)',
-      truncatedSecondary
-    ),
+    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]:
+      t('TTID (R1)'),
+    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]:
+      t('TTID (R2)'),
+    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]:
+      t('TTFD (R1)'),
+    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]:
+      t('TTFD (R2)'),
     'count()': t('Total Count'),
   };
 

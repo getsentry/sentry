@@ -122,7 +122,7 @@ function ScreenSummary() {
                     blocks={[
                       {
                         type: 'duration',
-                        title: t('Cold Start (%s)', truncatedPrimary),
+                        title: t('Cold Start (R1)', truncatedPrimary),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.cold'
@@ -136,7 +136,7 @@ function ScreenSummary() {
                       },
                       {
                         type: 'duration',
-                        title: t('Cold Start (%s)', truncatedSecondary),
+                        title: t('Cold Start (R2)', truncatedSecondary),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.cold'
@@ -150,7 +150,7 @@ function ScreenSummary() {
                       },
                       {
                         type: 'duration',
-                        title: t('Warm Start (%s)', truncatedPrimary),
+                        title: t('Warm Start (R1)', truncatedPrimary),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.warm'
@@ -164,7 +164,7 @@ function ScreenSummary() {
                       },
                       {
                         type: 'duration',
-                        title: t('Warm Start (%s)', truncatedSecondary),
+                        title: t('Warm Start (R2)', truncatedSecondary),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.warm'
