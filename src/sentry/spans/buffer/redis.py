@@ -10,11 +10,13 @@ from sentry.utils import redis
 SEGMENT_TTL = 5 * 60  # 5 min TTL in seconds
 
 
+def get_redis_client() -> RedisCluster | StrictRedis:
+    return redis.redis_clusters.get(settings.SENTRY_SPAN_BUFFER_CLUSTER)
+
+
 class RedisSpansBuffer:
-    def __init__(
-        self,
-    ):
-        self.client: RedisCluster | StrictRedis = self.get_redis_client()
+    def __init__(self):
+        self.client: RedisCluster | StrictRedis = get_redis_client()
 
     def read_segment(self, segment_id: str) -> List[str | bytes]:
         segment = self.client.lrange(segment_id, 0, -1)
@@ -31,7 +33,3 @@ class RedisSpansBuffer:
             self.client.expire(segment_id, SEGMENT_TTL)
 
         return new_key
-
-    @staticmethod
-    def get_redis_client() -> RedisCluster | StrictRedis:
-        return redis.redis_clusters.get(settings.SENTRY_SPAN_BUFFER_CLUSTER)
