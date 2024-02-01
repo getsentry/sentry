@@ -25,6 +25,7 @@ from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     RuleCondition,
     TagSpec,
+    _deep_sorted,
     fetch_on_demand_metric_spec,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -1842,3 +1843,48 @@ def test_alert_and_widget_colliding(default_project: Project) -> None:
 
             # With the new spec version they will not collide anymore
             assert widget_spec.query_hash != alert_spec.query_hash
+
+
+foo_bar_condition = {"name": "event.tags.foo", "op": "eq", "value": "bar"}
+not_event_type_cond = {
+    "inner": {"op": "eq", "name": "event.tags.event.type", "value": "error"},
+    "op": "not",
+}
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "query, config_assertion, expected_hashes, expected_condition",
+    [
+        ("event.type:default", False, [], None),
+        ("!event.type:transaction", False, [], None),
+        ('event.type:"error"', False, [], None),
+        ("event.type:error", False, [], None),
+        ("!event.type:error", True, ["578e7911", "91f78a80"], not_event_type_cond),
+        ("event.type:transaction", True, ["5367d030", "f7a47137"], None),
+        # These two have the same hashes because event.type:transaction is completely ignored
+        ("event.type:transaction foo:bar", True, ["bdb73880", "54cee1ce"], foo_bar_condition),
+        ("foo:bar", True, ["bdb73880", "54cee1ce"], foo_bar_condition),
+    ],
+)
+def test_event_type(
+    default_project: Project,
+    query: str,
+    config_assertion: bool,
+    expected_hashes: list[str],
+    expected_condition: Optional[RuleCondition],
+) -> None:
+    aggr = "count()"
+
+    with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
+        widget = create_widget([aggr], query, default_project)
+        config = get_metric_extraction_config(default_project)
+        if not config_assertion:
+            assert config is None
+        else:
+            assert config and config["metrics"] == [
+                widget_to_metric_spec(expected_hashes[0], expected_condition),
+                widget_to_metric_spec(expected_hashes[1], expected_condition),
+            ]
+            widget_spec = _on_demand_spec_from_widget(default_project, widget)
+            assert widget_spec._query_str_for_hash == f"None;{_deep_sorted(expected_condition)}"
