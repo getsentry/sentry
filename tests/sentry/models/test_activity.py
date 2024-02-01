@@ -28,6 +28,7 @@ class ActivityTest(TestCase):
         event = manager.save(project.id)
         user1 = self.create_user()
         group = event.group
+        assert group is not None
 
         activities = [
             Activity.objects.create_group_activity(
@@ -83,6 +84,7 @@ class ActivityTest(TestCase):
         event = manager.save(project.id)
         user1 = self.create_user()
         group = event.group
+        assert group is not None
 
         activities = [
             Activity.objects.create_group_activity(
@@ -122,6 +124,7 @@ class ActivityTest(TestCase):
         event = manager.save(project.id)
         user1 = self.create_user()
         group = event.group
+        assert group is not None
 
         activities = [
             Activity.objects.create_group_activity(
