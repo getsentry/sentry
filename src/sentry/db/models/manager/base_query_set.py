@@ -1,5 +1,5 @@
 import abc
-from typing import Any, List
+from typing import Any
 
 from django.core import exceptions
 from django.core.exceptions import EmptyResultSet
@@ -29,7 +29,7 @@ class BaseQuerySet(QuerySet, abc.ABC):
         qs._with_post_update_signal = self._with_post_update_signal
         return qs
 
-    def update_with_returning(self, returned_fields: List[str], **kwargs):
+    def update_with_returning(self, returned_fields: list[str], **kwargs):
         """
         Copied and modified from `Queryset.update()` to support `RETURNING <returned_fields>`
         """

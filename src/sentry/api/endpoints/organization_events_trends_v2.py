@@ -1,7 +1,7 @@
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, cast
+from typing import Any, cast
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -99,7 +99,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         )
 
         def get_top_events(user_query, params, event_limit, referrer):
-            top_event_columns = cast(List[str], selected_columns[:])
+            top_event_columns = cast(list[str], selected_columns[:])
             top_event_columns.append("count()")
             top_event_columns.append("project_id")
 
@@ -135,7 +135,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ]
             queries = [generate_top_transaction_query(t_e) for t_e in split_top_events]
 
-            timeseries_columns = cast(List[str], selected_columns[:])
+            timeseries_columns = cast(list[str], selected_columns[:])
             timeseries_columns.append(trend_function)
 
             # When all projects or my projects options selected,
@@ -258,7 +258,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         def get_trends_data(stats_data, request):
             trend_function = request.GET.get("trendFunction", "p50()")
 
-            trends_request: Dict[str, Any] = {
+            trends_request: dict[str, Any] = {
                 "data": {},
                 "sort": None,
                 "trendFunction": None,

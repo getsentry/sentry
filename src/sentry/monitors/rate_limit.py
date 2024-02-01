@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional
 
 from django.core.cache import cache
 
@@ -59,7 +59,7 @@ ALLOWED_MINIMUM = 50
 def get_project_monitor_quota(
     project: Project,
     cache_bust=False,
-) -> Tuple[Optional[int], Optional[int]]:
+) -> tuple[Optional[int], Optional[int]]:
     """
     Determines the rate-limit for monitor check-ins across a particular
     project.

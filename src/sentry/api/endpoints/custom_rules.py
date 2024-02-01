@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 import sentry_sdk
 from django.db import DatabaseError
@@ -43,8 +43,6 @@ class UnsupportedSearchQuery(Exception):
     def __init__(self, error_code: UnsupportedSearchQueryReason, *args, **kwargs):
         super().__init__(error_code.value, *args, **kwargs)
         self.error_code = error_code.value
-
-    pass
 
 
 class CustomRulesInputSerializer(serializers.Serializer):
@@ -309,7 +307,7 @@ def get_rule_condition(query: Optional[str]) -> RuleCondition:
         raise
 
 
-def _clean_project_list(project_ids: List[int]) -> List[int]:
+def _clean_project_list(project_ids: list[int]) -> list[int]:
     if len(project_ids) == 1 and project_ids[0] == -1:
         # special case for all projects convention ( sends a project id of -1)
         return []
@@ -317,7 +315,7 @@ def _clean_project_list(project_ids: List[int]) -> List[int]:
     return project_ids
 
 
-def _schedule_invalidate_project_configs(organization: Organization, project_ids: List[int]):
+def _schedule_invalidate_project_configs(organization: Organization, project_ids: list[int]):
     """
     Schedule a task to update the project configs for the given projects
     """

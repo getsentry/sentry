@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 from django.db import models
 from django.db.models import UniqueConstraint
@@ -132,7 +132,7 @@ class ModelRelations:
     # cause it to be dangling when we do an `ExportScope.Organization` export, but non-dangling if
     # we do an `ExportScope.Global` export. HOWEVER, as best as I can tell, this situation does not
     # actually exist today, so we can ignore this subtlety for now and just us a boolean here.
-    dangling: Optional[bool]
+    dangling: bool | None
     foreign_keys: dict[str, ForeignField]
     model: type[models.base.Model]
     relocation_dependencies: set[type[models.base.Model]]
@@ -187,7 +187,7 @@ def get_model_name(model: type[models.Model] | models.Model) -> NormalizedModelN
     return NormalizedModelName(f"{model._meta.app_label}.{model._meta.object_name}")
 
 
-def get_model(model_name: NormalizedModelName) -> Optional[type[models.base.Model]]:
+def get_model(model_name: NormalizedModelName) -> type[models.base.Model] | None:
     """
     Given a standardized model name string, retrieve the matching Sentry model.
     """
@@ -250,12 +250,12 @@ class PrimaryKeyMap:
     keys are not supported!
     """
 
-    mapping: dict[str, dict[int, tuple[int, ImportKind, Optional[str]]]]
+    mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]]
 
     def __init__(self):
         self.mapping = defaultdict(dict)
 
-    def get_pk(self, model_name: NormalizedModelName, old: int) -> Optional[int]:
+    def get_pk(self, model_name: NormalizedModelName, old: int) -> int | None:
         """
         Get the new, post-mapping primary key from an old primary key.
         """
@@ -277,7 +277,7 @@ class PrimaryKeyMap:
 
         return {entry[0] for entry in self.mapping[str(model_name)].items()}
 
-    def get_kind(self, model_name: NormalizedModelName, old: int) -> Optional[ImportKind]:
+    def get_kind(self, model_name: NormalizedModelName, old: int) -> ImportKind | None:
         """
         Is the mapped entry a newly inserted model, or an already existing one that has been merged
         in?
@@ -293,7 +293,7 @@ class PrimaryKeyMap:
 
         return entry[1]
 
-    def get_slug(self, model_name: NormalizedModelName, old: int) -> Optional[str]:
+    def get_slug(self, model_name: NormalizedModelName, old: int) -> str | None:
         """
         Does the mapped entry have a unique slug associated with it?
         """

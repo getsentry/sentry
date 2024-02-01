@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Iterable, List, MutableMapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Iterable, MutableMapping, Optional, Union
 
 from sentry.models.actor import ACTOR_TYPES, get_actor_id_for_user
 from sentry.services.hybrid_cloud import RpcModel
@@ -46,7 +46,7 @@ class RpcActor(RpcModel):
         return hash((self.id, self.actor_type))
 
     @classmethod
-    def many_from_object(cls, objects: Iterable[ActorTarget]) -> List["RpcActor"]:
+    def many_from_object(cls, objects: Iterable[ActorTarget]) -> list["RpcActor"]:
         """
         Create a list of RpcActor instaces based on a collection of 'objects'
 
@@ -57,8 +57,8 @@ class RpcActor(RpcModel):
         from sentry.models.team import Team
         from sentry.models.user import User
 
-        result: List["RpcActor"] = []
-        grouped_by_type: MutableMapping[str, List[int]] = defaultdict(list)
+        result: list["RpcActor"] = []
+        grouped_by_type: MutableMapping[str, list[int]] = defaultdict(list)
         team_slugs: MutableMapping[int, str] = {}
         for obj in objects:
             if isinstance(obj, cls):

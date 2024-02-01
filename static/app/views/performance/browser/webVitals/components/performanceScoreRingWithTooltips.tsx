@@ -284,13 +284,37 @@ function PerformanceScoreRingWithTooltips({
         )}
         <PerformanceScoreRing
           values={[
-            (projectScore.lcpScore ?? 0) * weights.lcp * 0.01,
-            (projectScore.fcpScore ?? 0) * weights.fcp * 0.01,
-            (projectScore.fidScore ?? 0) * weights.fid * 0.01,
-            (projectScore.clsScore ?? 0) * weights.cls * 0.01,
-            (projectScore.ttfbScore ?? 0) * weights.ttfb * 0.01,
+            {
+              value: (projectScore.lcpScore ?? 0) * weights.lcp * 0.01,
+              maxValue: weights.lcp,
+              key: 'lcp',
+              onHoverActions: () => setWebVitalTooltip('lcp'),
+            },
+            {
+              value: (projectScore.fcpScore ?? 0) * weights.fcp * 0.01,
+              maxValue: weights.fcp,
+              key: 'fcp',
+              onHoverActions: () => setWebVitalTooltip('fcp'),
+            },
+            {
+              value: (projectScore.fidScore ?? 0) * weights.fid * 0.01,
+              maxValue: weights.fid,
+              key: 'fid',
+              onHoverActions: () => setWebVitalTooltip('fid'),
+            },
+            {
+              value: (projectScore.clsScore ?? 0) * weights.cls * 0.01,
+              maxValue: weights.cls,
+              key: 'cls',
+              onHoverActions: () => setWebVitalTooltip('cls'),
+            },
+            {
+              value: (projectScore.ttfbScore ?? 0) * weights.ttfb * 0.01,
+              maxValue: weights.ttfb,
+              key: 'ttfb',
+              onHoverActions: () => setWebVitalTooltip('ttfb'),
+            },
           ]}
-          maxValues={[weights.lcp, weights.fcp, weights.fid, weights.cls, weights.ttfb]}
           text={text}
           size={size}
           barWidth={barWidth}
@@ -303,13 +327,6 @@ function PerformanceScoreRingWithTooltips({
           backgroundColors={ringBackgroundColors}
           x={x}
           y={y}
-          onHoverActions={[
-            () => setWebVitalTooltip('lcp'),
-            () => setWebVitalTooltip('fcp'),
-            () => setWebVitalTooltip('fid'),
-            () => setWebVitalTooltip('cls'),
-            () => setWebVitalTooltip('ttfb'),
-          ]}
           onUnhover={() => setWebVitalTooltip(null)}
         />
       </svg>

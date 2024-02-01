@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Optional
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 
@@ -22,8 +22,8 @@ class DatabaseBackedRepositoryService(RepositoryService):
         *,
         organization_id: int,
         id: int,
-        as_user: Optional[RpcUser] = None,
-    ) -> Optional[Any]:
+        as_user: RpcUser | None = None,
+    ) -> Any | None:
         repository = Repository.objects.filter(id=id).first()
         if repository is None:
             return None
@@ -33,13 +33,13 @@ class DatabaseBackedRepositoryService(RepositoryService):
         self,
         *,
         organization_id: int,
-        integration_id: Optional[int] = None,
-        external_id: Optional[int] = None,
-        providers: Optional[List[str]] = None,
-        has_integration: Optional[bool] = None,
-        has_provider: Optional[bool] = None,
-        status: Optional[ObjectStatus] = None,
-    ) -> List[RpcRepository]:
+        integration_id: int | None = None,
+        external_id: int | None = None,
+        providers: list[str] | None = None,
+        has_integration: bool | None = None,
+        has_provider: bool | None = None,
+        status: ObjectStatus | None = None,
+    ) -> list[RpcRepository]:
         query = Repository.objects.filter(organization_id=organization_id)
         if integration_id is not None:
             query = query.filter(integration_id=integration_id)

@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -57,7 +55,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         # This method is specific to the GithubIntegration
         trees = installation.get_trees_for_org()  # type: ignore
         trees_helper = CodeMappingTreesHelper(trees)
-        possible_code_mappings: List[Dict[str, str]] = []
+        possible_code_mappings: list[dict[str, str]] = []
         resp_status: int = status.HTTP_204_NO_CONTENT
         if stacktrace_filename:
             frame_filename = FrameFilename(stacktrace_filename)

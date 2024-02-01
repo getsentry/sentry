@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
-from typing import Any, Mapping, Tuple
+from typing import Any, Mapping
 
 from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
@@ -93,7 +93,7 @@ def get_repository(meta: Mapping[str, str]) -> str:
 
 def get_payload_and_token(
     payload: Mapping[str, Any], organization_id: int, sentry_project_id: int
-) -> Tuple[Mapping[str, Any], str]:
+) -> tuple[Mapping[str, Any], str]:
     meta = payload["deployment"]["meta"]
 
     # look up the project so we can get the slug
