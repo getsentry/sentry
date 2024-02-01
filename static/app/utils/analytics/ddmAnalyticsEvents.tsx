@@ -10,6 +10,7 @@ export type DDMEventParameters = {
     source: 'onboarding_panel' | 'header';
   };
   'ddm.page-view': {};
+  'ddm.remove-default-query': {};
   'ddm.sample-table-interaction': {
     target: 'event-id' | 'transaction' | 'trace-id' | 'profile';
   };
@@ -25,6 +26,7 @@ export type DDMEventParameters = {
 
 export const ddmEventMap: Record<keyof DDMEventParameters, string> = {
   'ddm.page-view': 'DDM: Page View',
+  'ddm.remove-default-query': 'DDM: Set Default Query',
   'ddm.set-default-query': 'DDM: Set Default Query',
   'ddm.open-onboarding': 'DDM: Open Onboarding',
   'ddm.widget.add': 'DDM: Widget Added',
