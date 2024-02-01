@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider
 from sentry.services.hybrid_cloud.identity.model import IdentityFilterArgs
@@ -35,15 +35,13 @@ class IdentityService(RpcService):
         Returns an RpcIdentityProvider either by using the idp.id (provider_id), or a combination
         of idp.type (provider_type) and idp.external_id (provider_ext_id)
         """
-        pass
 
     @rpc_method
     @abstractmethod
-    def get_identities(self, *, filter: IdentityFilterArgs) -> List[RpcIdentity]:
+    def get_identities(self, *, filter: IdentityFilterArgs) -> list[RpcIdentity]:
         """
         Returns a list of RpcIdentity based on the given filters.
         """
-        pass
 
     @rpc_method
     @abstractmethod
@@ -51,7 +49,6 @@ class IdentityService(RpcService):
         """
         Returns the first RpcIdentity based on the given filters.
         """
-        pass
 
     @rpc_method
     @abstractmethod
@@ -61,13 +58,12 @@ class IdentityService(RpcService):
         user_id: int,
         provider_type: str,
         exclude_matching_external_ids: bool = False,
-    ) -> List[RpcIdentity]:
+    ) -> list[RpcIdentity]:
         """
         Returns a list of APIIdentities for a given user based on idp.type (provider_type).
         If exclude_matching_external_ids is True, excludes entries with
         identity.external_id == idp.external_id
         """
-        pass
 
     @rpc_method
     @abstractmethod
@@ -78,7 +74,6 @@ class IdentityService(RpcService):
         :param organization_id:
         :return:
         """
-        pass
 
     @rpc_method
     @abstractmethod
@@ -88,7 +83,6 @@ class IdentityService(RpcService):
         :param identity_id:
         :return: RpcIdentity
         """
-        pass
 
 
 identity_service = IdentityService.create_delegation()

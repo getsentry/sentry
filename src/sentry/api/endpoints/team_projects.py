@@ -1,5 +1,3 @@
-from typing import List
-
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -96,7 +94,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "ListTeamProjectResponse", List[OrganizationProjectResponse]
+                "ListTeamProjectResponse", list[OrganizationProjectResponse]
             ),
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),

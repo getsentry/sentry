@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 from urllib.parse import urlencode
 
 from django.urls import reverse
@@ -81,7 +81,7 @@ def send_subscriber_notifications(activity_id: int) -> None:
 
 
 def generate_incident_activity_email(
-    activity: IncidentActivity, user: RpcUser, activity_user: Optional[RpcUser] = None
+    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser | None = None
 ) -> MessageBuilder:
     incident = activity.incident
     return MessageBuilder(
@@ -94,8 +94,8 @@ def generate_incident_activity_email(
 
 
 def build_activity_context(
-    activity: IncidentActivity, user: RpcUser, activity_user: Optional[RpcUser] = None
-) -> Dict[str, Any]:
+    activity: IncidentActivity, user: RpcUser, activity_user: RpcUser | None = None
+) -> dict[str, Any]:
     if activity_user is None:
         activity_user = user_service.get_user(user_id=activity.user_id)
 
@@ -185,7 +185,7 @@ def handle_trigger_action(
     project_id: int,
     method: str,
     new_status: int,
-    metric_value: Optional[int] = None,
+    metric_value: int | None = None,
     **kwargs: Any,
 ) -> None:
     try:

@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 import sentry_sdk
 from django.http import Http404
@@ -261,7 +261,7 @@ def query_tag_data(
     referrer: str,
     filter_query: Optional[str] = None,
     aggregate_column: Optional[str] = None,
-) -> Optional[Dict]:
+) -> Optional[dict]:
     """
     Fetch general data about all the transactions with this transaction name to feed into the facet query
     :return: Returns the row with aggregate and count if the query was successful
@@ -309,11 +309,11 @@ def query_top_tags(
     tag_key: str,
     limit: int,
     referrer: str,
-    orderby: Optional[List[str]],
+    orderby: Optional[list[str]],
     offset: Optional[int] = None,
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
-) -> Optional[List[Any]]:
+) -> Optional[list[Any]]:
     """
     Fetch counts by tag value, finding the top tag values for a tag key by a limit.
     :return: Returns the row with the value, the aggregate and the count if the query was successful
@@ -378,7 +378,7 @@ def query_facet_performance(
     all_tag_keys: Optional[bool] = None,
     tag_key: Optional[bool] = None,
     include_count_delta: Optional[bool] = None,
-) -> Dict:
+) -> dict:
     # Dynamically sample so at least 50000 transactions are selected
     sample_start_count = 50000
     transaction_count = tag_data["count"]
@@ -504,14 +504,14 @@ def query_facet_performance(
 
 def query_facet_performance_key_histogram(
     params: Mapping[str, str],
-    top_tags: List[Any],
+    top_tags: list[Any],
     tag_key: str,
     num_buckets_per_key: int,
     limit: int,
     referrer: str,
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
-) -> Dict:
+) -> dict:
     precision = 0
 
     tag_values = [x["tags_value"] for x in top_tags]

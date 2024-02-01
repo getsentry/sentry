@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from os.path import splitext
-from typing import List, Tuple
 from urllib.parse import urlsplit
 
 # number of surrounding lines (on each side) to fetch
@@ -10,8 +9,8 @@ LINES_OF_CONTEXT = 5
 
 
 def get_source_context(
-    source: List[bytes], lineno: int, context=LINES_OF_CONTEXT
-) -> Tuple[List[bytes] | None, bytes | None, List[bytes] | None]:
+    source: list[bytes], lineno: int, context=LINES_OF_CONTEXT
+) -> tuple[list[bytes] | None, bytes | None, list[bytes] | None]:
     if not source:
         return None, None, None
 

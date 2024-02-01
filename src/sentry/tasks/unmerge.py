@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from functools import reduce
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, Mapping
 
 from django.db import router, transaction
 
@@ -178,9 +178,9 @@ def migrate_events(
     args: UnmergeArgs,
     events,
     locked_primary_hashes,
-    opt_destination_id: Optional[int],
-    opt_eventstream_state: Optional[Mapping[str, Any]],
-) -> Tuple[int, Mapping[str, Any]]:
+    opt_destination_id: int | None,
+    opt_eventstream_state: Mapping[str, Any] | None,
+) -> tuple[int, Mapping[str, Any]]:
     logger.info(
         "migrate_events.start",
         extra={
