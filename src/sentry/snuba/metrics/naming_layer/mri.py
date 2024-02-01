@@ -129,6 +129,7 @@ class TransactionMRI(Enum):
     MEASUREMENTS_TTFB_REQUEST_TIME = "d:transactions/measurements.ttfb.requesttime@millisecond"
     BREAKDOWNS_HTTP = "d:transactions/breakdowns.span_ops.ops.http@millisecond"
     BREAKDOWNS_DB = "d:transactions/breakdowns.span_ops.ops.db@millisecond"
+    ACTIVE_REQUESTS = "c:custom/http.server.active_requests@none"
     BREAKDOWNS_BROWSER = "d:transactions/breakdowns.span_ops.ops.browser@millisecond"
     BREAKDOWNS_RESOURCE = "d:transactions/breakdowns.span_ops.ops.resource@millisecond"
 
