@@ -5,8 +5,9 @@ import functools
 import ipaddress
 import os
 import threading
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from typing import Any, Callable, Iterator, TypedDict
+from typing import Any, TypedDict
 from unittest.mock import patch
 
 from django.db import connections, transaction

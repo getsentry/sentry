@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import random
 import string
-from typing import TYPE_CHECKING, Any, Callable, Mapping
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.http.request import HttpRequest

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import random
+from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from datetime import datetime, timezone
 from time import time
-from typing import Any, Mapping, MutableMapping
+from typing import Any
 
 import msgpack
 import sentry_sdk

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 from django.conf import settings
@@ -23,7 +23,7 @@ class MockBatchHandler(features.BatchFeatureHandler):
         self,
         feature: Feature,
         actor: User,
-        skip_entity: Optional[bool] = False,
+        skip_entity: bool | None = False,
     ) -> bool:
         return True
 

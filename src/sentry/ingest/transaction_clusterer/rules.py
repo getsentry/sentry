@@ -1,5 +1,6 @@
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Mapping, Protocol, Sequence
+from typing import Protocol
 
 import sentry_sdk
 
