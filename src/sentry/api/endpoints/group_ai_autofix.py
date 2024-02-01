@@ -5,17 +5,20 @@ from datetime import datetime
 
 import requests
 from django.conf import settings
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.serializers.models.event import get_entries
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
+from sentry.models.user import User
 from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -45,13 +48,13 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         }
     }
 
-    def _get_event_exceptions(self, group: Group) -> list | None:
+    def _get_event_entries(self, group: Group, user: User) -> list | None:
         latest_event = group.get_latest_event()
 
         if not latest_event:
             return None
 
-        return latest_event.data.get("exception", {}).get("values", [])
+        return get_entries(latest_event, user)[0]
 
     def _make_error_metadata(self, autofix: dict, reason: str):
         return {
@@ -80,7 +83,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         self,
         group: Group,
         base_commit_sha: str,
-        event_exceptions: list[dict],
+        event_entries: list[dict],
         additional_context: str,
     ):
         requests.post(
@@ -90,7 +93,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 "issue": {
                     "id": group.id,
                     "title": group.title,
-                    "events": [{"entries": event_exceptions}],
+                    "events": [{"entries": event_entries}],
                 },
                 "additional_context": additional_context,
             },
@@ -115,7 +118,11 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             ],
         }
 
-        event_exceptions = self._get_event_exceptions(group)
+        if not request.user.is_authenticated:
+            raise PermissionDenied(detail="You must be authenticated to perform this action.")
+
+        user = User.objects.get(id=request.user.id)  # type: ignore (user is authenticated)
+        event_exceptions = self._get_event_entries(group, user)
 
         if event_exceptions is None:
             return self._respond_with_error(
