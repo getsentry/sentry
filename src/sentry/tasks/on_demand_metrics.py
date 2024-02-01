@@ -24,6 +24,7 @@ from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -273,7 +274,9 @@ def _set_widget_on_demand_state(
         specs_per_version.setdefault(spec_version.version, [])
         specs_per_version[spec_version.version].append((hash, spec, spec_version))
 
-    for version, specs_for_version in specs_per_version.items():
+    for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+        version = spec_version.version
+        specs_for_version = specs_per_version.get(version, [])
         extraction_state = _determine_extraction_state(specs, is_low_cardinality, enabled_features)
         spec_hashes = [hashed_spec[0] for hashed_spec in specs_for_version]
 

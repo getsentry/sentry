@@ -307,6 +307,7 @@ export const SampleTable = memo(function InnerSampleTable({
       ref={wrapperRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => onRowHover?.(undefined)}
+      isEmpty={!data?.length}
     >
       <GridEditable
         isLoading={isFetching}
@@ -325,10 +326,10 @@ export const SampleTable = memo(function InnerSampleTable({
   );
 });
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{isEmpty?: boolean}>`
   tr:hover {
     td {
-      background: ${p => p.theme.backgroundSecondary};
+      background: ${p => (p.isEmpty ? 'none' : p.theme.backgroundSecondary)};
     }
   }
 `;
