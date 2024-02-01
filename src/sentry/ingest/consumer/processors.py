@@ -1,8 +1,7 @@
 import functools
 import logging
 import random
-from collections.abc import Mapping
-from typing import Any
+from typing import Any, Mapping
 
 import sentry_sdk
 from django.conf import settings

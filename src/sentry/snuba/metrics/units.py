@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from sentry.snuba.metrics.utils import MetricOperationType, MetricUnit
 from sentry.utils.numbers import format_bytes
 
@@ -8,7 +10,7 @@ __all__ = (
 
 
 def format_value_using_unit_and_op(
-    value: int | float, unit: MetricUnit, op: MetricOperationType | None
+    value: Union[int, float], unit: MetricUnit, op: Optional[MetricOperationType]
 ) -> str:
     if op == "count" or op == "count_unique":
         return round_with_fixed(value, 2)
@@ -16,7 +18,7 @@ def format_value_using_unit_and_op(
     return format_value_using_unit(value, unit)
 
 
-def format_value_using_unit(value: int | float, unit: MetricUnit) -> str:
+def format_value_using_unit(value: Union[int, float], unit: MetricUnit) -> str:
     if unit == "nanosecond":
         return get_duration(value / 1000000000)
     elif unit == "microsecond":

@@ -1,5 +1,6 @@
 import uuid
 from collections import defaultdict
+from typing import Optional
 
 import sentry_sdk
 from django.db import router
@@ -32,7 +33,7 @@ class InvalidSortByParameter(SentryAPIException):
 
 class ArtifactBundlesMixin:
     @classmethod
-    def derive_order_by(cls, sort_by: str) -> str | None:
+    def derive_order_by(cls, sort_by: str) -> Optional[str]:
         is_desc = sort_by.startswith("-")
         sort_by = sort_by.strip("-")
 

@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from typing import Callable
 
 from django.conf import settings
 from django.http.request import HttpRequest

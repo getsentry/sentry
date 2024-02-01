@@ -1,6 +1,5 @@
 import abc
-from collections.abc import Callable, Mapping
-from typing import Any
+from typing import Any, Callable, Mapping, Optional
 
 from snuba_sdk import OrderBy
 
@@ -19,7 +18,7 @@ class DatasetConfig(abc.ABC):
     @abc.abstractmethod
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
+    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         pass
 
     @property

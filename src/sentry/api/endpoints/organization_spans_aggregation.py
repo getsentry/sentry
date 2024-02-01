@@ -1,8 +1,7 @@
 import hashlib
 from collections import defaultdict, namedtuple
-from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Optional, TypedDict
+from typing import Any, Mapping, Optional, TypedDict
 
 import sentry_sdk
 from rest_framework import status
@@ -70,7 +69,7 @@ NULL_GROUP = "00"
 class BaseAggregateSpans:
     def __init__(self) -> None:
         self.aggregated_tree: dict[str, AggregateSpanRow] = {}
-        self.current_transaction: str | None = None
+        self.current_transaction: Optional[str] = None
 
     def fingerprint_nodes(
         self,

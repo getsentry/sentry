@@ -5,9 +5,10 @@
 
 from collections import defaultdict
 from enum import Enum, unique
-from typing import Annotated, Any, Literal, Union
+from typing import Any, Literal, Optional, Union
 
 from pydantic import Field, StrictInt, StrictStr
+from typing_extensions import Annotated
 
 from sentry.backup.dependencies import (
     ImportKind,
@@ -34,7 +35,7 @@ class RpcFilter(RpcModel):
     # strings here.
     #
     # TODO(getsentry/team-ospo#190): Unify with the base filter type.
-    values: set[StrictStr | StrictInt]
+    values: set[Union[StrictStr, StrictInt]]
 
     def from_rpc(self) -> Filter:
         model = get_model(NormalizedModelName(self.model_name))
@@ -62,7 +63,7 @@ class RpcPrimaryKeyMap(RpcModel):
     """
 
     # Pydantic duplicates global default models on a per-instance basis, so using `{}` here is safe.
-    mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]] = {}
+    mapping: dict[str, dict[int, tuple[int, ImportKind, Optional[str]]]] = {}
 
     def from_rpc(self) -> PrimaryKeyMap:
         pk_map = PrimaryKeyMap()
@@ -101,7 +102,7 @@ class RpcImportFlags(RpcModel):
 
     merge_users: bool = False
     overwrite_configs: bool = False
-    import_uuid: str | None = None
+    import_uuid: Optional[str] = None
 
     def from_rpc(self) -> ImportFlags:
         return ImportFlags(
@@ -146,8 +147,8 @@ class RpcImportError(RpcModel, Finding):
 
     # Include fields from `Finding` in this `RpcModel` derivative.
     on: InstanceID
-    left_pk: int | None = None
-    right_pk: int | None = None
+    left_pk: Optional[int] = None
+    right_pk: Optional[int] = None
     reason: str = ""
 
     def get_kind(self) -> RpcImportErrorKind:
@@ -170,12 +171,12 @@ class RpcImportOk(RpcModel):
 
     is_err: Literal[False] = False
     mapped_pks: RpcPrimaryKeyMap
-    min_ordinal: int | None = None
-    max_ordinal: int | None = None
-    min_source_pk: int | None = None
-    max_source_pk: int | None = None
-    min_inserted_pk: int | None = None
-    max_inserted_pk: int | None = None
+    min_ordinal: Optional[int] = None
+    max_ordinal: Optional[int] = None
+    min_source_pk: Optional[int] = None
+    max_source_pk: Optional[int] = None
+    min_inserted_pk: Optional[int] = None
+    max_inserted_pk: Optional[int] = None
 
 
 RpcImportResult = Annotated[Union[RpcImportOk, RpcImportError], Field(discriminator="is_err")]
@@ -234,8 +235,8 @@ class RpcExportError(RpcModel, Finding):
 
     # Include fields from `Finding` in this `RpcModel` derivative.
     on: InstanceID
-    left_pk: int | None = None
-    right_pk: int | None = None
+    left_pk: Optional[int] = None
+    right_pk: Optional[int] = None
     reason: str = ""
 
     def get_kind(self) -> RpcExportErrorKind:

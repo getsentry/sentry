@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 GIB = 1024 * 1024 * 1024
 UNKNOWN_DEVICE = "Unknown Device"
@@ -27,8 +28,8 @@ def classify_device(
     model: str,
     os_name: str,
     is_emulator: bool,
-    cpu_frequencies: tuple[int] | None = None,
-    physical_memory_bytes: int | None = None,
+    cpu_frequencies: Optional[tuple[int]] = None,
+    physical_memory_bytes: Optional[int] = None,
 ) -> DeviceClass:
     platform = get_platform(os_name, is_emulator)
     if platform in (Platform.IOS_SIMULATOR, Platform.ANDROID_EMULATOR):
@@ -57,11 +58,11 @@ def classify_device(
     return DeviceClass.UNCLASSIFIED
 
 
-def number_of_cores(frequencies: tuple[int, ...] | None) -> int:
+def number_of_cores(frequencies: Optional[tuple[int, ...]]) -> int:
     return len(frequencies) if frequencies is not None else 0
 
 
-def core_frequency(frequencies: tuple[int, ...] | None) -> int:
+def core_frequency(frequencies: Optional[tuple[int, ...]]) -> int:
     return max(frequencies) if frequencies is not None else 0
 
 
@@ -506,7 +507,7 @@ IOS_CPU_FREQUENCIES: dict[str, tuple[int, ...]] = {
 }
 
 
-def ios_cpu_core_max_frequencies_mhz(model: str) -> tuple[int, ...] | None:
+def ios_cpu_core_max_frequencies_mhz(model: str) -> Optional[tuple[int, ...]]:
     if model in IOS_CPU_FREQUENCIES:
         return IOS_CPU_FREQUENCIES[model]
     # New unreleased device, assume device is best of class */

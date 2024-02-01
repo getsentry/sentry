@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 from abc import ABCMeta, abstractmethod
-from collections.abc import Mapping, MutableMapping
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, TypeVar
 
 from django.db import models
 

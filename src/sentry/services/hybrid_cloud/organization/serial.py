@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, MutableMapping
+from typing import Iterable, MutableMapping
 
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization

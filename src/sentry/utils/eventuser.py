@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
-from typing import Any
+from typing import Any, Mapping
 
 from snuba_sdk import (
     BooleanCondition,

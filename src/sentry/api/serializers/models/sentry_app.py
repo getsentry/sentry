@@ -1,5 +1,4 @@
-from collections.abc import Mapping
-from typing import Any
+from typing import Any, Mapping
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env

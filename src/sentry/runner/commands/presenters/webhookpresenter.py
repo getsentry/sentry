@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 import requests
 from django.conf import settings
@@ -48,7 +48,7 @@ class WebhookPresenter(OptionsPresenter):
         ):
             return
 
-        region: str | None = (
+        region: Optional[str] = (
             settings.SENTRY_REGION
             if settings.SENTRY_REGION
             else settings.CUSTOMER_ID

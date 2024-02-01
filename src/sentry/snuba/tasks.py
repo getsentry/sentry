@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import MutableMapping, Sequence
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, MutableMapping, Sequence
 
 import sentry_sdk
 from django.utils import timezone

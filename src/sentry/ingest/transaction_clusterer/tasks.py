@@ -1,7 +1,6 @@
 import logging
-from collections.abc import Sequence
 from itertools import islice
-from typing import Any
+from typing import Any, Sequence
 
 import sentry_sdk
 

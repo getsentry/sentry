@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import traceback
+from typing import Optional
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.serializers import deserialize, serialize
@@ -49,7 +50,7 @@ from sentry.silo.base import SiloMode
 
 def get_existing_import_chunk(
     model_name: NormalizedModelName, flags: ImportFlags, import_chunk_type: type[models.base.Model]
-) -> RpcImportOk | None:
+) -> Optional[RpcImportOk]:
     # TODO(getsentry/team-ospo#190): `min_ordinal=1` assumes the entire model is being imported in a
     # single call; we will need to change this when we implement more granular chunking in the
     # future.
@@ -99,7 +100,7 @@ class UniversalImportExportService(ImportExportService):
         self,
         *,
         model_name: str,
-        scope: RpcImportScope | None = None,
+        scope: Optional[RpcImportScope] = None,
         flags: RpcImportFlags,
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
@@ -174,8 +175,8 @@ class UniversalImportExportService(ImportExportService):
                 out_pk_map = PrimaryKeyMap()
                 min_old_pk = 0
                 max_old_pk = 0
-                min_inserted_pk: int | None = None
-                max_inserted_pk: int | None = None
+                min_inserted_pk: Optional[int] = None
+                max_inserted_pk: Optional[int] = None
                 counter = 0
                 for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
                     model_instance = deserialized_object.object
@@ -383,7 +384,7 @@ class UniversalImportExportService(ImportExportService):
         *,
         model_name: str = "",
         from_pk: int = 0,
-        scope: RpcExportScope | None = None,
+        scope: Optional[RpcExportScope] = None,
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         indent: int = 2,

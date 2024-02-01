@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.db.models import F
 
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
@@ -10,7 +12,7 @@ from sentry.services.hybrid_cloud.project_key.serial import serialize_project_ke
 
 
 class DatabaseBackedProjectKeyService(ProjectKeyService):
-    def _get_project_key(self, project_id: str, role: ProjectKeyRole) -> RpcProjectKey | None:
+    def _get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
         from sentry.models.projectkey import ProjectKey
 
         project_keys = ProjectKey.objects.filter(
@@ -24,12 +26,12 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
 
     def get_project_key(
         self, organization_id: int, project_id: str, role: ProjectKeyRole
-    ) -> RpcProjectKey | None:
+    ) -> Optional[RpcProjectKey]:
         return self._get_project_key(project_id=project_id, role=role)
 
     def get_default_project_key(
         self, *, organization_id: int, project_id: str
-    ) -> RpcProjectKey | None:
+    ) -> Optional[RpcProjectKey]:
         from sentry.models.project import Project
         from sentry.models.projectkey import ProjectKey
 
@@ -43,7 +45,7 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
 
     def get_project_key_by_region(
         self, *, region_name: str, project_id: str, role: ProjectKeyRole
-    ) -> RpcProjectKey | None:
+    ) -> Optional[RpcProjectKey]:
         return self._get_project_key(project_id=project_id, role=role)
 
     def get_project_keys_by_region(

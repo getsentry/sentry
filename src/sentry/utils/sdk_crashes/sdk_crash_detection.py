@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import random
-from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.grouptype import GroupCategory

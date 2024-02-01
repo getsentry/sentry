@@ -1,9 +1,10 @@
 import logging
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.db import connections, models, router
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_only_model
@@ -13,7 +14,7 @@ from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH, UseCa
 
 logger = logging.getLogger(__name__)
 
-from collections.abc import Mapping
+from typing import Mapping
 
 
 @region_silo_only_model

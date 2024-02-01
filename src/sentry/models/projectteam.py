@@ -1,5 +1,4 @@
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Sequence
 
 from django.db import router, transaction
 from django.db.models.signals import post_delete, post_save

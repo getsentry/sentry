@@ -1,5 +1,4 @@
-from collections.abc import Callable, Mapping
-from typing import Any, Generic, TypeVar
+from typing import Any, Callable, Generic, Mapping, TypeVar
 
 from django.core.cache import cache
 

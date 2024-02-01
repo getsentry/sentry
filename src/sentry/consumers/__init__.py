@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Mapping, Sequence
+from typing import Mapping, Sequence
 
 import click
 from arroyo.backends.abstract import Consumer

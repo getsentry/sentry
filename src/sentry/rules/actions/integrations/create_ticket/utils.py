@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
+from typing import Callable, Sequence
 
 from rest_framework.response import Response
 

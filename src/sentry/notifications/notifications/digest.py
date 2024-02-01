@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 from urllib.parse import urlencode
 
 from sentry import analytics, features

@@ -1,6 +1,5 @@
-from collections.abc import Iterable
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterable, Optional
 
 from sentry.digests.backends.base import Backend
 
@@ -14,9 +13,9 @@ class DummyBackend(Backend):
         self,
         key: str,
         record: "Record",
-        increment_delay: int | None = None,
-        maximum_delay: int | None = None,
-        timestamp: float | None = None,
+        increment_delay: Optional[int] = None,
+        maximum_delay: Optional[int] = None,
+        timestamp: Optional[float] = None,
     ) -> bool:
         return False
 
@@ -24,13 +23,13 @@ class DummyBackend(Backend):
         return False
 
     @contextmanager
-    def digest(self, key: str, minimum_delay: int | None = None) -> Any:
+    def digest(self, key: str, minimum_delay: Optional[int] = None) -> Any:
         yield []
 
     def schedule(
-        self, deadline: float, timestamp: float | None = None
+        self, deadline: float, timestamp: Optional[float] = None
     ) -> Iterable["ScheduleEntry"]:
         yield from ()
 
-    def maintenance(self, deadline: float, timestamp: float | None = None) -> None:
+    def maintenance(self, deadline: float, timestamp: Optional[float] = None) -> None:
         pass

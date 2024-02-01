@@ -1,5 +1,4 @@
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence
 
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -37,7 +36,7 @@ class VstsIssueSync(IssueSyncMixin):
 
     def get_project_choices(
         self, group: Optional["Group"] = None, **kwargs: Any
-    ) -> tuple[str | None, Sequence[tuple[str, str]]]:
+    ) -> tuple[Optional[str], Sequence[tuple[str, str]]]:
         client = self.get_client(base_url=self.instance)
         try:
             projects = client.get_projects()
@@ -77,7 +76,7 @@ class VstsIssueSync(IssueSyncMixin):
 
     def get_work_item_choices(
         self, project: str, group: Optional["Group"] = None
-    ) -> tuple[str | None, Sequence[tuple[str, str]]]:
+    ) -> tuple[Optional[str], Sequence[tuple[str, str]]]:
         client = self.get_client(base_url=self.instance)
         try:
             item_categories = client.get_work_item_categories(project)["value"]
@@ -111,7 +110,7 @@ class VstsIssueSync(IssueSyncMixin):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Optional["Group"], user: RpcUser | None, **kwargs: Any
+        self, group: Optional["Group"], user: Optional[RpcUser], **kwargs: Any
     ) -> Sequence[Mapping[str, Any]]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
@@ -122,7 +121,7 @@ class VstsIssueSync(IssueSyncMixin):
         default_project, project_choices = self.get_project_choices(group, **kwargs)
 
         work_item_choices: Sequence[tuple[str, str]] = []
-        default_work_item: str | None = None
+        default_work_item: Optional[str] = None
         if default_project:
             default_work_item, work_item_choices = self.get_work_item_choices(
                 default_project, group
@@ -215,7 +214,7 @@ class VstsIssueSync(IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: "ExternalIssue",
-        user: RpcUser | None,
+        user: Optional[RpcUser],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:

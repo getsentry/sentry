@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Generic, Literal, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Callable, Generic, Literal, TypeVar, overload
+
+from typing_extensions import Self
 
 C = TypeVar("C")
 T = TypeVar("T")

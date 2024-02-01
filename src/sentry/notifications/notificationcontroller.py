@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, MutableMapping
-from typing import Union
+from typing import Iterable, Mapping, MutableMapping, Union
 
 from django.db.models import Q
 

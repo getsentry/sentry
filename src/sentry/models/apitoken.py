@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import secrets
-from collections.abc import Collection
 from datetime import timedelta
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Collection
 
 from django.db import models, router, transaction
 from django.utils import timezone

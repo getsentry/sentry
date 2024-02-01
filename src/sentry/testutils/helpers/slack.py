@@ -1,3 +1,4 @@
+from typing import Optional
 from urllib.parse import parse_qs
 
 import responses
@@ -57,7 +58,7 @@ def add_identity(
     return idp
 
 
-def find_identity(idp: IdentityProvider, user: User) -> Identity | None:
+def find_identity(idp: IdentityProvider, user: User) -> Optional[Identity]:
     identities = Identity.objects.filter(
         idp=idp,
         user=user,

@@ -3,8 +3,7 @@ from __future__ import annotations
 __all__ = ["FeatureHandler", "BatchFeatureHandler"]
 
 import abc
-from collections.abc import Mapping, MutableSet, Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Mapping, MutableSet, Sequence
 
 if TYPE_CHECKING:
     from sentry.features.base import Feature

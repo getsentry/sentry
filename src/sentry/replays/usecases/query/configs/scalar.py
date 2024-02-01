@@ -1,7 +1,7 @@
 """Scalar query filtering configuration module."""
 from __future__ import annotations
 
-from collections.abc import Sequence
+from typing import Sequence
 
 from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.replays.lib.new_query.conditions import (

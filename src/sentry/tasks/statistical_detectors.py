@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator, Iterable
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Generator, Iterable
 
 import sentry_sdk
 from django.utils import timezone as django_timezone

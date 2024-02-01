@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 import zoneinfo
-from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import timezone
-from typing import Any
+from typing import Any, Iterable, Mapping, MutableMapping
 from urllib.parse import urlencode
 
 from sentry import analytics, features

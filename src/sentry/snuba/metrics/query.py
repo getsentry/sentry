@@ -1,11 +1,11 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import Literal, Union
+from typing import Literal, Sequence, Union
 
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup

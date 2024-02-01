@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping
-from typing import Any, ClassVar, Self, TypeVar
+from typing import Any, Callable, ClassVar, Iterable, Mapping, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies, get_model_name
 from sentry.backup.helpers import ImportFlags

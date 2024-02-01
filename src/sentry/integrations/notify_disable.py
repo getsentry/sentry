@@ -1,3 +1,5 @@
+from typing import Union
+
 from sentry import analytics
 from sentry.models.organization import Organization
 from sentry.utils.email import MessageBuilder
@@ -42,9 +44,9 @@ def notify_disable(
     organization: Organization,
     integration_name: str,
     redis_key: str,
-    integration_slug: str | None = None,
-    webhook_url: str | None = None,
-    project: str | None = None,
+    integration_slug: Union[str, None] = None,
+    webhook_url: Union[str, None] = None,
+    project: Union[str, None] = None,
 ):
 
     integration_link = get_url(

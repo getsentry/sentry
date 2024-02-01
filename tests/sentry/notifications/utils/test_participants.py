@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import collections
-from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
+from typing import Iterable, Mapping, Sequence
 
 import pytest
 from django.utils import timezone

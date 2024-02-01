@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Collection, Mapping, Sequence
 from datetime import timezone
-from typing import Any
+from typing import Any, Collection, Mapping, Sequence
 
 from django.http import HttpResponse
 from django.utils.text import slugify

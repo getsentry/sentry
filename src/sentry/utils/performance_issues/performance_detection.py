@@ -3,8 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
-from collections.abc import Sequence
-from typing import Any
+from typing import Any, Sequence
 
 import sentry_sdk
 

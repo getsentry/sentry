@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
 from time import time
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Mapping, Sequence, Union
 from urllib.parse import quote
 
 from requests import PreparedRequest

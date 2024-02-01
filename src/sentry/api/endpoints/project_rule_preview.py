@@ -1,5 +1,4 @@
-from collections.abc import Mapping
-from typing import Any
+from typing import Any, Mapping
 
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError

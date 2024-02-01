@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMappingFlags
@@ -11,7 +13,7 @@ from sentry.types.region import Region
 def update_organization_mapping_from_instance(
     organization: Organization,
     region: Region,
-    customer_id: tuple[str | None] | None = None,
+    customer_id: Optional[tuple[Optional[str]]] = None,
 ) -> RpcOrganizationMappingUpdate:
     return RpcOrganizationMappingUpdate(
         name=organization.name,

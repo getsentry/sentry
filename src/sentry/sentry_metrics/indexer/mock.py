@@ -1,7 +1,6 @@
 import itertools
 from collections import defaultdict
-from collections.abc import Collection, Mapping
-from typing import DefaultDict
+from typing import Collection, DefaultDict, Mapping, Optional
 
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -24,7 +23,7 @@ class RawSimpleIndexer(StringIndexer):
     def __init__(self) -> None:
         self._counter = itertools.count(start=10000)
         self._strings: DefaultDict[
-            UseCaseID, DefaultDict[OrgId, DefaultDict[str, int | None]]
+            UseCaseID, DefaultDict[OrgId, DefaultDict[str, Optional[int]]]
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(self._counter.__next__)))
         self._reverse: dict[int, str] = {}
 
@@ -62,16 +61,16 @@ class RawSimpleIndexer(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         return self._record(use_case_id, org_id, string)
 
     @metric_path_key_compatible_resolve
-    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         strs = self._strings[use_case_id][org_id]
         return strs.get(string)
 
     @metric_path_key_compatible_rev_resolve
-    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> str | None:
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         return self._reverse.get(id)
 
     def bulk_reverse_resolve(
@@ -86,18 +85,18 @@ class RawSimpleIndexer(StringIndexer):
                 ret_val[ident] = val
         return ret_val
 
-    def _record(self, use_case_id: UseCaseID, org_id: OrgId, string: str) -> int | None:
+    def _record(self, use_case_id: UseCaseID, org_id: OrgId, string: str) -> Optional[int]:
         index = self._strings[use_case_id][org_id][string]
         if index is not None:
             self._reverse[index] = string
         return index
 
-    def resolve_shared_org(self, string: str) -> int | None:
+    def resolve_shared_org(self, string: str) -> Optional[int]:
         raise NotImplementedError(
             "This class should not be used directly, use the wrapping class SimpleIndexer"
         )
 
-    def reverse_shared_org_resolve(self, id: int) -> str | None:
+    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
         raise NotImplementedError(
             "This class should not be used directly, use the wrapping class SimpleIndexer"
         )

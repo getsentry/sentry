@@ -1,6 +1,5 @@
 import logging
-from collections.abc import Sequence
-from typing import Any
+from typing import Any, Optional, Sequence
 
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations.slack.utils import (
@@ -30,8 +29,8 @@ def find_channel_id_for_rule(
     project: Project,
     actions: Sequence[AlertRuleTriggerAction],
     uuid: str,
-    rule_id: int | None = None,
-    user_id: int | None = None,
+    rule_id: Optional[int] = None,
+    user_id: Optional[int] = None,
     **kwargs: Any,
 ) -> None:
     redis_rule_status = RedisRuleStatus(uuid)
@@ -43,8 +42,8 @@ def find_channel_id_for_rule(
         return
 
     organization = project.organization
-    integration_id: int | None = None
-    channel_name: str | None = None
+    integration_id: Optional[int] = None
+    channel_name: Optional[str] = None
 
     # TODO: make work for multiple Slack actions
     for action in actions:

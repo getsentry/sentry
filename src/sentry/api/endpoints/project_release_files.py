@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Optional
 
 from django.db import IntegrityError, router
 from django.db.models import Q
@@ -180,7 +181,7 @@ class ArtifactSource:
     """Provides artifact data to ChainPaginator on-demand"""
 
     def __init__(
-        self, dist: Distribution | None, files: dict, query: list[str], checksums: list[str]
+        self, dist: Optional[Distribution], files: dict, query: list[str], checksums: list[str]
     ):
         self._dist = dist
         self._files = files

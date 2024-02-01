@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from typing import Mapping
 
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis

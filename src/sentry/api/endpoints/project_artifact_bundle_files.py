@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from django.utils.functional import cached_property
 from rest_framework.request import Request
@@ -107,7 +108,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 project.organization.id, artifact_bundle
             )
 
-            def format_date(date: datetime | None) -> str | None:
+            def format_date(date: Optional[datetime]) -> Optional[str]:
                 return None if date is None else date.isoformat()[:19] + "Z"
 
             return serialize(

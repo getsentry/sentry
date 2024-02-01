@@ -3,9 +3,8 @@ from __future__ import annotations
 __all__ = ("Plugin",)
 
 import logging
-from collections.abc import Sequence
 from threading import local
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Sequence
 
 from django.http import HttpResponseRedirect
 from django.urls import reverse

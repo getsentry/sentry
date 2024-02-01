@@ -1,9 +1,8 @@
 import logging
 import random
-from collections.abc import Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Mapping, Optional, Sequence
 
 import sentry_sdk
 from django.utils import timezone
@@ -67,8 +66,8 @@ class SnubaEventStorage(EventStorage):
         self,
         organization_id: int,
         group_id: int,
-        start: datetime | None,
-        end: datetime | None,
+        start: Optional[datetime],
+        end: Optional[datetime],
         conditions: Sequence[Condition],
         orderby: Sequence[str],
         limit=DEFAULT_LIMIT,
@@ -304,7 +303,7 @@ class SnubaEventStorage(EventStorage):
         group_id=None,
         skip_transaction_groupevent=False,
         tenant_ids=None,
-        occurrence_id: str | None = None,
+        occurrence_id: Optional[str] = None,
     ):
         """
         Get an event given a project ID and event ID

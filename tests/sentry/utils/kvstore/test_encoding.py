@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from typing import Iterator
 
 import pytest
 

@@ -1,5 +1,5 @@
 import hashlib
-from collections.abc import Mapping
+from typing import Mapping
 
 from django.conf import settings
 

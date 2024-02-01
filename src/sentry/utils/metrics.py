@@ -4,12 +4,11 @@ __all__ = ["timing", "incr"]
 import functools
 import logging
 import time
-from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from queue import Queue
 from random import random
 from threading import Thread
-from typing import Any, TypeVar
+from typing import Any, Callable, Generator, Optional, TypeVar, Union
 
 from django.conf import settings
 
@@ -57,7 +56,7 @@ def _should_sample(sample_rate: float) -> bool:
     return sample_rate >= 1 or random() >= 1 - sample_rate
 
 
-def _sampled_value(value: int | float, sample_rate: float) -> int | float:
+def _sampled_value(value: Union[int, float], sample_rate: float) -> Union[int, float]:
     if sample_rate < 1:
         value = int(value * (1.0 / sample_rate))
     return value
@@ -68,7 +67,7 @@ class InternalMetrics:
         self._started = False
 
     def _start(self) -> None:
-        q: Queue[tuple[str, str | None, Tags | None, float | int, float]]
+        q: Queue[tuple[str, Optional[str], Optional[Tags], Union[float, int], float]]
         self.q = q = Queue()
 
         def worker() -> None:
@@ -98,8 +97,8 @@ class InternalMetrics:
     def incr(
         self,
         key: str,
-        instance: str | None = None,
-        tags: Tags | None = None,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
         amount: int = 1,
         sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     ) -> None:
@@ -114,11 +113,11 @@ internal = InternalMetrics()
 def incr(
     key: str,
     amount: int = 1,
-    instance: str | None = None,
-    tags: Tags | None = None,
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
     skip_internal: bool = True,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
-    unit: str | None = None,
+    unit: Optional[str] = None,
     stacklevel: int = 0,
 ) -> None:
     should_send_internal = (
@@ -143,10 +142,10 @@ def incr(
 def gauge(
     key: str,
     value: float,
-    instance: str | None = None,
-    tags: Tags | None = None,
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
-    unit: str | None = None,
+    unit: Optional[str] = None,
     stacklevel: int = 0,
 ) -> None:
     try:
@@ -158,9 +157,9 @@ def gauge(
 
 def timing(
     key: str,
-    value: int | float,
-    instance: str | None = None,
-    tags: Tags | None = None,
+    value: Union[int, float],
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     stacklevel: int = 0,
 ) -> None:
@@ -173,11 +172,11 @@ def timing(
 
 def distribution(
     key: str,
-    value: int | float,
-    instance: str | None = None,
-    tags: Tags | None = None,
+    value: Union[int, float],
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
-    unit: str | None = None,
+    unit: Optional[str] = None,
     stacklevel: int = 0,
 ) -> None:
     try:
@@ -190,8 +189,8 @@ def distribution(
 @contextmanager
 def timer(
     key: str,
-    instance: str | None = None,
-    tags: Tags | None = None,
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     stacklevel: int = 0,
 ) -> Generator[MutableTags, None, None]:
@@ -211,8 +210,8 @@ def timer(
 
 def wraps(
     key: str,
-    instance: str | None = None,
-    tags: Tags | None = None,
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     stacklevel: int = 0,
 ) -> Callable[[F], F]:

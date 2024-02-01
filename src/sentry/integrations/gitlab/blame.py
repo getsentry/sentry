@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import timezone
-from typing import Any, TypedDict
+from typing import Any, Mapping, Sequence, TypedDict
 from urllib.parse import quote
 
 from isodate import parse_datetime

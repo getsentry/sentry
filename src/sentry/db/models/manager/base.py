@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 import threading
 import weakref
-from collections.abc import Callable, Collection, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import Any, Generic
+from typing import Any, Callable, Collection, Generator, Generic, Mapping, MutableMapping, Sequence
 
 from django.conf import settings
 from django.db import models, router

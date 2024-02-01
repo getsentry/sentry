@@ -1,9 +1,11 @@
+from typing import Optional
+
 from django.conf import settings
 
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.pubsub import KafkaPublisher
 
-replay_publisher: KafkaPublisher | None = None
+replay_publisher: Optional[KafkaPublisher] = None
 
 
 def initialize_replays_publisher(is_async=False) -> KafkaPublisher:

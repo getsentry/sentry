@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization

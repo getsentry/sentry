@@ -1,7 +1,6 @@
 import random
-from collections.abc import Iterable
 from functools import wraps
-from typing import Any
+from typing import Any, Iterable, Optional, Union
 
 import sentry_sdk
 from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
@@ -117,7 +116,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         return random.random() < sample_rate
 
     @staticmethod
-    def _to_minimetrics_unit(unit: str | None, default: str | None = None) -> str:
+    def _to_minimetrics_unit(unit: Optional[str], default: Optional[str] = None) -> str:
         if unit is None:
             if default is not None:
                 return default
@@ -129,11 +128,11 @@ class MiniMetricsMetricsBackend(MetricsBackend):
     def incr(
         self,
         key: str,
-        instance: str | None = None,
-        tags: Tags | None = None,
-        amount: float | int = 1,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
+        amount: Union[float, int] = 1,
         sample_rate: float = 1,
-        unit: str | None = None,
+        unit: Optional[str] = None,
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
@@ -149,8 +148,8 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: str | None = None,
-        tags: Tags | None = None,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
@@ -168,10 +167,10 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: str | None = None,
-        tags: Tags | None = None,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
         sample_rate: float = 1,
-        unit: str | None = None,
+        unit: Optional[str] = None,
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):
@@ -196,10 +195,10 @@ class MiniMetricsMetricsBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: str | None = None,
-        tags: Tags | None = None,
+        instance: Optional[str] = None,
+        tags: Optional[Tags] = None,
         sample_rate: float = 1,
-        unit: str | None = None,
+        unit: Optional[str] = None,
         stacklevel: int = 0,
     ) -> None:
         if self._keep_metric(sample_rate):

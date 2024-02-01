@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict
-from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import Literal, Mapping
 
 import msgpack
 import sentry_sdk

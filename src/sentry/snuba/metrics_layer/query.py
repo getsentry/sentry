@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from dataclasses import replace
 from datetime import datetime
-from typing import Any, Union, cast
+from typing import Any, Mapping, Union, cast
 
 from snuba_sdk import (
     BooleanCondition,

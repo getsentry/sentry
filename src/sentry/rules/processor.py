@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from datetime import timedelta
 from random import randrange
-from typing import Any
+from typing import Any, Callable, Collection, Mapping, MutableMapping, Sequence
 
 from django.core.cache import cache
 from django.utils import timezone

@@ -10,10 +10,9 @@ __all__ = (
     "QUERY_PROJECT_LIMIT",
 )
 
-from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from snuba_sdk import (
@@ -90,7 +89,7 @@ from sentry.utils.snuba import parse_snuba_datetime
 QUERY_PROJECT_LIMIT = 10
 
 
-def _strip_project_id(condition: Condition) -> Condition | None:
+def _strip_project_id(condition: Condition) -> Optional[Condition]:
     if isinstance(condition, BooleanCondition):
         new_boolean_condition = BooleanCondition()
         for nested_condition in condition.conditions:
@@ -154,7 +153,7 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
     )
 
 
-def _refers_to_column(expression: Column | Function) -> str | None:
+def _refers_to_column(expression: Union[Column, Function]) -> Optional[str]:
     """
     Tries to compute to which column the input expression is referring to.
     """
@@ -181,7 +180,7 @@ def resolve_tags(
     input_: Any,
     projects: Sequence[Project],
     is_tag_value: bool = False,
-    allowed_tag_keys: dict[str, str] | None = None,
+    allowed_tag_keys: Optional[dict[str, str]] = None,
 ) -> Any:
     """Translate tags in snuba condition
 
@@ -436,7 +435,7 @@ def get_project_ids(
     return rhs_ids
 
 
-def is_tag_key_allowed(tag_key: str, allowed_tag_keys: dict[str, str] | None) -> bool:
+def is_tag_key_allowed(tag_key: str, allowed_tag_keys: Optional[dict[str, str]]) -> bool:
     # If we have a None allow list it means we don't have any restriction on tag keys at all.
     if allowed_tag_keys is None:
         return True
@@ -469,7 +468,7 @@ def parse_conditions(
 
 
 class ReleaseHealthQueryBuilder(UnresolvedQuery):
-    def _contains_wildcard_in_query(self, query: str | None) -> bool:
+    def _contains_wildcard_in_query(self, query: Optional[str]) -> bool:
         parsed_terms = self.parse_query(query)
         for parsed_term in parsed_terms:
             # Since wildcards search uses the clickhouse `match` operator that works on strings, we can't
@@ -482,7 +481,7 @@ class ReleaseHealthQueryBuilder(UnresolvedQuery):
 
     def resolve_conditions(
         self,
-        query: str | None,
+        query: Optional[str],
     ) -> tuple[list[WhereType], list[WhereType]]:
         if not self._contains_wildcard_in_query(query):
             return super().resolve_conditions(query)
@@ -505,7 +504,7 @@ class QueryDefinition:
         projects,
         query_params,
         allow_mri: bool = False,
-        paginator_kwargs: dict | None = None,
+        paginator_kwargs: Optional[dict] = None,
     ):
         self._projects = projects
         paginator_kwargs = paginator_kwargs or {}
@@ -522,9 +521,9 @@ class QueryDefinition:
             for key in query_params.getlist("field", [])
         ]
         self.orderby = self._parse_orderby(query_params, allow_mri)
-        self.limit: Limit | None = self._parse_limit(paginator_kwargs)
-        self.offset: Offset | None = self._parse_offset(paginator_kwargs)
-        self.having: ConditionGroup | None = query_params.getlist("having")
+        self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
+        self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
+        self.having: Optional[ConditionGroup] = query_params.getlist("having")
         self.where = parse_conditions(
             self.query, projects, environments=query_params.getlist("environment")
         )
@@ -573,13 +572,13 @@ class QueryDefinition:
         return orderby_list
 
     @staticmethod
-    def _parse_limit(paginator_kwargs) -> Limit | None:
+    def _parse_limit(paginator_kwargs) -> Optional[Limit]:
         if "limit" not in paginator_kwargs:
             return None
         return Limit(paginator_kwargs["limit"])
 
     @staticmethod
-    def _parse_offset(paginator_kwargs) -> Offset | None:
+    def _parse_offset(paginator_kwargs) -> Optional[Offset]:
         if "offset" not in paginator_kwargs:
             return None
         return Offset(paginator_kwargs["offset"])
@@ -642,7 +641,7 @@ class AliasMetaType(Enum):
 def get_alias_meta_type(
     returned_alias: str,
     alias_to_metric_group_by_field: dict[str, MetricGroupByField],
-) -> tuple[AliasMetaType, tuple[str | None, str]]:
+) -> tuple[AliasMetaType, tuple[Optional[str], str]]:
     # This logic is a rewrite of the logic below, which was convoluted and not very expressive.
     #
     # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
@@ -792,7 +791,7 @@ class SnubaQueryBuilder:
         org_id: int,
         projects: Sequence[Project],
         is_column: bool = False,
-    ) -> list[OrderBy] | Column | AliasedExpression | Function:
+    ) -> Union[list[OrderBy], Column, AliasedExpression, Function]:
         """
         Generates the necessary snql for any action by field which in our case will be group by and order by. This
         function has been designed to share as much logic as possible, however, it should be refactored in case
@@ -882,8 +881,8 @@ class SnubaQueryBuilder:
                 f"Unsupported {action_by_name} field: {metric_action_by_field.field}"
             )
 
-    def _build_where(self) -> list[BooleanCondition | Condition]:
-        where: list[BooleanCondition | Condition] = [
+    def _build_where(self) -> list[Union[BooleanCondition, Condition]]:
+        where: list[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, self._org_id),
             Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
         ]
@@ -930,7 +929,7 @@ class SnubaQueryBuilder:
 
         return where
 
-    def _build_timeframe(self) -> list[BooleanCondition | Condition]:
+    def _build_timeframe(self) -> list[Union[BooleanCondition, Condition]]:
         """
         Builds the timeframe of the query, comprehending the `start` and `end` intervals.
         """
@@ -947,7 +946,7 @@ class SnubaQueryBuilder:
 
         return where
 
-    def _build_groupby(self) -> list[Column] | None:
+    def _build_groupby(self) -> Optional[list[Column]]:
         if self._metrics_query.groupby is None:
             return None
 
@@ -964,7 +963,7 @@ class SnubaQueryBuilder:
             )
         return groupby_cols
 
-    def _build_orderby(self) -> list[OrderBy] | None:
+    def _build_orderby(self) -> Optional[list[OrderBy]]:
         if self._metrics_query.orderby is None:
             return None
 
@@ -982,7 +981,7 @@ class SnubaQueryBuilder:
 
         return orderby_fields
 
-    def _build_having(self) -> list[BooleanCondition | Condition]:
+    def _build_having(self) -> list[Union[BooleanCondition, Condition]]:
         """
         This function makes a lot of assumptions about what the HAVING clause allows, mostly
         because HAVING is not a fully supported function of metrics.

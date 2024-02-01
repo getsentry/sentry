@@ -1,7 +1,8 @@
-from typing import ClassVar, Self
+from typing import ClassVar
 
 from django.db import models
 from django.utils import timezone
+from typing_extensions import Self
 
 from sentry.db.models import BaseManager, BaseModel, BaseQuerySet, sane_repr
 from sentry.db.models.manager import M

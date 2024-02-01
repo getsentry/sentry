@@ -2,9 +2,9 @@ import functools
 import os
 import re
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from datetime import timezone
-from typing import Any
+from typing import Any, Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
@@ -695,7 +695,7 @@ class SnubaTagStorage(TagStorage):
         self,
         group: Group,
         environment_ids: Sequence[int],
-        keys: Sequence[str] | None = None,
+        keys: Optional[Sequence[str]] = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
         **kwargs,
@@ -988,8 +988,8 @@ class SnubaTagStorage(TagStorage):
     def _get_tag_values_for_semver(
         self,
         projects: Sequence[int],
-        environments: Sequence[str] | None,
-        query: str | None,
+        environments: Optional[Sequence[str]],
+        query: Optional[str],
     ):
         from sentry.api.paginator import SequencePaginator
 

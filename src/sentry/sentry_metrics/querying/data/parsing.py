@@ -1,5 +1,5 @@
 import re
-from collections.abc import Generator, Sequence
+from typing import Generator, Optional, Sequence
 
 from parsimonious.exceptions import IncompleteParseError
 from snuba_sdk import Timeseries
@@ -62,8 +62,8 @@ class QueryParser:
         self,
         projects: Sequence[Project],
         fields: Sequence[str],
-        query: str | None,
-        group_bys: Sequence[str] | None,
+        query: Optional[str],
+        group_bys: Optional[Sequence[str]],
     ):
         self._projects = projects
         self._fields = fields
@@ -87,7 +87,7 @@ class QueryParser:
                 for group_by in self._group_bys
             ]
 
-    def _build_mql_filters(self) -> str | None:
+    def _build_mql_filters(self) -> Optional[str]:
         """
         Builds a set of MQL filters from a single query string.
 
@@ -99,7 +99,7 @@ class QueryParser:
 
         return self._query
 
-    def _build_mql_group_bys(self) -> str | None:
+    def _build_mql_group_bys(self) -> Optional[str]:
         """
         Builds a set of MQL group by filters from a list of strings.
         """
@@ -108,7 +108,7 @@ class QueryParser:
 
         return ",".join(self._group_bys)
 
-    def _build_mql_query(self, field: str, filters: str | None, group_bys: str | None) -> str:
+    def _build_mql_query(self, field: str, filters: Optional[str], group_bys: Optional[str]) -> str:
         """
         Builds an MQL query string in the form `aggregate(metric){tag_key:tag_value} by (group_by_1, group_by_2).
         """

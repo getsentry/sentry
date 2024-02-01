@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 from unittest import mock
 
 import responses
@@ -32,7 +32,7 @@ class DiscordUninstallTest(APITestCase):
     def create_discord_integration(
         self,
         organization: Organization,
-        user: RpcUser | None,
+        user: Optional[RpcUser],
         guild_id: str = GUILD_ID,
         **kwargs: Any,
     ):

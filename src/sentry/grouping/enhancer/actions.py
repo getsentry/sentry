@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from typing import Any
+from typing import Any, Callable, Sequence
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.utils.safe import get_path, set_path

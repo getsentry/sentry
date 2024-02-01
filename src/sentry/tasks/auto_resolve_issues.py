@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping
 from datetime import datetime, timedelta
 from time import time
+from typing import Mapping
 
 from django.utils import timezone
 

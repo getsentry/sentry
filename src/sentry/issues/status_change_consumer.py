@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
-from typing import Any
+from typing import Any, Iterable, Mapping, Sequence
 
 from sentry_sdk.tracing import NoOpSpan, Transaction
 

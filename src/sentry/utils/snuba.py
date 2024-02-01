@@ -6,13 +6,12 @@ import os
 import re
 import time
 from collections import namedtuple
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any, Union
+from typing import Any, Callable, Mapping, MutableMapping, Sequence, Union
 from urllib.parse import urlparse
 
 import sentry_sdk

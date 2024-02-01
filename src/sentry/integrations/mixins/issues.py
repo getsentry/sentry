@@ -3,9 +3,8 @@ from __future__ import annotations
 import enum
 import logging
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
 from copy import deepcopy
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
 from sentry.issues.grouptype import GroupCategory

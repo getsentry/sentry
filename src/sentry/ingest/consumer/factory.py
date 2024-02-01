@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, MutableMapping
-from typing import Any, NamedTuple, TypeVar
+from typing import Any, Callable, Mapping, MutableMapping, NamedTuple, TypeVar
 
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration

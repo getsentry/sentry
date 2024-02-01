@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Generic
+from typing import Generic, Iterator
 
 import pytest
 

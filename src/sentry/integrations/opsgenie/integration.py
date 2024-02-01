@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from django import forms
 from django.http import HttpResponse

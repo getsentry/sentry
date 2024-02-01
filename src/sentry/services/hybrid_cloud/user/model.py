@@ -5,7 +5,7 @@
 
 import datetime
 from enum import IntEnum
-from typing import Any
+from typing import Any, Optional
 
 from pydantic.fields import Field
 from typing_extensions import TypedDict
@@ -15,7 +15,7 @@ from sentry.services.hybrid_cloud import DEFAULT_DATE, RpcModel
 
 class RpcAvatar(RpcModel):
     id: int = 0
-    file_id: int | None = None
+    file_id: Optional[int] = None
     ident: str = ""
     avatar_type: str = "letter_avatar"
 
@@ -30,7 +30,7 @@ class RpcAuthenticator(RpcModel):
     id: int = 0
     user_id: int = -1
     created_at: datetime.datetime = DEFAULT_DATE
-    last_used_at: datetime.datetime | None = None
+    last_used_at: Optional[datetime.datetime] = None
     type: int = -1
     config: Any = None
 
@@ -42,7 +42,7 @@ class RpcUser(RpcModel):
     email: str = ""
     emails: frozenset[str] = frozenset()
     username: str = ""
-    actor_id: int | None = None
+    actor_id: Optional[int] = None
     display_name: str = ""
     label: str = ""
     is_superuser: bool = False
@@ -50,15 +50,15 @@ class RpcUser(RpcModel):
     is_anonymous: bool = False
     is_active: bool = False
     is_staff: bool = False
-    last_active: datetime.datetime | None = None
+    last_active: Optional[datetime.datetime] = None
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
-    session_nonce: str | None = None
+    session_nonce: Optional[str] = None
 
     roles: frozenset[str] = frozenset()
     permissions: frozenset[str] = frozenset()
-    avatar: RpcAvatar | None = None
+    avatar: Optional[RpcAvatar] = None
     useremails: list[RpcUserEmail] = Field(default_factory=list)
     authenticators: list[RpcAuthenticator] = Field(default_factory=list)
 
@@ -133,7 +133,7 @@ class UserFilterArgs(TypedDict, total=False):
     emails: list[str]
     email_verified: bool
     query: str
-    authenticator_types: list[int] | None
+    authenticator_types: Optional[list[int]]
 
 
 class UserUpdateArgs(TypedDict, total=False):

@@ -1,5 +1,4 @@
-from collections.abc import Mapping, Sequence
-from typing import TypedDict
+from typing import Mapping, Sequence, TypedDict
 
 from sentry.utils.services import Service
 

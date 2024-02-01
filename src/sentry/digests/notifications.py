@@ -4,8 +4,7 @@ import functools
 import itertools
 import logging
 from collections import defaultdict, namedtuple
-from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
-from typing import Any
+from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
 
 from sentry import tsdb
 from sentry.digests import Digest, Record

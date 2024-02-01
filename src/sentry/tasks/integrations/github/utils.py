@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
 
 from django.utils import timezone
 
@@ -18,9 +19,9 @@ class PullRequestIssue:
     title: str
     subtitle: str
     url: str
-    affected_users: int | None = None
-    event_count: int | None = None
-    function_name: str | None = None
+    affected_users: Optional[int] = None
+    event_count: Optional[int] = None
+    function_name: Optional[str] = None
 
 
 @dataclass

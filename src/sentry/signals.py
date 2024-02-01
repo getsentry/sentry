@@ -3,8 +3,7 @@ from __future__ import annotations
 import enum
 import functools
 import logging
-from collections.abc import Callable
-from typing import Any
+from typing import Any, Callable
 
 from django.dispatch.dispatcher import NO_RECEIVERS, Signal
 

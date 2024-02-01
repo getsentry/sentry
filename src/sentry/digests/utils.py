@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, Iterable, Mapping, Sequence
 
 from django.db.models import Q
 

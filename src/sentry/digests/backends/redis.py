@@ -1,8 +1,7 @@
 import logging
 import time
-from collections.abc import Iterable
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, Iterable, Optional
 
 from rb.clients import LocalClient
 from redis.exceptions import ResponseError
@@ -104,9 +103,9 @@ class RedisBackend(Backend):
         self,
         key: str,
         record: Record,
-        increment_delay: int | None = None,
-        maximum_delay: int | None = None,
-        timestamp: float | None = None,
+        increment_delay: Optional[int] = None,
+        maximum_delay: Optional[int] = None,
+        timestamp: Optional[float] = None,
     ) -> bool:
         if timestamp is None:
             timestamp = time.time()
@@ -149,7 +148,9 @@ class RedisBackend(Backend):
             ["SCHEDULE", self.namespace, self.ttl, timestamp, deadline],
         )
 
-    def schedule(self, deadline: float, timestamp: float | None = None) -> Iterable[ScheduleEntry]:
+    def schedule(
+        self, deadline: float, timestamp: Optional[float] = None
+    ) -> Iterable[ScheduleEntry]:
         if timestamp is None:
             timestamp = time.time()
 
@@ -171,7 +172,7 @@ class RedisBackend(Backend):
             ["MAINTENANCE", self.namespace, self.ttl, timestamp, deadline],
         )
 
-    def maintenance(self, deadline: float, timestamp: float | None = None) -> None:
+    def maintenance(self, deadline: float, timestamp: Optional[float] = None) -> None:
         if timestamp is None:
             timestamp = time.time()
 
@@ -187,7 +188,7 @@ class RedisBackend(Backend):
 
     @contextmanager
     def digest(
-        self, key: str, minimum_delay: int | None = None, timestamp: float | None = None
+        self, key: str, minimum_delay: Optional[int] = None, timestamp: Optional[float] = None
     ) -> Any:
         if minimum_delay is None:
             minimum_delay = self.minimum_delay
@@ -247,7 +248,7 @@ class RedisBackend(Backend):
                 + [record.key for record in records],
             )
 
-    def delete(self, key: str, timestamp: float | None = None) -> None:
+    def delete(self, key: str, timestamp: Optional[float] = None) -> None:
         if timestamp is None:
             timestamp = time.time()
 
