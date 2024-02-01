@@ -16,6 +16,7 @@ import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import type {MetricCorrelation} from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
@@ -24,17 +25,19 @@ import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
-import {useChartSamples} from './useChartSamples';
-import type {SamplesProps, ScatterSeries as ScatterSeriesType, Series} from './widget';
+import {useMetricSamples} from './useMetricSamples';
+import type {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget';
 
 type ChartProps = {
   displayType: MetricDisplayType;
   series: Series[];
   widgetIndex: number;
+  correlations?: MetricCorrelation[];
   focusArea?: FocusAreaProps;
   height?: number;
+  highlightedSampleId?: string;
+  onSampleClick?: (sample: Sample) => void;
   operation?: string;
-  scatter?: SamplesProps;
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
@@ -44,7 +47,17 @@ echarts.use(CanvasRenderer);
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   (
-    {series, displayType, operation, widgetIndex, focusArea, height, scatter},
+    {
+      series,
+      displayType,
+      operation,
+      widgetIndex,
+      focusArea,
+      height,
+      correlations,
+      onSampleClick,
+      highlightedSampleId,
+    },
     forwardedRef
   ) => {
     const router = useRouter();
@@ -96,11 +109,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       [unit, operation]
     );
 
-    const samples = useChartSamples({
+    const samples = useMetricSamples({
       chartRef,
-      correlations: scatter?.data,
-      onClick: scatter?.onClick,
-      highlightedSampleId: scatter?.higlightedId,
+      correlations,
+      onClick: onSampleClick,
+      highlightedSampleId,
       operation,
       timeseries: series,
     });

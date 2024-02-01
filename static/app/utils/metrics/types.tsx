@@ -73,22 +73,15 @@ export type MetricMetaCodeLocation = {
   metricSpans?: MetricCorrelation[];
 };
 
-export interface MetricSummary {
-  spanId: string;
-  count?: number;
-  max?: number;
-  min?: number;
-  sum?: number;
-}
-
-export interface SpanSummary {
-  spanDuration: number;
-  spanOp: string;
-}
-
 export type MetricCorrelation = {
   duration: number;
-  metricSummaries: MetricSummary[];
+  metricSummaries: {
+    spanId: string;
+    count?: number;
+    max?: number;
+    min?: number;
+    sum?: number;
+  }[];
   profileId: string;
   projectId: number;
   segmentName: string;
