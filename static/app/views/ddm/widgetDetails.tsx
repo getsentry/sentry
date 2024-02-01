@@ -26,13 +26,8 @@ const constructQueryString = (queryObject: Record<string, string>) => {
 
 export function WidgetDetails() {
   const organization = useOrganization();
-  const {
-    selectedWidgetIndex,
-    widgets,
-    focusArea,
-    highlightedSampleId,
-    setHighlightedSampleId,
-  } = useDDMContext();
+  const {selectedWidgetIndex, widgets, focusArea, setHighlightedSampleId} =
+    useDDMContext();
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
   // the tray is minimized when the main content is maximized
   const selectedWidget = widgets[selectedWidgetIndex] as
@@ -45,9 +40,12 @@ export function WidgetDetails() {
     setSelectedTab(Tab.SAMPLES);
   }
 
-  const handleSampleRowHover = (sampleId?: string) => {
-    setHighlightedSampleId(sampleId);
-  };
+  const handleSampleRowHover = useCallback(
+    (sampleId?: string) => {
+      setHighlightedSampleId(sampleId);
+    },
+    [setHighlightedSampleId]
+  );
 
   const handleTabChange = useCallback(
     (tab: Tab) => {
@@ -94,7 +92,6 @@ export function WidgetDetails() {
                     : selectedWidget?.query
                 }
                 {...focusArea?.selection?.range}
-                highlightedRow={highlightedSampleId}
                 onRowHover={handleSampleRowHover}
               />
             </TabPanels.Item>
