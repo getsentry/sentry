@@ -490,6 +490,15 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             continue
 
         file_extension = file.filename.split(".")[-1]
+        logger.info(
+            "github.open_pr_comment.file_extension",
+            extra={
+                "organization_id": org_id,
+                "repository_id": repo.id,
+                "extension": file_extension,
+            },
+        )
+
         language_parser = patch_parsers.get(file.filename.split(".")[-1], None)
         if not language_parser:
             logger.info(
@@ -502,6 +511,17 @@ def open_pr_comment_workflow(pr_id: int) -> None:
             continue
 
         function_names = language_parser.extract_functions_from_patch(file.patch)
+
+        if file_extension in ["js", "jsx"]:
+            logger.info(
+                "github.open_pr_comment.javascript",
+                extra={
+                    "organization_id": org_id,
+                    "repository_id": repo.id,
+                    "extension": file_extension,
+                    "has_function_names": bool(function_names),
+                },
+            )
 
         if not len(function_names):
             continue
