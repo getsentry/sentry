@@ -4,12 +4,14 @@ from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
+from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import (
     assert_no_webhook_outboxes,
     assert_webhook_outboxes_with_shard_id,
@@ -137,6 +139,33 @@ class GithubRequestParserTest(TestCase):
             expected_shard_id=integration.id,
             region_names=[region.name],
         )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_regions(region_config)
+    @override_options({"hybridcloud.webhookpayload.rollout": 1.0})
+    def test_webhook_outbox_creation_webhookpayload(self):
+        self.get_integration()
+        request = self.factory.post(
+            self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
+        )
+        assert WebhookPayload.objects.count() == 0
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        response = parser.get_response()
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 202
+        assert response.content == b""
+
+        hook = WebhookPayload.objects.first()
+        assert hook
+        assert hook.mailbox_name.startswith("github:")
+        assert hook.request_method == request.method
+        assert hook.request_path == request.get_full_path()
+        assert (
+            hook.request_headers
+            == '{"Cookie":"","Content-Length":"36","Content-Type":"application/json"}'
+        )
+        assert hook.request_body == '{"installation": {"id": "github:1"}}'
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
