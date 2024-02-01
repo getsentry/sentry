@@ -22,6 +22,7 @@ from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
+from sentry.issues.priority import PRIORITY_STR_TO_LEVEL_ENUM
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
@@ -254,6 +255,8 @@ def update_groups(
     res_type = None
     activity_type = None
     activity_data: MutableMapping[str, Any | None] | None = None
+    if "priority" in result:
+        handle_priority(result["priority"], group_list, project_lookup, acting_user)
     if status in ("resolved", "resolvedInNextRelease"):
         res_status = None
         if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
@@ -764,6 +767,25 @@ def handle_has_seen(
                 )
     elif has_seen is False:
         GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
+
+
+def handle_priority(
+    priority: str, group_list: Sequence[Group], project_lookup: dict[int, Any], acting_user: User
+) -> str | None:
+    user_id = acting_user.id if acting_user else None
+    activity_data = {"priority": priority}
+    for group in group_list:
+        Group.objects.filter(id=group.id).update(priority=PRIORITY_STR_TO_LEVEL_ENUM[priority])
+        Activity.objects.create(
+            project=project_lookup[group.project_id],
+            group=group,
+            type=ActivityType.SET_PRIORITY.value,
+            user_id=user_id,
+            data=activity_data,
+        )
+        record_group_history_from_activity_type(
+            group, ActivityType.SET_PRIORITY.value, actor=acting_user
+        )
 
 
 def handle_is_public(

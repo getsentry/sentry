@@ -37,6 +37,7 @@ class GroupValidator(serializers.Serializer):
     # in minutes, max of one week
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     assignedTo = ActorField()
+    priority = serializers.CharField()
 
     # TODO(dcramer): remove in 9.0
     # for the moment, the CLI sends this for any issue update, so allow nulls

@@ -4,12 +4,15 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import tsdb
 from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.issues.priority import PriorityLevel
 from sentry.models.environment import Environment
+from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remove_group_from_inbox
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -202,6 +205,41 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["forecast"] is not None
         assert response.data["forecast"]["data"] is not None
         assert response.data["forecast"]["date_added"] is not None
+
+    @with_feature("projects:issue-priority")
+    def test_group_get_priority(self):
+        self.login_as(user=self.user)
+        group = self.create_group(
+            project=self.project,
+            status=GroupStatus.IGNORED,
+            priority=PriorityLevel.LOW,
+        )
+
+        url = f"/api/0/issues/{group.id}/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["priority"] == "low"
+
+    @with_feature("projects:issue-priority")
+    def test_group_post_priority(self):
+        self.login_as(user=self.user)
+        group = self.create_group(
+            project=self.project,
+            status=GroupStatus.IGNORED,
+            priority=PriorityLevel.LOW,
+        )
+        url = f"/api/0/issues/{group.id}/"
+
+        get_response_before = self.client.get(url, format="json")
+        assert get_response_before.status_code == 200, get_response_before.content
+        assert get_response_before.data["priority"] == "low"
+
+        response = self.client.put(url, {"priority": "high"}, format="json")
+        assert response.status_code == 200, response.content
+        assert response.data["priority"] == "high"
+        get_response_after = self.client.get(url, format="json")
+        assert get_response_after.status_code == 200, get_response_after.content
+        assert get_response_after.data["priority"] == "high"
 
     def test_assigned_to_unknown(self):
         self.login_as(user=self.user)

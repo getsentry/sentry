@@ -27,6 +27,12 @@ PRIORITY_LEVEL_TO_STR: dict[int, str] = {
     PriorityLevel.HIGH: "high",
 }
 
+PRIORITY_STR_TO_LEVEL_ENUM: dict[str, int] = {
+    "low": PriorityLevel.LOW,
+    "medium": PriorityLevel.MEDIUM,
+    "high": PriorityLevel.HIGH,
+}
+
 
 class PriorityChangeReason(Enum):
     ESCALATING = "escalating"
