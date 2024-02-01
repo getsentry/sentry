@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import timezone
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
@@ -98,7 +98,7 @@ def get_project_list(project_id):
     return project_id if isinstance(project_id, Iterable) else [project_id]
 
 
-def _translate_filter_keys(project_ids, group_ids, environment_ids) -> Dict[str, Any]:
+def _translate_filter_keys(project_ids, group_ids, environment_ids) -> dict[str, Any]:
     filter_keys = {"project_id": project_ids}
 
     if environment_ids:

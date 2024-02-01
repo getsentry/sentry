@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, ClassVar, Optional, Tuple
+from typing import IO, ClassVar, Optional
 from urllib.parse import urlunsplit
 
 import sentry_sdk
@@ -225,7 +225,7 @@ class ReleaseArchive:
         manifest_bytes = self.read("manifest.json")
         return json.loads(manifest_bytes.decode("utf-8"))
 
-    def get_file_by_url(self, url: str) -> Tuple[IO[bytes], dict]:
+    def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict]:
         """Return file-like object and headers.
 
         The caller is responsible for closing the returned stream.

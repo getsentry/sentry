@@ -9,14 +9,11 @@ from typing import (
     Any,
     Callable,
     Iterable,
-    List,
     Mapping,
     MutableMapping,
     Optional,
     Protocol,
     Sequence,
-    Set,
-    Tuple,
     TypedDict,
     Union,
 )
@@ -81,7 +78,7 @@ logger = logging.getLogger(__name__)
 
 
 def merge_list_dictionaries(
-    dict1: MutableMapping[Any, List[Any]], dict2: Mapping[Any, Sequence[Any]]
+    dict1: MutableMapping[Any, list[Any]], dict2: Mapping[Any, Sequence[Any]]
 ):
     for key, val in dict2.items():
         dict1.setdefault(key, []).extend(val)
@@ -182,8 +179,8 @@ class GroupSerializerBase(Serializer, ABC):
     def _serialize_assignees(self, item_list: Sequence[Group]) -> Mapping[int, Union[Team, Any]]:
         gas = GroupAssignee.objects.filter(group__in=item_list)
         result: MutableMapping[int, Union[Team, Any]] = {}
-        all_team_ids: MutableMapping[int, Set[int]] = defaultdict(set)
-        all_user_ids: MutableMapping[int, Set[int]] = defaultdict(set)
+        all_team_ids: MutableMapping[int, set[int]] = defaultdict(set)
+        all_user_ids: MutableMapping[int, set[int]] = defaultdict(set)
 
         for g in gas:
             if g.team_id:
@@ -272,7 +269,7 @@ class GroupSerializerBase(Serializer, ABC):
 
         authorized = self._is_authorized(user, organization_id)
 
-        annotations_by_group_id: MutableMapping[int, List[Any]] = defaultdict(list)
+        annotations_by_group_id: MutableMapping[int, list[Any]] = defaultdict(list)
         for annotations_by_group in itertools.chain.from_iterable(
             [
                 self._resolve_integration_annotations(organization_id, item_list),
@@ -570,7 +567,7 @@ class GroupSerializerBase(Serializer, ABC):
     @staticmethod
     def _get_subscriptions(
         groups: Iterable[Group], user: User
-    ) -> Mapping[int, Tuple[bool, bool, Optional[GroupSubscription]]]:
+    ) -> Mapping[int, tuple[bool, bool, Optional[GroupSubscription]]]:
         """
         Returns a mapping of group IDs to a two-tuple of (is_disabled: bool,
         subscribed: bool, subscription: Optional[GroupSubscription]) for the
@@ -622,7 +619,7 @@ class GroupSerializerBase(Serializer, ABC):
     @staticmethod
     def _resolve_resolutions(
         groups: Sequence[Group], user
-    ) -> Tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
+    ) -> tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
         resolved_groups = [i for i in groups if i.status == GroupStatus.RESOLVED]
         if not resolved_groups:
             return {}, {}
@@ -702,7 +699,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _resolve_and_extend_plugin_annotation(
-        item: Group, current_annotations: List[Any]
+        item: Group, current_annotations: list[Any]
     ) -> Sequence[Any]:
         from sentry.plugins.base import plugins
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as datetime_mod
 from collections import namedtuple
-from typing import TYPE_CHECKING, List, MutableMapping
+from typing import TYPE_CHECKING, MutableMapping
 
 from django.conf import settings
 
@@ -32,7 +32,7 @@ ScheduleEntry = namedtuple("ScheduleEntry", "key timestamp")
 
 OPTIONS = frozenset(("increment_delay", "maximum_delay", "minimum_delay"))
 
-Digest = MutableMapping["Rule", MutableMapping["Group", List[Record]]]
+Digest = MutableMapping["Rule", MutableMapping["Group", list[Record]]]
 
 
 def get_option_key(plugin: str, option: str) -> str:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 import re
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Generator, Optional
 
 import sentry_sdk
 
@@ -516,13 +516,13 @@ def stacktrace(
 
 
 def _single_stacktrace_variant(
-    stacktrace: Stacktrace, event: Event, context: GroupingContext, meta: Dict[str, Any]
+    stacktrace: Stacktrace, event: Event, context: GroupingContext, meta: dict[str, Any]
 ) -> ReturnedVariants:
     variant = context["variant"]
 
     frames = stacktrace.frames
 
-    values: List[GroupingComponent] = []
+    values: list[GroupingComponent] = []
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
@@ -705,7 +705,7 @@ def chained_exception(
         return exception_components[id(exceptions[0])]
 
     # Case 2: produce a component for each chained exception
-    by_name: Dict[str, List[GroupingComponent]] = {}
+    by_name: dict[str, list[GroupingComponent]] = {}
 
     for exception in exceptions:
         for name, component in exception_components[id(exception)].items():
@@ -725,10 +725,10 @@ def chained_exception(
 
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
-    exceptions: List[SingleException],
-    exception_components: Dict[int, GroupingComponent],
+    exceptions: list[SingleException],
+    exception_components: dict[int, GroupingComponent],
     event: Event,
-) -> List[SingleException]:
+) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
     if len(exceptions) <= 1:
         return exceptions
@@ -738,12 +738,12 @@ def filter_exceptions_for_exception_groups(
         def __init__(
             self,
             exception: Optional[SingleException] = None,
-            children: Optional[List[SingleException]] = None,
+            children: Optional[list[SingleException]] = None,
         ):
             self.exception = exception
             self.children = children if children else []
 
-    exception_tree: Dict[int, ExceptionTreeNode] = {}
+    exception_tree: dict[int, ExceptionTreeNode] = {}
     for exception in reversed(exceptions):
         mechanism: Mechanism = exception.mechanism
         if mechanism and mechanism.exception_id is not None:
@@ -761,7 +761,7 @@ def filter_exceptions_for_exception_groups(
 
     # This gets the child exceptions for an exception using the exception_id from the mechanism.
     # That data is guaranteed to exist at this point.
-    def get_child_exceptions(exception: SingleException) -> List[SingleException]:
+    def get_child_exceptions(exception: SingleException) -> list[SingleException]:
         exception_id = exception.mechanism.exception_id
         node = exception_tree.get(exception_id)
         return node.children if node else []
@@ -866,7 +866,7 @@ def threads(
 
 
 def _filtered_threads(
-    threads: List[Dict[str, Any]], event: Event, context: GroupingContext, meta: Dict[str, Any]
+    threads: list[dict[str, Any]], event: Event, context: GroupingContext, meta: dict[str, Any]
 ) -> Optional[ReturnedVariants]:
     if len(threads) != 1:
         return None

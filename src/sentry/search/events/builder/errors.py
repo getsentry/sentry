@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import List, Optional
+from typing import Optional
 
 from snuba_sdk import (
     AliasedExpression,
@@ -68,9 +68,9 @@ class ErrorsQueryBuilderMixin:
     def resolve_query(
         self,
         query: Optional[str] = None,
-        selected_columns: Optional[List[str]] = None,
-        groupby_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
+        selected_columns: Optional[list[str]] = None,
+        groupby_columns: Optional[list[str]] = None,
+        equations: Optional[list[str]] = None,
         orderby: list[str] | str | None = None,
     ) -> None:
         super().resolve_query(query, selected_columns, groupby_columns, equations, orderby)

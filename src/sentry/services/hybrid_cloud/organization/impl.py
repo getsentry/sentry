@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.expressions import CombinedExpression, F
@@ -78,8 +78,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_member(member)
 
     def get_member_summaries_by_ids(
-        self, *, organization_id: int, user_ids: List[int]
-    ) -> List[RpcOrganizationMemberSummary]:
+        self, *, organization_id: int, user_ids: list[int]
+    ) -> list[RpcOrganizationMemberSummary]:
         members = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id__in=user_ids
         )
@@ -141,7 +141,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def get_organizations_by_user_and_scope(
         self, *, region_name: str, user: RpcUser, scope: Optional[str] = None
-    ) -> List[RpcOrganization]:
+    ) -> list[RpcOrganization]:
         organizations = Organization.objects.get_for_user(user=user, scope=scope)
         return list(map(serialize_rpc_organization, organizations))
 
@@ -282,7 +282,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool
-    ) -> List[Organization]:
+    ) -> list[Organization]:
         from django.conf import settings
 
         if settings.SENTRY_PUBLIC and scope is None:
@@ -633,7 +633,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def get_organization_owner_members(
         self, *, organization_id: int
-    ) -> List[RpcOrganizationMember]:
+    ) -> list[RpcOrganizationMember]:
         org: Organization = Organization.objects.get(id=organization_id)
         owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
 

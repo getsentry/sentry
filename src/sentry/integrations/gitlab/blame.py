@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import asdict
 from datetime import timezone
-from typing import Any, Mapping, Optional, Sequence, Tuple, TypedDict
+from typing import Any, Mapping, Optional, Sequence, TypedDict
 from urllib.parse import quote
 
 from isodate import parse_datetime
@@ -78,7 +78,7 @@ def fetch_file_blames(
 
 def _fetch_file_blame(
     client: BaseApiClient, file: SourceLineInfo, extra: Mapping[str, Any]
-) -> Tuple[Optional[CommitInfo], Optional[GitLabRateLimitInfo]]:
+) -> tuple[Optional[CommitInfo], Optional[GitLabRateLimitInfo]]:
     project_id = file.repo.config.get("project_id")
 
     # GitLab returns an invalid file path error if there are leading or trailing slashes

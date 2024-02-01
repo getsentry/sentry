@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
 from typing_extensions import TypedDict
 
@@ -27,7 +27,7 @@ class OrganizationIntegrationResponse(TypedDict):
     icon: Optional[str]
     domainName: Optional[str]
     accountType: Optional[str]
-    scopes: Optional[List[str]]
+    scopes: Optional[list[str]]
     status: str
     provider: Any
     configOrganization: Any
@@ -127,7 +127,7 @@ class OrganizationIntegrationSerializer(Serializer):
         integrations = integration_service.get_integrations(
             integration_ids=[item.integration_id for item in item_list]
         )
-        integrations_by_id: Dict[int, RpcIntegration] = {i.id: i for i in integrations}
+        integrations_by_id: dict[int, RpcIntegration] = {i.id: i for i in integrations}
         return {
             item: {"integration": integrations_by_id[item.integration_id]} for item in item_list
         }

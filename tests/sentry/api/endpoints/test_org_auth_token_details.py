@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from typing import Dict
 
 from django.urls import reverse
 from rest_framework import status
@@ -161,7 +160,7 @@ class OrgAuthTokenEditTest(APITestCase):
             scope_list=["org:ci"],
             date_last_used=None,
         )
-        payload: Dict[str, str] = {}
+        payload: dict[str, str] = {}
 
         self.login_as(self.user)
         response = self.get_error_response(
@@ -182,7 +181,7 @@ class OrgAuthTokenEditTest(APITestCase):
             scope_list=["org:ci"],
             date_last_used=None,
         )
-        payload: Dict[str, str] = {"name": "a" * 300}
+        payload: dict[str, str] = {"name": "a" * 300}
 
         self.login_as(self.user)
         response = self.get_error_response(
@@ -224,7 +223,7 @@ class OrgAuthTokenEditTest(APITestCase):
             scope_list=["org:ci"],
             date_last_used=None,
         )
-        payload: Dict[str, str] = {}
+        payload: dict[str, str] = {}
         response = self.get_error_response(self.organization.slug, token.id, **payload)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 

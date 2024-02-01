@@ -4,7 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Callable, Mapping, MutableMapping, Optional
 
 import sentry_sdk
 
@@ -96,7 +96,7 @@ class DetectorAlgorithm(ABC):
         self,
         raw: Mapping[str | bytes, bytes | float | int | str],
         payload: DetectorPayload,
-    ) -> Tuple[TrendType, float, Optional[DetectorState]]:
+    ) -> tuple[TrendType, float, Optional[DetectorState]]:
         ...
 
 
@@ -121,7 +121,7 @@ class MovingAverageRelativeChangeDetector(DetectorAlgorithm):
         self,
         raw_state: Mapping[str | bytes, bytes | float | int | str],
         payload: DetectorPayload,
-    ) -> Tuple[TrendType, float, Optional[DetectorState]]:
+    ) -> tuple[TrendType, float, Optional[DetectorState]]:
         try:
             old = MovingAverageDetectorState.from_redis_dict(raw_state)
         except Exception as e:

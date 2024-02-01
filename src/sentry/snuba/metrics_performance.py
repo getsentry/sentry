@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import sentry_sdk
 from snuba_sdk import Column
@@ -88,14 +88,14 @@ def query(
 
 def bulk_timeseries_query(
     selected_columns: Sequence[str],
-    queries: List[str],
-    params: Dict[str, str],
+    queries: list[str],
+    params: dict[str, str],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    functions_acl: Optional[list[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
@@ -190,13 +190,13 @@ def bulk_timeseries_query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, Any],
+    params: dict[str, Any],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    functions_acl: Optional[list[str]] = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
@@ -210,7 +210,7 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
     metrics_compatible = not equations
 
-    def run_metrics_query(inner_params: Dict[str, Any]):
+    def run_metrics_query(inner_params: dict[str, Any]):
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
                 inner_params,

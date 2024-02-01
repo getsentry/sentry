@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Optional
 
 from django.db import router, transaction
 
@@ -18,8 +18,8 @@ class DatabaseBackedHookService(HookService):
         organization_id: int,
         application_id: Optional[int],
         webhook_url: Optional[str],
-        events: List[str],
-    ) -> List[RpcServiceHook]:
+        events: list[str],
+    ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             hooks = ServiceHook.objects.filter(application_id=application_id)
             if webhook_url:
@@ -39,8 +39,8 @@ class DatabaseBackedHookService(HookService):
         actor_id: int = -1,
         installation_id: Optional[int] = None,
         organization_id: int = -1,
-        project_ids: Optional[List[int]] = None,
-        events: Optional[List[str]] = None,
+        project_ids: Optional[list[int]] = None,
+        events: Optional[list[str]] = None,
         url: str = "",
     ) -> RpcServiceHook:
         # nullable for sentry apps

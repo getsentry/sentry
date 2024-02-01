@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 import sentry_sdk
 from django.db.models import QuerySet
@@ -97,7 +97,7 @@ class SourceMapDebugIdProcessResult(TypedDict):
 
 class SourceMapReleaseProcessResult(TypedDict):
     abs_path: str
-    matching_source_file_names: List[str]
+    matching_source_file_names: list[str]
     matching_source_map_name: Optional[str]
     source_map_reference: Optional[str]
     source_file_lookup_result: Literal["found", "wrong-dist", "unsuccessful"]
@@ -111,13 +111,13 @@ class SourceMapDebugFrame(TypedDict):
 
 
 class SourceMapDebugException(TypedDict):
-    frames: List[SourceMapDebugFrame]
+    frames: list[SourceMapDebugFrame]
 
 
 class SourceMapDebugResponse(TypedDict):
     dist: Optional[str]
     release: Optional[str]
-    exceptions: List[SourceMapDebugException]
+    exceptions: list[SourceMapDebugException]
     has_debug_ids: bool
     min_debug_id_sdk_version: Optional[str]
     sdk_version: Optional[str]
@@ -344,7 +344,7 @@ class ReleaseLookupData:
         ] = None  # The location where Sentry will look for the source map (relative to the source file), e.g. "bundle.min.js.map"
 
         # Cached db objects across operations
-        self.artifact_index_release_files: Optional[Union[QuerySet, List[ReleaseFile]]] = None
+        self.artifact_index_release_files: Optional[Union[QuerySet, list[ReleaseFile]]] = None
         self.dist_matched_artifact_index_release_file: Optional[ReleaseFile] = None
 
         self._find_source_file_in_basic_uploaded_files()
@@ -639,7 +639,6 @@ def get_sdk_debug_id_support(event_data):
         ]
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        pass
 
     if official_sdks is None or len(official_sdks) == 0:
         # Fallback list if release registry is not available

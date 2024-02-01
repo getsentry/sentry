@@ -2,16 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-)
+from typing import TYPE_CHECKING, Any, Collection, Mapping, MutableMapping, Optional, Sequence
 from uuid import uuid4
 
 import sentry_kafka_schemas
@@ -395,7 +386,7 @@ class SnubaProtocolEventStream(EventStream):
         self,
         project_id: int,
         _type: str,
-        extra_data: Tuple[Any, ...] = (),
+        extra_data: tuple[Any, ...] = (),
         asynchronous: bool = True,
         headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
@@ -409,7 +400,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         self,
         project_id: int,
         _type: str,
-        extra_data: Tuple[Any, ...] = (),
+        extra_data: tuple[Any, ...] = (),
         asynchronous: bool = True,
         headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,

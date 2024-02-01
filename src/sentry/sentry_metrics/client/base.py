@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils.services import Service
@@ -14,7 +14,7 @@ class GenericMetricsBackend(Service):
         project_id: int,
         metric_name: str,
         value: Union[int, float],
-        tags: Dict[str, str],
+        tags: dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -33,7 +33,7 @@ class GenericMetricsBackend(Service):
         project_id: int,
         metric_name: str,
         value: Sequence[int],
-        tags: Dict[str, str],
+        tags: dict[str, str],
         unit: Optional[str],
     ) -> None:
 
@@ -51,7 +51,7 @@ class GenericMetricsBackend(Service):
         project_id: int,
         metric_name: str,
         value: Sequence[Union[int, float]],
-        tags: Dict[str, str],
+        tags: dict[str, str],
         unit: Optional[str],
     ) -> None:
 

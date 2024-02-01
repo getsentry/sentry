@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 from django.utils import timezone
 
@@ -42,7 +42,7 @@ def create_or_update_comment(
     pr_key: int,
     comment_body: str,
     pullrequest_id: int,
-    issue_list: List[int],
+    issue_list: list[int],
     metrics_base: str,
     comment_type: int = CommentType.MERGED_PR,
     language: str | None = "not found",

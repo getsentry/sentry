@@ -8,7 +8,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
 from math import floor
-from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, TypedDict, cast
+from typing import Any, Mapping, Optional, Sequence, TypedDict, cast
 
 import sentry_sdk
 from django.db.models import Q
@@ -145,7 +145,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def dependency_aggregations(self) -> Mapping[str, List[str]]:
+    def dependency_aggregations(self) -> Mapping[str, list[str]]:
         """This method should return a dict of key:value
         where key is an aggregation_def field name
         and value is a list of aggregation field names that the 'key' aggregation requires."""
@@ -169,7 +169,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def postgres_only_fields(self) -> Set[str]:
+    def postgres_only_fields(self) -> set[str]:
         raise NotImplementedError
 
     @abstractmethod
@@ -371,7 +371,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
         aggregate_kwargs: Optional[PrioritySortWeights] = None,
-    ) -> Tuple[List[Tuple[int, Any]], int]:
+    ) -> tuple[list[tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
         Returns a tuple of:
@@ -1195,7 +1195,7 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         search_filters: Optional[Sequence[SearchFilter]],
         date_from: Optional[datetime],
         date_to: Optional[datetime],
-    ) -> Tuple[datetime, datetime, datetime]:
+    ) -> tuple[datetime, datetime, datetime]:
         now = timezone.now()
         end = None
         end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
@@ -1374,7 +1374,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         search_filters: Optional[Sequence[SearchFilter]],
         date_from: Optional[datetime],
         date_to: Optional[datetime],
-    ) -> Tuple[datetime, datetime, datetime]:
+    ) -> tuple[datetime, datetime, datetime]:
         now = timezone.now()
         end = None
         end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]

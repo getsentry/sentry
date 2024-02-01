@@ -2,7 +2,7 @@ import re
 from collections import namedtuple
 from copy import copy, deepcopy
 from datetime import datetime, timezone
-from typing import Any, List, Mapping, Match, NamedTuple, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Mapping, Match, NamedTuple, Optional, Sequence, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -72,7 +72,7 @@ class PseudoField:
 
         self.validate()
 
-    def get_expression(self, params) -> Union[List[Any], Tuple[Any]]:
+    def get_expression(self, params) -> Union[list[Any], tuple[Any]]:
         if isinstance(self.expression, (list, tuple)):
             return deepcopy(self.expression)
         elif self.expression_fn is not None:
@@ -455,7 +455,7 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
-def parse_arguments(function: str, columns: str) -> List[str]:
+def parse_arguments(function: str, columns: str) -> list[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
     which requires special handling.
@@ -618,7 +618,7 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         return ResolvedFunction(details, addition, None)
 
 
-def parse_combinator(function: str) -> Tuple[str, Optional[str]]:
+def parse_combinator(function: str) -> tuple[str, Optional[str]]:
     for combinator in COMBINATORS:
         kind = combinator.kind
         if function.endswith(kind):
@@ -744,7 +744,7 @@ class Combinator:
 class ArrayCombinator(Combinator):
     kind = "Array"
 
-    def __init__(self, column_name: str, array_columns: Set[str], private: bool = True):
+    def __init__(self, column_name: str, array_columns: set[str], private: bool = True):
         super().__init__(private=private)
         self.column_name = column_name
         self.array_columns = array_columns
@@ -805,7 +805,7 @@ class StringArg(FunctionArg):
         unquote: Optional[bool] = False,
         unescape_quotes: Optional[bool] = False,
         optional_unquote: Optional[bool] = False,
-        allowed_strings: Optional[List[str]] = None,
+        allowed_strings: Optional[list[str]] = None,
     ):
         """
         :param str name: The name of the function, this refers to the name to invoke.
@@ -1337,8 +1337,8 @@ class DiscoverFunction:
         return alias
 
     def add_default_arguments(
-        self, field: str, columns: List[str], params: ParamsType
-    ) -> List[str]:
+        self, field: str, columns: list[str], params: ParamsType
+    ) -> list[str]:
         # make sure to validate the argument count first to
         # ensure the right number of arguments have been passed
         self.validate_argument_count(field, columns)
@@ -1360,7 +1360,7 @@ class DiscoverFunction:
     def format_as_arguments(
         self,
         field: str,
-        columns: List[str],
+        columns: list[str],
         params: ParamsType,
         combinator: Optional[Combinator] = None,
     ) -> Mapping[str, NormalizedArg]:
@@ -1436,7 +1436,7 @@ class DiscoverFunction:
 
         self.validate_result_type(self.default_result_type)
 
-    def validate_argument_count(self, field: str, arguments: List[str]) -> None:
+    def validate_argument_count(self, field: str, arguments: list[str]) -> None:
         """
         Validate the number of required arguments the function defines against
         provided arguments. Raise an exception if there is a mismatch in the
@@ -1470,7 +1470,7 @@ class DiscoverFunction:
 
     def is_accessible(
         self,
-        acl: Optional[List[str]] = None,
+        acl: Optional[list[str]] = None,
         combinator: Optional[Combinator] = None,
     ) -> bool:
         name = self.name

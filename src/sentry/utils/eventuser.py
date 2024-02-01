@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
-from typing import Any, Dict, List, Mapping, Optional, Set
+from typing import Any, Mapping, Optional
 
 from snuba_sdk import (
     BooleanCondition,
@@ -92,12 +92,12 @@ class EventUser:
     @classmethod
     def for_projects(
         self,
-        projects: List[Project],
-        keyword_filters: Mapping[str, List[Any]],
+        projects: list[Project],
+        keyword_filters: Mapping[str, list[Any]],
         filter_boolean: BooleanOp = BooleanOp.AND,
         result_offset: int = 0,
         result_limit: Optional[int] = None,
-    ) -> List[EventUser]:
+    ) -> list[EventUser]:
         """
         Fetch the EventUser with a Snuba query that exists within a list of projects
         and valid `keyword_filters`. The `keyword_filter` keys are in `KEYWORD_MAP`.
@@ -192,7 +192,7 @@ class EventUser:
                     min((target_unique_rows_fetched * OVERFETCH_FACTOR) + 1, MAX_FETCH_SIZE)
                 )
 
-        seen_eventuser_tags: Set[str] = set()
+        seen_eventuser_tags: set[str] = set()
         while tries < max_tries:
             query_start_time = time.time()
             if query.limit:
@@ -247,7 +247,7 @@ class EventUser:
             return full_results[result_offset:]
 
     @staticmethod
-    def _find_unique(data_results: List[dict[str, Any]], seen_eventuser_tags: Set[str]):
+    def _find_unique(data_results: list[dict[str, Any]], seen_eventuser_tags: set[str]):
         """
         Return the first instance of an EventUser object
         with a unique tag_value from the Snuba results.
@@ -288,7 +288,7 @@ class EventUser:
         projects = Project.objects.filter(id=project_id)
 
         result = {}
-        keyword_filters: Dict[str, Any] = {}
+        keyword_filters: dict[str, Any] = {}
         for value in values:
             key, value = value.split(":", 1)[0], value.split(":", 1)[-1]
             if keyword_filters.get(key):

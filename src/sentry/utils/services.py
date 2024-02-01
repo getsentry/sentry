@@ -10,14 +10,11 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
     Iterable,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
-    Tuple,
-    Type,
     TypeVar,
 )
 
@@ -73,10 +70,10 @@ class LazyServiceWrapper(LazyObject, Proxied):
 
     def __init__(
         self,
-        backend_base: Type[Proxied],
+        backend_base: type[Proxied],
         backend_path: str,
         options: Mapping[str, Any],
-        dangerous: Optional[Sequence[Type[Service]]] = (),
+        dangerous: Optional[Sequence[type[Service]]] = (),
         metrics_path: Optional[str] = None,
     ):
         super().__init__()
@@ -139,7 +136,7 @@ def resolve_callable(value: str | AnyCallable) -> AnyCallable:
 
 
 class Context:
-    def __init__(self, request: Request, backends: Dict[Type[Service | None], Service]):
+    def __init__(self, request: Request, backends: dict[type[Service | None], Service]):
         self.request = request
         self.backends = backends
 
@@ -231,8 +228,8 @@ class Delegator:
 
     def __init__(
         self,
-        base: Type[Service],
-        backends: Mapping[str, Tuple[Service, Executor]],
+        base: type[Service],
+        backends: Mapping[str, tuple[Service, Executor]],
         selector: Selector,
         callback: Optional[Callback] = None,
     ) -> None:
@@ -477,7 +474,7 @@ class ServiceDelegator(Delegator, Service):
             backend.setup()
 
 
-def get_invalid_timing_reason(timing: Tuple[Optional[float], Optional[float]]) -> str:
+def get_invalid_timing_reason(timing: tuple[Optional[float], Optional[float]]) -> str:
     start, stop = timing
     if start is None and stop is None:
         return "no_data"

@@ -13,9 +13,6 @@ from typing import (
     NamedTuple,
     Optional,
     Sequence,
-    Set,
-    Tuple,
-    Type,
     TypeVar,
     Union,
 )
@@ -58,7 +55,7 @@ class KeyResult:
     id: Optional[int]
 
     @classmethod
-    def from_string(cls: Type[KR], key: str, id: int) -> KR:
+    def from_string(cls: type[KR], key: str, id: int) -> KR:
         org_id, string = key.split(":", 1)
         return cls(int(org_id), string, id)
 
@@ -71,7 +68,7 @@ class UseCaseKeyResult:
     id: Optional[int]
 
     @classmethod
-    def from_string(cls: Type[UR], key: str, id: int) -> UR:
+    def from_string(cls: type[UR], key: str, id: int) -> UR:
         use_case_id, org_id, string = key.split(":", 2)
         return cls(UseCaseID(use_case_id), int(org_id), string, id)
 
@@ -88,7 +85,7 @@ class KeyCollection:
         { 1: {"a", "b", "c"}, 2: {"e", "f"} }
     """
 
-    def __init__(self, mapping: Mapping[OrgId, Set[str]]):
+    def __init__(self, mapping: Mapping[OrgId, set[str]]):
         self.mapping = mapping
         self.size = self._size()
 
@@ -105,11 +102,11 @@ class KeyCollection:
             total_size += len(self.mapping[org_id])
         return total_size
 
-    def as_tuples(self) -> Sequence[Tuple[int, str]]:
+    def as_tuples(self) -> Sequence[tuple[int, str]]:
         """
         Returns all the keys, each key represented as tuple -> (1, "a")
         """
-        key_pairs: MutableSequence[Tuple[int, str]] = []
+        key_pairs: MutableSequence[tuple[int, str]] = []
         for org_id in self.mapping:
             key_pairs.extend([(org_id, string) for string in self.mapping[org_id]])
 
@@ -138,7 +135,7 @@ class UseCaseKeyCollection:
         {UseCaseID.TRANSACTIONS: { 1: {"a", "b", "c"}, 2: {"e", "f"} }}
     """
 
-    def __init__(self, mapping: Mapping[UseCaseID, Union[Mapping[OrgId, Set[str]], KeyCollection]]):
+    def __init__(self, mapping: Mapping[UseCaseID, Union[Mapping[OrgId, set[str]], KeyCollection]]):
         self.mapping = {
             use_case_id: keys if isinstance(keys, KeyCollection) else KeyCollection(keys)
             for use_case_id, keys in mapping.items()
@@ -155,7 +152,7 @@ class UseCaseKeyCollection:
     def _size(self) -> int:
         return sum(key_collection.size for key_collection in self.mapping.values())
 
-    def as_tuples(self) -> Sequence[Tuple[UseCaseID, OrgId, str]]:
+    def as_tuples(self) -> Sequence[tuple[UseCaseID, OrgId, str]]:
         return [
             (use_case_id, org_id, s)
             for use_case_id, key_collection in self.mapping.items()
@@ -220,7 +217,7 @@ class KeyResults:
         a new KeyCollection for any keys that don't have corresponding
         ids in results.
         """
-        unmapped_org_strings: MutableMapping[OrgId, Set[str]] = defaultdict(set)
+        unmapped_org_strings: MutableMapping[OrgId, set[str]] = defaultdict(set)
         for org_id, strings in keys.mapping.items():
             for string in strings:
                 if not self.results[org_id].get(string):
@@ -451,7 +448,7 @@ class StringIndexer(Service):
     )
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         """
         Takes in a mapping with use case IDs mapped to Org IDs mapped to set of strings.

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from django.utils import timezone
 
@@ -89,7 +89,7 @@ def fetch_metric_alert_events_timeseries(
     rule_aggregate: str,
     query_params: Mapping[str, str],
     user: Optional["User"] = None,
-) -> List[Any]:
+) -> list[Any]:
     try:
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
@@ -127,7 +127,7 @@ def fetch_metric_alert_incidents(
     alert_rule: AlertRule,
     time_period: Mapping[str, str],
     user: Optional["User"] = None,
-) -> List[Any]:
+) -> list[Any]:
     try:
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from html import escape
-from typing import ClassVar, List, Optional, Union
+from typing import ClassVar, Optional, Union
 
 from django.conf import settings
 from django.utils.translation import gettext as _
@@ -16,7 +16,7 @@ from sentry.utils.safe import get_path, safe_execute
 logger = logging.getLogger("sentry.events")
 interface_logger = logging.getLogger("sentry.interfaces")
 
-DataPath = List[Union[str, int]]
+DataPath = list[Union[str, int]]
 
 
 def get_interface(name):
