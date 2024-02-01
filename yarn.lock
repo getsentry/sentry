@@ -2979,23 +2979,23 @@
   resolved "https://registry.yarnpkg.com/@socket.io/component-emitter/-/component-emitter-3.1.0.tgz#96116f2a912e0c02817345b3c10751069920d553"
   integrity sha512-+9jVqKhRSpsc591z5vX+X5Yyw+he/HCB4iQ/RYxw35CEPaY1gnsNE43nf9n9AaYjAQrTiI/mOwKUKdUs9vf7Xg==
 
-"@spotlightjs/overlay@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-1.0.1.tgz#2761cbf1675e19e8fec2a9327ec69a9d11d7841b"
-  integrity sha512-uyL3MMSjPXDjDNw/6Waf98k5lvqccC6VR+vPuLTPf2QTQxr9EQ3y1p4Arbhid9NZ1BXqJfi2cqvXEwj0MvKVxQ==
+"@spotlightjs/overlay@1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/overlay/-/overlay-1.5.0.tgz#2fd8f6eb62b3887d5741fdfd559536cd40af0320"
+  integrity sha512-HMzxwHxD4VLZLHL+Ec7akR3NzUxfsGrWJSdFTAjQGeH/bBtZ3wHYIiD1nrpt0ONHYHW2K+bFFX6Razi+OKdlLA==
 
-"@spotlightjs/sidecar@1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/sidecar/-/sidecar-1.1.1.tgz#498d5742628a16e11c0a411e25a7c563eb5e4a52"
-  integrity sha512-fRWQJHwT7r3WlCzGdIyFb+dh88T7aleLd76d7mEUXLRRkqvSZPP2uO48OlBXFJJoATFfm+1XSIedehvlVjHqUw==
+"@spotlightjs/sidecar@1.3.5":
+  version "1.3.5"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/sidecar/-/sidecar-1.3.5.tgz#60c5ccf80be214eb118aead47b4d692e84318463"
+  integrity sha512-mtpNWE07DnrUhkvZ1EN8rIH5xVgsfqrw+LSJZTb1FjJ8jODTafiXCJjf40f9tswtGQKhNvaJ+Z24N/o92CYyGw==
 
-"@spotlightjs/spotlight@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@spotlightjs/spotlight/-/spotlight-1.1.1.tgz#01706182f406a8589e44b4e65ccfcab22999fc5c"
-  integrity sha512-MqGfh/pSa3S7KhnRx09lxKUbpWs02IU5tzYOlDAYd4PBtFVDQ2yDOLahxgxO0v12NE11Wh06aL1KfdNwY+zfdw==
+"@spotlightjs/spotlight@^1.2.11":
+  version "1.2.11"
+  resolved "https://registry.yarnpkg.com/@spotlightjs/spotlight/-/spotlight-1.2.11.tgz#4bcc9f5540e1a68fe9c44528da5a51d0dbe15fb8"
+  integrity sha512-UE2AQLpGO6bPd7JzEEGfdEzYm1VwpbRMn1BJltpP5j99pKF7DKLWovfaqD7JDCwVQPfDqWzBhb26JTHZJFK+0w==
   dependencies:
-    "@spotlightjs/overlay" "1.0.1"
-    "@spotlightjs/sidecar" "1.1.1"
+    "@spotlightjs/overlay" "1.5.0"
+    "@spotlightjs/sidecar" "1.3.5"
 
 "@styled/typescript-styled-plugin@^1.0.0":
   version "1.0.0"
