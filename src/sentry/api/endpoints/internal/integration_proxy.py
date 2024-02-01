@@ -82,9 +82,10 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
         # Get the organization integration
         org_integration_id = request.headers.get(PROXY_OI_HEADER)
-        if org_integration_id is None:
+        if org_integration_id is None or not org_integration_id.isnumeric():
             logger.info("integration_proxy.missing_org_integration", extra=self.log_extra)
             return False
+        org_integration_id = int(org_integration_id)
         self.log_extra["org_integration_id"] = org_integration_id
 
         self.org_integration = (
