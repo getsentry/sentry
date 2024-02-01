@@ -116,6 +116,7 @@ def test_bind_organization_context(default_organization):
     configure_sdk()
 
     bind_organization_context(default_organization)
+
     assert Hub.current.scope._tags["organization"] == default_organization.id
     assert Hub.current.scope._tags["organization.slug"] == default_organization.slug
     assert Hub.current.scope._contexts["organization"] == {
