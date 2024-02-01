@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from django.db import router
 from sentry_sdk import capture_exception
@@ -19,7 +19,7 @@ class OrganizationMappingConsistencyException(Exception):
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
-    def get(self, *, organization_id: int) -> Optional[RpcOrganizationMapping]:
+    def get(self, *, organization_id: int) -> RpcOrganizationMapping | None:
         try:
             org_mapping = OrganizationMapping.objects.get(organization_id=organization_id)
         except OrganizationMapping.DoesNotExist:

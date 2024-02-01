@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Collection, Mapping, Sequence, cast
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 import sentry_sdk

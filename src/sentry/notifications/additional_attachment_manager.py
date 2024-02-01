@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, MutableMapping
+from collections.abc import Callable, MutableMapping
 
 from sentry.api.validators.integrations import validate_provider
 from sentry.integrations.slack.message_builder import SlackAttachment

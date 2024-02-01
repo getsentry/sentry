@@ -1,5 +1,3 @@
-from typing import Optional
-
 from snuba_sdk import Column, Function
 
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder, TopEventsQueryBuilder
@@ -9,7 +7,7 @@ from sentry.search.events.types import SelectType
 class SpansIndexedQueryBuilder(QueryBuilder):
     requires_organization_condition = False
 
-    def get_field_type(self, field: str) -> Optional[str]:
+    def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
             return self.meta_resolver_map[field]
         if field in ["span.duration", "span.self_time"]:
