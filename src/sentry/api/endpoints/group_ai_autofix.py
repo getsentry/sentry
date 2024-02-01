@@ -122,15 +122,15 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             raise PermissionDenied(detail="You must be authenticated to perform this action.")
 
         user = User.objects.get(id=request.user.id)  # type: ignore (user is authenticated)
-        event_exceptions = self._get_event_entries(group, user)
+        event_entries = self._get_event_entries(group, user)
 
-        if event_exceptions is None:
+        if event_entries is None:
             return self._respond_with_error(
                 group, metadata, "Cannot fix issues without an event.", 400
             )
 
-        if len(event_exceptions) == 0 or not any(
-            [exception.get("type") == "exception" for exception in event_exceptions]
+        if len(event_entries) == 0 or not any(
+            [exception.get("type") == "exception" for exception in event_entries]
         ):
             return self._respond_with_error(
                 group, metadata, "Cannot fix issues without a stacktrace.", 400
@@ -175,7 +175,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         try:
             self._call_autofix(
-                group, base_commit.key, event_exceptions, data.get("additional_context", "")
+                group, base_commit.key, event_entries, data.get("additional_context", "")
             )
 
             # Mark the task as completed after TIMEOUT_SECONDS
