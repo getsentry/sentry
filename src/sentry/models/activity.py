@@ -32,18 +32,27 @@ if TYPE_CHECKING:
 
 class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
+        from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
+
         activities = []
+        priority = None
         activity_qs = self.filter(group=group).order_by("-datetime")
 
         if not features.has("projects:issue-priority", group.project):
             activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
+        else:
+            priority = (
+                PRIORITY_LEVEL_TO_STR[group.get_event_metadata()["initial_priority"]]
+                if group.get_event_metadata()["initial_priority"]
+                else None
+            )
 
         prev_sig = None
         sig = None
         # we select excess so we can filter dupes
         for item in activity_qs[: num * 2]:
             prev_sig = sig
-            sig = (item.type, item.ident, item.user_id)
+            sig = (item.type, item.ident, item.user_id, item.data)
 
             if item.type == ActivityType.NOTE.value:
                 activities.append(item)
@@ -58,7 +67,7 @@ class ActivityManager(BaseManager["Activity"]):
                 project=group.project,
                 group=group,
                 type=ActivityType.FIRST_SEEN.value,
-                data={"priority": group.priority},
+                data={"priority": priority},
                 datetime=group.first_seen,
             )
         )
