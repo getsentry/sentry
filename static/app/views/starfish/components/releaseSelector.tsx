@@ -21,11 +21,12 @@ import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/center
 
 type Props = {
   selectorKey: string;
+  triggerLabelPrefix: string;
   selectorName?: string;
   selectorValue?: string;
 };
 
-export function ReleaseSelector({selectorKey, selectorValue}: Props) {
+export function ReleaseSelector({selectorKey, selectorValue, triggerLabelPrefix}: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm);
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
@@ -66,6 +67,10 @@ export function ReleaseSelector({selectorKey, selectorValue}: Props) {
       options.push(option);
     });
 
+  const triggerLabelContent = selectorValue
+    ? formatVersionAndCenterTruncate(selectorValue, 16)
+    : selectorValue;
+
   return (
     <StyledCompactSelect
       triggerProps={{
@@ -73,7 +78,10 @@ export function ReleaseSelector({selectorKey, selectorValue}: Props) {
         title: selectorValue,
       }}
       triggerLabel={
-        selectorValue ? formatVersionAndCenterTruncate(selectorValue, 16) : selectorValue
+        <span>
+          <strong>{triggerLabelPrefix}:</strong>{' '}
+          <ReleaseLabelContainer>{triggerLabelContent}</ReleaseLabelContainer>
+        </span>
       }
       menuTitle={t('Filter Release')}
       loading={isLoading}
@@ -136,12 +144,14 @@ export function ReleaseComparisonSelector() {
         selectorValue={primaryRelease}
         selectorName={t('Release 1')}
         key="primaryRelease"
+        triggerLabelPrefix="R1"
       />
       <ReleaseSelector
         selectorKey="secondaryRelease"
         selectorName={t('Release 2')}
         selectorValue={secondaryRelease}
         key="secondaryRelease"
+        triggerLabelPrefix="R2"
       />
     </StyledPageSelector>
   );
@@ -168,4 +178,8 @@ const DetailsContainer = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   min-width: 200px;
+`;
+
+const ReleaseLabelContainer = styled('span')`
+  display: inline;
 `;
