@@ -21,11 +21,13 @@ class UserDetailsTest(APITestCase):
 
         self.normal_user = self.create_user(is_superuser=False, is_staff=False)
 
+    # For each request method testcase, ensure regular users fail
     def test_fails_without_superuser_or_superuser(self):
         self.login_as(self.normal_user)
         response = self.get_response("me", "broadcasts.admin")
         assert response.status_code == 403
 
+    # For each request method testcase, ensure superuser+staff without users.admin fail
     def test_fails_without_users_admin_permission(self):
         self.superuser_and_staff = self.create_user(is_superuser=True, is_staff=True)
         self.login_as(self.superuser_and_staff, superuser=True, staff=True)
