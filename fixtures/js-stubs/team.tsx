@@ -8,7 +8,6 @@ export function TeamFixture(params: Partial<DetailedTeam> = {}): DetailedTeam {
     slug: 'team-slug',
     name: 'Team Name',
     access: ['team:read'],
-    orgRole: undefined, // TODO(cathy): Rename this
     teamRole: null,
     isMember: true,
     memberCount: 0,

@@ -98,7 +98,6 @@ export interface Team {
   name: string;
   slug: string;
   teamRole: string | null;
-  orgRole?: string | null;
 }
 
 export interface DetailedTeam extends Team {
