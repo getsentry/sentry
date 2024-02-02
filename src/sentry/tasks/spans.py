@@ -6,5 +6,5 @@ from sentry.tasks.base import instrumented_task
     queue="spans.process_segment",
     max_retries=0,
 )
-def process_segment(segment_id):
+def process_segment(project_id, segment_id):
     return

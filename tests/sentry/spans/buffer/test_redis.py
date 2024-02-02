@@ -9,14 +9,14 @@ class TestRedisSpansBuffer:
         with mock.patch.object(buffer, "client", new=get_redis_client()) as mock_client:
             mock_client.expire = mock.Mock()
 
-            buffer.write_span("foo", b"span data")
-            mock_client.expire.assert_called_once_with("foo", 300)
+            buffer.write_span("bar", "foo", b"span data")
+            mock_client.expire.assert_called_once_with("project:bar:segment:foo", 300)
 
     def test_ttl_not_set_repeatedly(self):
         buffer = RedisSpansBuffer()
-        buffer.write_span("foo", b"span data")
+        buffer.write_span("bar", "foo", b"span data")
         with mock.patch.object(buffer, "client", new=get_redis_client()) as mock_client:
             mock_client.expire = mock.Mock()
-            buffer.write_span("foo", b"other span data")
+            buffer.write_span("bar", "foo", b"other span data")
 
             mock_client.expire.assert_not_called

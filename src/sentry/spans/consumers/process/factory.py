@@ -28,15 +28,16 @@ def process_message(message: Message[KafkaPayload]):
     try:
         span = _deserialize_span(message.payload.value)
         segment_id = span["segment_id"]
+        project_id = span["project_id"]
     except Exception:
         logger.exception("Failed to process span payload")
 
     client = RedisSpansBuffer()
-    new_segment = client.write_span(segment_id, message.payload.value)
+    new_segment = client.write_span(project_id, segment_id, message.payload.value)
     if new_segment:
         # This function currently does nothing.
         process_segment.apply_async(
-            args=[segment_id],
+            args=[project_id, segment_id],
             countdown=PROCESS_SEGMENT_DELAY,
         )
 

@@ -14,22 +14,25 @@ def get_redis_client() -> RedisCluster | StrictRedis:
     return redis.redis_clusters.get(settings.SENTRY_SPAN_BUFFER_CLUSTER)
 
 
+def get_segment_key(project_id: int, segment_id: int) -> str:
+    return f"project:{project_id}:segment:{segment_id}"
+
+
 class RedisSpansBuffer:
     def __init__(self):
         self.client: RedisCluster | StrictRedis = get_redis_client()
 
-    def read_segment(self, segment_id: str) -> List[str | bytes]:
-        segment = self.client.lrange(segment_id, 0, -1)
-        if segment:
-            return segment
+    def read_segment(self, project_id: str | int, segment_id: str) -> List[str | bytes]:
+        key = get_segment_key(project_id, segment_id)
 
-        return []
+        return self.client.lrange(key, 0, -1) or []
 
-    def write_span(self, segment_id: str, span: bytes) -> bool:
-        length = self.client.rpush(segment_id, span)
+    def write_span(self, project_id: str | int, segment_id: str, span: bytes) -> bool:
+        key = get_segment_key(project_id, segment_id)
+        length = self.client.rpush(key, span)
         new_key = length == 1
 
         if new_key:
-            self.client.expire(segment_id, SEGMENT_TTL)
+            self.client.expire(key, SEGMENT_TTL)
 
         return new_key
