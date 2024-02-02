@@ -40,7 +40,7 @@ class NotificationActionsAvailableEndpointTest(APITestCase):
             serialize_available = MagicMock(return_value=[trigger_available_response])
 
         registration = MockActionRegistration
-        NotificationAction.register_trigger_type(*trigger)
+        NotificationAction._trigger_types += (trigger,)
         NotificationAction.register_action(
             trigger_type=trigger[0],
             service_type=ActionService.SENTRY_NOTIFICATION.value,
