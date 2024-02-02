@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import datetime
-from typing import Callable, Generic, TypeVar
+from collections.abc import Callable
+from typing import Generic, TypeVar
 
 from snuba_sdk import Condition
 

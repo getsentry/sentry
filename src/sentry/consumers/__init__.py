@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -101,6 +101,12 @@ def ingest_monitors_options() -> list[click.Option]:
             type=int,
             default=10,
             help="Maximum time spent batching check-ins to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-workers", "max_workers"],
+            type=int,
+            default=None,
+            help="The maximum number of threads to spawn in parallel mode.",
         ),
     ]
     return options

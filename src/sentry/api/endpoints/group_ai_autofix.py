@@ -5,17 +5,20 @@ from datetime import datetime
 
 import requests
 from django.conf import settings
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
+from sentry.models.user import User
 from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -45,13 +48,14 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         }
     }
 
-    def _get_event_exceptions(self, group: Group) -> list | None:
+    def _get_event_entries(self, group: Group, user: User) -> list | None:
         latest_event = group.get_latest_event()
 
         if not latest_event:
             return None
 
-        return latest_event.data.get("exception", {}).get("values", [])
+        serialized_event = serialize(latest_event, user, EventSerializer())
+        return serialized_event["entries"]
 
     def _make_error_metadata(self, autofix: dict, reason: str):
         return {
@@ -80,20 +84,22 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         self,
         group: Group,
         base_commit_sha: str,
-        event_exceptions: list[dict],
+        event_entries: list[dict],
         additional_context: str,
     ):
         requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
-            json={
-                "base_commit_sha": base_commit_sha,
-                "issue": {
-                    "id": group.id,
-                    "title": group.title,
-                    "events": [{"entries": event_exceptions}],
-                },
-                "additional_context": additional_context,
-            },
+            data=json.dumps(
+                {
+                    "base_commit_sha": base_commit_sha,
+                    "issue": {
+                        "id": group.id,
+                        "title": group.title,
+                        "events": [{"entries": event_entries}],
+                    },
+                    "additional_context": additional_context,
+                }
+            ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
@@ -115,16 +121,17 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             ],
         }
 
-        event_exceptions = self._get_event_exceptions(group)
+        if not request.user.is_authenticated:
+            raise PermissionDenied(detail="You must be authenticated to perform this action.")
 
-        if event_exceptions is None:
+        event_entries = self._get_event_entries(group, request.user)
+
+        if event_entries is None:
             return self._respond_with_error(
                 group, metadata, "Cannot fix issues without an event.", 400
             )
 
-        if len(event_exceptions) == 0 or not any(
-            [exception.get("type") == "exception" for exception in event_exceptions]
-        ):
+        if not any([exception.get("type") == "exception" for exception in event_entries]):
             return self._respond_with_error(
                 group, metadata, "Cannot fix issues without a stacktrace.", 400
             )
@@ -168,7 +175,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
         try:
             self._call_autofix(
-                group, base_commit.key, event_exceptions, data.get("additional_context", "")
+                group, base_commit.key, event_entries, data.get("additional_context", "")
             )
 
             # Mark the task as completed after TIMEOUT_SECONDS

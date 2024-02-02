@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Mapping
 from functools import reduce
-from typing import Any, Mapping
+from typing import Any
 
 from django.db import router, transaction
 

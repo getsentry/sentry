@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from django.db.models.signals import pre_save
 from django.dispatch import receiver

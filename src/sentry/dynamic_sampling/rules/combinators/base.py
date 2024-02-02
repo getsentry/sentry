@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Callable, OrderedDict
+from collections import OrderedDict
+from collections.abc import Callable
 
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import RuleType

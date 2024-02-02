@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Literal, Mapping
+from typing import Literal
 
 import pytest
 from snuba_sdk import (

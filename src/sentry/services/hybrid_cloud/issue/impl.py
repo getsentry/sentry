@@ -4,8 +4,6 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
-from typing import Optional
-
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.issue.model import RpcGroupShareMetadata
@@ -13,7 +11,7 @@ from sentry.services.hybrid_cloud.issue.service import IssueService
 
 
 class DatabaseBackedIssueService(IssueService):
-    def get_shared_for_org(self, *, slug: str, share_id: str) -> Optional[RpcGroupShareMetadata]:
+    def get_shared_for_org(self, *, slug: str, share_id: str) -> RpcGroupShareMetadata | None:
         try:
             organization = Organization.objects.get(slug=slug)
         except Organization.DoesNotExist:
@@ -29,7 +27,7 @@ class DatabaseBackedIssueService(IssueService):
 
     def get_shared_for_region(
         self, *, region_name: str, share_id: str
-    ) -> Optional[RpcGroupShareMetadata]:
+    ) -> RpcGroupShareMetadata | None:
         try:
             group = Group.objects.from_share_id(share_id)
         except Group.DoesNotExist:

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Mapping
 
 from django.conf import settings
 

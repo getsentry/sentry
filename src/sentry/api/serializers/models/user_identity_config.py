@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, MutableMapping, Union
+from typing import Any, Union
 
 from django.db.models.base import Model
 

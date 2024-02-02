@@ -7,10 +7,11 @@ import os.path
 import random
 import re
 import time
+from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Any, Literal, Mapping, Sequence, Union
+from typing import Any, Literal, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -2820,7 +2821,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
         assert (
-            blocks[5]["elements"][0]["text"]
+            blocks[3]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
