@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
@@ -15,11 +14,9 @@ import type {PlatformKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import theme from 'sentry/utils/theme';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-
-const SNOOZE_TIME = 1000 * 60 * 60 * 24 * 7; // 1 week
-const DISMISS_TIME = 1000 * 60 * 60 * 24 * 365; // 1 year
 
 type OnboardingCTAProps = {
   platform: PlatformKey;
@@ -36,17 +33,16 @@ export default function ReplayInlineOnboardingPanel({
   projectId,
 }: OnboardingCTAProps) {
   const LOCAL_STORAGE_KEY = `${projectId}:issue-details-replay-onboarding-hide`;
-  function getHideUntilTime() {
-    return Number(localStorage.getItem(LOCAL_STORAGE_KEY)) || 0;
-  }
 
-  function setHideUntilTime(offset: number) {
-    localStorage.setItem(LOCAL_STORAGE_KEY, String(Date.now() + offset));
-  }
+  const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: 7,
+  });
 
-  function clearHideUntilTime() {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
-  }
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: LOCAL_STORAGE_KEY,
+    expirationDays: 365,
+  });
 
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
 
@@ -55,16 +51,7 @@ export default function ReplayInlineOnboardingPanel({
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
   const organization = useOrganization();
 
-  const [isHidden, setIsHidden] = useState(() => {
-    const hideUntilTime = getHideUntilTime();
-    if (hideUntilTime && Date.now() < hideUntilTime) {
-      return true;
-    }
-    clearHideUntilTime();
-    return false;
-  });
-
-  if (isHidden) {
+  if (isDismissed || isSnoozed) {
     return null;
   }
 
@@ -106,8 +93,7 @@ export default function ReplayInlineOnboardingPanel({
               key: 'dismiss',
               label: t('Dismiss'),
               onAction: () => {
-                setHideUntilTime(DISMISS_TIME);
-                setIsHidden(true);
+                dismiss();
                 trackAnalytics('issue-details.replay-cta-dismiss', {
                   organization,
                   type: 'dismiss',
@@ -118,8 +104,7 @@ export default function ReplayInlineOnboardingPanel({
               key: 'snooze',
               label: t('Snooze'),
               onAction: () => {
-                setHideUntilTime(SNOOZE_TIME);
-                setIsHidden(true);
+                snooze();
                 trackAnalytics('issue-details.replay-cta-dismiss', {
                   organization,
                   type: 'snooze',
