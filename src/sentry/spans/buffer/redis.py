@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
