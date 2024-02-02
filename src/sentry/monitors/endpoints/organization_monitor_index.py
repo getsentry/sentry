@@ -69,6 +69,14 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
 )
 
 
+def flip_sort_direction(sort_field: str) -> str:
+    if sort_field[0] == "-":
+        sort_field = sort_field[1:]
+    else:
+        sort_field = "-" + sort_field
+    return sort_field
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
@@ -113,6 +121,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             ]
         )
         query = request.GET.get("query")
+        is_asc = request.GET.get("asc", "1") == "1"
+        sort = request.GET.get("sort", "status")
 
         environments = None
         if "environment" in filter_params:
@@ -133,29 +143,37 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         monitor_environments_query = MonitorEnvironment.objects.filter(
             monitor__id=OuterRef("id"), environment__in=environments
         )
+        sort_fields = []
 
-        queryset = queryset.annotate(
-            environment_status_ordering=Case(
-                # Sort DISABLED and is_muted monitors to the bottom of the list
-                When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)),
-                When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
-                default=Subquery(
-                    monitor_environments_query.annotate(
-                        status_ordering=MONITOR_ENVIRONMENT_ORDERING
-                    )
-                    .order_by("status_ordering")
-                    .values("status_ordering")[:1],
-                    output_field=IntegerField(),
-                ),
+        if sort == "status":
+            queryset = queryset.annotate(
+                environment_status_ordering=Case(
+                    # Sort DISABLED and is_muted monitors to the bottom of the list
+                    When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)),
+                    When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
+                    default=Subquery(
+                        monitor_environments_query.annotate(
+                            status_ordering=MONITOR_ENVIRONMENT_ORDERING
+                        )
+                        .order_by("status_ordering")
+                        .values("status_ordering")[:1],
+                        output_field=IntegerField(),
+                    ),
+                )
             )
-        )
 
-        queryset = queryset.annotate(
-            last_checkin_monitorenvironment=Subquery(
-                monitor_environments_query.order_by("-last_checkin").values("last_checkin")[:1],
-                output_field=DateTimeField(),
+            queryset = queryset.annotate(
+                last_checkin_monitorenvironment=Subquery(
+                    monitor_environments_query.order_by("-last_checkin").values("last_checkin")[:1],
+                    output_field=DateTimeField(),
+                )
             )
-        )
+            sort_fields = ["environment_status_ordering", "-last_checkin_monitorenvironment"]
+        elif sort == "name":
+            sort_fields = ["name"]
+
+        if not is_asc:
+            sort_fields = [flip_sort_direction(sort_field) for sort_field in sort_fields]
 
         if query:
             tokens = tokenize_query(query)
@@ -191,7 +209,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("environment_status_ordering", "-last_checkin_monitorenvironment"),
+            order_by=sort_fields,
             on_results=lambda x: serialize(
                 x, request.user, MonitorSerializer(environments=environments)
             ),
