@@ -5,14 +5,13 @@ import time
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
-from typing import Final, Literal
+from typing import Final, Literal, TypeAlias
 from uuid import uuid4
 
 import click
 import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
-from typing_extensions import TypeAlias
 
 from sentry.runner.decorators import log_options
 

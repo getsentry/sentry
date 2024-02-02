@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -51,13 +51,13 @@ MATCHERS = {
 }
 
 
-def _get_function_name(frame_data: dict, platform: Optional[str]):
+def _get_function_name(frame_data: dict, platform: str | None):
     function_name = get_function_name_for_frame(frame_data, platform)
 
     return function_name or "<unknown>"
 
 
-def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
+def create_match_frame(frame_data: dict, platform: str | None) -> dict:
     """Create flat dict of values relevant to matchers"""
     match_frame = dict(
         category=get_path(frame_data, "data", "category"),
@@ -113,12 +113,12 @@ class Match:
         return FrameMatch.from_key(key, arg, negated)
 
 
-InstanceKey = Tuple[str, str, bool]
+InstanceKey = tuple[str, str, bool]
 
 
 class FrameMatch(Match):
     # Global registry of matchers
-    instances: Dict[InstanceKey, Match] = {}
+    instances: dict[InstanceKey, Match] = {}
     field: Any = None
 
     @classmethod
@@ -234,10 +234,11 @@ class FamilyMatch(FrameMatch):
 class InAppMatch(FrameMatch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._ref_val = bool(get_rule_bool(self.pattern))
+        self._ref_val = get_rule_bool(self.pattern)
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
-        return self._ref_val == bool(match_frame["in_app"])
+        ref_val = self._ref_val
+        return ref_val is not None and ref_val == bool(match_frame["in_app"])
 
 
 class FrameFieldMatch(FrameMatch):
@@ -264,7 +265,7 @@ class CategoryMatch(FrameFieldMatch):
 
 
 class ExceptionFieldMatch(FrameMatch):
-    field_path: List[str]
+    field_path: list[str]
 
     def matches_frame(self, frames, idx, exception_data, cache):
         match_frame = None

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, MutableMapping
 from functools import cached_property
-from typing import Any, Iterable, List, Mapping, MutableMapping, Tuple
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -210,7 +211,7 @@ class _ClientConfig:
         return getattr(self.request, "LANGUAGE_CODE", default_language_code)
 
     @property
-    def user_identity(self) -> Iterable[Tuple[str, Any]]:
+    def user_identity(self) -> Iterable[tuple[str, Any]]:
         if self.request is None:
             return
         yield "ip_address", self.request.META["REMOTE_ADDR"]
@@ -222,7 +223,7 @@ class _ClientConfig:
                 yield "name", self.user.name
 
     @cached_property
-    def allow_list(self) -> List[str]:
+    def allow_list(self) -> list[str]:
         if settings.SENTRY_FRONTEND_WHITELIST_URLS:
             return settings.SENTRY_FRONTEND_WHITELIST_URLS
         if settings.ALLOWED_HOSTS == ["*"]:
@@ -239,7 +240,7 @@ class _ClientConfig:
         return self.request is not None and self.user is not None and self.user.is_superuser
 
     @property
-    def links(self) -> Iterable[Tuple[str, str | None]]:
+    def links(self) -> Iterable[tuple[str, str | None]]:
         organization_url = (
             generate_organization_url(self.last_org_slug) if self.last_org_slug else None
         )
@@ -291,7 +292,7 @@ class _ClientConfig:
         return user_details
 
     @property
-    def regions(self) -> List[Mapping[str, Any]]:
+    def regions(self) -> list[Mapping[str, Any]]:
         """
         The regions available to the current user.
 

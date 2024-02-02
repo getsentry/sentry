@@ -6,10 +6,11 @@ import os
 import random
 from base64 import b64encode
 from binascii import hexlify
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any, FrozenSet, List, Mapping, Optional, Sequence
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -409,7 +410,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user_auth_token(user, scope_list: List[str] = None, **kwargs) -> ApiToken:
+    def create_user_auth_token(user, scope_list: list[str] = None, **kwargs) -> ApiToken:
         if scope_list is None:
             scope_list = []
         return ApiToken.objects.create(
@@ -550,14 +551,14 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_release(
         project: Project,
-        user: Optional[User] = None,
-        version: Optional[str] = None,
-        date_added: Optional[datetime] = None,
-        additional_projects: Optional[Sequence[Project]] = None,
-        environments: Optional[Sequence[Environment]] = None,
-        date_released: Optional[datetime] = None,
-        adopted: Optional[datetime] = None,
-        unadopted: Optional[datetime] = None,
+        user: User | None = None,
+        version: str | None = None,
+        date_added: datetime | None = None,
+        additional_projects: Sequence[Project] | None = None,
+        environments: Sequence[Environment] | None = None,
+        date_released: datetime | None = None,
+        adopted: datetime | None = None,
+        unadopted: datetime | None = None,
     ):
         if version is None:
             version = force_str(hexlify(os.urandom(20)))
@@ -1295,7 +1296,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_doc_integration_features(
         features=None, doc_integration=None
-    ) -> List[IntegrationFeature]:
+    ) -> list[IntegrationFeature]:
         if not features:
             features = [Feature.API]
         if not doc_integration:
@@ -1682,10 +1683,10 @@ class Factories:
     def create_group_history(
         group: Group,
         status: int,
-        release: Optional[Release] = None,
-        actor: Optional[Actor] = None,
-        prev_history: Optional[GroupHistory] = None,
-        date_added: Optional[datetime] = None,
+        release: Release | None = None,
+        actor: Actor | None = None,
+        prev_history: GroupHistory | None = None,
+        date_added: datetime | None = None,
     ) -> GroupHistory:
         prev_history_date = None
         if prev_history:
@@ -1740,8 +1741,8 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_notification_action(
-        organization: Optional[Organization] = None,
-        projects: Optional[List[Project]] = None,
+        organization: Organization | None = None,
+        projects: list[Project] | None = None,
         **kwargs,
     ):
         if not organization:
@@ -1787,10 +1788,10 @@ class Factories:
 
     @staticmethod
     def create_request_access(
-        sso_state: Optional[RpcMemberSsoState] = None,
-        permissions: Optional[List] = None,
-        org_context: Optional[RpcUserOrganizationContext] = None,
-        scopes_upper_bound: Optional[FrozenSet] = frozenset(),
+        sso_state: RpcMemberSsoState | None = None,
+        permissions: list | None = None,
+        org_context: RpcUserOrganizationContext | None = None,
+        scopes_upper_bound: frozenset | None = frozenset(),
     ) -> RpcBackedAccess:
         if not sso_state:
             sso_state = RpcMemberSsoState()

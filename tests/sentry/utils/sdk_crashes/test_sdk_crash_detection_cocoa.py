@@ -1,4 +1,4 @@
-from typing import Collection, Dict
+from collections.abc import Collection
 from unittest.mock import patch
 
 from fixtures.sdk_crash_detection.crash_event_cocoa import (
@@ -36,7 +36,7 @@ class CococaSDKFilenameTestMixin(BaseSDKCrashDetectionMixin):
             mock_sdk_crash_reporter,
         )
 
-    def _get_crash_event(self, filename) -> Dict[str, Collection[str]]:
+    def _get_crash_event(self, filename) -> dict[str, Collection[str]]:
         return get_crash_event_with_frames(
             frames=[
                 {

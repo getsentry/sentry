@@ -1,7 +1,8 @@
+from collections.abc import Collection, Mapping, Sequence
 from functools import reduce
 from operator import or_
 from time import sleep
-from typing import Any, Collection, Dict, Mapping, Optional, Sequence, Set
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -88,7 +89,7 @@ class PGStringIndexerV2(StringIndexer):
         """
         retry_count = 0
         sleep_ms = 5
-        last_seen_exception: Optional[BaseException] = None
+        last_seen_exception: BaseException | None = None
 
         with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
             # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
@@ -115,7 +116,7 @@ class PGStringIndexerV2(StringIndexer):
             raise last_seen_exception
 
     def _bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         metric_path_key = self._get_metric_path_key(strings.keys())
 
@@ -234,16 +235,16 @@ class PGStringIndexerV2(StringIndexer):
         return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         return self._bulk_record(strings)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
     @metric_path_key_compatible_resolve
-    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.
@@ -263,7 +264,7 @@ class PGStringIndexerV2(StringIndexer):
             return None
 
     @metric_path_key_compatible_rev_resolve
-    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> str | None:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
@@ -282,7 +283,7 @@ class PGStringIndexerV2(StringIndexer):
     def bulk_reverse_resolve(
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
     ) -> Mapping[int, str]:
-        ret_val: Dict[int, str] = {}
+        ret_val: dict[int, str] = {}
         metric_path_key = METRIC_PATH_MAPPING[use_case_id]
         table = self._get_table_from_metric_path_key(metric_path_key)
         try:
@@ -310,12 +311,12 @@ class PGStringIndexerV2(StringIndexer):
     def _get_table_from_metric_path_key(self, metric_path_key: UseCaseKey) -> IndexerTable:
         return TABLE_MAPPING[metric_path_key]
 
-    def resolve_shared_org(self, string: str) -> Optional[int]:
+    def resolve_shared_org(self, string: str) -> int | None:
         raise NotImplementedError(
             "This class should not be used directly, use the wrapping class PostgresIndexer"
         )
 
-    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+    def reverse_shared_org_resolve(self, id: int) -> str | None:
         raise NotImplementedError(
             "This class should not be used directly, use the wrapping class PostgresIndexer"
         )

@@ -37,8 +37,6 @@ class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
     UserPermission already includes a check for Superuser
     """
 
-    pass
-
 
 class OrganizationUserPermission(UserPermission):
     scope_map = {"DELETE": ["member:admin"]}

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
-from typing import Any, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from django.utils.datastructures import OrderedSet
 
@@ -33,9 +34,9 @@ def find_commit_context_for_event_all_frames(
     organization_id: int,
     project_id: int,
     platform: str,
-    sdk_name: Optional[str],
+    sdk_name: str | None,
     extra: Mapping[str, Any],
-) -> tuple[Optional[FileBlameInfo], Optional[IntegrationInstallation]]:
+) -> tuple[FileBlameInfo | None, IntegrationInstallation | None]:
     """
     Given a list of event frames and code mappings, finds the most recent commit.
     Will also emit analytics events for success or failure.
@@ -103,9 +104,9 @@ def find_commit_context_for_event(
     code_mappings: Sequence[RepositoryProjectPathConfig],
     frame: Mapping[str, Any],
     platform: str,
-    sdk_name: Optional[str],
+    sdk_name: str | None,
     extra: Mapping[str, Any],
-) -> tuple[List[Tuple[Mapping[str, Any], RepositoryProjectPathConfig]], IntegrationInstallation]:
+) -> tuple[list[tuple[Mapping[str, Any], RepositoryProjectPathConfig]], IntegrationInstallation]:
     """
 
     Get all the Commit Context for an event frame using a source code integration for all the matching code mappings
@@ -279,7 +280,7 @@ def _generate_integration_to_files_mapping(
     frames: Sequence[EventFrame],
     code_mappings: Sequence[RepositoryProjectPathConfig],
     platform: str,
-    sdk_name: Optional[str],
+    sdk_name: str | None,
     extra: Mapping[str, Any],
 ) -> tuple[dict[str, list[SourceLineInfo]], int]:
     """
@@ -422,17 +423,17 @@ def _get_blames_from_all_integrations(
 
 
 def _record_commit_context_all_frames_analytics(
-    selected_blame: Optional[FileBlameInfo],
-    most_recent_blame: Optional[FileBlameInfo],
+    selected_blame: FileBlameInfo | None,
+    most_recent_blame: FileBlameInfo | None,
     organization_id: int,
     project_id: int,
     extra: Mapping[str, Any],
     frames: Sequence[EventFrame],
     file_blames: Sequence[FileBlameInfo],
     num_successfully_mapped_frames: int,
-    selected_provider: Optional[str],
+    selected_provider: str | None,
     platform: str,
-    sdk_name: Optional[str],
+    sdk_name: str | None,
 ):
     if not selected_blame:
         reason = _get_failure_reason(

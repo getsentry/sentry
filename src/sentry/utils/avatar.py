@@ -4,7 +4,8 @@ Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
 """
 from __future__ import annotations
 
-from typing import IO, MutableMapping, Optional, Union
+from collections.abc import MutableMapping
+from typing import IO
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -20,7 +21,7 @@ from sentry.utils.hashlib import sha256_text
 
 
 def get_gravatar_url(
-    email: Optional[str], size: Optional[int] = None, default: Optional[Union[int, str]] = "mm"
+    email: str | None, size: int | None = None, default: int | str | None = "mm"
 ) -> str:
     if email is None:
         email = ""
@@ -29,7 +30,7 @@ def get_gravatar_url(
         sha256_text(email.strip().lower()).hexdigest(),
     )
 
-    properties: MutableMapping[str, Union[int, str]] = {}
+    properties: MutableMapping[str, int | str] = {}
     if size:
         properties["s"] = str(size)
     if default:
@@ -69,12 +70,12 @@ def get_letter_avatar_color(identifier: str | int) -> str:
 
 
 def get_letter_avatar(
-    display_name: Optional[str],
+    display_name: str | None,
     identifier: str | int,
-    size: Optional[int] = None,
-    use_svg: Optional[bool] = True,
-    initials: Optional[str] = None,
-    rounded: Optional[bool] = False,
+    size: int | None = None,
+    use_svg: bool | None = True,
+    initials: str | None = None,
+    rounded: bool | None = False,
 ) -> SafeString:
     display_name = (display_name or "").strip() or "?"
     names = display_name.split(" ")
@@ -113,10 +114,10 @@ def get_letter_avatar(
 
 
 def get_email_avatar(
-    display_name: Optional[str],
+    display_name: str | None,
     identifier: str,
-    size: Optional[int] = None,
-    try_gravatar: Optional[bool] = True,
+    size: int | None = None,
+    try_gravatar: bool | None = True,
 ) -> SafeString:
     if try_gravatar:
         try:
@@ -137,8 +138,8 @@ def get_email_avatar(
 
 
 def get_platform_avatar(
-    display_name: Optional[str],
-    size: Optional[int] = None,
+    display_name: str | None,
+    size: int | None = None,
 ) -> SafeString:
     # TODO: @taylangocmen add platformicons from package when available
     return format_html(

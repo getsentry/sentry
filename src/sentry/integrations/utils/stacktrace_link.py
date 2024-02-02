@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List, Optional, TypedDict
-
-from typing_extensions import NotRequired
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from sentry import analytics
 from sentry.api.utils import Timer
@@ -31,9 +29,9 @@ class ReposityLinkOutcome(TypedDict):
 def get_link(
     config: RepositoryProjectPathConfig,
     src_path: str,
-    version: Optional[str] = None,
-    group_id: Optional[str] = None,
-    frame_abs_path: Optional[str] = None,
+    version: str | None = None,
+    group_id: str | None = None,
+    frame_abs_path: str | None = None,
 ) -> ReposityLinkOutcome:
     result: ReposityLinkOutcome = {}
 
@@ -96,7 +94,7 @@ class StacktraceLinkOutcome(TypedDict):
 
 
 def get_stacktrace_config(
-    configs: List[RepositoryProjectPathConfig],
+    configs: list[RepositoryProjectPathConfig],
     ctx: StacktraceLinkContext,
 ) -> StacktraceLinkOutcome:
     result: StacktraceLinkOutcome = {

@@ -6,7 +6,7 @@ import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os import path
-from typing import IO, Generic, List, NamedTuple, Optional, Protocol, Tuple, TypeVar
+from typing import IO, Generic, NamedTuple, Protocol, TypeVar
 
 import sentry_sdk
 from django.db import IntegrityError, router
@@ -78,9 +78,7 @@ class AssembleResult(NamedTuple):
 
 
 @sentry_sdk.tracing.trace
-def assemble_file(
-    task, org_or_project, name, checksum, chunks, file_type
-) -> Optional[AssembleResult]:
+def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
     """
     Verifies and assembles a file model from chunks.
 
@@ -486,9 +484,9 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         self,
         assemble_result: AssembleResult,
         organization: Organization,
-        release: Optional[str],
-        dist: Optional[str],
-        project_ids: List[int],
+        release: str | None,
+        dist: str | None,
+        project_ids: list[int],
         is_release_bundle_migration: bool = False,
     ):
         super().__init__(assemble_result)
@@ -645,7 +643,7 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
     @sentry_sdk.tracing.trace
     def _create_or_update_artifact_bundle(
         self, bundle_id: str, date_added: datetime
-    ) -> Tuple[ArtifactBundle, bool]:
+    ) -> tuple[ArtifactBundle, bool]:
         existing_artifact_bundles = list(
             ArtifactBundle.objects.filter(organization_id=self.organization.id, bundle_id=bundle_id)
         )
@@ -706,7 +704,7 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
 
             return existing_artifact_bundle, False
 
-    def _remove_duplicate_artifact_bundles(self, ids: List[int]):
+    def _remove_duplicate_artifact_bundles(self, ids: list[int]):
         # In case there are no ids to delete, we don't want to run the query, otherwise it will result in a deletion of
         # all ArtifactBundle(s) with the specific bundle_id.
         if not ids:
@@ -769,9 +767,9 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
 def prepare_post_assembler(
     assemble_result: AssembleResult,
     organization: Organization,
-    release: Optional[str],
-    dist: Optional[str],
-    project_ids: Optional[List[int]],
+    release: str | None,
+    dist: str | None,
+    project_ids: list[int] | None,
     upload_as_artifact_bundle: bool,
     is_release_bundle_migration: bool,
 ) -> PostAssembler:

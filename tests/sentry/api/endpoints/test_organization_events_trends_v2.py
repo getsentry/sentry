@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Dict, List, Union
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -128,7 +128,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     def test_simple_with_no_trends(self, mock_detect_breakpoints):
-        mock_trends_result: List[Union[Dict[str, Any], None]] = []
+        mock_trends_result: list[dict[str, Any] | None] = []
         mock_detect_breakpoints.return_value = {"data": mock_trends_result}
 
         with self.feature(self.features):
@@ -157,7 +157,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     def test_simple_with_transaction_query(self, mock_detect_breakpoints):
-        mock_trends_result: List[Union[Dict[str, Any], None]] = []
+        mock_trends_result: list[dict[str, Any] | None] = []
         mock_detect_breakpoints.return_value = {"data": mock_trends_result}
 
         self.store_performance_metric(

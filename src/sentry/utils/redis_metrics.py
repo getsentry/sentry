@@ -1,5 +1,3 @@
-from typing import Optional, Union
-
 from sentry_redis_tools.metrics import Metrics, Tags
 
 from sentry.metrics.base import MetricsBackend
@@ -9,8 +7,8 @@ class RedisToolsMetricsBackend(Metrics):
     def __init__(
         self,
         backend: MetricsBackend,
-        name: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        name: str | None = None,
+        tags: Tags | None = None,
     ) -> None:
         self.__backend = backend
         self.__name = name
@@ -22,7 +20,7 @@ class RedisToolsMetricsBackend(Metrics):
         else:
             return f"{self.__name}.{name}"
 
-    def __merge_tags(self, tags: Optional[Tags]) -> Optional[Tags]:
+    def __merge_tags(self, tags: Tags | None) -> Tags | None:
         if self.__tags is None:
             return tags
         elif tags is None:
@@ -33,8 +31,8 @@ class RedisToolsMetricsBackend(Metrics):
     def increment(
         self,
         name: str,
-        value: Union[int, float] = 1,
-        tags: Optional[Tags] = None,
+        value: int | float = 1,
+        tags: Tags | None = None,
     ) -> None:
         self.__backend.incr(
             key=self.__merge_name(name),
@@ -46,8 +44,8 @@ class RedisToolsMetricsBackend(Metrics):
     def gauge(
         self,
         name: str,
-        value: Union[int, float],
-        tags: Optional[Tags] = None,
+        value: int | float,
+        tags: Tags | None = None,
     ) -> None:
         self.__backend.gauge(
             key=self.__merge_name(name),
@@ -59,8 +57,8 @@ class RedisToolsMetricsBackend(Metrics):
     def timing(
         self,
         name: str,
-        value: Union[int, float],
-        tags: Optional[Tags] = None,
+        value: int | float,
+        tags: Tags | None = None,
     ) -> None:
         self.__backend.timing(
             key=self.__merge_name(name),

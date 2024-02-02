@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Mapping, Sequence, Tuple
+from collections.abc import Mapping, Sequence
+from typing import Any, ClassVar
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
@@ -100,7 +101,7 @@ class CommentType:
     OPEN_PR = 1
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return ((cls.MERGED_PR, "merged_pr"), (cls.OPEN_PR, "open_pr"))
 
 
