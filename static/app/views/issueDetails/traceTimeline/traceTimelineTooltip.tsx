@@ -45,7 +45,9 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
               to={`/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`}
             >
               <div>
-                {project && <ProjectBadge project={project} avatarSize={18} hideName />}
+                {project && (
+                  <ProjectBadge project={project} avatarSize={18} hideName disableLink />
+                )}
               </div>
               <EventTitleWrapper>
                 <EventTitle>{timelineEvent.title}</EventTitle>
