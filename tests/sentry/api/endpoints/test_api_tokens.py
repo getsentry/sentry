@@ -84,6 +84,42 @@ class ApiTokensCreateTest(APITestCase):
         assert response.status_code == 400
         assert not ApiToken.objects.filter(user=self.user).exists()
 
+    def test_with_name(self):
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.post(
+            url,
+            data={"name": "testname1", "scopes": ["event:read"]},
+        )
+        assert response.status_code == 201
+
+        token = ApiToken.objects.get(user=self.user)
+        assert token.name == "testname1"
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        assert response.data[0]["name"] == "testname1"
+
+    def test_without_name(self):
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.post(
+            url,
+            data={"scopes": ["event:read"]},
+        )
+        assert response.status_code == 201
+
+        token = ApiToken.objects.get(user=self.user)
+        assert token.name is None
+
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        assert response.data[0]["name"] is None
+
 
 @control_silo_test
 class ApiTokensDeleteTest(APITestCase):
