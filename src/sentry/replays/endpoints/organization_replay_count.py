@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db.models import F
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -12,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -28,6 +30,22 @@ MAX_VALS_PROVIDED = {
 
 FILTER_HAS_A_REPLAY = "AND !replayId:''"
 
+RESPONSE_EXAMPLES = [
+    OpenApiExample(
+        "Query replay count by issue or transaction id",
+        description="Returns an object of id, count pairs.",
+        value={
+            1: 9,
+            2: 0,
+            5: 0,
+            9: 1,
+            10: 29,
+        },
+        status_codes=["200"],
+        response_only=True,
+    )
+]
+
 
 class ReplayDataSourceValidator(serializers.Serializer):
     data_source = serializers.ChoiceField(
@@ -37,6 +55,7 @@ class ReplayDataSourceValidator(serializers.Serializer):
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Replays"])
 class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
     """
     Get all the replay ids associated with a set of issues/transactions in discover,
@@ -45,7 +64,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
 
     owner = ApiOwner.REPLAY
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
     enforce_rate_limit = True
@@ -57,7 +76,19 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         }
     }
 
+    @extend_schema(
+        operation_id="Return a count of replays for a given issue or transaction id.",
+        parameters=[
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            OrganizationParams.PROJECT,
+        ],
+        examples=RESPONSE_EXAMPLES,
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """Return a count of replays for the given issue or transaction id."""
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
 
