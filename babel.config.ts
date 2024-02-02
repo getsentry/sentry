@@ -1,7 +1,6 @@
 /* eslint-env node */
 
 import type {TransformOptions} from '@babel/core';
-import {componentNameAnnotatePlugin} from '@sentry/component-annotate-plugin';
 
 const config: TransformOptions = {
   presets: [
@@ -45,14 +44,14 @@ const config: TransformOptions = {
           },
         ],
         ['babel-plugin-add-react-displayname'],
-        [componentNameAnnotatePlugin],
+        '@sentry/component-annotate-plugin',
       ],
     },
     development: {
       plugins: [
         '@emotion/babel-plugin',
         '@babel/plugin-transform-react-jsx-source',
-        [componentNameAnnotatePlugin],
+        '@sentry/component-annotate-plugin',
         ...(process.env.SENTRY_UI_HOT_RELOAD ? ['react-refresh/babel'] : []),
       ],
     },
