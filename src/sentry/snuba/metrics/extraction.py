@@ -281,7 +281,6 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
-    "level",
 ]
 
 # Query fields that are not considered
