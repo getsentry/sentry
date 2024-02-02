@@ -27,6 +27,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -149,8 +153,14 @@ export function ScreenLoadSpansTable({
     'count()': t('Total Count'),
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
     'time_spent_percentage()': t('Total Time Spent'),
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t('Duration (R1)'),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t('Duration (R2)'),
+    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
+      'Duration (%s)',
+      PRIMARY_RELEASE_ALIAS
+    ),
+    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
+      'Duration (%s)',
+      SECONDARY_RELEASE_ALIAS
+    ),
   };
 
   function renderBodyCell(column, row): React.ReactNode {

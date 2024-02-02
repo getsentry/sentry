@@ -9,6 +9,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {
   DEFAULT_PLATFORM,
@@ -82,7 +86,10 @@ export function ScreenLoadEventSamples({
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    id: t('Event ID (%s)', release === primaryRelease ? 'R1' : 'R2'),
+    id: t(
+      'Event ID (%s)',
+      release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
+    ),
     'profile.id': t('Profile'),
     'measurements.time_to_initial_display': t('TTID'),
     'measurements.time_to_full_display': t('TTFD'),

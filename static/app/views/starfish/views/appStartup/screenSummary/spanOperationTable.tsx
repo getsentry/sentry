@@ -24,6 +24,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
@@ -122,8 +126,14 @@ export function SpanOperationTable({
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
     'count()': t('Total Count'),
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t('Duration (R1)'),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t('Duration (R2)'),
+    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
+      'Duration (%s)',
+      PRIMARY_RELEASE_ALIAS
+    ),
+    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
+      'Duration (%s)',
+      SECONDARY_RELEASE_ALIAS
+    ),
     ['time_spent_percentage()']: t('Total Time Spent'),
   };
 

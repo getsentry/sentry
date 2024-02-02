@@ -19,6 +19,9 @@ import {
 } from 'sentry/views/starfish/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 
+export const PRIMARY_RELEASE_ALIAS = 'R1';
+export const SECONDARY_RELEASE_ALIAS = 'R2';
+
 type Props = {
   selectorKey: string;
   selectorName?: string;
@@ -76,17 +79,9 @@ export function ReleaseSelector({selectorKey, selectorValue, triggerLabelPrefix}
       triggerProps={{
         icon: <IconReleases />,
         title: selectorValue,
+        prefix: triggerLabelPrefix,
       }}
-      triggerLabel={
-        triggerLabelPrefix ? (
-          <span>
-            {triggerLabelPrefix}:&nbsp;
-            <ReleaseLabelContainer>{triggerLabelContent}</ReleaseLabelContainer>
-          </span>
-        ) : (
-          triggerLabelContent
-        )
-      }
+      triggerLabel={triggerLabelContent}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
@@ -148,14 +143,14 @@ export function ReleaseComparisonSelector() {
         selectorValue={primaryRelease}
         selectorName={t('Release 1')}
         key="primaryRelease"
-        triggerLabelPrefix="R1"
+        triggerLabelPrefix={PRIMARY_RELEASE_ALIAS}
       />
       <ReleaseSelector
         selectorKey="secondaryRelease"
         selectorName={t('Release 2')}
         selectorValue={secondaryRelease}
         key="secondaryRelease"
-        triggerLabelPrefix="R2"
+        triggerLabelPrefix={SECONDARY_RELEASE_ALIAS}
       />
     </StyledPageSelector>
   );
@@ -182,9 +177,4 @@ const DetailsContainer = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   min-width: 200px;
-`;
-
-const ReleaseLabelContainer = styled('span')`
-  display: inline;
-  font-weight: normal;
 `;

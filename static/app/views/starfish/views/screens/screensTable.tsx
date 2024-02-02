@@ -24,6 +24,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
@@ -52,14 +56,22 @@ export function ScreensTable({
 
   const columnNameMap = {
     transaction: t('Screen'),
-    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]:
-      t('TTID (R1)'),
-    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]:
-      t('TTID (R2)'),
-    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]:
-      t('TTFD (R1)'),
-    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]:
-      t('TTFD (R2)'),
+    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
+      'TTID (%s)',
+      PRIMARY_RELEASE_ALIAS
+    ),
+    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
+      'TTID (%s)',
+      SECONDARY_RELEASE_ALIAS
+    ),
+    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
+      'TTFD (%s)',
+      PRIMARY_RELEASE_ALIAS
+    ),
+    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
+      'TTFD (%s)',
+      SECONDARY_RELEASE_ALIAS
+    ),
     'count()': t('Total Count'),
   };
 
