@@ -12,8 +12,8 @@ def get_redis_client() -> RedisCluster | StrictRedis:
     return redis.redis_clusters.get(settings.SENTRY_SPAN_BUFFER_CLUSTER)
 
 
-def get_segment_key(project_id: int, segment_id: int) -> str:
-    return f"project:{project_id}:segment:{segment_id}:process-segment"
+def get_segment_key(project_id: str | int, segment_id: str) -> str:
+    return f"segment:{segment_id}:{project_id}:process-segment"
 
 
 class RedisSpansBuffer:
