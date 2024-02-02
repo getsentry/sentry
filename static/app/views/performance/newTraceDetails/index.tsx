@@ -400,11 +400,11 @@ function TraceView(props: TraceViewProps) {
         return;
       }
 
-      if(prevVal === true) { //Zoom out 
+      if(prevVal === true) { //Zoom out
         const spanChildrenCount = node.getVisibleChildrenCount(true);
         list!.splice(index + 1, spanChildrenCount); // Remove span children
 
-        if(node.expanded){ //Add back the txn children if node was expanded before zooming in 
+        if(node.expanded){ //Add back the txn children if node was expanded before zooming in
           const children = node.getVisibleChildren();
           list!.splice(index + 1, 0, ...children);
         }
@@ -413,14 +413,14 @@ function TraceView(props: TraceViewProps) {
         if (node.metadata.project_slug === undefined || node.metadata.event_id === undefined) {
           throw new TypeError(`Missing project ${node.metadata.project_slug} or event_id ${node.metadata.event_id}`)
         }
-  
+
         const promise = promisesRef.current?.has(node) ? promisesRef.current?.get(node) : fetchTransactionEvent(
           api,
           organization,
           node.metadata.project_slug,
           node.metadata.event_id
         );
-        
+
         if(!promise){
           return;
         }
@@ -431,22 +431,22 @@ function TraceView(props: TraceViewProps) {
           if (!spans) {
             return
           }
-  
+
           // @TODO store both states so that we can zoom in/out
           const root = createSpanTree(node, (spans?.data ?? []) as RawSpanType[]);
           node.spanChildren = root.spanChildren;
           TraceTreeNode.updateTreeDepths(root)
-  
+
           const childrenCount = node.getVisibleChildrenCount();
           list!.splice(index + 1, childrenCount);
-  
+
           const spanChildren = node.getVisibleChildren(true);
           list!.splice(index + 1, 0, ...spanChildren);
           setBit(b => (b + 1) % 2);
         }).catch(_e => {
           // Ignore error
         })
-  
+
         promisesRef.current?.set(node, promise)
       }
     },
