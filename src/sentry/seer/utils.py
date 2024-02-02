@@ -1,4 +1,4 @@
-from typing import List, Optional, TypedDict
+from typing import TypedDict
 
 from django.conf import settings
 from urllib3 import Retry
