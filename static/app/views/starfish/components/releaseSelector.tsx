@@ -21,9 +21,9 @@ import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/center
 
 type Props = {
   selectorKey: string;
-  triggerLabelPrefix: string;
   selectorName?: string;
   selectorValue?: string;
+  triggerLabelPrefix?: string;
 };
 
 export function ReleaseSelector({selectorKey, selectorValue, triggerLabelPrefix}: Props) {
@@ -78,10 +78,14 @@ export function ReleaseSelector({selectorKey, selectorValue, triggerLabelPrefix}
         title: selectorValue,
       }}
       triggerLabel={
-        <span>
-          {triggerLabelPrefix}:&nbsp;
-          <ReleaseLabelContainer>{triggerLabelContent}</ReleaseLabelContainer>
-        </span>
+        triggerLabelPrefix ? (
+          <span>
+            {triggerLabelPrefix}:&nbsp;
+            <ReleaseLabelContainer>{triggerLabelContent}</ReleaseLabelContainer>
+          </span>
+        ) : (
+          triggerLabelContent
+        )
       }
       menuTitle={t('Filter Release')}
       loading={isLoading}
