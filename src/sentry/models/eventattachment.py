@@ -3,7 +3,7 @@ import random
 from dataclasses import dataclass
 from hashlib import sha1
 from io import BytesIO
-from typing import IO, Optional
+from typing import IO
 
 import zstandard
 from django.conf import settings
@@ -46,8 +46,8 @@ class PutfileResult:
     content_type: str
     size: int
     sha1: str
-    file_id: Optional[int] = None
-    blob_path: Optional[str] = None
+    file_id: int | None = None
+    blob_path: str | None = None
 
 
 @region_silo_only_model

@@ -1,8 +1,8 @@
+from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from random import choice, randint
-from typing import Callable, List, Optional, Tuple
 
 import petname
 from dateutil.parser import parse as parse_datetime
@@ -41,15 +41,11 @@ class SanitizationError(Exception):
     A catch-all class for sanitization errors.
     """
 
-    pass
-
 
 class InvalidJSONError(SanitizationError):
     """
     Thrown when the supplied JSON is not recognizable as a serialized Django model.
     """
-
-    pass
 
 
 class UnexpectedModelError(SanitizationError):
@@ -58,15 +54,11 @@ class UnexpectedModelError(SanitizationError):
     function caller.
     """
 
-    pass
-
 
 class UnrecognizedDatetimeError(SanitizationError):
     """
     Thrown when we encounter a date that has not been interned at startup time.
     """
-
-    pass
 
 
 @dataclass
@@ -255,9 +247,7 @@ class Sanitizer:
 
         return self.map_string(old, lambda old: petname.generate(2, " ", letters=len(old)).title())
 
-    def map_name_and_slug_pair(
-        self, old_name: str, old_slug: str | None
-    ) -> Tuple[str, Optional[str]]:
+    def map_name_and_slug_pair(self, old_name: str, old_slug: str | None) -> tuple[str, str | None]:
         """
         Maps a pair of a proper noun name and its matching slug with some randomly generated
         "petname" values (ex: "Hairy Tortoise" and "hairy-tortoise"). If the existing value of the
@@ -375,7 +365,7 @@ class Sanitizer:
 
     def set_name_and_slug_pair(
         self, json: JSONData, name_field: SanitizableField, slug_field: SanitizableField
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         """
         Replaces a pair of a proper noun name and its matching slug with some randomly generated
         "petname" values (ex: "Hairy Tortoise" and "hairy-tortoise"). If the existing value of the
@@ -452,7 +442,7 @@ def sanitize(export: JSONData, datetime_offset: timedelta | None = None) -> JSON
     from sentry.backup.dependencies import NormalizedModelName, get_model
 
     sanitizer = Sanitizer(export, datetime_offset)
-    sanitized: List[JSONData] = []
+    sanitized: list[JSONData] = []
     for item in sanitizer.json:
         clone = deepcopy(item)
         model_name = NormalizedModelName(clone["model"])

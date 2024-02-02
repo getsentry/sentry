@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.db import router, transaction
 
 from sentry.models.organization import Organization, OrganizationStatus
@@ -28,7 +26,7 @@ from sentry.types.region import get_local_region
 
 
 def assert_matching_organization_mapping(
-    org: Organization, customer_id: Optional[str] = None, validate_flags=False
+    org: Organization, customer_id: str | None = None, validate_flags=False
 ):
     org_mapping = OrganizationMapping.objects.get(organization_id=org.id)
     assert org_mapping.name == org.name

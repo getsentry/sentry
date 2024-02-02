@@ -1,5 +1,4 @@
 import logging
-from typing import Optional, Union
 
 from .base import MetricsBackend, Tags
 
@@ -10,11 +9,11 @@ class LoggingBackend(MetricsBackend):
     def incr(
         self,
         key: str,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
-        amount: Union[float, int] = 1,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        amount: float | int = 1,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         logger.debug("%r: %+g", key, amount, extra={"instance": instance, "tags": tags or {}})
@@ -23,8 +22,8 @@ class LoggingBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
     ) -> None:
@@ -36,10 +35,10 @@ class LoggingBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         logger.debug("%r: %+g", key, value, extra={"instance": instance, "tags": tags or {}})
@@ -48,10 +47,10 @@ class LoggingBackend(MetricsBackend):
         self,
         key: str,
         value: float,
-        instance: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
         sample_rate: float = 1,
-        unit: Optional[str] = None,
+        unit: str | None = None,
         stacklevel: int = 0,
     ) -> None:
         logger.debug("%r: %+g", key, value, extra={"instance": instance, "tags": tags or {}})

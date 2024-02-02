@@ -1,5 +1,6 @@
 import itertools
-from typing import Any, Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import pytest
 
@@ -180,7 +181,7 @@ def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
 
 
 @assume_test_silo_mode(SiloMode.REGION)
-def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: Organization):
+def assert_get_organization_by_id_works(user_context: User | None, orm_org: Organization):
     assert (
         organization_service.get_organization_by_id(
             id=-2, user_id=user_context.id if user_context else None

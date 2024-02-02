@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Mapping
+from collections.abc import Callable, Mapping
 
 from snuba_sdk import Function, OrderBy
 

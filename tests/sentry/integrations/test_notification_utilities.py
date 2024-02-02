@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Mapping
+from collections.abc import Mapping
 
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
 from sentry.models.integrations.integration import Integration

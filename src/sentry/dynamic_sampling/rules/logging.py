@@ -1,5 +1,4 @@
 import logging
-from typing import Union
 
 import sentry_sdk
 
@@ -77,7 +76,7 @@ def log_rules(org_id: int, project_id: int, rules: list[PolymorphicRule]) -> Non
 
 def _format_rules(
     rules: list[PolymorphicRule],
-) -> list[dict[str, Union[list[str], str, float, None]]]:
+) -> list[dict[str, list[str] | str | float | None]]:
     formatted_rules = []
 
     for rule in rules:
@@ -98,7 +97,7 @@ def _format_rules(
 
 def _extract_info_from_rule(
     rule_type: RuleType, rule: PolymorphicRule
-) -> dict[str, Union[DecayingFn, list[str], str, None]]:
+) -> dict[str, DecayingFn | list[str] | str | None]:
     if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
         return {"environments": rule["condition"]["inner"][0]["value"]}  # type:ignore
     elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:

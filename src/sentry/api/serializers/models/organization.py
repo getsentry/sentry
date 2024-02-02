@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Callable, Mapping, MutableMapping, Sequence, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import sentry_sdk
 from rest_framework import serializers

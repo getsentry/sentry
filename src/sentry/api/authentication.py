@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, ClassVar, Iterable
+from collections.abc import Callable, Iterable
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser

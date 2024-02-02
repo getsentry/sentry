@@ -1,4 +1,4 @@
-from typing import Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
 
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
@@ -38,7 +38,7 @@ CHANNEL_COMMANDS_MESSAGE = list_commands(CHANNEL_COMMANDS)
 
 
 class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
-    def __init__(self, command: Optional[str] = None) -> None:
+    def __init__(self, command: str | None = None) -> None:
         super().__init__()
         self.command = command
 

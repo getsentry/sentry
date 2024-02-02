@@ -3,7 +3,8 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
-from typing import TYPE_CHECKING, Callable, Generator, Generic, Mapping, Sequence, TypeVar, Union
+from collections.abc import Callable, Generator, Mapping, Sequence
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import pydantic
 
@@ -59,9 +60,7 @@ class SiloCacheBackedCallable(Generic[_R]):
     def key_from(self, args: int) -> str:
         return f"{self.base_key}:{args}"
 
-    def resolve_from(
-        self, i: int, values: Mapping[str, Union[int, str]]
-    ) -> Generator[None, None, _R]:
+    def resolve_from(self, i: int, values: Mapping[str, int | str]) -> Generator[None, None, _R]:
         from .impl import _consume_generator, _delete_cache, _set_cache
 
         key = self.key_from(i)

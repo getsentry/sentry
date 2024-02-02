@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from sentry.api.serializers.base import Serializer
 from sentry.models.integrations.external_issue import ExternalIssue

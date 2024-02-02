@@ -1,9 +1,10 @@
 import math
 import time
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Iterator, Mapping, Optional, Protocol
+from typing import Any, Protocol
 
 import sentry_sdk
 from snuba_sdk import (
@@ -159,7 +160,7 @@ class TimedIterator(Iterator[Any]):
         self,
         context: TaskContext,
         inner: ContextIterator,
-        name: Optional[str] = None,
+        name: str | None = None,
     ):
         self.context = context
         self.inner = inner
@@ -211,7 +212,7 @@ class GetActiveOrgs:
     def __init__(
         self,
         max_orgs: int = MAX_ORGS_PER_QUERY,
-        max_projects: Optional[int] = None,
+        max_projects: int | None = None,
         time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
     ):
@@ -359,7 +360,7 @@ class OrganizationDataVolume:
     # total number of transactions
     total: int
     # number of transactions indexed (i.e. stored)
-    indexed: Optional[int]
+    indexed: int | None
 
     def is_valid_for_recalibration(self):
         return self.total > 0 and self.indexed is not None and self.indexed > 0
@@ -377,7 +378,7 @@ class GetActiveOrgsVolumes:
         time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep=True,
-        orgs: Optional[list[int]] = None,
+        orgs: list[int] | None = None,
     ):
         self.include_keep = include_keep
         self.orgs = orgs
@@ -592,7 +593,7 @@ def get_organization_volume(
     org_id: int,
     time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
     granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
-) -> Optional[OrganizationDataVolume]:
+) -> OrganizationDataVolume | None:
     """
     Specialized version of GetActiveOrgsVolumes that returns a single org
     """
@@ -607,7 +608,7 @@ def get_organization_volume(
     return None
 
 
-def sample_rate_to_float(sample_rate: Optional[str]) -> Optional[float]:
+def sample_rate_to_float(sample_rate: str | None) -> float | None:
     """
     Converts a sample rate to a float or returns None in case the conversion failed.
     """
@@ -620,7 +621,7 @@ def sample_rate_to_float(sample_rate: Optional[str]) -> Optional[float]:
         return None
 
 
-def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
+def are_equal_with_epsilon(a: float | None, b: float | None) -> bool:
     """
     Checks if two floating point numbers are equal within an error boundary.
     """
@@ -635,11 +636,11 @@ def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
 
 def compute_guarded_sliding_window_sample_rate(
     org_id: int,
-    project_id: Optional[int],
+    project_id: int | None,
     total_root_count: int,
     window_size: int,
     context: TaskContext,
-) -> Optional[float]:
+) -> float | None:
     """
     Computes the actual sliding window sample rate by guarding any exceptions and returning None in case
     any problem would arise.
@@ -656,8 +657,8 @@ def compute_guarded_sliding_window_sample_rate(
 
 
 def compute_sliding_window_sample_rate(
-    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int, context
-) -> Optional[float]:
+    org_id: int, project_id: int | None, total_root_count: int, window_size: int, context
+) -> float | None:
     """
     Computes the actual sample rate for the sliding window given the total root count and the size of the
     window that was used for computing the root count.

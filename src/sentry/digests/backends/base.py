@@ -1,5 +1,6 @@
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional
+from collections.abc import Iterable, Mapping
+from typing import TYPE_CHECKING, Any
 
 from sentry.utils.imports import import_string
 from sentry.utils.services import Service
@@ -115,9 +116,9 @@ class Backend(Service):
         self,
         key: str,
         record: "Record",
-        increment_delay: Optional[int] = None,
-        maximum_delay: Optional[int] = None,
-        timestamp: Optional[float] = None,
+        increment_delay: int | None = None,
+        maximum_delay: int | None = None,
+        timestamp: float | None = None,
     ) -> bool:
         """
         Add a record to a timeline.
@@ -133,7 +134,7 @@ class Backend(Service):
         """
         raise NotImplementedError
 
-    def digest(self, key: str, minimum_delay: Optional[int] = None) -> Any:
+    def digest(self, key: str, minimum_delay: int | None = None) -> Any:
         """
         Extract records from a timeline for processing.
 
@@ -169,7 +170,7 @@ class Backend(Service):
         raise NotImplementedError
 
     def schedule(
-        self, deadline: float, timestamp: Optional[float] = None
+        self, deadline: float, timestamp: float | None = None
     ) -> Iterable["ScheduleEntry"]:
         """
         Identify timelines that are ready for processing.
@@ -181,7 +182,7 @@ class Backend(Service):
         """
         raise NotImplementedError
 
-    def maintenance(self, deadline: float, timestamp: Optional[float] = None) -> None:
+    def maintenance(self, deadline: float, timestamp: float | None = None) -> None:
         """
         Identify timelines that appear to be stuck in the ready state.
 

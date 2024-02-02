@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 import msgpack
@@ -50,8 +50,8 @@ class MonitorConsumerTest(TestCase):
     def send_checkin(
         self,
         monitor_slug: str,
-        guid: Optional[str] = None,
-        ts: Optional[datetime] = None,
+        guid: str | None = None,
+        ts: datetime | None = None,
         **overrides: Any,
     ) -> None:
         if ts is None:
@@ -93,7 +93,7 @@ class MonitorConsumerTest(TestCase):
 
     def send_clock_pulse(
         self,
-        ts: Optional[datetime] = None,
+        ts: datetime | None = None,
     ) -> None:
         if ts is None:
             ts = datetime.now()

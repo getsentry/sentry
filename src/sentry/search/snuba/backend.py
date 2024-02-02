@@ -5,9 +5,10 @@ import functools
 import logging
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone

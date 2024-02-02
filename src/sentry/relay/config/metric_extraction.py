@@ -1,8 +1,9 @@
 import logging
 import random
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, Optional, Sequence, TypedDict, Union
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -85,7 +86,7 @@ def get_max_widget_specs(organization: Organization) -> int:
 
 
 @metrics.wraps("on_demand_metrics.get_metric_extraction_config")
-def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
+def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | None:
     """
     Returns generic metric extraction config for the given project.
 
@@ -371,7 +372,7 @@ def _merge_metric_specs(
 
 def _convert_snuba_query_to_metrics(
     project: Project, snuba_query: SnubaQuery, prefilling: bool
-) -> Optional[Sequence[HashedMetricSpec]]:
+) -> Sequence[HashedMetricSpec] | None:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
@@ -653,11 +654,11 @@ def _convert_aggregate_and_query_to_metrics(
     dataset: str,
     aggregate: str,
     query: str,
-    environment: Optional[str],
+    environment: str | None,
     prefilling: bool,
     spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
-    groupbys: Optional[Sequence[str]] = None,
-) -> Optional[Sequence[HashedMetricSpec]]:
+    groupbys: Sequence[str] | None = None,
+) -> Sequence[HashedMetricSpec] | None:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
 
@@ -818,9 +819,9 @@ def get_metric_conditional_tagging_rules(
 
 
 def _threshold_to_rules(
-    threshold: Union[
-        ProjectTransactionThreshold, ProjectTransactionThresholdOverride, _DefaultThreshold
-    ],
+    threshold: (
+        ProjectTransactionThreshold | ProjectTransactionThresholdOverride | _DefaultThreshold
+    ),
     extra_conditions: Sequence[RuleCondition],
 ) -> Sequence[MetricConditionalTaggingRule]:
     frustrated: MetricConditionalTaggingRule = {
@@ -1324,9 +1325,7 @@ _HISTOGRAM_OUTLIERS_QUERY_RESULTS = [
 ]
 
 
-def _parse_percentiles(
-    value: Union[tuple[()], tuple[str, str, str, str, str]]
-) -> tuple[float, float]:
+def _parse_percentiles(value: tuple[()] | tuple[str, str, str, str, str]) -> tuple[float, float]:
     if not value:
         return 0, 0
     _min, p25, _p50, p75, _max = map(float, value)

@@ -1,4 +1,5 @@
-from typing import Any, Callable, Mapping, Optional, Union, cast
+from collections.abc import Callable, Mapping
+from typing import Any, Optional, Union, cast
 
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.services import build_instance_from_options, resolve_callable
@@ -8,7 +9,7 @@ SelectorFncType = Callable[[str, Optional[Union[str, int]], LockBackend, LockBac
 
 def _default_selector_func(
     key: str,
-    routing_key: Optional[Union[str, int]],
+    routing_key: str | int | None,
     backend_new: LockBackend,
     backend_old: LockBackend,
 ) -> LockBackend:
@@ -54,7 +55,7 @@ class MigrationLockBackend(LockBackend):
         self,
         backend_new_config: Mapping[str, Any],
         backend_old_config: Mapping[str, Any],
-        selector_func_path: Optional[Union[str, SelectorFncType]] = None,
+        selector_func_path: str | SelectorFncType | None = None,
     ):
         self.backend_new = cast(LockBackend, build_instance_from_options(backend_new_config))
         self.backend_old = cast(LockBackend, build_instance_from_options(backend_old_config))
@@ -64,7 +65,7 @@ class MigrationLockBackend(LockBackend):
             else _default_selector_func
         )
 
-    def _get_backend(self, key: str, routing_key: Optional[Union[str, int]]) -> LockBackend:
+    def _get_backend(self, key: str, routing_key: str | int | None) -> LockBackend:
         return self.selector_func(
             key,
             routing_key,
@@ -72,7 +73,7 @@ class MigrationLockBackend(LockBackend):
             self.backend_old,
         )
 
-    def acquire(self, key: str, duration: int, routing_key: Optional[str] = None) -> None:
+    def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
         backend = self._get_backend(key=key, routing_key=routing_key)
         # in case new backend is selected for the key, make sure it's not held
         # by the old backend

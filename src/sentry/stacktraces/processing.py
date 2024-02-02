@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Callable, Mapping, MutableMapping, NamedTuple, Sequence
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
 

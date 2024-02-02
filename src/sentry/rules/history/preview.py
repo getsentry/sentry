@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Callable, Sequence
+from typing import Any
 
 from django.utils import timezone
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 from sentry.digests import Digest
 from sentry.digests.notifications import build_digest, event_to_record

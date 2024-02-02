@@ -1,17 +1,16 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 @dataclass
 class Column:
-    group_name: Optional[str]
-    event_name: Optional[str]
-    transaction_name: Optional[str]
-    discover_name: Optional[str]
+    group_name: str | None
+    event_name: str | None
+    transaction_name: str | None
+    discover_name: str | None
     alias: str
-    issue_platform_name: Optional[str] = None
-    spans_name: Optional[str] = None
+    issue_platform_name: str | None = None
+    spans_name: str | None = None
 
 
 class Columns(Enum):

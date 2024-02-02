@@ -2,16 +2,9 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
+from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
 from datetime import datetime
-from typing import (
-    TYPE_CHECKING,
-    AbstractSet,
-    Any,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    Sequence,
-)
+from typing import TYPE_CHECKING, AbstractSet, Any
 
 from django.db.models import Count
 from typing_extensions import TypedDict

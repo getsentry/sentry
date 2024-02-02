@@ -2,24 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Literal,
-    NamedTuple,
-    Optional,
-    Sequence,
-    TypedDict,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Literal, NamedTuple, NotRequired, Optional, TypedDict, TypeVar, Union, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from typing_extensions import NotRequired
 
 from sentry import features
 from sentry.api import event_search

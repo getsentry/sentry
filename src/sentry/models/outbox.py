@@ -5,8 +5,9 @@ import contextlib
 import dataclasses
 import datetime
 import threading
+from collections.abc import Collection, Generator, Iterable, Mapping
 from enum import IntEnum
-from typing import Any, Collection, Generator, Iterable, Mapping, TypeVar, cast
+from typing import Any, Self, TypeVar, cast
 
 import sentry_sdk
 from django import db
@@ -17,7 +18,6 @@ from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
 from sentry_sdk.tracing import Span
-from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (

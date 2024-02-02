@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import zoneinfo
+from collections.abc import Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 from uuid import uuid4
 
 import jsonschema
@@ -13,7 +14,6 @@ from django.db.models import Q
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
-from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags

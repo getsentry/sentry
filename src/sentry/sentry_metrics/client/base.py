@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils.services import Service

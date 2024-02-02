@@ -2,7 +2,7 @@ import logging
 import posixpath
 import re
 import uuid
-from typing import Sequence
+from collections.abc import Sequence
 
 import jsonschema
 from django.db import IntegrityError, router

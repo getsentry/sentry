@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, TypeVar
+from collections.abc import Callable, Iterable, Mapping, MutableMapping
+from typing import Any, Optional, TypeVar
 
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import RpcActor

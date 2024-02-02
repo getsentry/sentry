@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from typing import Mapping, MutableMapping, Sequence, TypedDict
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import TypedDict
 
 from sentry import options
 from sentry.ratelimits.cardinality import (

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import contextlib
 from enum import IntEnum
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Self
 
 from django.db import models, router, transaction
-from typing_extensions import Self
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model
 

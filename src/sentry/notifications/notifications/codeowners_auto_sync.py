@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
+from collections.abc import Iterable, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any
 
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingEnum

@@ -1,11 +1,10 @@
-from typing import Optional
 from urllib.parse import urlparse
 
 from .base import ReplacementRule
 
 
 class RuleValidator:
-    def __init__(self, rule: ReplacementRule, *, char_domain: Optional[str] = None) -> None:
+    def __init__(self, rule: ReplacementRule, *, char_domain: str | None = None) -> None:
         self._rule = rule
         self._char_domain: set[str] = set(char_domain) if char_domain else set("*/")
 

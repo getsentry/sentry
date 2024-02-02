@@ -3,8 +3,9 @@ from __future__ import annotations
 import functools
 import logging
 import time
+from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, Mapping
+from typing import Any
 from urllib.parse import quote as urlquote
 
 import sentry_sdk

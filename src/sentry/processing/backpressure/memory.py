@@ -1,5 +1,6 @@
+from collections.abc import Generator, Mapping
 from dataclasses import dataclass
-from typing import Any, Generator, Mapping, Union
+from typing import Any, Union
 
 import rb
 import requests

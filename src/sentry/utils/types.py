@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import typing
+from typing import TypeGuard
 
-from typing_extensions import TypeGuard
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 

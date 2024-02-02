@@ -1,9 +1,10 @@
 import operator
 import time
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import closing, contextmanager
 from datetime import datetime
 from threading import Event
-from typing import Callable, Iterator, Mapping, Optional, TypeVar
+from typing import TypeVar
 
 import pytest
 from arroyo.backends.abstract import Consumer
@@ -411,7 +412,7 @@ def test_synchronized_consumer_worker_crash_before_assignment() -> None:
         pass
 
     class BrokenConsumer(LocalConsumer[KafkaPayload]):
-        def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[KafkaPayload]]:
+        def poll(self, timeout: float | None = None) -> BrokerValue[KafkaPayload] | None:
             try:
                 raise BrokenConsumerException()
             finally:
@@ -444,7 +445,7 @@ def test_synchronized_consumer_worker_crash_after_assignment() -> None:
         pass
 
     class BrokenConsumer(LocalConsumer[KafkaPayload]):
-        def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[KafkaPayload]]:
+        def poll(self, timeout: float | None = None) -> BrokerValue[KafkaPayload] | None:
             if not self.tell():
                 return super().poll(timeout)
             else:

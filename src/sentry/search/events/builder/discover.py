@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, Match, Sequence, Union, cast
+from re import Match
+from typing import Any, Union, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property

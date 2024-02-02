@@ -1,7 +1,8 @@
 from collections import OrderedDict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.data.execution import QueryResult
@@ -92,9 +93,9 @@ class QueryTransformer:
     def __init__(self, query_results: list[QueryResult]):
         self._query_results = query_results
 
-        self._start: Optional[datetime] = None
-        self._end: Optional[datetime] = None
-        self._interval: Optional[int] = None
+        self._start: datetime | None = None
+        self._end: datetime | None = None
+        self._interval: int | None = None
 
     def _assert_transformation_preconditions(self) -> tuple[datetime, datetime, int]:
         assert self._start is not None and self._end is not None and self._interval is not None

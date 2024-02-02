@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, MutableMapping
 from functools import cached_property
-from typing import Any, Iterable, Mapping, MutableMapping
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings

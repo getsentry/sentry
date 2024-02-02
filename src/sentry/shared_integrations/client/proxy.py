@@ -3,8 +3,9 @@ from __future__ import annotations
 import ipaddress
 import logging
 import socket
+from collections.abc import Mapping
 from functools import lru_cache
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import ParseResult, urljoin, urlparse
 
 import sentry_sdk

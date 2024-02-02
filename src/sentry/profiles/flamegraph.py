@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
@@ -16,8 +16,8 @@ def query_profiles_data(
     params: ParamsType,
     referrer: str,
     selected_columns: list[str],
-    query: Optional[str] = None,
-    additional_conditions: Optional[list[Condition]] = None,
+    query: str | None = None,
+    additional_conditions: list[Condition] | None = None,
 ) -> list[dict[str, Any]]:
     builder = QueryBuilder(
         dataset=Dataset.Discover,
@@ -45,7 +45,7 @@ def query_profiles_data(
 
 def get_profile_ids(
     params: ParamsType,
-    query: Optional[str] = None,
+    query: str | None = None,
 ) -> dict[str, list[str]]:
     data = query_profiles_data(
         params,

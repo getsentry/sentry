@@ -4,7 +4,8 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthProvider, RpcOrganizationAuthConfig
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -40,7 +41,7 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_auth_provider(self, *, organization_id: int) -> Optional[RpcAuthProvider]:
+    def get_auth_provider(self, *, organization_id: int) -> RpcAuthProvider | None:
         """
         This method returns the auth provider for an org, if one exists
         """
@@ -71,7 +72,7 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_organization_key(self, *, key: str) -> Optional[RpcApiKey]:
+    def get_organization_key(self, *, key: str) -> RpcApiKey | None:
         pass
 
     @rpc_method
@@ -82,8 +83,8 @@ class AuthService(RpcService):
         organization_id: int,
         provider_key: str,
         provider_config: Mapping[str, Any],
-        user_id: Optional[int] = None,
-        sender: Optional[str] = None,
+        user_id: int | None = None,
+        sender: str | None = None,
     ) -> None:
         pass
 
@@ -98,7 +99,7 @@ class AuthService(RpcService):
     @abc.abstractmethod
     def get_auth_provider_with_config(
         self, *, provider: str, config: Mapping[str, Any]
-    ) -> Optional[RpcAuthProvider]:
+    ) -> RpcAuthProvider | None:
         pass
 
 

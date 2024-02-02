@@ -239,7 +239,7 @@ def get_prev_history(group, status):
 def record_group_history_from_activity_type(
     group: "Group",
     activity_type: int,
-    actor: Optional[Union["User", "Team"]] = None,
+    actor: Union["User", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
     """
@@ -261,7 +261,7 @@ def record_group_history_from_activity_type(
 def record_group_history(
     group: "Group",
     status: int,
-    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
+    actor: Union["User", "RpcUser", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
     from sentry.models.team import Team
@@ -293,7 +293,7 @@ def record_group_history(
 def bulk_record_group_history(
     groups: list["Group"],
     status: int,
-    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
+    actor: Union["User", "RpcUser", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
     from sentry.models.team import Team

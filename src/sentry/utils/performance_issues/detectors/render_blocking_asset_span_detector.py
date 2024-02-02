@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, Mapping
+from typing import Any
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType

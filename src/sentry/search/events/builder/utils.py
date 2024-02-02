@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Callable
 
 
 def remove_minutes(timestamp, floor=True):

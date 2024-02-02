@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, Sequence
+from typing import Any
 
 from django.utils import timezone
 

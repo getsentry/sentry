@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from django.utils.datastructures import OrderedSet
 

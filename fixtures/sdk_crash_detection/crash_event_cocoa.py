@@ -1,4 +1,5 @@
-from typing import Any, Collection, Mapping, MutableMapping, Sequence
+from collections.abc import Collection, Mapping, MutableMapping, Sequence
+from typing import Any
 
 IN_APP_FRAME = {
     "function": "LoginViewController.viewDidAppear",

@@ -1,4 +1,4 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 from sentry.utils.services import Service
 

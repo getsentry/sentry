@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from enum import Enum
-from typing import Mapping
 
 from sentry_kafka_schemas.codecs import ValidationError
 

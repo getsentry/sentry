@@ -4,7 +4,7 @@ import os
 import platform
 import subprocess
 import sys
-from typing import Sequence
+from collections.abc import Sequence
 
 
 def main(argv: Sequence[str] | None = None) -> int:

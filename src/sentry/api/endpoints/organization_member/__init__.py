@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Collection
+from collections.abc import Collection
 
 from django.db import router, transaction
 from rest_framework import status

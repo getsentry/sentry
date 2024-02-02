@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry_redis_tools.sliding_windows_rate_limiter import GrantedQuota, Quota

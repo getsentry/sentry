@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Mapping
+from collections.abc import Mapping
 
 from django.utils.functional import cached_property
 from rest_framework.response import Response

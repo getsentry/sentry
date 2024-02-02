@@ -1,7 +1,8 @@
 import logging
 import time
+from collections.abc import Generator, Mapping
 from dataclasses import dataclass
-from typing import Generator, Mapping, Union
+from typing import Union
 
 import sentry_sdk
 from django.conf import settings

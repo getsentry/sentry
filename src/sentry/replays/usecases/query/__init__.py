@@ -15,8 +15,9 @@ found in the function.
 from __future__ import annotations
 
 from collections import namedtuple
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence, cast
+from typing import Any, cast
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (

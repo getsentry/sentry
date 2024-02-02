@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from sentry.snuba import (
     discover,
@@ -28,5 +28,5 @@ DATASET_OPTIONS = {
 DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
 
-def get_dataset(dataset_label: str) -> Optional[Any]:
+def get_dataset(dataset_label: str) -> Any | None:
     return DATASET_OPTIONS.get(dataset_label)

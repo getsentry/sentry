@@ -1,4 +1,5 @@
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.integrations.integration_feature import IntegrationFeature

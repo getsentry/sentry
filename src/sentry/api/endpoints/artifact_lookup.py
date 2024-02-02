@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
@@ -208,7 +208,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
 def try_resolve_release_dist(
     project: Project, release_name: str, dist_name: str
-) -> tuple[Optional[Release], Optional[Distribution]]:
+) -> tuple[Release | None, Distribution | None]:
     release = None
     dist = None
     try:
@@ -229,7 +229,7 @@ def try_resolve_release_dist(
     return release, dist
 
 
-def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -> set[int]:
+def get_legacy_release_bundles(release: Release, dist: Distribution | None) -> set[int]:
     return set(
         ReleaseFile.objects.filter(
             release_id=release.id,
@@ -252,7 +252,7 @@ def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -
 
 
 def get_legacy_releasefile_by_file_url(
-    release: Release, dist: Optional[Distribution], url: list[str]
+    release: Release, dist: Distribution | None, url: list[str]
 ) -> Sequence[ReleaseFile]:
     # Exclude files which are also present in archive:
     return (

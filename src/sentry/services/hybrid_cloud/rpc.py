@@ -6,21 +6,10 @@ import hmac
 import inspect
 import logging
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Iterator,
-    Mapping,
-    MutableMapping,
-    NoReturn,
-    Sequence,
-    TypeVar,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
 
 import django.urls
 import pydantic
@@ -28,7 +17,6 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
-from typing_extensions import Self
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord

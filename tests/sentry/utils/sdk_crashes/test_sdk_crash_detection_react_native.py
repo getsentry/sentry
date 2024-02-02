@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from functools import wraps
-from typing import Sequence
 from unittest.mock import patch
 
 import pytest

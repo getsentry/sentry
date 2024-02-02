@@ -5,9 +5,10 @@ from __future__ import annotations
 import datetime
 import decimal
 import uuid
+from collections.abc import Generator, Mapping
 from contextlib import nullcontext
 from enum import Enum
-from typing import IO, TYPE_CHECKING, Any, Generator, Mapping, NoReturn, TypeVar, overload
+from typing import IO, TYPE_CHECKING, Any, NoReturn, TypeVar, overload
 
 import rapidjson
 import sentry_sdk
