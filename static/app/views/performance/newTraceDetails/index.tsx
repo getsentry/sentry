@@ -194,12 +194,15 @@ class TraceTreeNode<TreeNodeValue> {
   value: TreeNodeValue;
   depth: number = 0;
   expanded: boolean = false;
+  zoomedIn: boolean = false;
   canFetchData: boolean = true;
   metadata: TraceTreeNodeMetadata = {
     project_slug: undefined,
     event_id: undefined
   }
-  children: TraceTreeNode<RawSpanType | TraceFullDetailed>[] = [];
+  // TODO: Rename the children types
+  children: TraceTreeNode<TraceFullDetailed>[] = [];
+  spanChildren: TraceTreeNode<RawSpanType>[] = [];
 
   constructor(node: TreeNodeValue, depth: number, metadata: TraceTreeNodeMetadata) {
     this.value = node;
@@ -222,21 +225,32 @@ class TraceTreeNode<TreeNodeValue> {
     return true;
   }
 
-  getVisibleChildrenCount(): number {
-    if (!this.children.length) {
+  // Returns boolean to indicate if node was updated
+  zoomIn(zoomedIn: boolean): boolean {
+    if (zoomedIn === this.zoomedIn) {
+      return false;
+    }
+
+    this.zoomedIn = zoomedIn;
+    return true;
+  }
+
+  getVisibleChildrenCount(getSpanChildrenCount:boolean = false): number {
+    const children = getSpanChildrenCount ? 'spanChildren' : 'children';
+    if (!this[children].length) {
       return 0;
     }
 
     let count = 0;
     // @TODO see if we can avoid array copy
-    const queue = [...this.children];
+    const queue = [...this[children]];
 
     while (queue.length > 0) {
       const next = queue.pop()!;
 
       if (next.expanded) {
-        for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]);
+        for (let i = 0; i < next[children].length; i++) {
+          queue.push(next[children][i]);
         }
       }
       count++;
@@ -246,47 +260,48 @@ class TraceTreeNode<TreeNodeValue> {
   }
 
   static updateTreeDepths(node: TraceTreeNode<RawSpanType | TraceFullDetailed>): TraceTreeNode<RawSpanType | TraceFullDetailed> {
-    if (!node.children.length) {
+    if (!node.spanChildren.length) {
       return node;
     }
 
     function visit(node: TraceTreeNode<RawSpanType | TraceFullDetailed>, depth: number) {
       node.depth = depth;
-      for (const child of node.children) {
+      for (const child of node.spanChildren) {
         visit(child, depth + 1)
       }
     }
 
-    for (const child of node.children) {
+    for (const child of node.spanChildren) {
       visit(child, node.depth)
     }
 
     return node;
   }
 
-  getVisibleChildren(): TraceTreeNode<RawSpanType | TraceFullDetailed>[] {
-    if (!this.children.length) {
+  getVisibleChildren(getSpanChildren: boolean = false): TraceTreeNode< RawSpanType | TraceFullDetailed>[] {
+    const children = getSpanChildren ? 'spanChildren' : 'children';
+    if (!this[children].length) {
       return [];
     }
 
-    const children: TraceTreeNode<RawSpanType | TraceFullDetailed>[] = [];
-    const queue = [...this.children];
+    const visibleChildren: TraceTreeNode<RawSpanType | TraceFullDetailed>[] = [];
+    const queue = [...this[children]];
 
     while (queue.length > 0) {
       const next = queue.pop()!;
 
       if (next.expanded) {
-        let i = next.children.length - 1;
+        let i = next[children].length - 1;
         while (i >= 0) {
-          queue.push(next.children[i]);
+          queue.push(next[children][i]);
           --i;
         }
       }
 
-      children.push(next);
+      visibleChildren.push(next);
     }
 
-    return children;
+    return visibleChildren;
   }
 
   static Root() {
@@ -334,17 +349,17 @@ function createSpanTree(parent: TraceTreeNode<RawSpanType | TraceFullDetailed>, 
 
     if (parentIsSpan) {
       console.log("Parent is span")
-      root.children.push(node)
+      root.spanChildren.push(node)
       continue
     }
 
     if (span.parent_span_id) {
       if (span.parent_span_id === root.value.span_id) {
-        root.children.push(node)
+        root.spanChildren.push(node)
       }
       const parent = lookuptable[span.parent_span_id];
       if (parent) {
-        parent.children.push(node)
+        parent.spanChildren.push(node)
       } else {
       }
     }
@@ -377,44 +392,63 @@ function TraceView(props: TraceViewProps) {
   }, [traceTree]);
 
   const handleFetchChildren = useCallback(
-    (node: TraceTreeNode<TraceFullDetailed | RawSpanType>, index: number) => {
-      if (promisesRef.current?.has(node)) {
+    (node: TraceTreeNode<TraceFullDetailed | RawSpanType>, index: number, value: boolean) => {
+      const prevVal = node.zoomedIn;
+      const updated = node.zoomIn(value);
+
+      if (!updated) {
         return;
       }
 
-      if (node.metadata.project_slug === undefined || node.metadata.event_id === undefined) {
-        throw new TypeError(`Missing project ${node.metadata.project_slug} or event_id ${node.metadata.event_id}`)
-      }
+      if(prevVal === true) { //Zoom out 
+        const spanChildrenCount = node.getVisibleChildrenCount(true);
+        list!.splice(index + 1, spanChildrenCount); // Remove span children
 
-      const promise = fetchTransactionEvent(
-        api,
-        organization,
-        node.metadata.project_slug,
-        node.metadata.event_id
-      ).then(event => {
-        const spans = event.entries.find(s => s.type === "spans");
-        console.log(event.entries, spans)
-        if (!spans) {
-          return
+        if(node.expanded){ //Add back the txn children if node was expanded before zooming in 
+          const children = node.getVisibleChildren();
+          list!.splice(index + 1, 0, ...children);
+        }
+        setBit(b => (b + 1) % 2);
+      }else { // Zoom in
+        if (node.metadata.project_slug === undefined || node.metadata.event_id === undefined) {
+          throw new TypeError(`Missing project ${node.metadata.project_slug} or event_id ${node.metadata.event_id}`)
+        }
+  
+        const promise = promisesRef.current?.has(node) ? promisesRef.current?.get(node) : fetchTransactionEvent(
+          api,
+          organization,
+          node.metadata.project_slug,
+          node.metadata.event_id
+        );
+        
+        if(!promise){
+          return;
         }
 
-        const childrenCount = node.getVisibleChildrenCount();
-        list?.splice(index + 1, childrenCount)
-
-        // @TODO store both states so that we can zoom in/out
-        const root = createSpanTree(node, (spans?.data ?? []) as RawSpanType[]);
-        node.expanded = true;
-        node.children = root.children;
-        TraceTreeNode.updateTreeDepths(root)
-
-        const children = node.getVisibleChildren();
-        list!.splice(index + 1, 0, ...children);
-        setBit(b => (b + 1) % 2);
-      }).catch(_e => {
-        // Ignore error
-      })
-
-      promisesRef.current?.set(node, promise)
+        promise.then(event => {
+          const spans = event.entries.find(s => s.type === "spans");
+          console.log(event.entries, spans)
+          if (!spans) {
+            return
+          }
+  
+          // @TODO store both states so that we can zoom in/out
+          const root = createSpanTree(node, (spans?.data ?? []) as RawSpanType[]);
+          node.spanChildren = root.spanChildren;
+          TraceTreeNode.updateTreeDepths(root)
+  
+          const childrenCount = node.getVisibleChildrenCount();
+          list!.splice(index + 1, childrenCount);
+  
+          const spanChildren = node.getVisibleChildren(true);
+          list!.splice(index + 1, 0, ...spanChildren);
+          setBit(b => (b + 1) % 2);
+        }).catch(_e => {
+          // Ignore error
+        })
+  
+        promisesRef.current?.set(node, promise)
+      }
     },
     [api, list, organization]
   );
@@ -473,7 +507,7 @@ function RenderRow(props: {
     value: boolean,
     index: number
   ) => void;
-  onFetchChildren: (node: TraceTreeNode<TraceFullDetailed | RawSpanType>, index) => void;
+  onFetchChildren: (node: TraceTreeNode<TraceFullDetailed | RawSpanType>, index: number, value: boolean) => void;
   style: React.CSSProperties;
 }) {
   if (!props.node.value) {
@@ -486,6 +520,7 @@ function RenderRow(props: {
         {props.node.value.transaction}
         {props.node.children.length > 0 && (
           <button
+            disabled={props.node.zoomedIn}
             onClick={() =>
               props.onExpandNode(props.node, !props.node.expanded, props.index)
             }
@@ -494,8 +529,8 @@ function RenderRow(props: {
           </button>
         )}
         {props.node.canFetchData ?
-          (<button onClick={() => props.onFetchChildren(props.node, props.index)}>
-            zoom in
+          (<button onClick={() => props.onFetchChildren(props.node, props.index, !props.node.zoomedIn)}>
+            {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
           </button>) : null}
       </div>
     );
@@ -507,6 +542,7 @@ function RenderRow(props: {
       {name}
       {props.node.children.length > 0 && (
         <button
+          disabled={props.node.zoomedIn}
           onClick={() =>
             props.onExpandNode(props.node, !props.node.expanded, props.index)
           }
@@ -515,8 +551,8 @@ function RenderRow(props: {
         </button>
       )}
       {props.node.canFetchData ?
-        (<button onClick={() => props.onFetchChildren(props.node, props.index)}>
-          zoom in
+        (<button onClick={() => props.onFetchChildren(props.node, props.index, !props.node.zoomedIn)}>
+          {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
         </button>) : null
       }
     </div>
