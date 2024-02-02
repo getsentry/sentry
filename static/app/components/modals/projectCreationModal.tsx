@@ -239,7 +239,8 @@ const ProjectNameInput = styled(Input)`
 `;
 
 export const modalCss = css`
-  width: 900px;
+width: 100%;
+max-width: 1000px;
 `;
 
 const ProjectNameTeamSection = styled('div')`
