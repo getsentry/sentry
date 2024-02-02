@@ -219,6 +219,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["priority"] == "low"
+        assert response.data["priorityLockedAt"] is None
 
     def test_group_get_priority_no_ff(self):
         self.login_as(user=self.user)
@@ -232,6 +233,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert "priority" not in response.data
+        assert "priorityLockedAt" not in response.data
 
     @with_feature("projects:issue-priority")
     def test_group_post_priority(self):
@@ -253,6 +255,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         get_response_after = self.client.get(url, format="json")
         assert get_response_after.status_code == 200, get_response_after.content
         assert get_response_after.data["priority"] == "high"
+        assert get_response_after.data["priorityLockedAt"] is not None
 
     def test_group_post_priority_no_ff(self):
         self.login_as(user=self.user)
