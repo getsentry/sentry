@@ -58,7 +58,6 @@ class SentryAppPermissionTest(TestCase):
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_read_only(self):
         request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
-        request.access = self.create_request_access()
 
         assert self.permission.has_object_permission(request, None, self.sentry_app)
 
@@ -146,7 +145,6 @@ class SentryAppInstallationPermissionTest(TestCase):
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_read_only(self):
         request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
-        request.access = self.create_request_access()
 
         assert self.permission.has_object_permission(request, None, self.installation)
 
