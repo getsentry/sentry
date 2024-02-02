@@ -148,16 +148,6 @@ class ActionTrigger(FlexibleIntEnum):
         )
 
 
-class TriggerGenerator:
-    """
-    Allows NotificationAction.trigger_type to enforce extra triggers via
-    NotificationAction.register_trigger_type
-    """
-
-    def __iter__(self):
-        yield from NotificationAction._trigger_types
-
-
 @region_silo_only_model
 class NotificationActionProject(Model):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Organization}
@@ -232,23 +222,14 @@ class NotificationAction(AbstractNotificationAction):
         db_table = "sentry_notificationaction"
 
     @classmethod
-    def register_trigger_type(
-        cls,
-        value: int,
-        display_text: str,
-    ) -> None:
+    def register_trigger_type(cls, value: int, display_text: str) -> None:
         """
-        Deprecated: Will be removed once removed from getsentry;
+        Deprecated: Will be removed once removed from getsentry.
         """
         pass
 
     @classmethod
-    def register_action(
-        cls,
-        trigger_type: int,
-        service_type: int,
-        target_type: int,
-    ):
+    def register_action(cls, trigger_type: int, service_type: int, target_type: int):
         """
         Register a new trigger/service/target combination for NotificationActions.
         For example, allowing audit-logs (trigger) to fire actions to slack (service) channels (target)
