@@ -116,7 +116,7 @@ describe('SystemApplicationBreakdown', function () {
 
     await userEvent.hover(screen.getByTestId('secondary-release-breakdown'));
     expect(await screen.findByTestId('breakdown-tooltip-content')).toHaveTextContent(
-      'System100%'
+      'System70100%Application00%'
     );
   });
 });
