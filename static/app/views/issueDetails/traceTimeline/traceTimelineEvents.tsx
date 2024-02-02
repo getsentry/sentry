@@ -25,15 +25,15 @@ interface TraceTimelineEventsProps {
 
 export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
   const {startTimestamp, endTimestamp, data} = useTraceTimelineEvents({event});
-  let durationMs = endTimestamp - startTimestamp;
-  const paddedStartTime = startTimestamp - 200;
-  let paddedEndTime = endTimestamp + 100;
-  // Will need to figure out padding
-  if (durationMs === 0) {
-    durationMs = 1000;
+  let paddedStartTime = startTimestamp;
+  let paddedEndTime = endTimestamp;
+  // Duration is 0, pad both sides, this is how we end up with 1 dot in the middle
+  if (endTimestamp - startTimestamp === 0) {
     // If the duration is 0, we need to pad the end time
-    paddedEndTime = startTimestamp + 1000;
+    paddedEndTime = startTimestamp + 1500;
+    paddedStartTime = startTimestamp - 1500;
   }
+  const durationMs = paddedEndTime - paddedStartTime;
 
   const totalColumns = Math.floor(width / PARENT_WIDTH);
   const eventsByColumn = getEventsByColumn(
@@ -44,9 +44,13 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
   );
   const columnSize = width / totalColumns;
 
+  // If the duration is less than 2 minutes, show seconds
+  const showTimelineSeconds = durationMs < 120 * 1000;
+
   return (
     <Fragment>
-      <TimelineColumns totalColumns={totalColumns}>
+      {/* Add padding to the total columns, 1 column of padding on each side */}
+      <TimelineColumns totalColumns={totalColumns + 2}>
         {Array.from(eventsByColumn.entries()).map(([column, colEvents]) => {
           // Calculate the timestamp range that this column represents
           const timeRange = getChunkTimeRange(
@@ -57,7 +61,8 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
           return (
             <EventColumn
               key={column}
-              style={{gridColumn: Math.floor(column), width: columnSize}}
+              // Add 1 to the column to account for the padding
+              style={{gridColumn: Math.floor(column) + 1, width: columnSize}}
             >
               <NodeGroup
                 event={event}
@@ -72,13 +77,17 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
       </TimelineColumns>
       <TimestampColumns>
         <TimestampItem style={{textAlign: 'left'}}>
-          <DateTime date={paddedStartTime} timeOnly />
+          <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
         </TimestampItem>
         <TimestampItem style={{textAlign: 'center'}}>
-          <DateTime date={paddedStartTime + Math.floor(durationMs / 2)} timeOnly />
+          <DateTime
+            date={paddedStartTime + Math.floor(durationMs / 2)}
+            seconds={showTimelineSeconds}
+            timeOnly
+          />
         </TimestampItem>
         <TimestampItem style={{textAlign: 'right'}}>
-          <DateTime date={paddedEndTime} timeOnly />
+          <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
         </TimestampItem>
       </TimestampColumns>
     </Fragment>
