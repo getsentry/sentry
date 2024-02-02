@@ -42,6 +42,7 @@ function Profiles(): React.ReactElement {
 
   const project = projects.projects.find(p => p.id === location.query.project);
   const fields = getProfilesTableFields(project?.platform);
+  const sortableFields = useMemo(() => new Set(fields), [fields]);
 
   const sort = formatSort<ProfilingFieldType>(decodeScalar(location.query.sort), fields, {
     key: 'timestamp',
@@ -119,6 +120,7 @@ function Profiles(): React.ReactElement {
               error={profiles.status === 'error' ? t('Unable to load profiles') : null}
               isLoading={profiles.status === 'loading'}
               sort={sort}
+              sortableColumns={sortableFields}
             />
           </Layout.Main>
         );
