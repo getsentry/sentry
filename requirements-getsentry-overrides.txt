@@ -7,3 +7,6 @@
 # the format is:
 # # comment explaining what you're doing
 # library-name @ https://github.com/getsentry/<repo>/archive/<40 char sha>.zip
+
+# Dog fooding the refactoring of Hubs&Scopes
+sentry-sdk @ https://github.com/getsentry/sentry-python/archive/f63dfab87f74b7c6292671fee2e8b1f67279aafe.zip
