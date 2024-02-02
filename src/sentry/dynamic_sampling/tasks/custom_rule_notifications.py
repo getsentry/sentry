@@ -1,6 +1,7 @@
 """
 Task for sending notifications when custom rules have gathered enough samples.
 """
+
 from datetime import datetime, timezone
 from typing import Any
 
@@ -15,7 +16,7 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task_with_context,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
-from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
@@ -109,10 +110,13 @@ def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None
     if not user_id:
         return
 
+    creator = user_service.get_user(user_id=user_id)
+    if not creator:
+        return
+
     projects = rule.projects.all()
     project_ids = [p.id for p in projects]
 
-    creator = User.objects.get_from_cache(id=user_id)
     params = {
         "query": rule.query,
         "num_samples": num_samples,

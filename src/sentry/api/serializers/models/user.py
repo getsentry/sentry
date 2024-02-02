@@ -3,8 +3,9 @@ from __future__ import annotations
 import itertools
 import warnings
 from collections import defaultdict
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Callable, Mapping, MutableMapping, Sequence, cast
+from typing import Any, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser

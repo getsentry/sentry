@@ -115,8 +115,10 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
     await userEvent.click(document.body);
 
-    expect(mockHandleChangeFilter).toHaveBeenCalledWith({
-      release: ['latest', 'sentry-android-shop@1.2.0', 'sentry-android-shop@1.4.0'],
+    await waitFor(() => {
+      expect(mockHandleChangeFilter).toHaveBeenCalledWith({
+        release: ['latest', 'sentry-android-shop@1.2.0', 'sentry-android-shop@1.4.0'],
+      });
     });
   });
 

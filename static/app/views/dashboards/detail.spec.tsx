@@ -1478,13 +1478,15 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       await userEvent.click(document.body);
 
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            release: ['sentry-android-shop@1.2.0'],
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              release: ['sentry-android-shop@1.2.0'],
+            }),
+          })
+        );
+      });
     });
 
     it('persists release selections made during search requests that do not appear in default query', async function () {

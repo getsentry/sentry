@@ -3,8 +3,8 @@ from __future__ import annotations
 import hashlib
 import os
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Mapping, Sequence
 from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
