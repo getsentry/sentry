@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
