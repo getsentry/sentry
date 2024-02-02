@@ -32,6 +32,7 @@ def process_message(message: Message[KafkaPayload]):
         project_id = span["project_id"]
     except Exception:
         logger.exception("Failed to process span payload")
+        return
 
     client = RedisSpansBuffer()
     new_segment = client.write_span(project_id, segment_id, message.payload.value)

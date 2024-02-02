@@ -13,7 +13,7 @@ def get_redis_client() -> RedisCluster | StrictRedis:
 
 
 def get_segment_key(project_id: int, segment_id: int) -> str:
-    return f"project:{project_id}:segment:{segment_id}"
+    return f"project:{project_id}:segment:{segment_id}:process-segment"
 
 
 class RedisSpansBuffer:
