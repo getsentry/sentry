@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -9,6 +10,7 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -89,7 +91,7 @@ export function SpanOperationTable({
     decodeScalar(location.query[QueryParameterNames.SPANS_SORT])
   )[0] ?? {
     kind: 'desc',
-    field: 'time_spent_percentage()',
+    field: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
   };
 
   const newQuery: NewQuery = {
@@ -101,8 +103,8 @@ export function SpanOperationTable({
       SPAN_DESCRIPTION,
       `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
       `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-      'count()',
-      'time_spent_percentage()',
+      `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
+      `app_start_type`,
       `sum(${SPAN_SELF_TIME})`,
     ],
     query: queryStringPrimary,
@@ -125,7 +127,6 @@ export function SpanOperationTable({
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    'count()': t('Total Count'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
       'Duration (%s)',
       PRIMARY_RELEASE_ALIAS
@@ -134,7 +135,9 @@ export function SpanOperationTable({
       'Duration (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
-    ['time_spent_percentage()']: t('Total Time Spent'),
+    [`avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`]:
+      t('Change'),
+    app_start_type: t('Start Type'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -160,6 +163,17 @@ export function SpanOperationTable({
         <Link to={`${pathname}?${qs.stringify(query)}`}>
           <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
         </Link>
+      );
+    }
+
+    if (column.key === 'app_start_type' && row.app_start_type === '') {
+      return (
+        <Tooltip
+          title={t('The start type is unknown until we collect more recent data.')}
+          showUnderline
+        >
+          <UnknownValue>{t('Unknown')}</UnknownValue>
+        </Tooltip>
       );
     }
 
@@ -240,12 +254,12 @@ export function SpanOperationTable({
         isLoading={isLoading}
         data={data?.data as TableDataRow[]}
         columnOrder={[
+          `app_start_type`,
           String(SPAN_OP),
           String(SPAN_DESCRIPTION),
           `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
           `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-          'count()',
-          'time_spent_percentage()',
+          `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}
@@ -260,3 +274,7 @@ export function SpanOperationTable({
     </Fragment>
   );
 }
+
+const UnknownValue = styled('div')`
+  color: ${p => p.theme.gray300};
+`;
