@@ -7,7 +7,7 @@ from typing_extensions import override
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -26,7 +26,7 @@ class UserPermission(SentryPermission):
             return True
         if request.auth:
             return False
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
         return False
 
