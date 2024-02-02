@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.conf import settings
 from django.db import router, transaction
 from django.utils.decorators import method_decorator
@@ -105,7 +103,7 @@ class ApiTokensEndpoint(Endpoint):
             return Response({"tokenId": token_id}, status=400)
 
         with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
-            token_to_delete: Optional[ApiToken] = ApiToken.objects.filter(
+            token_to_delete: ApiToken | None = ApiToken.objects.filter(
                 id=token_id, application__isnull=True, user_id=user_id
             ).first()
 
