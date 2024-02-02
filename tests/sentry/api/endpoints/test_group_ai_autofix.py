@@ -49,7 +49,9 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         release = self.create_release(project=self.project, version="1.0.0")
 
         repo = self.create_repo(
-            project=self.project, name="getsentry/sentry", provider="integrations:github"
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
         )
         repo.save()
 
@@ -132,7 +134,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=group.id)
 
-        error_msg = "No valid base commit found for release; only getsentry/sentry repo is supported right now."
+        error_msg = "No valid base commit from the public sentry repo found associated through issue's releases; only the public sentry repo is supported right now."
 
         assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
         assert response.data["detail"] == error_msg
