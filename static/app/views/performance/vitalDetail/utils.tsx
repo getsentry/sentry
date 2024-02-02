@@ -194,6 +194,7 @@ export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {
     Browser.SAFARI,
     Browser.IE,
   ],
+  [WebVital.INP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA],
 };
 
 export function getVitalChartDefinitions({
