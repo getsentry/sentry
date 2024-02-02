@@ -2,9 +2,10 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from collections import deque
+from collections.abc import Mapping, MutableMapping, Sequence
 from concurrent.futures import Future
 from functools import partial
-from typing import Any, Deque, Mapping, MutableMapping, NamedTuple, Optional, Sequence
+from typing import Any, Deque, NamedTuple
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
@@ -157,7 +158,7 @@ class RoutingProducerStep(ProcessingStrategy[RoutingPayload]):
     def close(self) -> None:
         self.__closed = True
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         """
         In addition to flushing the queue, this method also calls the
         shutdown of the router.

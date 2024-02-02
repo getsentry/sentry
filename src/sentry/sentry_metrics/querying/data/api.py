@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Optional, Sequence
 
 from snuba_sdk import MetricsQuery, MetricsScope, Rollup
 
@@ -22,10 +22,10 @@ def run_metrics_query(
     projects: Sequence[Project],
     environments: Sequence[Environment],
     referrer: str,
-    query: Optional[str] = None,
-    group_bys: Optional[Sequence[str]] = None,
-    order_by: Optional[str] = None,
-    limit: Optional[int] = None,
+    query: str | None = None,
+    group_bys: Sequence[str] | None = None,
+    order_by: str | None = None,
+    limit: int | None = None,
 ):
     # We build the basic query that contains the metadata.
     base_query = MetricsQuery(

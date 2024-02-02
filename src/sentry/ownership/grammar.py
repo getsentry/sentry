@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import re
 from collections import namedtuple
-from typing import Any, Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from typing import Any
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar

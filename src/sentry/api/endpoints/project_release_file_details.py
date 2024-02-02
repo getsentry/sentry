@@ -1,5 +1,4 @@
 import posixpath
-from typing import Optional
 from zipfile import ZipFile
 
 from django.http.response import FileResponse
@@ -28,7 +27,7 @@ class ReleaseFileSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
 
 
-def _entry_from_index(release: Release, dist: Optional[Distribution], url: str) -> ReleaseFile:
+def _entry_from_index(release: Release, dist: Distribution | None, url: str) -> ReleaseFile:
     index = read_artifact_index(release, dist)
     if index is None:
         raise ResourceDoesNotExist
@@ -38,7 +37,7 @@ def _entry_from_index(release: Release, dist: Optional[Distribution], url: str) 
         raise ResourceDoesNotExist
 
 
-def _get_from_index(release: Release, dist: Optional[Distribution], url: str) -> ReleaseFile:
+def _get_from_index(release: Release, dist: Distribution | None, url: str) -> ReleaseFile:
     entry = _entry_from_index(release, dist, url)
     return pseudo_releasefile(url, entry, dist)
 

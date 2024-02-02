@@ -2,7 +2,6 @@
 import dataclasses
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from django.db import migrations
 from django.db.models import F, Window
@@ -28,7 +27,7 @@ class GroupValues:
     id: int
     project_id: int
     status: int
-    substatus: Optional[int]
+    substatus: int | None
     first_seen: datetime
     num_comments: int
 

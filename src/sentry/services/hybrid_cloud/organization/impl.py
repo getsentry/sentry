@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.expressions import CombinedExpression, F

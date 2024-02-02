@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import operator
 from collections import defaultdict
+from collections.abc import Iterator, Mapping, MutableMapping, Sequence
 from enum import Enum
 from functools import reduce
-from typing import Any, Iterator, Mapping, MutableMapping, Sequence, TypedDict
+from typing import Any, TypedDict
 
 from django.core.cache import cache
 from django.db.models import Q
