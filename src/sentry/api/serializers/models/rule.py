@@ -1,5 +1,4 @@
 from collections import defaultdict
-from typing import Optional
 
 from django.db.models import Max, Q, prefetch_related_objects
 from rest_framework import serializers
@@ -40,12 +39,12 @@ class RuleCreatedBy(TypedDict):
 
 
 class RuleSerializerResponseOptional(TypedDict, total=False):
-    owner: Optional[str]
-    createdBy: Optional[RuleCreatedBy]
-    environment: Optional[str]
-    lastTriggered: Optional[str]
-    snoozeCreatedBy: Optional[str]
-    snoozeForEveryone: Optional[bool]
+    owner: str | None
+    createdBy: RuleCreatedBy | None
+    environment: str | None
+    lastTriggered: str | None
+    snoozeCreatedBy: str | None
+    snoozeForEveryone: bool | None
 
 
 class RuleSerializerResponse(RuleSerializerResponseOptional):

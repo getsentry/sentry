@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
 
 from django.db.models import Model, QuerySet
 

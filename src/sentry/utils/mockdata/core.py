@@ -3,10 +3,11 @@ from __future__ import annotations
 import itertools
 import random
 import time
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from random import randint
-from typing import Any, Mapping
+from typing import Any
 from uuid import uuid4
 
 import click

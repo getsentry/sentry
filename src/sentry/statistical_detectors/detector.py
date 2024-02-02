@@ -4,9 +4,10 @@ import heapq
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import DefaultDict, Generator, Iterable
+from typing import DefaultDict
 
 import sentry_sdk
 

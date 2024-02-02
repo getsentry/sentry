@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import collections
+from collections.abc import Generator, Iterable, Iterator, MutableMapping
 from itertools import zip_longest
-from typing import Any, Generator, Iterable, Iterator, MutableMapping
+from typing import Any
 
 from drf_spectacular.utils import extend_schema_serializer
 from typing_extensions import TypedDict

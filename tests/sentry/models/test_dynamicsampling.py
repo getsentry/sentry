@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import Optional
 
 import pytest
 from django.utils import timezone
@@ -193,7 +192,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
 
         def create_rule(
             project_ids: list[int],
-            org_id: Optional[int] = None,
+            org_id: int | None = None,
             old: bool = False,
             new: bool = False,
         ) -> CustomDynamicSamplingRule:

@@ -1,4 +1,4 @@
-from typing import Any, Optional, Protocol
+from typing import Any, Protocol
 
 from snuba_sdk import AliasedExpression, And, Column, Condition, CurriedFunction, Op, Or
 from snuba_sdk.function import Function
@@ -37,9 +37,9 @@ class ProfileFunctionsQueryBuilderMixin:
         resolved: str = self.config.resolve_column(col)
         return resolved
 
-    def get_field_type(self: ProfileFunctionsQueryBuilderProtocol, field: str) -> Optional[str]:
+    def get_field_type(self: ProfileFunctionsQueryBuilderProtocol, field: str) -> str | None:
         # giving resolved a type here convinces mypy that the type is str
-        resolved: Optional[str] = self.config.resolve_column_type(field)
+        resolved: str | None = self.config.resolve_column_type(field)
         return resolved
 
 
@@ -100,12 +100,12 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         interval: int,
         top_events: list[dict[str, Any]],
         other: bool = False,
-        query: Optional[str] = None,
-        selected_columns: Optional[list[str]] = None,
-        timeseries_columns: Optional[list[str]] = None,
-        equations: Optional[list[str]] = None,
-        config: Optional[QueryBuilderConfig] = None,
-        limit: Optional[int] = 10000,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        timeseries_columns: list[str] | None = None,
+        equations: list[str] | None = None,
+        config: QueryBuilderConfig | None = None,
+        limit: int | None = 10000,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -152,7 +152,7 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
 
     def resolve_top_event_conditions(
         self, top_functions: list[dict[str, Any]], other: bool
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         assert not other, "Other is not supported"  # TODO: support other
 
         # we only want to create conditions on the non aggregate fields

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Mapping
+from collections.abc import Callable, Mapping
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Op

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Collection, Iterable
 from dataclasses import dataclass
-from typing import Collection, Iterable
 
 from sentry.models.organization import Organization
 from sentry.models.user import User

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # to avoid a circular import
 import logging
-from typing import Mapping
+from collections.abc import Mapping
 from urllib.parse import urlencode
 
 from rest_framework import status
