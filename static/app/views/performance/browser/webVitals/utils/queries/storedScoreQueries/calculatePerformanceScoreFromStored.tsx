@@ -46,6 +46,7 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
       clsWeight: PERFORMANCE_SCORE_WEIGHTS.cls,
       ttfbWeight: PERFORMANCE_SCORE_WEIGHTS.ttfb,
       fidWeight: PERFORMANCE_SCORE_WEIGHTS.fid,
+      inpWeight: PERFORMANCE_SCORE_WEIGHTS.inp,
     };
   }
 
@@ -53,6 +54,7 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
   const hasFcp = hasWebVitalScore(data, 'fcp');
   const hasCls = hasWebVitalScore(data, 'cls');
   const hasFid = hasWebVitalScore(data, 'fid');
+  const hasInp = hasWebVitalScore(data, 'inp');
   const hasTtfb = hasWebVitalScore(data, 'ttfb');
 
   const scores = {
@@ -61,12 +63,14 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
     clsScore: hasCls ? Math.round(getWebVitalScore(data, 'cls') * 100) : undefined,
     ttfbScore: hasTtfb ? Math.round(getWebVitalScore(data, 'ttfb') * 100) : undefined,
     fidScore: hasFid ? Math.round(getWebVitalScore(data, 'fid') * 100) : undefined,
+    inpScore: hasInp ? Math.round(getWebVitalScore(data, 'inp') * 100) : undefined,
     totalScore: Math.round(getTotalScore(data) * 100),
     lcpWeight: Math.round(getWebVitalWeight(data, 'lcp') * 100),
     fcpWeight: Math.round(getWebVitalWeight(data, 'fcp') * 100),
     clsWeight: Math.round(getWebVitalWeight(data, 'cls') * 100),
     ttfbWeight: Math.round(getWebVitalWeight(data, 'ttfb') * 100),
     fidWeight: Math.round(getWebVitalWeight(data, 'fid') * 100),
+    inpWeight: Math.round(getWebVitalWeight(data, 'inp') * 100),
   };
   return scores;
 }

@@ -1,4 +1,4 @@
-from typing import Collection, Dict, Mapping, Optional, Set
+from typing import Collection, Mapping, Optional
 
 from django.conf import settings
 
@@ -180,6 +180,7 @@ SHARED_TAG_STRINGS = {
     "group": PREFIX + 263,
     # Resource span
     "file_extension": PREFIX + 264,
+    "app_start_type": PREFIX + 265,  # Mobile app start type
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
@@ -237,7 +238,7 @@ class StaticStringIndexer(StringIndexer):
         self.indexer = indexer
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         static_keys = UseCaseKeyCollection(strings)
         static_key_results = UseCaseKeyResults()
@@ -294,7 +295,7 @@ class StaticStringIndexer(StringIndexer):
     def bulk_reverse_resolve(
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
     ) -> Mapping[int, str]:
-        shared_strings: Dict[int, str] = {}
+        shared_strings: dict[int, str] = {}
         unresolved_ids = []
         for ident in ids:
             if ident in REVERSE_SHARED_STRINGS:

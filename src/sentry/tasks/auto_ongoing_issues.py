@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import List
 
 import sentry_sdk
 from django.db.models import Max
@@ -167,7 +166,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
     silo_mode=SiloMode.REGION,
 )
 def run_auto_transition_issues_new_to_ongoing(
-    group_ids: List[int],
+    group_ids: list[int],
     **kwargs,
 ):
     """
@@ -255,7 +254,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     silo_mode=SiloMode.REGION,
 )
 def run_auto_transition_issues_regressed_to_ongoing(
-    group_ids: List[int],
+    group_ids: list[int],
     **kwargs,
 ) -> None:
     """
@@ -343,7 +342,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     silo_mode=SiloMode.REGION,
 )
 def run_auto_transition_issues_escalating_to_ongoing(
-    group_ids: List[int],
+    group_ids: list[int],
     **kwargs,
 ) -> None:
     """

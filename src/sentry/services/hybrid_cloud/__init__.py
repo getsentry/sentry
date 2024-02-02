@@ -5,19 +5,7 @@ import datetime
 import logging
 import threading
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    Generic,
-    Iterable,
-    Mapping,
-    Protocol,
-    Type,
-    TypeVar,
-    cast,
-)
+from typing import Any, Callable, Generator, Generic, Iterable, Mapping, Protocol, TypeVar, cast
 
 import pydantic
 from django.db import router, transaction
@@ -131,7 +119,7 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
     """
 
     _constructors: Mapping[SiloMode, Callable[[], ServiceInterface]]
-    _singleton: Dict[SiloMode, ServiceInterface | None]
+    _singleton: dict[SiloMode, ServiceInterface | None]
     _lock: threading.RLock
 
     def __init__(self, mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]):
@@ -174,12 +162,12 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
     If no transactions are open, it uses a given default implementation instead.
     """
 
-    _constructors: Mapping[Type[Model], Callable[[], ServiceInterface]]
+    _constructors: Mapping[type[Model], Callable[[], ServiceInterface]]
     _default: Callable[[], ServiceInterface]
 
     def __init__(
         self,
-        mapping: Mapping[Type[Model], Callable[[], ServiceInterface]],
+        mapping: Mapping[type[Model], Callable[[], ServiceInterface]],
         default: Callable[[], ServiceInterface],
     ):
         self._constructors = mapping

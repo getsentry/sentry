@@ -1,33 +1,20 @@
 from __future__ import annotations
 
-import logging
-import uuid
 from time import time
 from unittest import mock
 from unittest.mock import MagicMock
 
 from sentry import tsdb
-from sentry.event_manager import EventManager
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 
 pytestmark = [requires_snuba]
-
-
-def make_event(**kwargs):
-    result = {
-        "event_id": uuid.uuid1().hex,
-        "level": logging.ERROR,
-        "logger": "default",
-        "tags": [],
-    }
-    result.update(kwargs)
-    return result
 
 
 def get_relevant_metrics_calls(mock_fn: MagicMock, key: str) -> list[mock._Call]:
@@ -37,78 +24,67 @@ def get_relevant_metrics_calls(mock_fn: MagicMock, key: str) -> list[mock._Call]
 @region_silo_test
 class EventManagerGroupingTest(TestCase):
     def test_puts_events_with_matching_fingerprints_in_same_group(self):
-        ts = time() - 200
-        manager = EventManager(
-            make_event(message="foo", event_id="a" * 32, fingerprint=["a" * 32], timestamp=ts)
+        event = save_new_event(
+            {"message": "Dogs are great!", "fingerprint": ["maisey"]}, self.project
         )
-        with self.tasks():
-            event = manager.save(self.project.id)
+        # Normally this should go into a different group, since the messages don't match, but the
+        # fingerprint takes precedence.
+        event2 = save_new_event(
+            {"message": "Adopt don't shop", "fingerprint": ["maisey"]}, self.project
+        )
 
-        manager = EventManager(
-            make_event(message="foo bar", event_id="b" * 32, fingerprint=["a" * 32], timestamp=ts)
-        )
-        with self.tasks():
-            event2 = manager.save(self.project.id)
+        assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group_id)
 
         assert group.times_seen == 2
-        assert group.last_seen == event.datetime
+        assert group.last_seen == event2.datetime
         assert group.message == event2.message
 
     def test_puts_events_with_different_fingerprints_in_different_groups(self):
-        manager = EventManager(
-            make_event(message="foo", event_id="a" * 32, fingerprint=["{{ default }}", "a" * 32])
+        event = save_new_event(
+            {"message": "Dogs are great!", "fingerprint": ["maisey"]}, self.project
         )
-        with self.tasks():
-            manager.normalize()
-            event = manager.save(self.project.id)
-
-        manager = EventManager(
-            make_event(message="foo bar", event_id="b" * 32, fingerprint=["a" * 32])
+        # Normally this should go into the same group, since the message matches, but the
+        # fingerprint takes precedence.
+        event2 = save_new_event(
+            {"message": "Dogs are great!", "fingerprint": ["charlie"]}, self.project
         )
-        with self.tasks():
-            manager.normalize()
-            event2 = manager.save(self.project.id)
 
         assert event.group_id != event2.group_id
 
     def test_adds_default_fingerprint_if_none_in_event(self):
-        manager = EventManager(make_event())
-        manager.normalize()
-        event = manager.save(self.project.id)
+        event = save_new_event({"message": "Dogs are great!"}, self.project)
 
         assert event.data.get("fingerprint") == ["{{ default }}"]
 
     @freeze_time()
     def test_ignores_fingerprint_on_transaction_event(self):
-        manager1 = EventManager(make_event(event_id="a" * 32, fingerprint="fingerprint1"))
-        event1 = manager1.save(self.project.id)
-
-        manager2 = EventManager(
-            make_event(
-                event_id="b" * 32,
-                fingerprint="fingerprint1",
-                transaction="wait",
-                contexts={
+        event1 = save_new_event(
+            {"message": "Dogs are great!", "fingerprint": ["charlie"]}, self.project
+        )
+        event2 = save_new_event(
+            {
+                "transaction": "dogpark",
+                "fingerprint": ["charlie"],
+                "type": "transaction",
+                "contexts": {
                     "trace": {
-                        "parent_span_id": "bce14471e0e9654d",
-                        "op": "foobar",
-                        "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
-                        "span_id": "bf5be759039ede9a",
+                        "parent_span_id": "1121201212312012",
+                        "op": "sniffing",
+                        "trace_id": "11212012123120120415201309082013",
+                        "span_id": "1231201211212012",
                     }
                 },
-                spans=[],
-                timestamp=iso_format(before_now(minutes=1)),
-                start_timestamp=iso_format(before_now(minutes=1)),
-                type="transaction",
-                platform="python",
-            )
+                "start_timestamp": time(),
+                "timestamp": time(),
+            },
+            self.project,
         )
-        event2 = manager2.save(self.project.id)
 
         assert event1.group is not None
         assert event2.group is None
+        assert event1.group_id != event2.group_id
         assert (
             tsdb.backend.get_sums(
                 TSDBModel.project,
@@ -133,14 +109,7 @@ class EventManagerGroupingTest(TestCase):
 
     def test_none_exception(self):
         """Test that when the exception is None, the group is still formed."""
-        manager = EventManager(
-            make_event(
-                exception=None,
-            )
-        )
-        with self.tasks():
-            manager.normalize()
-            event = manager.save(self.project.id)
+        event = save_new_event({"exception": None}, self.project)
 
         assert event.group
 
@@ -153,9 +122,7 @@ class EventManagerGroupingMetricsTest(TestCase):
         project.update_option("sentry:grouping_config", "legacy:2019-03-12")
         project.update_option("sentry:secondary_grouping_config", None)
 
-        manager = EventManager(make_event(message="dogs are great"))
-        manager.normalize()
-        manager.save(project.id)
+        save_new_event({"message": "Dogs are great!"}, self.project)
 
         hashes_calculated_calls = get_relevant_metrics_calls(
             mock_metrics_incr, "grouping.hashes_calculated"
@@ -167,9 +134,7 @@ class EventManagerGroupingMetricsTest(TestCase):
         project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
-        manager = EventManager(make_event(message="dogs are great"))
-        manager.normalize()
-        manager.save(project.id)
+        save_new_event({"message": "Dogs are great!"}, self.project)
 
         hashes_calculated_calls = get_relevant_metrics_calls(
             mock_metrics_incr, "grouping.hashes_calculated"
@@ -206,9 +171,7 @@ class EventManagerGroupingMetricsTest(TestCase):
                         hashes=secondary_hashes, hierarchical_hashes=[], tree_labels=[]
                     ),
                 ):
-                    manager = EventManager(make_event(message="dogs are great"))
-                    manager.normalize()
-                    manager.save(project.id)
+                    save_new_event({"message": "Dogs are great!"}, self.project)
 
                     hash_comparison_calls = get_relevant_metrics_calls(
                         mock_metrics_incr, "grouping.hash_comparison"

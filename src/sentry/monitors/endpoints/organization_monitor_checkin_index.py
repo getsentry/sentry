@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -40,7 +38,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "CheckInList", List[MonitorCheckInSerializerResponse]
+                "CheckInList", list[MonitorCheckInSerializerResponse]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -70,7 +68,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         if environments:
             queryset = queryset.filter(monitor_environment__environment__in=environments)
 
-        expand: List[str] = request.GET.getlist("expand", [])
+        expand: list[str] = request.GET.getlist("expand", [])
 
         return self.paginate(
             request=request,

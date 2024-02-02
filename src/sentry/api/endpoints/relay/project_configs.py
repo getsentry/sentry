@@ -1,5 +1,5 @@
 import logging
-from typing import Any, List, MutableMapping, Optional, Set
+from typing import Any, MutableMapping, Optional
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -163,7 +163,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         public_keys = set(public_keys or ())
 
         project_keys: MutableMapping[str, ProjectKey] = {}
-        project_ids: Set[int] = set()
+        project_ids: set[int] = set()
 
         with start_span(op="relay_fetch_keys"):
             with metrics.timer("relay_project_configs.fetching_keys.duration"):
@@ -175,7 +175,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                     project_ids.add(key.project_id)
 
         projects: MutableMapping[int, Project] = {}
-        organization_ids: Set[int] = set()
+        organization_ids: set[int] = set()
 
         with start_span(op="relay_fetch_projects"):
             with metrics.timer("relay_project_configs.fetching_projects.duration"):
@@ -252,7 +252,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         with start_span(op="relay_fetch_orgs"):
             # Preload all organizations and their options to prevent repeated
             # database access when computing the project configuration.
-            org_ids: Set[int] = {project.organization_id for project in projects.values()}
+            org_ids: set[int] = {project.organization_id for project in projects.values()}
             if org_ids:
                 with metrics.timer("relay_project_configs.fetching_orgs.duration"):
                     orgs_seq = Organization.objects.get_many_from_cache(org_ids)
@@ -265,7 +265,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                     OrganizationOption.objects.get_all_values(org_id)
 
         with start_span(op="relay_fetch_keys"):
-            project_keys: MutableMapping[int, List[ProjectKey]] = {}
+            project_keys: MutableMapping[int, list[ProjectKey]] = {}
             for key in ProjectKey.objects.filter(project_id__in=project_ids):
                 project_keys.setdefault(key.project_id, []).append(key)
 

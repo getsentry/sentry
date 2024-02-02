@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence, Union
+from typing import Any, Mapping, Sequence
 
 from django.utils import timezone
 from django.utils.timesince import timesince
@@ -58,6 +58,16 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+SUPPORTED_COMMIT_PROVIDERS = (
+    "github",
+    "integrations:github",
+    "integrations:github_enterprise",
+    "integrations:vsts",
+    "integrations:gitlab",
+    "bitbucket",
+    "integrations:bitbucket",
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -300,10 +310,18 @@ def get_suspect_commit_text(
 
     author_display = author.get("name") if author.get("name") is not None else author.get("email")
     if pull_request:
-        repo_base = pull_request.get("repository", {}).get("url")
-        if repo_base:
-            commit_link = f"<{repo_base}/commit/{commit_id}|{commit_id[0:6]}>"
+        repo = pull_request.get("repository", {})
+        repo_base = repo.get("url")
+        provider = repo.get("provider", {}).get("id")
+        if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
+            if "bitbucket" in provider:
+                commit_link = f"<{repo_base}/commits/{commit_id}"
+            else:
+                commit_link = f"<{repo_base}/commit/{commit_id}"
+            commit_link += f"|{commit_id[:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
+        else:  # for unsupported providers
+            suspect_commit_text += f"{commit_id[:6]} by {author_display}"
 
         pr_date = pull_request.get("dateCreated")
         if pr_date:
@@ -316,7 +334,7 @@ def get_suspect_commit_text(
                 f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
             )
     else:
-        suspect_commit_text += f"{commit_id} by {author_display}"
+        suspect_commit_text += f"{commit_id[:6]} by {author_display}"
     return suspect_commit_text
 
 
@@ -473,7 +491,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def build(self, notification_uuid: str | None = None) -> Union[SlackBlock, SlackAttachment]:
+    def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         if self.escape_text:
@@ -568,23 +586,27 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 
-        # build tags block
-        tags = get_tags(event_for_tags, self.tags)
-        if tags:
-            blocks.append(self.get_tags_block(tags))
+        if self.group.issue_category == GroupCategory.ERROR:
+            # XXX(CEO): in the short term we're not adding these to non-error issues (e.g. crons)
+            # since they don't make sense, but in the future we'll read some config from the grouptype
 
-        # add event count, user count, substate, first seen
-        context = {
-            "Events": get_group_global_count(self.group),
-            "Users Affected": self.group.count_users_seen(),
-            "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
-            "First Seen": time_since(self.group.first_seen),
-        }
-        context_text = ""
-        for k, v in context.items():
-            if k and v:
-                context_text += f"{k}: *{v}*   "
-        blocks.append(self.get_context_block(context_text[:-3]))
+            # build tags block
+            tags = get_tags(event_for_tags, self.tags)
+            if tags:
+                blocks.append(self.get_tags_block(tags))
+
+            # add event count, user count, substate, first seen
+            context = {
+                "Events": get_group_global_count(self.group),
+                "Users Affected": self.group.count_users_seen(),
+                "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
+                "First Seen": time_since(self.group.first_seen),
+            }
+            context_text = ""
+            for k, v in context.items():
+                if k and v:
+                    context_text += f"{k}: *{v}*   "
+            blocks.append(self.get_context_block(context_text[:-3]))
 
         # build actions
         actions = []
