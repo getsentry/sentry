@@ -5,6 +5,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import tsdb
 from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.issues.priority import PriorityLevel
+from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remove_group_from_inbox
@@ -14,6 +15,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.types.activity import ActivityType
 
 
 @region_silo_test
@@ -252,6 +254,14 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.put(url, {"priority": "high"}, format="json")
         assert response.status_code == 200, response.content
         assert response.data["priority"] == "high"
+
+        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        assert len(act_for_group) == 2
+        assert act_for_group[0].type == ActivityType.SET_PRIORITY.value
+        assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
+        assert act_for_group[0].user_id == self.user.id
+        assert act_for_group[0].data["priority"] == "high"
+
         get_response_after = self.client.get(url, format="json")
         assert get_response_after.status_code == 200, get_response_after.content
         assert get_response_after.data["priority"] == "high"
@@ -271,6 +281,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         response = self.client.put(url, {"priority": "high"}, format="json")
         assert response.status_code == 200, response.content
+
+        act_for_group = Activity.objects.get_activities_for_group(group=group, num=100)
+        assert len(act_for_group) == 1
+        assert act_for_group[0].type == ActivityType.FIRST_SEEN.value
 
         get_response_after = self.client.get(url, format="json")
         assert get_response_after.status_code == 200, get_response_after.content
