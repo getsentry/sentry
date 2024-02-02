@@ -10,7 +10,9 @@ class TestRedisSpansBuffer:
             mock_client.expire = mock.Mock()
 
             buffer.write_span("bar", "foo", b"span data")
-            mock_client.expire.assert_called_once_with("project:bar:segment:foo", 300)
+            mock_client.expire.assert_called_once_with(
+                "project:bar:segment:foo:process-segment", 300
+            )
 
     def test_ttl_not_set_repeatedly(self):
         buffer = RedisSpansBuffer()

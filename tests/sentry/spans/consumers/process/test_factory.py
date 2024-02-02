@@ -76,7 +76,9 @@ def test_consumer_pushes_to_redis_and_schedules_task(process_segment):
     strategy.poll()
     strategy.join(1)
     strategy.terminate()
-    assert redis_client.lrange("project:1:segment:ace31e54d65652aa", 0, -1) == [message.value()]
+    assert redis_client.lrange("project:1:segment:ace31e54d65652aa:process-segment", 0, -1) == [
+        message.value()
+    ]
     process_segment.apply_async.assert_called_once_with(args=[1, "ace31e54d65652aa"], countdown=120)
 
 
@@ -119,7 +121,7 @@ def test_second_span_in_segment_does_not_queue_task(process_segment):
     strategy.poll()
     strategy.join(1)
     strategy.terminate()
-    assert redis_client.lrange("project:1:segment:ace31e54d65652aa", 0, -1) == [
+    assert redis_client.lrange("project:1:segment:ace31e54d65652aa:process-segment", 0, -1) == [
         message.value(),
         message.value(),
     ]
