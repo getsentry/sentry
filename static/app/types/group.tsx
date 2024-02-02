@@ -91,6 +91,9 @@ export enum IssueType {
   PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
   PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
   PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
+
+  // Replay
+  REPLAY_CLICK_RAGE = 'replay_click_rage',
 }
 
 export enum IssueTitle {
@@ -130,6 +133,7 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   2009: IssueType.PROFILE_FRAME_DROP_EXPERIMENTAL,
   2010: IssueType.PROFILE_FUNCTION_REGRESSION,
   2011: IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
+  5002: IssueType.REPLAY_CLICK_RAGE,
 };
 
 const PERFORMANCE_REGRESSION_TYPE_IDS = new Set([1017, 1018, 2010, 2011]);
