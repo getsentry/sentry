@@ -47,9 +47,6 @@ filterwarnings = [
 
     # pytest has not yet implemented the replacement for this yet
     "ignore:The --looponfail command line argument.*",
-
-    # the redis we use still uses distutils.
-    "ignore:The distutils package is deprecated and slated for removal in Python 3.12. Use setuptools or check PEP 632 for potential alternatives",
 ]
 looponfailroots = ["src", "tests"]
 
