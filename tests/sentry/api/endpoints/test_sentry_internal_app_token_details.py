@@ -20,7 +20,7 @@ class SentryInternalAppTokenCreationTest(APITestCase):
 
         self.url = reverse(
             "sentry-api-0-sentry-internal-app-token-details",
-            args=[self.internal_sentry_app.slug, self.api_token.token],
+            args=[self.internal_sentry_app.slug, self.api_token.id],
         )
 
     def test_delete_token(self):
@@ -47,7 +47,7 @@ class SentryInternalAppTokenCreationTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-sentry-internal-app-token-details",
-            args=[self.internal_sentry_app.slug, api_token.token],
+            args=[self.internal_sentry_app.slug, api_token.id],
         )
 
         self.login_as(user=self.user)
@@ -63,7 +63,7 @@ class SentryInternalAppTokenCreationTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-sentry-internal-app-token-details",
-            args=[install.sentry_app.slug, install.api_token.token],
+            args=[install.sentry_app.slug, install.api_token.id],
         )
 
         self.login_as(user=self.user)
@@ -76,7 +76,7 @@ class SentryInternalAppTokenCreationTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-sentry-internal-app-token-details",
-            args=["not_a_slug", self.api_token.token],
+            args=["not_a_slug", self.api_token.id],
         )
 
         self.login_as(user=self.user)
