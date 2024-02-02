@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -58,7 +58,11 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
       {filteredTimelineEvents.length > 3 && (
         <TraceItem>
           <Link to={generateTraceTarget(event, organization)}>
-            {t('View %s more events', filteredTimelineEvents.length - 3)}
+            {tn(
+              'View %s more event',
+              'View %s more events',
+              filteredTimelineEvents.length - 3
+            )}
           </Link>
         </TraceItem>
       )}
