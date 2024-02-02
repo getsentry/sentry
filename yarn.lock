@@ -1643,11 +1643,6 @@
   dependencies:
     tslib "^2.4.0"
 
-"@fullstory/babel-plugin-annotate-react@^2.3.0":
-  version "2.3.0"
-  resolved "https://registry.yarnpkg.com/@fullstory/babel-plugin-annotate-react/-/babel-plugin-annotate-react-2.3.0.tgz#ab4df27dbecaa3771a1b353b898ccf887876e9fb"
-  integrity sha512-gYLUL6Tu0exbvTIhK9nSCaztmqBlQAm07Fvtl/nKTc+lxwFkcX9vR8RrdTbyjJZKbPaA5EMlExQ6GeLCXkfm5g==
-
 "@humanwhocodes/config-array@^0.11.11":
   version "0.11.11"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.11.11.tgz#88a04c570dbbc7dd943e4712429c3df09bc32844"
