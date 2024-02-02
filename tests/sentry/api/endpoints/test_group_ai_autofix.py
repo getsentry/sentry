@@ -49,7 +49,9 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         release = self.create_release(project=self.project, version="1.0.0")
 
         repo = self.create_repo(
-            project=self.project, name="getsentry/sentry", provider="integrations:github"
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
         )
         repo.save()
 
