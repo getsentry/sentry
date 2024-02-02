@@ -45,14 +45,14 @@ const config: TransformOptions = {
           },
         ],
         ['babel-plugin-add-react-displayname'],
-        componentNameAnnotatePlugin,
+        [componentNameAnnotatePlugin],
       ],
     },
     development: {
       plugins: [
         '@emotion/babel-plugin',
         '@babel/plugin-transform-react-jsx-source',
-        componentNameAnnotatePlugin,
+        [componentNameAnnotatePlugin],
         ...(process.env.SENTRY_UI_HOT_RELOAD ? ['react-refresh/babel'] : []),
       ],
     },
