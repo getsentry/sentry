@@ -1,19 +1,10 @@
 import logging
+from collections.abc import Callable, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime
 from threading import Event, Lock
 from time import time
-from typing import (
-    Callable,
-    Generator,
-    Generic,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Set,
-    TypeVar,
-)
+from typing import Generic, TypeVar
 
 from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaPayload
@@ -39,12 +30,9 @@ class Synchronized(Generic[T]):
     (replacing) the value.
     """
 
-    def __init__(self, value: T, lock: Optional[Lock] = None) -> None:
-        if lock is None:
-            lock = Lock()
-
+    def __init__(self, value: T) -> None:
         self.__value = value
-        self.__lock = lock
+        self.__lock = Lock()
 
     # TODO: For future use, it might make sense to expose the other lock
     # arguments on `get` and `set`, such as `timeout`, `block`, etc.
@@ -94,7 +82,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
         consumer: Consumer[TStrategyPayload],
         commit_log_consumer: Consumer[KafkaPayload],
         commit_log_topic: Topic,
-        commit_log_groups: Set[str],
+        commit_log_groups: set[str],
     ) -> None:
         self.__consumer = consumer
 
@@ -122,7 +110,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
         # The set of partitions that have been paused by the caller/user. This
         # takes precedence over whether or not the partition should be paused
         # due to offset synchronization.
-        self.__paused: Set[Partition] = set()
+        self.__paused: set[Partition] = set()
 
     def __run_commit_log_worker(self) -> None:
         # TODO: This needs to roll back to the initial offset.
@@ -195,8 +183,8 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
     def subscribe(
         self,
         topics: Sequence[Topic],
-        on_assign: Optional[Callable[[Mapping[Partition, int]], None]] = None,
-        on_revoke: Optional[Callable[[Sequence[Partition]], None]] = None,
+        on_assign: Callable[[Mapping[Partition, int]], None] | None = None,
+        on_revoke: Callable[[Sequence[Partition]], None] | None = None,
     ) -> None:
         def assignment_callback(offsets: Mapping[Partition, int]) -> None:
             for partition in offsets:
@@ -219,7 +207,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
     def unsubscribe(self) -> None:
         return self.__consumer.unsubscribe()
 
-    def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[TStrategyPayload]]:
+    def poll(self, timeout: float | None = None) -> BrokerValue[TStrategyPayload] | None:
         self.__check_commit_log_worker_running()
 
         # Resume any partitions that can be resumed (where the local
@@ -303,7 +291,7 @@ class SynchronizedConsumer(Consumer[TStrategyPayload]):
     def commit_offsets(self) -> Mapping[Partition, int]:
         return self.__consumer.commit_offsets()
 
-    def close(self, timeout: Optional[float] = None) -> None:
+    def close(self, timeout: float | None = None) -> None:
         # TODO: Be careful to ensure there are not any deadlock conditions
         # here. Should this actually wait for the commit log worker?
         self.__commit_log_worker_stop_requested.set()

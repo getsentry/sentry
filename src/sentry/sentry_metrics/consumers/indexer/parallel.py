@@ -3,7 +3,8 @@ from __future__ import annotations
 import functools
 import logging
 from collections import deque
-from typing import Any, Deque, Mapping, Optional, Union, cast
+from collections.abc import Mapping
+from typing import Any, Deque, Union, cast
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
@@ -35,15 +36,11 @@ logger = logging.getLogger(__name__)
 class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]]):
     def __init__(
         self,
-        next_step: ProcessingStep[
-            Union[KafkaPayload, RoutingPayload, InvalidMessage, FilteredPayload]
-        ],
+        next_step: ProcessingStep[KafkaPayload | RoutingPayload | InvalidMessage | FilteredPayload],
     ) -> None:
         self.__next_step = next_step
         self.__closed = False
-        self.__messages: Deque[
-            Message[Union[KafkaPayload, RoutingPayload, InvalidMessage]]
-        ] = deque()
+        self.__messages: Deque[Message[KafkaPayload | RoutingPayload | InvalidMessage]] = deque()
 
     def poll(self) -> None:
         self.__next_step.poll()
@@ -54,7 +51,7 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
                 raise msg.payload
             self.__next_step.submit(msg)
 
-    def submit(self, message: Message[Union[FilteredPayload, IndexerOutputMessageBatch]]) -> None:
+    def submit(self, message: Message[FilteredPayload | IndexerOutputMessageBatch]) -> None:
         assert not self.__closed
 
         if self.__messages:
@@ -77,7 +74,7 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
         logger.debug("Terminating %r...", self.__next_step)
         self.__next_step.terminate()
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         self.__next_step.close()
         self.__next_step.join(timeout)
 
@@ -109,8 +106,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_parallel_batch_size: int,
         max_parallel_batch_time: float,
         processes: int,
-        input_block_size: Optional[int],
-        output_block_size: Optional[int],
+        input_block_size: int | None,
+        output_block_size: int | None,
         ingest_profile: str,
         indexer_db: str,
     ):
@@ -197,7 +194,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 def get_metrics_producer_strategy(
     config: MetricsIngestConfiguration,
     commit: Commit,
-    slicing_router: Optional[SlicingRouter],
+    slicing_router: SlicingRouter | None,
 ) -> Any:
     if config.is_output_sliced:
         if slicing_router is None:

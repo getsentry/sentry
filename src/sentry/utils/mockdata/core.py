@@ -3,10 +3,11 @@ from __future__ import annotations
 import itertools
 import random
 import time
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from random import randint
-from typing import Any, Mapping, Optional
+from typing import Any
 from uuid import uuid4
 
 import click
@@ -357,12 +358,12 @@ def get_organization() -> Organization:
     return org
 
 
-def create_owner(organization: Organization, user: User, role: Optional[str] = None) -> None:
+def create_owner(organization: Organization, user: User, role: str | None = None) -> None:
     create_member(organization, user, roles.get_top_dog().id)
 
 
 def create_member(
-    organization: Organization, user: User, role: Optional[str] = None
+    organization: Organization, user: User, role: str | None = None
 ) -> OrganizationMember:
     member, _ = OrganizationMember.objects.get_or_create(
         user_id=user.id, organization=organization, defaults={"role": role}

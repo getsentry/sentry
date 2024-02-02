@@ -284,6 +284,7 @@ class WidgetCard extends Component<Props, State> {
             organization={organization}
             selection={selection}
             widget={widget}
+            dashboardFilters={dashboardFilters}
           />
         );
       }

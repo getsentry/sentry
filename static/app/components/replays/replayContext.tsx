@@ -33,6 +33,11 @@ type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
 // Instead only expose methods that wrap `Replayer` and manage state.
 interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
+   * The context in which the replay is being viewed.
+   */
+  analyticsContext: string;
+
+  /**
    * The time, in milliseconds, where the user focus is.
    * The user focus can be reported by any collaborating object, usually on
    * hover.
@@ -156,6 +161,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
 }
 
 const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
+  analyticsContext: '',
   clearAllHighlights: () => {},
   currentHoverTime: undefined,
   currentTime: 0,
@@ -184,6 +190,12 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
 });
 
 type Props = {
+  /**
+   * The context in which the replay is being viewed.
+   * Attached to certain analytics events.
+   */
+  analyticsContext: string;
+
   children: React.ReactNode;
 
   /**
@@ -267,6 +279,7 @@ function useClipWindow({
 }
 
 export function Provider({
+  analyticsContext,
   children,
   clipWindow,
   initialTimeOffsetMs,
@@ -532,9 +545,10 @@ export function Provider({
         organization,
         user_email: user.email,
         play,
+        context: analyticsContext,
       });
     },
-    [getCurrentTime, user.email, organization]
+    [organization, user.email, analyticsContext, getCurrentTime]
   );
 
   useEffect(() => {
@@ -604,6 +618,7 @@ export function Provider({
   return (
     <ReplayPlayerContext.Provider
       value={{
+        analyticsContext,
         clearAllHighlights,
         currentHoverTime,
         currentTime,

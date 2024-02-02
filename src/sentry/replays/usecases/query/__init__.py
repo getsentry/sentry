@@ -15,8 +15,9 @@ found in the function.
 from __future__ import annotations
 
 from collections import namedtuple
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence, Union, cast
+from typing import Any, cast
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (
@@ -45,7 +46,7 @@ from sentry.utils.snuba import raw_snql_query
 
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
     result: list[Condition] = []
@@ -91,7 +92,7 @@ def handle_search_filters(
 def attempt_compressed_condition(
     result: list[Expression],
     condition: Condition,
-    condition_type: Union[And, Or],
+    condition_type: And | Or,
 ):
     """Unnecessary query optimization.
 
@@ -136,7 +137,7 @@ Paginators = namedtuple("Paginators", ("limit", "offset"))
 
 def query_using_optimized_search(
     fields: list[str],
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
     environments: list[str],
     sort: str | None,
     pagination: Paginators | None,
@@ -209,7 +210,7 @@ def query_using_optimized_search(
 
 
 def make_scalar_search_conditions_query(
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
@@ -241,7 +242,7 @@ def make_scalar_search_conditions_query(
 
 
 def make_aggregate_search_conditions_query(
-    search_filters: Sequence[Union[SearchFilter, str, ParenExpression]],
+    search_filters: Sequence[SearchFilter | str | ParenExpression],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
@@ -277,7 +278,7 @@ def make_full_aggregation_query(
     """Return a query to fetch every replay in the set."""
     from sentry.replays.query import QUERY_ALIAS_COLUMN_MAP, select_from_fields
 
-    def _select_from_fields() -> list[Union[Column, Function]]:
+    def _select_from_fields() -> list[Column | Function]:
         if fields:
             return select_from_fields(list(set(fields)))
         else:

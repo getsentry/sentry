@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, Sequence, TypedDict
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, Required, TypedDict
 
 import click
-from typing_extensions import Required
 
 
 class ConsumerDefinition(TypedDict, total=False):

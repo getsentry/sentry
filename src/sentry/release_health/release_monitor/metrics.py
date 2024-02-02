@@ -1,8 +1,8 @@
 import logging
 import time
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Mapping, Sequence, Set
 
 from snuba_sdk import (
     Column,
@@ -165,7 +165,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         data = data[:-1]
 
                     # convert indexes back to strings
-                    indexes: Set[int] = set()
+                    indexes: set[int] = set()
                     for row in data:
                         indexes.add(row[env_key])
                         indexes.add(row[release_key])

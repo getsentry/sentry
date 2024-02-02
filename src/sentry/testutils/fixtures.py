@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any
 
 import pytest
 from django.utils.functional import cached_property
@@ -460,7 +461,7 @@ class Fixtures:
         self,
         organization: Organization,
         external_id: str = "TXXXXXXX1",
-        user: Optional[RpcUser] = None,
+        user: RpcUser | None = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):
@@ -547,6 +548,9 @@ class Fixtures:
 
     def snooze_rule(self, *args, **kwargs):
         return Factories.snooze_rule(*args, **kwargs)
+
+    def create_request_access(self, *args, **kwargs):
+        return Factories.create_request_access(*args, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
