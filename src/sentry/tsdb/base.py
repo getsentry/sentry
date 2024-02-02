@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Optional
 
 from django.conf import settings
 from django.utils import timezone
@@ -239,7 +238,7 @@ class BaseTSDB(Service):
         return list(self.rollups)[-1]
 
     def get_optimal_rollup_series(
-        self, start, end: Optional[datetime] = None, rollup: Optional[int] = None
+        self, start, end: datetime | None = None, rollup: int | None = None
     ) -> tuple[int, list[int]]:
         if end is None:
             end = timezone.now()
@@ -263,9 +262,11 @@ class BaseTSDB(Service):
         rollups = {}
         for rollup, samples in self.rollups.items():
             _, series = self.get_optimal_rollup_series(
-                start
-                if start is not None
-                else to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp)),
+                (
+                    start
+                    if start is not None
+                    else to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp))
+                ),
                 end,
                 rollup=rollup,
             )
