@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sentry import analytics, features
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
@@ -26,7 +24,7 @@ from sentry.tasks.base import instrumented_task, retry
         Organization.DoesNotExist,
     )
 )
-def sync_assignee_outbound(external_issue_id: int, user_id: Optional[int], assign: bool) -> None:
+def sync_assignee_outbound(external_issue_id: int, user_id: int | None, assign: bool) -> None:
     # Sync Sentry assignee to an external issue.
     external_issue = ExternalIssue.objects.get(id=external_issue_id)
 

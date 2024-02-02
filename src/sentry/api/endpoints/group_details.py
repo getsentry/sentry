@@ -1,7 +1,7 @@
 import functools
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError

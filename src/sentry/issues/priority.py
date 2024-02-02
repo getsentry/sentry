@@ -118,8 +118,8 @@ def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
 
     if not new_priority:
         logger.error(
-            "Unable to determine previous priority value for group %s after transitioning to ongoing",
-            group.id,
+            "Unable to determine previous priority value after transitioning group to ongoing",
+            extra={"group": group.id},
         )
         return None
 
