@@ -1494,6 +1494,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     # Delightful Developer Metrics (DDM):
     # Enable sidebar menu item and all UI (requires custom-metrics flag as well)
     "organizations:ddm-ui": False,
+    # Enables querying spans correlation source for ddm
+    "organizations:ddm-spans-correlations-source": False,
     # Enables import of metric dashboards
     "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
