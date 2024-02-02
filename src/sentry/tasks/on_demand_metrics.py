@@ -295,7 +295,9 @@ def _set_widget_on_demand_state(
         if on_demand.can_extraction_be_auto_overridden():
             on_demand.extraction_state = extraction_state
 
-        on_demand.spec_hashes = spec_hashes
+        # Do not set the spec hashes to not set the expectation that something is being extracted
+        if extraction_state not in [OnDemandExtractionState.DISABLED_NOT_APPLICABLE]:
+            on_demand.spec_hashes = spec_hashes
         on_demand.save()
 
 

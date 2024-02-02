@@ -406,6 +406,37 @@ def test_process_widget_specs(
             )
 
 
+@django_db_all
+def test_no_aggregate(project) -> None:
+    query = "event.type:transaction transaction.op:pageload app_recommended_owner:#onboarding-experience"
+    columns = ["count()", "transaction", "user_misery(300)", "p75(measurements.lcp)"]
+
+    widget_query, _, _ = create_widget([], query, project, columns=columns)
+
+    with override_options({"on_demand_metrics.check_widgets.enable": True}), Feature(
+        _WIDGET_EXTRACTION_FEATURES
+    ):
+        process_widget_specs([widget_query.id])
+
+    widget_models = DashboardWidgetQueryOnDemand.objects.filter(
+        dashboard_widget_query_id=widget_query.id
+    )
+    assert widget_models.exists()
+    for widget_model in widget_models:
+        assert_on_demand_model(
+            widget_model,
+            has_features=True,
+            expected_state=OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
+            expected_hashes=None,
+        )
+        assert widget_query.aggregates == []
+        assert widget_query.conditions == query
+        assert widget_query.columns == columns
+        # XXX: In production we have this value
+        # ["count()","transaction","user_misery(300)","p75(measurements.lcp)"]
+        assert widget_query.fields == []
+
+
 def assert_on_demand_model(
     model: DashboardWidgetQueryOnDemand,
     has_features: bool,
