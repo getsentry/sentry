@@ -56,7 +56,11 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
       'Warm Start (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
-    app_start_breakdown: t('App Start Breakdown'),
+    [`avg_compare(measurements.app_start_cold,release,${primaryRelease},${secondaryRelease})`]:
+      t('Change'),
+    [`avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`]:
+      t('Change'),
+    app_start_breakdown: t('Type Breakdown'),
     'count()': t('Total Count'),
   };
 
@@ -171,8 +175,10 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
           'transaction',
           `avg_if(measurements.app_start_cold,release,${primaryRelease})`,
           `avg_if(measurements.app_start_cold,release,${secondaryRelease})`,
+          `avg_compare(measurements.app_start_cold,release,${primaryRelease},${secondaryRelease})`,
           `avg_if(measurements.app_start_warm,release,${primaryRelease})`,
           `avg_if(measurements.app_start_warm,release,${secondaryRelease})`,
+          `avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`,
           `app_start_breakdown`,
           'count()',
         ].map(columnKey => {
