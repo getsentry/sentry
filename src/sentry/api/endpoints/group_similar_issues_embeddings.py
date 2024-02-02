@@ -73,17 +73,16 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
     def get_formatted_results(
         self, responses: Sequence[SimilarIssuesEmbeddingsData | None], user: User | AnonymousUser
-    ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]]]:
+    ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """Format the responses using to be used by the frontend."""
         group_data = {}
         for response in responses:
             if response:
-                formatted_response: FormattedSimilarIssuesEmbeddingsData = {}
-                formatted_response.update({"message": response["message_similarity"]})
-                formatted_response.update({"exception": response["stacktrace_similarity"]})
-                formatted_response.update(
-                    {"shouldBeGrouped": "Yes" if response["should_group"] else "No"}
-                )
+                formatted_response: FormattedSimilarIssuesEmbeddingsData = {
+                    "message": response["message_similarity"],
+                    "exception": response["stacktrace_similarity"],
+                    "shouldBeGrouped": "Yes" if response["should_group"] else "No",
+                }
                 group_data.update({response["parent_group_id"]: formatted_response})
 
         serialized_groups = {
@@ -93,9 +92,14 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             )
         }
 
-        return [
-            (serialized_groups[group_id], group_data[group_id]) for group_id in group_data.keys()
-        ]
+        result = []
+        for group_id in group_data:
+            try:
+                result.append((serialized_groups[group_id], group_data[group_id]))
+            except KeyError:
+                # KeyErrors may occur if seer API returns a deleted/merged group
+                continue
+        return result
 
     def get(self, request: Request, group) -> Response:
         if not features.has("projects:similarity-embeddings", group.project):
@@ -118,7 +122,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         results = get_similar_issues_embeddings(similar_issues_params)
 
         if not results["responses"]:
-            return Response(results)
+            return Response([])
         formatted_results = self.get_formatted_results(results["responses"], request.user)
 
         return Response(formatted_results)
