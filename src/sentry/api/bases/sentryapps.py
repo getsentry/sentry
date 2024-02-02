@@ -14,7 +14,7 @@ from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
 from sentry.models.integrations.sentry_app import SentryApp
@@ -87,6 +87,7 @@ class SentryAppsPermission(SentryPermission):
 
         self.determine_access(request, context)
 
+        # TODO(cathy): replace with superuser_has_permission
         if is_active_superuser(request):
             return True
 
@@ -202,7 +203,7 @@ class SentryAppPermission(SentryPermission):
         )
         self.determine_access(request, owner_app)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         organizations = (
@@ -277,6 +278,7 @@ class SentryAppInstallationsPermission(SentryPermission):
 
         self.determine_access(request, organization)
 
+        # TODO(cathy): replace with superuser_has_permission
         if is_active_superuser(request):
             return True
 
@@ -341,7 +343,7 @@ class SentryAppInstallationPermission(SentryPermission):
 
         self.determine_access(request, installation.organization_id)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         # if user is an app, make sure it's for that same app

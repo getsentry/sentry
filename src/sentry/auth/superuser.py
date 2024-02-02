@@ -94,20 +94,22 @@ def superuser_has_permission(request: HttpRequest | Request) -> bool:
     Superuser read-only is restricted to GET and OPTIONS requests.
     These checks do not affect self-hosted.
     """
+    if not is_active_superuser(request):
+        return False
+
     if is_self_hosted():
         return True
 
-    if is_active_superuser(request):
-        if features.has("auth:enterprise-superuser-read-write", actor=request.user):
-            if request.access.has_permission("superuser.write"):
-                return True
-
-            # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
-            return request.method == "GET" or request.method == "OPTIONS"
-
+    # if we aren't enforcing superuser read-write, then superuser always has access
+    if not features.has("auth:enterprise-superuser-read-write", actor=request.user):
         return True
 
-    return False
+    # superuser write can access all requests
+    if request.access.has_permission("superuser.write"):
+        return True
+
+    # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
+    return request.method == "GET" or request.method == "OPTIONS"
 
 
 def is_active_superuser(request: HttpRequest | Request) -> bool:
