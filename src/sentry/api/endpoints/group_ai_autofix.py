@@ -89,15 +89,17 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
     ):
         requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
-            json={
-                "base_commit_sha": base_commit_sha,
-                "issue": {
-                    "id": group.id,
-                    "title": group.title,
-                    "events": [{"entries": event_entries}],
-                },
-                "additional_context": additional_context,
-            },
+            data=json.dumps(
+                {
+                    "base_commit_sha": base_commit_sha,
+                    "issue": {
+                        "id": group.id,
+                        "title": group.title,
+                        "events": [{"entries": event_entries}],
+                    },
+                    "additional_context": additional_context,
+                }
+            ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
