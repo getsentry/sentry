@@ -17,9 +17,12 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  ReleaseComparisonSelector,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
 import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -79,9 +82,6 @@ function ScreenSummary() {
     },
   ];
 
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 10);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 10);
-
   return (
     <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
       <Layout.Page>
@@ -122,7 +122,7 @@ function ScreenSummary() {
                     blocks={[
                       {
                         type: 'duration',
-                        title: t('Cold Start (%s)', truncatedPrimary),
+                        title: t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.cold'
@@ -136,7 +136,7 @@ function ScreenSummary() {
                       },
                       {
                         type: 'duration',
-                        title: t('Cold Start (%s)', truncatedSecondary),
+                        title: t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.cold'
@@ -150,7 +150,7 @@ function ScreenSummary() {
                       },
                       {
                         type: 'duration',
-                        title: t('Warm Start (%s)', truncatedPrimary),
+                        title: t('Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.warm'
@@ -164,7 +164,7 @@ function ScreenSummary() {
                       },
                       {
                         type: 'duration',
-                        title: t('Warm Start (%s)', truncatedSecondary),
+                        title: t('Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.warm'

@@ -18,12 +18,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colours';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import Breakdown from 'sentry/views/starfish/views/appStartup/breakdown';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
-
-const MAX_TABLE_RELEASE_CHARS = 15;
 
 type Props = {
   data: TableData | undefined;
@@ -36,32 +37,24 @@ export function ScreensTable({data, eventView, isLoading, pageLinks}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
-  const truncatedPrimary = formatVersionAndCenterTruncate(
-    primaryRelease ?? '',
-    MAX_TABLE_RELEASE_CHARS
-  );
-  const truncatedSecondary = formatVersionAndCenterTruncate(
-    secondaryRelease ?? '',
-    MAX_TABLE_RELEASE_CHARS
-  );
 
   const columnNameMap = {
     transaction: t('Screen'),
     [`avg_if(measurements.app_start_cold,release,${primaryRelease})`]: t(
       'Cold Start (%s)',
-      truncatedPrimary
+      PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.app_start_cold,release,${secondaryRelease})`]: t(
       'Cold Start (%s)',
-      truncatedSecondary
+      SECONDARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.app_start_warm,release,${primaryRelease})`]: t(
       'Warm Start (%s)',
-      truncatedPrimary
+      PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.app_start_warm,release,${secondaryRelease})`]: t(
       'Warm Start (%s)',
-      truncatedSecondary
+      SECONDARY_RELEASE_ALIAS
     ),
     app_start_breakdown: t('App Start Breakdown'),
     'count()': t('Total Count'),
