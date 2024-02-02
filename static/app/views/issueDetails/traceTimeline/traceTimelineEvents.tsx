@@ -223,13 +223,12 @@ const CurrentNodeContainer = styled('div')`
 
 const CurrentNodeRing = styled('div')`
   border: 1px solid ${p => p.theme.red300};
-  height: 20px;
-  width: 20px;
-  border-radius: 30px;
+  height: 16px;
+  width: 16px;
+  border-radius: 100%;
   position: absolute;
-  top: -6px;
-  left: -6px;
-  opacity: 0.0;
+  top: -4px;
+  left: -4px;
   animation: pulse 1s ease-out infinite;
 
   @keyframes pulse {
