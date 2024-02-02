@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from unittest.mock import patch
 
 from sentry.models.group import Group
 from sentry.tasks.ai_autofix import ai_autofix_check_for_timeout
@@ -19,9 +18,7 @@ class TestAIAutofixCheckForTimeout(TestCase):
         }
         group.save()
 
-        with patch("sentry.models.Group.objects.get") as mock_group_get:
-            mock_group_get.return_value = group
-            ai_autofix_check_for_timeout(group_id=group.id, created_at=created_at)
+        ai_autofix_check_for_timeout(group_id=group.id, created_at=created_at)
 
         updated_group = Group.objects.get(id=group.id)
         updated_autofix_data = updated_group.data["metadata"]["autofix"]
@@ -50,9 +47,7 @@ class TestAIAutofixCheckForTimeout(TestCase):
         }
         group.save()
 
-        with patch("sentry.models.Group.objects.get") as mock_group_get:
-            mock_group_get.return_value = group
-            ai_autofix_check_for_timeout(group_id=group.id, created_at=created_at)
+        ai_autofix_check_for_timeout(group_id=group.id, created_at=created_at)
 
         updated_group = Group.objects.get(id=group.id)
         assert updated_group.data["metadata"]["autofix"]["status"] == "COMPLETED"
@@ -70,9 +65,7 @@ class TestAIAutofixCheckForTimeout(TestCase):
         }
         group.save()
 
-        with patch("sentry.models.Group.objects.get") as mock_group_get:
-            mock_group_get.return_value = group
-            ai_autofix_check_for_timeout(group_id=group.id, created_at=old_created_at)
+        ai_autofix_check_for_timeout(group_id=group.id, created_at=old_created_at)
 
         updated_group = Group.objects.get(id=group.id)
         updated_autofix_data = updated_group.data["metadata"]["autofix"]
