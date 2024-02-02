@@ -215,6 +215,7 @@ export class TraceTree {
       const root = createSpanTree(node, (spans?.data ?? []) as RawSpanType[]);
       node.setSpanChildren(root.spanChildren);
       node.zoomedIn = zoomedIn;
+      root.depth = node.depth;
       TraceTree.updateTreeDepths(root);
 
       const spanChildren = node.getVisibleChildren();

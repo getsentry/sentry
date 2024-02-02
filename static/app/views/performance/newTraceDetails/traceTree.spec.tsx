@@ -55,6 +55,33 @@ describe('TraceTree', () => {
     expect(tree.list).toHaveLength(2);
   });
 
+  it('preserves input order', () => {
+    const tree = TraceTree.FromTrace([
+      makeTransaction({
+        start_timestamp: 0,
+        timestamp: 2,
+        children: [
+          makeTransaction({
+            start_timestamp: 0,
+            timestamp: 1,
+            children: [],
+          }),
+          makeTransaction({
+            start_timestamp: 1,
+            timestamp: 2,
+            children: [],
+          }),
+        ],
+      }),
+      makeTransaction({
+        start_timestamp: 2,
+        timestamp: 4,
+      }),
+    ]);
+
+    expect(tree.list).toHaveLength(2);
+  });
+
   it('establishes parent-child relationships', () => {
     const tree = TraceTree.FromTrace([
       makeTransaction({
