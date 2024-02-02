@@ -51,19 +51,20 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
     def _get_base_commit(self, group: Group) -> Commit | None:
         # Using `id__in()` because there is no foreign key relationship.
-        releases: list[Release] = Release.objects.filter(
+        releases_query_set = Release.objects.filter(
             id__in=GroupRelease.objects.filter(group_id=group.id)
             .order_by("-last_seen")
             .values("release_id")
         )
 
-        if not releases:
+        if not releases_query_set:
             return None
 
-        commits: list[Commit] = Commit.objects.filter(
-            id__in=ReleaseCommit.objects.filter(release__in=releases).values("commit")
+        commits: list[Commit] = list(
+            Commit.objects.filter(
+                id__in=ReleaseCommit.objects.filter(release__in=releases_query_set).values("commit")
+            )
         )
-        base_commit: Commit | None = None
 
         # Hardcoded to only accept getsentry/sentry repo for now, when autofix on the seer side
         # supports more than just getsentry/sentry, we will just send the latest commit.
@@ -74,8 +75,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
 
             for commit in commits:
                 if commit.repository_id == sentry_repo.id:
-                    base_commit = commit
-                    break
+                    return commit
         except Repository.DoesNotExist:
             logger.exception(
                 "No getsentry/sentry repo found for organization",
@@ -83,7 +83,7 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
             )
             pass
 
-        return base_commit
+        return None
 
     def _get_event_entries(self, group: Group, user: User) -> list | None:
         latest_event = group.get_latest_event()
