@@ -55,7 +55,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     }${
       params.isReplaySelected
         ? `
-          new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
+          Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
         : ''
     }
   ],${

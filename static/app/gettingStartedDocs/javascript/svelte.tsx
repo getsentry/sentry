@@ -34,7 +34,7 @@ Sentry.init({
   }${
     params.isReplaySelected
       ? `
-        new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
+        Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
       : ''
   }
 ],${
