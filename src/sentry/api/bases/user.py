@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.conf import settings
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from typing_extensions import override
@@ -7,7 +8,7 @@ from typing_extensions import override
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
-from sentry.auth.superuser import superuser_has_permission
+from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -26,8 +27,16 @@ class UserPermission(SentryPermission):
             return True
         if request.auth:
             return False
-        if superuser_has_permission(request):
-            return True
+
+        # populate request.access for SaaS superuser
+        SUPERUSER_ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
+        if SUPERUSER_ORG_ID and is_active_superuser(request):
+            org = organization_service.get_organization_by_id(id=SUPERUSER_ORG_ID)
+            self.determine_access(request, org)
+
+            if superuser_has_permission(request):
+                return True
+
         return False
 
 
