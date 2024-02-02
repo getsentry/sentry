@@ -2876,6 +2876,11 @@
     "@sentry/types" "7.99.0"
     "@sentry/utils" "7.99.0"
 
+"@sentry/component-annotate-plugin@^2.11.0":
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/@sentry/component-annotate-plugin/-/component-annotate-plugin-2.11.0.tgz#2af074b21b93414a51c284951070380d3a06e405"
+  integrity sha512-2Nf9e05HcvGT9b/8OFaBC90I1d3P6hOu1265T6u3WASxJNvKf3kF44kpt0nZAEVNFcgbyPiPyJ/gmOR/ZIG91A==
+
 "@sentry/core@7.99.0", "@sentry/core@^7.99.0":
   version "7.99.0"
   resolved "https://registry.yarnpkg.com/@sentry/core/-/core-7.99.0.tgz#6881aae5ac1436637b3d88e0b12df4ab56016c5f"
