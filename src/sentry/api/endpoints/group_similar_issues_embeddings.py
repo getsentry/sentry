@@ -58,7 +58,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     }
 
     def get(self, request: Request, group) -> Response:
-        if not features.has("organizations:issues-similarity-embeddings", group.organization):
+        if not features.has("projects:similarity-embeddings", group.project):
             return Response(status=404)
 
         latest_event = group.get_latest_event()
