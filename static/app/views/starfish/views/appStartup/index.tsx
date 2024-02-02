@@ -192,13 +192,18 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     MAX_CHART_RELEASE_CHARS
   );
 
+  const countTopScreens = Math.min(TOP_SCREENS, topTransactions.length);
+
   return (
     <div data-test-id="starfish-mobile-app-startup-view">
       <ChartContainer>
         <ScreensBarChart
           chartOptions={[
             {
-              title: t('Top Cold Starts'),
+              title:
+                countTopScreens > 1
+                  ? t('Top %s Screen Cold Starts', countTopScreens)
+                  : t('Top Screen Cold Start'),
               yAxis: YAXIS_COLUMNS[YAxis.COLD_START],
               xAxisLabel: topTransactions,
               series: Object.values(
@@ -220,7 +225,10 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
         <ScreensBarChart
           chartOptions={[
             {
-              title: t('Top Warm Starts'),
+              title:
+                countTopScreens > 1
+                  ? t('Top %s Screen Warm Starts', countTopScreens)
+                  : t('Top Screen Warm Start'),
               yAxis: YAXIS_COLUMNS[YAxis.WARM_START],
               xAxisLabel: topTransactions,
               series: Object.values(
