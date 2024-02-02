@@ -13,7 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -79,11 +79,13 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
     @extend_schema(
         operation_id="Return a count of replays for a given issue or transaction id.",
         parameters=[
-            GlobalParams.STATS_PERIOD,
-            GlobalParams.START,
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.START,
+            GlobalParams.STATS_PERIOD,
             OrganizationParams.PROJECT,
+            VisibilityParams.QUERY,
         ],
         examples=RESPONSE_EXAMPLES,
     )
