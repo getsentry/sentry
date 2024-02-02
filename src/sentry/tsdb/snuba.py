@@ -167,20 +167,18 @@ class SnubaTSDB(BaseTSDB):
     non_outcomes_snql_query_settings = {
         TSDBModel.project: SnubaModelQuerySettings(Dataset.Events, "project_id", None, []),
         TSDBModel.group: SnubaModelQuerySettings(Dataset.Events, "group_id", None, []),
-        TSDBModel.release: SnubaModelQuerySettings(
-            Dataset.Events, "tags[sentry:release]", None, []
-        ),
+        TSDBModel.release: SnubaModelQuerySettings(Dataset.Events, "release", None, []),
         TSDBModel.users_affected_by_group: SnubaModelQuerySettings(
             Dataset.Events, "group_id", "tags[sentry:user]", []
         ),
         TSDBModel.users_affected_by_project: SnubaModelQuerySettings(
-            Dataset.Events, "project_id", "tags[sentry:user]", []
+            Dataset.Events, "project_id", "user", []
         ),
         TSDBModel.frequent_environments_by_group: SnubaModelQuerySettings(
             Dataset.Events, "group_id", "environment", []
         ),
         TSDBModel.frequent_releases_by_group: SnubaModelQuerySettings(
-            Dataset.Events, "group_id", "tags[sentry:release]", []
+            Dataset.Events, "group_id", "release", []
         ),
         TSDBModel.frequent_issues_by_project: SnubaModelQuerySettings(
             Dataset.Events, "project_id", "group_id", []
