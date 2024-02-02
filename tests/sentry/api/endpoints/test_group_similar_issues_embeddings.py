@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Sequence, Tuple
+from collections.abc import Mapping, Sequence
+from typing import Any, Tuple
 from unittest import mock
 
 from urllib3.response import HTTPResponse
@@ -61,7 +62,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         message_similarities: Sequence[float],
         exception_similarities: Sequence[float],
         should_be_grouped: Sequence[str],
-    ) -> Sequence[Tuple[Any, Mapping[str, Any]]]:
+    ) -> Sequence[tuple[Any, Mapping[str, Any]]]:
         serialized_groups = serialize(
             list(Group.objects.get_many_from_cache(group_ids)), user=self.user
         )

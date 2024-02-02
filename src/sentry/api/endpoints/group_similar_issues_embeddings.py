@@ -1,6 +1,6 @@
 import logging
-from typing import Any, Mapping, Optional, Sequence, Tuple, TypedDict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from typing import Any, Optional, Tuple, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
@@ -72,8 +72,8 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     }
 
     def get_formatted_results(
-        self, responses: Sequence[Optional[SimilarIssuesEmbeddingsData]], user: User | AnonymousUser
-    ) -> Sequence[Tuple[Mapping[str, Any], Mapping[str, Any]]]:
+        self, responses: Sequence[SimilarIssuesEmbeddingsData | None], user: User | AnonymousUser
+    ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]]]:
         """Format the responses using to be used by the frontend."""
         group_data = {}
         for response in responses:
