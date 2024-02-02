@@ -12,7 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.api.serializers.models.event import get_entries
+from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.release import Release
@@ -54,7 +54,8 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         if not latest_event:
             return None
 
-        return get_entries(latest_event, user)[0]
+        serialized_event = serialize(latest_event, user, EventSerializer())
+        return serialized_event["entries"]
 
     def _make_error_metadata(self, autofix: dict, reason: str):
         return {
@@ -88,15 +89,17 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
     ):
         requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
-            json={
-                "base_commit_sha": base_commit_sha,
-                "issue": {
-                    "id": group.id,
-                    "title": group.title,
-                    "events": [{"entries": event_entries}],
-                },
-                "additional_context": additional_context,
-            },
+            data=json.dumps(
+                {
+                    "base_commit_sha": base_commit_sha,
+                    "issue": {
+                        "id": group.id,
+                        "title": group.title,
+                        "events": [{"entries": event_entries}],
+                    },
+                    "additional_context": additional_context,
+                }
+            ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
 

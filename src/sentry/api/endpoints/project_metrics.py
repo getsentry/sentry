@@ -1,5 +1,6 @@
+from collections.abc import Mapping, Sequence
 from enum import Enum
-from typing import Mapping, Optional, Sequence, cast
+from typing import Optional, cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -62,7 +63,7 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
         return [tag.replace("*", "") for tag in tags]
 
     def _create_audit_log_entry(
-        self, event_id: str, metric_mri: str, tags: Optional[Sequence[str]], project: Project
+        self, event_id: str, metric_mri: str, tags: Sequence[str] | None, project: Project
     ):
         audit_data = {"metric_mri": metric_mri, "project_slug": project.slug}
         if tags is not None:

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
-from typing import Callable, Iterable, Mapping, Optional, Sequence, Union
+from typing import Optional, Union
 
 from sentry.api.event_search import (
     AggregateFilter,

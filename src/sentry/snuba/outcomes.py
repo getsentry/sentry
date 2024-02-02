@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Mapping, MutableMapping, Sequence, TypeVar
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, Generic, TypeVar
 
 from django.http import QueryDict
 from snuba_sdk import Request

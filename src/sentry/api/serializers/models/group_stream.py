@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import functools
 from abc import abstractmethod
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, MutableMapping, Sequence
+from typing import Any
 
 from django.utils import timezone
 from rest_framework.request import Request

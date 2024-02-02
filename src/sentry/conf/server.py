@@ -10,8 +10,9 @@ import re
 import socket
 import sys
 import tempfile
+from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Callable, Final, Mapping, MutableSequence, Union, overload
+from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
 
 import sentry

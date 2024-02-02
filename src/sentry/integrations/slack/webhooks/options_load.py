@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from rest_framework import status
 from rest_framework.request import Request
