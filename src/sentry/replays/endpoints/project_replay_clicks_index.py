@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Union
 
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -160,8 +159,8 @@ def query_replay_clicks(
 # Identitical to the original handle_search_filters function except `And` operations are
 # transformed into `Or` operations.
 def handle_search_filters(
-    search_config: dict[str, Union[ColumnField, ComputedField, TagField]],
-    search_filters: list[Union[SearchFilter, str, ParenExpression]],
+    search_config: dict[str, ColumnField | ComputedField | TagField],
+    search_filters: list[SearchFilter | str | ParenExpression],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
     result: list[Condition] = []

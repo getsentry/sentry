@@ -5,8 +5,9 @@ import functools
 import ipaddress
 import os
 import threading
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from typing import Any, Callable, Iterator, List, Set, Type, TypedDict
+from typing import Any, TypedDict
 from unittest.mock import patch
 
 from django.db import connections, transaction
@@ -22,7 +23,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 class HybridCloudTestMixin:
     @property
-    def ScheduledDeletion(self) -> Type[BaseScheduledDeletion]:
+    def ScheduledDeletion(self) -> type[BaseScheduledDeletion]:
         return get_regional_scheduled_deletion(SiloMode.get_current_mode())
 
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -81,7 +82,7 @@ class SimulatedTransactionWatermarks(threading.local):
             connection = transaction.get_connection(using or "default")
         return max(self.get_transaction_depth(connection) - self.state.get(connection.alias, 0), 0)
 
-    def connections_above_watermark(self) -> Set[str]:
+    def connections_above_watermark(self) -> set[str]:
         result = set()
         for connection in connections.all():
             if self.connection_transaction_depth_above_watermark(connection=connection):
@@ -139,14 +140,14 @@ def enforce_no_cross_transaction_interactions():
 
 class TransactionDetails(TypedDict):
     transaction: str | None
-    queries: List[str]
+    queries: list[str]
 
 
 class TransactionDetailsWrapper:
-    result: List[TransactionDetails]
+    result: list[TransactionDetails]
     alias: str
 
-    def __init__(self, alias: str, result: List[TransactionDetails]):
+    def __init__(self, alias: str, result: list[TransactionDetails]):
         self.result = result
         self.alias = alias
 
@@ -171,8 +172,8 @@ class TransactionDetailsWrapper:
 
 
 @contextlib.contextmanager
-def collect_transaction_queries() -> Iterator[List[TransactionDetails]]:
-    result: List[TransactionDetails] = []
+def collect_transaction_queries() -> Iterator[list[TransactionDetails]]:
+    result: list[TransactionDetails] = []
 
     with contextlib.ExitStack() as stack:
         for conn in connections.all():

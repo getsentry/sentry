@@ -1,6 +1,6 @@
 from datetime import timedelta
 from random import choice
-from typing import List, Optional, cast
+from typing import cast
 
 import pytest
 from django.utils import timezone
@@ -222,7 +222,7 @@ def test_estimate_volume(indexed, base_indexed, metrics, expected):
     actual = estimate_volume(indexed, base_indexed, metrics)
 
     for idx, val in enumerate(actual):
-        count: Optional[float] = cast(List[CountResult], val[1])[0]["count"]
+        count: float | None = cast(list[CountResult], val[1])[0]["count"]
         assert pytest.approx(count, 0.001) == expected[idx]
 
 
@@ -263,7 +263,7 @@ def test_estimate_stats_quality(zero_samples, expected_result):
     zero: CountResult = {"count": 0}
 
     data = cast(
-        List[MetricVolumeRow],
+        list[MetricVolumeRow],
         [[start_timestamp + idx * 100, [zero]] for idx in range(zero_samples)]
         + [[start_timestamp + idx * 100, [one]] for idx in range(zero_samples, num_samples)],
     )
@@ -281,7 +281,7 @@ def test_count_non_zero_intervals(zero_samples):
     zero: CountResult = {"count": 0}
 
     data = cast(
-        List[MetricVolumeRow],
+        list[MetricVolumeRow],
         [[start_timestamp + idx * 100, [zero]] for idx in range(zero_samples)]
         + [[start_timestamp + idx * 100, [one]] for idx in range(zero_samples, num_samples)],
     )

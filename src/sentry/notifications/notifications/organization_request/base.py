@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Type
+from collections.abc import Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any
 
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     notification_setting_type_enum = NotificationSettingEnum.APPROVAL
-    RoleBasedRecipientStrategyClass: Type[RoleBasedRecipientStrategy]
+    RoleBasedRecipientStrategyClass: type[RoleBasedRecipientStrategy]
 
     def __init__(self, organization: Organization, requester: User) -> None:
         super().__init__(organization)

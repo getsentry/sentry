@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional, Sequence, Set, Tuple
+from collections.abc import Sequence
 
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
@@ -146,7 +146,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         artifact_bundles = query_artifact_bundles_containing_file(
             project, release_name, dist_name, url, debug_id
         )
-        all_bundles: Dict[str, str] = {
+        all_bundles: dict[str, str] = {
             f"artifact_bundle/{bundle_id}": resolved for bundle_id, resolved in artifact_bundles
         }
 
@@ -192,7 +192,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
 
         # make sure we have a stable sort order for tests
-        def natural_sort(key: str) -> Tuple[str, int]:
+        def natural_sort(key: str) -> tuple[str, int]:
             split = key.split("/")
             if len(split) > 1:
                 ty, ty_id = split
@@ -208,7 +208,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
 def try_resolve_release_dist(
     project: Project, release_name: str, dist_name: str
-) -> Tuple[Optional[Release], Optional[Distribution]]:
+) -> tuple[Release | None, Distribution | None]:
     release = None
     dist = None
     try:
@@ -229,7 +229,7 @@ def try_resolve_release_dist(
     return release, dist
 
 
-def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -> Set[int]:
+def get_legacy_release_bundles(release: Release, dist: Distribution | None) -> set[int]:
     return set(
         ReleaseFile.objects.filter(
             release_id=release.id,
@@ -252,7 +252,7 @@ def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -
 
 
 def get_legacy_releasefile_by_file_url(
-    release: Release, dist: Optional[Distribution], url: List[str]
+    release: Release, dist: Distribution | None, url: list[str]
 ) -> Sequence[ReleaseFile]:
     # Exclude files which are also present in archive:
     return (

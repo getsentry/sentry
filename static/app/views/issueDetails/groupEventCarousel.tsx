@@ -39,8 +39,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {TraceLink} from 'sentry/views/issueDetails/traceTimeline/traceLink';
+import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 import QuickTrace from './quickTrace';
@@ -360,6 +363,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
 export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const user = useUser();
 
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
@@ -374,6 +378,8 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
     successMessage: t('Event ID copied to clipboard'),
     text: event.id,
   });
+
+  const hasTraceTimeline = hasTraceTimelineFeature(organization, user);
 
   return (
     <CarouselAndButtonsWrapper>
@@ -423,7 +429,11 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventIdAndTimeContainer>
         </EventHeading>
-        <QuickTrace event={event} organization={organization} location={location} />
+        {hasTraceTimeline ? (
+          <TraceLink event={event} />
+        ) : (
+          <QuickTrace event={event} organization={organization} location={location} />
+        )}
       </div>
       <ActionsWrapper>
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />

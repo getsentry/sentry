@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import inspect
 import itertools
-from typing import Any, Callable, Iterable, Sequence, Tuple, Type
+from collections.abc import Callable, Iterable, Sequence
+from typing import Any
 
 import pydantic
 from django.utils.functional import LazyObject
@@ -62,10 +63,10 @@ class SerializableFunctionSignature:
                 "(serializable functions must use concrete type tokens, not strings)",
             )
 
-    def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
+    def _create_parameter_model(self) -> type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the parameters."""
 
-        def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
+        def create_field(param: inspect.Parameter) -> tuple[Any, Any]:
             if param.annotation is param.empty:
                 raise SerializableFunctionSignatureSetupException(
                     self, "Type annotations are required to serialize"
@@ -84,7 +85,7 @@ class SerializableFunctionSignature:
 
     _RETURN_MODEL_ATTR = "value"
 
-    def _create_return_model(self) -> Type[pydantic.BaseModel] | None:
+    def _create_return_model(self) -> type[pydantic.BaseModel] | None:
         """Dynamically create a Pydantic model class representing the return value.
 
         The created model has a single attribute containing the return value. This

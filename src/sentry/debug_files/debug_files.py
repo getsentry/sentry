@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Sequence
 
 from django.db import router
 from django.db.models import Q

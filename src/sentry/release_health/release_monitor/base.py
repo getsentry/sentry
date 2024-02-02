@@ -1,14 +1,15 @@
-from typing import Dict, Mapping, Sequence, TypedDict
+from collections.abc import Mapping, Sequence
+from typing import TypedDict
 
 from sentry.utils.services import Service
 
 
 class EnvironmentTotals(TypedDict):
     total_sessions: int
-    releases: Dict[str, int]
+    releases: dict[str, int]
 
 
-Totals = Dict[int, Dict[str, EnvironmentTotals]]
+Totals = dict[int, dict[str, EnvironmentTotals]]
 
 
 class BaseReleaseMonitorBackend(Service):

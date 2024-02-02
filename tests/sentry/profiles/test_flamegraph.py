@@ -48,6 +48,24 @@ class GetProfileWithFunctionTest(ProfilesSnubaTestCase):
             transaction=transaction,
         )
 
+        transaction = load_data("transaction", timestamp=before_now(minutes=10))
+        transaction["transaction"] = "foobar"
+        profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
+        profile_context["profile_id"] = "00000000000000000000000000000000"
+        self.store_functions(
+            [
+                {
+                    "self_times_ns": [100 for _ in range(10)],
+                    "package": "foo",
+                    "function": "foo",
+                    "in_app": True,
+                },
+            ],
+            project=self.project,
+            timestamp=self.hour_ago,
+            transaction=transaction,
+        )
+
     def test_get_profile_with_function(self):
         profile_ids = get_profiles_with_function(
             self.organization.id,

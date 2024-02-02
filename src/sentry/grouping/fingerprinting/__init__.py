@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import inspect
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from django.conf import settings
 from parsimonious.exceptions import ParseError

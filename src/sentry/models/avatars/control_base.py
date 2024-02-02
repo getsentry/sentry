@@ -1,5 +1,3 @@
-from typing import Type, Union
-
 from sentry.db.models import BoundedBigIntegerField
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.files import ControlFile, File
@@ -11,7 +9,7 @@ class ControlAvatarBase(AvatarBase):
     class Meta:
         abstract = True
 
-    def file_class(self) -> Union[Type[ControlFile], Type[File]]:
+    def file_class(self) -> type[ControlFile] | type[File]:
         """
         Select the file class this avatar has used.
         File classes can vary by the avatar as we have migrated

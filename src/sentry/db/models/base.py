@@ -1,17 +1,25 @@
 from __future__ import annotations
 
-from typing import Any, Callable, ClassVar, Iterable, Mapping, TypeVar
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, ClassVar, Self, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
-from typing_extensions import Self
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies, get_model_name
+from sentry.backup.dependencies import (
+    ImportKind,
+    NormalizedModelName,
+    PrimaryKeyMap,
+    dependencies,
+    get_model_name,
+)
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.silo import SiloLimit, SiloMode
+from sentry.utils.json import JSONData
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager
@@ -129,7 +137,7 @@ class BaseModel(models.Model):
         return self.__relocation_scope__
 
     @classmethod
-    def get_relocation_ordinal_fields(self) -> None | list[str]:
+    def get_relocation_ordinal_fields(self) -> list[str] | None:
         """
         Retrieves the custom ordinal fields for models that may be re-used at import time (that is,
         the `write_relocation_import()` method may return an `ImportKind` besides
@@ -186,6 +194,22 @@ class BaseModel(models.Model):
                 q &= models.Q(**matched_fks_query)
 
         return q
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, _j: JSONData, _s: Sanitizer, _m: NormalizedModelName | None = None
+    ) -> None:
+        """
+        Takes the export JSON representation of this model, and "sanitizes" any data that might be
+        PII or otherwise user-specific. The JSON is modified in-place to avoid extra copies.
+
+        This function operates on the JSON form, rather than the Django model instance, for two
+        reasons: 1. we want the ability to sanitize exported JSON without first deserializing it,
+        and 2. to avoid risky situations where a model is modified in-place and then saved to the
+        production database by some far flung code that touches it later.
+        """
+
+        return None
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, _s: ImportScope, _f: ImportFlags
@@ -259,6 +283,15 @@ class DefaultFieldsModel(Model):
 
     class Meta:
         abstract = True
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: JSONData, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        sanitizer.set_datetime(json, SanitizableField(model_name, "date_added"))
+        sanitizer.set_datetime(json, SanitizableField(model_name, "date_updated"))
+        return super().sanitize_relocation_json(json, sanitizer, model_name)
 
 
 def __model_pre_save(instance: models.Model, **kwargs: Any) -> None:

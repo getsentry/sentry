@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from functools import reduce
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Union
 
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from sentry_relay.processing import parse_release as parse_release_relay
@@ -65,7 +66,7 @@ def translate_transaction_status(val: str) -> str:
     return SPAN_STATUS_NAME_TO_CODE[val]
 
 
-def to_list(value: Union[List[str], str]) -> List[str]:
+def to_list(value: list[str] | str) -> list[str]:
     if isinstance(value, list):
         return value
     return [value]
@@ -130,7 +131,7 @@ def convert_function_to_condition(func):
 def _environment_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
+    params: Mapping[str, int | str | datetime] | None,
 ):
     # conditions added to env_conditions are OR'd
     env_conditions = []
@@ -153,7 +154,7 @@ def _environment_filter_converter(
 def _message_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
+    params: Mapping[str, int | str | datetime] | None,
 ):
     value = search_filter.value.value
     if search_filter.value.is_wildcard():
@@ -190,7 +191,7 @@ def _message_filter_converter(
 def _transaction_status_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
+    params: Mapping[str, int | str | datetime] | None,
 ):
     # Handle "has" queries
     if search_filter.value.raw_value == "":
@@ -209,7 +210,7 @@ def _transaction_status_filter_converter(
 def _issue_id_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
+    params: Mapping[str, int | str | datetime] | None,
 ):
     value = search_filter.value.value
     # Handle "has" queries
@@ -236,7 +237,7 @@ def _issue_id_filter_converter(
 def _user_display_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
+    params: Mapping[str, int | str | datetime] | None,
 ):
     value = search_filter.value.value
     user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_expression(params)
@@ -256,7 +257,7 @@ def _user_display_filter_converter(
 def _error_unhandled_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
+    params: Mapping[str, int | str | datetime] | None,
 ):
     value = search_filter.value.value
     # This field is the inversion of error.handled, otherwise the logic is the same.
@@ -275,7 +276,7 @@ def _error_unhandled_filter_converter(
 def _error_handled_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
+    params: Mapping[str, int | str | datetime] | None,
 ):
     value = search_filter.value.value
     # Treat has filter as equivalent to handled
@@ -293,7 +294,7 @@ def _error_handled_filter_converter(
 def _team_key_transaction_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
+    params: Mapping[str, int | str | datetime] | None,
 ):
     value = search_filter.value.value
     key_transaction_expr = FIELD_ALIASES[TEAM_KEY_TRANSACTION_ALIAS].get_field(params)
@@ -317,8 +318,8 @@ def _flip_field_sort(field: str):
 def _release_stage_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
-) -> Tuple[str, str, Sequence[str]]:
+    params: Mapping[str, int | str | datetime] | None,
+) -> tuple[str, str, Sequence[str]]:
     """
     Parses a release stage search and returns a snuba condition to filter to the
     requested releases.
@@ -330,8 +331,8 @@ def _release_stage_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
-    project_ids: Optional[list[int]] = params.get("project_id")
-    environments: Optional[list[int]] = params.get("environment")
+    project_ids: list[int] | None = params.get("project_id")
+    environments: list[int] | None = params.get("environment")
     qs = (
         Release.objects.filter_by_stage(
             organization_id,
@@ -356,8 +357,8 @@ def _release_stage_filter_converter(
 def _semver_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
-) -> Tuple[str, str, Sequence[str]]:
+    params: Mapping[str, int | str | datetime] | None,
+) -> tuple[str, str, Sequence[str]]:
     """
     Parses a semver query search and returns a snuba condition to filter to the
     requested releases.
@@ -377,7 +378,7 @@ def _semver_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
-    project_ids: Optional[list[int]] = params.get("project_id")
+    project_ids: list[int] | None = params.get("project_id")
     # We explicitly use `raw_value` here to avoid converting wildcards to shell values
     version: str = search_filter.value.raw_value
     operator: str = search_filter.operator
@@ -430,8 +431,8 @@ def _semver_filter_converter(
 def _semver_package_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
-) -> Tuple[str, str, Sequence[str]]:
+    params: Mapping[str, int | str | datetime] | None,
+) -> tuple[str, str, Sequence[str]]:
     """
     Applies a semver package filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
@@ -440,7 +441,7 @@ def _semver_package_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
-    project_ids: Optional[list[int]] = params.get("project_id")
+    project_ids: list[int] | None = params.get("project_id")
     package: str = search_filter.value.raw_value
 
     versions = list(
@@ -461,8 +462,8 @@ def _semver_package_filter_converter(
 def _semver_build_filter_converter(
     search_filter: SearchFilter,
     name: str,
-    params: Optional[Mapping[str, Union[int, str, datetime]]],
-) -> Tuple[str, str, Sequence[str]]:
+    params: Mapping[str, int | str | datetime] | None,
+) -> tuple[str, str, Sequence[str]]:
     """
     Applies a semver build filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
@@ -471,7 +472,7 @@ def _semver_build_filter_converter(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
-    project_ids: Optional[list[int]] = params.get("project_id")
+    project_ids: list[int] | None = params.get("project_id")
     build: str = search_filter.value.raw_value
 
     operator, negated = handle_operator_negation(search_filter.operator)
@@ -497,7 +498,7 @@ def _semver_build_filter_converter(
     return ["release", "IN", versions]
 
 
-def handle_operator_negation(operator: str) -> Tuple[str, bool]:
+def handle_operator_negation(operator: str) -> tuple[str, bool]:
     negated = False
     if operator == "!=":
         negated = True
@@ -565,7 +566,7 @@ def parse_semver(version, operator) -> SemverFilter:
 
 key_conversion_map: Mapping[
     str,
-    Callable[[SearchFilter, str, Mapping[str, Union[int, str, datetime]]], Optional[Sequence[Any]]],
+    Callable[[SearchFilter, str, Mapping[str, int | str | datetime]], Sequence[Any] | None],
 ] = {
     "environment": _environment_filter_converter,
     "message": _message_filter_converter,
@@ -584,9 +585,9 @@ key_conversion_map: Mapping[
 
 def convert_search_filter_to_snuba_query(
     search_filter: SearchFilter,
-    key: Optional[str] = None,
-    params: Optional[Mapping[str, Union[int, str, datetime]]] = None,
-) -> Optional[Sequence[Any]]:
+    key: str | None = None,
+    params: Mapping[str, int | str | datetime] | None = None,
+) -> Sequence[Any] | None:
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 

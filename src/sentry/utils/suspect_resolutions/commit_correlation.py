@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Sequence, Set
 
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import Group
@@ -21,7 +21,7 @@ class CommitCorrelatedResult:
 @dataclass
 class ReleaseCommitFileChanges:
     release_ids: Sequence[int]
-    files_changed: Set[str]
+    files_changed: set[str]
 
 
 def is_issue_commit_correlated(

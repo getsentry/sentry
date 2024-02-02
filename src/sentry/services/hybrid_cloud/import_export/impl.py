@@ -4,7 +4,6 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import traceback
-from typing import List, Optional, Set, Type
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.serializers import deserialize, serialize
@@ -49,8 +48,8 @@ from sentry.silo.base import SiloMode
 
 
 def get_existing_import_chunk(
-    model_name: NormalizedModelName, flags: ImportFlags, import_chunk_type: Type[models.base.Model]
-) -> Optional[RpcImportOk]:
+    model_name: NormalizedModelName, flags: ImportFlags, import_chunk_type: type[models.base.Model]
+) -> RpcImportOk | None:
     # TODO(getsentry/team-ospo#190): `min_ordinal=1` assumes the entire model is being imported in a
     # single call; we will need to change this when we implement more granular chunking in the
     # future.
@@ -100,9 +99,9 @@ class UniversalImportExportService(ImportExportService):
         self,
         *,
         model_name: str,
-        scope: Optional[RpcImportScope] = None,
+        scope: RpcImportScope | None = None,
         flags: RpcImportFlags,
-        filter_by: List[RpcFilter],
+        filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         json_data: str,
     ) -> RpcImportResult:
@@ -141,7 +140,7 @@ class UniversalImportExportService(ImportExportService):
 
         import_scope = scope.from_rpc()
         in_pk_map = pk_map.from_rpc()
-        filters: List[Filter] = []
+        filters: list[Filter] = []
         for fb in filter_by:
             if NormalizedModelName(fb.model_name) == batch_model_name:
                 filters.append(fb.from_rpc())
@@ -175,8 +174,8 @@ class UniversalImportExportService(ImportExportService):
                 out_pk_map = PrimaryKeyMap()
                 min_old_pk = 0
                 max_old_pk = 0
-                min_inserted_pk: Optional[int] = None
-                max_inserted_pk: Optional[int] = None
+                min_inserted_pk: int | None = None
+                max_inserted_pk: int | None = None
                 counter = 0
                 for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
                     model_instance = deserialized_object.object
@@ -384,8 +383,8 @@ class UniversalImportExportService(ImportExportService):
         *,
         model_name: str = "",
         from_pk: int = 0,
-        scope: Optional[RpcExportScope] = None,
-        filter_by: List[RpcFilter],
+        scope: RpcExportScope | None = None,
+        filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         indent: int = 2,
     ) -> RpcExportResult:
@@ -432,7 +431,7 @@ class UniversalImportExportService(ImportExportService):
 
             max_pk = from_pk
             out_pk_map = PrimaryKeyMap()
-            filters: List[Filter] = []
+            filters: list[Filter] = []
             for fb in filter_by:
                 if NormalizedModelName(fb.model_name) == batch_model_name:
                     filters.append(fb.from_rpc())
@@ -516,8 +515,8 @@ class UniversalImportExportService(ImportExportService):
                 reason=f"Unknown internal error occurred: {traceback.format_exc()}",
             )
 
-    def get_all_globally_privileged_users(self) -> Set[int]:
-        admin_user_pks: Set[int] = set()
+    def get_all_globally_privileged_users(self) -> set[int]:
+        admin_user_pks: set[int] = set()
         admin_user_pks.update(
             User.objects.filter(Q(is_staff=True) | Q(is_superuser=True)).values_list(
                 "id", flat=True

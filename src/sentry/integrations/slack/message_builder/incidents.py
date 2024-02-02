@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from sentry.incidents.models import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
@@ -24,9 +23,9 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self,
         incident: Incident,
         new_status: IncidentStatus,
-        metric_value: Optional[float] = None,
-        chart_url: Optional[str] = None,
-        notification_uuid: Optional[str] = None,
+        metric_value: float | None = None,
+        chart_url: str | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
         """
         Builds an incident attachment for slack unfurling.
