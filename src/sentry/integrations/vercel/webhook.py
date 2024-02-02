@@ -261,7 +261,7 @@ class VercelWebhookEndpoint(Endpoint):
         #      and the remaining one is for a different org (and configuration)
         if (
             len(orgs) == 1
-            and features.has("organizations:vercel-webhooks-update", orgs[0]) == new_webhook
+            and features.has("organizations:vercel-integration-webhooks", orgs[0]) == new_webhook
         ):
             try:
                 # Case no. 1: do the deleting and return
@@ -292,7 +292,7 @@ class VercelWebhookEndpoint(Endpoint):
 
         if (
             configuration_id == integration.metadata["installation_id"]
-            and features.has("organizations:vercel-webhooks-update", orgs[0]) == new_webhook
+            and features.has("organizations:vercel-integration-webhooks", orgs[0]) == new_webhook
         ):
             # if we are uninstalling a primary configuration, and there are
             # multiple orgs connected to this integration we must update
@@ -384,7 +384,7 @@ class VercelWebhookEndpoint(Endpoint):
                 organization = orgs.get(org_integration.organization_id)
                 if (
                     organization is None
-                    or features.has("organizations:vercel-webhooks-update", organization)
+                    or features.has("organizations:vercel-integration-webhooks", organization)
                     != new_webhook
                 ):
                     continue
