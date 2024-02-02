@@ -49,7 +49,7 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: getsentry token
-        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
+        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
         id: getsentry
         with:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
