@@ -3,9 +3,9 @@ from __future__ import annotations
 import functools
 import uuid
 import zlib
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Iterator
 
 import sentry_sdk
 from django.conf import settings

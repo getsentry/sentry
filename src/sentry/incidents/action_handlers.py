@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Sequence
+from collections.abc import Sequence
 from urllib.parse import urlencode
 
 from django.conf import settings

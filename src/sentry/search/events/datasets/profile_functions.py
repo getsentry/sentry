@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Mapping
 
 from snuba_sdk import Column as SnQLColumn
 from snuba_sdk import Condition, Direction, Op, OrderBy
@@ -342,16 +342,30 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "unique_examples",
                     snql_aggregate=lambda args, alias: Function(
-                        "arrayMap",
+                        "arrayFilter",
                         [
-                            # TODO: should this transform be moved to snuba?
+                            # Filter out the profile ids for processed profiles
                             Lambda(
                                 ["x"],
                                 Function(
-                                    "replaceAll", [Function("toString", [Identifier("x")]), "-", ""]
+                                    "notEquals",
+                                    [Identifier("x"), uuid.UUID(int=0).hex],
                                 ),
                             ),
-                            Function("groupUniqArrayMerge(5)", [SnQLColumn("examples")]),
+                            Function(
+                                "arrayMap",
+                                [
+                                    # TODO: should this transform be moved to snuba?
+                                    Lambda(
+                                        ["x"],
+                                        Function(
+                                            "replaceAll",
+                                            [Function("toString", [Identifier("x")]), "-", ""],
+                                        ),
+                                    ),
+                                    Function("groupUniqArrayMerge(5)", [SnQLColumn("examples")]),
+                                ],
+                            ),
                         ],
                         alias,
                     ),

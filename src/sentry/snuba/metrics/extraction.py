@@ -2,24 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Literal,
-    NamedTuple,
-    Optional,
-    Sequence,
-    TypedDict,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Literal, NamedTuple, NotRequired, Optional, TypedDict, TypeVar, Union, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from typing_extensions import NotRequired
 
 from sentry import features
 from sentry.api import event_search
@@ -296,10 +285,12 @@ _STANDARD_METRIC_FIELDS = [
 
 # Query fields that are not considered
 _IGNORED_METRIC_FIELDS = [
-    "event.type",  # on-demand extraction is enabled only for event.type:"transaction"
     "project",  # on-demand extraction specs are emitted per project
     "timestamp.to_day",  # relative time windows are not supported
     "timestamp.to_hour",  # relative time windows are not supported
+]
+_IGNORED_METRIC_CONDITION = [
+    "event.type=transaction",
 ]
 
 # Operators used in ``ComparingRuleCondition``.
@@ -880,7 +871,10 @@ def _remove_blacklisted_search_filters(tokens: Sequence[QueryToken]) -> Sequence
     ret_val: list[QueryToken] = []
     for token in tokens:
         if isinstance(token, SearchFilter):
-            if token.key.name not in _IGNORED_METRIC_FIELDS:
+            if (
+                token.key.name not in _IGNORED_METRIC_FIELDS
+                and str(token) not in _IGNORED_METRIC_CONDITION
+            ):
                 ret_val.append(token)
         elif isinstance(token, ParenExpression):
             ret_val.append(ParenExpression(_remove_blacklisted_search_filters(token.children)))

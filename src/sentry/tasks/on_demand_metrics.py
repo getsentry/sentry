@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -24,6 +25,7 @@ from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -252,14 +254,16 @@ def _get_widget_on_demand_specs(
 
     widget_specs = convert_widget_query_to_metric(project_for_query, widget_query, True)
 
-    unique_specs = []
-    hashes = set()
-    for hashed_metric_spec in widget_specs:
-        if hashed_metric_spec[0] not in hashes:
-            unique_specs.append(hashed_metric_spec)
-            hashes.add(hashed_metric_spec[0])
+    specs_per_version: dict[int, dict[str, HashedMetricSpec]] = {}
+    for hash, spec, spec_version in widget_specs:
+        specs_per_version.setdefault(spec_version.version, {})
+        specs_per_version[spec_version.version][hash] = (hash, spec, spec_version)
 
-    return unique_specs
+    specs: list[HashedMetricSpec] = []
+    for _, _specs_for_version in specs_per_version.items():
+        specs += _specs_for_version.values()
+
+    return specs
 
 
 def _set_widget_on_demand_state(
@@ -273,7 +277,9 @@ def _set_widget_on_demand_state(
         specs_per_version.setdefault(spec_version.version, [])
         specs_per_version[spec_version.version].append((hash, spec, spec_version))
 
-    for version, specs_for_version in specs_per_version.items():
+    for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+        version = spec_version.version
+        specs_for_version = specs_per_version.get(version, [])
         extraction_state = _determine_extraction_state(specs, is_low_cardinality, enabled_features)
         spec_hashes = [hashed_spec[0] for hashed_spec in specs_for_version]
 

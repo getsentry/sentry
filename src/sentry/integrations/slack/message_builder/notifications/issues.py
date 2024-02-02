@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.integrations.slack.message_builder import SlackAttachment, SlackBlock
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder

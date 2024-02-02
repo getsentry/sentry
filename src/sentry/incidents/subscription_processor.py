@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import operator
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Sequence, TypeVar, cast
+from typing import TypeVar, cast
 
 from django.conf import settings
 from django.db import router, transaction
