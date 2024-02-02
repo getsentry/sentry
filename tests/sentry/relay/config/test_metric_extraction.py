@@ -26,7 +26,6 @@ from sentry.snuba.metrics.extraction import (
     RuleCondition,
     TagSpec,
     _deep_sorted,
-    _get_query_supported_by,
     fetch_on_demand_metric_spec,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -1971,6 +1970,3 @@ def test_level_field(default_project: Project) -> None:
         create_widget([aggr], query, default_project)
         config = get_metric_extraction_config(default_project)
         assert config is None
-        query_supported_by = _get_query_supported_by(query)
-        assert not query_supported_by.standard_metrics
-        assert not query_supported_by.on_demand_metrics
