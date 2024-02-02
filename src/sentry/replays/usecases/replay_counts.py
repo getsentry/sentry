@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 from collections import defaultdict
-from collections.abc import Sequence
-from typing import Any, Generator
+from collections.abc import Generator, Sequence
+from typing import Any
 
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.models.group import Group

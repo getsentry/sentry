@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import replace
 from datetime import datetime
-from typing import Any, List, Mapping, Union, cast
+from typing import Any, Union, cast
 
 from snuba_sdk import (
     BooleanCondition,
@@ -136,7 +137,7 @@ def _resolve_aggregate_aliases(exp: Timeseries | Formula) -> MetricsQuery:
         if not exp.parameters:
             return exp
 
-        aliased_parameters = cast(List[FormulaParameterGroup], exp.parameters)
+        aliased_parameters = cast(list[FormulaParameterGroup], exp.parameters)
         for i, p in enumerate(aliased_parameters):
             if isinstance(p, (Timeseries, Formula)):
                 aliased_parameters[i] = _resolve_aggregate_aliases(p)

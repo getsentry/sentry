@@ -81,9 +81,10 @@ instead of group deletion is:
 
 import logging
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Sequence, Tuple, Union
+from typing import Any, Literal, Union
 
 import redis
 import sentry_sdk
@@ -158,8 +159,8 @@ def backup_unprocessed_event(data):
 @dataclass
 class ReprocessableEvent:
     event: Event
-    data: Dict[str, Any]
-    attachments: List[models.EventAttachment]
+    data: dict[str, Any]
+    attachments: list[models.EventAttachment]
 
 
 def pull_event_data(project_id, event_id) -> ReprocessableEvent:
@@ -458,7 +459,7 @@ def buffered_handle_remaining_events(
     project_id: int,
     old_group_id: int,
     new_group_id: int,
-    datetime_to_event: List[Tuple[datetime, str]],
+    datetime_to_event: list[tuple[datetime, str]],
     remaining_events,
     force_flush_batch: bool = False,
 ):

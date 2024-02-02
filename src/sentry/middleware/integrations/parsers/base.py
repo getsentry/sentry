@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import abc
 import logging
+from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING
 
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
@@ -29,8 +30,8 @@ if TYPE_CHECKING:
 class RegionResult:
     def __init__(
         self,
-        response: Optional[HttpResponseBase] = None,
-        error: Optional[Exception] = None,
+        response: HttpResponseBase | None = None,
+        error: Exception | None = None,
     ):
         self.response = response
         self.error = error
@@ -131,7 +132,7 @@ class BaseRequestParser(abc.ABC):
         return region_to_response_map
 
     def get_response_from_outbox_creation(
-        self, regions: Sequence[Region], shard_identifier_override: Optional[int] = None
+        self, regions: Sequence[Region], shard_identifier_override: int | None = None
     ):
         """
         DEPRECATED: use get_response_from_outbox_creation_for_integration
@@ -209,7 +210,7 @@ class BaseRequestParser(abc.ABC):
     # Optional Overrides
 
     def get_organizations_from_integration(
-        self, integration: Optional[Integration | RpcIntegration] = None
+        self, integration: Integration | RpcIntegration | None = None
     ) -> Sequence[RpcOrganizationSummary]:
         """
         Use the get_integration_from_request() method to identify organizations associated with
@@ -233,7 +234,7 @@ class BaseRequestParser(abc.ABC):
         return organization_mapping_service.get_many(organization_ids=organization_ids)
 
     def get_regions_from_organizations(
-        self, organizations: Optional[Sequence[RpcOrganizationSummary]] = None
+        self, organizations: Sequence[RpcOrganizationSummary] | None = None
     ) -> Sequence[Region]:
         """
         Use the get_organizations_from_integration() method to identify forwarding regions.

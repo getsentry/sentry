@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Mapping, MutableMapping, Sequence
+from typing import Any
 from urllib.parse import urlparse
 
 import rest_framework
@@ -709,7 +710,7 @@ def handle_is_bookmarked(
     is_bookmarked: bool,
     group_list: Sequence[Group] | None,
     group_ids: Sequence[Group],
-    project_lookup: Dict[int, Project],
+    project_lookup: dict[int, Project],
     acting_user: User | None,
 ) -> None:
     """

@@ -97,7 +97,7 @@ function PerformanceScoreRing({
           cy={cx}
           color={backgroundColors[index]}
           rotate={rotate}
-          onMouseOver={() => onHoverActions?.[index]()}
+          onMouseOver={() => onHoverActions?.()}
           onMouseLeave={() => onUnhover?.()}
         />,
         <RingBar
@@ -111,7 +111,7 @@ function PerformanceScoreRing({
           cy={cx}
           color={segmentColors[index]}
           rotate={rotate}
-          onMouseOver={() => onHoverActions?.[index]()}
+          onMouseOver={() => onHoverActions?.()}
           onMouseLeave={() => onUnhover?.()}
         />,
       ];

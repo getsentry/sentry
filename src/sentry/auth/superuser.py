@@ -14,7 +14,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Tuple
+from typing import Any
 
 from django.conf import settings
 from django.core.signing import BadSignature
@@ -94,20 +94,22 @@ def superuser_has_permission(request: HttpRequest | Request) -> bool:
     Superuser read-only is restricted to GET and OPTIONS requests.
     These checks do not affect self-hosted.
     """
+    if not is_active_superuser(request):
+        return False
+
     if is_self_hosted():
         return True
 
-    if is_active_superuser(request):
-        if features.has("auth:enterprise-superuser-read-write", actor=request.user):
-            if request.access.has_permission("superuser.write"):
-                return True
-
-            # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
-            return request.method == "GET" or request.method == "OPTIONS"
-
+    # if we aren't enforcing superuser read-write, then superuser always has access
+    if not features.has("auth:enterprise-superuser-read-write", actor=request.user):
         return True
 
-    return False
+    # superuser write can access all requests
+    if request.access.has_permission("superuser.write"):
+        return True
+
+    # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
+    return request.method == "GET" or request.method == "OPTIONS"
 
 
 def is_active_superuser(request: HttpRequest | Request) -> bool:
@@ -187,7 +189,7 @@ class Superuser(ElevatedMode):
             return False
         return self._is_active
 
-    def is_privileged_request(self) -> Tuple[bool, InactiveReason]:
+    def is_privileged_request(self) -> tuple[bool, InactiveReason]:
         """
         Returns ``(bool is_privileged, RequestStatus reason)``
         """

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import enum
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Tuple, Union
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save
@@ -105,7 +106,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_owners(
         cls, project_id: int, data: Mapping[str, Any]
-    ) -> Tuple[_Everyone | Sequence[ActorTuple], Optional[Sequence[Rule]]]:
+    ) -> tuple[_Everyone | Sequence[ActorTuple], Sequence[Rule] | None]:
         """
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
@@ -177,7 +178,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_issue_owners(
         cls, project_id, data, limit=2
-    ) -> Sequence[Tuple[Rule, Sequence[Union[Team, RpcUser]], str,]]:
+    ) -> Sequence[tuple[Rule, Sequence[Team | RpcUser], str,]]:
         """
         Get the issue owners for a project if there are any.
 
@@ -354,7 +355,7 @@ class ProjectOwnership(Model):
     @classmethod
     def _matching_ownership_rules(
         cls,
-        ownership: Union[ProjectOwnership, ProjectCodeOwners],
+        ownership: ProjectOwnership | ProjectCodeOwners,
         data: Mapping[str, Any],
     ) -> Sequence[Rule]:
         rules = []

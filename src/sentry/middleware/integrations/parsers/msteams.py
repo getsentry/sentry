@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from functools import cached_property
-from typing import Sequence
 
 import sentry_sdk
 from django.http.response import HttpResponseBase
