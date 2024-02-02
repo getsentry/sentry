@@ -65,7 +65,7 @@ class SimilarIssuesEmbeddingsData(TypedDict):
 
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
-    responses: List[Optional[SimilarIssuesEmbeddingsData]]
+    responses: list[SimilarIssuesEmbeddingsData | None]
 
 
 def get_similar_issues_embeddings(

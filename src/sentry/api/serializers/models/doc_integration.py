@@ -1,4 +1,5 @@
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar

@@ -2063,6 +2063,50 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             # This proves that we're picking up the new spec version
             assert spec_in_use.spec_version.flags == {"include_environment_tag"}
 
+    def test_on_demand_builder_with_not_event_type_error(self):
+        field = "count()"
+        query = "!event.type:error"
+        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
+        expected_str_hash = "None;{'inner': {'name': 'event.tags.event.type', 'op': 'eq', 'value': 'error'}, 'op': 'not'}"
+        assert spec._query_str_for_hash == expected_str_hash
+
+        query_builder = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
+            ),
+        )
+        spec_map = query_builder._on_demand_metric_spec_map
+        assert spec_map
+        assert spec_map.get(field) == spec
+        assert query_builder.dataset.name == "PerformanceMetrics"
+        assert query_builder.dataset.value == "generic_metrics"
+
+    def test_on_demand_builder_with_event_type_error(self):
+        field = "count()"
+        query = "event.type:error"
+        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
+        expected_str_hash = "None;{'name': 'event.tags.event.type', 'op': 'eq', 'value': 'error'}"
+        assert spec._query_str_for_hash == expected_str_hash
+
+        with pytest.raises(IncompatibleMetricsQuery):
+            TimeseriesMetricQueryBuilder(
+                self.params,
+                dataset=Dataset.PerformanceMetrics,
+                interval=3600,
+                query=query,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
+                ),
+            )
+
     def test_run_query_with_on_demand_distribution_and_environment(self):
         field = "p75(measurements.fp)"
         query_s = "transaction.duration:>0"

@@ -8,8 +8,9 @@ features and more performant.
 """
 
 import copy
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping, Optional, Sequence, Union
+from typing import Any, Optional, Union
 
 import click
 
@@ -76,7 +77,7 @@ class KillswitchCallback:
 class KillswitchInfo:
     description: str
     fields: dict[str, str]
-    on_change: Optional[KillswitchCallback] = None
+    on_change: KillswitchCallback | None = None
 
 
 ALL_KILLSWITCH_OPTIONS = {

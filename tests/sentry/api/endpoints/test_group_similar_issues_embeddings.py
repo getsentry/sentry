@@ -114,7 +114,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.status_code == 404, response.content
 
-    @with_feature("organizations:issues-similarity-embeddings")
+    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
     def test_simple(self, mock_seer_request):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
@@ -152,7 +152,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
-    @with_feature("organizations:issues-similarity-embeddings")
+    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
     def test_empty_return(self, mock_seer_request):
         mock_seer_request.return_value = HTTPResponse([])
