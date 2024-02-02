@@ -179,7 +179,7 @@ def parse_rust_enhancements(
 
             metrics.incr("rust_enhancements.parsing_performed", tags={"source": source})
         except Exception:
-            logger.exception("failed parsing Rust Enhancements from `{source}`")
+            logger.exception("failed parsing Rust Enhancements from `%s`", source)
 
     return rust_enhancements
 
@@ -250,6 +250,13 @@ def compare_rust_enhancers(
                 sentry_sdk.capture_message("Rust Enhancements mismatch")
 
 
+def prefer_rust_enhancers():
+    try:
+        return random.random() < options.get("grouping.rust_enhancers.prefer_rust_result")
+    except Exception:
+        return False
+
+
 class Enhancements:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
@@ -293,14 +300,13 @@ class Enhancements:
             self.rust_enhancements, match_frames, exception_data
         )
 
-        # TODO: Once we are happy with the state of Rust provided enhancements,
-        # update the frames and return before the Python code runs.
-        # for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
-        #     if in_app is not None:
-        #         set_in_app(frame, in_app)
-        #     if category is not None:
-        #         set_path(frame, "data", "category", value=category)
-        # return
+        if rust_enhanced_frames and prefer_rust_enhancers():
+            for frame, (category, in_app) in zip(frames, rust_enhanced_frames):
+                if in_app is not None:
+                    set_in_app(frame, in_app)
+                if category is not None:
+                    set_path(frame, "data", "category", value=category)
+            return
 
         in_memory_cache: dict[str, str] = {}
 

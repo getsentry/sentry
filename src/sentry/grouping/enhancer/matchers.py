@@ -234,10 +234,11 @@ class FamilyMatch(FrameMatch):
 class InAppMatch(FrameMatch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._ref_val = bool(get_rule_bool(self.pattern))
+        self._ref_val = get_rule_bool(self.pattern)
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
-        return self._ref_val == bool(match_frame["in_app"])
+        ref_val = self._ref_val
+        return ref_val is not None and ref_val == bool(match_frame["in_app"])
 
 
 class FrameFieldMatch(FrameMatch):
