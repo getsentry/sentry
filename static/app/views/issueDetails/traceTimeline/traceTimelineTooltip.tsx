@@ -49,7 +49,13 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
               </div>
               <EventTitleWrapper>
                 <EventTitle>{timelineEvent.title}</EventTitle>
-                <EventDescription>{timelineEvent.transaction}</EventDescription>
+                <EventDescription>
+                  {timelineEvent.transaction
+                    ? timelineEvent.transaction
+                    : 'stack.function' in timelineEvent
+                      ? timelineEvent['stack.function'].at(-1)
+                      : null}
+                </EventDescription>
               </EventTitleWrapper>
             </EventItem>
           );
