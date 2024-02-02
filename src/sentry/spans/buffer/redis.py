@@ -22,7 +22,7 @@ class RedisSpansBuffer:
     def __init__(self):
         self.client: RedisCluster | StrictRedis = get_redis_client()
 
-    def read_segment(self, project_id: str | int, segment_id: str) -> List[str | bytes]:
+    def read_segment(self, project_id: str | int, segment_id: str) -> list[str | bytes]:
         key = get_segment_key(project_id, segment_id)
 
         return self.client.lrange(key, 0, -1) or []

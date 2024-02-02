@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
