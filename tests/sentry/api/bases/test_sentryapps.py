@@ -12,7 +12,6 @@ from sentry.api.bases.sentryapps import (
     SentryAppPermission,
     add_integration_platform_metric_tag,
 )
-from sentry.auth.superuser import Superuser
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
