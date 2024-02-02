@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import Any, Tuple
+from typing import Any
 from unittest import mock
 
 from urllib3.response import HTTPResponse
@@ -160,7 +160,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         response = self.client.get(self.path)
         assert response.data == {"responses": []}
 
-    @with_feature("organizations:issues-similarity-embeddings")
+    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
