@@ -23,11 +23,7 @@ from sentry.db.models.query import create_or_update
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
-from sentry.issues.priority import (
-    PRIORITY_CHANGE_REASON_STR_TO_ENUM,
-    PRIORITY_STR_TO_LEVEL_ENUM,
-    update_priority,
-)
+from sentry.issues.priority import PRIORITY_STR_TO_LEVEL_ENUM, update_priority
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
@@ -267,7 +263,6 @@ def update_groups(
     if has_priority and "priority" in result:
         handle_priority(
             priority=result["priority"],
-            reason=result.get("reason", None),
             group_list=group_list,
             actor=acting_user,
         )
@@ -672,9 +667,11 @@ def update_groups(
                 "referer": (
                     "issue stream"
                     if re.search(issue_stream_regex, referer)
-                    else "similar issues tab"
-                    if re.search(similar_issues_tab_regex, referer)
-                    else "unknown"
+                    else (
+                        "similar issues tab"
+                        if re.search(similar_issues_tab_regex, referer)
+                        else "unknown"
+                    )
                 ),
             },
         )
@@ -783,12 +780,11 @@ def handle_has_seen(
         GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
 
 
-def handle_priority(priority: str, reason: str, group_list: Sequence[Group], actor: User) -> None:
+def handle_priority(priority: str, group_list: Sequence[Group], actor: User) -> None:
     for group in group_list:
         update_priority(
             group=group,
             priority=PRIORITY_STR_TO_LEVEL_ENUM[priority] if priority else None,
-            reason=PRIORITY_CHANGE_REASON_STR_TO_ENUM[reason] if reason else None,
             actor=actor,
         )
         group.update(priority_locked_at=django_timezone.now())

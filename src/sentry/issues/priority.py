@@ -39,11 +39,6 @@ class PriorityChangeReason(Enum):
     ONGOING = "ongoing"
 
 
-PRIORITY_CHANGE_REASON_STR_TO_ENUM: dict[str, PriorityChangeReason] = {
-    "escalating": PriorityChangeReason.ESCALATING,
-    "ongoing": PriorityChangeReason.ONGOING,
-}
-
 PRIORITY_TO_GROUP_HISTORY_STATUS = {
     PriorityLevel.HIGH: GroupHistoryStatus.PRIORITY_HIGH,
     PriorityLevel.MEDIUM: GroupHistoryStatus.PRIORITY_MEDIUM,
