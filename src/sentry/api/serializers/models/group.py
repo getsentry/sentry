@@ -4,8 +4,9 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Protocol, Sequence, TypedDict
+from typing import Any, Protocol, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -353,6 +354,7 @@ class GroupSerializerBase(Serializer, ABC):
         if features.has("projects:issue-priority", obj.project, actor=None):
             priority_label = PRIORITY_LEVEL_TO_STR[obj.priority] if obj.priority else None
             group_dict["priority"] = priority_label
+            group_dict["priorityLockedAt"] = obj.priority_locked_at
 
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:

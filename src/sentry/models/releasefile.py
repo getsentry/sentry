@@ -8,13 +8,12 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, ClassVar
+from typing import IO, ClassVar, Self
 from urllib.parse import urlunsplit
 
 import sentry_sdk
 from django.core.files.base import File as FileObj
 from django.db import models, router
-from typing_extensions import Self
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope

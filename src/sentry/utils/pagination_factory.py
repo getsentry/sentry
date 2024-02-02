@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Protocol
+from collections.abc import Mapping
+from typing import Any, Protocol
 
 import sentry_sdk
 from sentry_sdk.tracing import Span

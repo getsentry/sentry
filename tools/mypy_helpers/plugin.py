@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from mypy.nodes import ARG_POS
 from mypy.plugin import ClassDefContext, FunctionSigContext, Plugin

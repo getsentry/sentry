@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Mapping, Optional, Sequence
 
 from sentry_sdk.crons.decorator import monitor
 from snuba_sdk import (
@@ -118,8 +118,8 @@ def boost_low_volume_projects_of_org(
 def fetch_projects_with_total_root_transaction_count_and_rates(
     context: TaskContext,
     org_ids: list[int],
-    granularity: Optional[Granularity] = None,
-    query_interval: Optional[timedelta] = None,
+    granularity: Granularity | None = None,
+    query_interval: timedelta | None = None,
 ) -> Mapping[OrganizationId, Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
     """
     Fetches for each org and each project the total root transaction count and how many transactions were kept and

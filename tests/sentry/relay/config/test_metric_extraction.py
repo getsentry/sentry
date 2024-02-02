@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Optional, Sequence
 from unittest import mock
 
 import pytest
@@ -44,7 +44,7 @@ def create_alert(
     query: str,
     project: Project,
     dataset: Dataset = Dataset.PerformanceMetrics,
-    environment: Optional[Environment] = None,
+    environment: Environment | None = None,
 ) -> AlertRule:
     snuba_query = SnubaQuery.objects.create(
         aggregate=aggregate,
@@ -72,8 +72,8 @@ def create_widget(
     aggregates: Sequence[str],
     query: str,
     project: Project,
-    title: Optional[str] = "Dashboard",
-    columns: Optional[Sequence[str]] = None,
+    title: str | None = "Dashboard",
+    columns: Sequence[str] | None = None,
 ) -> DashboardWidgetQuery:
     columns = columns or []
     dashboard = Dashboard.objects.create(
@@ -1750,7 +1750,7 @@ def _on_demand_spec_from_alert(project: Project, alert: AlertRule) -> OnDemandMe
     )
 
 
-def widget_to_metric_spec(query_hash: str, condition: Optional[RuleCondition] = None) -> MetricSpec:
+def widget_to_metric_spec(query_hash: str, condition: RuleCondition | None = None) -> MetricSpec:
     _tags: Sequence[TagSpec] = [
         {"key": "query_hash", "value": query_hash},
         {"field": "event.environment", "key": "environment"},
@@ -1943,7 +1943,7 @@ def test_event_type(
     query: str,
     config_assertion: bool,
     expected_hashes: list[str],
-    expected_condition: Optional[RuleCondition],
+    expected_condition: RuleCondition | None,
 ) -> None:
     aggr = "count()"
 

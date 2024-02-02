@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from collections.abc import MutableMapping
 from functools import partial
-from typing import Any, MutableMapping
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest

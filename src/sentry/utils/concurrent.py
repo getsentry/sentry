@@ -4,12 +4,13 @@ import collections
 import functools
 import logging
 import threading
+from collections.abc import Callable
 from concurrent.futures import Future, InvalidStateError
 from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
-from typing import TYPE_CHECKING, Callable, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from sentry_sdk import Hub
 

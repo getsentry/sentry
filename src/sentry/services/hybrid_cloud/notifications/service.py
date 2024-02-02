@@ -3,7 +3,7 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
-from typing import Mapping, MutableMapping, Optional
+from collections.abc import Mapping, MutableMapping
 
 from sentry.notifications.types import (
     NotificationScopeEnum,
@@ -34,9 +34,9 @@ class NotificationsService(RpcService):
         self,
         *,
         external_provider: ExternalProviderEnum,
-        user_id: Optional[int] = None,
-        team_id: Optional[int] = None,
-        types: Optional[list[NotificationSettingEnum]] = None,
+        user_id: int | None = None,
+        team_id: int | None = None,
+        types: list[NotificationSettingEnum] | None = None,
     ) -> None:
         pass
 
@@ -88,8 +88,8 @@ class NotificationsService(RpcService):
         *,
         recipients: list[RpcActor],
         type: NotificationSettingEnum,
-        project_ids: Optional[list[int]] = None,
-        organization_id: Optional[int] = None,
+        project_ids: list[int] | None = None,
+        organization_id: int | None = None,
     ) -> MutableMapping[int, MutableMapping[int, str]]:
         pass
 
@@ -107,9 +107,9 @@ class NotificationsService(RpcService):
         *,
         recipients: list[RpcActor],
         type: NotificationSettingEnum,
-        organization_id: Optional[int] = None,
-        project_ids: Optional[list[int]] = None,
-        actor_type: Optional[ActorType] = None,
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+        actor_type: ActorType | None = None,
     ) -> Mapping[str, set[RpcActor]]:
         pass
 
