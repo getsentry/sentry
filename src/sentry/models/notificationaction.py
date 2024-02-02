@@ -134,14 +134,18 @@ class AbstractNotificationAction(Model):
 class ActionTrigger(FlexibleIntEnum):
     """
     The possible sources of action notifications.
-    Use values less than 100 here to avoid conflicts with getsentry's trigger values.
+    Items prefixed with 'GS_' are have registrations in getsentry.
     """
 
     AUDIT_LOG = 0
+    GS_SPIKE_PROTECTION = 100
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
-        return ((cls.AUDIT_LOG.value, "audit-log"),)
+        return (
+            (cls.AUDIT_LOG.value, "audit-log"),
+            (cls.GS_SPIKE_PROTECTION.value, "spike-protection"),
+        )
 
 
 class TriggerGenerator:
@@ -220,8 +224,8 @@ class NotificationAction(AbstractNotificationAction):
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField("sentry.Project", through=NotificationActionProject)
 
-    # The type of trigger which controls when the actions will go off (e.g. spike-protection)
-    trigger_type = models.SmallIntegerField(choices=TriggerGenerator())
+    # The type of trigger which controls when the actions will go off (e.g. 'spike-protection')
+    trigger_type = models.SmallIntegerField(choices=_trigger_types)
 
     class Meta:
         app_label = "sentry"
@@ -234,10 +238,9 @@ class NotificationAction(AbstractNotificationAction):
         display_text: str,
     ) -> None:
         """
-        This method is used for adding trigger types to this model from getsentry.
-        If the trigger is relevant to sentry as well, directly modify ActionTrigger.
+        Deprecated: Will be removed once removed from getsentry;
         """
-        cls._trigger_types += ((value, display_text),)
+        pass
 
     @classmethod
     def register_action(
