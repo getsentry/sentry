@@ -2169,7 +2169,7 @@ const Highlight = styled('div')`
   user-select: none;
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 25px;
+  line-height: 24px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
 `;
