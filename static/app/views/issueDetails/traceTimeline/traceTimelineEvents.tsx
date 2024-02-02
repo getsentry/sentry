@@ -189,7 +189,6 @@ function NodeGroup({
           overlayStyle={{
             padding: `0 !important`,
           }}
-          offset={10}
           position="bottom"
           isHoverable
           skipWrapper
@@ -278,5 +277,5 @@ const TooltipHelper = styled('span')`
   margin-top: -4px;
   margin-right: -2px;
   min-width: 8px;
-  z-index: ${p => p.theme.zIndex.issuesList.stickyHeader};
+  z-index: 1;
 `;
