@@ -1797,6 +1797,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-using-transactions": False,
     # Enable profiling view
     "organizations:profiling-view": False,
+    # Enable asking for feedback after project-create when replay is disabled
+    "organizations:project-create-replay-feedback": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable project selection on the stats page
