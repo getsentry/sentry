@@ -281,6 +281,7 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
+    "level",
 ]
 
 # Query fields that are not considered
@@ -779,7 +780,7 @@ def _is_standard_metrics_field(field: str) -> bool:
 
 
 def _is_error_field(token: str) -> bool:
-    return token.startswith("error.")
+    return token.startswith("error.") or token.startswith("level")
 
 
 def _is_standard_metrics_search_term(field: str) -> bool:
