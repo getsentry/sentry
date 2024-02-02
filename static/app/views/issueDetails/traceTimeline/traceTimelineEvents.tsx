@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import color from 'color';
 
 import DateTime from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -155,28 +156,29 @@ function NodeGroup({
       skipWrapper
     >
       <TimelineColumns totalColumns={totalSubColumns}>
-        {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => (
-          <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
-            {groupEvents.map(groupEvent => (
-              // TODO: use sentry colors and add the other styles
-              <IconNode
-                key={groupEvent.id}
-                aria-label={
-                  groupEvent.id === currentEventId ? t('Current Event') : undefined
-                }
-                style={
-                  groupEvent.id === currentEventId
-                    ? {
-                        backgroundColor: 'rgb(181, 19, 7, 1)',
-                        outline: '1px solid rgb(181, 19, 7, 0.5)',
-                        outlineOffset: '3px',
-                      }
-                    : undefined
-                }
-              />
-            ))}
-          </EventColumn>
-        ))}
+        {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => {
+          const isCurrentNode = groupEvents.some(e => e.id === currentEventId);
+          const isPerformanceNode = groupEvents.every(e => !('event.type' in e));
+          return (
+            <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
+              {groupEvents.map(groupEvent =>
+                isCurrentNode ? (
+                  <CurrentNodeContainer
+                    key={groupEvent.id}
+                    aria-label={t('Current Event')}
+                  >
+                    <CurrentNodeRing />
+                    <CurrentIconNode />
+                  </CurrentNodeContainer>
+                ) : isPerformanceNode ? (
+                  <PerformanceIconNode key={groupEvent.id} />
+                ) : (
+                  <IconNode key={groupEvent.id} />
+                )
+              )}
+            </EventColumn>
+          );
+        })}
       </TimelineColumns>
     </Tooltip>
   );
@@ -203,5 +205,50 @@ const IconNode = styled('div')`
   color: ${p => p.theme.white};
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
-  background-color: rgb(181, 19, 7, 0.2);
+  background-color: ${p => color(p.theme.red200).alpha(0.3).string()};
+`;
+
+const PerformanceIconNode = styled(IconNode)`
+  background-color: unset;
+  border: 1px solid ${p => color(p.theme.red300).alpha(0.3).string()};
+`;
+
+const CurrentNodeContainer = styled('div')`
+  position: absolute;
+  grid-column: 1;
+  grid-row: 1;
+  width: 8px;
+  height: 8px;
+`;
+
+const CurrentNodeRing = styled('div')`
+  border: 1px solid ${p => p.theme.red300};
+  height: 20px;
+  width: 20px;
+  border-radius: 30px;
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  opacity: 0.0;
+  animation: pulse 1s ease-out infinite;
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.1, 0.1);
+      opacity: 0.0;
+    }
+    50% {
+      opacity: 1.0;
+    }
+    100% {
+      transform: scale(1.2, 1.2);
+      opacity: 0.0;
+    }
+  }
+`;
+
+const CurrentIconNode = styled(IconNode)`
+  background-color: ${p => p.theme.red300};
+  border-radius: 50%;
+  position: absolute;
 `;

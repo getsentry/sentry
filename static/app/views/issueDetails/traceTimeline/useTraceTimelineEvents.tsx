@@ -6,7 +6,7 @@ import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/ut
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export interface TimelineEvent {
+interface BaseEvent {
   id: string;
   issue: string;
   'issue.id': number;
@@ -16,6 +16,13 @@ export interface TimelineEvent {
   title: string;
   transaction: string;
 }
+
+interface TimelineDiscoverEvent extends BaseEvent {}
+interface TimelineIssuePlatformEvent extends BaseEvent {
+  'event.type': string;
+}
+
+export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
 
 export interface TraceEventResponse {
   data: TimelineEvent[];
@@ -72,7 +79,15 @@ export function useTraceTimelineEvents(
         query: {
           // Other events
           dataset: DiscoverDatasets.DISCOVER,
-          field: ['title', 'project', 'timestamp', 'issue.id', 'issue', 'transaction'],
+          field: [
+            'title',
+            'project',
+            'timestamp',
+            'issue.id',
+            'issue',
+            'transaction',
+            'event.type',
+          ],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',

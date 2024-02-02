@@ -48,6 +48,7 @@ describe('TraceTimeline', () => {
         id: event.id,
         issue: 'SENTRY-2EYS',
         transaction: 'important.task',
+        'event.type': 'error',
       },
     ],
     meta: {fields: {}, units: {}},
