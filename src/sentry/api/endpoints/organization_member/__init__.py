@@ -65,7 +65,7 @@ def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
     """
     User can set a team role:
 
-    * If they are an active superuser
+    * If they are an active superuser (with the feature flag, they must be superuser write)
     * If they are an org owner/manager/admin
     * If they are a team admin on the team
     """
