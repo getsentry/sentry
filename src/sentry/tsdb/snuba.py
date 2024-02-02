@@ -6,7 +6,7 @@ import itertools
 from collections.abc import Mapping, Sequence, Set
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Sequence, TypeVar
+from typing import Any, Sequence
 
 from snuba_sdk import (
     Column,
@@ -322,7 +322,7 @@ class SnubaTSDB(BaseTSDB):
     def __get_data_snql(
         self,
         model: TSDBModel,
-        keys: Sequence[int],
+        keys: Sequence | Set | Mapping,
         start: datetime | None,
         end: datetime | None,
         rollup: int | None = None,
@@ -352,8 +352,7 @@ class SnubaTSDB(BaseTSDB):
         model_dataset = model_query_settings.dataset
 
         columns = (model_query_settings.groupby, model_query_settings.aggregate)
-        assert isinstance(keys, Sequence)
-        keys_map_tmp = dict(zip(columns, self.flatten_keys_top_level(keys)))
+        keys_map_tmp = dict(zip(columns, self.flatten_keys(keys)))
         keys_map = {k: v for k, v in keys_map_tmp.items() if k is not None and v is not None}
         if environment_ids is not None:
             keys_map["environment"] = environment_ids
@@ -912,7 +911,7 @@ class SnubaTSDB(BaseTSDB):
             tenant_ids=tenant_ids,
         )
 
-    def flatten_keys(self, items):
+    def flatten_keys(self, items: Mapping | Sequence | Set) -> tuple[list, Sequence | None]:
         """
         Returns a normalized set of keys based on the various formats accepted
         by TSDB methods. The input is either just a plain list of keys for the
@@ -925,11 +924,6 @@ class SnubaTSDB(BaseTSDB):
                 list(set.union(*(set(v) for v in items.values())) if items else []),
             )
         elif isinstance(items, (Sequence, Set)):
-            return (items, None)
+            return (list(items), None)
         else:
             raise ValueError("Unsupported type: %s" % (type(items)))
-
-    _T = TypeVar("_T")
-
-    def flatten_keys_top_level(self, items: Sequence[_T]) -> tuple[Sequence[_T], None]:
-        return (items, None)
