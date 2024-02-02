@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import TypedDict
 
 from django.conf import settings
 from urllib3 import Retry
@@ -23,7 +23,7 @@ class BreakpointData(TypedDict):
 
 
 class BreakpointResponse(TypedDict):
-    data: List[BreakpointData]
+    data: list[BreakpointData]
 
 
 seer_connection_pool = connection_from_url(

@@ -146,60 +146,56 @@ export function PagePerformanceTable() {
     }
     if (col.key === 'totalScore') {
       return (
-        <SortLink
-          title={
-            <AlignCenter>
-              <StyledTooltip
-                isHoverable
-                title={
-                  <span>
-                    {t('The overall performance rating of this page.')}
-                    <br />
-                    <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
-                      {t('How is this calculated?')}
-                    </ExternalLink>
-                  </span>
-                }
-              >
-                <TooltipHeader>{t('Perf Score')}</TooltipHeader>
-              </StyledTooltip>
-            </AlignCenter>
-          }
-          direction={sort?.field === col.key ? sort.kind : undefined}
-          canSort={canSort}
-          generateSortLink={generateSortLink}
-          align={undefined}
-        />
+        <AlignCenter>
+          <StyledTooltip
+            isHoverable
+            title={
+              <span>
+                {t('The overall performance rating of this page.')}
+                <br />
+                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                  {t('How is this calculated?')}
+                </ExternalLink>
+              </span>
+            }
+          >
+            <SortLink
+              title={<TooltipHeader>{t('Perf Score')}</TooltipHeader>}
+              direction={sort?.field === col.key ? sort.kind : undefined}
+              canSort={canSort}
+              generateSortLink={generateSortLink}
+              align={undefined}
+            />
+          </StyledTooltip>
+        </AlignCenter>
       );
     }
     if (col.key === 'opportunity') {
       return (
-        <SortLink
-          align="right"
-          title={
-            <AlignRight>
-              <StyledTooltip
-                isHoverable
-                title={
-                  <span>
-                    {t(
-                      "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
-                    )}
-                    <br />
-                    <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
-                      {t('How is this calculated?')}
-                    </ExternalLink>
-                  </span>
-                }
-              >
-                <TooltipHeader>{col.name}</TooltipHeader>
-              </StyledTooltip>
-            </AlignRight>
-          }
-          direction={sort?.field === col.key ? sort.kind : undefined}
-          canSort={canSort}
-          generateSortLink={generateSortLink}
-        />
+        <AlignRight>
+          <StyledTooltip
+            isHoverable
+            title={
+              <span>
+                {t(
+                  "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
+                )}
+                <br />
+                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                  {t('How is this calculated?')}
+                </ExternalLink>
+              </span>
+            }
+          >
+            <SortLink
+              align="right"
+              title={<TooltipHeader>{col.name}</TooltipHeader>}
+              direction={sort?.field === col.key ? sort.kind : undefined}
+              canSort={canSort}
+              generateSortLink={generateSortLink}
+            />
+          </StyledTooltip>
+        </AlignRight>
       );
     }
     return <span>{col.name}</span>;

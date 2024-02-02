@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import re
 from collections import namedtuple
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from typing import Any
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -86,7 +87,7 @@ class Rule(namedtuple("Rule", "matcher owners")):
     def load(cls, data: Mapping[str, Any]) -> Rule:
         return cls(Matcher.load(data["matcher"]), [Owner.load(o) for o in data["owners"]])
 
-    def test(self, data: Mapping[str, Any]) -> Union[bool, Any]:
+    def test(self, data: Mapping[str, Any]) -> bool | Any:
         return self.matcher.test(data)
 
 
@@ -116,7 +117,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return cls(data["type"], data["pattern"])
 
     @staticmethod
-    def munge_if_needed(data: PathSearchable) -> Tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
+    def munge_if_needed(data: PathSearchable) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
         sdk_name = get_sdk_name(data)
@@ -160,7 +161,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         self,
         frames: Sequence[Mapping[str, Any]],
         keys: Sequence[str],
-        match_frame_value_func: Callable[[Optional[str], str], bool] = lambda val, pattern: bool(
+        match_frame_value_func: Callable[[str | None, str], bool] = lambda val, pattern: bool(
             glob_match(val, pattern, ignorecase=True, path_normalize=True)
         ),
     ) -> bool:
@@ -227,20 +228,20 @@ class Owner(namedtuple("Owner", "type identifier")):
 class OwnershipVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
 
-    def visit_ownership(self, node: Node, children: Sequence[Optional[Rule]]) -> Sequence[Rule]:
+    def visit_ownership(self, node: Node, children: Sequence[Rule | None]) -> Sequence[Rule]:
         return [_f for _f in children if _f]
 
-    def visit_line(self, node: Node, children: Tuple[Node, Sequence[Optional[Rule]], Any]) -> Any:
+    def visit_line(self, node: Node, children: tuple[Node, Sequence[Rule | None], Any]) -> Any:
         _, line, _ = children
         comment_or_rule_or_empty = line[0]
         if comment_or_rule_or_empty:
             return comment_or_rule_or_empty
 
-    def visit_rule(self, node: Node, children: Tuple[Node, Matcher, Sequence[Owner]]) -> Rule:
+    def visit_rule(self, node: Node, children: tuple[Node, Matcher, Sequence[Owner]]) -> Rule:
         _, matcher, owners = children
         return Rule(matcher, owners)
 
-    def visit_matcher(self, node: Node, children: Tuple[Node, str, str]) -> Matcher:
+    def visit_matcher(self, node: Node, children: tuple[Node, str, str]) -> Matcher:
         _, tag, identifier = children
         return Matcher(tag, identifier)
 
@@ -251,11 +252,11 @@ class OwnershipVisitor(NodeVisitor):
         type, _ = tag
         return str(type[0].text)
 
-    def visit_owners(self, node: Node, children: Tuple[Any, Sequence[Owner]]) -> Sequence[Owner]:
+    def visit_owners(self, node: Node, children: tuple[Any, Sequence[Owner]]) -> Sequence[Owner]:
         _, owners = children
         return owners
 
-    def visit_owner(self, node: Node, children: Tuple[Node, bool, str]) -> Owner:
+    def visit_owner(self, node: Node, children: tuple[Node, bool, str]) -> Owner:
         _, is_team, pattern = children
         type = "team" if is_team else "user"
         # User emails are case insensitive, so coerce them
@@ -276,7 +277,7 @@ class OwnershipVisitor(NodeVisitor):
     def visit_quoted_identifier(self, node: Node, children: Sequence[Any]) -> str:
         return str(node.text[1:-1].encode("ascii", "backslashreplace").decode("unicode-escape"))
 
-    def generic_visit(self, node: Node, children: Sequence[Any]) -> Union[Sequence[Node], Node]:
+    def generic_visit(self, node: Node, children: Sequence[Any]) -> Sequence[Node] | Node:
         return children or node
 
 
@@ -313,7 +314,7 @@ def convert_schema_to_rules_text(schema: Mapping[str, Any]) -> str:
     return text
 
 
-def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
+def parse_code_owners(data: str) -> tuple[list[str], list[str], list[str]]:
     """Parse a CODEOWNERS text and returns the list of team names, list of usernames"""
     teams = []
     usernames = []
@@ -340,7 +341,7 @@ def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
     return teams, usernames, emails
 
 
-def get_codeowners_path_and_owners(rule: str) -> Tuple[str, Sequence[str]]:
+def get_codeowners_path_and_owners(rule: str) -> tuple[str, Sequence[str]]:
     # Regex does a negative lookbehind for a backslash. Matches on whitespace without a preceding backslash.
     pattern = re.compile(r"(?<!\\)\s")
     path, *code_owners = (i for i in pattern.split(rule.strip()) if i)
@@ -477,7 +478,7 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
 
 
 def remove_deleted_owners_from_schema(
-    rules: List[Dict[str, Any]], owners_id: Dict[str, int]
+    rules: list[dict[str, Any]], owners_id: dict[str, int]
 ) -> None:
     valid_rules = rules
 
@@ -495,7 +496,7 @@ def remove_deleted_owners_from_schema(
     rules = valid_rules
 
 
-def add_owner_ids_to_schema(rules: List[Dict[str, Any]], owners_id: Dict[str, int]) -> None:
+def add_owner_ids_to_schema(rules: list[dict[str, Any]], owners_id: dict[str, int]) -> None:
     for rule in rules:
         for rule_owner in rule["owners"]:
             if rule_owner["identifier"] in owners_id.keys():

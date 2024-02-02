@@ -110,6 +110,13 @@ describe('ReplayClipPreview', () => {
     });
   });
 
+  const defaultProps = {
+    analyticsContext: '',
+    orgSlug: mockOrgSlug,
+    replaySlug: mockReplaySlug,
+    eventTimestampMs: mockEventTimestampMs,
+  };
+
   it('Should render a placeholder when is fetching the replay data', () => {
     // Change the mocked hook to return a loading state
     mockUseReplayReader.mockImplementationOnce(() => {
@@ -126,13 +133,7 @@ describe('ReplayClipPreview', () => {
       };
     });
 
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
   });
@@ -153,25 +154,13 @@ describe('ReplayClipPreview', () => {
       };
     });
 
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-error')).toBeVisible();
   });
 
   it('Should have the correct time range', () => {
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     // Should be two sliders, one for the scrubber and one for timeline
     const sliders = screen.getAllByRole('slider', {name: 'Seek slider'});
@@ -185,13 +174,7 @@ describe('ReplayClipPreview', () => {
   });
 
   it('Should link to the full replay correctly', () => {
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByRole('button', {name: 'See Full Replay'})).toHaveAttribute(
       'href',
@@ -202,13 +185,7 @@ describe('ReplayClipPreview', () => {
   it('Display URL and breadcrumbs in fullscreen mode', async () => {
     mockIsFullscreen.mockReturnValue(true);
 
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     // Should have URL bar
     expect(screen.getByRole('textbox', {name: 'Current URL'})).toHaveValue(

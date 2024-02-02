@@ -1,8 +1,8 @@
 from contextlib import contextmanager
-from typing import Optional
 
 import sentry_sdk
 from django.utils.datastructures import MultiValueDict
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,21 +15,68 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.session_examples import SessionExamples
+from sentry.apidocs.parameters import (
+    GlobalParams,
+    OrganizationParams,
+    SessionsParams,
+    VisibilityParams,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
+from sentry.release_health.base import SessionsQueryResult
 from sentry.snuba.sessions_v2 import SNUBA_LIMIT, InvalidField, QueryDefinition
 from sentry.utils.cursors import Cursor, CursorResult
 
 
+@extend_schema(tags=["Releases"])
 @region_silo_endpoint
 class OrganizationSessionsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
+    @extend_schema(
+        operation_id="Retrieve Release Health Session Statistics",
+        parameters=[
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.STATS_PERIOD,
+            OrganizationParams.PROJECT,
+            SessionsParams.FIELD,
+            SessionsParams.PER_PAGE,
+            SessionsParams.INTERVAL,
+            SessionsParams.GROUP_BY,
+            SessionsParams.ORDER_BY,
+            SessionsParams.INCLUDE_TOTALS,
+            SessionsParams.INCLUDE_SERIES,
+            VisibilityParams.QUERY,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("SessionsQueryResult", SessionsQueryResult),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+        },
+        examples=SessionExamples.QUERY_SESSIONS,
+    )
     def get(self, request: Request, organization) -> Response:
-        def data_fn(offset: int, limit: int):
+        """
+        Returns a time series of release health session statistics for projects bound to an "
+        "organization.\n\nThe interval and date range are subject to certain restrictions and rounding "
+        "rules.\n\nThe date range is rounded to align with the interval, and is rounded to at least one "
+        "hour. The interval can at most be one day and at least one hour currently. It has to cleanly "
+        "divide one day, for rounding reasons.\n\nBecause of technical limitations, this endpoint returns "
+        "at most 10000 data points. For example, if you select a 90 day window grouped by releases, "
+        "you will see at most `floor(10k / (90 + 1)) = 109` releases. To get more results, reduce the "
+        "`statsPeriod`."
+        """
+
+        def data_fn(offset: int, limit: int) -> SessionsQueryResult:
             with self.handle_query_errors():
                 with sentry_sdk.start_span(
                     op="sessions.endpoint", description="build_sessions_query"
@@ -60,8 +107,8 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-        offset: Optional[int],
-        limit: Optional[int],
+        offset: int | None,
+        limit: int | None,
     ):
         try:
             params = self.get_filter_params(request, organization, date_filter_optional=True)

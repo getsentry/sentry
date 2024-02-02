@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 from confluent_kafka import KafkaError
 from confluent_kafka import Message as KafkaMessage
@@ -39,7 +40,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         return self.__producers[topic]
 
-    def delivery_callback(self, error: Optional[KafkaError], message: KafkaMessage) -> None:
+    def delivery_callback(self, error: KafkaError | None, message: KafkaMessage) -> None:
         if error is not None:
             logger.warning("Could not publish message (error: %s): %r", error, message)
 
@@ -49,17 +50,17 @@ class KafkaEventStream(SnubaProtocolEventStream):
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
-        primary_hash: Optional[str],
+        primary_hash: str | None,
         received_timestamp: float,
         skip_consume: bool,
-        group_states: Optional[GroupStates] = None,
+        group_states: GroupStates | None = None,
     ) -> MutableMapping[str, str]:
         # HACK: We are putting all this extra information that is required by the
         # post process forwarder into the headers so we can skip parsing entire json
         # messages. The post process forwarder is currently bound to a single core.
         # Once we are able to parallelize the JSON parsing and other transformation
         # steps being done there we may want to remove this hack.
-        def encode_bool(value: Optional[bool]) -> str:
+        def encode_bool(value: bool | None) -> str:
             if value is None:
                 value = False
             return str(int(value))
@@ -69,7 +70,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         # we strip `None` values here so later in the pipeline they can be
         # cleanly encoded without nullability checks
-        def strip_none_values(value: Mapping[str, Optional[str]]) -> MutableMapping[str, str]:
+        def strip_none_values(value: Mapping[str, str | None]) -> MutableMapping[str, str]:
             return {key: value for key, value in value.items() if value is not None}
 
         send_new_headers = options.get("eventstream:kafka-headers")
@@ -106,14 +107,14 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def insert(
         self,
-        event: Union[Event, GroupEvent],
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
-        primary_hash: Optional[str],
+        primary_hash: str | None,
         received_timestamp: float,
         skip_consume: bool = False,
-        group_states: Optional[GroupStates] = None,
+        group_states: GroupStates | None = None,
         **kwargs: Any,
     ) -> None:
         event_type = self._get_event_type(event)
@@ -167,9 +168,9 @@ class KafkaEventStream(SnubaProtocolEventStream):
         self,
         project_id: int,
         _type: str,
-        extra_data: Tuple[Any, ...] = (),
+        extra_data: tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[MutableMapping[str, str]] = None,
+        headers: MutableMapping[str, str] | None = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:

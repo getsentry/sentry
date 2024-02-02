@@ -1,7 +1,6 @@
 import type {ComponentProps} from 'react';
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import screenfull from 'screenfull';
 
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
@@ -41,6 +40,7 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  analyticsContext: string;
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
@@ -74,23 +74,22 @@ function getReplayAnalyticsStatus({
 }
 
 function ReplayPreviewPlayer({
-  toggleFullscreen,
   replayId,
   fullReplayButtonProps,
 }: {
   replayId: string;
-  toggleFullscreen: () => void;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 }) {
   const routes = useRoutes();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const isFullscreen = useIsFullscreen();
   const {currentTime} = useReplayContext();
 
-  // If the browser supports going fullscreen or not. iPhone Safari won't do
-  // it. https://caniuse.com/fullscreen
-  const showFullscreenButton = screenfull.isEnabled;
+  const fullscreenRef = useRef(null);
+  const {toggle: toggleFullscreen} = useFullscreen({
+    elementRef: fullscreenRef,
+  });
+  const isFullscreen = useIsFullscreen();
 
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
@@ -103,45 +102,46 @@ function ReplayPreviewPlayer({
 
   return (
     <PlayerPanel>
-      <PlayerBreadcrumbContainer>
-        <PlayerContextContainer>
-          {isFullscreen ? (
-            <ContextContainer>
-              <ReplayCurrentUrl />
-              <BrowserOSIcons />
-              <ReplaySidebarToggleButton
-                isOpen={isSidebarOpen}
-                setIsOpen={setIsSidebarOpen}
-              />
-            </ContextContainer>
-          ) : null}
-          <StaticPanel>
-            <ReplayPlayer />
-          </StaticPanel>
-        </PlayerContextContainer>
-        {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
-      </PlayerBreadcrumbContainer>
-      <ErrorBoundary mini>
-        <ButtonGrid>
-          <ReplayPlayPauseButton priority="default" />
-          <Container>
-            <TimeAndScrubberGrid />
-          </Container>
-          <ButtonBar gap={1}>
-            <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
-              {t('See Full Replay')}
-            </LinkButton>
-            {showFullscreenButton ? (
-              <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
+      <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
+        <PlayerBreadcrumbContainer>
+          <PlayerContextContainer>
+            {isFullscreen ? (
+              <ContextContainer>
+                <ReplayCurrentUrl />
+                <BrowserOSIcons />
+                <ReplaySidebarToggleButton
+                  isOpen={isSidebarOpen}
+                  setIsOpen={setIsSidebarOpen}
+                />
+              </ContextContainer>
             ) : null}
-          </ButtonBar>
-        </ButtonGrid>
-      </ErrorBoundary>
+            <StaticPanel>
+              <ReplayPlayer />
+            </StaticPanel>
+          </PlayerContextContainer>
+          {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
+        </PlayerBreadcrumbContainer>
+        <ErrorBoundary mini>
+          <ButtonGrid>
+            <ReplayPlayPauseButton priority="default" />
+            <Container>
+              <TimeAndScrubberGrid />
+            </Container>
+            <ButtonBar gap={1}>
+              <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
+                {t('See Full Replay')}
+              </LinkButton>
+              <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
+            </ButtonBar>
+          </ButtonGrid>
+        </ErrorBoundary>
+      </PreviewPlayerContainer>
     </PlayerPanel>
   );
 }
 
 function ReplayClipPreview({
+  analyticsContext,
   eventTimestampMs,
   orgSlug,
   replaySlug,
@@ -150,10 +150,6 @@ function ReplayClipPreview({
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
-  });
-  const fullscreenRef = useRef(null);
-  const {toggle: toggleFullscreen} = useFullscreen({
-    elementRef: fullscreenRef,
   });
 
   const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
@@ -216,13 +212,13 @@ function ReplayClipPreview({
       replay={replay}
       initialTimeOffsetMs={offset}
       clipWindow={clipWindow}
+      analyticsContext={analyticsContext}
     >
-      <PlayerContainer data-test-id="player-container" ref={fullscreenRef}>
+      <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (
           <ReplayProcessingError processingErrors={replay.processingErrors()} />
         ) : (
           <ReplayPreviewPlayer
-            toggleFullscreen={toggleFullscreen}
             replayId={replayId}
             fullReplayButtonProps={fullReplayButtonProps}
           />
@@ -247,22 +243,25 @@ const PlayerBreadcrumbContainer = styled(FluidHeight)`
   position: relative;
 `;
 
-const PlayerContainer = styled(FluidHeight)`
-  position: relative;
-  background: ${p => p.theme.background};
+const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
   gap: ${space(1)};
-  max-height: 448px;
+  background: ${p => p.theme.background};
 
   :fullscreen {
     padding: ${space(1)};
 
     ${PlayerBreadcrumbContainer} {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: ${p => (p.isSidebarOpen ? '1fr 25%' : '1fr')};
       height: 100%;
       gap: ${space(1)};
     }
   }
+`;
+
+const PlayerContainer = styled(FluidHeight)`
+  position: relative;
+  max-height: 448px;
 `;
 
 const PlayerContextContainer = styled(FluidHeight)`

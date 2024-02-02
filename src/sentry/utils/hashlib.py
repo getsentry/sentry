@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable, Iterable
 from hashlib import md5 as _md5
 from hashlib import sha1 as _sha1
 from hashlib import sha256 as _sha256
-from typing import Any, Callable, Iterable, Optional
+from typing import Any
 
 from django.utils.encoding import force_bytes
 
@@ -59,7 +60,7 @@ def hash_value(h: hashlib._Hash, value: Any) -> None:
 
 def hash_values(
     values: Iterable[Any],
-    seed: Optional[str] = None,
+    seed: str | None = None,
     algorithm: Callable[[], hashlib._Hash] = _md5,
 ) -> str:
     """Returns a hexadecimal hash from an iterable data structure.

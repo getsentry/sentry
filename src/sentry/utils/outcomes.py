@@ -3,7 +3,6 @@ from __future__ import annotations
 import time
 from datetime import datetime
 from enum import IntEnum
-from typing import Optional
 
 from django.conf import settings
 
@@ -41,13 +40,13 @@ billing_publisher: KafkaPublisher | None = None
 def track_outcome(
     org_id: int,
     project_id: int,
-    key_id: Optional[int],
+    key_id: int | None,
     outcome: Outcome,
-    reason: Optional[str] = None,
-    timestamp: Optional[datetime] = None,
-    event_id: Optional[str] = None,
-    category: Optional[DataCategory] = None,
-    quantity: Optional[int] = None,
+    reason: str | None = None,
+    timestamp: datetime | None = None,
+    event_id: str | None = None,
+    category: DataCategory | None = None,
+    quantity: int | None = None,
 ) -> None:
     """
     This is a central point to track org/project counters per incoming event.

@@ -4,8 +4,9 @@ import abc
 import contextlib
 import logging
 import re
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any
 
 from django import forms
 from django.core.cache import cache
@@ -110,7 +111,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         super().__init__(*args, **kwargs)
 
-    def _get_options(self) -> Tuple[str | None, float | None]:
+    def _get_options(self) -> tuple[str | None, float | None]:
         interval, value = None, None
         try:
             interval = self.get_option("interval")
@@ -134,7 +135,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return current_value > value
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+        self, activity: ConditionActivity, buckets: dict[datetime, int]
     ) -> bool:
         interval, value = self._get_options()
         if not (interval and value is not None):
@@ -162,7 +163,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         return result > value
 
-    def get_preview_aggregate(self) -> Tuple[str, str]:
+    def get_preview_aggregate(self) -> tuple[str, str]:
         raise NotImplementedError
 
     def query(self, event: GroupEvent, start: datetime, end: datetime, environment_id: str) -> int:
@@ -243,7 +244,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         )
         return sums[event.group_id]
 
-    def get_preview_aggregate(self) -> Tuple[str, str]:
+    def get_preview_aggregate(self) -> tuple[str, str]:
         return "count", "roundedTime"
 
 
@@ -267,7 +268,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         )
         return totals[event.group_id]
 
-    def get_preview_aggregate(self) -> Tuple[str, str]:
+    def get_preview_aggregate(self) -> tuple[str, str]:
         return "uniq", "user"
 
 
@@ -390,12 +391,12 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         return 0
 
     def passes_activity_frequency(
-        self, activity: ConditionActivity, buckets: Dict[datetime, int]
+        self, activity: ConditionActivity, buckets: dict[datetime, int]
     ) -> bool:
         raise NotImplementedError
 
 
-def bucket_count(start: datetime, end: datetime, buckets: Dict[datetime, int]) -> int:
+def bucket_count(start: datetime, end: datetime, buckets: dict[datetime, int]) -> int:
     rounded_end = round_to_five_minute(end)
     rounded_start = round_to_five_minute(start)
     count = buckets.get(rounded_end, 0) - buckets.get(rounded_start, 0)

@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
 
 import sentry_sdk
 
@@ -43,7 +43,7 @@ def query(
     skip_tag_resolution=False,
     extra_columns=None,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ):
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
@@ -75,17 +75,17 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: dict[str, str],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -147,7 +147,7 @@ def top_events_timeseries(
     include_other=False,
     functions_acl=None,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
