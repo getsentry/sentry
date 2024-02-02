@@ -33,7 +33,11 @@ from sentry.integrations.slack.message_builder import (
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.utils.escape import escape_slack_text
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+)
 from sentry.models.actor import ActorTuple
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
@@ -599,18 +603,26 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             if tags:
                 blocks.append(self.get_tags_block(tags))
 
-            # add event count, user count, substate, first seen
-            context = {
-                "Events": get_group_global_count(self.group),
-                "Users Affected": self.group.count_users_seen(),
-                "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
-                "First Seen": time_since(self.group.first_seen),
-            }
-            context_text = ""
-            for k, v in context.items():
-                if k and v:
-                    context_text += f"{k}: *{v}*   "
-            blocks.append(self.get_context_block(context_text[:-3]))
+        # add event count, user count, substate, first seen
+        context = {
+            "Events": get_group_global_count(self.group),
+            "Users Affected": self.group.count_users_seen(),
+            "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
+            "First Seen": time_since(self.group.first_seen),
+        }
+        if self.group.issue_type in [
+            PerformanceP95EndpointRegressionGroupType,
+            ProfileFunctionRegressionType,
+        ]:
+            # another short term solution for non-error issues notification content
+            del context["Events"]
+            del context["Users Affected"]
+
+        context_text = ""
+        for k, v in context.items():
+            if k and v:
+                context_text += f"{k}: *{v}*   "
+        blocks.append(self.get_context_block(context_text[:-3]))
 
         # build actions
         actions = []
