@@ -20,6 +20,7 @@ interface BaseEvent {
 interface TimelineDiscoverEvent extends BaseEvent {}
 interface TimelineIssuePlatformEvent extends BaseEvent {
   'event.type': string;
+  'stack.function': string[];
 }
 
 export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
@@ -87,6 +88,7 @@ export function useTraceTimelineEvents(
             'issue',
             'transaction',
             'event.type',
+            'stack.function',
           ],
           per_page: 100,
           query: `trace:${traceId}`,

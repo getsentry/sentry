@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Iterable, Mapping
 from dataclasses import field
 from itertools import chain
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction

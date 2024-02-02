@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, ClassVar, Literal, Sequence, overload
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar, Literal, overload
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction

@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional, Union
+from typing import Any
 
 from sentry import options
 from sentry.utils.services import Service
@@ -30,8 +30,8 @@ class ChartRenderer(Service):
         return bool(options.get("chart-rendering.enabled", False))
 
     def generate_chart(
-        self, style: ChartType, data: Any, upload: bool = True, size: Optional[ChartSize] = None
-    ) -> Union[str, bytes]:
+        self, style: ChartType, data: Any, upload: bool = True, size: ChartSize | None = None
+    ) -> str | bytes:
         """
         Produces a chart. You may specify the upload kwarg to have the chart
         uploaded to storage and receive a public URL for the chart

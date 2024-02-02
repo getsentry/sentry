@@ -1,5 +1,3 @@
-from typing import Union
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -21,7 +19,7 @@ from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 class SourceMapProcessingIssueResponse(TypedDict):
     type: str
     message: str
-    data: Union[dict, None]
+    data: dict | None
 
 
 class SourceMapProcessingResponse(TypedDict):
