@@ -148,8 +148,6 @@ function NodeGroup({
       title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
       overlayStyle={{
         padding: `0 !important`,
-        maxWidth: '250px !important',
-        width: '250px',
       }}
       offset={10}
       position="bottom"
