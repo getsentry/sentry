@@ -14,6 +14,7 @@ export interface TimelineEvent {
   'project.name': string;
   timestamp: string;
   title: string;
+  transaction: string;
 }
 
 export interface TraceEventResponse {
@@ -45,7 +46,7 @@ export function useTraceTimelineEvents(
         query: {
           // Get performance issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
-          field: ['title', 'project', 'timestamp', 'issue.id', 'issue'],
+          field: ['title', 'project', 'timestamp', 'issue.id', 'issue', 'transaction'],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
@@ -71,7 +72,7 @@ export function useTraceTimelineEvents(
         query: {
           // Other events
           dataset: DiscoverDatasets.DISCOVER,
-          field: ['title', 'project', 'timestamp', 'issue.id', 'issue'],
+          field: ['title', 'project', 'timestamp', 'issue.id', 'issue', 'transaction'],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
