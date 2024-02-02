@@ -4,8 +4,8 @@ import {AutoSizer, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import BaseBadge from 'sentry/components/idBadge/baseBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -267,7 +267,7 @@ function RenderRow(props: {
 }
 
 function ProjectBadge(props: {project: Project}) {
-  return <BaseBadge displayName="" avatarSize={16} project={props.project} />;
+  return <ProjectAvatar project={props.project} />;
 }
 
 function ChildrenCountButton(props: {
