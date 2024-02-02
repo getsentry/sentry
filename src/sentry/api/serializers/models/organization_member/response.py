@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List, Optional
 
 from typing_extensions import TypedDict
 
@@ -38,11 +37,11 @@ class OrganizationMemberSCIMSerializerResponse(OrganizationMemberSCIMSerializerO
     as a SCIM user object.
     """
 
-    schemas: List[str]
+    schemas: list[str]
     id: str
     userName: str
     name: SCIMName
-    emails: List[SCIMEmail]
+    emails: list[SCIMEmail]
     meta: SCIMMeta
     sentryOrgRole: str
 
@@ -67,8 +66,8 @@ class _TeamRole(TypedDict):
 
 
 class OrganizationMemberResponseOptional(TypedDict, total=False):
-    externalUsers: List[ExternalActorResponse]
-    groupOrgRoles: List[OrganizationRoleSerializerResponse]
+    externalUsers: list[ExternalActorResponse]
+    groupOrgRoles: list[OrganizationRoleSerializerResponse]
     role: str  # Deprecated: use orgRole
     roleName: str  # Deprecated
 
@@ -84,26 +83,26 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     flags: _OrganizationMemberFlags
     dateCreated: datetime
     inviteStatus: str
-    inviterName: Optional[str]
+    inviterName: str | None
 
 
 class OrganizationMemberWithTeamsResponse(OrganizationMemberResponse):
-    teams: List[str]
-    teamRoles: List[_TeamRole]
+    teams: list[str]
+    teamRoles: list[_TeamRole]
 
 
 class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
-    projects: List[str]
+    projects: list[str]
 
 
 class OrganizationMemberWithRolesResponseOptional(TypedDict, total=False):
-    roles: List[OrganizationRoleSerializerResponse]  # Deprecated: use orgRoleList
+    roles: list[OrganizationRoleSerializerResponse]  # Deprecated: use orgRoleList
 
 
 class OrganizationMemberWithRolesResponse(
     OrganizationMemberWithTeamsResponse, OrganizationMemberWithRolesResponseOptional
 ):
-    invite_link: Optional[str]
+    invite_link: str | None
     isOnlyOwner: bool
-    orgRoleList: List[OrganizationRoleSerializerResponse]
-    teamRoleList: List[TeamRoleSerializerResponse]
+    orgRoleList: list[OrganizationRoleSerializerResponse]
+    teamRoleList: list[TeamRoleSerializerResponse]

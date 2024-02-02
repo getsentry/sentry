@@ -1,7 +1,7 @@
 from base64 import b64decode, b64encode
 from copy import deepcopy
 from pickle import dumps, loads
-from typing import Any, List, Tuple
+from typing import Any
 from zlib import compress, decompress
 
 from django.conf import settings
@@ -124,7 +124,7 @@ class PickledObjectField(models.Field):
         # If the field doesn't have a default, then we punt to models.Field.
         return super().get_default()
 
-    def _check_default(self) -> List[Any]:
+    def _check_default(self) -> list[Any]:
         if self.has_default() and isinstance(self.default, (list, dict, set)):
             return [
                 checks.Warning(
@@ -151,7 +151,7 @@ class PickledObjectField(models.Field):
         errors.extend(self._check_default())
         return errors
 
-    def deconstruct(self) -> Tuple[str, str, Any, Any]:
+    def deconstruct(self) -> tuple[str, str, Any, Any]:
         name, path, args, kwargs = super().deconstruct()
         if self.compress:
             kwargs["compress"] = True

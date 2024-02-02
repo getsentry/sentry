@@ -1,4 +1,4 @@
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import ReturnedVariants
@@ -197,7 +197,7 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
 
 
 def _accumulate_frame_levels(
-    frames, values, blaming_frame_idx, depth: Optional[int], direction, needs_in_app
+    frames, values, blaming_frame_idx, depth: int | None, direction, needs_in_app
 ):
     rv = []
 

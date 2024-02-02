@@ -1,5 +1,3 @@
-from typing import Optional, Tuple
-
 from django.core.cache import cache
 
 from sentry.models.project import Project
@@ -59,7 +57,7 @@ ALLOWED_MINIMUM = 50
 def get_project_monitor_quota(
     project: Project,
     cache_bust=False,
-) -> Tuple[Optional[int], Optional[int]]:
+) -> tuple[int | None, int | None]:
     """
     Determines the rate-limit for monitor check-ins across a particular
     project.

@@ -1,17 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Mapping,
-    MutableMapping,
-    NamedTuple,
-    Optional,
-    Sequence,
-)
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
 
@@ -366,7 +358,7 @@ def normalize_stacktraces_for_grouping(
         data["metadata"] = event_metadata
 
 
-def _update_frame(frame: dict[str, Any], platform: Optional[str]) -> None:
+def _update_frame(frame: dict[str, Any], platform: str | None) -> None:
     """Restore the original in_app value before the first grouping
     enhancers have been run. This allows to re-apply grouping
     enhancers on the original frame data.

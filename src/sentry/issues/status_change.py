@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from typing import Any, Dict, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django.db.models.signals import post_save
 
@@ -24,11 +25,11 @@ ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))
 def handle_status_update(
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    project_lookup: Dict[int, Project],
+    project_lookup: dict[int, Project],
     new_status: int,
     new_substatus: int | None,
     is_bulk: bool,
-    status_details: Dict[str, Any],
+    status_details: dict[str, Any],
     acting_user: User | None,
     activity_type: str | None,
     sender: Any,

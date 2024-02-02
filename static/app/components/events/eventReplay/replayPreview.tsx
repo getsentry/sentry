@@ -24,6 +24,7 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  analyticsContext: string;
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
@@ -54,6 +55,7 @@ function getReplayAnalyticsStatus({
 }
 
 function ReplayPreview({
+  analyticsContext,
   fullReplayButtonProps,
   eventTimestampMs,
   focusTab,
@@ -118,6 +120,7 @@ function ReplayPreview({
       isFetching={fetching}
       replay={replay}
       initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
+      analyticsContext={analyticsContext}
     >
       <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (

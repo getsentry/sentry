@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.db import router
 from sentry_sdk import capture_exception
@@ -19,14 +19,14 @@ class OrganizationMappingConsistencyException(Exception):
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
-    def get(self, *, organization_id: int) -> Optional[RpcOrganizationMapping]:
+    def get(self, *, organization_id: int) -> RpcOrganizationMapping | None:
         try:
             org_mapping = OrganizationMapping.objects.get(organization_id=organization_id)
         except OrganizationMapping.DoesNotExist:
             return None
         return serialize_organization_mapping(org_mapping)
 
-    def get_many(self, *, organization_ids: List[int]) -> List[RpcOrganizationMapping]:
+    def get_many(self, *, organization_ids: list[int]) -> list[RpcOrganizationMapping]:
         org_mappings = OrganizationMapping.objects.filter(organization_id__in=organization_ids)
         return [serialize_organization_mapping(om) for om in org_mappings]
 
@@ -101,7 +101,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             org_slug_reservation_qs.first().update(slug=mapping_update.slug, unsafe_write=True)
 
     def upsert(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
-        update_dict: Dict[str, Any] = dict(
+        update_dict: dict[str, Any] = dict(
             name=update.name,
             status=update.status,
             slug=update.slug,

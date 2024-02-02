@@ -1,5 +1,3 @@
-from typing import List
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -33,7 +31,7 @@ class OrganizationRelayUsage(OrganizationEndpoint):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationRelayResponse", List[OrganizationRelayResponse]
+                "OrganizationRelayResponse", list[OrganizationRelayResponse]
             ),
             404: RESPONSE_NOT_FOUND,
         },

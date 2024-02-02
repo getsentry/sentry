@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import itertools
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Generic, Iterator, Tuple
+from typing import Generic
 
 import pytest
 
@@ -17,7 +18,7 @@ class Properties(Generic[K, V]):
     values: Iterator[V]
 
     @property
-    def items(self) -> Iterator[Tuple[K, V]]:
+    def items(self) -> Iterator[tuple[K, V]]:
         return zip(self.keys, self.values)
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, List, Mapping
+from collections.abc import Iterable, Mapping
 
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user.model import UserIdEmailArgs
@@ -24,7 +24,7 @@ def get_email_addresses(
     results = {}
 
     if project:
-        to_delete: List[RpcUserOption] = []
+        to_delete: list[RpcUserOption] = []
         options = user_option_service.get_many(
             filter={"user_ids": pending, "project_id": project.id, "keys": ["mail:email"]}
         )

@@ -1,12 +1,11 @@
 import secrets
-from typing import ClassVar, List
+from typing import ClassVar, Self
 from urllib.parse import urlparse
 
 import petname
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -80,7 +79,7 @@ class ApiApplication(Model):
                 outbox.save()
             return super().delete(**kwargs)
 
-    def outboxes_for_update(self) -> List[ControlOutbox]:
+    def outboxes_for_update(self) -> list[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.APP_SCOPE,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import sentry_sdk
 
@@ -39,7 +39,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 return pds
         return None
 
-    def after(self, event, state, notification_uuid: Optional[str] = None):
+    def after(self, event, state, notification_uuid: str | None = None):
         integration = self.get_integration()
         log_context = {
             "organization_id": self.project.organization_id,
@@ -98,7 +98,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         key = f"pagerduty:{integration.id}:{service['id']}"
         yield self.future(send_notification, key=key)
 
-    def get_services(self) -> Sequence[Tuple[int, str]]:
+    def get_services(self) -> Sequence[tuple[int, str]]:
         from sentry.services.hybrid_cloud.integration import integration_service
 
         organization_integrations = integration_service.get_organization_integrations(
