@@ -303,7 +303,7 @@ export function ProductSelection({
           : [...urlProducts, product]
       );
 
-      if (defaultProducts.includes(ProductSolution.PROFILING)) {
+      if (defaultProducts?.includes(ProductSolution.PROFILING)) {
         // Ensure that if profiling is enabled, performance monitoring is also enabled
         if (
           product === ProductSolution.PROFILING &&
