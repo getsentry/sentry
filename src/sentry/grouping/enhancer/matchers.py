@@ -238,7 +238,7 @@ class InAppMatch(FrameMatch):
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
         ref_val = self._ref_val
-        return ref_val is not None and ref_val == match_frame["in_app"]
+        return ref_val is not None and ref_val == bool(match_frame["in_app"])
 
 
 class FrameFieldMatch(FrameMatch):
