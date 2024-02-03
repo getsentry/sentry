@@ -34,9 +34,11 @@ class UserPermissionTest(DRFPermissionTestCase):
             self.make_request(self.normal_user), None, self.normal_user
         )
 
+    @override_settings(SUPERUSER_ORG_ID=1000)
     def test_allows_active_superuser(self):
         # The user passed in and the user on the request must be different to
         # check superuser.
+        self.create_organization(owner=self.superuser_user, id=1000)
         assert self.user_permission.has_object_permission(
             self.superuser_request, None, self.normal_user
         )
