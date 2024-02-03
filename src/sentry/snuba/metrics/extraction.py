@@ -1376,7 +1376,9 @@ class OnDemandMetricSpec:
             return None
 
         if len(parsed_field.arguments) == 0:
-            raise Exception(f"The operation {op} requires one or more parameters but none were provided. Please check your input.")
+            raise Exception(
+                f"The operation {op} requires one or more parameters but none were provided. Please check your input."
+            )
 
         arguments = parsed_field.arguments
         return [_map_field_name(arguments[0])] if op not in _MULTIPLE_ARGS_METRICS else arguments
