@@ -70,6 +70,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
                 columnSize={columnSize}
                 timeRange={timeRange}
                 currentEventId={event.id}
+                currentColumn={column}
               />
             </EventColumn>
           );
@@ -138,9 +139,11 @@ function NodeGroup({
   colEvents,
   columnSize,
   currentEventId,
+  currentColumn,
 }: {
   colEvents: TimelineEvent[];
   columnSize: number;
+  currentColumn: number;
   currentEventId: string;
   event: Event;
   timeRange: [number, number];
@@ -197,6 +200,7 @@ function NodeGroup({
             style={{
               gridColumn: columns.length > 1 ? `${minColumn} / ${maxColumn}` : columns[0],
             }}
+            data-test-id={`trace-timeline-tooltip-${currentColumn}`}
           />
         </Tooltip>
       </TimelineColumns>

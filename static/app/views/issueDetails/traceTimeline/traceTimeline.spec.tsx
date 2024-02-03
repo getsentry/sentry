@@ -83,7 +83,7 @@ describe('TraceTimeline', () => {
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getByLabelText('Current Event'));
+    await userEvent.hover(screen.getByTestId('trace-timeline-tooltip-1'));
     expect(await screen.findByText('You are here')).toBeInTheDocument();
   });
 
