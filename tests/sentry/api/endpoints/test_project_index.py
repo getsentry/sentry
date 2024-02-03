@@ -1,3 +1,4 @@
+import responses
 from django.db import router
 from django.urls import reverse
 from rest_framework import status
@@ -8,9 +9,13 @@ from sentry.models.integrations.sentry_app_installation_token import SentryAppIn
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.silo import unguarded_write
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
+@region_silo_test
 class ProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-projects"
 
@@ -186,7 +191,8 @@ class ProjectsListTest(APITestCase):
             webhook_url="http://example.com",
         )
         # there should only be one record created so just grab the first one
-        token = SentryAppInstallationToken.objects.first()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = SentryAppInstallationToken.objects.first()
         path = reverse(self.endpoint)
         response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}")
         assert project.name.encode("utf-8") in response.content
@@ -198,12 +204,12 @@ class ProjectsListTest(APITestCase):
             scopes=("project:read",),
             webhook_url="http://example.com",
         )
-        # there should only be one record created so just grab the first one
-        token = SentryAppInstallationToken.objects.first()
-        token = token.api_token.token
-
-        # Delete the token
-        SentryAppInstallationToken.objects.all().delete()
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            # there should only be one record created so just grab the first one
+            token = SentryAppInstallationToken.objects.first()
+            token = token.api_token.token
+            # Delete the token
+            SentryAppInstallationToken.objects.all().delete()
         self.get_error_response(
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -231,10 +237,13 @@ class ProjectsListTest(APITestCase):
         )
         assert self.project.name.encode("utf-8") in response.content
 
+    @responses.activate
     def test_deleted_token_with_public_integration(self):
         token = self.get_installed_unpublished_sentry_app_access_token()
-
-        ApiToken.objects.all().delete()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            with outbox_runner():
+                token = ApiToken.objects.get(token=token)
+                token.delete()
 
         self.get_error_response(
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
