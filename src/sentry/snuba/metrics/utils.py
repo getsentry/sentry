@@ -59,6 +59,9 @@ METRICS_LAYER_GRANULARITIES = [86400, 3600, 60]
 TAG_REGEX = re.compile(r"^([\w.]+)$")
 
 #: A function that can be applied to a metric
+#: NOTE: Some operations like 'percentage', 'histogram', 'rate', 'count_web_vitals', 'count_transaction_name',
+#: 'team_key_transaction', 'sum_if_column', 'uniq_if_column', 'min_timestamp', 'max_timestamp',
+#: 'last', and all 'on_demand_' operations typically require parameters.
 MetricOperationType = Literal[
     "avg",
     "count",
