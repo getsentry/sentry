@@ -164,6 +164,7 @@ class EventAccess:
             self._family = [
                 {"family": get_behavior_family_for_platform(self.event.get("platform"))}
             ]
+            return self._family  # codecov workaround
         return self._family
 
     def get_values(self, match_group):
