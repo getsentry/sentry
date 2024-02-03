@@ -165,6 +165,7 @@ class BlacklistAdapter(HTTPAdapter):
             num_pools=connections,
             maxsize=maxsize,
             block=block,
+            max_retries=max_retries,
             is_ipaddress_permitted=self.is_ipaddress_permitted,
             **pool_kwargs,
         )
