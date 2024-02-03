@@ -770,7 +770,7 @@ def process_checkin_group(items: list[CheckinItem]):
         process_checkin(item)
 
 
-def process_batch(worker: Executor, message: Message[ValuesBatch[KafkaPayload]]):
+def process_batch(message: Message[ValuesBatch[KafkaPayload]], worker: Executor):
     """
     Receives batches of check-in messages. This function will take the batch
     and group them together by monitor ID (ensuring order is preserved) and

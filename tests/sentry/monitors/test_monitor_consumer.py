@@ -23,7 +23,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.outcomes import Outcome
@@ -32,7 +32,9 @@ from sentry.utils.services import build_instance_from_options
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 
-class MonitorConsumerTest(TestCase):
+class MonitorConsumerTest:
+    mode = "serial"
+
     def _create_monitor(self, **kwargs):
         return Monitor.objects.create(
             organization_id=self.organization.id,
@@ -80,7 +82,10 @@ class MonitorConsumerTest(TestCase):
 
         commit = mock.Mock()
         partition = Partition(Topic("test"), 0)
-        StoreMonitorCheckInStrategyFactory().create_with_partitions(commit, {partition: 0}).submit(
+        factory = StoreMonitorCheckInStrategyFactory(
+            mode=self.mode, max_workers=1
+        ).create_with_partitions(commit, {partition: 0})
+        factory.submit(
             Message(
                 BrokerValue(
                     KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
@@ -90,7 +95,39 @@ class MonitorConsumerTest(TestCase):
                 )
             )
         )
+        factory.join()
 
+
+class ParallelMonitorConsumerTest(TransactionTestCase, MonitorConsumerTest):
+    mode = "parallel"
+
+    def test(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+
+        self.send_checkin(monitor.slug)
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.monitor_config == monitor.config
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor_environment.last_checkin == checkin.date_added
+        assert monitor_environment.next_checkin == monitor.get_next_expected_checkin(
+            checkin.date_added
+        )
+        assert monitor_environment.next_checkin_latest == monitor.get_next_expected_checkin_latest(
+            checkin.date_added
+        )
+
+        # Process another check-in to verify we set an expected time for the next check-in
+        self.send_checkin(monitor.slug)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.expected_time == monitor_environment.next_checkin
+        assert checkin.trace_id.hex == self.trace_id
+
+
+class SynchronousMonitorConsumerTest(MonitorConsumerTest, TestCase):
     def send_clock_pulse(
         self,
         ts: datetime | None = None,
