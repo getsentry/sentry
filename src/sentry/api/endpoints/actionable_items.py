@@ -46,7 +46,7 @@ class ActionableItemsEndpoint(ProjectEndpoint):
             raise NotFound(detail="Event not found")
 
         actions = []
-        event_errors = event.data.get("errors", [])
+        event_errors = event.data.get("errors") or []
 
         # Add event errors to actionable items
         for event_error in event_errors:
