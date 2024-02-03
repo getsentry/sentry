@@ -34,12 +34,19 @@ import {
   SORTABLE_FIELDS,
   SORTABLE_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
-const columnOrder: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
+const INP_COLUMN: GridColumnOrder<keyof RowWithScoreAndOpportunity> = {
+  key: 'p75(measurements.inp)',
+  width: COL_WIDTH_UNDEFINED,
+  name: 'INP',
+};
+
+const COLUMN_ORDER: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
   {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
   {key: 'p75(measurements.lcp)', width: COL_WIDTH_UNDEFINED, name: 'LCP'},
@@ -58,6 +65,15 @@ export function PagePerformanceTable() {
   const location = useLocation();
   const {projects} = useProjects();
   const shouldUseStoredScores = useStoredScoresSetting();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
+
+  const columnOrder = useMemo(() => {
+    const columns = [...COLUMN_ORDER];
+    if (shouldReplaceFidWithInp) {
+      columns.splice(4, 1, INP_COLUMN);
+    }
+    return columns;
+  }, [shouldReplaceFidWithInp]);
 
   const query = decodeScalar(location.query.query, '');
 
@@ -252,6 +268,7 @@ export function PagePerformanceTable() {
         'p75(measurements.lcp)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'p75(measurements.inp)',
       ].includes(key)
     ) {
       const measurement = parseFunction(key)?.arguments?.[0];
