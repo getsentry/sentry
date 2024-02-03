@@ -1,10 +1,9 @@
-from typing import Optional
-
 from django.conf import settings
 from django.db import router, transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import serializers
+from rest_framework.fields import CharField
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,6 +22,7 @@ from sentry.security.utils import capture_security_activity
 
 
 class ApiTokenSerializer(serializers.Serializer):
+    name = CharField(max_length=255, allow_blank=True, required=False)
     scopes = MultipleChoiceField(required=True, choices=settings.SENTRY_SCOPES)
 
 
@@ -77,6 +77,7 @@ class ApiTokensEndpoint(Endpoint):
 
             token = ApiToken.objects.create(
                 user_id=request.user.id,
+                name=result.get("name", None),
                 scope_list=result["scopes"],
                 refresh_token=None,
                 expires_at=None,
@@ -105,7 +106,7 @@ class ApiTokensEndpoint(Endpoint):
             return Response({"tokenId": token_id}, status=400)
 
         with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
-            token_to_delete: Optional[ApiToken] = ApiToken.objects.filter(
+            token_to_delete: ApiToken | None = ApiToken.objects.filter(
                 id=token_id, application__isnull=True, user_id=user_id
             ).first()
 
