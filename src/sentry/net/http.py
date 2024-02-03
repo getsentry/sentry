@@ -148,7 +148,9 @@ class BlacklistAdapter(HTTPAdapter):
 
     is_ipaddress_permitted: IsIpAddressPermitted = None
 
-    def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None) -> None:
+    def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None, max_retries=None) -> None:
+        self.is_ipaddress_permitted = is_ipaddress_permitted
+        super().__init__(max_retries=max_retries)
         # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
         # `urllib3.connectionpool.ConnectionPool` instances managed by `SafePoolManager`.
         self.is_ipaddress_permitted = is_ipaddress_permitted
@@ -198,7 +200,9 @@ class Session(_Session):
 
 
 class SafeSession(Session):
-    def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None) -> None:
+    def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None, max_retries=None) -> None:
+        self.is_ipaddress_permitted = is_ipaddress_permitted
+        super().__init__(max_retries=max_retries)
         Session.__init__(self)
         self.headers.update({"User-Agent": USER_AGENT})
         retries = Retry(
