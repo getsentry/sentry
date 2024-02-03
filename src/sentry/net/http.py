@@ -9,7 +9,6 @@ from typing import Optional
 
 from requests import Session as _Session
 from requests.adapters import DEFAULT_POOLBLOCK, HTTPAdapter
-from urllib3.util.retry import Retry
 from urllib3 import HTTPConnectionPool
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
@@ -17,6 +16,7 @@ from urllib3.connectionpool import connection_from_url as _connection_from_url
 from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
 from urllib3.poolmanager import PoolManager
 from urllib3.util.connection import _set_socket_options
+from urllib3.util.retry import Retry
 
 from sentry import VERSION as SENTRY_VERSION
 from sentry.net.socket import safe_create_connection
@@ -148,7 +148,9 @@ class BlacklistAdapter(HTTPAdapter):
 
     is_ipaddress_permitted: IsIpAddressPermitted = None
 
-    def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None, max_retries=None) -> None:
+    def __init__(
+        self, is_ipaddress_permitted: IsIpAddressPermitted = None, max_retries=None
+    ) -> None:
         self.is_ipaddress_permitted = is_ipaddress_permitted
         super().__init__(max_retries=max_retries)
         # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
@@ -201,7 +203,9 @@ class Session(_Session):
 
 
 class SafeSession(Session):
-    def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None, max_retries=None) -> None:
+    def __init__(
+        self, is_ipaddress_permitted: IsIpAddressPermitted = None, max_retries=None
+    ) -> None:
         self.is_ipaddress_permitted = is_ipaddress_permitted
         super().__init__(max_retries=max_retries)
         Session.__init__(self)
@@ -210,9 +214,11 @@ class SafeSession(Session):
             total=5,
             backoff_factor=0.5,
             status_forcelist=[500, 502, 503, 504],
-            method_whitelist=["HEAD", "GET", "OPTIONS", "POST"]
+            method_whitelist=["HEAD", "GET", "OPTIONS", "POST"],
         )
-        adapter = BlacklistAdapter(is_ipaddress_permitted=is_ipaddress_permitted, max_retries=retries)
+        adapter = BlacklistAdapter(
+            is_ipaddress_permitted=is_ipaddress_permitted, max_retries=retries
+        )
         self.mount("https://", adapter)
         self.mount("http://", adapter)
 
