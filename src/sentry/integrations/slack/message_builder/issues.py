@@ -231,8 +231,7 @@ def get_context(group: Group) -> str:
     }
     if group.issue_type in REGRESSION_PERFORMANCE_ISSUE_TYPES:
         # another short term solution for non-error issues notification content
-        del context["Events"]
-        del context["Users Affected"]
+        return context_text
 
     if group.issue_category in [GroupCategory.ERROR, GroupCategory.PERFORMANCE]:
         for k, v in context.items():
