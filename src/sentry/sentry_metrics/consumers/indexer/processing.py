@@ -1,6 +1,7 @@
 import logging
 import random
-from typing import Any, Callable, Mapping
+from collections.abc import Callable, Mapping
+from typing import Any
 
 import sentry_kafka_schemas
 import sentry_sdk

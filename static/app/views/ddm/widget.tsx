@@ -64,6 +64,12 @@ export type Sample = {
   transactionSpanId: string;
 };
 
+const constructQueryString = (queryObject: Record<string, string>) => {
+  return Object.entries(queryObject)
+    .map(([key, value]) => `${key}:"${value}"`)
+    .join(' ');
+};
+
 export const MetricWidget = memo(
   ({
     widget,
@@ -126,7 +132,9 @@ export const MetricWidget = memo(
 
     const samplesQuery = useMetricSamples(metricsQuery.mri, {
       ...focusArea?.selection?.range,
-      query: metricsQuery.query,
+      query: widget?.focusedSeries?.groupBy
+        ? `${widget.query} ${constructQueryString(widget.focusedSeries.groupBy)}`.trim()
+        : widget?.query,
     });
 
     const samples = useMemo(() => {

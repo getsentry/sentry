@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Collection, Mapping
 from itertools import chain
-from typing import TYPE_CHECKING, Any, ClassVar, Collection, Mapping
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery

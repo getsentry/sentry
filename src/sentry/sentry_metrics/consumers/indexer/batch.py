@@ -1,18 +1,8 @@
 import logging
 import random
 from collections import defaultdict
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, MutableSequence, Sequence
+from typing import Any, cast
 
 import rapidjson
 import sentry_sdk
@@ -51,7 +41,7 @@ OrgId = int
 Headers = MutableSequence[tuple[str, bytes]]
 
 
-def valid_metric_name(name: Optional[str]) -> bool:
+def valid_metric_name(name: str | None) -> bool:
     if name is None:
         return False
     if len(name) > MAX_NAME_LENGTH:
@@ -193,7 +183,7 @@ class IndexerBatch:
 
         return parsed_payload
 
-    def _extract_namespace(self, headers: Headers) -> Optional[str]:
+    def _extract_namespace(self, headers: Headers) -> str | None:
         for string, endcoded in headers:
             if string == "namespace":
                 return endcoded.decode("utf-8")
@@ -301,12 +291,10 @@ class IndexerBatch:
     @metrics.wraps("process_messages.reconstruct_messages")
     def reconstruct_messages(
         self,
-        mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]],
+        mapping: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, int | None]]],
         bulk_record_meta: Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Metadata]]],
     ) -> IndexerOutputMessageBatch:
-        new_messages: MutableSequence[
-            Message[Union[RoutingPayload, KafkaPayload, InvalidMessage]]
-        ] = []
+        new_messages: MutableSequence[Message[RoutingPayload | KafkaPayload | InvalidMessage]] = []
         cogs_usage: MutableMapping[UseCaseID, int] = defaultdict(int)
 
         for message in self.outer_message.payload:
@@ -335,7 +323,7 @@ class IndexerBatch:
             tags = old_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
-            new_tags: dict[str, Union[str, int]] = {}
+            new_tags: dict[str, str | int] = {}
             exceeded_global_quotas = 0
             exceeded_org_quotas = 0
 
@@ -356,7 +344,7 @@ class IndexerBatch:
                                 exceeded_org_quotas += 1
                             continue
 
-                        value_to_write: Union[int, str] = v
+                        value_to_write: int | str = v
                         if self.__should_index_tag_values:
                             new_v = mapping[use_case_id][org_id][v]
                             if new_v is None:

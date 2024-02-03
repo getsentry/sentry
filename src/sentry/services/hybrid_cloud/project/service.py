@@ -4,7 +4,6 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Optional
 
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -61,7 +60,7 @@ class ProjectService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_by_id(self, *, organization_id: int, id: int) -> Optional[RpcProject]:
+    def get_by_id(self, *, organization_id: int, id: int) -> RpcProject | None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
@@ -71,8 +70,8 @@ class ProjectService(RpcService):
         *,
         organization_id: int,
         filter: ProjectFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
+        as_user: RpcUser | None = None,
+        auth_context: AuthenticationContext | None = None,
     ) -> list[OpaqueSerializedResponse]:
         pass
 
@@ -85,7 +84,7 @@ class ProjectService(RpcService):
         project_name: str,
         platform: str,
         user_id: int,
-        add_org_default_team: Optional[bool] = False,
+        add_org_default_team: bool | None = False,
     ) -> RpcProject:
         pass
 
@@ -98,7 +97,7 @@ class ProjectService(RpcService):
         project_name: str,
         platform: str,
         user_id: int,
-        add_org_default_team: Optional[bool] = False,
+        add_org_default_team: bool | None = False,
     ) -> RpcProject:
         pass
 

@@ -1,4 +1,5 @@
-from typing import Any, Iterator, Mapping, Optional, Union
+from collections.abc import Iterator, Mapping
+from typing import Any
 
 from django.db import router, transaction
 from django.db.models import Q
@@ -119,9 +120,9 @@ def get_conflicting_unique_columns(
 
 
 def handle_replication(
-    source_model: Union[type[ReplicatedControlModel], type[ReplicatedRegionModel]],
+    source_model: type[ReplicatedControlModel] | type[ReplicatedRegionModel],
     destination: BaseModel,
-    fk: Optional[str] = None,
+    fk: str | None = None,
 ):
     category: OutboxCategory = source_model.category
     destination_model: type[BaseModel] = type(destination)
@@ -147,7 +148,7 @@ def handle_replication(
 
 class DatabaseBackedRegionReplicaService(RegionReplicaService):
     def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
-        organization: Optional[Organization] = None
+        organization: Organization | None = None
         if api_token.organization_id is not None:
             try:
                 organization = Organization.objects.get(id=api_token.organization_id)

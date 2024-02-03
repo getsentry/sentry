@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import abc
 import re
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Generic, Iterable, Mapping, Sequence, TypeVar
+from typing import Any, Generic, TypeVar
 
 from sentry.utils import warnings
 

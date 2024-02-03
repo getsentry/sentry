@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from django.utils import timezone
 from django.utils.timesince import timesince
@@ -58,6 +59,16 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+SUPPORTED_COMMIT_PROVIDERS = (
+    "github",
+    "integrations:github",
+    "integrations:github_enterprise",
+    "integrations:vsts",
+    "integrations:gitlab",
+    "bitbucket",
+    "integrations:bitbucket",
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -300,10 +311,18 @@ def get_suspect_commit_text(
 
     author_display = author.get("name") if author.get("name") is not None else author.get("email")
     if pull_request:
-        repo_base = pull_request.get("repository", {}).get("url")
-        if repo_base:
-            commit_link = f"<{repo_base}/commit/{commit_id}|{commit_id[0:6]}>"
+        repo = pull_request.get("repository", {})
+        repo_base = repo.get("url")
+        provider = repo.get("provider", {}).get("id")
+        if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
+            if "bitbucket" in provider:
+                commit_link = f"<{repo_base}/commits/{commit_id}"
+            else:
+                commit_link = f"<{repo_base}/commit/{commit_id}"
+            commit_link += f"|{commit_id[:6]}>"
             suspect_commit_text += f"{commit_link} by {author_display}"
+        else:  # for unsupported providers
+            suspect_commit_text += f"{commit_id[:6]} by {author_display}"
 
         pr_date = pull_request.get("dateCreated")
         if pr_date:
@@ -316,7 +335,7 @@ def get_suspect_commit_text(
                 f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
             )
     else:
-        suspect_commit_text += f"{commit_id} by {author_display}"
+        suspect_commit_text += f"{commit_id[:6]} by {author_display}"
     return suspect_commit_text
 
 
@@ -498,6 +517,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         )
         obj = self.event if self.event is not None else self.group
         action_text = ""
+
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
@@ -565,6 +585,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_rich_text_preformatted_block(text))
 
         # build up actions text
+        if self.actions and self.identity and not action_text:
+            action_text = get_action_text(text, self.actions, self.identity)
+
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
 

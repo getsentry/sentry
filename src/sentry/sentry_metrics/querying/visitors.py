@@ -1,5 +1,6 @@
 from abc import ABC
-from typing import Generic, Mapping, Optional, Sequence, TypeVar
+from collections.abc import Mapping, Sequence
+from typing import Generic, TypeVar
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
@@ -129,8 +130,8 @@ class FiltersCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
         return timeseries.set_filters(self._apply_visitors_on_condition_group(timeseries.filters))
 
     def _apply_visitors_on_condition_group(
-        self, condition_group: Optional[ConditionGroup]
-    ) -> Optional[ConditionGroup]:
+        self, condition_group: ConditionGroup | None
+    ) -> ConditionGroup | None:
         if not condition_group:
             return condition_group
 
