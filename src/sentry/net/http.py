@@ -201,7 +201,13 @@ class SafeSession(Session):
     def __init__(self, is_ipaddress_permitted: IsIpAddressPermitted = None) -> None:
         Session.__init__(self)
         self.headers.update({"User-Agent": USER_AGENT})
-        adapter = BlacklistAdapter(is_ipaddress_permitted=is_ipaddress_permitted)
+        retries = Retry(
+            total=5,
+            backoff_factor=0.5,
+            status_forcelist=[500, 502, 503, 504],
+            method_whitelist=["HEAD", "GET", "OPTIONS", "POST"]
+        )
+        adapter = BlacklistAdapter(is_ipaddress_permitted=is_ipaddress_permitted, max_retries=retries)
         self.mount("https://", adapter)
         self.mount("http://", adapter)
 
