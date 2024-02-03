@@ -9,6 +9,8 @@ from typing import Optional
 
 from requests import Session as _Session
 from requests.adapters import DEFAULT_POOLBLOCK, HTTPAdapter
+from urllib3.util.retry import Retry
+from urllib3 import HTTPConnectionPool
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.connectionpool import connection_from_url as _connection_from_url
