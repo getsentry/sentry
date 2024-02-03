@@ -145,7 +145,8 @@ class BaseApiClient(TrackResponseMixin):
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: Literal[True] = ...,
-    ) -> Response: ...
+    ) -> Response:
+        ...
 
     @overload
     def _request(
@@ -163,7 +164,8 @@ class BaseApiClient(TrackResponseMixin):
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = ...,
-    ) -> BaseApiResponseX: ...
+    ) -> BaseApiResponseX:
+        ...
 
     def _request(
         self,
