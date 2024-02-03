@@ -51,13 +51,16 @@ def clean_bad_params(params):
     if isinstance(params, dict):
         for key, param in params.items():
             if isinstance(param, (str, bytes)):
-                params[key] = remove_null(remove_surrogates(param))
-        return params
-
-    params = list(params)
-    for idx, param in enumerate(params):
-        if isinstance(param, (str, bytes)):
-            params[idx] = remove_null(remove_surrogates(param))
+                processed_param = remove_null(remove_surrogates(param))
+                # Ensure the parameter does not exceed 200 characters/bytes
+                params[key] = processed_param[:200]
+    else:
+        params = list(params)
+        for idx, param in enumerate(params):
+            if isinstance(param, (str, bytes)):
+                processed_param = remove_null(remove_surrogates(param))
+                # Ensure the parameter does not exceed 200 characters/bytes
+                params[idx] = processed_param[:200]
     return params
 
 
