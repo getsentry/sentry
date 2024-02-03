@@ -150,8 +150,8 @@ function ReplayClipPreview({
 }: Props) {
   const clipWindow = useMemo(
     () => ({
-      startTimestamp: eventTimestampMs - CLIP_DURATION_BEFORE_EVENT,
-      endTimestamp: eventTimestampMs + CLIP_DURATION_AFTER_EVENT,
+      startTimestampMs: eventTimestampMs - CLIP_DURATION_BEFORE_EVENT,
+      endTimestampMs: eventTimestampMs + CLIP_DURATION_AFTER_EVENT,
     }),
     [eventTimestampMs]
   );

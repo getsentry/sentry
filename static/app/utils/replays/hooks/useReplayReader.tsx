@@ -7,8 +7,8 @@ type Props = {
   orgSlug: string;
   replaySlug: string;
   clipWindow?: {
-    endTimestamp: number;
-    startTimestamp: number;
+    endTimestampMs: number;
+    startTimestampMs: number;
   };
 };
 

@@ -41,8 +41,8 @@ import {
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 interface ClipWindow {
-  endTimestamp: number;
-  startTimestamp: number;
+  endTimestampMs: number;
+  startTimestampMs: number;
 }
 
 interface ReplayReaderParams {
@@ -219,12 +219,12 @@ export default class ReplayReader {
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
     const startedAtMs = clamp(
-      clipWindow.startTimestamp,
+      clipWindow.startTimestampMs,
       this._replayRecord.started_at.getTime(),
       this._replayRecord.finished_at.getTime()
     );
     const finishedAtMs = clamp(
-      clipWindow.endTimestamp,
+      clipWindow.endTimestampMs,
       startedAtMs,
       this._replayRecord.finished_at.getTime()
     );

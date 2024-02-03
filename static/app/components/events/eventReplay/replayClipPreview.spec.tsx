@@ -44,8 +44,8 @@ const mockReplay = ReplayReader.factory({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
   clipWindow: {
-    startTimestamp: mockEventTimestampMs - 5_000,
-    endTimestamp: mockEventTimestampMs + 5_000,
+    startTimestampMs: mockEventTimestampMs - 5_000,
+    endTimestampMs: mockEventTimestampMs + 5_000,
   },
 });
 
