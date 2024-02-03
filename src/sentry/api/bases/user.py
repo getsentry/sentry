@@ -30,11 +30,19 @@ class UserPermission(SentryPermission):
 
         # populate request.access for SaaS superuser
         SUPERUSER_ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
-        if SUPERUSER_ORG_ID and is_active_superuser(request):
-            org = organization_service.get_organization_by_id(id=SUPERUSER_ORG_ID)
-            self.determine_access(request, org)
+        if is_active_superuser(request):
+            if SUPERUSER_ORG_ID:
+                org = organization_service.get_organization_by_id(id=SUPERUSER_ORG_ID)
+                if not org:
+                    return False
 
-            if superuser_has_permission(request):
+                self.determine_access(request, org)
+
+                if superuser_has_permission(request):
+                    return True
+
+            else:
+                # org is self hosted
                 return True
 
         return False
