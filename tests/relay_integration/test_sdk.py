@@ -67,8 +67,8 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
 
 
 @no_silo_test
-@django_db_all
 @override_settings(SENTRY_PROJECT=1)
+@django_db_all
 def test_simple(settings, post_event_with_sdk):
     event = post_event_with_sdk({"message": "internal client test"})
 
