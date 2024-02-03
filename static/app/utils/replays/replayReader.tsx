@@ -228,14 +228,13 @@ export default class ReplayReader {
       startedAtMs,
       this._replayRecord.finished_at.getTime()
     );
+    this._startOffsetMs = startedAtMs - this._replayRecord.started_at.getTime();
 
     // For RRWeb frames we only trim from the end because playback will
     // not work otherwise. The start offset is used to begin playback at
     // the correct time.
     this._sortedRRWebEvents = this._sortedRRWebEvents.filter(
-      frame =>
-        frame.timestamp >= this._replayRecord.started_at.getTime() &&
-        frame.timestamp <= finishedAtMs
+      frame => frame.timestamp <= finishedAtMs
     );
     this._replayRecord.finished_at = new Date(finishedAtMs);
     this._replayRecord.duration = duration(
@@ -244,42 +243,48 @@ export default class ReplayReader {
 
     // We also only trim from the back for breadcrumbs/spans to keep
     // historical information about the replay, such as the current URL.
-    this._sortedBreadcrumbFrames = this._trimFramesToClipWindow(
-      this._sortedBreadcrumbFrames,
-      this._replayRecord.started_at.getTime(),
-      finishedAtMs
+    this._sortedBreadcrumbFrames = this._updateFrameOffsets(
+      this._trimFramesToClipWindow(
+        this._sortedBreadcrumbFrames,
+        this._replayRecord.started_at.getTime(),
+        finishedAtMs
+      )
     );
-    this._sortedSpanFrames = this._trimFramesToClipWindow(
-      this._sortedSpanFrames,
-      this._replayRecord.started_at.getTime(),
-      finishedAtMs
+    this._sortedSpanFrames = this._updateFrameOffsets(
+      this._trimFramesToClipWindow(
+        this._sortedSpanFrames,
+        this._replayRecord.started_at.getTime(),
+        finishedAtMs
+      )
     );
 
-    this._startOffsetMs = startedAtMs - this._replayRecord.started_at.getTime();
+    this._errors = this._updateFrameOffsets(
+      this._trimFramesToClipWindow(this._errors, startedAtMs, finishedAtMs)
+    );
   };
 
   /**
-   * Filters out frames that are outside of the clip window, and adjusts
-   * any offset timestamps to be relative to the start offset.
+   * Filters out frames that are outside of the supplied window
    */
   _trimFramesToClipWindow = <T extends {timestampMs: number}>(
     frames: Array<T>,
-    startTimestampMs: number = this.getStartTimestampMs(),
-    endTimestampMs: number = startTimestampMs + this.getDurationMs(),
-    startOffsetMs: number = this.getStartOffsetMs()
+    startTimestampMs: number,
+    endTimestampMs: number
   ) => {
-    return frames
-      .filter(frame => {
-        return (
-          frame.timestampMs >= startTimestampMs && frame.timestampMs <= endTimestampMs
-        );
-      })
-      .map(frame => {
-        if ('offsetMs' in frame && typeof frame.offsetMs === 'number') {
-          return {...frame, offsetMs: frame.offsetMs - startOffsetMs};
-        }
-        return frame;
-      });
+    return frames.filter(
+      frame =>
+        frame.timestampMs >= startTimestampMs && frame.timestampMs <= endTimestampMs
+    );
+  };
+
+  /**
+   * Updates the offsetMs of all frames to be relative to the start of the clip window
+   */
+  _updateFrameOffsets = <T extends {offsetMs: number}>(frames: Array<T>) => {
+    return frames.map(frame => ({
+      ...frame,
+      offsetMs: frame.offsetMs - this.getStartOffsetMs(),
+    }));
   };
 
   toJSON = () => this._cacheKey;
@@ -370,15 +375,19 @@ export default class ReplayReader {
   );
 
   getChapterFrames = memoize(() =>
-    this._trimFramesToClipWindow([
-      ...this.getPerfFrames(),
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        ['replay.init', 'replay.mutations', 'replay.hydrate-error'].includes(
-          frame.category
-        )
-      ),
-      ...this._errors,
-    ]).sort(sortFrames)
+    this._trimFramesToClipWindow(
+      [
+        ...this.getPerfFrames(),
+        ...this._sortedBreadcrumbFrames.filter(frame =>
+          ['replay.init', 'replay.mutations', 'replay.hydrate-error'].includes(
+            frame.category
+          )
+        ),
+        ...this._errors,
+      ].sort(sortFrames),
+      this.getStartTimestampMs(),
+      this.getStartTimestampMs() + this.getDurationMs()
+    )
   );
 
   getPerfFrames = memoize(() =>
