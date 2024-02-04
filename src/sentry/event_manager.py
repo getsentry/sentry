@@ -2375,7 +2375,7 @@ def _save_grouphash_and_group(
 ) -> tuple[Group, bool]:
     group = None
     with transaction.atomic(router.db_for_write(GroupHash)):
-                group = None
+        group = None
     with transaction.atomic(router.db_for_write(GroupHash)):
         try:
             project_instance = Project.objects.get(id=project.id)
