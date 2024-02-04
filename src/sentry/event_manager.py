@@ -2375,6 +2375,13 @@ def _save_grouphash_and_group(
 ) -> tuple[Group, bool]:
     group = None
     with transaction.atomic(router.db_for_write(GroupHash)):
+                group = None
+    with transaction.atomic(router.db_for_write(GroupHash)):
+        try:
+            project_instance = Project.objects.get(id=project.id)
+        except ObjectDoesNotExist:
+            logger.error(f"Project with ID {project.id} does not exist.")
+            return None, False
         group_hash, created = GroupHash.objects.get_or_create(project=project, hash=new_grouphash)
         if created:
             group = _create_group(project, event, **group_kwargs)
