@@ -77,6 +77,8 @@ export function SpanOperationTable({
     // Exclude root level spans because they're comprised of nested operations
     '!span.description:"Cold Start"',
     '!span.description:"Warm Start"',
+    // TODO: Add this back when we have the data
+    // `app_start_type:[cold,warm]`,
     ...(spanOp
       ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
       : [`span.op:[${[...STARTUP_SPANS].join(',')}]`]),
