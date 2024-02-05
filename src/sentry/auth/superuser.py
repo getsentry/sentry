@@ -109,11 +109,14 @@ def superuser_has_permission(
     if not features.has("auth:enterprise-superuser-read-write", actor=request.user):
         return True
 
+    # either request.access or permissions must exist
+    assert getattr(request, "access", None) or permissions is not None
+
     # superuser write can access all requests
     if getattr(request, "access", None) and request.access.has_permission("superuser.write"):
         return True
 
-    elif permissions and "superuser.write" in permissions:
+    elif permissions is not None and "superuser.write" in permissions:
         return True
 
     # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
