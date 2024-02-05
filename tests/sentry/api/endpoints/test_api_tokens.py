@@ -1,8 +1,10 @@
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -153,73 +155,103 @@ class ApiTokensDeleteTest(APITestCase):
 
 @control_silo_test
 class ApiTokensSuperUserTest(APITestCase):
-    url = reverse("sentry-api-0-api-tokens")
+    endpoint = "sentry-api-0-api-tokens"
+
+    def setUp(self):
+        super().setUp()
+        self.superuser = self.create_user(is_superuser=True)
+        self.user_token = ApiToken.objects.create(user=self.user)
+        self.superuser_token = ApiToken.objects.create(user=self.superuser)
+
+        self.login_as(self.superuser, superuser=True)
 
     def test_get_as_su(self):
-        super_user = self.create_user(is_superuser=True)
-        user_token = ApiToken.objects.create(user=self.user)
-        self.login_as(super_user, superuser=True)
-
-        response = self.client.get(self.url, {"userId": self.user.id})
-        assert response.status_code == status.HTTP_200_OK
+        response = self.get_success_response(userId=self.user.id)
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(user_token.id)
+        assert response.data[0]["id"] == str(self.user_token.id)
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_get_as_su_read_write(self):
+        response = self.get_success_response(userId=self.user.id)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.user_token.id)
+
+        self.add_user_permission(self.superuser, "superuser.write")
+
+        response = self.get_success_response(userId=self.user.id)
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.user_token.id)
 
     def test_get_as_su_implicit_userid(self):
-        super_user = self.create_user(is_superuser=True)
-        superuser_token = ApiToken.objects.create(user=super_user)
-        user_token = ApiToken.objects.create(user=self.user)
-        self.login_as(super_user, superuser=True)
-
-        response = self.client.get(self.url)
-        assert response.status_code == status.HTTP_200_OK
+        response = self.get_success_response()
         assert len(response.data) == 1
-        assert response.data[0]["id"] != str(user_token.id)
-        assert response.data[0]["id"] == str(superuser_token.id)
+        assert response.data[0]["id"] != str(self.user_token.id)
+        assert response.data[0]["id"] == str(self.superuser_token.id)
 
     def test_get_as_user(self):
-        super_user = self.create_user(is_superuser=True)
-        su_token = ApiToken.objects.create(user=super_user)
-        self.login_as(super_user)
+        self.login_as(self.superuser)
+
         # Ignores trying to fetch the user's token, since we're not an active superuser
-        response = self.client.get(self.url, {"userId": self.user.id})
-        assert response.status_code == status.HTTP_200_OK
+        response = self.get_success_response(userId=self.user.id)
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(su_token.id)
+        assert response.data[0]["id"] == str(self.superuser_token.id)
 
     def test_delete_as_su(self):
-        super_user = self.create_user(is_superuser=True)
-        user_token = ApiToken.objects.create(user=self.user)
-        self.login_as(super_user, superuser=True)
+        self.get_success_response(
+            method="delete",
+            userId=self.user.id,
+            tokenId=self.user_token.id,
+            status=status.HTTP_204_NO_CONTENT,
+        )
+        assert not ApiToken.objects.filter(id=self.user_token.id).exists()
 
-        response = self.client.delete(self.url, {"userId": self.user.id, "tokenId": user_token.id})
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert not ApiToken.objects.filter(id=user_token.id).exists()
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_delete_as_su_read_write(self):
+        self.get_error_response(
+            method="delete",
+            userId=self.user.id,
+            tokenId=self.user_token.id,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+        assert ApiToken.objects.filter(id=self.user_token.id).exists()
+
+        self.add_user_permission(self.superuser, "superuser.write")
+        self.get_success_response(
+            method="delete",
+            userId=self.user.id,
+            tokenId=self.user_token.id,
+            status=status.HTTP_204_NO_CONTENT,
+        )
+        assert not ApiToken.objects.filter(id=self.user_token.id).exists()
 
     def test_delete_as_su_implicit_userid(self):
-        super_user = self.create_user(is_superuser=True)
-        user_token = ApiToken.objects.create(user=self.user)
-        su_token = ApiToken.objects.create(user=super_user)
-        self.login_as(super_user, superuser=True)
-
-        response = self.client.delete(self.url, {"tokenId": user_token.id})
         # The superusers' id will be used since no override is sent, and because it does not exist, it is a bad request
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert ApiToken.objects.filter(id=user_token.id).exists()
-        assert ApiToken.objects.filter(id=su_token.id).exists()
+        self.get_error_response(
+            method="delete",
+            tokenId=self.user_token.id,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+        assert ApiToken.objects.filter(id=self.user_token.id).exists()
+        assert ApiToken.objects.filter(id=self.superuser_token.id).exists()
 
-        response = self.client.delete(self.url, {"tokenId": su_token.id})
-        assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert ApiToken.objects.filter(id=user_token.id).exists()
-        assert not ApiToken.objects.filter(id=su_token.id).exists()
+        self.get_success_response(
+            method="delete",
+            tokenId=self.superuser_token.id,
+            status=status.HTTP_204_NO_CONTENT,
+        )
+        assert ApiToken.objects.filter(id=self.user_token.id).exists()
+        assert not ApiToken.objects.filter(id=self.superuser_token.id).exists()
 
     def test_delete_as_user(self):
-        super_user = self.create_user(is_superuser=True)
-        user_token = ApiToken.objects.create(user=self.user)
-        su_token = ApiToken.objects.create(user=super_user)
-        self.login_as(super_user)
+        self.login_as(self.superuser)
         # Fails trying to delete the user's token, since we're not an active superuser
-        response = self.client.delete(self.url, {"userId": self.user.id, "tokenId": user_token.id})
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert ApiToken.objects.filter(id=user_token.id).exists()
-        assert ApiToken.objects.filter(id=su_token.id).exists()
+        self.get_error_response(
+            method="delete",
+            userId=self.user.id,
+            tokenId=self.user_token.id,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+        assert ApiToken.objects.filter(id=self.user_token.id).exists()
+        assert ApiToken.objects.filter(id=self.superuser_token.id).exists()
