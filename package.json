@@ -179,7 +179,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.5.3",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
-    "@sentry/component-annotate-plugin": "^2.11.0",
+    "@sentry/babel-plugin-component-annotate": "^2.13.0",
     "@sentry/jest-environment": "^4.0.0",
     "@sentry/profiling-node": "^1.3.5",
     "@styled/typescript-styled-plugin": "^1.0.0",

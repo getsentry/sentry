@@ -2858,6 +2858,11 @@
     "@sentry/types" "7.99.0"
     "@sentry/utils" "7.99.0"
 
+"@sentry/babel-plugin-component-annotate@^2.13.0":
+  version "2.13.0"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.13.0.tgz#fd07852f8dbbade257e46c188685cdfd2d2c4769"
+  integrity sha512-NOKin57L0ZePOHsnbRJpaWxdDnPS+SQUBJDyBYfcIrS74EPXFoFhFADYwGGI5hEKYL7/L0H3a4sIB5iJci3+fQ==
+
 "@sentry/browser@7.99.0":
   version "7.99.0"
   resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-7.99.0.tgz#3e78beb490d141c988038ea902689a1e9171c6cf"
@@ -2870,11 +2875,6 @@
     "@sentry/replay" "7.99.0"
     "@sentry/types" "7.99.0"
     "@sentry/utils" "7.99.0"
-
-"@sentry/component-annotate-plugin@^2.11.0":
-  version "2.11.0"
-  resolved "https://registry.yarnpkg.com/@sentry/component-annotate-plugin/-/component-annotate-plugin-2.11.0.tgz#2af074b21b93414a51c284951070380d3a06e405"
-  integrity sha512-2Nf9e05HcvGT9b/8OFaBC90I1d3P6hOu1265T6u3WASxJNvKf3kF44kpt0nZAEVNFcgbyPiPyJ/gmOR/ZIG91A==
 
 "@sentry/core@7.99.0", "@sentry/core@^7.99.0":
   version "7.99.0"
