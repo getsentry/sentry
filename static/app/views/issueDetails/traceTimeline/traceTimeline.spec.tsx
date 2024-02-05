@@ -32,6 +32,7 @@ describe('TraceTimeline', () => {
         title: 'Slow DB Query',
         id: 'abc',
         issue: 'SENTRY-ABC1',
+        transaction: '/api/slow/',
       },
     ],
     meta: {fields: {}, units: {}},
@@ -46,6 +47,9 @@ describe('TraceTimeline', () => {
         title: 'AttributeError: Something Failed',
         id: event.id,
         issue: 'SENTRY-2EYS',
+        transaction: 'important.task',
+        'event.type': 'error',
+        'stack.function': ['important.task', 'task.run'],
       },
     ],
     meta: {fields: {}, units: {}},
@@ -81,5 +85,63 @@ describe('TraceTimeline', () => {
 
     await userEvent.hover(screen.getByLabelText('Current Event'));
     expect(await screen.findByText('You are here')).toBeInTheDocument();
+  });
+
+  it('displays nothing if the only event is the current event', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: discoverBody,
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    render(<TraceTimeline event={event} />, {organization});
+    expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
+  });
+
+  it('displays nothing if there are no events', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    render(<TraceTimeline event={event} />, {organization});
+    expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
+  });
+
+  it('shows seconds for very short timelines', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: issuePlatformBody,
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    render(<TraceTimeline event={event} />, {organization});
+    // Checking for the presence of seconds
+    expect(await screen.findAllByText(/\d{1,2}:\d{2}:\d{2} (AM|PM)/)).toHaveLength(3);
   });
 });

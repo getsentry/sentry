@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import pydantic
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
@@ -40,7 +40,7 @@ class InternalRpcServiceEndpoint(Endpoint):
             raise PermissionDenied
 
         try:
-            arguments: Dict[str, Any] = request.data["args"]
+            arguments: dict[str, Any] = request.data["args"]
         except KeyError as e:
             raise ParseError from e
         if not isinstance(arguments, dict):

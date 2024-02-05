@@ -1,5 +1,5 @@
 import re
-from typing import Generator, List, Optional, Sequence, Tuple
+from collections.abc import Generator, Sequence
 
 from parsimonious.exceptions import IncompleteParseError
 from snuba_sdk import Timeseries
@@ -23,7 +23,7 @@ from sentry.sentry_metrics.querying.visitors import (
 class VisitableQueryExpression:
     def __init__(self, query: QueryExpression):
         self._query = query
-        self._visitors: List[QueryExpressionVisitor[QueryExpression]] = []
+        self._visitors: list[QueryExpressionVisitor[QueryExpression]] = []
 
     def add_visitor(
         self, visitor: QueryExpressionVisitor[QueryExpression]
@@ -62,8 +62,8 @@ class QueryParser:
         self,
         projects: Sequence[Project],
         fields: Sequence[str],
-        query: Optional[str],
-        group_bys: Optional[Sequence[str]],
+        query: str | None,
+        group_bys: Sequence[str] | None,
     ):
         self._projects = projects
         self._fields = fields
@@ -87,7 +87,7 @@ class QueryParser:
                 for group_by in self._group_bys
             ]
 
-    def _build_mql_filters(self) -> Optional[str]:
+    def _build_mql_filters(self) -> str | None:
         """
         Builds a set of MQL filters from a single query string.
 
@@ -99,7 +99,7 @@ class QueryParser:
 
         return self._query
 
-    def _build_mql_group_bys(self) -> Optional[str]:
+    def _build_mql_group_bys(self) -> str | None:
         """
         Builds a set of MQL group by filters from a list of strings.
         """
@@ -108,7 +108,7 @@ class QueryParser:
 
         return ",".join(self._group_bys)
 
-    def _build_mql_query(self, field: str, filters: Optional[str], group_bys: Optional[str]) -> str:
+    def _build_mql_query(self, field: str, filters: str | None, group_bys: str | None) -> str:
         """
         Builds an MQL query string in the form `aggregate(metric){tag_key:tag_value} by (group_by_1, group_by_2).
         """
@@ -145,7 +145,7 @@ class QueryParser:
 
     def generate_queries(
         self, environments: Sequence[Environment]
-    ) -> Generator[Tuple[str, Timeseries], None, None]:
+    ) -> Generator[tuple[str, Timeseries], None, None]:
         """
         Generates multiple timeseries queries given a base query.
         """

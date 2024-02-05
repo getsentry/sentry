@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import MutableMapping, Sequence
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.utils import timezone
@@ -195,8 +196,8 @@ def build_query_builder(
     entity_subscription: BaseEntitySubscription,
     query: str,
     project_ids: Sequence[int],
-    environment: Optional[Environment],
-    params: Optional[MutableMapping[str, Any]] = None,
+    environment: Environment | None,
+    params: MutableMapping[str, Any] | None = None,
 ) -> QueryBuilder:
     return entity_subscription.build_query_builder(query, project_ids, environment, params)
 

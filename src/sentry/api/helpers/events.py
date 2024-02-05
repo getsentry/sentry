@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,11 +20,11 @@ if TYPE_CHECKING:
 
 def get_direct_hit_response(
     request: Request,
-    query: Optional[str],
+    query: str | None,
     snuba_params: Mapping[str, Any],
     referrer: str,
     group: Group,
-) -> Optional[Response]:
+) -> Response | None:
     """
     Checks whether a query is a direct hit for an event, and if so returns
     a response. Otherwise returns None

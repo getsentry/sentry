@@ -5,8 +5,9 @@
 
 import datetime
 import hmac
+from collections.abc import Mapping
 from hashlib import sha256
-from typing import Any, Dict, List, Mapping, Optional, Protocol
+from typing import Any, Protocol
 
 from pydantic.fields import Field
 from typing_extensions import TypedDict
@@ -34,23 +35,23 @@ class RpcSentryAppService(RpcModel):
 
 class RpcSentryApp(RpcModel):
     id: int = -1
-    scope_list: List[str] = Field(default_factory=list)
+    scope_list: list[str] = Field(default_factory=list)
     application_id: int = -1
-    application: Optional[RpcApiApplication] = None
-    proxy_user_id: Optional[int] = None  # can be null on deletion.
+    application: RpcApiApplication | None = None
+    proxy_user_id: int | None = None  # can be null on deletion.
     owner_id: int = -1  # relation to an organization
     name: str = ""
     slug: str = ""
     uuid: str = ""
-    events: List[str] = Field(default_factory=list)
-    webhook_url: Optional[str] = None
+    events: list[str] = Field(default_factory=list)
+    webhook_url: str | None = None
     is_alertable: bool = False
     is_published: bool = False
     is_unpublished: bool = False
     is_internal: bool = True
     is_publish_request_inprogress: bool = False
     status: str = ""
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     def show_auth_info(self, access: Any) -> bool:
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
@@ -79,9 +80,9 @@ class RpcSentryAppInstallation(RpcModel):
     organization_id: int = -1
     status: int = SentryAppInstallationStatus.PENDING
     sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
-    date_deleted: Optional[datetime.datetime] = None
+    date_deleted: datetime.datetime | None = None
     uuid: str = ""
-    api_token: Optional[str] = None
+    api_token: str | None = None
 
 
 class RpcSentryAppComponent(RpcModel):
@@ -142,9 +143,9 @@ class RpcSentryAppEventData(RpcModel, metaclass=RpcModelProtocolMeta):
 
 
 class SentryAppInstallationFilterArgs(TypedDict, total=False):
-    installation_ids: List[int]
-    app_ids: List[int]
+    installation_ids: list[int]
+    app_ids: list[int]
     organization_id: int
-    uuids: List[str]
+    uuids: list[str]
     status: int
     api_token_id: str

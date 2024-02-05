@@ -1,25 +1,29 @@
+import type {RefObject} from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {XAXisOption} from 'echarts/types/dist/shared';
 import moment from 'moment';
 
-import type {Series} from 'sentry/types/echarts';
-import {getDuration} from 'sentry/utils/formatters';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {isCumulativeOp} from 'sentry/utils/metrics';
-import type {MetricCorrelation} from 'sentry/utils/metrics/types';
+import type {MetricCorrelation, MetricSummary} from 'sentry/utils/metrics/types';
 import {fitToValueRect, getValueRect} from 'sentry/views/ddm/chartUtils';
 import type {Sample} from 'sentry/views/ddm/widget';
 
-type UseMetricSamplesProps = {
+type UseChartSamplesProps = {
   timeseries: Series[];
-  chartRef?: any;
+  chartRef?: RefObject<ReactEchartsRef>;
   correlations?: MetricCorrelation[];
   highlightedSampleId?: string;
   onClick?: (sample: Sample) => void;
   onMouseOut?: (sample: Sample) => void;
   onMouseOver?: (sample: Sample) => void;
   operation?: string;
+  valueFormatter?: (value: number) => string;
 };
+
+// TODO: remove this once we have a stabilized type for this
+type ChartSample = MetricCorrelation & MetricSummary;
 
 function getDateRange(timeseries: Series[]) {
   if (!timeseries?.length) {
@@ -31,19 +35,20 @@ function getDateRange(timeseries: Series[]) {
   return {min, max};
 }
 
-export function useMetricSamples({
+export function useChartSamples({
   correlations,
   onClick,
   highlightedSampleId,
   chartRef,
   operation,
   timeseries,
-}: UseMetricSamplesProps) {
+  valueFormatter,
+}: UseChartSamplesProps) {
   const theme = useTheme();
 
   const [valueRect, setValueRect] = useState(getValueRect(chartRef));
 
-  const samples: Record<string, any> = useMemo(() => {
+  const samples: Record<string, ChartSample> = useMemo(() => {
     return (correlations ?? [])
       ?.flatMap(correlation => [
         ...correlation.metricSummaries.map(summaries => ({...summaries, ...correlation})),
@@ -128,7 +133,7 @@ export function useMetricSamples({
       const isHighlighted = highlightedSampleId === sample.transactionId;
 
       const xValue = moment(sample.timestamp).valueOf();
-      const yValue = (sample.min + sample.max) / 2;
+      const yValue = ((sample.min ?? 0) + (sample.max ?? 0)) / 2;
 
       const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
 
@@ -184,10 +189,14 @@ export function useMetricSamples({
       },
       valueFormatter: (_, label?: string) => {
         const sample = samples[label ?? ''];
-        return getDuration(sample.duration / 1000, 2, true);
+        const yValue = ((sample.min ?? 0) + (sample.max ?? 0)) / 2;
+        if (!valueFormatter) {
+          return yValue.toPrecision(5);
+        }
+        return valueFormatter(yValue);
       },
     };
-  }, [samples]);
+  }, [samples, valueFormatter]);
 
   return {
     handleClick,

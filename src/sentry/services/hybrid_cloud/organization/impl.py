@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any
 
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.expressions import CombinedExpression, F
@@ -67,7 +68,7 @@ from sentry.utils.audit import create_org_delete_log
 class DatabaseBackedOrganizationService(OrganizationService):
     def check_membership_by_id(
         self, organization_id: int, user_id: int
-    ) -> Optional[RpcOrganizationMember]:
+    ) -> RpcOrganizationMember | None:
         try:
             member = OrganizationMember.objects.get(
                 user_id=user_id, organization_id=organization_id
@@ -78,16 +79,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_member(member)
 
     def get_member_summaries_by_ids(
-        self, *, organization_id: int, user_ids: List[int]
-    ) -> List[RpcOrganizationMemberSummary]:
+        self, *, organization_id: int, user_ids: list[int]
+    ) -> list[RpcOrganizationMemberSummary]:
         members = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id__in=user_ids
         )
         return [summarize_member(m) for m in members]
 
-    def serialize_organization(
-        self, *, id: int, as_user: Optional[RpcUser] = None
-    ) -> Optional[Any]:
+    def serialize_organization(self, *, id: int, as_user: RpcUser | None = None) -> Any | None:
         org = Organization.objects.filter(id=id).first()
         if org is None:
             return None
@@ -97,12 +96,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self,
         *,
         id: int,
-        user_id: Optional[int] = None,
-        slug: Optional[str] = None,
-        include_projects: Optional[bool] = True,
-        include_teams: Optional[bool] = True,
-    ) -> Optional[RpcUserOrganizationContext]:
-        membership: Optional[RpcOrganizationMember] = None
+        user_id: int | None = None,
+        slug: str | None = None,
+        include_projects: bool | None = True,
+        include_teams: bool | None = True,
+    ) -> RpcUserOrganizationContext | None:
+        membership: RpcOrganizationMember | None = None
         if user_id is not None:
             membership = self.check_membership_by_id(organization_id=id, user_id=user_id)
 
@@ -126,8 +125,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self,
         *,
         slug: str,
-        user_id: Optional[int] = None,
-    ) -> Optional[RpcOrganizationSummary]:
+        user_id: int | None = None,
+    ) -> RpcOrganizationSummary | None:
         query = Organization.objects.filter(slug=slug)
         if user_id is not None:
             query = query.filter(
@@ -140,8 +139,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
     def get_organizations_by_user_and_scope(
-        self, *, region_name: str, user: RpcUser, scope: Optional[str] = None
-    ) -> List[RpcOrganization]:
+        self, *, region_name: str, user: RpcUser, scope: str | None = None
+    ) -> list[RpcOrganization]:
         organizations = Organization.objects.get_for_user(user=user, scope=scope)
         return list(map(serialize_rpc_organization, organizations))
 
@@ -150,7 +149,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def check_membership_by_email(
         self, organization_id: int, email: str
-    ) -> Optional[RpcOrganizationMember]:
+    ) -> RpcOrganizationMember | None:
         try:
             member = OrganizationMember.objects.get(
                 organization_id=organization_id, email__iexact=email
@@ -164,10 +163,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self,
         *,
         organization_id: int,
-        organization_member_id: Optional[int] = None,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
-    ) -> Optional[RpcUserInviteContext]:
+        organization_member_id: int | None = None,
+        user_id: int | None = None,
+        email: str | None = None,
+    ) -> RpcUserInviteContext | None:
         """
         Query for an organization member by its id.
         """
@@ -189,10 +188,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self,
         *,
         slug: str,
-        organization_member_id: Optional[int] = None,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
-    ) -> Optional[RpcUserInviteContext]:
+        organization_member_id: int | None = None,
+        user_id: int | None = None,
+        email: str | None = None,
+    ) -> RpcUserInviteContext | None:
         """
         Query for an organization member by its slug.
         """
@@ -213,11 +212,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def _get_invite(
         self,
         *,
-        organization_member_id: Optional[int] = None,
+        organization_member_id: int | None = None,
         org: Organization,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
-    ) -> Optional[RpcUserInviteContext]:
+        user_id: int | None = None,
+        email: str | None = None,
+    ) -> RpcUserInviteContext | None:
         """
         Query for an organization member by its id and organization
         """
@@ -262,7 +261,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         organization_member_id: int,
         organization_id: int,
         user_id: int,
-    ) -> Optional[RpcOrganizationMember]:
+    ) -> RpcOrganizationMember | None:
         with transaction.atomic(router.db_for_write(OrganizationMember)):
             try:
                 org_member = OrganizationMember.objects.get(
@@ -281,8 +280,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_member(org_member)
 
     def _query_organizations(
-        self, user_id: int, scope: Optional[str], only_visible: bool
-    ) -> List[Organization]:
+        self, user_id: int, scope: str | None, only_visible: bool
+    ) -> list[Organization]:
         from django.conf import settings
 
         if settings.SENTRY_PUBLIC and scope is None:
@@ -336,7 +335,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         default_org_role: str,
         user_id: int | None = None,
         email: str | None = None,
-        flags: Optional[RpcOrganizationMemberFlags] = None,
+        flags: RpcOrganizationMemberFlags | None = None,
         role: str | None = None,
         inviter_id: int | None = None,
         invite_status: int | None = None,
@@ -348,7 +347,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             invite_status = InviteStatus.APPROVED.value
 
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
-            org_member: Optional[OrganizationMember] = None
+            org_member: OrganizationMember | None = None
             if user_id is not None:
                 org_member = OrganizationMember.objects.filter(
                     organization_id=organization_id, user_id=user_id
@@ -372,7 +371,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def update_organization_member(
         self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
-    ) -> Optional[RpcOrganizationMember]:
+    ) -> RpcOrganizationMember | None:
         member = OrganizationMember.objects.get(id=member_id)
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
             if len(attrs):
@@ -382,7 +381,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return serialize_member(member)
 
-    def get_single_team(self, *, organization_id: int) -> Optional[RpcTeam]:
+    def get_single_team(self, *, organization_id: int) -> RpcTeam | None:
         teams = list(Team.objects.filter(organization_id=organization_id)[0:2])
         if len(teams) == 1:
             (team,) = teams
@@ -422,7 +421,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         organization_id: int,
         team_id: int,
         organization_member_id: int,
-        role: Optional[str] = "contributor",
+        role: str | None = "contributor",
     ) -> None:
         team_member_query = OrganizationMemberTeam.objects.filter(
             team_id=team_id, organizationmember_id=organization_member_id
@@ -454,7 +453,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         org.save()
         return serialize_rpc_organization(org)
 
-    def remove_user(self, *, organization_id: int, user_id: int) -> Optional[RpcOrganizationMember]:
+    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember | None:
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
             try:
                 org_member = OrganizationMember.objects.get(
@@ -472,11 +471,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_member(org_member)
 
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
-        to_member: Optional[OrganizationMember] = OrganizationMember.objects.filter(
+        to_member: OrganizationMember | None = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=to_user_id
         ).first()
 
-        from_member: Optional[OrganizationMember] = OrganizationMember.objects.filter(
+        from_member: OrganizationMember | None = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=from_user_id
         ).first()
 
@@ -633,7 +632,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def get_organization_owner_members(
         self, *, organization_id: int
-    ) -> List[RpcOrganizationMember]:
+    ) -> list[RpcOrganizationMember]:
         org: Organization = Organization.objects.get(id=organization_id)
         owner_members = org.get_members_with_org_roles(roles=[roles.get_top_dog().id])
 
@@ -641,7 +640,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
 
 class ControlOrganizationCheckService(OrganizationCheckService):
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
         # See RegionOrganizationCheckService below
         try:
             org = OrganizationMapping.objects.get(slug=slug)
@@ -664,7 +663,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
 
 
 class RegionOrganizationCheckService(OrganizationCheckService):
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
         # See ControlOrganizationCheckService above
         try:
             org = Organization.objects.get_from_cache(slug=slug)
@@ -691,7 +690,7 @@ class RegionOrganizationCheckService(OrganizationCheckService):
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):
     def schedule_signal(
-        self, signal: Signal, organization_id: int, args: Mapping[str, Optional[Union[str, int]]]
+        self, signal: Signal, organization_id: int, args: Mapping[str, str | int | None]
     ) -> None:
         with outbox_context(flush=False):
             payload: Any = {

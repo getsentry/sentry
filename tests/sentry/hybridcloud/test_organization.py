@@ -1,5 +1,6 @@
 import itertools
-from typing import Any, Callable, List, Optional, Sequence, Tuple
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import pytest
 
@@ -26,7 +27,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, region_silo_test
 
 
-def basic_filled_out_org() -> Tuple[Organization, List[User]]:
+def basic_filled_out_org() -> tuple[Organization, list[User]]:
     owner = Factories.create_user()
     other_user = Factories.create_user()
     Factories.create_organization()  # unrelated org that shouldn't be in the result set
@@ -57,7 +58,7 @@ def basic_filled_out_org() -> Tuple[Organization, List[User]]:
     return org, [owner, other_user]
 
 
-def org_with_owner_team() -> Tuple[Organization, Sequence[User]]:
+def org_with_owner_team() -> tuple[Organization, Sequence[User]]:
     org, users = basic_filled_out_org()
     other_user = Factories.create_user()
     users.append(other_user)
@@ -75,19 +76,19 @@ def parameterize_with_orgs_with_owner_team(f: Callable):
     return pytest.mark.parametrize("org_factory", [pytest.param(org_with_owner_team)])(f)
 
 
-def find_ordering(list_of_things: List[Any], e: Any) -> int:
+def find_ordering(list_of_things: list[Any], e: Any) -> int:
     try:
         return list_of_things.index(e)
     except ValueError:
         return -1
 
 
-def order_things_by_id(a: List[Any], b: List[Any]) -> None:
+def order_things_by_id(a: list[Any], b: list[Any]) -> None:
     b_ids = [x.id for x in b]
     a.sort(key=lambda i: find_ordering(b_ids, i.id))
 
 
-def assert_for_list(a: List[Any], b: List[Any], assertion: Callable) -> None:
+def assert_for_list(a: list[Any], b: list[Any], assertion: Callable) -> None:
     assert len(a) == len(b)
     order_things_by_id(a, b)
     for a_thing, b_thing in zip(a, b):
@@ -180,7 +181,7 @@ def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
 
 
 @assume_test_silo_mode(SiloMode.REGION)
-def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: Organization):
+def assert_get_organization_by_id_works(user_context: User | None, orm_org: Organization):
     assert (
         organization_service.get_organization_by_id(
             id=-2, user_id=user_context.id if user_context else None
@@ -207,7 +208,7 @@ def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: O
 @django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs
-def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[User]]]):
+def test_get_organization_id(org_factory: Callable[[], tuple[Organization, list[User]]]):
     orm_org, orm_users = org_factory()
 
     for user_context in itertools.chain([None], orm_users):
@@ -217,7 +218,7 @@ def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[
 @django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs
-def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]]):
+def test_idempotency(org_factory: Callable[[], tuple[Organization, list[User]]]):
     orm_org, orm_users = org_factory()
     new_user = Factories.create_user()
 
@@ -240,7 +241,7 @@ def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]])
 @django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs_with_owner_team
-def test_get_all_org_roles(org_factory: Callable[[], Tuple[Organization, List[User]]]):
+def test_get_all_org_roles(org_factory: Callable[[], tuple[Organization, list[User]]]):
     _, orm_users = org_factory()
     with assume_test_silo_mode(SiloMode.REGION):
         member = OrganizationMember.objects.get(user_id=orm_users[1].id)
@@ -255,7 +256,7 @@ def test_get_all_org_roles(org_factory: Callable[[], Tuple[Organization, List[Us
 @django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs_with_owner_team
-def test_get_top_dog_team_member_ids(org_factory: Callable[[], Tuple[Organization, List[User]]]):
+def test_get_top_dog_team_member_ids(org_factory: Callable[[], tuple[Organization, list[User]]]):
     orm_org, orm_users = org_factory()
     with assume_test_silo_mode(SiloMode.REGION):
         members = [OrganizationMember.objects.get(user_id=user.id) for user in orm_users]

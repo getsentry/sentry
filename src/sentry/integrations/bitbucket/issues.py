@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django.urls import reverse
 
@@ -37,7 +38,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User, **kwargs
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "bitbucket_integration"
 
         fields = super().get_create_issue_config(group, user, **kwargs)
@@ -77,7 +78,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
             },
         ]
 
-    def get_link_issue_config(self, group: Group, **kwargs) -> List[Dict[str, Any]]:
+    def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 

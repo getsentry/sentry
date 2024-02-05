@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional, Sequence
+from typing import TYPE_CHECKING, Any
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
@@ -81,9 +82,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         request: Request,
         group: Group,
         environments: Sequence[Environment],
-        query: Optional[str],
-        start: Optional[datetime],
-        end: Optional[datetime],
+        query: str | None,
+        start: datetime | None,
+        end: datetime | None,
     ) -> Response:
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
@@ -141,7 +142,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     def _get_search_query(
         self, request: Request, group: Group, environments: Sequence[Environment]
-    ) -> Optional[str]:
+    ) -> str | None:
         raw_query = request.GET.get("query")
 
         if raw_query:

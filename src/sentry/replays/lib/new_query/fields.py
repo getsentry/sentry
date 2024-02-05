@@ -17,7 +17,8 @@ format.
 from __future__ import annotations
 
 import datetime
-from typing import Callable, Generic, Protocol, Type
+from collections.abc import Callable
+from typing import Generic, Protocol
 from uuid import UUID
 
 from snuba_sdk import Column, Condition, Function
@@ -40,7 +41,7 @@ class FieldProtocol(Protocol):
 
 
 class BaseField(Generic[T]):
-    def __init__(self, parse: Callable[[str], T], query: Type[GenericBase]) -> None:
+    def __init__(self, parse: Callable[[str], T], query: type[GenericBase]) -> None:
         self.parse = parse
         self.query = query
 
@@ -90,7 +91,7 @@ class ColumnField(BaseField[T]):
     """Column fields target one column."""
 
     def __init__(
-        self, column_name: str, parse_fn: Callable[[str], T], query_type: Type[GenericBase]
+        self, column_name: str, parse_fn: Callable[[str], T], query_type: type[GenericBase]
     ) -> None:
         self.column_name = column_name
         self.parse = parse_fn

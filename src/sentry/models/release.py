@@ -4,9 +4,10 @@ import itertools
 import logging
 import re
 from collections import namedtuple
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from time import time
-from typing import ClassVar, List, Mapping, Optional, Sequence, Union
+from typing import ClassVar
 
 import sentry_sdk
 from django.db import IntegrityError, models, router
@@ -33,6 +34,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager import BaseManager
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidSearchQuery
@@ -114,10 +116,10 @@ class ReleaseProject(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_release_project"
-        index_together = (
-            ("project", "adopted"),
-            ("project", "unadopted"),
-            ("project", "first_seen_transaction"),
+        indexes = (
+            models.Index(fields=("project", "adopted")),
+            models.Index(fields=("project", "unadopted")),
+            models.Index(fields=("project", "first_seen_transaction")),
         )
         unique_together = (("project", "release"),)
 
@@ -157,8 +159,8 @@ class ReleaseStatus:
 @dataclass
 class SemverFilter:
     operator: str
-    version_parts: Sequence[Union[int, str]]
-    package: Optional[str] = None
+    version_parts: Sequence[int | str]
+    package: str | None = None
     negated: bool = False
 
 
@@ -186,7 +188,7 @@ class ReleaseQuerySet(BaseQuerySet):
         organization_id: int,
         operator: str,
         build: str,
-        project_ids: Optional[Sequence[int]] = None,
+        project_ids: Sequence[int] | None = None,
         negated: bool = False,
     ) -> models.QuerySet:
         """
@@ -219,7 +221,7 @@ class ReleaseQuerySet(BaseQuerySet):
         self,
         organization_id: int,
         semver_filter: SemverFilter,
-        project_ids: Optional[Sequence[int]] = None,
+        project_ids: Sequence[int] | None = None,
     ) -> models.QuerySet:
         """
         Filters releases based on a based `SemverFilter` instance.
@@ -264,8 +266,8 @@ class ReleaseQuerySet(BaseQuerySet):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Optional[Sequence[int]] = None,
-        environments: Optional[List[str]] = None,
+        project_ids: Sequence[int] | None = None,
+        environments: list[str] | None = None,
     ) -> models.QuerySet:
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
@@ -384,7 +386,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         organization_id: int,
         operator: str,
         build: str,
-        project_ids: Optional[Sequence[int]] = None,
+        project_ids: Sequence[int] | None = None,
         negated: bool = False,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver_build(
@@ -399,7 +401,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         self,
         organization_id: int,
         semver_filter: SemverFilter,
-        project_ids: Optional[Sequence[int]] = None,
+        project_ids: Sequence[int] | None = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
 
@@ -408,8 +410,8 @@ class ReleaseModelManager(BaseManager["Release"]):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Optional[Sequence[int]] = None,
-        environments: Optional[List[str]] = None,
+        project_ids: Sequence[int] | None = None,
+        environments: list[str] | None = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments
@@ -529,25 +531,38 @@ class Release(Model):
         app_label = "sentry"
         db_table = "sentry_release"
         unique_together = (("organization", "version"),)
-        # TODO(django2.2): Note that we create this index with each column ordered
-        # descending. Django 2.2 allows us to specify functional indexes, which should
-        # allow us to specify this on the model.
-        # We also use a functional index to order `prerelease` according to semver rules,
-        # which we can't express here for now.
-        index_together = (
-            ("organization", "package", "major", "minor", "patch", "revision", "prerelease"),
-            ("organization", "major", "minor", "patch", "revision", "prerelease"),
-            ("organization", "build_code"),
-            ("organization", "build_number"),
-            ("organization", "date_added"),
-            ("organization", "status"),
-        )
         indexes = [
             models.Index(
                 fields=["organization", "version"],
                 opclasses=["", "text_pattern_ops"],
                 name="sentry_release_version_btree",
-            )
+            ),
+            # We also use a functional index to order `prerelease` according to semver rules,
+            IndexWithPostgresNameLimits(
+                "organization",
+                "package",
+                F("major").desc(),
+                F("minor").desc(),
+                F("patch").desc(),
+                F("revision").desc(),
+                Case(When(prerelease="", then=1), default=0).desc(),
+                F("prerelease").desc(),
+                name="sentry_release_semver_by_package_idx",
+            ),
+            models.Index(
+                "organization",
+                F("major").desc(),
+                F("minor").desc(),
+                F("patch").desc(),
+                F("revision").desc(),
+                Case(When(prerelease="", then=1), default=0).desc(),
+                F("prerelease").desc(),
+                name="sentry_release_semver_idx",
+            ),
+            models.Index(fields=("organization", "build_code")),
+            models.Index(fields=("organization", "build_number")),
+            models.Index(fields=("organization", "date_added")),
+            models.Index(fields=("organization", "status")),
         ]
 
     __repr__ = sane_repr("organization_id", "version")
@@ -1278,7 +1293,7 @@ class Release(Model):
             self.save()
 
 
-def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
+def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
     """Get artifact count grouped by IDs"""
     from sentry.models.releasefile import ReleaseFile
 

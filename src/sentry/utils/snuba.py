@@ -6,12 +6,13 @@ import os
 import re
 import time
 from collections import namedtuple
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Union
+from typing import Any, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -582,10 +583,10 @@ def get_query_params_to_update_for_organizations(query_params):
 
 
 def _prepare_start_end(
-    start: Optional[datetime],
-    end: Optional[datetime],
+    start: datetime | None,
+    end: datetime | None,
     organization_id: int,
-    group_ids: Optional[Sequence[int]],
+    group_ids: Sequence[int] | None,
 ) -> tuple[datetime, datetime]:
     if not start:
         start = datetime(2008, 5, 8)
@@ -797,7 +798,7 @@ ResultSet = list[Mapping[str, Any]]  # TODO: Would be nice to make this a concre
 
 def raw_snql_query(
     request: Request,
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     use_cache: bool = False,
 ) -> Mapping[str, Any]:
     """
@@ -811,7 +812,7 @@ def raw_snql_query(
 
 def bulk_snql_query(
     requests: list[Request],
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     use_cache: bool = False,
 ) -> ResultSet:
     """
@@ -822,7 +823,7 @@ def bulk_snql_query(
 
 def bulk_snuba_queries(
     requests: list[Request],
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     use_cache: bool = False,
 ) -> ResultSet:
     """
@@ -848,8 +849,8 @@ def bulk_snuba_queries(
 # It should eventually be removed
 def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
-    referrer: Optional[str] = None,
-    use_cache: Optional[bool] = False,
+    referrer: str | None = None,
+    use_cache: bool | None = False,
 ) -> ResultSet:
     """
     Used to make queries using the (very) old JSON format for Snuba queries. Queries submitted here
@@ -875,8 +876,8 @@ def get_cache_key(query: SnubaQuery) -> str:
 
 def _apply_cache_and_build_results(
     snuba_param_list: Sequence[RequestQueryBody],
-    referrer: Optional[str] = None,
-    use_cache: Optional[bool] = False,
+    referrer: str | None = None,
+    use_cache: bool | None = False,
 ) -> ResultSet:
     headers = {}
     validate_referrer(referrer)
@@ -890,7 +891,7 @@ def _apply_cache_and_build_results(
     if use_cache:
         cache_keys = [get_cache_key(query_params[0]) for _, query_params in query_param_list]
         cache_data = cache.get_many(cache_keys)
-        to_query: list[tuple[int, RequestQueryBody, Optional[str]]] = []
+        to_query: list[tuple[int, RequestQueryBody, str | None]] = []
         for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
             cached_result = cache_data.get(cache_key)
             metric_tags = {"referrer": referrer} if referrer else None
@@ -1296,8 +1297,8 @@ def _aliased_query_impl(**kwargs):
 
 
 def resolve_conditions(
-    conditions: Optional[Sequence[Any]], column_resolver: Callable[[str], str]
-) -> Optional[Sequence[Any]]:
+    conditions: Sequence[Any] | None, column_resolver: Callable[[str], str]
+) -> Sequence[Any] | None:
     if conditions is None:
         return conditions
 

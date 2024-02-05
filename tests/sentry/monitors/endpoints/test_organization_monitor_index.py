@@ -43,7 +43,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [monitor])
 
-    def test_sort(self):
+    def test_sort_status(self):
         last_checkin = datetime.now() - timedelta(minutes=1)
         last_checkin_older = datetime.now() - timedelta(minutes=5)
 
@@ -101,6 +101,38 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
                 monitor_disabled,
             ],
         )
+
+        response = self.get_success_response(
+            self.organization.slug, asc="0", params={"environment": "jungle"}
+        )
+        self.check_valid_response(
+            response,
+            [
+                monitor_disabled,
+                monitor_muted,
+                monitor_active,
+                monitor_ok,
+                monitor_missed_checkin,
+                monitor_timed_out,
+                monitor_error_older_checkin,
+                monitor_error,
+            ],
+        )
+
+    def test_sort_name(self):
+        monitors = [
+            self._create_monitor(name="Some Monitor"),
+            self._create_monitor(name="A monitor"),
+            self._create_monitor(name="ZA monitor"),
+        ]
+        monitors.sort(key=lambda m: m.name)
+
+        response = self.get_success_response(self.organization.slug, sort="name")
+        self.check_valid_response(response, monitors)
+
+        monitors.reverse()
+        response = self.get_success_response(self.organization.slug, sort="name", asc="0")
+        self.check_valid_response(response, monitors)
 
     def test_all_monitor_environments(self):
         monitor = self._create_monitor()

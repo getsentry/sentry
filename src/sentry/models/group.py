@@ -5,11 +5,12 @@ import math
 import re
 import warnings
 from collections import defaultdict, namedtuple
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
 from django.db import models
@@ -255,7 +256,7 @@ def get_oldest_or_latest_event_for_environments(
 def get_recommended_event_for_environments(
     environments: Sequence[Environment],
     group: Group,
-    conditions: Optional[Sequence[Condition]] = None,
+    conditions: Sequence[Condition] | None = None,
 ) -> GroupEvent | None:
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
@@ -433,7 +434,7 @@ class GroupManager(BaseManager["Group"]):
         status: int,
         substatus: int | None,
         activity_type: ActivityType,
-        activity_data: Optional[Mapping[str, Any]] = None,
+        activity_data: Mapping[str, Any] | None = None,
         send_activity_notification: bool = True,
         from_substatus: int | None = None,
     ) -> None:
@@ -802,7 +803,7 @@ class Group(Model):
     def get_recommended_event_for_environments(
         self,
         environments: Sequence[Environment] = (),
-        conditions: Optional[Sequence[Condition]] = None,
+        conditions: Sequence[Condition] | None = None,
     ) -> GroupEvent | None:
         maybe_event = get_recommended_event_for_environments(
             environments,

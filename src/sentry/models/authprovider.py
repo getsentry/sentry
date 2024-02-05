@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import List
 
 from django.db import models
 from django.utils import timezone
@@ -154,7 +153,7 @@ class AuthProvider(ReplicatedControlModel):
         )
         self.flags.scim_enabled = True
 
-    def outboxes_for_reset_idp_flags(self) -> List[ControlOutbox]:
+    def outboxes_for_reset_idp_flags(self) -> list[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.ORGANIZATION_SCOPE,
@@ -196,7 +195,7 @@ class AuthProvider(ReplicatedControlModel):
     def get_audit_log_data(self):
         return {"provider": self.provider, "config": self.config}
 
-    def outboxes_for_mark_invalid_sso(self, user_id: int) -> List[ControlOutbox]:
+    def outboxes_for_mark_invalid_sso(self, user_id: int) -> list[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.ORGANIZATION_SCOPE,

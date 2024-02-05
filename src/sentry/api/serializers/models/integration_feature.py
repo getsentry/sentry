@@ -1,4 +1,5 @@
-from typing import Any, List, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.integrations.integration_feature import IntegrationFeature
@@ -9,7 +10,7 @@ from sentry.models.user import User
 class IntegrationFeatureSerializer(Serializer):
     def get_attrs(
         self,
-        item_list: List[IntegrationFeature],
+        item_list: list[IntegrationFeature],
         user: User,
         has_target: bool = True,
         **kwargs: Any,

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Type
 
 from django.db.models import Model
 
@@ -36,7 +35,7 @@ class DynamicRelocationScopeTests(TransactionTestCase):
             return export_to_file(tmp_path, ExportScope.Global)
 
     @expect_models(DYNAMIC_RELOCATION_SCOPE_TESTED, ApiAuthorization, ApiToken)
-    def test_api_auth(self, expected_models: list[Type[Model]]):
+    def test_api_auth(self, expected_models: list[type[Model]]):
         user = self.create_user()
 
         # Bound to an app == global scope.
@@ -65,7 +64,7 @@ class DynamicRelocationScopeTests(TransactionTestCase):
         verify_models_in_output(expected_models, self.export())
 
     @expect_models(DYNAMIC_RELOCATION_SCOPE_TESTED, NotificationAction, NotificationActionProject)
-    def test_notification_action(self, expected_models: list[Type[Model]]):
+    def test_notification_action(self, expected_models: list[type[Model]]):
         # Bound to an app == global scope.
         app = self.create_sentry_app(name="test_app", organization=self.organization)
         action = self.create_notification_action(

@@ -2,7 +2,7 @@ import dataclasses
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Union, cast
+from typing import cast
 
 import requests
 import urllib3
@@ -38,7 +38,7 @@ class GroupValues:
     id: int
     project_id: int
     status: int
-    substatus: Optional[int]
+    substatus: int | None
     first_seen: datetime
     num_comments: int
 
@@ -59,7 +59,7 @@ _attribute_snapshot_producer = SingletonProducer(
 def _log_group_attributes_changed(
     operation: Operation,
     model_inducing_snapshot: str,
-    column_inducing_snapshot: Optional[str] = None,
+    column_inducing_snapshot: str | None = None,
 ) -> None:
     metrics.incr(
         "group_attributes.changed",
@@ -72,7 +72,7 @@ def _log_group_attributes_changed(
 
 
 def send_snapshot_values(
-    group_id: Optional[int], group: Optional[Group], group_deleted: bool = False
+    group_id: int | None, group: Group | None, group_deleted: bool = False
 ) -> None:
     group_ids = None
     if group_id:
@@ -86,7 +86,7 @@ def send_snapshot_values(
 
 
 def bulk_send_snapshot_values(
-    group_ids: Optional[List[int]], groups: Optional[List[Group]], group_deleted: bool = False
+    group_ids: list[int] | None, groups: list[Group] | None, group_deleted: bool = False
 ) -> None:
     if not (options.get("issues.group_attributes.send_kafka") or False):
         return
@@ -94,7 +94,7 @@ def bulk_send_snapshot_values(
     if group_ids is None and groups is None:
         raise ValueError("cannot send snapshot values when group_ids and groups are None")
 
-    group_list: List[Group | GroupValues] = cast(List[Group | GroupValues], groups) or []
+    group_list: list[Group | GroupValues] = cast(list[Group | GroupValues], groups) or []
     if group_ids:
         group_list.extend(_bulk_retrieve_group_values(group_ids))
 
@@ -129,7 +129,7 @@ def _retrieve_group_values(group_id: int) -> GroupValues:
     return _bulk_retrieve_group_values([group_id])[0]
 
 
-def _bulk_retrieve_group_values(group_ids: List[int]) -> List[GroupValues]:
+def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
     group_values_map = {
         group["id"]: group
         for group in Group.objects.filter(id__in=group_ids).values(
@@ -155,8 +155,8 @@ def _bulk_retrieve_group_values(group_ids: List[int]) -> List[GroupValues]:
 
 
 def _bulk_retrieve_snapshot_values(
-    group_values_list: List[Union[Group, GroupValues]], group_deleted: bool = False
-) -> List[GroupAttributesSnapshot]:
+    group_values_list: list[Group | GroupValues], group_deleted: bool = False
+) -> list[GroupAttributesSnapshot]:
     group_assignee_map = {
         ga["group_id"]: ga
         for ga in GroupAssignee.objects.filter(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Collection, List, Tuple
+from collections.abc import Collection
 
 from django.db import router, transaction
 from rest_framework import status
@@ -27,8 +27,8 @@ class InvalidTeam(SentryAPIException):
 
 def save_team_assignments(
     organization_member: OrganizationMember,
-    teams: List[Team] | None,
-    teams_with_roles: List[Tuple[Team, str]] | None = None,
+    teams: list[Team] | None,
+    teams_with_roles: list[tuple[Team, str]] | None = None,
 ):
     # https://github.com/getsentry/sentry/pull/6054/files/8edbdb181cf898146eda76d46523a21d69ab0ec7#r145798271
     lock = locks.get(
