@@ -280,7 +280,7 @@ const TooltipHelper = styled('span')`
   height: 12px;
   padding-left: 2px;
   padding-right: 2px;
-  margin-left: -2px;
+  margin-left: -4px;
   margin-top: -6px;
   z-index: 1;
   border: 1px solid blue;
