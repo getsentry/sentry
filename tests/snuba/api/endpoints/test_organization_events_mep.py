@@ -3163,6 +3163,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         params["dataset"] = "metricsEnhanced"
         params["useOnDemandMetrics"] = "true"
         params["onDemandType"] = "dynamic_query"
+        params["project"] = params.get("project", self.project.id)
 
         self.store_on_demand_metric(1, spec=spec)
         response = self.do_request(params)
@@ -3196,6 +3197,59 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             "meta": {
                 "fields": {"user_misery(300)": "number", "apdex(300)": "number"},
                 "units": {"user_misery(300)": None, "apdex(300)": None},
+                "isMetricsData": True,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "datasetReason": "unchanged",
+                "dataset": "metricsEnhanced",
+            },
+        }
+
+    def test_no_aggregate(self) -> None:
+        # Adding transaction to the field causes this error
+        ####################################################
+        #         src/sentry/snuba/metrics/extraction.py:1414: in _parse_field
+        #     function, arguments, alias = _parse_function(value)
+        # src/sentry/snuba/metrics/extraction.py:529: in _parse_function
+        #     raise InvalidSearchQuery(f"Invalid characters in field {aggregate}")
+        # E   sentry.exceptions.InvalidSearchQuery: Invalid characters in field transaction
+
+        # During handling of the above exception, another exception occurred:
+        # tests/snuba/api/endpoints/test_organization_events_mep.py:3216: in test_no_aggregate
+        #     resp = self._on_demand_query_check(
+        # tests/snuba/api/endpoints/test_organization_events_mep.py:3155: in _on_demand_query_check
+        #     spec = OnDemandMetricSpec(
+        # src/sentry/snuba/metrics/extraction.py:1148: in __init__
+        #     self._eager_process()
+        # src/sentry/snuba/metrics/extraction.py:1151: in _eager_process
+        #     op, metric_type, arguments = self._process_field()
+        # src/sentry/snuba/metrics/extraction.py:1299: in _process_field
+        #     parsed_field = self._parse_field(self.field)
+        # src/sentry/snuba/metrics/extraction.py:1422: in _parse_field
+        #     raise Exception(f"Unable to parse the field '{value}' in on demand spec: {e}")
+        # E   Exception: Unable to parse the field 'transaction' in on demand spec: Invalid characters in field transaction
+        resp = self._on_demand_query_check(
+            {
+                # "environment": "production",
+                # XXX: try to add "transaction" back
+                "field": ["user_misery(300)", "count()", "p75(measurements.lcp)"],
+                "query": "event.type:transaction transaction.op:pageload app_recommended_owner:#onboarding-experience",
+                "yAxis": "user_misery(300)",
+            },
+        )
+        assert resp.data == {
+            "data": [{"user_misery(300)": 0, "count()": 0, "p75(measurements.lcp)": 0}],
+            "meta": {
+                "fields": {
+                    "user_misery(300)": "number",
+                    "count()": "integer",
+                    "p75(measurements.lcp)": "duration",
+                },
+                "units": {
+                    "user_misery(300)": None,
+                    "count()": None,
+                    "p75(measurements.lcp)": "millisecond",
+                },
                 "isMetricsData": True,
                 "isMetricsExtractedData": True,
                 "tips": {},
