@@ -38,6 +38,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   mergedIssues: {enabled: false},
   regression: {enabled: false},
   replays: {enabled: false},
+  showFeedbackWidget: false,
   stats: {enabled: true},
   similarIssues: {enabled: false},
   tags: {enabled: true},

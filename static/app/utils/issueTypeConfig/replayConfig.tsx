@@ -19,6 +19,7 @@ const replayConfig: IssueCategoryConfigMapping = {
     replays: {enabled: true},
     stats: {enabled: true},
     similarIssues: {enabled: false},
+    showFeedbackWidget: true,
     tags: {enabled: true},
     userFeedback: {enabled: true},
     discover: {enabled: true},
