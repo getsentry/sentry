@@ -49,7 +49,6 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {
   formatMetricAxisValue,
   renderMetricField,
@@ -89,6 +88,7 @@ type WidgetCardChartProps = Pick<
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  chartGroup?: string;
   chartZoomOptions?: DataZoomComponentOption;
   expandNumbers?: boolean;
   isMobile?: boolean;
@@ -271,8 +271,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       this.chartRef = chartRef;
       // add chart to the group so that it has synced cursors
       const instance = chartRef.getEchartsInstance?.();
-      if (instance && !instance.group) {
-        instance.group = DASHBOARD_CHART_GROUP;
+      if (instance && !instance.group && this.props.chartGroup) {
+        instance.group = this.props.chartGroup;
       }
     }
 
@@ -513,6 +513,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
           const seriesStart = series[0]?.data[0]?.name;
           const seriesEnd = series[0]?.data[series[0].data.length - 1]?.name;
+
+          const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
+
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
@@ -534,7 +537,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
                     legend,
                     series,
                     onLegendSelectChanged,
-                    forwardedRef: this.handleRef,
+                    forwardedRef,
                   }),
                   fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                 })}
