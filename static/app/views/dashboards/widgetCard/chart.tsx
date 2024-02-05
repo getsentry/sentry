@@ -24,7 +24,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
-import type {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
+import type {
+  EChartDataZoomHandler,
+  EChartEventHandler,
+  ReactEchartsRef,
+} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   axisLabelFormatterUsingAggregateOutputType,
@@ -44,12 +48,14 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {
   formatMetricAxisValue,
   renderMetricField,
 } from 'sentry/views/dashboards/datasetConfig/metrics';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 
+import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
 import type {Widget} from '../types';
 import {DisplayType, WidgetType} from '../types';
@@ -257,6 +263,23 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     });
   }
 
+  chartRef: ReactEchartsRef | null = null;
+
+  handleRef = (chartRef: ReactEchartsRef): void => {
+    if (chartRef && !this.chartRef) {
+      this.chartRef = chartRef;
+      // add chart to the group so that it has synced cursors
+      const instance = chartRef.getEchartsInstance();
+      if (instance && !instance.group) {
+        instance.group = DASHBOARD_CHART_GROUP;
+      }
+    }
+
+    if (!chartRef) {
+      this.chartRef = null;
+    }
+  };
+
   chartComponent(chartProps): React.ReactNode {
     const {widget} = this.props;
     const stacked = widget.queries[0]?.columns.length > 0;
@@ -369,6 +392,19 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
       : undefined;
 
+    const valueFormatter = (value: number, seriesName?: string) => {
+      if (widget.widgetType === WidgetType.METRICS) {
+        return formatMetricAxisValue(axisField, value);
+      }
+      const aggregateName = seriesName?.split(':').pop()?.trim();
+      if (aggregateName) {
+        return timeseriesResultsTypes
+          ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
+          : tooltipFormatter(value, aggregateOutputType(aggregateName));
+      }
+      return tooltipFormatter(value, 'number');
+    };
+
     const chartOptions = {
       autoHeightResize,
       grid: {
@@ -381,18 +417,21 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         showSymbol: false,
       },
       tooltip: {
-        trigger: 'axis',
-        valueFormatter: (value: number, seriesName: string) => {
-          if (widget.widgetType === WidgetType.METRICS) {
-            return formatMetricAxisValue(axisField, value);
+        formatter: (params, asyncTicket) => {
+          const hoveredEchartElement = Array.from(
+            document.querySelectorAll(':hover')
+          ).find(element => {
+            return element.classList.contains('echarts-for-react');
+          });
+
+          const isThisChartHovered = hoveredEchartElement === this.chartRef?.ele;
+          if (!isThisChartHovered) {
+            return '';
           }
-          const aggregateName = seriesName?.split(':').pop()?.trim();
-          if (aggregateName) {
-            return timeseriesResultsTypes
-              ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
-              : tooltipFormatter(value, aggregateOutputType(aggregateName));
-          }
-          return tooltipFormatter(value, 'number');
+
+          return getFormatter({
+            valueFormatter,
+          })(params, asyncTicket);
         },
       },
       yAxis: {
@@ -414,6 +453,11 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           },
         },
         minInterval: durationUnit ?? 0,
+      },
+      xAxis: {
+        axisPointer: {
+          snap: true,
+        },
       },
     };
 
@@ -490,6 +534,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
                     legend,
                     series,
                     onLegendSelectChanged,
+                    forwardedRef: this.handleRef,
                   }),
                   fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                 })}

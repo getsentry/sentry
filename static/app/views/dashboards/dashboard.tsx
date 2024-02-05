@@ -7,6 +7,7 @@ import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import * as echarts from 'echarts/core';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
@@ -69,6 +70,7 @@ const BOTTOM_MOBILE_VIEW_POSITION = {
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints.small, 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
+export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 
 type Props = {
   api: Client;
@@ -115,6 +117,7 @@ class Dashboard extends Component<Props, State> {
       },
       windowWidth: window.innerWidth,
     };
+    echarts.connect(DASHBOARD_CHART_GROUP);
   }
 
   static getDerivedStateFromProps(props, state) {

@@ -18,7 +18,6 @@ import {isCumulativeOp} from 'sentry/utils/metrics';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import useRouter from 'sentry/utils/useRouter';
-import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
@@ -32,6 +31,7 @@ type ChartProps = {
   series: Series[];
   widgetIndex: number;
   focusArea?: FocusAreaProps;
+  group?: string;
   height?: number;
   operation?: string;
   scatter?: SamplesProps;
@@ -44,7 +44,7 @@ echarts.use(CanvasRenderer);
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   (
-    {series, displayType, operation, widgetIndex, focusArea, height, scatter},
+    {series, displayType, operation, widgetIndex, focusArea, height, scatter, group},
     forwardedRef
   ) => {
     const router = useRouter();
@@ -70,9 +70,12 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     });
 
     useEffect(() => {
+      if (!group) {
+        return;
+      }
       const echartsInstance = chartRef?.current?.getEchartsInstance();
       if (echartsInstance && !echartsInstance.group) {
-        echartsInstance.group = DDM_CHART_GROUP;
+        echartsInstance.group = group;
       }
     });
 
