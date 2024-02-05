@@ -511,7 +511,6 @@ module = [
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
     "sentry.tsdb.redis",
-    "sentry.tsdb.snuba",
     "sentry.types.integrations",
     "sentry.utils.audit",
     "sentry.utils.auth",
