@@ -22,6 +22,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         self.team = self.create_team(organization=self.organization, name="night-springs")
+        self.create_team_membership(team=self.team, user=self.user)
         self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.url = reverse(
             "sentry-api-0-organization-derive-code-mappings",
