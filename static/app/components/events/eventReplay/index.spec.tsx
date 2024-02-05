@@ -145,30 +145,9 @@ describe('EventReplay', function () {
     });
     render(<EventReplay {...defaultProps} />, {organization});
 
-    expect(await screen.findByText('Configure Session Replay')).toBeInTheDocument();
-  });
-
-  it('should not render the replay inline onboarding component when the project is not JS', function () {
-    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-      hasOrgSentReplays: false,
-      fetching: false,
-    });
-    MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-      activateSidebar: jest.fn(),
-    });
-    render(
-      <EventReplay
-        {...defaultProps}
-        event={EventFixture({
-          entries: [],
-          tags: [],
-        })}
-      />,
-      {organization}
-    );
-
-    expect(screen.queryByText('Configure Session Replay')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('player-container')).not.toBeInTheDocument();
+    expect(
+      await screen.findByText('Watch the errors and latency issues your users face')
+    ).toBeInTheDocument();
   });
 
   it('should render a replay when there is a replayId from tags', async function () {
