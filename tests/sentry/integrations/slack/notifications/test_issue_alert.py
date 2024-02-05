@@ -10,6 +10,7 @@ import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
+from sentry.integrations.slack.message_builder.issues import get_tags
 from sentry.issues.grouptype import MonitorCheckInFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.identity import Identity, IdentityStatus
@@ -38,6 +39,13 @@ from sentry.utils import json
 from sentry.utils.dates import ensure_aware
 
 pytestmark = [requires_snuba]
+
+
+old_get_tags = get_tags
+
+
+def fake_get_tags(group, event_for_tags, tags):
+    return old_get_tags(group, event_for_tags, [])
 
 
 @region_silo_test
@@ -149,6 +157,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
@@ -185,7 +194,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             issue_link_extra_params=f"&alert_rule_id={self.rule.id}&alert_type=issue",
         )
         assert "level" not in blocks[3]["text"]["text"]
+        assert "release" in blocks[3]["text"]["text"]
 
+    @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
     @responses.activate
     @with_feature("organizations:slack-block-kit")
     def test_crons_issue_alert_user_block(self):
@@ -227,11 +238,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             fallback_text
             == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
         )
-        assert "level" not in blocks[3]["text"]["text"]
-        # CEO: in this test it seems that all of an event's tags are being passed as if they are set
-        # in the alert rule as extra tags, and therefore are coming through here even though `level` is being removed
-        # from default_tags in get_tags. I can't figure out how to mock `tags` in that function to be None
-        assert "Users Affected" not in blocks[4]["elements"][0]["text"]
+        assert len(blocks) == 5
 
     @responses.activate
     @mock.patch(
