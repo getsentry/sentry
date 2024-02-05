@@ -241,15 +241,28 @@ export class TraceTree {
       return node;
     }
 
-    function visit(n: TraceTreeNode<RawSpanType | TraceFullDetailed>, depth: number) {
+    function visit(
+      n: TraceTreeNode<RawSpanType | TraceFullDetailed>,
+      depth: number,
+      index: number,
+      parentChildrenLength: number
+    ) {
       n.depth = depth;
+
+      const isLastChild = index === parentChildrenLength - 1;
+      n.isLastChild = isLastChild;
+
+      let indexChild = 0;
       for (const child of n.children) {
-        visit(child, depth + 1);
+        visit(child, depth + 1, indexChild, n.children.length);
+        indexChild++;
       }
     }
 
+    let index = 0;
     for (const child of node.children) {
-      visit(child, node.depth + 1);
+      visit(child, node.depth + 1, index, node.children.length);
+      index++;
     }
 
     return node;
@@ -352,7 +365,7 @@ export class TraceTreeNode<TreeNodeValue> {
       if (next.expanded) {
         let i = next.children.length - 1;
         while (i >= 0) {
-          queue.push(next.children[i]);
+          queue.unshift(next.children[i]);
           --i;
         }
       }
