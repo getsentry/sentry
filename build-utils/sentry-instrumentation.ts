@@ -7,7 +7,7 @@ import os from 'os';
 
 import type Sentry from '@sentry/node';
 import type {Transaction} from '@sentry/types';
-import webpack from 'webpack';
+import type webpack from 'webpack';
 
 const {
   NODE_ENV,

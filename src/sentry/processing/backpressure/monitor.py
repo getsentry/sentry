@@ -1,7 +1,8 @@
 import logging
 import time
+from collections.abc import Generator, Mapping
 from dataclasses import dataclass
-from typing import Dict, Generator, List, Mapping, Union
+from typing import Union
 
 import sentry_sdk
 from django.conf import settings
@@ -29,7 +30,7 @@ class Redis:
 
 @dataclass
 class RabbitMq:
-    servers: List[str]
+    servers: list[str]
 
 
 Service = Union[Redis, RabbitMq, None]
@@ -49,8 +50,8 @@ def check_service_memory(service: Service) -> Generator[ServiceMemory, None, Non
             yield query_rabbitmq_memory_usage(server)
 
 
-def load_service_definitions() -> Dict[str, Service]:
-    services: Dict[str, Service] = {}
+def load_service_definitions() -> dict[str, Service]:
+    services: dict[str, Service] = {}
     for name, definition in settings.SENTRY_PROCESSING_SERVICES.items():
         if cluster_id := definition.get("redis"):
             _is_clsuter, cluster, _config = redis.get_dynamic_cluster_from_options(
@@ -68,7 +69,7 @@ def load_service_definitions() -> Dict[str, Service]:
     return services
 
 
-def assert_all_services_defined(services: Dict[str, Service]) -> None:
+def assert_all_services_defined(services: dict[str, Service]) -> None:
     for name in PROCESSING_SERVICES:
         if name not in services:
             raise ValueError(

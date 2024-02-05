@@ -1,5 +1,5 @@
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Dict, Mapping, Optional, Sequence, Set
 
 import sentry_sdk
 from rest_framework.exceptions import ValidationError
@@ -25,7 +25,7 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaTSResult
 
-METRICS_ENHANCED_REFERRERS: Set[str] = {
+METRICS_ENHANCED_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_HOMEPAGE_WIDGET_CHART.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_DURATION_HISTOGRAM.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_LCP_HISTOGRAM.value,
@@ -68,7 +68,7 @@ METRICS_ENHANCED_REFERRERS: Set[str] = {
 }
 
 
-ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
+ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_ALERTS_ALERT_RULE_CHART.value,
     Referrer.API_ALERTS_CHARTCUTERIE.value,
     Referrer.API_DASHBOARDS_WIDGET_AREA_CHART.value,
@@ -217,10 +217,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         def get_event_stats(
             query_columns: Sequence[str],
             query: str,
-            params: Dict[str, str],
+            params: dict[str, str],
             rollup: int,
             zerofill_results: bool,
-            comparison_delta: Optional[datetime],
+            comparison_delta: datetime | None,
         ) -> SnubaTSResult:
             if top_events > 0:
                 return dataset.top_events_timeseries(

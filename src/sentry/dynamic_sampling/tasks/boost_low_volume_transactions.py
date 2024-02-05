@@ -1,5 +1,6 @@
+from collections.abc import Callable, Iterator, Sequence
 from datetime import datetime
-from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import TypedDict, cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -75,9 +76,9 @@ class ProjectTransactions(TypedDict, total=True):
 
     project_id: int
     org_id: int
-    transaction_counts: List[Tuple[str, float]]
-    total_num_transactions: Optional[float]
-    total_num_classes: Optional[int]
+    transaction_counts: list[tuple[str, float]]
+    total_num_transactions: float | None
+    total_num_classes: int | None
 
 
 class ProjectTransactionsTotals(TypedDict, total=True):
@@ -231,7 +232,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
     )
 
 
-def is_same_project(left: Optional[ProjectIdentity], right: Optional[ProjectIdentity]) -> bool:
+def is_same_project(left: ProjectIdentity | None, right: ProjectIdentity | None) -> bool:
     if left is None or right is None:
         return False
 
@@ -251,7 +252,7 @@ class FetchProjectTransactionTotals:
     """
 
     def __init__(self, orgs: Sequence[int]):
-        self.log_state: Optional[DynamicSamplingLogState] = None
+        self.log_state: DynamicSamplingLogState | None = None
 
         transaction_string_id = indexer.resolve_shared_org("transaction")
         self.transaction_tag = f"tags_raw[{transaction_string_id}]"
@@ -262,8 +263,8 @@ class FetchProjectTransactionTotals:
         self.org_ids = list(orgs)
         self.offset = 0
         self.has_more_results = True
-        self.cache: List[Dict[str, Union[int, float]]] = []
-        self.last_org_id: Optional[int] = None
+        self.cache: list[dict[str, int | float]] = []
+        self.last_org_id: int | None = None
 
     def __iter__(self):
         return self
@@ -407,11 +408,11 @@ class FetchProjectTransactionVolumes:
 
     def __init__(
         self,
-        orgs: List[int],
+        orgs: list[int],
         large_transactions: bool,
         max_transactions: int,
     ):
-        self.log_state: Optional[DynamicSamplingLogState] = None
+        self.log_state: DynamicSamplingLogState | None = None
 
         self.large_transactions = large_transactions
         self.max_transactions = max_transactions
@@ -423,7 +424,7 @@ class FetchProjectTransactionVolumes:
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
         self.has_more_results = True
-        self.cache: List[ProjectTransactions] = []
+        self.cache: list[ProjectTransactions] = []
 
         if self.large_transactions:
             self.transaction_ordering = Direction.DESC
@@ -517,9 +518,9 @@ class FetchProjectTransactionVolumes:
         return self._get_from_cache()
 
     def _add_results_to_cache(self, data):
-        transaction_counts: List[Tuple[str, float]] = []
-        current_org_id: Optional[int] = None
-        current_proj_id: Optional[int] = None
+        transaction_counts: list[tuple[str, float]] = []
+        current_org_id: int | None = None
+        current_proj_id: int | None = None
 
         self._ensure_log_state()
         assert self.log_state is not None
@@ -607,8 +608,8 @@ class FetchProjectTransactionVolumes:
 
 def merge_transactions(
     left: ProjectTransactions,
-    right: Optional[ProjectTransactions],
-    totals: Optional[ProjectTransactionsTotals],
+    right: ProjectTransactions | None,
+    totals: ProjectTransactionsTotals | None,
 ) -> ProjectTransactions:
     if right is None and left is None:
         raise ValueError(
@@ -658,7 +659,7 @@ def merge_transactions(
 
 def next_totals(
     totals: Iterator[ProjectTransactionsTotals],
-) -> Callable[[ProjectIdentity], Optional[ProjectTransactionsTotals]]:
+) -> Callable[[ProjectIdentity], ProjectTransactionsTotals | None]:
     """
     Advances the total iterator until it reaches the required identity
 
@@ -667,11 +668,11 @@ def next_totals(
     in a for loop). If it finds the match it will return the total for the match.
 
     """
-    current: List[Optional[ProjectTransactionsTotals]] = [None]
+    current: list[ProjectTransactionsTotals | None] = [None]
     # protection for the case when the caller passes a list instead of an iterator
     totals = iter(totals)
 
-    def inner(match: ProjectIdentity) -> Optional[ProjectTransactionsTotals]:
+    def inner(match: ProjectIdentity) -> ProjectTransactionsTotals | None:
         if is_same_project(current[0], match):
             temp = current[0]
             current[0] = None

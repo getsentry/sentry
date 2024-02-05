@@ -384,6 +384,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# User Feedback Options
+register(
+    "feedback.organizations.slug-denylist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -819,11 +827,6 @@ register("store.background-grouping-config-id", default=None, flags=FLAG_AUTOMAT
 
 # Fraction of events that will pass through background grouping
 register("store.background-grouping-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# True if background grouping should run before secondary and primary grouping
-register(
-    "store.background-grouping-before", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)  # TODO: remove, no longer used
 
 # Store release files bundled as zip files
 register(
@@ -1995,4 +1998,28 @@ register(
     "groups.enable-post-update-signal",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sampling rates for testing Rust-based grouping enhancers
+
+# Rate at which to parse enhancers in Rust in addition to Python
+register(
+    "grouping.rust_enhancers.parse_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate at which to run the Rust implementation of `apply_modifications_to_frames`
+# and compare the results
+register(
+    "grouping.rust_enhancers.modify_frames_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate at which to prefer the `apply_modifications_to_frames` result of the Rust implementation.
+register(
+    "grouping.rust_enhancers.prefer_rust_result",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

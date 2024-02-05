@@ -1,10 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingTriangle from 'sentry/components/loadingTriangle';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -13,23 +11,32 @@ import {space} from 'sentry/styles/space';
 
 import {useEnsureOrganization} from './organizationContext';
 
-interface OrganizationLayoutProps {
-  children: React.ReactNode;
+interface Props {
+  children: JSX.Element;
 }
 
-const OrganizationHeader = HookOrDefault({
-  hookName: 'component:organization-header',
-});
-
 /**
- * Renders the organization page layout
+ * Ensures the current organization is loaded. A loading indicator will be
+ * rendered while loading the organization.
  */
-function OrganizationLayout({children}: OrganizationLayoutProps) {
-  const {organization, loading, error, errorType} = useLegacyStore(OrganizationStore);
+function OrganizationContainer({children}: Props) {
+  const {loading, error, errorType} = useLegacyStore(OrganizationStore);
   useEnsureOrganization();
 
   if (loading) {
     return <LoadingTriangle>{t('Loading data for your organization.')}</LoadingTriangle>;
+  }
+
+  // XXX(epurkhiser): There is a special case scenarion when we're unable to
+  // load an organization due to access issues. Right now this is VERY SPECIFIC
+  // to being able to enable 2FA
+  //
+  // In this scenario we render the children **explicitly without an
+  // organization in context**.
+  //
+  // TODO(epurkhiser): This scenario desprately should be improved
+  if (error && errorType === ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS) {
+    return children;
   }
 
   if (error) {
@@ -49,18 +56,11 @@ function OrganizationLayout({children}: OrganizationLayoutProps) {
     return <ErrorWrapper>{errorBody}</ErrorWrapper>;
   }
 
-  return (
-    <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
-      <div className="app">
-        {organization && <OrganizationHeader organization={organization} />}
-        {children}
-      </div>
-    </SentryDocumentTitle>
-  );
+  return children;
 }
 
 const ErrorWrapper = styled('div')`
   padding: ${space(3)};
 `;
 
-export default OrganizationLayout;
+export default OrganizationContainer;

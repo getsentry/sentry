@@ -4,7 +4,7 @@ import dataclasses
 import logging
 import zlib
 from datetime import datetime, timezone
-from typing import Optional, TypedDict, cast
+from typing import TypedDict, cast
 
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import Hub, set_tag
@@ -175,7 +175,7 @@ def decompress(data: bytes) -> bytes:
 
 
 def _report_size_metrics(
-    size_compressed: Optional[int] = None, size_uncompressed: Optional[int] = None
+    size_compressed: int | None = None, size_uncompressed: int | None = None
 ) -> None:
     if size_compressed:
         metrics.distribution(

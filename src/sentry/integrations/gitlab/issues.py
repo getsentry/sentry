@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, List, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.urls import reverse
 
@@ -51,7 +52,7 @@ class GitlabIssueBasic(IssueBasicMixin):
     @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User, **kwargs
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
         params = kwargs.pop("params", {})
@@ -120,7 +121,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-    def get_link_issue_config(self, group: Group, **kwargs) -> List[Dict[str, Any]]:
+    def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 

@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
-from typing import Dict, List, Literal, Mapping, Optional
+from typing import Literal
 
 import msgpack
 import sentry_sdk
@@ -58,7 +59,7 @@ CHECKIN_QUOTA_WINDOW = 60
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
-    config: Optional[Dict],
+    config: dict | None,
     quotas_outcome: PermitCheckInStatus,
 ):
     try:
@@ -131,7 +132,7 @@ def _ensure_monitor_with_config(
 
 
 def check_killswitch(
-    metric_kwargs: Dict,
+    metric_kwargs: dict,
     project: Project,
 ):
     """
@@ -149,7 +150,7 @@ def check_killswitch(
     return is_blocked
 
 
-def check_ratelimit(metric_kwargs: Dict, item: CheckinItem):
+def check_ratelimit(metric_kwargs: dict, item: CheckinItem):
     """
     Enforce check-in rate limits. Returns True if rate limit is enforced.
     """
@@ -175,7 +176,7 @@ def check_ratelimit(metric_kwargs: Dict, item: CheckinItem):
 
 def transform_checkin_uuid(
     txn: Transaction | Span,
-    metric_kwargs: Dict,
+    metric_kwargs: dict,
     monitor_slug: str,
     check_in_id: str,
 ):
@@ -220,7 +221,7 @@ def transform_checkin_uuid(
 
 def update_existing_check_in(
     txn: Transaction | Span,
-    metric_kwargs: Dict,
+    metric_kwargs: dict,
     project_id: int,
     monitor_environment: MonitorEnvironment,
     start_time: datetime,
@@ -762,7 +763,7 @@ def process_checkin(item: CheckinItem):
         logger.exception("Failed to process check-in")
 
 
-def process_checkin_group(items: List[CheckinItem]):
+def process_checkin_group(items: list[CheckinItem]):
     """
     Process a group of related check-ins (all part of the same monitor)
     completely serially.
@@ -783,7 +784,7 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
     batch = message.payload
 
     latest_partition_ts: Mapping[int, datetime] = {}
-    checkin_mapping: Mapping[str, List[CheckinItem]] = defaultdict(list)
+    checkin_mapping: Mapping[str, list[CheckinItem]] = defaultdict(list)
 
     for item in batch:
         assert isinstance(item, BrokerValue)
@@ -809,6 +810,12 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
             payload=json.loads(wrapper["payload"]),
         )
         checkin_mapping[item.processing_key].append(item)
+
+    # Number of check-ins that are being processed in this batch
+    metrics.gauge("monitors.checkin.parallel_batch_count", len(batch))
+
+    # Number of check-in groups we've collected to be processed in parallel
+    metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
 
     # Submit check-in groups for processing
     with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):

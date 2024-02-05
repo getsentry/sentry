@@ -626,7 +626,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
     def test_query_with_custom_set(self):
-        mri = "s:custom/user_click@none"
+        mri = "s:custom/User.Click.2@none"
         for user in ("marco", "marco", "john"):
             self.store_metric(
                 self.project.organization.id,

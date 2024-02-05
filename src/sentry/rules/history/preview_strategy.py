@@ -1,4 +1,5 @@
-from typing import Any, Dict, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.organization import Organization
@@ -23,7 +24,7 @@ def get_dataset_from_category(category: int, organization: Organization) -> Data
 
 
 # Maps datasets to snuba column name
-DATASET_TO_COLUMN_NAME: Dict[Dataset, str] = {
+DATASET_TO_COLUMN_NAME: dict[Dataset, str] = {
     Dataset.Events: "event_name",
     Dataset.Transactions: "transaction_name",
     Dataset.IssuePlatform: "issue_platform_name",
@@ -31,8 +32,8 @@ DATASET_TO_COLUMN_NAME: Dict[Dataset, str] = {
 
 
 # Given a list of Column Enum objects, return their actual column name in each dataset that is supported
-def get_dataset_columns(columns: Sequence[Columns]) -> Dict[Dataset, Sequence[str]]:
-    dataset_columns: Dict[Dataset, Sequence[str]] = {}
+def get_dataset_columns(columns: Sequence[Columns]) -> dict[Dataset, Sequence[str]]:
+    dataset_columns: dict[Dataset, Sequence[str]] = {}
     for dataset, column_name in DATASET_TO_COLUMN_NAME.items():
         dataset_columns[dataset] = [
             getattr(column.value, column_name)
@@ -44,16 +45,16 @@ def get_dataset_columns(columns: Sequence[Columns]) -> Dict[Dataset, Sequence[st
 
 
 def _events_from_groups_kwargs(
-    group_ids: Sequence[int], kwargs: Dict[str, Any], has_issue_state_condition: bool = True
-) -> Dict[str, Any]:
+    group_ids: Sequence[int], kwargs: dict[str, Any], has_issue_state_condition: bool = True
+) -> dict[str, Any]:
     if has_issue_state_condition:
         kwargs["conditions"] = [("group_id", "IN", group_ids)]
     return kwargs
 
 
 def _transactions_from_groups_kwargs(
-    group_ids: Sequence[int], kwargs: Dict[str, Any], has_issue_state_condition: bool = True
-) -> Dict[str, Any]:
+    group_ids: Sequence[int], kwargs: dict[str, Any], has_issue_state_condition: bool = True
+) -> dict[str, Any]:
     if has_issue_state_condition:
         kwargs["having"] = [("group_id", "IN", group_ids)]
         kwargs["conditions"] = [[["hasAny", ["group_ids", ["array", group_ids]]], "=", 1]]
@@ -73,20 +74,20 @@ If there are no issue state changes (causes no group ids), then do not filter by
 def get_update_kwargs_for_groups(
     dataset: Dataset,
     group_ids: Sequence[int],
-    kwargs: Dict[str, Any],
+    kwargs: dict[str, Any],
     has_issue_state_condition: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if dataset == Dataset.Transactions:
         return _transactions_from_groups_kwargs(group_ids, kwargs, has_issue_state_condition)
     return _events_from_groups_kwargs(group_ids, kwargs, has_issue_state_condition)
 
 
-def _events_from_group_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def _events_from_group_kwargs(group_id: int, kwargs: dict[str, Any]) -> dict[str, Any]:
     kwargs["conditions"] = [("group_id", "=", group_id)]
     return kwargs
 
 
-def _transactions_from_group_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+def _transactions_from_group_kwargs(group_id: int, kwargs: dict[str, Any]) -> dict[str, Any]:
     kwargs["conditions"] = [[["has", ["group_ids", group_id]], "=", 1]]
     return kwargs
 
@@ -97,8 +98,8 @@ Returns the rows that reference the group id without arrayjoining.
 
 
 def get_update_kwargs_for_group(
-    dataset: Dataset, group_id: int, kwargs: Dict[str, Any]
-) -> Dict[str, Any]:
+    dataset: Dataset, group_id: int, kwargs: dict[str, Any]
+) -> dict[str, Any]:
     if dataset == Dataset.Transactions:
         return _transactions_from_group_kwargs(group_id, kwargs)
     return _events_from_group_kwargs(group_id, kwargs)

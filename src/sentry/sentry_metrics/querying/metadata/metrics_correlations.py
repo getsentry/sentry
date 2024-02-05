@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Dict, List, Mapping, Optional, Sequence, Set, Tuple, cast
+from typing import cast
 
 import sentry_sdk
 from snuba_sdk import (
@@ -20,7 +21,6 @@ from snuba_sdk.conditions import ConditionGroup
 from snuba_sdk.mql.mql import parse_mql
 from snuba_sdk.timeseries import Timeseries
 
-from sentry.exceptions import InvalidParams
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -109,8 +109,9 @@ class Segment:
     project_id: int
     trace_id: str
     segment_id: str
+    segment_span_id: str
     segment_name: str
-    profile_id: Optional[str]
+    profile_id: str | None
     spans_number: int
     metric_summaries: Sequence[MetricSummary]
     spans_details: Sequence[SpanDetail]
@@ -136,12 +137,12 @@ class MetricCorrelations:
 
 
 class QueryConditions:
-    def __init__(self, conditions: List[QueryCondition]):
+    def __init__(self, conditions: list[QueryCondition]):
         self._conditions = conditions
-        self._visitors: List[QueryConditionVisitor[QueryCondition]] = []
+        self._visitors: list[QueryConditionVisitor[QueryCondition]] = []
 
     @classmethod
-    def build(cls, query: Optional[str], environments: Sequence[Environment]) -> "QueryConditions":
+    def build(cls, query: str | None, environments: Sequence[Environment]) -> "QueryConditions":
         """
         Returns a set of Snuba conditions from a query string which is assumed to contain filters in the MQL grammar.
 
@@ -164,13 +165,13 @@ class QueryConditions:
         parsed_phantom_query = EnvironmentsInjectionVisitor(environments).visit(
             parsed_phantom_query
         )
-        return QueryConditions(cast(List[QueryCondition], parsed_phantom_query.filters))
+        return QueryConditions(cast(list[QueryCondition], parsed_phantom_query.filters))
 
     def add_visitor(self, visitor: QueryConditionVisitor[QueryCondition]) -> "QueryConditions":
         self._visitors.append(visitor)
         return self
 
-    def get(self) -> List[QueryCondition]:
+    def get(self) -> list[QueryCondition]:
         conditions = self._conditions
         for visitor in self._visitors:
             conditions = visitor.visit_group(conditions)
@@ -190,11 +191,11 @@ class CorrelationsSource(ABC):
     def get_segments(
         self,
         metric_mri: str,
-        query: Optional[str],
+        query: str | None,
         start: datetime,
         end: datetime,
-        min_value: Optional[float],
-        max_value: Optional[float],
+        min_value: float | None,
+        max_value: float | None,
         environments: Sequence[Environment],
     ) -> Sequence[Segment]:
         conditions = QueryConditions.build(query, environments).add_visitor(
@@ -222,8 +223,8 @@ class CorrelationsSource(ABC):
         conditions: QueryConditions,
         start: datetime,
         end: datetime,
-        min_value: Optional[float],
-        max_value: Optional[float],
+        min_value: float | None,
+        max_value: float | None,
     ) -> Sequence[Segment]:
         raise NotImplementedError
 
@@ -235,9 +236,9 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         conditions: QueryConditions,
         start: datetime,
         end: datetime,
-        min_value: Optional[float],
-        max_value: Optional[float],
-    ) -> Mapping[str, Tuple[float, float, float, float]]:
+        min_value: float | None,
+        max_value: float | None,
+    ) -> Mapping[str, tuple[float, float, float, float]]:
         """
         Returns a mapping between a span ids and the metrics summary for that span.
 
@@ -292,10 +293,10 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
 
     def _get_segments_spans(
         self,
-        span_ids: Set[str],
+        span_ids: set[str],
         start: datetime,
         end: datetime,
-    ) -> Mapping[str, Sequence[Tuple[str, int, datetime]]]:
+    ) -> Mapping[str, Sequence[tuple[str, int, datetime]]]:
         """
         Returns a mapping of the transaction id and all the correlated spans inside that segment.
         """
@@ -328,7 +329,7 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
 
         data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
 
-        segments_spans: Dict[str, List[Tuple[str, int, datetime]]] = {}
+        segments_spans: dict[str, list[tuple[str, int, datetime]]] = {}
         for value in data:
             segments_spans.setdefault(value["transaction_id"], []).append(
                 (value["span_id"], value["duration"], value["timestamp"])
@@ -346,8 +347,8 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         conditions: QueryConditions,
         start: datetime,
         end: datetime,
-        min_value: Optional[float],
-        max_value: Optional[float],
+        min_value: float | None,
+        max_value: float | None,
     ) -> Sequence[Segment]:
         if conditions:
             conditions.add_visitor(TagsTransformationVisitor(check_sentry_tags=False))
@@ -370,13 +371,17 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         )
 
         # Third, we fetch the segments details together with aggregates
-        segments = _get_segments(
-            where=[Condition(Column("transaction_id"), Op.IN, list(segments_spans.keys()))],
-            start=start,
-            end=end,
-            organization=self.organization,
-            projects=self.projects,
-        )
+        if segments_spans:
+            segments = _get_segments(
+                where=[Condition(Column("transaction_id"), Op.IN, list(segments_spans.keys()))],
+                start=start,
+                end=end,
+                organization=self.organization,
+                projects=self.projects,
+            )
+        else:
+            # If there are no segment spans, we can safely skip fetching segment details
+            segments = []
 
         # Fourth, we merge span details with the fetched segments.
         extended_segments = []
@@ -417,10 +422,10 @@ class TransactionDurationCorrelationsSource(CorrelationsSource):
         conditions: QueryConditions,
         start: datetime,
         end: datetime,
-        min_value: Optional[float],
-        max_value: Optional[float],
+        min_value: float | None,
+        max_value: float | None,
     ) -> Sequence[Segment]:
-        where: List[QueryCondition] = []
+        where: list[QueryCondition] = []
 
         conditions.add_visitor(TagsTransformationVisitor(check_sentry_tags=True))
         conditions.add_visitor(MappingTransformationVisitor(mappings=SENTRY_TAG_TO_COLUMN_NAME))
@@ -461,10 +466,10 @@ class MeasurementsCorrelationsSource(CorrelationsSource):
         conditions: QueryConditions,
         start: datetime,
         end: datetime,
-        min_value: Optional[float],
-        max_value: Optional[float],
+        min_value: float | None,
+        max_value: float | None,
     ) -> Sequence[Segment]:
-        where: List[QueryCondition] = []
+        where: list[QueryCondition] = []
 
         conditions.add_visitor(TagsTransformationVisitor(check_sentry_tags=True))
         conditions.add_visitor(MappingTransformationVisitor(mappings=SENTRY_TAG_TO_COLUMN_NAME))
@@ -494,7 +499,7 @@ class MeasurementsCorrelationsSource(CorrelationsSource):
 
 
 def _get_segments_aggregates_query(
-    where: Optional[ConditionGroup],
+    where: ConditionGroup | None,
     start: datetime,
     end: datetime,
     projects: Sequence[Project],
@@ -512,6 +517,12 @@ def _get_segments_aggregates_query(
                 "countIf",
                 [Column("span_id"), Function("equals", [Column("is_segment"), 0])],
                 alias="spans_number",
+            ),
+            # Returns the span id of the transaction.
+            Function(
+                "anyIf",
+                [Column("span_id"), Function("equals", [Column("is_segment"), 1])],
+                alias="transaction_span_id",
             ),
             # Returns the duration of the transaction.
             Function(
@@ -546,7 +557,7 @@ def _get_segments_aggregates_query(
 
 
 def _get_segments_spans_summaries_query(
-    where: Optional[ConditionGroup],
+    where: ConditionGroup | None,
     start: datetime,
     end: datetime,
     projects: Sequence[Project],
@@ -574,7 +585,7 @@ def _get_segments_spans_summaries_query(
 
 
 def _get_segments(
-    where: Optional[ConditionGroup],
+    where: ConditionGroup | None,
     start: datetime,
     end: datetime,
     organization: Organization,
@@ -605,12 +616,12 @@ def _get_segments(
         raise Exception("Error while fetching segments for the metric")
 
     # First, we build a reverse index on the span ops.
-    segment_ops: Dict[str, List[Tuple[str, int]]] = {}
+    segment_ops: dict[str, list[tuple[str, int]]] = {}
     for row in results[1]["data"]:
         segment_ops.setdefault(row["transaction_id"], []).append((row["op"], row["duration"]))
 
     # Second, we build the segment objects to return.
-    segments: List[Segment] = []
+    segments: list[Segment] = []
     for row in results[0]["data"]:
         spans_summary = [
             SpanSummary(span_op=op, total_duration=total_duration)
@@ -621,6 +632,7 @@ def _get_segments(
             project_id=row["project_id"],
             # For now, we still use the old transaction_id.
             segment_id=row["transaction_id"],
+            segment_span_id=row["transaction_span_id"],
             trace_id=row["trace_id"],
             profile_id=row["profile_id"],
             segment_name=row["segment_name"],
@@ -651,7 +663,7 @@ CORRELATIONS_SOURCES = [
 
 def get_correlations_source(
     metric_mri: str, organization: Organization, projects: Sequence[Project]
-) -> Optional[CorrelationsSource]:
+) -> CorrelationsSource | None:
     """
     Finds the first spans source that supports the `metric_mri`.
 
@@ -666,11 +678,11 @@ def get_correlations_source(
 
 def get_metric_correlations(
     metric_mri: str,
-    query: Optional[str],
+    query: str | None,
     start: datetime,
     end: datetime,
-    min_value: Optional[float],
-    max_value: Optional[float],
+    min_value: float | None,
+    max_value: float | None,
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment],
@@ -683,7 +695,7 @@ def get_metric_correlations(
     """
     correlations_source = get_correlations_source(metric_mri, organization, projects)
     if not correlations_source:
-        raise InvalidParams(
+        raise CorrelationsQueryExecutionError(
             f"The supplied metric {metric_mri} does not support fetching correlated spans"
         )
 

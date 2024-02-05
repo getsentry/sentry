@@ -3,18 +3,8 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Generator,
-    Generic,
-    List,
-    Mapping,
-    Sequence,
-    Type,
-    TypeVar,
-    Union,
-)
+from collections.abc import Callable, Generator, Mapping, Sequence
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import pydantic
 
@@ -51,13 +41,13 @@ class SiloCacheBackedCallable(Generic[_R]):
     silo_mode: SiloMode
     base_key: str
     cb: Callable[[int], _R]
-    type: Type[_R]
+    type_: type[_R]
 
-    def __init__(self, base_key: str, silo_mode: SiloMode, cb: Callable[[int], _R], t: Type[_R]):
+    def __init__(self, base_key: str, silo_mode: SiloMode, cb: Callable[[int], _R], t: type[_R]):
         self.base_key = base_key
         self.silo_mode = silo_mode
         self.cb = cb
-        self.type = t
+        self.type_ = t
 
     def __call__(self, args: int) -> _R:
         if (
@@ -70,9 +60,7 @@ class SiloCacheBackedCallable(Generic[_R]):
     def key_from(self, args: int) -> str:
         return f"{self.base_key}:{args}"
 
-    def resolve_from(
-        self, i: int, values: Mapping[str, Union[int, str]]
-    ) -> Generator[None, None, _R]:
+    def resolve_from(self, i: int, values: Mapping[str, int | str]) -> Generator[None, None, _R]:
         from .impl import _consume_generator, _delete_cache, _set_cache
 
         key = self.key_from(i)
@@ -80,7 +68,7 @@ class SiloCacheBackedCallable(Generic[_R]):
         version: int
         if isinstance(value, str):
             try:
-                return self.type(**json.loads(value))
+                return self.type_(**json.loads(value))
             except (pydantic.ValidationError, JSONDecodeError, TypeError):
                 version = yield from _delete_cache(key, self.silo_mode)
         else:
@@ -90,7 +78,7 @@ class SiloCacheBackedCallable(Generic[_R]):
         _consume_generator(_set_cache(key, r.json(), version))
         return r
 
-    def get_many(self, ids: Sequence[int]) -> List[_R]:
+    def get_many(self, ids: Sequence[int]) -> list[_R]:
         from .impl import _consume_generator, _get_cache
 
         keys = [self.key_from(i) for i in ids]
@@ -99,7 +87,7 @@ class SiloCacheBackedCallable(Generic[_R]):
 
 
 def back_with_silo_cache(
-    base_key: str, silo_mode: SiloMode, t: Type[_R]
+    base_key: str, silo_mode: SiloMode, t: type[_R]
 ) -> Callable[[Callable[[int], _R]], "SiloCacheBackedCallable[_R]"]:
     def wrapper(cb: Callable[[int], _R]) -> "SiloCacheBackedCallable[_R]":
         return SiloCacheBackedCallable(base_key, silo_mode, cb, t)

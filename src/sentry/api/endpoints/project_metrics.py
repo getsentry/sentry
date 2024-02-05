@@ -1,5 +1,6 @@
+from collections.abc import Mapping, Sequence
 from enum import Enum
-from typing import Mapping, Optional, Sequence, cast
+from typing import Optional, cast
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,6 +23,7 @@ from sentry.sentry_metrics.visibility import (
 )
 from sentry.sentry_metrics.visibility.metrics_blocking import MetricBlocking
 from sentry.snuba.metrics.naming_layer.mri import is_mri
+from sentry.utils import metrics
 
 
 class MetricOperationType(Enum):
@@ -52,8 +54,16 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
+    def _get_sanitized_tags(self, request: Request) -> Sequence[str]:
+        tags = request.data.get("tags")
+        if not tags:
+            raise InvalidParams("You must supply at least one tag to block")
+
+        # For now, we want to disallow any glob in the tags, since it might cause issues in Relay.
+        return [tag.replace("*", "") for tag in tags]
+
     def _create_audit_log_entry(
-        self, event_id: str, metric_mri: str, tags: Optional[Sequence[str]], project: Project
+        self, event_id: str, metric_mri: str, tags: Sequence[str] | None, project: Project
     ):
         audit_data = {"metric_mri": metric_mri, "project_slug": project.slug}
         if tags is not None:
@@ -84,19 +94,19 @@ class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
             patched_metrics = unblock_metric(metric_mri, [project])
             self._create_audit_log_entry("METRIC_UNBLOCK", metric_mri, None, project)
         elif metric_operation_type == MetricOperationType.BLOCK_TAGS:
-            tags = request.data.get("tags")
-            if not tags:
-                raise InvalidParams("You must supply at least one tag to block")
-
+            tags = self._get_sanitized_tags(request)
             patched_metrics = block_tags_of_metric(metric_mri, set(tags), [project])
             self._create_audit_log_entry("METRIC_TAGS_BLOCK", metric_mri, tags, project)
         elif metric_operation_type == MetricOperationType.UNBLOCK_TAGS:
-            tags = request.data.get("tags")
-            if not tags:
-                raise InvalidParams("You must supply at least one tag to unblock")
-
+            tags = self._get_sanitized_tags(request)
             patched_metrics = unblock_tags_of_metric(metric_mri, set(tags), [project])
             self._create_audit_log_entry("METRIC_TAGS_UNBLOCK", metric_mri, tags, project)
+
+        metrics.incr(
+            key="ddm.metrics_visibility.apply_operation",
+            amount=1,
+            tags={"operation_type": metric_operation_type.value},
+        )
 
         return patched_metrics[project.id]
 

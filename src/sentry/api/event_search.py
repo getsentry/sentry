@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import re
 from collections import namedtuple
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import reduce
-from typing import Any, List, Literal, Mapping, NamedTuple, Sequence, Set, Tuple, Union
+from typing import Any, Literal, NamedTuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -354,7 +355,7 @@ class SearchKey(NamedTuple):
 
 
 class SearchValue(NamedTuple):
-    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]]
+    raw_value: str | int | datetime | Sequence[int] | Sequence[str]
 
     @property
     def value(self):
@@ -457,41 +458,41 @@ class SearchConfig:
     """
 
     # <target_name>: [<list of source names>]
-    key_mappings: Mapping[str, List[str]] = field(default_factory=dict)
+    key_mappings: Mapping[str, list[str]] = field(default_factory=dict)
 
     # Text keys we allow operators to be used on
-    text_operator_keys: Set[str] = field(default_factory=set)
+    text_operator_keys: set[str] = field(default_factory=set)
 
     # Keys which are considered valid for duration filters
-    duration_keys: Set[str] = field(default_factory=set)
+    duration_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for the percentage aggregate and may have
     # percentage search values
-    percentage_keys: Set[str] = field(default_factory=set)
+    percentage_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for numeric filter types
-    numeric_keys: Set[str] = field(default_factory=set)
+    numeric_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for date filter types
-    date_keys: Set[str] = field(default_factory=set)
+    date_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for boolean filter types
-    boolean_keys: Set[str] = field(default_factory=set)
+    boolean_keys: set[str] = field(default_factory=set)
 
     # A mapping of string values that may be provided to `is:<value>` which
     # translates to a pair of SearchKey + SearchValue's. An empty list disables
     # this feature for the search
-    is_filter_translation: Mapping[str, Tuple[str, Any]] = field(default_factory=dict)
+    is_filter_translation: Mapping[str, tuple[str, Any]] = field(default_factory=dict)
 
     # Enables boolean filtering (AND / OR)
     allow_boolean = True
 
     # Allows us to specify an allowlist of keys we will accept for this search.
     # If empty, allow all keys.
-    allowed_keys: Set[str] = field(default_factory=set)
+    allowed_keys: set[str] = field(default_factory=set)
 
     # Allows us to specify a list of keys we will not accept for this search.
-    blocked_keys: Set[str] = field(default_factory=set)
+    blocked_keys: set[str] = field(default_factory=set)
 
     # Which key we should return any free text under
     free_text_key = "message"

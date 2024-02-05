@@ -1,7 +1,8 @@
 import math
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, cast
+from typing import Any, Optional, cast
 
 import sentry_sdk
 from snuba_sdk import Column, Direction, MetricsQuery, MetricsScope, Request
@@ -46,7 +47,7 @@ def _extract_groups_from_seq(seq: Sequence[Mapping[str, Any]]) -> GroupsCollecti
 
 def _build_composite_key_from_dict(
     data: Mapping[str, Any], alignment_keys: Sequence[str]
-) -> Tuple[Tuple[str, str], ...]:
+) -> tuple[tuple[str, str], ...]:
     """
     Builds a hashable composite key given a series of keys that are looked up in the supplied data.
     """
@@ -101,9 +102,9 @@ class ExecutableQuery:
 
     identifier: str
     metrics_query: MetricsQuery
-    group_bys: Optional[Sequence[str]]
-    order_by: Optional[str]
-    limit: Optional[int]
+    group_bys: Sequence[str] | None
+    order_by: str | None
+    limit: int | None
 
     def is_empty(self) -> bool:
         return not self.metrics_query.scope.org_ids or not self.metrics_query.scope.project_ids
@@ -147,7 +148,7 @@ class ExecutableQuery:
 
     def add_group_filters(
         self,
-        groups_collection: Optional[GroupsCollection],
+        groups_collection: GroupsCollection | None,
     ) -> "ExecutableQuery":
         """
         Returns a new `ExecutableQuery` with a series of filters that ensure that the new query will have the same
@@ -190,14 +191,14 @@ class ExecutableQuery:
     def filter_blocked_projects(
         self,
         organization: Organization,
-        projects: Set[Project],
-        blocked_metrics_for_projects: Mapping[str, Set[int]],
+        projects: set[Project],
+        blocked_metrics_for_projects: Mapping[str, set[int]],
     ) -> "ExecutableQuery":
         """
         Returns a new `ExecutableQuery` with the projects for which all the queries are not blocked. In case no projects
         exist, the query will be returned with empty projects, signaling the executor to not run the query.
         """
-        intersected_projects: Set[int] = {project.id for project in projects}
+        intersected_projects: set[int] = {project.id for project in projects}
 
         for queried_metric in QueriedMetricsVisitor().visit(self.metrics_query.query):
             blocked_for_projects = blocked_metrics_for_projects.get(queried_metric)
@@ -218,8 +219,8 @@ class ExecutableQuery:
 
 @dataclass(frozen=True)
 class QueryResult:
-    series_executable_query: Optional[ExecutableQuery]
-    totals_executable_query: Optional[ExecutableQuery]
+    series_executable_query: ExecutableQuery | None
+    totals_executable_query: ExecutableQuery | None
     result: Mapping[str, Any]
 
     def __post_init__(self):
@@ -290,11 +291,11 @@ class QueryResult:
         return _extract_groups_from_seq(self.totals or self.series)
 
     @property
-    def group_bys(self) -> Optional[List[str]]:
+    def group_bys(self) -> list[str] | None:
         # We return the groups directly from the query and not the actual groups returned by the query. This is done so
         # that we can correctly render groups in case they are not returned from the db.
         return cast(
-            Optional[List[str]],
+            Optional[list[str]],
             (
                 cast(ExecutableQuery, self.series_executable_query or self.totals_executable_query)
             ).group_bys,
@@ -355,7 +356,7 @@ class QueryResult:
         if not alignment_keys:
             return self
 
-        indexed_series: Dict[Tuple[Tuple[str, str], ...], List[int]] = {}
+        indexed_series: dict[tuple[tuple[str, str], ...], list[int]] = {}
         for index, data in enumerate(self.series):
             composite_key = _build_composite_key_from_dict(data, alignment_keys)
             # Since serieses have also the time component, we store multiple indexes of multiple times for the same
@@ -385,19 +386,19 @@ class QueryExecutor:
         # to avoid an infinite recursion.
         self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS)
         # List of queries scheduled for execution.
-        self._scheduled_queries: List[ExecutableQuery] = []
+        self._scheduled_queries: list[ExecutableQuery] = []
         # Tracks the number of queries that have been executed (for measuring purposes).
         self._number_of_executed_queries = 0
 
         # We load the blocked metrics for the supplied projects.
         self._blocked_metrics_for_projects = self._load_blocked_metrics_for_projects()
 
-    def _load_blocked_metrics_for_projects(self) -> Mapping[str, Set[int]]:
+    def _load_blocked_metrics_for_projects(self) -> Mapping[str, set[int]]:
         """
         Load the blocked metrics for the supplied projects and stores them in the executor in an efficient way that
         speeds up the determining of the projects to exclude from the query.
         """
-        blocked_metrics_for_projects: Dict[str, Set[int]] = {}
+        blocked_metrics_for_projects: dict[str, set[int]] = {}
 
         for project_id, metrics_blocking_state in get_metrics_blocking_state(
             self._projects
@@ -647,9 +648,9 @@ class QueryExecutor:
         self,
         identifier: str,
         query: MetricsQuery,
-        group_bys: Optional[Sequence[str]],
-        order_by: Optional[str],
-        limit: Optional[int],
+        group_bys: Sequence[str] | None,
+        order_by: str | None,
+        limit: int | None,
     ):
         """
         Lazily schedules a query for execution.

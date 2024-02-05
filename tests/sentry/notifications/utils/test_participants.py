@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import collections
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Iterable, Mapping, Optional, Sequence, Set, Union
 
 import pytest
 from django.utils import timezone
@@ -65,7 +65,7 @@ STACKTRACE = {
 class _ParticipantsTest(TestCase):
     def assert_recipients_are(
         self,
-        actual: Mapping[ExternalProviders, Set[RpcActor]],
+        actual: Mapping[ExternalProviders, set[RpcActor]],
         *,
         email: Iterable[int] = (),
         slack: Iterable[int] = (),
@@ -86,8 +86,8 @@ class _ParticipantsTest(TestCase):
 @region_silo_test
 class GetSendToMemberTest(_ParticipantsTest):
     def get_send_to_member(
-        self, project: Optional[Project] = None, user_id: Optional[int] = None
-    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
+        self, project: Project | None = None, user_id: int | None = None
+    ) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             project=project or self.project,
             target_type=ActionTargetType.MEMBER,
@@ -163,8 +163,8 @@ class GetSendToTeamTest(_ParticipantsTest):
             NotificationSettingOption.objects.all().delete()
 
     def get_send_to_team(
-        self, project: Optional[Project] = None, team_id: Optional[int] = None
-    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
+        self, project: Project | None = None, team_id: int | None = None
+    ) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             project=project or self.project,
             target_type=ActionTargetType.TEAM,
@@ -259,7 +259,7 @@ class GetSendToTeamTest(_ParticipantsTest):
 
 @region_silo_test
 class GetSendToOwnersTest(_ParticipantsTest):
-    def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, Set[RpcActor]]:
+    def get_send_to_owners(self, event: Event) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             self.project,
             target_type=ActionTargetType.ISSUE_OWNERS,
@@ -736,7 +736,7 @@ class GetOwnersCase(_ParticipantsTest):
         )
 
     def create_ownership(
-        self, project: Project, rules: Optional[Sequence[Rule]] = None, fallthrough: bool = False
+        self, project: Project, rules: Sequence[Rule] | None = None, fallthrough: bool = False
     ) -> ProjectOwnership:
         return ProjectOwnership.objects.create(
             project_id=project.id,
@@ -745,7 +745,7 @@ class GetOwnersCase(_ParticipantsTest):
         )
 
     def assert_recipients(
-        self, expected: Iterable[Union[Team, User]], received: Iterable[RpcActor]
+        self, expected: Iterable[Team | User], received: Iterable[RpcActor]
     ) -> None:
         assert {RpcActor.from_object(recipient) for recipient in expected} == set(received)
 
@@ -898,8 +898,8 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         self,
         event: Event,
         project: Project,
-        fallthrough_choice: Optional[FallthroughChoiceType] = None,
-    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
+        fallthrough_choice: FallthroughChoiceType | None = None,
+    ) -> Mapping[ExternalProviders, set[RpcActor]]:
         return get_send_to(
             project,
             target_type=ActionTargetType.ISSUE_OWNERS,

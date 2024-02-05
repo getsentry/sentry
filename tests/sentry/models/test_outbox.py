@@ -1,8 +1,9 @@
 import dataclasses
 import functools
 import threading
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, ContextManager
+from typing import Any, ContextManager
 from unittest.mock import call, patch
 
 import pytest
@@ -56,7 +57,6 @@ def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @pytest.fixture(autouse=True, scope="function")
-@pytest.mark.django_db(transaction=True)
 def setup_clear_fixture_outbox_messages():
     with outbox_runner():
         pass

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-from typing import List, Optional, Tuple
 
 from django.core.exceptions import ValidationError
 
@@ -25,7 +24,7 @@ strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 
 # Different list types in slack that we'll use to resolve a channel name. Format is
 # (<list_name>, <result_name>, <prefix>).
-LIST_TYPES: List[Tuple[str, str, str]] = [
+LIST_TYPES: list[tuple[str, str, str]] = [
     ("conversations", "channels", CHANNEL_PREFIX),
     ("users", "members", MEMBER_PREFIX),
 ]
@@ -40,7 +39,7 @@ def get_channel_id(
     integration: Integration | RpcIntegration,
     channel_name: str,
     use_async_lookup: bool = False,
-) -> Tuple[str, Optional[str], bool]:
+) -> tuple[str, str | None, bool]:
     """
     Fetches the internal slack id of a channel.
     :param organization: unused
@@ -70,7 +69,7 @@ def get_channel_id(
     return get_channel_id_with_timeout(integration, channel_name, timeout)
 
 
-def validate_channel_id(name: str, integration_id: Optional[int], input_channel_id: str) -> None:
+def validate_channel_id(name: str, integration_id: int | None, input_channel_id: str) -> None:
     """
     In the case that the user is creating an alert via the API and providing the channel ID and name
     themselves, we want to make sure both values are correct.
@@ -102,9 +101,9 @@ def validate_channel_id(name: str, integration_id: Optional[int], input_channel_
 
 def get_channel_id_with_timeout(
     integration: Integration | RpcIntegration,
-    name: Optional[str],
+    name: str | None,
     timeout: int,
-) -> Tuple[str, Optional[str], bool]:
+) -> tuple[str, str | None, bool]:
     """
     Fetches the internal slack id of a channel using scheduled message.
     :param integration: The slack integration
@@ -125,7 +124,7 @@ def get_channel_id_with_timeout(
     time_to_quit = time.time() + timeout
 
     client = SlackClient(integration_id=integration.id)
-    id_data: Optional[Tuple[str, Optional[str], bool]] = None
+    id_data: tuple[str, str | None, bool] | None = None
     found_duplicate = False
     prefix = ""
     channel_id = None

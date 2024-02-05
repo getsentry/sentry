@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from functools import reduce
-from typing import List, Mapping, Optional
 
 from snuba_sdk import Column, Condition, Op
 
@@ -42,7 +42,7 @@ def team_key_transaction_filter(
 
 def release_filter_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """Parse releases for potential aliases like `latest`"""
     if search_filter.value.is_wildcard():
         operator = search_filter.operator
@@ -71,7 +71,7 @@ def release_filter_converter(
 
 def project_slug_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """Convert project slugs to ids and create a filter based on those.
     This is cause we only store project ids in clickhouse.
     """
@@ -88,7 +88,7 @@ def project_slug_converter(
         for slug, project_id in builder.params.project_slug_map.items()
         if slug in slugs
     }
-    missing: List[str] = [slug for slug in slugs if slug not in project_slugs]
+    missing: list[str] = [slug for slug in slugs if slug not in project_slugs]
     if missing and search_filter.operator in constants.EQUALITY_OPERATORS:
         raise InvalidSearchQuery(
             f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
@@ -112,7 +112,7 @@ def project_slug_converter(
     return None
 
 
-def span_is_segment_converter(search_filter: SearchFilter) -> Optional[WhereType]:
+def span_is_segment_converter(search_filter: SearchFilter) -> WhereType | None:
     """Convert the search filter from a string to a boolean
     and unalias the filter key.
     """
@@ -128,7 +128,7 @@ def span_is_segment_converter(search_filter: SearchFilter) -> Optional[WhereType
 
 def release_stage_filter_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """
     Parses a release stage search and returns a snuba condition to filter to the
     requested releases.
@@ -159,7 +159,7 @@ def release_stage_filter_converter(
 
 def semver_filter_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """
     Parses a semver query search and returns a snuba condition to filter to the
     requested releases.
@@ -229,7 +229,7 @@ def semver_filter_converter(
 
 def semver_package_filter_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """
     Applies a semver package filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
@@ -255,7 +255,7 @@ def semver_package_filter_converter(
 
 def semver_build_filter_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """
     Applies a semver build filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
@@ -288,7 +288,7 @@ def semver_build_filter_converter(
 
 def device_class_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     value = search_filter.value.value
     if value not in DEVICE_CLASS:
         raise InvalidSearchQuery(f"{value} is not a supported device.class")

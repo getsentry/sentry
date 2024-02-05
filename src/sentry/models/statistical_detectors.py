@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from enum import Enum
-from typing import Optional, Sequence, Tuple
 
 from django.db import models
 from django.db.models import Q
@@ -19,7 +19,7 @@ class RegressionType(Enum):
     FUNCTION = 1
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.ENDPOINT.value, "endpoint"),
             (cls.FUNCTION.value, "function"),
@@ -74,14 +74,14 @@ class RegressionGroup(Model):
     regressed = models.FloatField()
 
     class Meta:
-        index_together = (("type", "project_id", "fingerprint", "active"),)
+        indexes = (models.Index(fields=("type", "project_id", "fingerprint", "active")),)
         unique_together = (("type", "project_id", "fingerprint", "version"),)
 
     __repr__ = sane_repr("active", "version", "type", "project_id", "fingerprint")
 
 
 def get_regression_groups(
-    regression_type: RegressionType, pairs: Sequence[Tuple[int, str]], active: Optional[bool] = None
+    regression_type: RegressionType, pairs: Sequence[tuple[int, str]], active: bool | None = None
 ) -> Sequence[RegressionGroup]:
     conditions = Q()
     for project_id, fingerprint in pairs:

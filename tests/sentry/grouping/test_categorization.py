@@ -56,7 +56,10 @@ from django.utils.functional import cached_property
 
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.grouping.enhancer.actions import VarAction
+from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
 _fixture_path = os.path.join(os.path.dirname(__file__), "categorization_inputs")
@@ -77,7 +80,15 @@ class CategorizationInput:
             return _pre_scrub_event(json.load(f))
 
 
-CONFIG = load_grouping_config(get_default_grouping_config_dict("mobile:2021-02-12"))
+_CONFIG: StrategyConfiguration | None = None
+
+
+# NOTE: We need to lazily load the config here so that `options` work when doing so.
+def get_config() -> StrategyConfiguration:
+    global _CONFIG
+    if _CONFIG is None:
+        _CONFIG = load_grouping_config(get_default_grouping_config_dict("mobile:2021-02-12"))
+    return _CONFIG
 
 
 def get_stacktrace_render(data):
@@ -119,12 +130,16 @@ INPUTS = [
 
 
 @pytest.mark.parametrize("input", INPUTS, ids=lambda x: x.filename[:-5].replace("-", "_"))
+@django_db_all
+@override_options(
+    {"grouping.rust_enhancers.parse_rate": 1.0, "grouping.rust_enhancers.modify_frames_rate": 1.0}
+)
 def test_categorization(input: CategorizationInput, insta_snapshot, track_enhancers_coverage):
     # XXX: In-process re-runs using pytest-watch or whatever will behave
     # wrongly because input.data is reused between tests, we do this for perf.
     data = input.data
     with track_enhancers_coverage(input):
-        normalize_stacktraces_for_grouping(data, CONFIG)
+        normalize_stacktraces_for_grouping(data, get_config())
 
     insta_snapshot(get_stacktrace_render(data))
 
@@ -187,7 +202,7 @@ def track_enhancers_coverage():
 
     all_rules = {
         r.matcher_description
-        for r in CONFIG.enhancements.iter_rules()
+        for r in get_config().enhancements.iter_rules()
         if any(getattr(a, "var", None) == "category" for a in r.actions)
     }
     used_rules = set(used_inputs.keys())
