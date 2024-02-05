@@ -134,6 +134,88 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, sort="name", asc="0")
         self.check_valid_response(response, monitors)
 
+    def test_sort_muted(self):
+        monitors = [
+            self._create_monitor(name="Z monitor", is_muted=True),
+            self._create_monitor(name="Y monitor", is_muted=True),
+            self._create_monitor(name="Some Monitor"),
+            self._create_monitor(name="A monitor"),
+            self._create_monitor(name="ZA monitor"),
+        ]
+        monitors.sort(key=lambda m: (not m.is_muted, m.name))
+
+        response = self.get_success_response(self.organization.slug, sort="muted")
+        self.check_valid_response(response, monitors)
+
+        monitors.reverse()
+        response = self.get_success_response(self.organization.slug, sort="muted", asc="0")
+        self.check_valid_response(response, monitors)
+
+    def test_sort_muted_envs(self):
+        muted_monitor_1 = self._create_monitor(name="Z monitor", is_muted=True)
+        self._create_monitor_environment(muted_monitor_1, name="prod")
+        muted_monitor_2 = self._create_monitor(name="Y monitor", is_muted=True)
+        self._create_monitor_environment(muted_monitor_2, name="prod")
+        non_muted_monitor_1 = self._create_monitor(name="Some Monitor")
+        self._create_monitor_environment(non_muted_monitor_1, name="prod")
+        non_muted_monitor_2 = self._create_monitor(name="A monitor")
+        self._create_monitor_environment(non_muted_monitor_2, name="prod")
+        muted_env_monitor = self._create_monitor(name="Some Muted Env Monitor")
+        self._create_monitor_environment(
+            muted_env_monitor,
+            name="prod",
+            is_muted=True,
+        )
+        not_muted_env_monitor = self._create_monitor(name="ZA monitor")
+        self._create_monitor_environment(
+            not_muted_env_monitor,
+            name="prod",
+            is_muted=False,
+        )
+        muted_other_env_monitor = self._create_monitor(name="Some muted other Env Monitor")
+        self._create_monitor_environment(muted_other_env_monitor, name="prod")
+        self._create_monitor_environment(
+            muted_other_env_monitor,
+            name="dev",
+            is_muted=True,
+        )
+
+        response = self.get_success_response(self.organization.slug, sort="muted")
+        expected = [
+            muted_monitor_2,
+            muted_monitor_1,
+            muted_env_monitor,
+            muted_other_env_monitor,
+            non_muted_monitor_2,
+            non_muted_monitor_1,
+            not_muted_env_monitor,
+        ]
+        self.check_valid_response(response, expected)
+
+        expected.reverse()
+        response = self.get_success_response(self.organization.slug, sort="muted", asc="0")
+        self.check_valid_response(response, expected)
+
+        response = self.get_success_response(
+            self.organization.slug, sort="muted", environment=["prod"]
+        )
+        expected = [
+            muted_monitor_2,
+            muted_monitor_1,
+            muted_env_monitor,
+            non_muted_monitor_2,
+            non_muted_monitor_1,
+            muted_other_env_monitor,
+            not_muted_env_monitor,
+        ]
+        self.check_valid_response(response, expected)
+
+        expected.reverse()
+        response = self.get_success_response(
+            self.organization.slug, sort="muted", environment=["prod"], asc="0"
+        )
+        self.check_valid_response(response, expected)
+
     def test_all_monitor_environments(self):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(
