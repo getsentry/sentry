@@ -1,5 +1,6 @@
 [
   "hybridcloud_regioncacheversion",
+  "hybridcloud_webhookpayload",
   "nodestore_node",
   "sentry_broadcast",
   "sentry_controlfile",
