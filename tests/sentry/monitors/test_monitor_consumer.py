@@ -13,7 +13,10 @@ from sentry import killswitches
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import TIMEOUT, PermitCheckInStatus
-from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
+from sentry.monitors.consumers.monitor_consumer import (
+    StoreMonitorCheckInStrategyFactory,
+    StrategyMode,
+)
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -23,7 +26,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
-from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.cases import BaseTestCase, TestCase, TransactionTestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.outcomes import Outcome
@@ -32,8 +35,8 @@ from sentry.utils.services import build_instance_from_options
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
 
-class MonitorConsumerTest:
-    mode = "serial"
+class MonitorConsumerTest(BaseTestCase):
+    mode: StrategyMode = "serial"
 
     def _create_monitor(self, **kwargs):
         return Monitor.objects.create(
@@ -99,7 +102,7 @@ class MonitorConsumerTest:
 
 
 class ParallelMonitorConsumerTest(TransactionTestCase, MonitorConsumerTest):
-    mode = "parallel"
+    mode: StrategyMode = "parallel"
 
     def test(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")

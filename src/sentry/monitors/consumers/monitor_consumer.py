@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 
 CHECKIN_QUOTA_LIMIT = 6
 CHECKIN_QUOTA_WINDOW = 60
+StrategyMode = Literal["parallel", "serial"]
 
 
 def _ensure_monitor_with_config(
@@ -880,7 +881,7 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
 
     def __init__(
         self,
-        mode: Literal["parallel", "serial"] | None = None,
+        mode: StrategyMode | None = None,
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
         max_workers: int | None = None,
