@@ -3954,6 +3954,7 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-user-reports",
     "sentry-api-0-group-attachments",
     "sentry-api-0-group-similar",
+    "sentry-api-0-group-similar-issues-embeddings",
     "sentry-api-0-group-external-issues",
     "sentry-api-0-group-external-issues-details",
     "sentry-api-0-group-integrations",
