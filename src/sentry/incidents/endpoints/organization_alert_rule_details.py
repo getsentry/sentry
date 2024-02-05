@@ -22,6 +22,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
+from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.logic import (
     AlreadyDeletedError,
@@ -31,6 +32,8 @@ from sentry.incidents.logic import (
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.project import Project
@@ -52,7 +55,32 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
     for trigger in serialized_rule.get("triggers", []):
         for action in trigger.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
+                # TODO(hybridcloud) This is nasty and should be fixed.
+                # Because all of the prepare_* functions currently operate on ORM
+                # records we need to convert our RpcSentryApp and dict data into detached
+                # ORM models and stitch together relations used in preparing UI components.
                 installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
+                rpc_app = action.get("_sentry_app")
+                installation.sentry_app = SentryApp(
+                    id=rpc_app.id,
+                    scope_list=rpc_app.scope_list,
+                    application_id=rpc_app.application_id,
+                    application=ApiApplication(
+                        id=rpc_app.application.id,
+                        client_id=rpc_app.application.client_id,
+                        client_secret=rpc_app.application.client_secret,
+                    ),
+                    proxy_user_id=rpc_app.proxy_user_id,
+                    owner_id=rpc_app.owner_id,
+                    name=rpc_app.name,
+                    slug=rpc_app.slug,
+                    uuid=rpc_app.uuid,
+                    events=rpc_app.events,
+                    webhook_url=rpc_app.webhook_url,
+                    status=SentryAppStatus.as_int(rpc_app.status),
+                    metadata=rpc_app.metadata,
+                )
+
                 component = installation.prepare_ui_component(
                     SentryAppComponent(**action.get("_sentry_app_component")),
                     None,
@@ -70,6 +98,7 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
                 # Delete meta fields
                 del action["_sentry_app_installation"]
                 del action["_sentry_app_component"]
+                del action["_sentry_app"]
 
     if len(errors):
         serialized_rule["errors"] = errors
