@@ -29,8 +29,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 function flattenMetricsSummary(
   metricsSummary: MetricsSummary
 ): {item: MetricsSummaryItem; key: string; mri: MRI}[] {
-  return Object.entries(metricsSummary).flatMap(([mri, items]) =>
-    items.map((item, index) => ({item, mri, key: `${mri}${index}`}))
+  return (
+    Object.entries(metricsSummary) as [
+      keyof MetricsSummary,
+      MetricsSummary[keyof MetricsSummary],
+    ][]
+  ).flatMap(([mri, items]) =>
+    (items || []).map((item, index) => ({item, mri, key: `${mri}${index}`}))
   );
 }
 
