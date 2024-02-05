@@ -28,6 +28,7 @@ import type {
   EChartDataZoomHandler,
   EChartEventHandler,
   ReactEchartsRef,
+  Series,
 } from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
@@ -391,8 +392,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     const durationUnit = isDurationChart
       ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
       : undefined;
-    const bucketSize =
-      timeseriesResults?.[0]?.data[1]?.name - timeseriesResults?.[0]?.data[0]?.name;
+    const bucketSize = getBucketSize(timeseriesResults);
+
     const valueFormatter = (value: number, seriesName?: string) => {
       if (widget.widgetType === WidgetType.METRICS) {
         return formatMetricAxisValue(axisField, value);
@@ -545,6 +546,14 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     );
   }
 }
+
+const getBucketSize = (series: Series[] | undefined) => {
+  if (!series || series.length < 2) {
+    return 0;
+  }
+
+  return Number(series[0].data[1].name) - Number(series[0].data[0].name);
+};
 
 export default withTheme(WidgetCardChart);
 
