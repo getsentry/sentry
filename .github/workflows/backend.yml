@@ -139,7 +139,8 @@ jobs:
 
       - name: run tests
         run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations" make test-python-ci
+          # historic migrations trigger some warnings
+          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations -W ignore" make test-python-ci
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
