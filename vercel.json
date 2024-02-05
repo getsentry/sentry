@@ -21,6 +21,13 @@
         { "key": "Referer", "value": "https://sentry.io/" },
         { "key": "Origin", "value": "https://sentry.io" }
       ]
+    },
+    {
+      "source": "/region/(\\w+)/(.*)",
+      "headers": [
+        { "key": "Referer", "value": "https://sentry.io/" },
+        { "key": "Origin", "value": "https://sentry.io" }
+      ]
     }
   ],
   "github": { "silent": true }
