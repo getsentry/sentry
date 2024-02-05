@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import type {incrementalSnapshotEvent} from '@sentry-internal/rrweb';
 import {IncrementalSource} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
-import {duration} from 'moment';
+import {type Duration, duration} from 'moment';
 
 import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
@@ -200,6 +200,8 @@ export default class ReplayReader {
     this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
+    this._duration = replayRecord.duration;
+
     if (clipWindow) {
       this._applyClipWindow(clipWindow);
     }
@@ -208,38 +210,41 @@ export default class ReplayReader {
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
 
   private _cacheKey: string;
+  private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
   private _sortedRRWebEvents: RecordingFrame[] = [];
   private _sortedSpanFrames: SpanFrame[] = [];
-
   private _startOffsetMs = 0;
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
-    const startedAtMs = clamp(
+    const clipStartTimestampMs = clamp(
       clipWindow.startTimestampMs,
       this._replayRecord.started_at.getTime(),
       this._replayRecord.finished_at.getTime()
     );
-    const finishedAtMs = clamp(
+    const clipEndTimestampMs = clamp(
       clipWindow.endTimestampMs,
-      startedAtMs,
+      clipStartTimestampMs,
       this._replayRecord.finished_at.getTime()
     );
-    this._startOffsetMs = startedAtMs - this._replayRecord.started_at.getTime();
 
     // For RRWeb frames we only trim from the end because playback will
     // not work otherwise. The start offset is used to begin playback at
     // the correct time.
     this._sortedRRWebEvents = this._sortedRRWebEvents.filter(
-      frame => frame.timestamp <= finishedAtMs
+      frame => frame.timestamp <= clipEndTimestampMs
     );
-    this._replayRecord.finished_at = new Date(finishedAtMs);
-    this._replayRecord.duration = duration(
-      finishedAtMs - this._replayRecord.started_at.getTime()
-    );
+
+    // We only want playback to occur while events are still being recorded.
+    // Without doing this, the replay will appear to stop prematurely.
+    const lastRecordingFrameTimestampMs =
+      this._sortedRRWebEvents.at(-1)?.timestamp ?? clipEndTimestampMs;
+
+    this._startOffsetMs = clipStartTimestampMs - this._replayRecord.started_at.getTime();
+    this._duration = duration(lastRecordingFrameTimestampMs - clipStartTimestampMs);
 
     // We also only trim from the back for breadcrumbs/spans to keep
     // historical information about the replay, such as the current URL.
@@ -247,19 +252,23 @@ export default class ReplayReader {
       this._trimFramesToClipWindow(
         this._sortedBreadcrumbFrames,
         this._replayRecord.started_at.getTime(),
-        finishedAtMs
+        lastRecordingFrameTimestampMs
       )
     );
     this._sortedSpanFrames = this._updateFrameOffsets(
       this._trimFramesToClipWindow(
         this._sortedSpanFrames,
         this._replayRecord.started_at.getTime(),
-        finishedAtMs
+        lastRecordingFrameTimestampMs
       )
     );
 
     this._errors = this._updateFrameOffsets(
-      this._trimFramesToClipWindow(this._errors, startedAtMs, finishedAtMs)
+      this._trimFramesToClipWindow(
+        this._errors,
+        clipStartTimestampMs,
+        lastRecordingFrameTimestampMs
+      )
     );
   };
 
@@ -307,7 +316,7 @@ export default class ReplayReader {
    * @returns Duration of Replay (milliseonds)
    */
   getDurationMs = () => {
-    return this._replayRecord.duration.asMilliseconds() - this.getStartOffsetMs();
+    return this._duration.asMilliseconds();
   };
 
   getStartOffsetMs = () => this._startOffsetMs;
