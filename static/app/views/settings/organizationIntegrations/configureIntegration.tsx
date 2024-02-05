@@ -17,7 +17,6 @@ import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
@@ -32,6 +31,7 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -110,7 +110,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   });
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
-  const projects = ProjectsStore.getState().projects;
+  const {projects} = useProjects();
 
   useRouteAnalyticsEventNames(
     'integrations.details_viewed',
