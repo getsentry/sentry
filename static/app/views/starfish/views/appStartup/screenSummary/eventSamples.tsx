@@ -12,6 +12,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {EventSamplesTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -41,6 +42,7 @@ export function EventSamples({
   const {selection} = usePageFilters();
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
+  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
 
   const searchQuery = new MutableSearch([
     `transaction:${transaction}`,
@@ -51,6 +53,7 @@ export function EventSamples({
     'OR',
     'span.description:"Warm Start"',
     ')',
+    `${SpanMetricsField.APP_START_TYPE}:${startType || '[cold,warm]'}`,
   ]);
 
   const deviceClass = decodeScalar(location.query['device.class']);
