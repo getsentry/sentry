@@ -482,7 +482,11 @@ def test_spec_wildcard_escaping(query, expected_pattern) -> None:
     assert spec._metric_type == "c"
     assert spec.field_to_extract is None
     assert spec.op == "sum"
-    assert spec.condition["value"] == [expected_pattern]
+    assert spec.condition == {
+        "name": "event.transaction",
+        "op": "glob",
+        "value": [expected_pattern],
+    }
 
 
 def test_spec_count_if() -> None:
