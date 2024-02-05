@@ -22,6 +22,7 @@ class QuotaScope(IntEnum):
     ORGANIZATION = 1
     PROJECT = 2
     KEY = 3
+    GLOBAL = 4
 
     def api_name(self):
         return self.name.lower()
@@ -36,7 +37,7 @@ class AbuseQuota:
     # Quota categories.
     categories: List[DataCategory]
     # Quota Scope.
-    scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
+    scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT, QuotaScope.GLOBAL]
     # Old org option name still used for compatibility reasons,
     # takes precedence over `option` and `compat_option_sentry`.
     compat_option_org: Optional[str] = None
@@ -403,6 +404,12 @@ class Quota(Service):
                 option="organization-abuse-quota.metric-bucket-limit",
                 categories=[DataCategory.METRIC_BUCKET],
                 scope=QuotaScope.ORGANIZATION,
+            ),
+            AbuseQuota(
+                id="gam",
+                option="global-abuse-quota.metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
             ),
         ]
 
