@@ -13,8 +13,8 @@ from sentry.utils import metrics
 
 logger = logging.getLogger()
 
-RAGE_CLICK_TITLE = "Suspected Rage Click"
-RAGE_CLICK_LEVEL = "warning"
+RAGE_CLICK_TITLE = "Rage Click"
+RAGE_CLICK_LEVEL = "error"
 
 
 @instrumented_task(
