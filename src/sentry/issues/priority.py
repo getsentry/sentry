@@ -27,6 +27,12 @@ PRIORITY_LEVEL_TO_STR: dict[int, str] = {
     PriorityLevel.HIGH: "high",
 }
 
+PRIORITY_UPDATE_CHOICES: dict[str, int] = {
+    "low": PriorityLevel.LOW,
+    "medium": PriorityLevel.MEDIUM,
+    "high": PriorityLevel.HIGH,
+}
+
 
 class PriorityChangeReason(Enum):
     ESCALATING = "escalating"
@@ -51,9 +57,6 @@ def update_priority(
     """
     Update the priority of a group and record the change in the activity and group history.
     """
-    if group.priority_locked_at is not None:
-        return
-
     group.update(priority=priority)
     Activity.objects.create_group_activity(
         group=group,
@@ -119,7 +122,10 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
     """
     Update the priority of a group due to state changes.
     """
-    if not features.has("projects:issue-priority", group.project, actor=None):
+    if (
+        not features.has("projects:issue-priority", group.project, actor=None)
+        or group.priority_locked_at is not None
+    ):
         return None
 
     new_priority = None
