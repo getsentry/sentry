@@ -88,6 +88,25 @@ describe('TraceTree', () => {
     expect(tree.list[2].value).toBe(secondChild);
   });
 
+  it('creates children -> parent references', () => {
+    const tree = TraceTree.FromTrace([
+      makeTransaction({
+        start_timestamp: 0,
+        timestamp: 2,
+        children: [makeTransaction({start_timestamp: 1, timestamp: 2})],
+      }),
+      makeTransaction({
+        start_timestamp: 2,
+        timestamp: 4,
+      }),
+    ]);
+
+    expect(tree.list).toHaveLength(2);
+
+    tree.expand(tree.list[0], true);
+    expect(tree.list[1].parent?.value).toBe(tree.list[0].value);
+  });
+
   it('establishes parent-child relationships', () => {
     const tree = TraceTree.FromTrace([
       makeTransaction({

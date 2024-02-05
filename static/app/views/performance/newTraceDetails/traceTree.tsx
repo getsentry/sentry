@@ -49,7 +49,7 @@ function createSpanTree(
   spans: RawSpanType[]
 ): TraceTreeNode<RawSpanType | TraceFullDetailed> {
   const parentIsSpan = !isTransactionNode(parent);
-  const root = new TraceTreeNode(parent.value, 0, parent.metadata);
+  const root = new TraceTreeNode(parent, parent.value, 0, parent.metadata);
   root.zoomedIn = true;
   const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<RawSpanType>> = {};
 
@@ -62,13 +62,15 @@ function createSpanTree(
   }
 
   for (const span of spans) {
-    const node = new TraceTreeNode(span, parent.depth, {
+    const node = new TraceTreeNode(null, span, parent.depth, {
       event_id: undefined,
       project_slug: undefined,
     });
+
     const parentLinkMetadata = childrenLinks.get(span.span_id);
     node.expanded = true;
     node.canFetchData = !!parentLinkMetadata;
+
     if (parentLinkMetadata) {
       node.metadata = parentLinkMetadata;
     }
@@ -76,17 +78,22 @@ function createSpanTree(
     lookuptable[span.span_id] = node;
 
     if (parentIsSpan) {
+      node.parent = root as TraceTreeNode<RawSpanType>;
       root.children.push(node);
       continue;
     }
 
     if (span.parent_span_id) {
       if (span.parent_span_id === root.value.span_id) {
+        node.parent = root as TraceTreeNode<RawSpanType>;
         root.children.push(node);
+        continue;
       }
       const parentNode = lookuptable[span.parent_span_id];
       if (parentNode) {
+        node.parent = parentNode;
         parentNode.children.push(node);
+        continue;
       }
     }
   }
@@ -114,13 +121,13 @@ export class TraceTree {
       value: TraceFullDetailed,
       depth: number
     ) {
-      const node = new TraceTreeNode(value, depth, {
+      const node = new TraceTreeNode(parent, value, depth, {
         project_slug: value.project_slug,
         event_id: value.event_id,
       });
 
       if (parent) {
-        parent.children.push(node);
+        parent.children.push(node as TraceTreeNode<TraceFullDetailed | RawSpanType>);
       }
 
       for (const child of value.children) {
@@ -276,6 +283,7 @@ export class TraceTree {
 }
 
 export class TraceTreeNode<TreeNodeValue> {
+  parent: TraceTreeNode<TreeNodeValue> | null = null;
   value: TreeNodeValue;
   depth: number = 0;
   expanded: boolean = false;
@@ -289,7 +297,13 @@ export class TraceTreeNode<TreeNodeValue> {
   private _children: TraceTreeNode<TraceFullDetailed>[] = [];
   private _spanChildren: TraceTreeNode<RawSpanType>[] = [];
 
-  constructor(node: TreeNodeValue, depth: number, metadata: TraceTreeNodeMetadata) {
+  constructor(
+    parent: TraceTreeNode<TreeNodeValue> | null,
+    node: TreeNodeValue,
+    depth: number,
+    metadata: TraceTreeNodeMetadata
+  ) {
+    this.parent = parent ?? null;
     this.value = node;
     this.depth = depth;
     this.metadata = metadata;
@@ -301,6 +315,10 @@ export class TraceTreeNode<TreeNodeValue> {
 
   get spanChildren(): TraceTreeNode<RawSpanType>[] {
     return this._spanChildren;
+  }
+
+  get isOrphaned() {
+    return this.parent?.value === null;
   }
 
   setSpanChildren(children: TraceTreeNode<RawSpanType>[]) {
@@ -354,7 +372,7 @@ export class TraceTreeNode<TreeNodeValue> {
   }
 
   static Root() {
-    return new TraceTreeNode(null, 0, {
+    return new TraceTreeNode(null, null, 0, {
       event_id: undefined,
       project_slug: undefined,
     });
