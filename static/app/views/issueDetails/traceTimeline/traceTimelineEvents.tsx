@@ -70,6 +70,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
                 columnSize={columnSize}
                 timeRange={timeRange}
                 currentEventId={event.id}
+                currentColumn={column}
               />
             </EventColumn>
           );
@@ -114,6 +115,7 @@ const TimelineColumns = styled('ul')<{totalColumns: number}>`
   display: grid;
   grid-template-columns: repeat(${p => p.totalColumns}, 1fr);
   margin-top: -1px;
+  height: 0;
 `;
 
 const TimestampColumns = styled('div')`
@@ -137,9 +139,11 @@ function NodeGroup({
   colEvents,
   columnSize,
   currentEventId,
+  currentColumn,
 }: {
   colEvents: TimelineEvent[];
   columnSize: number;
+  currentColumn: number;
   currentEventId: string;
   event: Event;
   timeRange: [number, number];
@@ -153,43 +157,54 @@ function NodeGroup({
     timeRange[0]
   );
 
+  const columns = Array.from(eventsByColumn.keys());
+  const minColumn = Math.min(...columns);
+  const maxColumn = Math.max(...columns);
+
   return (
-    <Tooltip
-      title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
-      overlayStyle={{
-        padding: `0 !important`,
-      }}
-      offset={10}
-      position="bottom"
-      isHoverable
-      skipWrapper
-    >
+    <Fragment>
       <TimelineColumns totalColumns={totalSubColumns}>
         {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => {
           const isCurrentNode = groupEvents.some(e => e.id === currentEventId);
-          const isPerformanceNode = groupEvents.every(e => !('event.type' in e));
           return (
             <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
-              {groupEvents.map(groupEvent =>
-                isCurrentNode ? (
-                  <CurrentNodeContainer
-                    key={groupEvent.id}
-                    aria-label={t('Current Event')}
-                  >
-                    <CurrentNodeRing />
-                    <CurrentIconNode />
-                  </CurrentNodeContainer>
-                ) : isPerformanceNode ? (
-                  <PerformanceIconNode key={groupEvent.id} />
-                ) : (
-                  <IconNode key={groupEvent.id} />
-                )
-              )}
+              {groupEvents.map(groupEvent => (
+                <Fragment key={groupEvent.id}>
+                  {isCurrentNode ? (
+                    <CurrentNodeContainer aria-label={t('Current Event')}>
+                      <CurrentNodeRing />
+                      <CurrentIconNode />
+                    </CurrentNodeContainer>
+                  ) : !('event.type' in groupEvent) ? (
+                    <PerformanceIconNode />
+                  ) : (
+                    <IconNode />
+                  )}
+                </Fragment>
+              ))}
             </EventColumn>
           );
         })}
       </TimelineColumns>
-    </Tooltip>
+      <TimelineColumns totalColumns={totalSubColumns}>
+        <Tooltip
+          title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
+          overlayStyle={{
+            padding: `0 !important`,
+          }}
+          position="bottom"
+          isHoverable
+          skipWrapper
+        >
+          <TooltipHelper
+            style={{
+              gridColumn: columns.length > 1 ? `${minColumn} / ${maxColumn}` : columns[0],
+            }}
+            data-test-id={`trace-timeline-tooltip-${currentColumn}`}
+          />
+        </Tooltip>
+      </TimelineColumns>
+    </Fragment>
   );
 }
 
@@ -259,4 +274,12 @@ const CurrentIconNode = styled(IconNode)`
   background-color: ${p => p.theme.red300};
   border-radius: 50%;
   position: absolute;
+`;
+
+const TooltipHelper = styled('span')`
+  height: 8px;
+  margin-top: -4px;
+  margin-right: -2px;
+  min-width: 8px;
+  z-index: 1;
 `;
