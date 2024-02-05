@@ -56,22 +56,23 @@ describe('TraceTree', () => {
   });
 
   it('preserves input order', () => {
+    const firstChild = makeTransaction({
+      start_timestamp: 0,
+      timestamp: 1,
+      children: [],
+    });
+
+    const secondChild = makeTransaction({
+      start_timestamp: 1,
+      timestamp: 2,
+      children: [],
+    });
+
     const tree = TraceTree.FromTrace([
       makeTransaction({
         start_timestamp: 0,
         timestamp: 2,
-        children: [
-          makeTransaction({
-            start_timestamp: 0,
-            timestamp: 1,
-            children: [],
-          }),
-          makeTransaction({
-            start_timestamp: 1,
-            timestamp: 2,
-            children: [],
-          }),
-        ],
+        children: [firstChild, secondChild],
       }),
       makeTransaction({
         start_timestamp: 2,
@@ -80,6 +81,11 @@ describe('TraceTree', () => {
     ]);
 
     expect(tree.list).toHaveLength(2);
+
+    tree.expand(tree.list[0], true);
+    expect(tree.list).toHaveLength(4);
+    expect(tree.list[1].value).toBe(firstChild);
+    expect(tree.list[2].value).toBe(secondChild);
   });
 
   it('establishes parent-child relationships', () => {
@@ -252,13 +258,13 @@ describe('TraceTree', () => {
           event_id: 'event_id',
           start_timestamp: 0,
           children: [
-            makeTransaction({start_timestamp: 2, timestamp: 3}),
             makeTransaction({
               start_timestamp: 1,
               timestamp: 2,
               project_slug: 'other_project',
               event_id: 'event_id',
             }),
+            makeTransaction({start_timestamp: 2, timestamp: 3}),
           ],
         }),
       ]);
