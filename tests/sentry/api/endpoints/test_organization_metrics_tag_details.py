@@ -209,7 +209,7 @@ class OrganizationMetricsTagDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "counter",  # type:ignore
+                "counter",
                 mri,
                 {"transaction": transaction},
                 int((self.now - timedelta(days=days)).timestamp()),
