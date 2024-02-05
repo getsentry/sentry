@@ -45,7 +45,7 @@ old_get_tags = get_tags
 
 
 def fake_get_tags(group, event_for_tags, tags):
-    return old_get_tags(group, event_for_tags, [])
+    return old_get_tags(group, event_for_tags, None)
 
 
 @region_silo_test
