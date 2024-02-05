@@ -130,9 +130,7 @@ class ExternalTeamSerializer(ExternalActorSerializerBase):
 
     def validate_team_id(self, team_id: int) -> Team:
         """Ensure that this team exists and that they belong to the organization."""
-        try:
-            return Team.objects.get(id=team_id, organization=self.organization)
-        except Team.DoesNotExist:
+        return Team.objects.filter(id=team_id, organization=self.organization).first()
             raise serializers.ValidationError("This team does not exist.")
 
     class Meta:
