@@ -135,6 +135,11 @@ register(
     default=DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS,
 )
 
+register(
+    key="sentry:replay_rage_click_issues",
+    default=True,
+)
+
 
 # Replacement rules for transaction names discovered by the transaction clusterer.
 # Contains a mapping from rule to last seen timestamp,

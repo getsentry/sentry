@@ -807,6 +807,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     "feedback:branding", "1" if options["feedback:branding"] else "0"
                 )
+            if "sentry:replay_rage_click_issues" in options:
+                project.update_option(
+                    "sentry:replay_rage_click_issues",
+                    bool(options["sentry:replay_rage_click_issues"]),
+                )
             if "sentry:reprocessing_active" in options:
                 project.update_option(
                     "sentry:reprocessing_active",
