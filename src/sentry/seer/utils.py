@@ -1,7 +1,7 @@
 from typing import TypedDict
 
 from django.conf import settings
-from urllib3 import Retry
+from urllib3 import HTTPResponse, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import json

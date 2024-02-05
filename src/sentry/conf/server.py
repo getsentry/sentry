@@ -1797,6 +1797,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-using-transactions": False,
     # Enable profiling view
     "organizations:profiling-view": False,
+    # Enable asking for feedback after project-create when replay is disabled
+    "organizations:project-create-replay-feedback": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable project selection on the stats page
@@ -1847,8 +1849,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-issue-emails": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
-    # Enable View Sample Replay button on the Replay-List empty-state page
-    "organizations:session-replay-onboarding-cta-button": False,
     # Enable Rage Click Issue Creation In Recording Consumer
     "organizations:session-replay-rage-click-issue-creation": False,
     # Enable data scrubbing of replay recording payloads in Relay.
@@ -1922,6 +1922,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:team-workflow-notifications": False,
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
+    # Enable feature to load new trace view.
+    "organizations:trace-view-v1": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
