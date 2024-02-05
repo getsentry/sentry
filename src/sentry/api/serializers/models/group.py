@@ -470,6 +470,8 @@ class GroupSerializerBase(Serializer, ABC):
         if self._collapse("stats"):
             return None
 
+        seen_stats = {group: {} for group in item_list if seen_stats.get(group) is None}
+
         if not item_list:
             return None
 
