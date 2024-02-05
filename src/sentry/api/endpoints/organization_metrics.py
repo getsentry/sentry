@@ -50,21 +50,6 @@ def get_use_case_id(request: Request) -> UseCaseID:
 
 
 @region_silo_endpoint
-class OrganizationMetricsEndpoint(OrganizationEndpoint):
-    publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
-
-    def get(self, request: Request, organization) -> Response:
-        projects = self.get_projects(request, organization)
-        if not projects:
-            raise InvalidParams("You must supply at least one projects to see its metrics")
-
-        metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
-
-        return Response(metrics, status=200)
-
-
-@region_silo_endpoint
 class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -74,8 +59,9 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
     """Get the metadata of all the stored metrics including metric name, available operations and metric unit"""
 
     def get(self, request: Request, organization) -> Response:
-        # TODO: fade out endpoint since the new metrics endpoint will be used.
         projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams("You must supply at least one projects to see its metrics")
 
         metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
 
