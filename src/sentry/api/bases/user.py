@@ -38,7 +38,7 @@ class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
     """
 
 
-class OrganizationUserPermission(UserPermission):
+class OrganizationUserPermission(UserAndStaffPermission):
     scope_map = {"DELETE": ["member:admin"]}
 
     def has_org_permission(self, request: Request, user):
