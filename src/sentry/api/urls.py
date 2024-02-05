@@ -4,6 +4,9 @@ from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
+from sentry.api.endpoints.group_similar_issues_embeddings import (
+    GroupSimilarIssuesEmbeddingsEndpoint,
+)
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
@@ -702,6 +705,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/similar/$",
             GroupSimilarIssuesEndpoint.as_view(),
             name=f"{name_prefix}-group-similar",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/similar-issues-embeddings/$",
+            GroupSimilarIssuesEmbeddingsEndpoint.as_view(),
+            name=f"{name_prefix}-group-similar-issues-embeddings",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/external-issues/$",
