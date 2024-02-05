@@ -16,6 +16,7 @@ from sentry.snuba.metrics.extraction import (
     to_standard_metrics_query,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.glob import glob_match
 
 
 @django_db_all
@@ -467,16 +468,16 @@ def test_spec_wildcard() -> None:
 
 
 @pytest.mark.parametrize(
-    "query,expected_pattern",
+    "query,title,expected_pattern",
     [
-        ("title:*[dispatch:*", "*\\[dispatch:*"),
-        ("title:*{dispatch:*", "*\\{dispatch:*"),
-        ("title:*dispatch]:*", "*dispatch\\]:*"),
-        ("title:*dispatch}:*", "*dispatch\\}:*"),
-        ("title:*?dispatch:*", "*\\?dispatch:*"),
+        ("title:*[dispatch:*", "backend test [dispatch:something]", "*\\[dispatch:*"),
+        ("title:*{dispatch:*", "test {dispatch:something]", "*\\{dispatch:*"),
+        ("title:*dispatch]:*", "backend dispatch]:", "*dispatch\\]:*"),
+        ("title:*dispatch}:*", "test [dispatch}:", "*dispatch\\}:*"),
+        ("title:*?dispatch*", "backend ?dispatch", "*\\?dispatch*"),
     ],
 )
-def test_spec_wildcard_escaping(query, expected_pattern) -> None:
+def test_spec_wildcard_escaping(query, title, expected_pattern) -> None:
     spec = OnDemandMetricSpec("count()", query)
 
     assert spec._metric_type == "c"
@@ -487,6 +488,10 @@ def test_spec_wildcard_escaping(query, expected_pattern) -> None:
         "op": "glob",
         "value": [expected_pattern],
     }
+
+    # We also validate using Relay's glob implementation to make sure the escaping
+    # is interpreted correctly.
+    assert glob_match(title, expected_pattern, ignorecase=True)
 
 
 def test_spec_count_if() -> None:
