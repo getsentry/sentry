@@ -7,7 +7,6 @@ import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import * as echarts from 'echarts/core';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
@@ -53,7 +52,7 @@ import {
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardWidgetSource, WidgetType} from './types';
-import {getDashboardFiltersFromURL} from './utils';
+import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -117,7 +116,7 @@ class Dashboard extends Component<Props, State> {
       },
       windowWidth: window.innerWidth,
     };
-    echarts.connect(DASHBOARD_CHART_GROUP);
+    connectDashboardCharts(DASHBOARD_CHART_GROUP);
   }
 
   static getDerivedStateFromProps(props, state) {
