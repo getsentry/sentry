@@ -32,6 +32,7 @@
     "sentry.user"
   ],
   "hybridcloud.regioncacheversion": [],
+  "hybridcloud.webhookpayload": [],
   "nodestore.node": [],
   "replays.replayrecordingsegment": [
     "sentry.file",
