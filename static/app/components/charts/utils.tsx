@@ -410,6 +410,7 @@ export function isEmptySeries(series: Series) {
  * Used to determine which chart in a group is currently hovered.
  */
 export function isChartHovered(chartRef: ReactEchartsRef | null) {
+  // Kinda jank. Get hovered dom elements and check if any of them are the chart
   const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
     element => {
       return element.classList.contains('echarts-for-react');
