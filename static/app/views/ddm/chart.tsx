@@ -103,6 +103,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       highlightedSampleId: scatter?.higlightedId,
       operation,
       timeseries: series,
+      valueFormatter,
     });
 
     // TODO(ddm): This assumes that all series have the same bucket size
