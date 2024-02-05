@@ -19,16 +19,15 @@ const ListItem = styled(
   )
 )`
   position: relative;
-  ${p => p.symbol && `padding-left: ${p.padding ?? space(4)};`}
+  display: flex;
+  align-items: center;
+  gap: ${space(2)};
 `;
 
 const Symbol = styled('div')`
-  display: flex;
-  align-items: center;
-  position: absolute;
-  top: 0;
-  left: 0;
-  min-height: 22.5px;
+display: flex;
+align-items: center;
+left: 0;
 `;
 
 export default ListItem;
