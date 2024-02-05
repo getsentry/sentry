@@ -160,8 +160,6 @@ class EventAccess:
         return self._sdk
 
     def get_family(self):
-        # CodeCov requires both branches of `if`` to be covered, even when there is no `else`.
-        # This works equally well and is considered fully covered.
         self._family = self._family or [
             {"family": get_behavior_family_for_platform(self.event.get("platform"))}
         ]
