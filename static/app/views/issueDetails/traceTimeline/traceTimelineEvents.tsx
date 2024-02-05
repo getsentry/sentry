@@ -227,6 +227,7 @@ const IconNode = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
   background-color: ${p => color(p.theme.red200).alpha(0.3).string()};
+  margin-left: -4px;
 `;
 
 const PerformanceIconNode = styled(IconNode)`
@@ -249,7 +250,7 @@ const CurrentNodeRing = styled('div')`
   border-radius: 100%;
   position: absolute;
   top: -4px;
-  left: -4px;
+  left: -8px;
   animation: pulse 1s ease-out infinite;
 
   @keyframes pulse {
@@ -275,10 +276,10 @@ const CurrentIconNode = styled(IconNode)`
 
 const TooltipHelper = styled('span')`
   height: 12px;
-  padding-left: 1px;
-  padding-right: 1px;
+  padding-left: 4px;
+  padding-right: 4px;
   margin-top: -6px;
-  margin-right: -1px;
+  margin-left: -4px;
   min-width: 8px;
   z-index: 1;
 `;
