@@ -1970,3 +1970,29 @@ def test_level_field(default_project: Project) -> None:
         create_widget([aggr], query, default_project)
         config = get_metric_extraction_config(default_project)
         assert config is None
+
+
+@django_db_all
+def test_widget_modifed_after_on_demand(default_project: Project) -> None:
+    duration = 1000
+    with Feature(
+        {
+            ON_DEMAND_METRICS_WIDGETS: True,
+            "organizations:on-demand-metrics-query-spec-version-two": True,
+        }
+    ):
+        widget_query = create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+
+            process_widget_specs([widget_query.id])
+            config = get_metric_extraction_config(default_project)
+
+            assert config and config["metrics"]
+
+            assert capture_exception.call_count == 0
