@@ -270,7 +270,7 @@ class AllTeamsRow extends Component<Props, State> {
 const TeamLink = styled(Link)`
   display: inline-block;
 
-  &.focus-visible {
+  &:focus-visible {
     margin: -${space(1)};
     padding: ${space(1)};
     background: #f2eff5;

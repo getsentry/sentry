@@ -73,7 +73,7 @@ const StyledNavItem = styled(RouterLink)`
     outline: none;
   }
 
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     background: ${p => p.theme.backgroundSecondary};
     padding-left: 15px;

@@ -250,7 +250,7 @@ const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
   opacity: 0;
 
   div:hover > div > &, /* if Wrapper is hovered */
-  &.focus-visible {
+  &:focus-visible {
     opacity: 1;
   }
   &:hover {
