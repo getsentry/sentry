@@ -296,6 +296,7 @@ export class TraceTreeNode<TreeNodeValue> {
 
   private _children: TraceTreeNode<TraceFullDetailed>[] = [];
   private _spanChildren: TraceTreeNode<RawSpanType>[] = [];
+  private _connectors: number[] | undefined = undefined;
 
   constructor(
     parent: TraceTreeNode<TreeNodeValue> | null,
@@ -309,6 +310,31 @@ export class TraceTreeNode<TreeNodeValue> {
     this.metadata = metadata;
   }
 
+  get connectors(): number[] {
+    if (this._connectors !== undefined) {
+      return this._connectors!;
+    }
+
+    this._connectors = [];
+    let node: TraceTreeNode<TreeNodeValue> | null = this.parent;
+
+    while (node) {
+      if (node.value === null) {
+        break;
+      }
+
+      if (node.isLastChild) {
+        node = node.parent;
+        continue;
+      }
+
+      this._connectors.push(node.depth);
+      node = node.parent;
+    }
+
+    return this._connectors;
+  }
+
   get children(): TraceTreeNode<TraceFullDetailed | RawSpanType>[] {
     return this.zoomedIn ? this._spanChildren : this._children;
   }
@@ -319,6 +345,10 @@ export class TraceTreeNode<TreeNodeValue> {
 
   get isOrphaned() {
     return this.parent?.value === null;
+  }
+
+  get isLastChild() {
+    return this.parent?.children[this.parent.children.length - 1] === this;
   }
 
   setSpanChildren(children: TraceTreeNode<RawSpanType>[]) {
@@ -353,7 +383,7 @@ export class TraceTreeNode<TreeNodeValue> {
     }
 
     const visibleChildren: TraceTreeNode<RawSpanType | TraceFullDetailed>[] = [];
-    // @TODO -> this needs to be a FIFO queue
+    // @TODO: should be a proper FIFO queue as shift is O(n)
     const queue = [...this.children];
 
     while (queue.length > 0) {
