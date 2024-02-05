@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
 
 class ActivityManager(BaseManager["Activity"]):
-    def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
+    def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
         from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
 
         activities = []
