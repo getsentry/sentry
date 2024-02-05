@@ -29,6 +29,7 @@ class UserPermission(SentryPermission):
             return False
 
         if is_active_superuser(request):
+            # collect admin level permissions (only used when a user is active superuser)
             permissions = access_service.get_permissions_for_user(request.user.id)
 
             if superuser_has_permission(request, permissions):
