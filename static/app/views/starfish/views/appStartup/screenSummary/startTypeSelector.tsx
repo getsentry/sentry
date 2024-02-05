@@ -19,7 +19,7 @@ export function StartTypeSelector() {
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('Start Type'), size: 'xs'}}
+      triggerProps={{prefix: t('Start Type')}}
       value={value}
       options={options ?? []}
       onChange={newValue => {

@@ -72,7 +72,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
 
   return (
     <CompactSelect
-      triggerProps={{prefix: t('Operation'), size: 'xs'}}
+      triggerProps={{prefix: t('Operation')}}
       value={value}
       options={options ?? []}
       onChange={newValue => {

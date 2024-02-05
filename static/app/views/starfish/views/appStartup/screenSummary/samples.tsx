@@ -77,7 +77,7 @@ export function SamplesTables({transactionName}) {
             secondaryRelease={secondaryRelease}
           />
           <StartTypeSelector />
-          <DeviceClassSelector />
+          <DeviceClassSelector size="md" />
         </FiltersContainer>
         <SegmentedControl onChange={value => setSampleType(value)} defaultValue={SPANS}>
           <SegmentedControl.Item key={SPANS}>By Spans</SegmentedControl.Item>
