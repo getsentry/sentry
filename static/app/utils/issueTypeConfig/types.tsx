@@ -70,8 +70,7 @@ export type IssueTypeConfig = {
     linksByPlatform: Partial<Record<PlatformKey, ResourceLink[]>>;
   } | null;
   /**
-   *
-   * Should the page show the feedback widget?
+   * Should the page show the feedback widget
    */
   showFeedbackWidget: boolean;
   /**
