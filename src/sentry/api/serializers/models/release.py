@@ -448,7 +448,14 @@ class ReleaseSerializer(Serializer):
         }
 
         authors_metadata_attrs = _get_authors_metadata(item_list, user)
-        release_metadata_attrs = _get_last_commit_metadata(item_list, user)
+                release_metadata_attrs = _get_last_commit_metadata(item_list, user)
+        for item in item_list:
+            if authors_metadata_attrs.get(item) is None:
+                authors_metadata_attrs[item] = {}
+            if release_metadata_attrs.get(item) is None:
+                release_metadata_attrs[item] = {}
+            if deploy_metadata_attrs.get(item) is None:
+                deploy_metadata_attrs[item] = {}
         deploy_metadata_attrs = _get_last_deploy_metadata(item_list, user)
 
         release_projects = defaultdict(list)
