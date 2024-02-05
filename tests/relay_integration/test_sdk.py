@@ -9,10 +9,11 @@ from sentry import eventstore
 from sentry.eventstore.models import Event
 from sentry.models.userrole import manage_default_super_admin_role
 from sentry.receivers import create_default_projects
+from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.relay import adjust_settings_for_relay_tests
-from sentry.testutils.silo import no_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.testutils.skips import requires_kafka
 from sentry.utils.sdk import bind_organization_context, configure_sdk
 
@@ -21,7 +22,8 @@ pytestmark = [requires_kafka]
 
 @pytest.fixture(autouse=True)
 def setup_fixtures():
-    manage_default_super_admin_role()
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        manage_default_super_admin_role()
     create_default_projects()
 
 
