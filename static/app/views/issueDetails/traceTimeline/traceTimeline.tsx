@@ -68,6 +68,7 @@ const TimelineOutline = styled('div')`
   height: 8px;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.backgroundSecondary};
 `;
 
 /**
