@@ -14,7 +14,11 @@ from sentry.features.base import OrganizationFeature, ProjectFeature
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcOrganizationSummary,
+    RpcUserOrganizationContext,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +73,15 @@ def Feature(names):
 
             if isinstance(feature, OrganizationFeature):
                 org = args[0] if len(args) > 0 else kwargs.get("organization", None)
-                if not isinstance(org, (Organization, RpcOrganizationSummary)):
+                if not isinstance(
+                    org,
+                    (
+                        Organization,
+                        RpcOrganizationSummary,
+                        RpcOrganization,
+                        RpcUserOrganizationContext,
+                    ),
+                ):
                     raise ValueError("Must provide organization to check feature")
                 return resolve_feature_name_value_for_org(org, names[name])
 
