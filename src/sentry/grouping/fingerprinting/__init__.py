@@ -160,10 +160,9 @@ class EventAccess:
         return self._sdk
 
     def get_family(self):
-        if self._family is None:
-            self._family = [
-                {"family": get_behavior_family_for_platform(self.event.get("platform"))}
-            ]
+        self._family = self._family or [
+            {"family": get_behavior_family_for_platform(self.event.get("platform"))}
+        ]
         return self._family
 
     def get_values(self, match_group):

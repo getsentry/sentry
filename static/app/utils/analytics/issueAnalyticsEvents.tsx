@@ -196,6 +196,11 @@ export type IssueEventParameters = {
     sort: string;
     tab?: string;
   };
+  'project_modal.created': {
+    issue_alert: 'Default' | 'Custom' | 'No Rule';
+    project_id: string;
+    rule_id: string;
+  };
   'quick_trace.connected_services': {
     projects: number;
   };
@@ -271,6 +276,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
+  'project_modal.created': 'Project Modal: Created',
   'quick_trace.missing_service.dismiss': 'Quick Trace: Missing Service Dismissed',
   'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
   'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',

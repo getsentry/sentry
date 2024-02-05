@@ -83,7 +83,7 @@ describe('TraceTimeline', () => {
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getByLabelText('Current Event'));
+    await userEvent.hover(screen.getByTestId('trace-timeline-tooltip-1'));
     expect(await screen.findByText('You are here')).toBeInTheDocument();
   });
 
@@ -124,5 +124,24 @@ describe('TraceTimeline', () => {
     });
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
+  });
+
+  it('shows seconds for very short timelines', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: issuePlatformBody,
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}},
+      },
+      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+    });
+    render(<TraceTimeline event={event} />, {organization});
+    // Checking for the presence of seconds
+    expect(await screen.findAllByText(/\d{1,2}:\d{2}:\d{2} (AM|PM)/)).toHaveLength(3);
   });
 });
