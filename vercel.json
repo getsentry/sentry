@@ -1,22 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Referer", "value": "https://sentry.io/" },
-        { "key": "origin", "value": "https://sentry.io" }
-      ]
-    },
-    {
-      "source": "/region/(\\w+)/(.*)",
-      "headers": [
-        { "key": "Referer", "value": "https://sentry.io/" },
-        { "key": "origin", "value": "https://sentry.io" }
-      ]
-    }
-  ],
   "rewrites": [
     {
       "source": "/(api|organization-avatar|avatar)/(.*)",
@@ -28,6 +12,26 @@
     },
     { "source": "/_assets/(.*)", "destination": "/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Referer", "value": "https://sentry.io/" },
+        { "key": "origin", "value": "https://sentry.io" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" }
+      ]
+    },
+    {
+      "source": "/region/(\\w+)/(.*)",
+      "headers": [
+        { "key": "Referer", "value": "https://sentry.io/" },
+        { "key": "origin", "value": "https://sentry.io" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" }
+      ]
+    }
   ],
   "github": { "silent": true }
 }
