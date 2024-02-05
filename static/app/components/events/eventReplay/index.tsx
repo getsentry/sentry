@@ -15,7 +15,6 @@ import {useHasOrganizationSentAnyReplayEvents} from 'sentry/utils/replays/hooks/
 import {projectCanUpsellReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
-import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   event: Event;
@@ -29,7 +28,6 @@ function EventReplayContent({
   replayId,
 }: Props & {replayId: undefined | string}) {
   const organization = useOrganization();
-  const user = useUser();
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
 
   const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
@@ -40,9 +38,9 @@ function EventReplayContent({
   const replayPreview = useCallback(() => import('./replayPreview'), []);
   const replayClipPreview = useCallback(() => import('./replayClipPreview'), []);
 
-  const hasReplayClipFeature =
-    organization.features.includes('issue-details-inline-replay-viewer') &&
-    user.options.issueDetailsNewExperienceQ42023;
+  const hasReplayClipFeature = organization.features.includes(
+    'issue-details-inline-replay-viewer'
+  );
 
   if (fetching) {
     return null;
