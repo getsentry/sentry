@@ -421,6 +421,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       tooltip: {
         trigger: 'axis',
         formatter: (params, asyncTicket) => {
+          // tooltip is triggered whenever any chart in the group is hovered,
+          // so we need to check if the mouse is actually over this chart
           if (!isChartHovered(this.chartRef)) {
             return '';
           }
