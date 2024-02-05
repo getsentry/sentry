@@ -3,7 +3,6 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
-from typing import Optional
 
 from sentry.hybridcloud.rpc_services.control_organization_provisioning.model import (
     RpcOrganizationSlugReservation,
@@ -35,7 +34,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     @rpc_method
     def idempotent_provision_organization(
         self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
-    ) -> Optional[RpcOrganizationSlugReservation]:
+    ) -> RpcOrganizationSlugReservation | None:
         """
         Provisions an organization, an organization member, and team based on the provisioning args passed.
 

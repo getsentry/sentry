@@ -4,8 +4,9 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Protocol, Sequence, TypedDict
+from typing import Any, Protocol, TypedDict
 
 import sentry_sdk
 from django.conf import settings

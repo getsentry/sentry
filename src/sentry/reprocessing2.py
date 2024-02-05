@@ -81,9 +81,10 @@ instead of group deletion is:
 
 import logging
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, Sequence, Union
+from typing import Any, Literal, Union
 
 import redis
 import sentry_sdk

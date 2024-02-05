@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from time import time
-from typing import TYPE_CHECKING, Mapping, Sequence, TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 import sentry_sdk
 from django.conf import settings

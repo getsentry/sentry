@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Iterable, Mapping, MutableMapping, Sequence, cast
+from typing import Any, Final, cast
 
 import sentry_sdk
 from django.db import connection
@@ -209,6 +210,8 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
             options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
         "feedback:branding": options.get("feedback:branding", "1") == "1",
+        "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues", "1")
+        == "1",
         "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
     }
 

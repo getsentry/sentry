@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 from django.views import View

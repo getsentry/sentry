@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 import requests as requests_
 import sentry_sdk

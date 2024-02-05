@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from functools import reduce
-from typing import Any, Callable, Mapping, Sequence, Union
+from typing import Any, Union
 
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from sentry_relay.processing import parse_release as parse_release_relay
