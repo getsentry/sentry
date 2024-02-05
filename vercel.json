@@ -19,7 +19,7 @@
       "headers": [
         { "key": "Referer", "value": "https://sentry.io/" },
         { "key": "origin", "value": "https://sentry.io" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Origin", "value": "https://sentry.io" },
         { "key": "Access-Control-Allow-Credentials", "value": "true" }
       ]
     },
@@ -28,7 +28,7 @@
       "headers": [
         { "key": "Referer", "value": "https://sentry.io/" },
         { "key": "origin", "value": "https://sentry.io" },
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Origin", "value": "https://sentry.io" },
         { "key": "Access-Control-Allow-Credentials", "value": "true" }
       ]
     }
