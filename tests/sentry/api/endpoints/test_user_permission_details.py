@@ -37,6 +37,7 @@ class UserDetailsTest(APITestCase):
         assert response.status_code == 403
 
 
+@control_silo_test
 class UserPermissionDetailsGetTest(UserDetailsTest):
     method = "GET"
 
@@ -69,6 +70,7 @@ class UserPermissionDetailsGetTest(UserDetailsTest):
         assert mock_has_permission.call_count == 1
 
 
+@control_silo_test
 class UserPermissionDetailsPostTest(UserDetailsTest):
     method = "POST"
 
@@ -115,6 +117,7 @@ class UserPermissionDetailsPostTest(UserDetailsTest):
         assert mock_has_permission.call_count == 1
 
 
+@control_silo_test
 class UserPermissionDetailsDeleteTest(UserDetailsTest):
     method = "DELETE"
 
