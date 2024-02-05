@@ -28,7 +28,6 @@ class UserPermission(SentryPermission):
             return False
         if is_active_superuser(request):
             return True
-
         return False
 
 

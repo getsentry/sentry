@@ -58,6 +58,7 @@ class UserPermissionTest(DRFPermissionTestCase):
         )
 
 
+@all_silo_test
 class UserAndStaffPermissionTest(DRFPermissionTestCase):
     @patch("sentry.api.permissions.is_active_staff", wraps=is_active_staff)
     def test_allows_active_staff(self, mock_is_active_staff):
