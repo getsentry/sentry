@@ -320,8 +320,9 @@ class GroupSerializerBase(Serializer, ABC):
             if snuba_stats is not None:
                 result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
 
-            if seen_stats:
-                result[item].update(seen_stats.get(item, {}))
+            if seen_stats.get(item) is None:
+                seen_stats[item] = {}
+            result[item].update(seen_stats.get(item, {}))
         return result
 
     def serialize(
