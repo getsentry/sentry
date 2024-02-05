@@ -10,7 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.models.userpermission import UserPermission
 
 audit_logger = logging.getLogger("sentry.audit.user")
@@ -24,7 +24,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def get(self, request: Request, user, permission_name) -> Response:
         # XXX(dcramer): we may decide to relax "view" permission over time, but being more restrictive by default
