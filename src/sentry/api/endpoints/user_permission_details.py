@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -24,6 +25,7 @@ class UserPermissionDetailsEndpoint(UserEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
+    authentication_classes = (SessionAuthentication,)
     permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def get(self, request: Request, user, permission_name) -> Response:
