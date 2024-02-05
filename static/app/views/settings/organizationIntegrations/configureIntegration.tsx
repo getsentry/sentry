@@ -17,6 +17,7 @@ import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
@@ -109,6 +110,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   });
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
+  const projects = ProjectsStore.getState().projects;
 
   useRouteAnalyticsEventNames(
     'integrations.details_viewed',
@@ -122,6 +124,10 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         }
       : {}
   );
+
+  useEffect(() => {
+    refetchIntegration();
+  }, [projects, refetchIntegration]);
 
   useEffect(() => {
     // This page should not be accessible by members (unless its github or gitlab)
