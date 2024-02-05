@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum, unique
 from functools import lru_cache
 from string import Template
-from typing import Any, Generator
+from typing import Any
 
 from django.utils import timezone
 

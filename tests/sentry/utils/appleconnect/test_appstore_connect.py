@@ -7,7 +7,7 @@ file with credentials.  See the ``api_credentials`` fixture for details.
 import pathlib
 import textwrap
 import urllib.parse
-from typing import Generator, Optional
+from collections.abc import Generator
 from unittest import mock
 
 import pytest
@@ -106,7 +106,7 @@ class TestListBuilds:
     @pytest.fixture
     def mocked_list_builds_api(
         self, api_credentials: appstore_connect.AppConnectCredentials
-    ) -> Generator[Optional[responses_mod.RequestsMock], None, None]:
+    ) -> Generator[responses_mod.RequestsMock | None, None, None]:
         """Optionally mocks the App Store Connect list builds API.
 
         This fixture piggybacks on the ``api_credentials`` fixture's parametrisation and if
@@ -130,7 +130,7 @@ class TestListBuilds:
 
     def test_get_build_info(
         self,
-        mocked_list_builds_api: Optional[responses_mod.RequestsMock],
+        mocked_list_builds_api: responses_mod.RequestsMock | None,
         api_credentials: appstore_connect.AppConnectCredentials,
         app_id: str,
     ) -> None:
@@ -151,7 +151,7 @@ class TestListBuilds:
 
     def test_dsyms_needed(
         self,
-        mocked_list_builds_api: Optional[responses_mod.RequestsMock],
+        mocked_list_builds_api: responses_mod.RequestsMock | None,
         api_credentials: appstore_connect.AppConnectCredentials,
         app_id: str,
     ) -> None:
@@ -178,7 +178,7 @@ class TestListBuilds:
 
     def test_no_dsyms_needed(
         self,
-        mocked_list_builds_api: Optional[responses_mod.RequestsMock],
+        mocked_list_builds_api: responses_mod.RequestsMock | None,
         api_credentials: appstore_connect.AppConnectCredentials,
         app_id: str,
     ) -> None:

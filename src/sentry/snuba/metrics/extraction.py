@@ -2,24 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Literal,
-    NamedTuple,
-    Optional,
-    Sequence,
-    TypedDict,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Literal, NamedTuple, NotRequired, Optional, TypedDict, TypeVar, Union, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
-from typing_extensions import NotRequired
 
 from sentry import features
 from sentry.api import event_search
@@ -105,6 +94,10 @@ QUERY_HASH_KEY = "query_hash"
 # Base type for conditions to evaluate on payloads.
 # TODO: Streamline with dynamic sampling.
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
+
+# There are some search tokens that are exclusive to searching errors, thus, we need
+# to treat the query as not on-demand.
+ERROR_RELATED_TOKENS = ["level", "assignee", "issue", "culprit"]
 
 # Maps from Discover's field names to event protocol paths. See Relay's
 # ``Getter`` implementation for ``Event`` for supported fields. All fields need to be prefixed
@@ -790,7 +783,7 @@ def _is_standard_metrics_field(field: str) -> bool:
 
 
 def _is_error_field(token: str) -> bool:
-    return token.startswith("error.")
+    return token.startswith("error.") or token in ERROR_RELATED_TOKENS
 
 
 def _is_standard_metrics_search_term(field: str) -> bool:

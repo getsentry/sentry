@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timedelta
-from typing import Optional, Sequence
 
 import sentry_sdk
 
@@ -45,7 +45,7 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ) -> EventsResponse:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -85,15 +85,15 @@ def timeseries_query(
     query: str,
     params: dict[str, str],
     rollup: int,
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     zerofill_results: bool = True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[list[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ):
     with sentry_sdk.start_span(op="errors", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)

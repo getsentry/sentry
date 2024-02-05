@@ -2,8 +2,9 @@ import bisect
 import functools
 import logging
 import math
+from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional, Sequence
+from typing import Any
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
@@ -756,7 +757,7 @@ class CallbackPaginator:
     def __init__(
         self,
         callback: Callable[[int, int], Sequence[Any]],
-        on_results: Optional[Callable[[Sequence[Any]], Any]] = None,
+        on_results: Callable[[Sequence[Any]], Any] | None = None,
     ):
         self.offset = 0
         self.callback = callback

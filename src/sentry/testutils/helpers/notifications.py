@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
 
 from sentry.issues.grouptype import (
     PerformanceNPlusOneAPICallsGroupType,

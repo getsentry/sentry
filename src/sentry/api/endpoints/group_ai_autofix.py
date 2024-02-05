@@ -12,9 +12,10 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.api.serializers.models.event import get_entries
+from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.commit import Commit
 from sentry.models.group import Group
+from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
@@ -48,13 +49,50 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
         }
     }
 
+    def _get_base_commit(self, group: Group) -> Commit | None:
+        # Using `id__in()` because there is no foreign key relationship.
+        releases_query_set = Release.objects.filter(
+            id__in=GroupRelease.objects.filter(group_id=group.id)
+            .order_by("-last_seen")
+            .values("release_id")
+        )
+
+        if not releases_query_set:
+            return None
+
+        commits: list[Commit] = list(
+            Commit.objects.filter(
+                id__in=ReleaseCommit.objects.filter(release__in=releases_query_set).values("commit")
+            )
+        )
+
+        # Hardcoded to only accept getsentry/sentry repo for now, when autofix on the seer side
+        # supports more than just getsentry/sentry, we will just send the latest commit.
+        try:
+            sentry_repo: Repository = Repository.objects.get(
+                organization_id=group.organization.id, name="getsentry/sentry"
+            )
+
+            for commit in commits:
+                if commit.repository_id == sentry_repo.id:
+                    return commit
+        except Repository.DoesNotExist:
+            logger.exception(
+                "No getsentry/sentry repo found for organization",
+                extra={"group.id": group.id, "group.organization.id": group.organization.id},
+            )
+            pass
+
+        return None
+
     def _get_event_entries(self, group: Group, user: User) -> list | None:
         latest_event = group.get_latest_event()
 
         if not latest_event:
             return None
 
-        return get_entries(latest_event, user)[0]
+        serialized_event = serialize(latest_event, user, EventSerializer())
+        return serialized_event["entries"]
 
     def _make_error_metadata(self, autofix: dict, reason: str):
         return {
@@ -88,15 +126,17 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
     ):
         requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v0/automation/autofix",
-            json={
-                "base_commit_sha": base_commit_sha,
-                "issue": {
-                    "id": group.id,
-                    "title": group.title,
-                    "events": [{"entries": event_entries}],
-                },
-                "additional_context": additional_context,
-            },
+            data=json.dumps(
+                {
+                    "base_commit_sha": base_commit_sha,
+                    "issue": {
+                        "id": group.id,
+                        "title": group.title,
+                        "events": [{"entries": event_entries}],
+                    },
+                    "additional_context": additional_context,
+                }
+            ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
@@ -133,40 +173,13 @@ class GroupAiAutofixEndpoint(GroupEndpoint):
                 group, metadata, "Cannot fix issues without a stacktrace.", 400
             )
 
-        release_version = group.get_last_release()
-        if not release_version:
-            return self._respond_with_error(group, metadata, "Event has no release.", 400)
-
-        try:
-            release: Release = Release.objects.get(
-                organization_id=group.organization.id,
-                projects=group.project,
-                version=release_version,
-            )
-        except Release.DoesNotExist:
-            return self._respond_with_error(
-                group, metadata, "Release not found for the issue.", 400
-            )
-        release_commits: list[ReleaseCommit] = ReleaseCommit.objects.filter(release=release)
-
-        commits: list[Commit] = [release_commit.commit for release_commit in release_commits]
-        base_commit: Commit | None = None
-        for commit in commits:
-            repo: Repository = Repository.objects.get(id=commit.repository_id)
-            provider = repo.get_provider()
-            if provider:
-                external_slug = provider.repository_external_slug(repo)
-                # Hardcoded to only accept getsentry/sentry repo for now, when autofix on the seer side
-                # supports more than just getsentry/sentry, we can remove this, and instead feature flag by project
-                if external_slug == "getsentry/sentry":
-                    base_commit = commit
-                    break
+        base_commit = self._get_base_commit(group)
 
         if not base_commit:
             return self._respond_with_error(
                 group,
                 metadata,
-                "No valid base commit found for release; only getsentry/sentry repo is supported right now.",
+                "No valid base commit from the public sentry repo found associated through issue's releases; only the public sentry repo is supported right now.",
                 400,
             )
 

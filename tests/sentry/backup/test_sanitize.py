@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Sequence
 from unittest.mock import Mock, patch
 
 import pytest

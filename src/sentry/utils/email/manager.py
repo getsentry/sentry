@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Mapping
+from collections.abc import Iterable, Mapping
 
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user.model import UserIdEmailArgs

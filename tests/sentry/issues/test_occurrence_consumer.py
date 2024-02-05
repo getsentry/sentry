@@ -1,9 +1,10 @@
 import datetime
 import logging
 import uuid
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timezone
-from typing import Any, Optional, Sequence
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -217,8 +218,8 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
 
     def run_invalid_payload_test(
         self,
-        remove_event_fields: Optional[Sequence[str]] = None,
-        update_event_fields: Optional[dict[str, Any]] = None,
+        remove_event_fields: Sequence[str] | None = None,
+        update_event_fields: dict[str, Any] | None = None,
         expected_error: type[Exception] = InvalidEventPayloadError,
     ) -> None:
         message = deepcopy(get_test_message(self.project.id))

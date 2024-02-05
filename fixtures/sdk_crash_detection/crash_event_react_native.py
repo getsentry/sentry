@@ -1,4 +1,4 @@
-from typing import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 
 
 def get_frames(filename: str) -> Sequence[MutableMapping[str, str]]:
