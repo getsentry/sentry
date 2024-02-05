@@ -61,9 +61,13 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
         if not projects:
-            raise InvalidParams("You must supply at least one projects to see its metrics")
+            raise InvalidParams("You must supply at least one project to see its metrics")
 
-        metrics = get_metrics_meta(projects=projects, use_case_id=get_use_case_id(request))
+        start, end = get_date_range_from_params(request.GET)
+
+        metrics = get_metrics_meta(
+            projects=projects, use_case_id=get_use_case_id(request), start=start, end=end
+        )
 
         return Response(metrics, status=200)
 
@@ -78,12 +82,18 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations, metric unit and available tags"""
 
     def get(self, request: Request, organization, metric_name) -> Response:
+        # Right now this endpoint is not used, however we are planning an entire refactor of
+        # the metrics endpoints.
         projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams(
+                "You must supply at least one project to see the details of a metric"
+            )
 
         try:
             metric = get_single_metric_info(
-                projects,
-                metric_name,
+                projects=projects,
+                metric_name=metric_name,
                 use_case_id=get_use_case_id(request),
             )
         except InvalidParams as exc:
@@ -113,12 +123,18 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         metric_names = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams("You must supply at least one project to see the tag names")
+
+        start, end = get_date_range_from_params(request.GET)
 
         try:
             tags = get_all_tags(
-                projects,
-                metric_names,
+                projects=projects,
+                metric_names=metric_names,
                 use_case_id=get_use_case_id(request),
+                start=start,
+                end=end,
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
@@ -136,15 +152,21 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     """Get all existing tag values for a metric"""
 
     def get(self, request: Request, organization, tag_name) -> Response:
-        metric_names = request.GET.getlist("metric") or None
+        metric_names = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams("You must supply at least one project to see the tag values")
+
+        start, end = get_date_range_from_params(request.GET)
 
         try:
             tag_values = get_tag_values(
-                projects,
-                tag_name,
-                metric_names,
+                projects=projects,
+                tag_name=tag_name,
+                metric_names=metric_names,
                 use_case_id=get_use_case_id(request),
+                start=start,
+                end=end,
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise ParseError(str(exc))
