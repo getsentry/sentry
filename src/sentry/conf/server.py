@@ -1922,6 +1922,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:team-workflow-notifications": False,
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
+    # Enable feature to load new trace view.
+    "organizations:trace-view-v1": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
@@ -3952,6 +3954,7 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-user-reports",
     "sentry-api-0-group-attachments",
     "sentry-api-0-group-similar",
+    "sentry-api-0-group-similar-issues-embeddings",
     "sentry-api-0-group-external-issues",
     "sentry-api-0-group-external-issues-details",
     "sentry-api-0-group-integrations",

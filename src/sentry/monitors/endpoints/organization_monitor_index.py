@@ -1,5 +1,15 @@
 from django.db import router, transaction
-from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
+from django.db.models import (
+    Case,
+    DateTimeField,
+    Exists,
+    IntegerField,
+    OuterRef,
+    Q,
+    Subquery,
+    Value,
+    When,
+)
 from drf_spectacular.utils import extend_schema
 
 from sentry import audit_log, quotas
@@ -171,6 +181,15 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             sort_fields = ["environment_status_ordering", "-last_checkin_monitorenvironment"]
         elif sort == "name":
             sort_fields = ["name"]
+        elif sort == "muted":
+            queryset = queryset.annotate(
+                muted_ordering=Case(
+                    When(is_muted=True, then=Value(0)),
+                    When(Exists(monitor_environments_query.filter(is_muted=True)), then=Value(1)),
+                    default=2,
+                ),
+            )
+            sort_fields = ["muted_ordering", "name"]
 
         if not is_asc:
             sort_fields = [flip_sort_direction(sort_field) for sort_field in sort_fields]
