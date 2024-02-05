@@ -14,7 +14,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, FrozenSet
+from typing import Any
 
 from django.conf import settings
 from django.core.signing import BadSignature
