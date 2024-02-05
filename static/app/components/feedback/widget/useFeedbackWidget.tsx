@@ -1,6 +1,6 @@
 import type {RefObject} from 'react';
 import {useEffect} from 'react';
-import {feedbackIntegration} from '@sentry/react';
+import {type Feedback, getClient} from '@sentry/react';
 
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -12,7 +12,8 @@ interface Props {
 
 export default function useFeedbackWidget({buttonRef}: Props) {
   const config = useLegacyStore(ConfigStore);
-  const feedback = feedbackIntegration();
+  const client = getClient();
+  const feedback = client?.getIntegrationByName?.<Feedback>('Feedback');
 
   useEffect(() => {
     if (!feedback) {
