@@ -119,6 +119,8 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
+export type CountUnit = 'count';
+
 export enum DurationUnit {
   NANOSECOND = 'nanosecond',
   MICROSECOND = 'microsecond',
