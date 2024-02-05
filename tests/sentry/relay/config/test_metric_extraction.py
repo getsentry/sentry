@@ -1970,3 +1970,21 @@ def test_level_field(default_project: Project) -> None:
         create_widget([aggr], query, default_project)
         config = get_metric_extraction_config(default_project)
         assert config is None
+
+
+@django_db_all
+def test_no_aggregate(default_project: Project) -> None:
+    query = "event.type:transaction transaction.op:pageload app_recommended_owner:#onboarding-experience"
+    columns = ["count()", "transaction", "user_misery(300)", "p75(measurements.lcp)"]
+
+    create_widget([], query, default_project, columns=columns)
+
+    with Feature(ON_DEMAND_METRICS_WIDGETS):
+        config = get_metric_extraction_config(default_project)
+        assert config is None
+        # and config["metrics"] == [
+        #     widget_to_metric_spec("foo"),
+        #     widget_to_metric_spec("foo"),
+        # ]
+        # widget_spec = _on_demand_spec_from_widget(default_project, widget)
+        # assert widget_spec._query_str_for_hash == "None;"
