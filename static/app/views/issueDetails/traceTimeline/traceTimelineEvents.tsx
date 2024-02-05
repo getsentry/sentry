@@ -184,6 +184,8 @@ function NodeGroup({
             </EventColumn>
           );
         })}
+      </TimelineColumns>
+      <TimelineColumns style={{gridTemplateColumns: `repeat(${totalSubColumns}, 1fr)`}}>
         <Tooltip
           title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
           overlayStyle={{
@@ -196,6 +198,7 @@ function NodeGroup({
           <TooltipHelper
             style={{
               gridColumn: columns.length > 1 ? `${minColumn} / ${maxColumn}` : columns[0],
+              width: 8 * columns.length,
             }}
             data-test-id={`trace-timeline-tooltip-${currentColumn}`}
           />
@@ -206,7 +209,6 @@ function NodeGroup({
 }
 
 const EventColumn = styled('div')`
-  place-items: stretch;
   display: grid;
   align-items: center;
   position: relative;
@@ -276,10 +278,10 @@ const CurrentIconNode = styled(IconNode)`
 
 const TooltipHelper = styled('span')`
   height: 12px;
-  padding-left: 4px;
-  padding-right: 4px;
+  padding-left: 2px;
+  padding-right: 2px;
+  margin-left: -2px;
   margin-top: -6px;
-  margin-left: -4px;
-  min-width: 8px;
   z-index: 1;
+  border: 1px solid blue;
 `;
