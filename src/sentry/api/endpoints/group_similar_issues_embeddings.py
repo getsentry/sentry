@@ -3,7 +3,6 @@ from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -101,7 +100,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
                 # KeyErrors may occur if seer API returns a deleted/merged group
                 continue
         return result
-
 
     def get(self, request: Request, group) -> Response:
         if not features.has("projects:similarity-embeddings", group.project):
