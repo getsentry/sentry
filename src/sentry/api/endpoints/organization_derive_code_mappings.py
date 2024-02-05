@@ -94,6 +94,9 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
                 {"text": "Could not find project"}, status=status.HTTP_404_NOT_FOUND
             )
 
+        if not request.access.has_project_access(project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         repo_name = request.data.get("repoName")
         stack_root = request.data.get("stackRoot")
         source_root = request.data.get("sourceRoot")

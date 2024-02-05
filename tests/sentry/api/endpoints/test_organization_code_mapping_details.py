@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework import status
 
 from sentry.api.serializers import serialize
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -17,6 +18,8 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
         self.login_as(user=self.user)
         self.user2 = self.create_user("nisanthan@sentry.io", is_superuser=False)
         self.org = self.create_organization(owner=self.user, name="baz")
+        self.org.flags.allow_joinleave = False
+        self.org.save()
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.team2 = self.create_team(
             organization=self.org,
@@ -26,7 +29,7 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             organization=self.org,
             user=self.user2,
             has_global_access=False,
-            teams=[self.team2],
+            teams=[self.team, self.team2],
         )
         self.project = self.create_project(organization=self.org, teams=[self.team], name="Bengal")
         self.integration, self.org_integration = self.create_provider_integration_for(
@@ -58,6 +61,28 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             self.url,
             {**config_data, **data, "repositoryId": self.repo.id},
         )
+
+    def test_non_project_member_permissions(self):
+        non_member = self.create_user()
+        non_member_om = self.create_member(organization=self.org, user=non_member)
+        self.login_as(user=non_member)
+
+        response = self.make_put({"sourceRoot": "newRoot"})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+        response = self.client.delete(self.url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+        self.create_team_membership(team=self.team, member=non_member_om)
+
+        response = self.make_put({"sourceRoot": "newRoot"})
+        assert response.status_code == status.HTTP_200_OK
+
+        # Needed for DELETE on OrganizationIntegrationsLoosePermission
+        non_member_om.update(role="admin")
+
+        response = self.client.delete(self.url)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
 
     def test_basic_delete(self):
         resp = self.client.delete(self.url)
