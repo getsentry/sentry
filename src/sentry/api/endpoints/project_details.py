@@ -810,7 +810,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "sentry:replay_rage_click_issues" in options:
                 project.update_option(
                     "sentry:replay_rage_click_issues",
-                    "1" if options["sentry:replay_rage_click_issues"] else "0",
+                    bool(options["sentry:replay_rage_click_issues"]),
                 )
             if "sentry:reprocessing_active" in options:
                 project.update_option(
