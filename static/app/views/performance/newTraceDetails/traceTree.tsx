@@ -1,5 +1,3 @@
-import type {TransactionEvent} from '@sentry/types';
-
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {Organization} from 'sentry/types';
@@ -114,26 +112,35 @@ export class TraceTree {
     function visit(
       parent: TraceTreeNode<TraceFullDetailed | RawSpanType | null>,
       value: TraceFullDetailed,
-      depth: number
+      depth: number,
+      index: number,
+      parentChildrenLength: number
     ) {
       const node = new TraceTreeNode(value, depth, {
         project_slug: value.project_slug,
         event_id: value.event_id,
       });
 
+      const isLastChild = parentChildrenLength < 1 || index === parentChildrenLength - 1;
+      node.isLastChild = isLastChild;
+
       if (parent) {
         parent.children.push(node);
       }
 
+      let indexChild = 0;
       for (const child of value.children) {
-        visit(node, child, depth + 1);
+        visit(node, child, depth + 1, indexChild, value.children.length);
+        indexChild++;
       }
 
       return node;
     }
 
+    let index = 0;
     for (const transaction of transactions) {
-      visit(tree.root, transaction, 0);
+      visit(tree.root, transaction, 0, index, 0);
+      index++;
     }
 
     return tree.build();
@@ -281,6 +288,7 @@ export class TraceTreeNode<TreeNodeValue> {
   depth: number = 0;
   expanded: boolean = false;
   zoomedIn: boolean = false;
+  isLastChild: boolean = false;
   canFetchData: boolean = true;
   metadata: TraceTreeNodeMetadata = {
     project_slug: undefined,
@@ -294,15 +302,6 @@ export class TraceTreeNode<TreeNodeValue> {
     this.value = node;
     this.depth = depth;
     this.metadata = metadata;
-  }
-
-  static FromEvent(
-    event: TransactionEvent,
-    depth: number,
-    metadata: TraceTreeNodeMetadata
-  ) {
-    const node = new TraceTreeNode(event, depth, metadata);
-    return node;
   }
 
   get children(): TraceTreeNode<TraceFullDetailed | RawSpanType>[] {
@@ -348,7 +347,7 @@ export class TraceTreeNode<TreeNodeValue> {
     const queue = [...this.children];
 
     while (queue.length > 0) {
-      const next = queue.pop()!;
+      const next = queue.shift()!;
 
       if (next.expanded) {
         let i = next.children.length - 1;
