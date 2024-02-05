@@ -70,6 +70,10 @@ export type IssueTypeConfig = {
     linksByPlatform: Partial<Record<PlatformKey, ResourceLink[]>>;
   } | null;
   /**
+   * Should the page show the feedback widget
+   */
+  showFeedbackWidget: boolean;
+  /**
    * Is the Similar Issues tab shown for this issue
    */
   similarIssues: DisabledWithReasonConfig;
