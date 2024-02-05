@@ -371,13 +371,17 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         )
 
         # Third, we fetch the segments details together with aggregates
-        segments = _get_segments(
-            where=[Condition(Column("transaction_id"), Op.IN, list(segments_spans.keys()))],
-            start=start,
-            end=end,
-            organization=self.organization,
-            projects=self.projects,
-        )
+        if segments_spans:
+            segments = _get_segments(
+                where=[Condition(Column("transaction_id"), Op.IN, list(segments_spans.keys()))],
+                start=start,
+                end=end,
+                organization=self.organization,
+                projects=self.projects,
+            )
+        else:
+            # If there are no segment spans, we can safely skip fetching segment details
+            segments = []
 
         # Fourth, we merge span details with the fetched segments.
         extended_segments = []
