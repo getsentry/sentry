@@ -68,25 +68,24 @@ def schedule_auto_transition_to_ongoing() -> None:
     that transition Issues to Ongoing according to their specific
     criteria.
     """
-    with sentry_sdk.start_transaction(op="task", name="schedule_auto_transition_to_ongoing"):
-        now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=timezone.utc)
 
-        seven_days_ago = now - timedelta(days=TRANSITION_AFTER_DAYS)
+    seven_days_ago = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
-        schedule_auto_transition_issues_new_to_ongoing.delay(
-            first_seen_lte=int(seven_days_ago.timestamp()),
-            expires=now + timedelta(hours=1),
-        )
+    schedule_auto_transition_issues_new_to_ongoing.delay(
+        first_seen_lte=int(seven_days_ago.timestamp()),
+        expires=now + timedelta(hours=1),
+    )
 
-        schedule_auto_transition_issues_regressed_to_ongoing.delay(
-            date_added_lte=int(seven_days_ago.timestamp()),
-            expires=now + timedelta(hours=1),
-        )
+    schedule_auto_transition_issues_regressed_to_ongoing.delay(
+        date_added_lte=int(seven_days_ago.timestamp()),
+        expires=now + timedelta(hours=1),
+    )
 
-        schedule_auto_transition_issues_escalating_to_ongoing.delay(
-            date_added_lte=int(seven_days_ago.timestamp()),
-            expires=now + timedelta(hours=1),
-        )
+    schedule_auto_transition_issues_escalating_to_ongoing.delay(
+        date_added_lte=int(seven_days_ago.timestamp()),
+        expires=now + timedelta(hours=1),
+    )
 
 
 @instrumented_task(
