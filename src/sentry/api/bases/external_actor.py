@@ -74,7 +74,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
 
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
         actor_params = self.get_actor_params(validated_data)
-        return ExternalActor.objects.get_or_create(
+        return ExternalActor.objects.filter().first_or_create(
             **validated_data,
             organization=self.organization,
             defaults=actor_params,
