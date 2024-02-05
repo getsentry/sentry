@@ -50,6 +50,20 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
         alert_rule, request.user, DetailedAlertRuleSerializer(expand=expand)
     )
 
+    # Fetch sentryapp instances to avoid impossible relationship traversal in region silo mode.
+    sentry_app_ids: list[int] = []
+    for trigger in serialized_rule.get("triggers", []):
+        for action in trigger.get("actions", []):
+            if action.get("_sentry_app_installation"):
+                sentry_app_ids.append(
+                    action.get("_sentry_app_installation", {}).get("sentry_app_id", None)
+                )
+    if sentry_app_ids:
+        sentry_app_map = {
+            install.sentry_app.id: install.sentry_app
+            for install in app_service.get_many(filter=dict(app_ids=sentry_app_ids))
+        }
+
     # Prepare AlertRuleTriggerActions that are SentryApp components
     errors = []
     for trigger in serialized_rule.get("triggers", []):
@@ -60,7 +74,7 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
                 # records we need to convert our RpcSentryApp and dict data into detached
                 # ORM models and stitch together relations used in preparing UI components.
                 installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
-                rpc_app = action.get("_sentry_app")
+                rpc_app = sentry_app_map.get(installation.sentry_app_id)
                 installation.sentry_app = SentryApp(
                     id=rpc_app.id,
                     scope_list=rpc_app.scope_list,
@@ -80,6 +94,9 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
                     status=SentryAppStatus.as_int(rpc_app.status),
                     metadata=rpc_app.metadata,
                 )
+                # The api_token_id field is nulled out to prevent relation traversal as these
+                # ORM objects are turned back into RPC objects.
+                installation.api_token_id = None
 
                 component = installation.prepare_ui_component(
                     SentryAppComponent(**action.get("_sentry_app_component")),
@@ -98,7 +115,6 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
                 # Delete meta fields
                 del action["_sentry_app_installation"]
                 del action["_sentry_app_component"]
-                del action["_sentry_app"]
 
     if len(errors):
         serialized_rule["errors"] = errors

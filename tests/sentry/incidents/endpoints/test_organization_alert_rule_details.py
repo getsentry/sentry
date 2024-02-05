@@ -236,6 +236,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             resp = self.get_response(self.organization.slug, rule.id)
 
         assert resp.status_code == 200
+        assert len(responses.calls) == 1
         assert "errors" not in resp.data
 
         action = resp.data["triggers"][0]["actions"][0]

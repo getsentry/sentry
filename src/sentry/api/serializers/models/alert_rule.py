@@ -101,16 +101,11 @@ class AlertRuleSerializer(Serializer):
             alert_rule_trigger__alert_rule_id__in=alert_rules.keys()
         ).exclude(sentry_app_config__isnull=True, sentry_app_id__isnull=True)
 
-        sentry_app_ids: list[int] = list(trigger_actions.values_list("sentry_app_id", flat=True))
         sentry_app_installations_by_sentry_app_id = app_service.get_related_sentry_app_components(
             organization_ids=[alert_rule.organization_id for alert_rule in alert_rules.values()],
-            sentry_app_ids=sentry_app_ids,
+            sentry_app_ids=list(trigger_actions.values_list("sentry_app_id", flat=True)),
             type="alert-rule-action",
         )
-        sentry_app_map = {
-            str(install.sentry_app.id): install.sentry_app
-            for install in app_service.get_many(filter=dict(app_ids=sentry_app_ids))
-        }
 
         for trigger, serialized in zip(triggers, serialized_triggers):
             alert_rule_triggers = result[alert_rules[trigger.alert_rule_id]].setdefault(
@@ -127,7 +122,6 @@ class AlertRuleSerializer(Serializer):
                 if install:
                     action["_sentry_app_component"] = install.get("sentry_app_component")
                     action["_sentry_app_installation"] = install.get("sentry_app_installation")
-                    action["_sentry_app"] = sentry_app_map.get(sentry_app_id, None)
                     action["sentryAppInstallationUuid"] = install.get(
                         "sentry_app_installation"
                     ).get("uuid")
