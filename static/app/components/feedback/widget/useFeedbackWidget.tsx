@@ -13,6 +13,7 @@ interface Props {
 export default function useFeedbackWidget({buttonRef}: Props) {
   const config = useLegacyStore(ConfigStore);
   const client = getClient();
+  // Note that this is only defined in environments where Feedback is enabled (getsentry)
   const feedback = client?.getIntegrationByName?.<Feedback>('Feedback');
 
   useEffect(() => {
