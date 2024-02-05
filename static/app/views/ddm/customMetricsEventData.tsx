@@ -44,11 +44,13 @@ export function CustomMetricsEventData({
   metricsSummary,
   startTimestamp,
 }: {
-  metricsSummary: MetricsSummary;
   startTimestamp: number;
+  metricsSummary?: MetricsSummary;
 }) {
   const organization = useOrganization();
-  const metricsSummaryEntries = flattenMetricsSummary(metricsSummary);
+  const metricsSummaryEntries = metricsSummary
+    ? flattenMetricsSummary(metricsSummary)
+    : [];
   const widgetStart = new Date(startTimestamp * 1000 - HALF_HOUR_IN_MS);
   const widgetEnd = new Date(startTimestamp * 1000 + HALF_HOUR_IN_MS);
 
