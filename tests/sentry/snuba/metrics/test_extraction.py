@@ -166,24 +166,18 @@ class TestCreatesOndemandMetricSpec:
             ("percentile(transaction.duration, 1)", "transaction.duration>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
             ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
-            (
-                "count()",
-                "project:a-1 route.action:CloseBatch level:info",  # custom tags not supported by standard metrics
-            ),
+            # custom tags not supported by standard metrics
+            ("count()", "project:a-1 route.action:CloseBatch"),
             ("count()", "transaction.duration:[1,2,3]"),
             ("count()", "project:a_1 or project:b-2 or transaction.duration:>0"),
             ("count()", "foo:bar"),  # custom tags not supported by standard metrics
             ("failure_count()", "transaction.duration:>100"),
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
-            (
-                "count_web_vitals(measurements.fcp,any)",
-                "transaction.duration:>0",
-            ),  # count_web_vitals supported by on demand
-            (
-                "apdex(10)",
-                "",
-            ),  # apdex with specified threshold is on-demand metric even without query
+            # count_web_vitals supported by on demand
+            ("count_web_vitals(measurements.fcp,any)", "transaction.duration:>0"),
+            # apdex with specified threshold is on-demand metric even without query
+            ("apdex(10)", ""),
             ("count()", "transaction.duration:>0 my-transaction"),
             ("count()", "transaction.source:route"),
         ],

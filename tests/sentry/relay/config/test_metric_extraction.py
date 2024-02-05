@@ -1959,3 +1959,14 @@ def test_event_type(
             ]
             widget_spec = _on_demand_spec_from_widget(default_project, widget)
             assert widget_spec._query_str_for_hash == f"None;{_deep_sorted(expected_condition)}"
+
+
+@django_db_all
+def test_level_field(default_project: Project) -> None:
+    aggr = "count()"
+    query = "level:irrelevant_value"
+
+    with Feature(ON_DEMAND_METRICS_WIDGETS):
+        create_widget([aggr], query, default_project)
+        config = get_metric_extraction_config(default_project)
+        assert config is None
