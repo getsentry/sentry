@@ -209,6 +209,7 @@ function NodeGroup({
 }
 
 const EventColumn = styled('div')`
+  place-items: stretch;
   display: grid;
   align-items: center;
   position: relative;
@@ -229,7 +230,7 @@ const IconNode = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
   background-color: ${p => color(p.theme.red200).alpha(0.3).string()};
-  margin-left: -4px;
+  margin-left: -8px;
 `;
 
 const PerformanceIconNode = styled(IconNode)`
@@ -252,7 +253,7 @@ const CurrentNodeRing = styled('div')`
   border-radius: 100%;
   position: absolute;
   top: -4px;
-  left: -8px;
+  left: -12px;
   animation: pulse 1s ease-out infinite;
 
   @keyframes pulse {
@@ -278,10 +279,7 @@ const CurrentIconNode = styled(IconNode)`
 
 const TooltipHelper = styled('span')`
   height: 12px;
-  padding-left: 2px;
-  padding-right: 2px;
-  margin-left: -4px;
+  margin-left: -8px;
   margin-top: -6px;
   z-index: 1;
-  border: 1px solid blue;
 `;
