@@ -460,7 +460,6 @@ class ActivityNotificationTest(APITestCase):
         Test that an email AND Slack notification are sent with
         the expected values when an issue is held back for reprocessing
         """
-        pass
 
     @responses.activate
     @patch("sentry.analytics.record")

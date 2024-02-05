@@ -1,4 +1,5 @@
-from typing import Any, Generator, Optional, Sequence
+from collections.abc import Generator, Sequence
+from typing import Any
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
@@ -31,7 +32,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
         }
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         channel_id = self.get_option("channel_id")
         tags = set(self.get_tags_list())

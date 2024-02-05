@@ -103,6 +103,7 @@ export default function ReplayComparisonModal({
             }}
           >
             <ReplayContextProvider
+              analyticsContext="replay_comparison_modal_left"
               isFetching={fetching}
               replay={replay}
               initialTimeOffsetMs={{offsetMs: startOffset}}
@@ -116,6 +117,7 @@ export default function ReplayComparisonModal({
               </ComparisonSideWrapper>
             </ReplayContextProvider>
             <ReplayContextProvider
+              analyticsContext="replay_comparison_modal_right"
               isFetching={fetching}
               replay={replay}
               initialTimeOffsetMs={{offsetMs: rightTimestamp + 1}}

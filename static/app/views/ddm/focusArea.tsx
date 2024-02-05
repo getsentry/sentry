@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import color from 'color';
 import type {EChartsOption} from 'echarts';
+import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
@@ -12,7 +13,8 @@ import {IconClose, IconZoom} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import type {SelectionRange} from 'sentry/utils/metrics/types';
-import {isInRect} from 'sentry/views/ddm/chartUtils';
+import type {ValueRect} from 'sentry/views/ddm/chartUtils';
+import {getValueRect, isInRect} from 'sentry/views/ddm/chartUtils';
 import {CHART_HEIGHT} from 'sentry/views/ddm/constants';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 
@@ -103,9 +105,10 @@ export function useFocusArea({
         return;
       }
 
+      const range = getSelectionRange(brushEnd, !!useFullYAxis, getValueRect(chartRef));
       onAdd?.({
         widgetIndex,
-        range: getSelectionRange(brushEnd, !!useFullYAxis),
+        range,
       });
 
       // Remove brush from echarts immediately after adding the focus area
@@ -126,11 +129,11 @@ export function useFocusArea({
   }, [onRemove]);
 
   const handleZoomIn = useCallback(() => {
+    handleRemove();
     onZoom?.({
       period: null,
       ...selection?.range,
     });
-    handleRemove();
   }, [selection, handleRemove, onZoom]);
 
   const brushOptions = useMemo(() => {
@@ -196,23 +199,23 @@ function BrushRectOverlay({
   useFullYAxis,
   chartRef,
 }: BrushRectOverlayProps) {
-  const chartInstance = chartRef.current?.getEchartsInstance();
   const [position, setPosition] = useState<AbsolutePosition | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useResizeObserver({
     ref: wrapperRef,
     onResize: () => {
+      const chartInstance = chartRef.current?.getEchartsInstance();
       chartInstance?.resize();
       updatePosition();
     },
   });
 
   const updatePosition = useCallback(() => {
+    const chartInstance = chartRef.current?.getEchartsInstance();
     if (!rect || !chartInstance) {
       return;
     }
-
     const finder = {xAxisId: 'xAxis', yAxisId: 'yAxis'};
 
     const topLeft = chartInstance.convertToPixel(finder, [
@@ -240,13 +243,17 @@ function BrushRectOverlay({
     const left = Math.max(topLeft[0], 0);
     const width = Math.min(widthPx, chartInstance.getWidth() - left);
 
-    setPosition({
+    const newPosition = {
       left: `${left.toPrecision(5)}px`,
       top: resultTop,
       width: `${width.toPrecision(5)}px`,
       height: resultHeight,
-    });
-  }, [rect, chartInstance, useFullYAxis]);
+    };
+
+    if (!isEqual(newPosition, position)) {
+      setPosition(newPosition);
+    }
+  }, [chartRef, rect, useFullYAxis, position]);
 
   useEffect(() => {
     updatePosition();
@@ -283,15 +290,16 @@ const getTimestamp = date => (date ? moment.utc(date).valueOf() : null);
 
 const getSelectionRange = (
   params: BrushEndResult,
-  useFullYAxis: boolean
+  useFullYAxis: boolean,
+  boundingRect: ValueRect
 ): SelectionRange => {
   const rect = params.areas[0];
 
   const startTimestamp = Math.min(...rect.coordRange[0]);
   const endTimestamp = Math.max(...rect.coordRange[0]);
 
-  const startDate = getDate(startTimestamp);
-  const endDate = getDate(endTimestamp);
+  const startDate = getDate(Math.max(startTimestamp, boundingRect.xMin));
+  const endDate = getDate(Math.min(endTimestamp, boundingRect.xMax));
 
   const min = useFullYAxis ? NaN : Math.min(...rect.coordRange[1]);
   const max = useFullYAxis ? NaN : Math.max(...rect.coordRange[1]);

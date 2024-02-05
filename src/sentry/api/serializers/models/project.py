@@ -1,20 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Dict,
-    Final,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import Any, Final, cast
 
 import sentry_sdk
 from django.db import connection
@@ -149,7 +138,7 @@ def get_access_by_project(
 
 def get_features_for_projects(
     all_projects: Sequence[Project], user: User
-) -> MutableMapping[Project, List[str]]:
+) -> MutableMapping[Project, list[str]]:
     # Arrange to call features.has_for_batch rather than features.has
     # for performance's sake
     projects_by_org = defaultdict(list)
@@ -221,6 +210,8 @@ def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
             options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
         ),
         "feedback:branding": options.get("feedback:branding", "1") == "1",
+        "sentry:replay_rage_click_issues": options.get("sentry:replay_rage_click_issues", "1")
+        == "1",
         "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
     }
 
@@ -235,14 +226,14 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     id: str
     slug: str
     name: str  # TODO: add deprecation about this field (not used in app)
-    platform: Optional[str]
+    platform: str | None
     dateCreated: datetime
     isBookmarked: bool
     isMember: bool
-    features: List[str]
-    firstEvent: Optional[datetime]
+    features: list[str]
+    firstEvent: datetime | None
     firstTransactionEvent: bool
-    access: List[str]
+    access: list[str]
     hasAccess: bool
     hasCustomMetrics: bool
     hasMinifiedStackTrace: bool
@@ -537,7 +528,7 @@ class TeamResponseDict(TypedDict):
 
 class ProjectWithTeamResponseDict(ProjectSerializerResponse):
     team: TeamResponseDict
-    teams: List[TeamResponseDict]
+    teams: list[TeamResponseDict]
 
 
 class ProjectWithTeamSerializer(ProjectSerializer):
@@ -587,19 +578,19 @@ class LatestReleaseDict(TypedDict):
 
 
 class _OrganizationProjectOptionalResponse(TypedDict, total=False):
-    latestDeploys: Optional[Dict[str, Dict[str, str]]]
+    latestDeploys: dict[str, dict[str, str]] | None
 
 
 class OrganizationProjectResponse(
     _OrganizationProjectOptionalResponse, ProjectSerializerBaseResponse
 ):
-    team: Optional[TeamResponseDict]
-    teams: List[TeamResponseDict]
+    team: TeamResponseDict | None
+    teams: list[TeamResponseDict]
     eventProcessing: EventProcessingDict
-    platforms: List[str]
+    platforms: list[str]
     hasUserReports: bool
-    environments: List[str]
-    latestRelease: Optional[LatestReleaseDict]
+    environments: list[str]
+    latestRelease: LatestReleaseDict | None
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
@@ -800,7 +791,7 @@ def bulk_fetch_project_latest_releases(projects: Sequence[Project]):
 
 def _get_project_to_release_version_mapping(
     item_list: Sequence[Project],
-) -> Dict[str, Dict[str, str]]:
+) -> dict[str, dict[str, str]]:
     """
     Return mapping of project_ID -> release version for the latest release in each project
     """
@@ -819,60 +810,60 @@ class Plugin(TypedDict):
     canDisable: bool
     isTestable: bool
     hasConfiguration: bool
-    metadata: Dict
-    contexts: List[str]
+    metadata: dict
+    contexts: list[str]
     status: str
-    assets: List
+    assets: list
     doc: str
     firstPartyAlternative: Any
     deprecationDate: Any
     altIsSentryApp: Any
     enabled: bool
     version: str
-    author: Dict[str, str]
+    author: dict[str, str]
     isDeprecated: bool
     isHidden: bool
     description: str
-    features: List[str]
-    featureDescriptions: List[Dict[str, str]]
-    resourceLinks: List[Dict[str, str]]
+    features: list[str]
+    featureDescriptions: list[dict[str, str]]
+    resourceLinks: list[dict[str, str]]
 
 
 class DetailedProjectResponse(ProjectWithTeamResponseDict):
-    latestRelease: Optional[LatestReleaseDict]
-    options: Dict[str, Any]
+    latestRelease: LatestReleaseDict | None
+    options: dict[str, Any]
     digestsMinDelay: int
     digestsMaxDelay: int
     subjectPrefix: str
-    allowedDomains: List[str]
+    allowedDomains: list[str]
     resolveAge: int
     dataScrubber: bool
     dataScrubberDefaults: bool
-    safeFields: List[str]
-    storeCrashReports: Optional[int]
-    sensitiveFields: List[str]
+    safeFields: list[str]
+    storeCrashReports: int | None
+    sensitiveFields: list[str]
     subjectTemplate: str
     securityToken: str
-    securityTokenHeader: Optional[str]
+    securityTokenHeader: str | None
     verifySSL: bool
     scrubIPAddresses: bool
     scrapeJavaScript: bool
     groupingConfig: str
     groupingEnhancements: str
-    groupingEnhancementsBase: Optional[str]
+    groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
-    secondaryGroupingConfig: Optional[str]
+    secondaryGroupingConfig: str | None
     groupingAutoUpdate: bool
     fingerprintingRules: str
     organization: OrganizationSerializerResponse
-    plugins: List[Plugin]
-    platforms: List[str]
+    plugins: list[Plugin]
+    platforms: list[str]
     processingIssues: int
-    defaultEnvironment: Optional[str]
-    relayPiiConfig: Optional[str]
-    builtinSymbolSources: List[str]
-    dynamicSamplingBiases: List[Dict[str, Union[str, bool]]]
-    eventProcessing: Dict[str, bool]
+    defaultEnvironment: str | None
+    relayPiiConfig: str | None
+    builtinSymbolSources: list[str]
+    dynamicSamplingBiases: list[dict[str, str | bool]]
+    eventProcessing: dict[str, bool]
     symbolSources: str
 
 

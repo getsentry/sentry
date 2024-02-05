@@ -134,6 +134,9 @@ export const useTransactionRawSamplesWebVitalsQuery = ({
               lcpScore: lcpScore ?? 0,
               ttfbScore: ttfbScore ?? 0,
               fidScore: fidScore ?? 0,
+              // Fake INP data using FID data
+              // TODO(edwardgou): Remove this once INP is queryable in discover
+              inpScore: fidScore ?? 0,
             };
           })
       : [];

@@ -21,6 +21,7 @@ class ApiTokenSerializer(Serializer):
         data = {
             "id": str(obj.id),
             "scopes": obj.get_scopes(),
+            "name": obj.name,
             "application": attrs["application"],
             "expiresAt": obj.expires_at,
             "dateCreated": obj.date_added,

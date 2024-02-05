@@ -1,12 +1,14 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import {CodeLocations} from 'sentry/views/ddm/codeLocations';
 import {useDDMContext} from 'sentry/views/ddm/context';
 import {SampleTable} from 'sentry/views/ddm/sampleTable';
@@ -23,13 +25,9 @@ const constructQueryString = (queryObject: Record<string, string>) => {
 };
 
 export function WidgetDetails() {
-  const {
-    selectedWidgetIndex,
-    widgets,
-    focusArea,
-    highlightedSampleId,
-    setHighlightedSampleId,
-  } = useDDMContext();
+  const organization = useOrganization();
+  const {selectedWidgetIndex, widgets, focusArea, setHighlightedSampleId} =
+    useDDMContext();
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
   // the tray is minimized when the main content is maximized
   const selectedWidget = widgets[selectedWidgetIndex] as
@@ -42,15 +40,30 @@ export function WidgetDetails() {
     setSelectedTab(Tab.SAMPLES);
   }
 
-  const handleSampleRowHover = (sampleId?: string) => {
-    setHighlightedSampleId(sampleId);
-  };
+  const handleSampleRowHover = useCallback(
+    (sampleId?: string) => {
+      setHighlightedSampleId(sampleId);
+    },
+    [setHighlightedSampleId]
+  );
+
+  const handleTabChange = useCallback(
+    (tab: Tab) => {
+      if (tab === Tab.CODE_LOCATIONS) {
+        trackAnalytics('ddm.code-locations', {
+          organization,
+        });
+      }
+      setSelectedTab(tab);
+    },
+    [organization]
+  );
 
   return (
     <TrayWrapper>
-      <Tabs value={selectedTab} onChange={setSelectedTab}>
+      <Tabs value={selectedTab} onChange={handleTabChange}>
         <TabList>
-          <TabList.Item key={Tab.SAMPLES}>{t('Samples')}</TabList.Item>
+          <TabList.Item key={Tab.SAMPLES}>{t('Sampled Events')}</TabList.Item>
           <TabList.Item
             textValue={t('Code Location')}
             key={Tab.CODE_LOCATIONS}
@@ -79,7 +92,6 @@ export function WidgetDetails() {
                     : selectedWidget?.query
                 }
                 {...focusArea?.selection?.range}
-                highlightedRow={highlightedSampleId}
                 onRowHover={handleSampleRowHover}
               />
             </TabPanels.Item>

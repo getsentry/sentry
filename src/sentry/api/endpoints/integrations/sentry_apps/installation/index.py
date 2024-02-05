@@ -9,7 +9,8 @@ from sentry.api.bases import SentryAppInstallationsBaseEndpoint
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
+from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
 
@@ -43,9 +44,17 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        # check for an exiting installation and return that if it exists
         slug = serializer.validated_data.get("slug")
+
+        # only published or owned apps are allowed to be installed
+        app = SentryApp.objects.filter(slug=slug).first()
+        if app is None or (
+            app.status != SentryAppStatus.PUBLISHED and app.owner_id != organization.id
+        ):
+            return Response(status=404)
+
         try:
+            # check for an exiting installation and return that if it exists
             install = SentryAppInstallation.objects.get(
                 sentry_app__slug=slug, organization_id=organization.id
             )

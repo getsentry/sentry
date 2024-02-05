@@ -1,13 +1,11 @@
-from typing import List, Optional, Set
-
 from sentry.api.exceptions import ParameterValidationError
 from sentry.types.integrations import ExternalProviders, get_provider_enum
 
 
 def validate_provider(
     provider: str,
-    available_providers: Optional[Set[ExternalProviders]] = None,
-    context: Optional[List[str]] = None,
+    available_providers: set[ExternalProviders] | None = None,
+    context: list[str] | None = None,
 ) -> ExternalProviders:
     provider_option = get_provider_enum(provider)
     if not provider_option:

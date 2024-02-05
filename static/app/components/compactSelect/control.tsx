@@ -33,6 +33,20 @@ import usePrevious from 'sentry/utils/usePrevious';
 import type {SingleListProps} from './list';
 import type {SelectOption} from './types';
 
+// autoFocus react attribute is sync called on render, this causes
+// layout thrashing and is bad for performance. This thin wrapper function
+// will defer the focus call until the next frame, after the browser and react
+// have had a chance to update the DOM, splitting the perf cost across frames.
+function nextFrameCallback(cb: () => void) {
+  if ('requestAnimationFrame' in window) {
+    window.requestAnimationFrame(() => cb());
+  } else {
+    setTimeout(() => {
+      cb();
+    }, 1);
+  }
+}
+
 export interface SelectContextValue {
   overlayIsOpen: boolean;
   /**
@@ -311,45 +325,41 @@ export function Control({
     shouldCloseOnBlur,
     preventOverflowOptions,
     flipOptions,
-    onOpenChange: async open => {
-      // On open
-      if (open) {
-        // Wait for overlay to appear/disappear
-        await new Promise(resolve => resolve(null));
+    onOpenChange: open => {
+      nextFrameCallback(() => {
+        if (open) {
+          // Focus on search box if present
+          if (searchable) {
+            searchRef.current?.focus();
+            return;
+          }
 
-        // Focus on search box if present
-        if (searchable) {
-          searchRef.current?.focus();
+          const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
+            `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
+          );
+
+          // Focus on first selected item
+          if (firstSelectedOption) {
+            firstSelectedOption.focus();
+            return;
+          }
+
+          // If no item is selected, focus on first item instead
+          overlayRef.current
+            ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+            ?.focus();
           return;
         }
 
-        const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
-          `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
-        );
+        // On close
+        onClose?.();
 
-        // Focus on first selected item
-        if (firstSelectedOption) {
-          firstSelectedOption.focus();
-          return;
-        }
+        // Clear search string
+        setSearchInputValue('');
+        setSearch('');
 
-        // If no item is selected, focus on first item instead
-        overlayRef.current
-          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
-          ?.focus();
-        return;
-      }
-
-      // On close
-      onClose?.();
-
-      // Clear search string
-      setSearchInputValue('');
-      setSearch('');
-
-      // Wait for overlay to appear/disappear
-      await new Promise(resolve => resolve(null));
-      triggerRef.current?.focus();
+        triggerRef.current?.focus();
+      });
     },
   });
 
@@ -631,7 +641,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
