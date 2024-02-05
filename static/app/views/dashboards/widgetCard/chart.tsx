@@ -16,7 +16,7 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {getSeriesSelection} from 'sentry/components/charts/utils';
+import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
@@ -391,7 +391,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     const durationUnit = isDurationChart
       ? timeseriesResults && getDurationUnit(timeseriesResults, legendOptions)
       : undefined;
-
+    const bucketSize =
+      timeseriesResults?.[0]?.data[1]?.name - timeseriesResults?.[0]?.data[0]?.name;
     const valueFormatter = (value: number, seriesName?: string) => {
       if (widget.widgetType === WidgetType.METRICS) {
         return formatMetricAxisValue(axisField, value);
@@ -417,20 +418,18 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         showSymbol: false,
       },
       tooltip: {
+        trigger: 'axis',
         formatter: (params, asyncTicket) => {
-          const hoveredEchartElement = Array.from(
-            document.querySelectorAll(':hover')
-          ).find(element => {
-            return element.classList.contains('echarts-for-react');
-          });
-
-          const isThisChartHovered = hoveredEchartElement === this.chartRef?.ele;
-          if (!isThisChartHovered) {
+          if (!isChartHovered(this.chartRef)) {
             return '';
           }
 
           return getFormatter({
             valueFormatter,
+            isGroupedByDate: true,
+            bucketSize,
+            addSecondsToTimeFormat: false,
+            showTimeInTooltip: true,
           })(params, asyncTicket);
         },
       },

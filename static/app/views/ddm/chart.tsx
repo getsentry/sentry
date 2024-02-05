@@ -22,6 +22,7 @@ import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
+import {isChartHovered} from '../../components/charts/utils';
 
 import {useChartSamples} from './useChartSamples';
 import type {SamplesProps, ScatterSeries as ScatterSeriesType, Series} from './widget';
@@ -145,13 +146,7 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             if (focusAreaBrush.isDrawingRef.current) {
               return '';
             }
-            const hoveredEchartElement = Array.from(
-              document.querySelectorAll(':hover')
-            ).find(element => {
-              return element.classList.contains('echarts-for-react');
-            });
-            const isThisChartHovered = hoveredEchartElement === chartRef?.current?.ele;
-            if (!isThisChartHovered) {
+            if (!isChartHovered(chartRef?.current)) {
               return '';
             }
             if (params.seriesType === 'scatter') {

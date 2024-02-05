@@ -7,7 +7,7 @@ import moment from 'moment';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -404,4 +404,16 @@ export function useEchartsAriaLabels(
 
 export function isEmptySeries(series: Series) {
   return series.data.every(dataPoint => dataPoint.value === 0);
+}
+
+/**
+ * Used to determine which chart in a group is currently hovered.
+ */
+export function isChartHovered(chartRef: ReactEchartsRef | null) {
+  const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
+    element => {
+      return element.classList.contains('echarts-for-react');
+    }
+  );
+  return hoveredEchartElement === chartRef?.ele;
 }
