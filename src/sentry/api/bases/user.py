@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from django.conf import settings
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from typing_extensions import override
@@ -14,6 +13,7 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -28,21 +28,10 @@ class UserPermission(SentryPermission):
         if request.auth:
             return False
 
-        # populate request.access for SaaS superuser
-        SUPERUSER_ORG_ID = getattr(settings, "SUPERUSER_ORG_ID", None)
         if is_active_superuser(request):
-            if SUPERUSER_ORG_ID:
-                org = organization_service.get_organization_by_id(id=SUPERUSER_ORG_ID)
-                if not org:
-                    return False
+            permissions = access_service.get_permissions_for_user(request.user.id)
 
-                self.determine_access(request, org)
-
-                if superuser_has_permission(request):
-                    return True
-
-            else:
-                # org is self hosted
+            if superuser_has_permission(request, permissions):
                 return True
 
         return False

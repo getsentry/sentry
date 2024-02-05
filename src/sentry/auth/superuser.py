@@ -14,7 +14,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, FrozenSet
 
 from django.conf import settings
 from django.core.signing import BadSignature
@@ -87,12 +87,17 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
     return superuser_scopes
 
 
-def superuser_has_permission(request: HttpRequest | Request) -> bool:
+def superuser_has_permission(
+    request: HttpRequest | Request, permissions: FrozenSet[str] | None = None
+) -> bool:
     """
     This is used in place of is_active_superuser() in APIs / permission classes.
     Checks if superuser has permission for the request.
     Superuser read-only is restricted to GET and OPTIONS requests.
     These checks do not affect self-hosted.
+
+    The `permissions` arg is passed in and used when request.access is not populated,
+    e.g. in UserPermission
     """
     if not is_active_superuser(request):
         return False
@@ -105,7 +110,10 @@ def superuser_has_permission(request: HttpRequest | Request) -> bool:
         return True
 
     # superuser write can access all requests
-    if request.access.has_permission("superuser.write"):
+    if getattr(request, "access", None) and request.access.has_permission("superuser.write"):
+        return True
+
+    elif permissions and "superuser.write" in permissions:
         return True
 
     # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
