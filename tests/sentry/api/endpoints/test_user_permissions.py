@@ -1,24 +1,43 @@
-from sentry.models.userpermission import UserPermission
+from unittest.mock import patch
+
+from sentry.api.permissions import StaffPermission
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
 class UserPermissionsTest(APITestCase):
     endpoint = "sentry-api-0-user-permissions"
 
-    def setUp(self):
-        super().setUp()
-        self.user = self.create_user(is_superuser=True)
-        self.login_as(user=self.user, superuser=True)
-        self.add_user_permission(self.user, "users.admin")
-
 
 @control_silo_test
 class UserPermissionsGetTest(UserPermissionsTest):
-    def test_lookup_self(self):
-        UserPermission.objects.create(user=self.user, permission="broadcasts.admin")
-        resp = self.get_response("me")
-        assert resp.status_code == 200
-        assert len(resp.data) == 2, resp.data
-        assert "broadcasts.admin" in resp.data
-        assert "users.admin" in resp.data
+    method = "GET"
+
+    def test_superuser_lookup_self(self):
+        self.superuser = self.create_user(is_superuser=True)
+        self.login_as(user=self.superuser, superuser=True)
+
+        self.add_user_permission(self.superuser, "users.admin")
+        self.add_user_permission(self.superuser, "broadcasts.admin")
+        response = self.get_success_response("me", status_code=200)
+
+        assert len(response.data) == 2
+        assert "broadcasts.admin" in response.data
+        assert "users.admin" in response.data
+
+    @with_feature("auth:enterprise-staff-cookie")
+    @patch.object(StaffPermission, "has_permission", wraps=StaffPermission().has_permission)
+    def test_staff_lookup_self(self, mock_has_permission):
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(staff_user, staff=True)
+
+        self.add_user_permission(staff_user, "users.admin")
+        self.add_user_permission(staff_user, "broadcasts.admin")
+        response = self.get_success_response("me")
+
+        assert len(response.data) == 2
+        assert "broadcasts.admin" in response.data
+        assert "users.admin" in response.data
+        # ensure we fail the scope check and call is_active_staff
+        assert mock_has_permission.call_count == 1
