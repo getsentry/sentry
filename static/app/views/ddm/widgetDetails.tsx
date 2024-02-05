@@ -63,7 +63,7 @@ export function WidgetDetails() {
     <TrayWrapper>
       <Tabs value={selectedTab} onChange={handleTabChange}>
         <TabList>
-          <TabList.Item key={Tab.SAMPLES}>{t('Samples')}</TabList.Item>
+          <TabList.Item key={Tab.SAMPLES}>{t('Sampled Events')}</TabList.Item>
           <TabList.Item
             textValue={t('Code Location')}
             key={Tab.CODE_LOCATIONS}
