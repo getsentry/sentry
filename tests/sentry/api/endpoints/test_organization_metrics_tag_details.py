@@ -24,7 +24,7 @@ def _indexer_record(org_id: int, string: str) -> None:
 
 
 @region_silo_test
-class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricsIntegrationTestCase):
+class OrganizationMetricsTagDetailsTest(OrganizationMetricsIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tag-details"
 

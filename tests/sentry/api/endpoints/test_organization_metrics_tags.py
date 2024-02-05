@@ -25,7 +25,7 @@ def mocked_bulk_reverse_resolve(use_case_id, org_id: int, ids: Collection[int]):
 
 
 @region_silo_test
-class OrganizationMetricsTagsIntegrationTest(OrganizationMetricsIntegrationTestCase):
+class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tags"
 
