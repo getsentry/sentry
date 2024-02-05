@@ -25,6 +25,7 @@ const config: TransformOptions = {
   plugins: [
     '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
+    '@babel/plugin-transform-class-properties',
     [componentNameAnnotatePlugin],
   ],
   env: {
