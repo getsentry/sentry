@@ -7,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint, UserPermission
-from sentry.auth.staff import is_active_staff
+from sentry.api.permissions import StaffPermissionMixin
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organizationmapping import OrganizationMapping
@@ -23,7 +23,7 @@ from sentry.types.region import get_region_by_name
 #
 # This will also grant access via user auth tokens assuming the
 # user ID matches the user that is being queried.
-class UserRegionEndpointPermissions(UserPermission):
+class UserRegionEndpointPermissions(StaffPermissionMixin, UserPermission):
     scope_map = {"GET": ["org:read"]}
 
     def has_object_permission(self, request, view, user: User | RpcUser | None = None):
@@ -31,7 +31,7 @@ class UserRegionEndpointPermissions(UserPermission):
             return True
         if is_system_auth(request.auth):
             return True
-        if is_active_superuser(request) or is_active_staff(request):
+        if is_active_superuser(request):
             return True
 
         return False
