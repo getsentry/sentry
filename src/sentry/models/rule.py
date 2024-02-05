@@ -1,9 +1,9 @@
+from collections.abc import Sequence
 from enum import Enum, IntEnum
-from typing import ClassVar, Sequence, Tuple
+from typing import ClassVar, Self
 
 from django.db import models
 from django.utils import timezone
-from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -25,7 +25,7 @@ class RuleSource(IntEnum):
     CRON_MONITOR = 1
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.ISSUE, "issue"),
             (cls.CRON_MONITOR, "cron_monitor"),
@@ -65,7 +65,7 @@ class Rule(Model):
     class Meta:
         db_table = "sentry_rule"
         app_label = "sentry"
-        index_together = ("project", "status", "owner")
+        indexes = (models.Index(fields=("project", "status", "owner")),)
 
     __repr__ = sane_repr("project_id", "label")
 

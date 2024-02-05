@@ -7,7 +7,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
-import SidebarItem, {isItemActive, SidebarItemProps} from './sidebarItem';
+import type {SidebarItemProps} from './sidebarItem';
+import SidebarItem, {isItemActive} from './sidebarItem';
 
 type SidebarAccordionProps = SidebarItemProps & {
   children?: React.ReactNode;
@@ -92,7 +93,11 @@ function findChildElementsInTree(
     }
 
     const currentComponentName: string =
-      typeof child.type === 'string' ? child.type : child.type.name;
+      typeof child.type === 'string'
+        ? child.type
+        : 'displayName' in child.type
+          ? (child.type.displayName as string) // `.displayName` is added by `babel-plugin-add-react-displayname` in production builds
+          : child.type.name; // `.name` is available in development builds
 
     if (currentComponentName === componentName) {
       found.push(child);

@@ -2,13 +2,13 @@ import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {
   GridColumnHeader,
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -31,11 +31,14 @@ import {
 } from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
+import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
-import {
+import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
@@ -65,6 +68,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const {projects} = useProjects();
   const organization = useOrganization();
   const routes = useRoutes();
+  const shouldUseStoredScores = useStoredScoresSetting();
 
   const replayLinkGenerator = generateReplayLink(routes);
 
@@ -80,8 +84,15 @@ export function PageOverviewWebVitalsDetailPanel({
     : undefined;
 
   const {data: projectData} = useProjectRawWebVitalsQuery({transaction});
+  const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
+    enabled: shouldUseStoredScores,
+    weightWebVital: webVital ?? 'total',
+    transaction,
+  });
 
-  const projectScore = calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+  const projectScore = shouldUseStoredScores
+    ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
+    : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate

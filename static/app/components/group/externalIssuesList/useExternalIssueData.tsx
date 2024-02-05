@@ -1,4 +1,4 @@
-import {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
+import type {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
 import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
 import useFetchSentryAppData from 'sentry/components/group/externalIssuesList/useFetchSentryAppData';
 import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Callable, Type
+from collections.abc import Callable
 
 import sentry_sdk
 from celery import Task
@@ -65,7 +65,7 @@ def schedule_batch(
         concurrency = CONCURRENCY
     try:
         for outbox_name in settings.SENTRY_OUTBOX_MODELS[silo_mode.name]:
-            outbox_model: Type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
+            outbox_model: type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
 
             aggregates = outbox_model.objects.all().aggregate(Min("id"), Max("id"))
 
@@ -133,7 +133,7 @@ def drain_outbox_shards(
             outbox_name = settings.SENTRY_OUTBOX_MODELS["REGION"][0]
 
         assert outbox_name, "Could not determine outbox name"
-        outbox_model: Type[RegionOutboxBase] = RegionOutboxBase.from_outbox_name(outbox_name)
+        outbox_model: type[RegionOutboxBase] = RegionOutboxBase.from_outbox_name(outbox_name)
 
         process_outbox_batch(outbox_identifier_hi, outbox_identifier_low, outbox_model)
     except Exception:
@@ -156,7 +156,7 @@ def drain_outbox_shards_control(
             outbox_name = settings.SENTRY_OUTBOX_MODELS["CONTROL"][0]
 
         assert outbox_name, "Could not determine outbox name"
-        outbox_model: Type[ControlOutboxBase] = ControlOutboxBase.from_outbox_name(outbox_name)
+        outbox_model: type[ControlOutboxBase] = ControlOutboxBase.from_outbox_name(outbox_name)
 
         process_outbox_batch(outbox_identifier_hi, outbox_identifier_low, outbox_model)
     except Exception:
@@ -165,7 +165,7 @@ def drain_outbox_shards_control(
 
 
 def process_outbox_batch(
-    outbox_identifier_hi: int, outbox_identifier_low: int, outbox_model: Type[OutboxBase]
+    outbox_identifier_hi: int, outbox_identifier_low: int, outbox_model: type[OutboxBase]
 ) -> int:
     processed_count: int = 0
     for shard_attributes in outbox_model.find_scheduled_shards(

@@ -1,6 +1,7 @@
+from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Any, Sequence
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,7 +17,10 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
+from sentry.sentry_metrics.querying.errors import (
+    LatestReleaseNotFoundError,
+    TooManyCodeLocationsRequestedError,
+)
 from sentry.sentry_metrics.querying.metadata import (
     MetricCodeLocations,
     MetricCorrelations,
@@ -123,6 +127,8 @@ class OrganizationDDMMetaEndpoint(OrganizationEndpoint):
                     )
             except LatestReleaseNotFoundError as e:
                 return Response(status=404, data={"detail": str(e)})
+            except TooManyCodeLocationsRequestedError as e:
+                return Response(status=400, data={"detail": str(e)})
 
             response[meta_type.value] = serialize(
                 data, request.user, METRIC_META_TYPE_SERIALIZER[meta_type.value]

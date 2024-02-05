@@ -1,4 +1,5 @@
-from typing import Any, Dict, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -14,7 +15,6 @@ from sentry.api.serializers.rest_framework.rule import RulePreviewSerializer
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.rules.history.preview import preview
-from sentry.web.decorators import transaction_start
 
 
 @region_silo_endpoint
@@ -27,7 +27,6 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     # a post endpoint because it's too hard to pass a list of objects from the frontend
-    @transaction_start("ProjectRulePreviewEndpoint")
     def post(self, request: Request, project) -> Response:
         """
         Get a list of alert triggers in past 2 weeks for given rules
@@ -89,8 +88,8 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
 
 class PreviewSerializer(GroupSerializer):
     def serialize(
-        self, obj: Dict[str, Any], attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> Dict[str, Any]:
+        self, obj: dict[str, Any], attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> dict[str, Any]:
         result = super().serialize(obj, attrs, user, **kwargs)
         group_id = int(result["id"])
         result["inbox"] = kwargs["inbox_details"].get(group_id)

@@ -1,12 +1,10 @@
-import {CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
@@ -20,7 +18,7 @@ import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
-import {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
+import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;

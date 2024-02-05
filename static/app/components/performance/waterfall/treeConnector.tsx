@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
+import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {getToggleTheme} from 'sentry/components/performance/waterfall/utils';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';

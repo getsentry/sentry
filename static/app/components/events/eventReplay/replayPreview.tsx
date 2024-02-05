@@ -1,4 +1,5 @@
-import {ComponentProps, Fragment, useMemo} from 'react';
+import type {ComponentProps} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -15,19 +16,20 @@ import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  analyticsContext: string;
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
-  buttonProps?: Partial<ComponentProps<typeof LinkButton>>;
   focusTab?: TabKey;
+  fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
 
 function getReplayAnalyticsStatus({
@@ -53,7 +55,8 @@ function getReplayAnalyticsStatus({
 }
 
 function ReplayPreview({
-  buttonProps,
+  analyticsContext,
+  fullReplayButtonProps,
   eventTimestampMs,
   focusTab,
   orgSlug,
@@ -117,6 +120,7 @@ function ReplayPreview({
       isFetching={fetching}
       replay={replay}
       initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
+      analyticsContext={analyticsContext}
     >
       <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (
@@ -129,7 +133,7 @@ function ReplayPreview({
 
             <CTAOverlay>
               <LinkButton
-                {...buttonProps}
+                {...fullReplayButtonProps}
                 icon={<IconPlay />}
                 priority="primary"
                 to={fullReplayUrl}

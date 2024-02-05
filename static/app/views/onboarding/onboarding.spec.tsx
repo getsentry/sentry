@@ -11,8 +11,8 @@ import {
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
-import type {PlatformKey} from 'sentry/types';
-import {OnboardingProjectStatus, Project} from 'sentry/types';
+import type {PlatformKey, Project} from 'sentry/types';
+import {OnboardingProjectStatus} from 'sentry/types';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {

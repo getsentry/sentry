@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import logging
 import random
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
+from collections.abc import Sequence
+from typing import Any
 
 import sentry_sdk
 
@@ -98,8 +99,8 @@ class EventPerformanceProblem:
 
     @classmethod
     def fetch_multi(
-        cls, items: Sequence[Tuple[Event, str]]
-    ) -> Sequence[Optional[EventPerformanceProblem]]:
+        cls, items: Sequence[tuple[Event, str]]
+    ) -> Sequence[EventPerformanceProblem | None]:
         ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
         results = nodestore.get_multi(ids)
         return [
@@ -109,7 +110,7 @@ class EventPerformanceProblem:
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
-def detect_performance_problems(data: dict[str, Any], project: Project) -> List[PerformanceProblem]:
+def detect_performance_problems(data: dict[str, Any], project: Project) -> list[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
         if rate and rate > random.random():
@@ -127,7 +128,7 @@ def detect_performance_problems(data: dict[str, Any], project: Project) -> List[
 
 
 # Merges system defaults, with default project settings and saved project settings.
-def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any]:
+def get_merged_settings(project_id: int | None = None) -> dict[str | Any, Any]:
     system_settings = {
         "n_plus_one_db_count": options.get("performance.issues.n_plus_one_db.count_threshold"),
         "n_plus_one_db_duration_threshold": options.get(
@@ -214,7 +215,7 @@ def get_merged_settings(project_id: Optional[int] = None) -> Dict[str | Any, Any
 # Gets the thresholds to perform performance detection.
 # Duration thresholds are in milliseconds.
 # Allowed span ops are allowed span prefixes. (eg. 'http' would work for a span with 'http.client' as its op)
-def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorType, Any]:
+def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, Any]:
     settings = get_merged_settings(project_id)
 
     return {
@@ -306,7 +307,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
     }
 
 
-DETECTOR_CLASSES: List[Type[PerformanceDetector]] = [
+DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     ConsecutiveDBSpanDetector,
     ConsecutiveHTTPSpanDetector,
     DBMainThreadDetector,
@@ -325,11 +326,11 @@ DETECTOR_CLASSES: List[Type[PerformanceDetector]] = [
 
 def _detect_performance_problems(
     data: dict[str, Any], sdk_span: Any, project: Project
-) -> List[PerformanceProblem]:
+) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
 
     detection_settings = get_detection_settings(project.id)
-    detectors: List[PerformanceDetector] = [
+    detectors: list[PerformanceDetector] = [
         detector_class(detection_settings, data)
         for detector_class in DETECTOR_CLASSES
         if detector_class.is_detector_enabled()
@@ -345,7 +346,7 @@ def _detect_performance_problems(
     if project is None or organization is None:
         return []
 
-    problems: List[PerformanceProblem] = []
+    problems: list[PerformanceProblem] = []
     for detector in detectors:
         if all(
             [
@@ -391,7 +392,7 @@ def run_detector_on_data(detector, data):
 # Reports metrics and creates spans for detection
 def report_metrics_for_detectors(
     event: Event,
-    event_id: Optional[str],
+    event_id: str | None,
     detectors: Sequence[PerformanceDetector],
     sdk_span: Any,
     organization: Organization,

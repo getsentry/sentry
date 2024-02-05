@@ -1,11 +1,12 @@
-import {ComponentProps, Fragment, useMemo, useRef} from 'react';
+import type {ComponentProps} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import screenfull from 'screenfull';
 
 import {Alert} from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
@@ -13,27 +14,33 @@ import {
   Provider as ReplayContextProvider,
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
+import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
+import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
+import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
-import {IconContract, IconDelete, IconExpand} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import useFullscreen from 'sentry/utils/window/useFullscreen';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
+import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  analyticsContext: string;
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
@@ -41,7 +48,7 @@ type Props = {
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
 
-const CLIP_DURATION_BEFORE_EVENT = 10_000;
+const CLIP_DURATION_BEFORE_EVENT = 5_000;
 const CLIP_DURATION_AFTER_EVENT = 5_000;
 
 function getReplayAnalyticsStatus({
@@ -67,22 +74,22 @@ function getReplayAnalyticsStatus({
 }
 
 function ReplayPreviewPlayer({
-  toggleFullscreen,
   replayId,
   fullReplayButtonProps,
 }: {
   replayId: string;
-  toggleFullscreen: () => void;
   fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 }) {
   const routes = useRoutes();
   const organization = useOrganization();
-  const isFullscreen = useIsFullscreen();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {currentTime} = useReplayContext();
 
-  // If the browser supports going fullscreen or not. iPhone Safari won't do
-  // it. https://caniuse.com/fullscreen
-  const showFullscreenButton = screenfull.isEnabled;
+  const fullscreenRef = useRef(null);
+  const {toggle: toggleFullscreen} = useFullscreen({
+    elementRef: fullscreenRef,
+  });
+  const isFullscreen = useIsFullscreen();
 
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
@@ -94,40 +101,47 @@ function ReplayPreviewPlayer({
   };
 
   return (
-    <Fragment>
-      <StaticPanel>
-        <ReplayPlayer />
-      </StaticPanel>
-      <ErrorBoundary mini>
-        <ButtonGrid>
-          <ReplayPlayPauseButton />
-          <Container>
-            <TimeAndScrubberGrid />
-          </Container>
-          <ButtonBar gap={1}>
-            <LinkButton size="sm" to={fullReplayUrl}>
-              {t('See Full Replay')}
-            </LinkButton>
-            {showFullscreenButton ? (
-              <Button
-                size="sm"
-                title={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
-                aria-label={isFullscreen ? t('Exit full screen') : t('Enter full screen')}
-                icon={
-                  isFullscreen ? <IconContract size="sm" /> : <IconExpand size="sm" />
-                }
-                onClick={toggleFullscreen}
-                {...fullReplayButtonProps}
-              />
+    <PlayerPanel>
+      <PreviewPlayerContainer ref={fullscreenRef} isSidebarOpen={isSidebarOpen}>
+        <PlayerBreadcrumbContainer>
+          <PlayerContextContainer>
+            {isFullscreen ? (
+              <ContextContainer>
+                <ReplayCurrentUrl />
+                <BrowserOSIcons />
+                <ReplaySidebarToggleButton
+                  isOpen={isSidebarOpen}
+                  setIsOpen={setIsSidebarOpen}
+                />
+              </ContextContainer>
             ) : null}
-          </ButtonBar>
-        </ButtonGrid>
-      </ErrorBoundary>
-    </Fragment>
+            <StaticPanel>
+              <ReplayPlayer />
+            </StaticPanel>
+          </PlayerContextContainer>
+          {isFullscreen && isSidebarOpen ? <Breadcrumbs /> : null}
+        </PlayerBreadcrumbContainer>
+        <ErrorBoundary mini>
+          <ButtonGrid>
+            <ReplayPlayPauseButton priority="default" />
+            <Container>
+              <TimeAndScrubberGrid />
+            </Container>
+            <ButtonBar gap={1}>
+              <LinkButton size="sm" to={fullReplayUrl} {...fullReplayButtonProps}>
+                {t('See Full Replay')}
+              </LinkButton>
+              <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />
+            </ButtonBar>
+          </ButtonGrid>
+        </ErrorBoundary>
+      </PreviewPlayerContainer>
+    </PlayerPanel>
   );
 }
 
 function ReplayClipPreview({
+  analyticsContext,
   eventTimestampMs,
   orgSlug,
   replaySlug,
@@ -136,10 +150,6 @@ function ReplayClipPreview({
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
-  });
-  const fullscreenRef = useRef(null);
-  const {toggle: toggleFullscreen} = useFullscreen({
-    elementRef: fullscreenRef,
   });
 
   const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
@@ -202,13 +212,13 @@ function ReplayClipPreview({
       replay={replay}
       initialTimeOffsetMs={offset}
       clipWindow={clipWindow}
+      analyticsContext={analyticsContext}
     >
-      <PlayerContainer data-test-id="player-container" ref={fullscreenRef}>
+      <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (
           <ReplayProcessingError processingErrors={replay.processingErrors()} />
         ) : (
           <ReplayPreviewPlayer
-            toggleFullscreen={toggleFullscreen}
             replayId={replayId}
             fullReplayButtonProps={fullReplayButtonProps}
           />
@@ -218,11 +228,46 @@ function ReplayClipPreview({
   );
 }
 
+const PlayerPanel = styled(Panel)`
+  padding: ${space(3)} ${space(3)} ${space(1.5)};
+  margin: 0;
+  display: flex;
+  gap: ${space(1)};
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+  height: 100%;
+`;
+
+const PlayerBreadcrumbContainer = styled(FluidHeight)`
+  position: relative;
+`;
+
+const PreviewPlayerContainer = styled(FluidHeight)<{isSidebarOpen: boolean}>`
+  gap: ${space(1)};
+  background: ${p => p.theme.background};
+
+  :fullscreen {
+    padding: ${space(1)};
+
+    ${PlayerBreadcrumbContainer} {
+      display: grid;
+      grid-template-columns: ${p => (p.isSidebarOpen ? '1fr 25%' : '1fr')};
+      height: 100%;
+      gap: ${space(1)};
+    }
+  }
+`;
+
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
-  background: ${p => p.theme.background};
-  gap: ${space(1)};
   max-height: 448px;
+`;
+
+const PlayerContextContainer = styled(FluidHeight)`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const StaticPanel = styled(FluidHeight)`
@@ -247,6 +292,14 @@ const Container = styled('div')`
   flex-direction: column;
   flex: 1 1;
   justify-content: center;
+`;
+
+const ContextContainer = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 1fr max-content max-content;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 export default ReplayClipPreview;

@@ -77,3 +77,9 @@ cf018ef83b999b5287d1fde7ea523d56d09a228d
 
 # ref(ui) Move forms out of views/settings/components (#31785)
 8be17116a26dcc3b2b5d70565f9f9cfbe4c54aca
+
+# build: replace prettier with biome (#62054)
+31aac1b9b0d24eda9c5aef67259bc24dedb94d95
+
+# build: Addition of typescript-eslint/consistent-type-imports rule (#63543)
+527914ee8dab6b8a7c1c8e3ed9f25dc633f43640

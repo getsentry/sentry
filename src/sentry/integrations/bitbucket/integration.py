@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import gettext_lazy as _
@@ -132,7 +132,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
             return False
         return True
 
-    def get_unmigratable_repositories(self) -> List[RpcRepository]:
+    def get_unmigratable_repositories(self) -> list[RpcRepository]:
         repos = repository_service.get_repositories(
             organization_id=self.organization_id, providers=["bitbucket"]
         )

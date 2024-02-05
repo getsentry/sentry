@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {AiAutofix} from 'sentry/components/events/aiAutofix';
-import {EventMetadataWithAutofix} from 'sentry/components/events/aiAutofix/types';
+import type {EventMetadataWithAutofix} from 'sentry/components/events/aiAutofix/types';
 
 const group = GroupFixture();
 
@@ -29,11 +29,16 @@ describe('AiAutofix', () => {
           metadata: {
             autofix: {
               status: 'COMPLETED',
-              completedAt: '',
-              createdAt: '',
+              completed_at: '',
+              created_at: '',
               fix: {
                 title: 'Fixed the bug!',
+                pr_number: 123,
+                description: 'This is a description',
+                pr_url: '',
+                repo_name: 'getsentry/sentry',
               },
+              steps: [],
             },
           } as EventMetadataWithAutofix,
         }}
@@ -42,5 +47,34 @@ describe('AiAutofix', () => {
 
     expect(screen.getByText('Fixed the bug!')).toBeInTheDocument();
     expect(screen.getByText('View Pull Request')).toBeInTheDocument();
+  });
+
+  it('renders the correct steps', () => {
+    render(
+      <AiAutofix
+        group={{
+          ...group,
+          metadata: {
+            autofix: {
+              status: 'COMPLETED',
+              completed_at: '',
+              created_at: '',
+              steps: [
+                {
+                  id: '1',
+                  index: 1,
+                  title: 'I am processing',
+                  description: 'oh yes I am',
+                  status: 'PROCESSING',
+                },
+              ],
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('I am processing')).toBeInTheDocument();
+    expect(screen.getByText('oh yes I am')).toBeInTheDocument();
   });
 });

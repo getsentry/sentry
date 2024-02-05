@@ -4,7 +4,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {GroupListColumn} from './groupList';
+import type {GroupListColumn} from './groupList';
 
 type Props = {
   withChart: boolean;
@@ -70,7 +70,7 @@ const ChartWrapper = styled(Heading)<{narrowGroups: boolean}>`
   width: 160px;
 
   @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+    p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 `;
@@ -80,7 +80,7 @@ const AssigneeWrapper = styled(Heading)<{narrowGroups: boolean}>`
   width: 80px;
 
   @media (max-width: ${p =>
-      p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    p.narrowGroups ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;

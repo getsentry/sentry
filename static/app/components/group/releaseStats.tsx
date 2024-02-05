@@ -8,7 +8,7 @@ import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CurrentRelease, Group, Organization, Project, Release} from 'sentry/types';
+import type {CurrentRelease, Group, Organization, Project, Release} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -44,8 +44,8 @@ function GroupReleaseStats({
     environments.length > 1
       ? t('selected environments')
       : environments.length === 1
-      ? environments[0]
-      : undefined;
+        ? environments[0]
+        : undefined;
 
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
     [

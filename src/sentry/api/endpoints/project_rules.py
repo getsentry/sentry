@@ -1,5 +1,3 @@
-from typing import List
-
 from django.conf import settings
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -32,7 +30,6 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
-from sentry.web.decorators import transaction_start
 
 
 def clean_rule_data(data):
@@ -491,14 +488,13 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         request=None,
         responses={
-            200: inline_sentry_response_serializer("ListRules", List[RuleSerializerResponse]),
+            200: inline_sentry_response_serializer("ListRules", list[RuleSerializerResponse]),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
-    @transaction_start("ProjectRulesEndpoint")
     def get(self, request: Request, project) -> Response:
         """
         Return a list of active issue alert rules bound to a project.
@@ -535,7 +531,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         },
         examples=IssueAlertExamples.CREATE_ISSUE_ALERT_RULE,
     )
-    @transaction_start("ProjectRulesEndpoint")
     def post(self, request: Request, project) -> Response:
         """
         Create a new issue alert rule for the given project.

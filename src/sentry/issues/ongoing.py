@@ -1,4 +1,5 @@
-from typing import Any, List, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 import sentry_sdk
 from django.db.models.signals import post_save
@@ -13,8 +14,8 @@ from sentry.types.group import GroupSubStatus
 def bulk_transition_group_to_ongoing(
     from_status: int,
     from_substatus: int,
-    group_ids: List[int],
-    activity_data: Optional[Mapping[str, Any]] = None,
+    group_ids: list[int],
+    activity_data: Mapping[str, Any] | None = None,
 ) -> None:
     with sentry_sdk.start_span(description="groups_to_transistion") as span:
         # make sure we don't update the Group when its already updated by conditionally updating the Group
@@ -32,11 +33,13 @@ def bulk_transition_group_to_ongoing(
             activity_type=ActivityType.AUTO_SET_ONGOING,
             activity_data=activity_data,
             send_activity_notification=False,
+            from_substatus=from_substatus,
         )
 
     for group in groups_to_transistion:
         group.status = GroupStatus.UNRESOLVED
         group.substatus = GroupSubStatus.ONGOING
+        # TODO(snigdha): do we need to update the priority here?
 
     with sentry_sdk.start_span(description="bulk_remove_groups_from_inbox"):
         bulk_remove_groups_from_inbox(groups_to_transistion)

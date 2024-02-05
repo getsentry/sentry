@@ -1,4 +1,5 @@
-from typing import Any, Collection, Dict, Mapping, MutableMapping, Sequence
+from collections.abc import Collection, Mapping, MutableMapping, Sequence
+from typing import Any
 
 IN_APP_FRAME = {
     "function": "LoginViewController.viewDidAppear",
@@ -100,13 +101,13 @@ def get_frames(
     return frames[::-1]
 
 
-def get_crash_event(handled=False, function="-[Sentry]", **kwargs) -> Dict[str, Collection[str]]:
+def get_crash_event(handled=False, function="-[Sentry]", **kwargs) -> dict[str, Collection[str]]:
     return get_crash_event_with_frames(get_frames(function), handled=handled, **kwargs)
 
 
 def get_crash_event_with_frames(
     frames: Sequence[Mapping[str, Any]], handled=False, **kwargs
-) -> Dict[str, Collection[str]]:
+) -> dict[str, Collection[str]]:
     result = {
         "event_id": "80e3496eff734ab0ac993167aaa0d1cd",
         "release": "5.222.5",

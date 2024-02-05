@@ -1,5 +1,6 @@
 from abc import ABC
-from typing import Generic, Optional, Sequence, TypeVar
+from collections.abc import Mapping, Sequence
+from typing import Generic, TypeVar
 
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
@@ -7,10 +8,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.sentry_metrics.querying.errors import (
-    InvalidMetricsQueryError,
-    LatestReleaseNotFoundError,
-)
+from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.types import QueryCondition, QueryExpression
 
 TVisited = TypeVar("TVisited")
@@ -47,6 +45,9 @@ class QueryConditionVisitor(ABC, Generic[TVisited]):
     """
 
     def visit_group(self, condition_group: ConditionGroup) -> ConditionGroup:
+        if not condition_group:
+            return condition_group
+
         visited_conditions = []
         for condition in condition_group:
             visited_conditions.append(self.visit(condition))
@@ -82,7 +83,6 @@ class EnvironmentsInjectionVisitor(QueryExpressionVisitor[QueryExpression]):
         self._environment_names = [environment.name for environment in environments]
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
-        # TODO: inject the filter in the formula filters also.
         if self._environment_names:
             current_filters = timeseries.filters if timeseries.filters else []
             current_filters.extend(
@@ -100,16 +100,8 @@ class ValidationVisitor(QueryExpressionVisitor[QueryExpression]):
     """
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
-        self._validate_filters(timeseries.filters)
+        # This visitor has been kept in case we need future validations.
         return timeseries
-
-    def _validate_filters(self, filters: Optional[ConditionGroup]):
-        for f in filters or ():
-            if isinstance(f, BooleanCondition):
-                if f.op == BooleanOp.OR:
-                    raise InvalidMetricsQueryError("The OR operator is not supported")
-
-                self._validate_filters(f.conditions)
 
 
 class FiltersCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
@@ -138,8 +130,8 @@ class FiltersCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
         return timeseries.set_filters(self._apply_visitors_on_condition_group(timeseries.filters))
 
     def _apply_visitors_on_condition_group(
-        self, condition_group: Optional[ConditionGroup]
-    ) -> Optional[ConditionGroup]:
+        self, condition_group: ConditionGroup | None
+    ) -> ConditionGroup | None:
         if not condition_group:
             return condition_group
 
@@ -180,4 +172,60 @@ class LatestReleaseTransformationVisitor(QueryConditionVisitor[QueryCondition]):
             lhs=condition.lhs,
             op=Op.IN,
             rhs=[latest_release.version for latest_release in latest_releases],
+        )
+
+
+class TagsTransformationVisitor(QueryConditionVisitor[QueryCondition]):
+    """
+    Visitor that recursively transforms all conditions to work on tags in the form `tags[x]`.
+    """
+
+    def __init__(self, check_sentry_tags: bool):
+        self._check_sentry_tags = check_sentry_tags
+
+    def _visit_condition(self, condition: Condition) -> QueryCondition:
+        if not isinstance(condition.lhs, Column):
+            return condition
+
+        # We assume that all incoming conditions are on tags, since we do not allow filtering by project in the
+        # query filters.
+        tag_column = f"tags[{condition.lhs.name}]"
+        sentry_tag_column = f"sentry_tags[{condition.lhs.name}]"
+
+        if self._check_sentry_tags:
+            tag_column = f"tags[{condition.lhs.name}]"
+            # We might have tags across multiple nested structures such as `tags` and `sentry_tags` for this reason
+            # we want to emit a condition that spans both.
+            return BooleanCondition(
+                op=BooleanOp.OR,
+                conditions=[
+                    Condition(lhs=Column(name=tag_column), op=condition.op, rhs=condition.rhs),
+                    Condition(
+                        lhs=Column(name=sentry_tag_column),
+                        op=condition.op,
+                        rhs=condition.rhs,
+                    ),
+                ],
+            )
+        else:
+            return Condition(lhs=Column(name=tag_column), op=condition.op, rhs=condition.rhs)
+
+
+class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
+    """
+    Visitor that recursively transforms all conditions whose `key` matches one of the supplied mappings. If found,
+    replaces it with the mapped value.
+    """
+
+    def __init__(self, mappings: Mapping[str, str]):
+        self._mappings = mappings
+
+    def _visit_condition(self, condition: Condition) -> QueryCondition:
+        if not isinstance(condition.lhs, Column):
+            return condition
+
+        return Condition(
+            lhs=Column(name=self._mappings.get(condition.lhs.key, condition.lhs.name)),
+            op=condition.op,
+            rhs=condition.rhs,
         )

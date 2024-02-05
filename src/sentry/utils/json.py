@@ -5,9 +5,10 @@ from __future__ import annotations
 import datetime
 import decimal
 import uuid
+from collections.abc import Generator, Mapping
 from contextlib import nullcontext
 from enum import Enum
-from typing import IO, TYPE_CHECKING, Any, Generator, Mapping, NoReturn, TypeVar, overload
+from typing import IO, TYPE_CHECKING, Any, NoReturn, TypeVar, overload
 
 import rapidjson
 import sentry_sdk
@@ -155,7 +156,7 @@ def prune_empty_keys(obj: Mapping[TKey, TValue | None]) -> dict[TKey, TValue]:
     ...
 
 
-def prune_empty_keys(obj: None | Mapping[TKey, TValue | None]) -> None | dict[TKey, TValue]:
+def prune_empty_keys(obj: Mapping[TKey, TValue | None] | None) -> dict[TKey, TValue] | None:
     if obj is None:
         return None
 

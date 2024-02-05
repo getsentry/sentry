@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
+import zoneinfo
+from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import timezone
-from typing import Any, Iterable, Mapping, MutableMapping
+from typing import Any
 from urllib.parse import urlencode
-
-import pytz
 
 from sentry import analytics, features
 from sentry.db.models import Model
@@ -127,8 +127,8 @@ class AlertRuleNotification(ProjectNotification):
             )
             user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
             try:
-                tz = pytz.timezone(user_tz)
-            except pytz.UnknownTimeZoneError:
+                tz = zoneinfo.ZoneInfo(user_tz)
+            except (ValueError, zoneinfo.ZoneInfoNotFoundError):
                 pass
         return {
             **super().get_recipient_context(recipient, extra_context),

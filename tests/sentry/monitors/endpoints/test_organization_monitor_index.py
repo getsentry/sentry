@@ -5,10 +5,12 @@ from unittest.mock import patch
 
 from django.conf import settings
 from django.test.utils import override_settings
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.quotas.base import SeatAssignmentResult
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -41,7 +43,7 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [monitor])
 
-    def test_sort(self):
+    def test_sort_status(self):
         last_checkin = datetime.now() - timedelta(minutes=1)
         last_checkin_older = datetime.now() - timedelta(minutes=5)
 
@@ -99,6 +101,38 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
                 monitor_disabled,
             ],
         )
+
+        response = self.get_success_response(
+            self.organization.slug, asc="0", params={"environment": "jungle"}
+        )
+        self.check_valid_response(
+            response,
+            [
+                monitor_disabled,
+                monitor_muted,
+                monitor_active,
+                monitor_ok,
+                monitor_missed_checkin,
+                monitor_timed_out,
+                monitor_error_older_checkin,
+                monitor_error,
+            ],
+        )
+
+    def test_sort_name(self):
+        monitors = [
+            self._create_monitor(name="Some Monitor"),
+            self._create_monitor(name="A monitor"),
+            self._create_monitor(name="ZA monitor"),
+        ]
+        monitors.sort(key=lambda m: m.name)
+
+        response = self.get_success_response(self.organization.slug, sort="name")
+        self.check_valid_response(response, monitors)
+
+        monitors.reverse()
+        response = self.get_success_response(self.organization.slug, sort="name", asc="0")
+        self.check_valid_response(response, monitors)
 
     def test_all_monitor_environments(self):
         monitor = self._create_monitor()
@@ -344,3 +378,109 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         assert assign_monitor_seat.called
         assert response.data["status"] == "disabled"
         assert monitor.status == ObjectStatus.DISABLED
+
+
+@region_silo_test
+class BulkEditOrganizationMonitorTest(MonitorTestCase):
+    endpoint = "sentry-api-0-organization-monitor-index"
+    method = "put"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+
+    def test_valid_slugs(self):
+        self._create_monitor(slug="monitor_one")
+        self._create_monitor(slug="monitor_two")
+
+        data = {
+            "slugs": ["monitor_three", "monitor_two"],
+            "isMuted": True,
+        }
+        response = self.get_error_response(self.organization.slug, **data)
+        assert response.status_code == 400
+        assert response.data == {
+            "slugs": [
+                ErrorDetail(string="Not all slugs are valid for this organization.", code="invalid")
+            ]
+        }
+
+    def test_bulk_mute_unmute(self):
+        monitor_one = self._create_monitor(slug="monitor_one")
+        monitor_two = self._create_monitor(slug="monitor_two")
+
+        data = {
+            "slugs": ["monitor_one", "monitor_two"],
+            "isMuted": True,
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.is_muted
+        assert monitor_two.is_muted
+
+        data = {
+            "slugs": ["monitor_one", "monitor_two"],
+            "isMuted": False,
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert not monitor_one.is_muted
+        assert not monitor_two.is_muted
+
+    def test_bulk_disable_enable(self):
+        monitor_one = self._create_monitor(slug="monitor_one")
+        monitor_two = self._create_monitor(slug="monitor_two")
+        data = {
+            "slugs": ["monitor_one", "monitor_two"],
+            "status": "disabled",
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.status == ObjectStatus.DISABLED
+        assert monitor_two.status == ObjectStatus.DISABLED
+
+        data = {
+            "slugs": ["monitor_one", "monitor_two"],
+            "status": "active",
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.status == ObjectStatus.ACTIVE
+        assert monitor_two.status == ObjectStatus.ACTIVE
+
+    @patch("sentry.quotas.backend.check_assign_monitor_seats")
+    def test_enable_no_quota(self, check_assign_monitor_seats):
+        monitor_one = self._create_monitor(slug="monitor_one", status=ObjectStatus.DISABLED)
+        monitor_two = self._create_monitor(slug="monitor_two", status=ObjectStatus.DISABLED)
+        result = SeatAssignmentResult(
+            assignable=False,
+            reason="Over quota",
+        )
+        check_assign_monitor_seats.return_value = result
+
+        data = {
+            "slugs": ["monitor_one", "monitor_two"],
+            "status": "active",
+        }
+        response = self.get_error_response(self.organization.slug, **data)
+        assert response.status_code == 400
+        assert response.data == "Over quota"
+
+        # Verify monitors are still disabled
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.status == ObjectStatus.DISABLED
+        assert monitor_two.status == ObjectStatus.DISABLED

@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {
-  AssigneeSelectorDropdown,
+import type {
   OnAssignCallback,
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
+import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
 import {AutoCompleteRoot} from 'sentry/components/dropdownAutoComplete/menu';
@@ -22,7 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';

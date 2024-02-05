@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -209,6 +210,7 @@ class SuperUserGetSentryAppsTest(SentryAppsTest):
         assert self.published_app.uuid not in response_uuids
 
 
+@control_silo_test
 class GetSentryAppsTest(SentryAppsTest):
     def setUp(self):
         super().setUp()

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,7 +23,6 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.urls import parse_link
-from sentry.web.decorators import transaction_start
 
 from ..utils import logger
 from .base import SlackDMEndpoint
@@ -202,7 +202,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
         return True
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
-    @transaction_start("SlackEventEndpoint")
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)

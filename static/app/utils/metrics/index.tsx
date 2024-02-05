@@ -1,11 +1,10 @@
 import {useCallback, useRef} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import moment from 'moment';
 import * as qs from 'query-string';
 
+import type {DateTimeObject, Fidelity} from 'sentry/components/charts/utils';
 import {
-  DateTimeObject,
-  Fidelity,
   getDiffInMinutes,
   GranularityLadder,
   ONE_HOUR,
@@ -21,7 +20,7 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, PageFilters} from 'sentry/types';
+import type {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
 import type {
   MetricMeta,
   MetricsApiRequestMetric,
@@ -33,6 +32,7 @@ import type {
   UseCase,
 } from 'sentry/types/metrics';
 import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
+import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {
   formatMRI,
@@ -49,6 +49,7 @@ import type {
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import useRouter from 'sentry/utils/useRouter';
 
 export function getDefaultMetricDisplayType(
@@ -116,7 +117,7 @@ export function getMetricsApiRequestQuery(
 
   const queryToSend = {
     ...getDateTimeParams(datetime),
-    query,
+    query: sanitizeQuery(query),
     project: projects,
     environment: environments,
     field,
@@ -128,6 +129,10 @@ export function getMetricsApiRequestQuery(
   };
 
   return {...queryToSend, ...overrides};
+}
+
+function sanitizeQuery(query?: string) {
+  return query?.trim();
 }
 
 const ddmHighFidelityLadder = new GranularityLadder([
@@ -200,17 +205,17 @@ export function isCumulativeOp(op: string = '') {
   return ['sum', 'count', 'count_unique'].includes(op);
 }
 
-export function updateQuery(
+function updateQuery(
   router: InjectedRouter,
-  queryUpdater:
-    | Record<string, any>
-    | ((query: Record<string, any>) => Record<string, any>)
+  partialQuery: Record<string, any>,
+  options?: {replace: boolean}
 ) {
-  router.push({
+  const updateFunction = options?.replace ? router.replace : router.push;
+  updateFunction({
     ...router.location,
     query: {
       ...router.location.query,
-      ...queryUpdater,
+      ...partialQuery,
     },
   });
 }
@@ -234,8 +239,8 @@ export function useUpdateQuery() {
   // without needing to generate a new callback every time the location changes
   const routerRef = useInstantRef(router);
   return useCallback(
-    (partialQuery: Record<string, any>) => {
-      updateQuery(routerRef.current, partialQuery);
+    (partialQuery: Record<string, any>, options?: {replace: boolean}) => {
+      updateQuery(routerRef.current, partialQuery, options);
     },
     [routerRef]
   );
@@ -305,6 +310,10 @@ export function isTransactionDuration({mri}: {mri: MRI}) {
 
 export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
+}
+
+export function isSpanMetric({mri}: {mri: MRI}) {
+  return mri.includes(':spans/');
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {
@@ -390,4 +399,27 @@ export function getAbsoluteDateTimeRange(params: PageFilters['datetime']) {
 
 export function isSupportedDisplayType(displayType: unknown) {
   return Object.values(MetricDisplayType).includes(displayType as MetricDisplayType);
+}
+
+export function getMetricsCorrelationSpanUrl(
+  organization: Organization,
+  projectSlug: string | undefined,
+  spanId: string | undefined,
+  transactionId: string,
+  transactionSpanId: string
+) {
+  const isTransaction = spanId === transactionSpanId;
+
+  const eventSlug = generateEventSlug({
+    id: transactionId,
+    project: projectSlug,
+  });
+
+  return getTransactionDetailsUrl(
+    organization.slug,
+    eventSlug,
+    isTransaction ? transactionId : undefined,
+    {referrer: 'metrics', openPanel: 'open'},
+    isTransaction ? undefined : spanId
+  );
 }

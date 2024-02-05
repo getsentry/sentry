@@ -1,23 +1,28 @@
-import {CSSProperties, isValidElement, memo, MouseEvent, useMemo} from 'react';
+import type {CSSProperties, MouseEvent} from 'react';
+import {isValidElement, memo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import {getShortEventId} from 'sentry/utils/events';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import type {ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
-import useProjects from 'sentry/utils/useProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
-import {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
+import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
@@ -46,7 +51,6 @@ interface Props {
 function getCrumbOrFrameData(frame: ReplayFrame) {
   return {
     ...getFrameDetails(frame),
-    projectSlug: isErrorFrame(frame) ? frame.data.projectSlug : null,
     timestampMs: frame.timestampMs,
   };
 }
@@ -65,9 +69,8 @@ function BreadcrumbItem({
   style,
   traces,
 }: Props) {
-  const {color, description, projectSlug, title, icon, timestampMs} =
-    getCrumbOrFrameData(frame);
-  const {replay} = useReplayContext();
+  const {color, description, title, icon, timestampMs} = getCrumbOrFrameData(frame);
+  const {replay, startTimeOffsetMs} = useReplayContext();
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
 
@@ -85,11 +88,15 @@ function BreadcrumbItem({
       </IconWrapper>
       <CrumbDetails>
         <TitleContainer>
-          <Title>{title}</Title>
+          {isErrorFrame(frame) ? (
+            <CrumbErrorTitle frame={frame} />
+          ) : (
+            <Title>{title}</Title>
+          )}
           {onClick ? (
             <TimestampButton
               startTimestampMs={startTimestampMs}
-              timestampMs={timestampMs}
+              timestampMs={timestampMs - startTimeOffsetMs}
             />
           ) : null}
         </TitleContainer>
@@ -116,7 +123,7 @@ function BreadcrumbItem({
           <div>
             <OpenReplayComparisonButton
               replay={replay}
-              leftTimestamp={frame.offsetMs}
+              leftTimestamp={frame.offsetMs - startTimeOffsetMs}
               rightTimestamp={
                 (frame.data.mutations.next.timestamp as number) -
                 (replay?.getReplay().started_at.getTime() ?? 0)
@@ -141,29 +148,63 @@ function BreadcrumbItem({
           />
         ))}
 
-        {projectSlug ? <CrumbProject projectSlug={projectSlug} /> : null}
+        {isErrorFrame(frame) ? <CrumbErrorIssue frame={frame} /> : null}
       </CrumbDetails>
     </CrumbItem>
   );
 }
 
-function CrumbProject({projectSlug}: {projectSlug: string}) {
-  const {projects} = useProjects();
-  const project = useMemo(
-    () => projects.find(p => p.slug === projectSlug),
-    [projects, projectSlug]
-  );
-  if (!project) {
-    return <CrumbProjectBadgeWrapper>{projectSlug}</CrumbProjectBadgeWrapper>;
+function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
+  const organization = useOrganization();
+  const {eventId} = useReplayGroupContext();
+
+  if (eventId === frame.data.eventId) {
+    return <Title>Error: This Event</Title>;
   }
+
   return (
-    <CrumbProjectBadgeWrapper>
-      <ProjectBadge project={project} avatarSize={16} disableLink />
-    </CrumbProjectBadgeWrapper>
+    <Title>
+      Error:{' '}
+      <Link
+        to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/events/${frame.data.eventId}/#replay`}
+      >
+        {getShortEventId(frame.data.eventId)}
+      </Link>
+    </Title>
   );
 }
 
-const CrumbProjectBadgeWrapper = styled('div')`
+function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
+  const organization = useOrganization();
+  const project = useProjectFromSlug({organization, projectSlug: frame.data.projectSlug});
+  const {groupId} = useReplayGroupContext();
+
+  const projectBadge = project ? (
+    <ProjectBadge project={project} avatarSize={16} disableLink displayName={false} />
+  ) : null;
+
+  if (`${frame.data.groupId}` === groupId) {
+    return (
+      <CrumbIssueWrapper>
+        {projectBadge}
+        {frame.data.groupShortId}
+      </CrumbIssueWrapper>
+    );
+  }
+
+  return (
+    <CrumbIssueWrapper>
+      {projectBadge}
+      <Link to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/`}>
+        {frame.data.groupShortId}
+      </Link>
+    </CrumbIssueWrapper>
+  );
+}
+
+const CrumbIssueWrapper = styled('div')`
+  display: flex;
+  align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};

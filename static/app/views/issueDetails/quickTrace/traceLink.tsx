@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {tct, tn} from 'sentry/locale';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
-import {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type TraceLinkProps = {

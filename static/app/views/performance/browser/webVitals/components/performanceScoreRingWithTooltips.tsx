@@ -1,19 +1,19 @@
 import {Fragment, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from '@sentry/react/types/types';
+import type {Location} from '@sentry/react/types/types';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {Organization} from 'sentry/types';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import PerformanceScoreRing from 'sentry/views/performance/browser/webVitals/components/performanceScoreRing';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {
+import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -28,6 +28,7 @@ const {
   fid: FID_WEIGHT,
   cls: CLS_WEIGHT,
   ttfb: TTFB_WEIGHT,
+  inp: INP_WEIGHT,
 } = PERFORMANCE_SCORE_WEIGHTS;
 
 type Coordinates = {
@@ -142,6 +143,7 @@ function PerformanceScoreRingWithTooltips({
     fid: FID_WEIGHT,
     cls: CLS_WEIGHT,
     ttfb: TTFB_WEIGHT,
+    inp: INP_WEIGHT,
   },
   barWidth = 16,
   hideWebVitalLabels = false,
@@ -282,13 +284,37 @@ function PerformanceScoreRingWithTooltips({
         )}
         <PerformanceScoreRing
           values={[
-            (projectScore.lcpScore ?? 0) * weights.lcp * 0.01,
-            (projectScore.fcpScore ?? 0) * weights.fcp * 0.01,
-            (projectScore.fidScore ?? 0) * weights.fid * 0.01,
-            (projectScore.clsScore ?? 0) * weights.cls * 0.01,
-            (projectScore.ttfbScore ?? 0) * weights.ttfb * 0.01,
+            {
+              value: (projectScore.lcpScore ?? 0) * weights.lcp * 0.01,
+              maxValue: weights.lcp,
+              key: 'lcp',
+              onHoverActions: () => setWebVitalTooltip('lcp'),
+            },
+            {
+              value: (projectScore.fcpScore ?? 0) * weights.fcp * 0.01,
+              maxValue: weights.fcp,
+              key: 'fcp',
+              onHoverActions: () => setWebVitalTooltip('fcp'),
+            },
+            {
+              value: (projectScore.fidScore ?? 0) * weights.fid * 0.01,
+              maxValue: weights.fid,
+              key: 'fid',
+              onHoverActions: () => setWebVitalTooltip('fid'),
+            },
+            {
+              value: (projectScore.clsScore ?? 0) * weights.cls * 0.01,
+              maxValue: weights.cls,
+              key: 'cls',
+              onHoverActions: () => setWebVitalTooltip('cls'),
+            },
+            {
+              value: (projectScore.ttfbScore ?? 0) * weights.ttfb * 0.01,
+              maxValue: weights.ttfb,
+              key: 'ttfb',
+              onHoverActions: () => setWebVitalTooltip('ttfb'),
+            },
           ]}
-          maxValues={[weights.lcp, weights.fcp, weights.fid, weights.cls, weights.ttfb]}
           text={text}
           size={size}
           barWidth={barWidth}
@@ -301,13 +327,6 @@ function PerformanceScoreRingWithTooltips({
           backgroundColors={ringBackgroundColors}
           x={x}
           y={y}
-          onHoverActions={[
-            () => setWebVitalTooltip('lcp'),
-            () => setWebVitalTooltip('fcp'),
-            () => setWebVitalTooltip('fid'),
-            () => setWebVitalTooltip('cls'),
-            () => setWebVitalTooltip('ttfb'),
-          ]}
           onUnhover={() => setWebVitalTooltip(null)}
         />
       </svg>

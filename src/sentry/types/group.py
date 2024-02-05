@@ -1,4 +1,4 @@
-from typing import Mapping
+from collections.abc import Mapping
 
 
 class GroupSubStatus:
@@ -64,17 +64,4 @@ GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS = {
     GroupSubStatus.UNTIL_ESCALATING: "archived_until_escalating",
     GroupSubStatus.FOREVER: "archived_forever",
     GroupSubStatus.UNTIL_CONDITION_MET: "archived_until_condition_met",
-}
-
-
-class PriorityLevel:
-    LOW = 25
-    MEDIUM = 50
-    HIGH = 75
-
-
-PRIORITY_LEVEL_TO_STR: dict[int, str] = {
-    PriorityLevel.LOW: "low",
-    PriorityLevel.MEDIUM: "medium",
-    PriorityLevel.HIGH: "high",
 }

@@ -1,18 +1,21 @@
 import {forwardRef, useCallback, useMemo} from 'react';
-import ReactSelect, {
-  components as selectComponents,
-  createFilter,
+import type {
   GroupedOptionsType,
-  mergeStyles,
   OptionsType,
   OptionTypeBase,
   Props as ReactSelectProps,
   StylesConfig as ReactSelectStylesConfig,
 } from 'react-select';
+import ReactSelect, {
+  components as selectComponents,
+  createFilter,
+  mergeStyles,
+} from 'react-select';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
-import {CSSObject, useTheme} from '@emotion/react';
+import type {CSSObject} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 

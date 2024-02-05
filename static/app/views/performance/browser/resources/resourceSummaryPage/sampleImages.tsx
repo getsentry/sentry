@@ -26,7 +26,7 @@ type Props = {groupId: string; projectId?: number};
 
 export const LOCAL_STORAGE_SHOW_LINKS = 'performance-resources-images-showLinks';
 
-const {SPAN_GROUP, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, SPAN_OP} =
+const {SPAN_GROUP, RAW_DOMAIN, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, SPAN_OP} =
   SpanIndexedField;
 const imageWidth = '200px';
 const imageHeight = '180px';
@@ -125,9 +125,26 @@ function SampleImagesChartPanelBody(props: {
   return (
     <ImageWrapper>
       {images.map(resource => {
+        const hasRawDomain = Boolean(resource[RAW_DOMAIN]);
+        const isRelativeUrl = resource[SPAN_DESCRIPTION].startsWith('/');
+        let src = resource[SPAN_DESCRIPTION];
+        if (isRelativeUrl && hasRawDomain) {
+          try {
+            const url = new URL(resource[SPAN_DESCRIPTION], resource[RAW_DOMAIN]);
+            src = url.href;
+          } catch {
+            Sentry.setContext('resource', {
+              src,
+              description: resource[SPAN_DESCRIPTION],
+              rawDomain: resource[RAW_DOMAIN],
+            });
+            Sentry.captureException(new Error('Invalid URL'));
+          }
+        }
+
         return (
           <ImageContainer
-            src={resource[SPAN_DESCRIPTION]}
+            src={src}
             showImage={isImagesEnabled}
             fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
             size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}

@@ -1,5 +1,4 @@
-from typing import List
-
+from django.db import router, transaction
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from drf_spectacular.utils import extend_schema
 
@@ -30,9 +29,13 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
+from sentry.monitors.serializers import (
+    MonitorBulkEditResponse,
+    MonitorSerializer,
+    MonitorSerializerResponse,
+)
 from sentry.monitors.utils import create_alert_rule, signal_monitor_created
-from sentry.monitors.validators import MonitorValidator
+from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.utils.outcomes import Outcome
 
@@ -66,12 +69,22 @@ MONITOR_ENVIRONMENT_ORDERING = Case(
 )
 
 
+def flip_sort_direction(sort_field: str) -> str:
+    if sort_field[0] == "-":
+        sort_field = sort_field[1:]
+    else:
+        sort_field = "-" + sort_field
+    return sort_field
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
+        # TODO(davidenwang): After this is merged and good to go, make this public
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.CRONS
     permission_classes = (OrganizationMonitorPermission,)
@@ -84,7 +97,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
         ],
         responses={
-            200: inline_sentry_response_serializer("MonitorList", List[MonitorSerializerResponse]),
+            200: inline_sentry_response_serializer("MonitorList", list[MonitorSerializerResponse]),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -108,6 +121,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             ]
         )
         query = request.GET.get("query")
+        is_asc = request.GET.get("asc", "1") == "1"
+        sort = request.GET.get("sort", "status")
 
         environments = None
         if "environment" in filter_params:
@@ -128,29 +143,37 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         monitor_environments_query = MonitorEnvironment.objects.filter(
             monitor__id=OuterRef("id"), environment__in=environments
         )
+        sort_fields = []
 
-        queryset = queryset.annotate(
-            environment_status_ordering=Case(
-                # Sort DISABLED and is_muted monitors to the bottom of the list
-                When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)),
-                When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
-                default=Subquery(
-                    monitor_environments_query.annotate(
-                        status_ordering=MONITOR_ENVIRONMENT_ORDERING
-                    )
-                    .order_by("status_ordering")
-                    .values("status_ordering")[:1],
-                    output_field=IntegerField(),
-                ),
+        if sort == "status":
+            queryset = queryset.annotate(
+                environment_status_ordering=Case(
+                    # Sort DISABLED and is_muted monitors to the bottom of the list
+                    When(status=ObjectStatus.DISABLED, then=Value(len(DEFAULT_ORDERING) + 1)),
+                    When(is_muted=True, then=Value(len(DEFAULT_ORDERING))),
+                    default=Subquery(
+                        monitor_environments_query.annotate(
+                            status_ordering=MONITOR_ENVIRONMENT_ORDERING
+                        )
+                        .order_by("status_ordering")
+                        .values("status_ordering")[:1],
+                        output_field=IntegerField(),
+                    ),
+                )
             )
-        )
 
-        queryset = queryset.annotate(
-            last_checkin_monitorenvironment=Subquery(
-                monitor_environments_query.order_by("-last_checkin").values("last_checkin")[:1],
-                output_field=DateTimeField(),
+            queryset = queryset.annotate(
+                last_checkin_monitorenvironment=Subquery(
+                    monitor_environments_query.order_by("-last_checkin").values("last_checkin")[:1],
+                    output_field=DateTimeField(),
+                )
             )
-        )
+            sort_fields = ["environment_status_ordering", "-last_checkin_monitorenvironment"]
+        elif sort == "name":
+            sort_fields = ["name"]
+
+        if not is_asc:
+            sort_fields = [flip_sort_direction(sort_field) for sort_field in sort_fields]
 
         if query:
             tokens = tokenize_query(query)
@@ -186,7 +209,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("environment_status_ordering", "-last_checkin_monitorenvironment"),
+            order_by=sort_fields,
             on_results=lambda x: serialize(
                 x, request.user, MonitorSerializer(environments=environments)
             ),
@@ -256,3 +279,68 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                 monitor.update(config=config)
 
         return self.respond(serialize(monitor, request.user), status=201)
+
+    @extend_schema(
+        operation_id="Bulk Edit Monitors",
+        parameters=[GlobalParams.ORG_SLUG],
+        request=MonitorBulkEditValidator,
+        responses={
+            200: inline_sentry_response_serializer(
+                "MonitorBulkEditResponse", MonitorBulkEditResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(self, request: Request, organization) -> Response:
+        """
+        Bulk edit the muted and disabled status of a list of monitors determined by slug
+        """
+        validator = MonitorBulkEditValidator(
+            data=request.data,
+            partial=True,
+            context={
+                "organization": organization,
+                "access": request.access,
+            },
+        )
+        if not validator.is_valid():
+            return self.respond(validator.errors, status=400)
+
+        result = dict(validator.validated_data)
+        monitor_slugs = result.pop("slugs")
+        status = result.get("status")
+
+        monitors = Monitor.objects.filter(slug__in=monitor_slugs, organization_id=organization.id)
+        # If enabling monitors, ensure we can assign all before moving forward
+        if status == ObjectStatus.ACTIVE:
+            assign_result = quotas.backend.check_assign_monitor_seats(monitors)
+            if not assign_result.assignable:
+                return self.respond(assign_result.reason, status=400)
+
+        updated = []
+        errored = []
+        for monitor in monitors:
+            with transaction.atomic(router.db_for_write(Monitor)):
+                # Attempt to assign a monitor seat
+                if status == ObjectStatus.ACTIVE:
+                    outcome = quotas.backend.assign_monitor_seat(monitor)
+                    if outcome != Outcome.ACCEPTED:
+                        errored.append(monitor)
+                        continue
+
+                # Attempt to unassign the monitor seat
+                if status == ObjectStatus.DISABLED:
+                    quotas.backend.disable_monitor_seat(monitor)
+
+                monitor.update(**result)
+                updated.append(monitor)
+
+        return self.respond(
+            {
+                "updated": serialize(list(updated), request.user),
+                "errored": serialize(list(errored), request.user),
+            },
+        )

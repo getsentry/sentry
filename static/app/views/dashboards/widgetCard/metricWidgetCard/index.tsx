@@ -1,18 +1,18 @@
-import {useCallback, useState} from 'react';
-import {InjectedRouter} from 'react-router';
+import {useCallback, useMemo, useState} from 'react';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {MRI, Organization, PageFilters} from 'sentry/types';
+import type {MRI, Organization, PageFilters} from 'sentry/types';
 import {stringifyMetricWidget} from 'sentry/utils/metrics';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
-import {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
+import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {InlineEditor} from 'sentry/views/dashboards/widgetCard/metricWidgetCard/inlineEditor';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
@@ -24,7 +24,7 @@ import {
   toMetricDisplayType,
 } from '../../../../utils/metrics/dashboard';
 import {parseField} from '../../../../utils/metrics/mri';
-import {Widget} from '../../types';
+import type {DashboardFilters, Widget} from '../../types';
 
 type Props = {
   isEditingDashboard: boolean;
@@ -33,6 +33,7 @@ type Props = {
   router: InjectedRouter;
   selection: PageFilters;
   widget: Widget;
+  dashboardFilters?: DashboardFilters;
   index?: string;
   isEditingWidget?: boolean;
   isMobile?: boolean;
@@ -59,13 +60,17 @@ export function MetricWidgetCard({
   location,
   router,
   index,
+  dashboardFilters,
 }: Props) {
   const [metricWidgetQueryParams, setMetricWidgetQueryParams] =
     useState<MetricWidgetQueryParams>(convertFromWidget(widget));
 
-  const [title, setTitle] = useState<string>(
-    widget.title ?? stringifyMetricWidget(metricWidgetQueryParams)
+  const defaultTitle = useMemo(
+    () => stringifyMetricWidget(metricWidgetQueryParams),
+    [metricWidgetQueryParams]
   );
+
+  const [title, setTitle] = useState<string>(widget.title ?? defaultTitle);
 
   const handleChange = useCallback(
     (data: Partial<MetricWidgetQueryParams>) => {
@@ -83,15 +88,18 @@ export function MetricWidgetCard({
       toMetricDisplayType(metricWidgetQueryParams.displayType)
     );
 
+    const isCustomTitle = title !== '' && title !== defaultTitle;
+
     const updatedWidget = {
       ...widget,
-      title,
+      // If user renamed the widget, preserve that title, otherwise stringify the widget query params
+      title: isCustomTitle ? title : defaultTitle,
       queries: convertedWidget.queries,
       displayType: convertedWidget.displayType,
     };
 
     onUpdate?.(updatedWidget);
-  }, [title, metricWidgetQueryParams, onUpdate, widget, selection]);
+  }, [title, defaultTitle, metricWidgetQueryParams, onUpdate, widget, selection]);
 
   const handleCancel = useCallback(() => {
     onUpdate?.(null);
@@ -160,6 +168,7 @@ export function MetricWidgetCard({
             selection={selection}
             widget={widget}
             editorParams={metricWidgetQueryParams}
+            dashboardFilters={dashboardFilters}
           />
         </MetricWidgetChartWrapper>
         {isEditingDashboard && <Toolbar onDelete={onDelete} onDuplicate={onDuplicate} />}
@@ -171,6 +180,7 @@ export function MetricWidgetCard({
 type MetricWidgetChartContainerProps = {
   selection: PageFilters;
   widget: Widget;
+  dashboardFilters?: DashboardFilters;
   editorParams?: Partial<MetricWidgetQueryParams>;
 };
 
@@ -178,6 +188,7 @@ export function MetricWidgetChartContainer({
   selection,
   widget,
   editorParams = {},
+  dashboardFilters,
 }: MetricWidgetChartContainerProps) {
   const metricWidgetQueryParams = {
     ...convertFromWidget(widget),
@@ -187,17 +198,40 @@ export function MetricWidgetChartContainer({
   return (
     <MetricWidgetBody
       widgetIndex={0}
-      focusArea={null}
       datetime={selection.datetime}
       projects={selection.projects}
       environments={selection.environments}
       mri={metricWidgetQueryParams.mri}
       op={metricWidgetQueryParams.op}
-      query={metricWidgetQueryParams.query}
+      query={extendQuery(metricWidgetQueryParams.query, dashboardFilters)}
       groupBy={metricWidgetQueryParams.groupBy}
       displayType={toMetricDisplayType(metricWidgetQueryParams.displayType)}
     />
   );
+}
+
+function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
+  if (!dashboardFilters?.release?.length) {
+    return query;
+  }
+
+  const releaseQuery = convertToQuery(dashboardFilters);
+
+  return `${query} ${releaseQuery}`;
+}
+
+function convertToQuery(dashboardFilters: DashboardFilters) {
+  const {release} = dashboardFilters;
+
+  if (!release?.length) {
+    return '';
+  }
+
+  if (release.length === 1) {
+    return `release:${release[0]}`;
+  }
+
+  return `release:[${release.join(',')}]`;
 }
 
 function convertFromWidget(widget: Widget): MetricWidgetQueryParams {

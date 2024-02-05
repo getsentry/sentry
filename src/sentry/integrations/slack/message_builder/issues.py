@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Sequence, Union
+from typing import Any
 
 from django.utils import timezone
 from django.utils.timesince import timesince
@@ -44,6 +45,7 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -53,10 +55,20 @@ from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.group import SUBSTATUS_TO_STR
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
+SUPPORTED_COMMIT_PROVIDERS = (
+    "github",
+    "integrations:github",
+    "integrations:github_enterprise",
+    "integrations:vsts",
+    "integrations:gitlab",
+    "bitbucket",
+    "integrations:bitbucket",
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -165,7 +177,7 @@ def get_tags(
     if tags and isinstance(tags, list):
         tags = set(tags[0])
 
-    tags = tags | {"level", "release"}
+    tags = tags | {"level", "release", "handled", "environment"}
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
@@ -267,28 +279,64 @@ def get_suggested_assignees(
             if assignee.actor_type == ActorType.USER and not (
                 isinstance(current_assignee, RpcUser) and assignee.id == current_assignee.id
             ):
-                # for user assignees, we first try to get their Slack identity; if it's not linked,
-                # we use their display name linked with their email
-                assignee_identity = None
-                assignee_identities = identity_service.get_user_identities_by_provider_type(
-                    user_id=assignee.id, provider_type=ExternalProviderEnum.SLACK.value
-                )
-                if len(assignee_identities) > 0:
-                    assignee_identity = assignee_identities[0]
-                if assignee_identity is None:
-                    assignee_as_user = assignee.resolve()
-                    assignee_text = (
-                        f"<mailto:{assignee_as_user.email}|{assignee_as_user.get_display_name()}>"
-                    )
-                else:
-                    assignee_text = f"<@{assignee_identity.external_id}>"
-                assignee_texts.append(assignee_text)
+                assignee_as_user = assignee.resolve()
+                assignee_texts.append(assignee_as_user.get_display_name())
             elif assignee.actor_type == ActorType.TEAM and not (
                 isinstance(current_assignee, Team) and assignee.id == current_assignee.id
             ):
                 assignee_texts.append(f"#{assignee.slug}")
         return assignee_texts
     return []
+
+
+def get_suspect_commit_text(
+    project: Project, event: GroupEvent, commits: Sequence[Mapping[str, Any]] | None = None
+) -> SlackBlock:
+    """Build up the suspect commit text for the given event"""
+
+    # commits is passed from context when the rule initially fires
+    # we may not have that data if the message is being built after an action is taken, for example
+    if not commits:
+        commits = get_commits(project, event)
+    if not commits:
+        return None
+
+    commit = commits[0]  # get the most recent commit
+    suspect_commit_text = "Suspect Commit: "
+    pull_request = commit.get("pull_request")
+    author = commit.get("author")
+    commit_id = commit.get("id")
+    if not (author and commit_id):  # we need both the author and commit id to continue
+        return None
+
+    author_display = author.get("name") if author.get("name") is not None else author.get("email")
+    if pull_request:
+        repo = pull_request.get("repository", {})
+        repo_base = repo.get("url")
+        provider = repo.get("provider", {}).get("id")
+        if repo_base and provider in SUPPORTED_COMMIT_PROVIDERS:
+            if "bitbucket" in provider:
+                commit_link = f"<{repo_base}/commits/{commit_id}"
+            else:
+                commit_link = f"<{repo_base}/commit/{commit_id}"
+            commit_link += f"|{commit_id[:6]}>"
+            suspect_commit_text += f"{commit_link} by {author_display}"
+        else:  # for unsupported providers
+            suspect_commit_text += f"{commit_id[:6]} by {author_display}"
+
+        pr_date = pull_request.get("dateCreated")
+        if pr_date:
+            pr_date = time_since(pr_date)
+        pr_id = pull_request.get("id")
+        pr_title = pull_request.get("title")
+        pr_link = pull_request.get("externalUrl")
+        if pr_date and pr_id and pr_title and pr_link:
+            suspect_commit_text += (
+                f" {pr_date} \n'{pr_title} (#{pr_id})' <{pr_link}|View Pull Request>"
+            )
+    else:
+        suspect_commit_text += f"{commit_id[:6]} by {author_display}"
+    return suspect_commit_text
 
 
 def get_action_text(text: str, actions: Sequence[Any], identity: RpcIdentity) -> str:
@@ -319,9 +367,15 @@ def build_actions(
 
     status = group.get_status()
 
-    def _ignore_button() -> MessageAction:
+    def _ignore_button(use_block_kit) -> MessageAction | None:
         if group.issue_category == GroupCategory.FEEDBACK:
             return None
+        if use_block_kit:
+            if status == GroupStatus.IGNORED:
+                return MessageAction(
+                    name="status", label="Mark as Ongoing", value="unresolved:ongoing"
+                )
+            return MessageAction(name="status", label="Archive", value="archive_dialog")
 
         if status == GroupStatus.IGNORED:
             return MessageAction(
@@ -384,7 +438,11 @@ def build_actions(
 
     action_list = [
         a
-        for a in [_resolve_button(use_block_kit), _ignore_button(), _assign_button(use_block_kit)]
+        for a in [
+            _resolve_button(use_block_kit),
+            _ignore_button(use_block_kit),
+            _assign_button(use_block_kit),
+        ]
         if a is not None
     ]
 
@@ -409,6 +467,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         is_unfurl: bool = False,
         skip_fallback: bool = False,
         notes: str | None = None,
+        commits: Sequence[Mapping[str, Any]] | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -424,6 +483,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
+        self.commits = commits
 
     @property
     def escape_text(self) -> bool:
@@ -432,7 +492,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         """
         return True
 
-    def build(self, notification_uuid: str | None = None) -> Union[SlackBlock, SlackAttachment]:
+    def build(self, notification_uuid: str | None = None) -> SlackBlock | SlackAttachment:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         if self.escape_text:
@@ -457,6 +517,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         )
         obj = self.event if self.event is not None else self.group
         action_text = ""
+
         if not self.issue_details or (
             self.recipient and self.recipient.actor_type == ActorType.TEAM
         ):
@@ -502,13 +563,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build up the blocks for newer issue alert formatting #
 
         # build title block
-        if text:
-            text = f"```{text.lstrip(' ')}```"
-            if self.actions:
-                text += "\n" + action_text
-        if not text:
-            text = action_text
-        title_text = f"<{title_link}|*{escape_slack_text(title)}*>  \n{text}"
+        title_text = f"<{title_link}|*{escape_slack_text(title)}*>"
 
         if self.group.issue_category == GroupCategory.ERROR:
             level_text = None
@@ -522,25 +577,41 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if title_emoji:
             title_text = f"{title_emoji} {title_text}"
-
         blocks = [self.get_markdown_block(title_text)]
-        # build tags block
-        tags = get_tags(event_for_tags, self.tags)
-        if tags:
-            blocks.append(self.get_tags_block(tags))
 
-        # add event count, user count, substate, first seen
-        context = {
-            "Events": get_group_global_count(self.group),
-            "Users Affected": self.group.count_users_seen(),
-            "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
-            "First Seen": time_since(self.group.first_seen),
-        }
-        context_text = ""
-        for k, v in context.items():
-            if k and v:
-                context_text += f"{k}: *{v}*   "
-        blocks.append(self.get_context_block(context_text[:-3]))
+        # build up text block
+        if text:
+            text = text.lstrip(" ")
+            blocks.append(self.get_rich_text_preformatted_block(text))
+
+        # build up actions text
+        if self.actions and self.identity and not action_text:
+            action_text = get_action_text(text, self.actions, self.identity)
+
+        if self.actions:
+            blocks.append(self.get_markdown_block(action_text))
+
+        if self.group.issue_category == GroupCategory.ERROR:
+            # XXX(CEO): in the short term we're not adding these to non-error issues (e.g. crons)
+            # since they don't make sense, but in the future we'll read some config from the grouptype
+
+            # build tags block
+            tags = get_tags(event_for_tags, self.tags)
+            if tags:
+                blocks.append(self.get_tags_block(tags))
+
+            # add event count, user count, substate, first seen
+            context = {
+                "Events": get_group_global_count(self.group),
+                "Users Affected": self.group.count_users_seen(),
+                "State": SUBSTATUS_TO_STR.get(self.group.substatus, "").replace("_", " ").title(),
+                "First Seen": time_since(self.group.first_seen),
+            }
+            context_text = ""
+            for k, v in context.items():
+                if k and v:
+                    context_text += f"{k}: *{v}*   "
+            blocks.append(self.get_context_block(context_text[:-3]))
 
         # build actions
         actions = []
@@ -581,6 +652,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 self.get_context_block(suggested_assignee_text[:-2])
             )  # get rid of comma at the end
 
+        # add suspect commit info
+        if event_for_tags:
+            suspect_commit_text = get_suspect_commit_text(project, event_for_tags, self.commits)
+            if suspect_commit_text:
+                blocks.append(self.get_context_block(suspect_commit_text))
+
         # add notes
         if self.notes:
             notes_text = f"notes: {self.notes}"
@@ -594,8 +671,17 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if not self.notification:
             # the footer content differs if it's a workflow notification, so we must check for that
-            footer = f"Project: <{project.get_absolute_url()}|{escape_slack_text(project.slug)}>    Alert: {footer}"
-            blocks.append(self.get_context_block(text=footer))
+            footer_data = {
+                "Project": f"<{project.get_absolute_url()}|{escape_slack_text(project.slug)}>",
+                "Alert": footer,
+                "Short ID": self.group.qualified_short_id,
+            }
+            footer_text = ""
+            for k, v in footer_data.items():
+                footer_text += f"{k}: {v}    "
+
+            footer_text = footer_text[:-4]  # chop off the empty space
+            blocks.append(self.get_context_block(text=footer_text))
         else:
             blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
 
@@ -611,31 +697,3 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             block_id=json.dumps(block_id),
             skip_fallback=self.skip_fallback,
         )
-
-
-def build_group_attachment(
-    group: Group,
-    event: GroupEvent | None = None,
-    tags: set[str] | None = None,
-    identity: RpcIdentity | None = None,
-    actions: Sequence[MessageAction] | None = None,
-    rules: list[Rule] | None = None,
-    link_to_event: bool = False,
-    issue_details: bool = False,
-    is_unfurl: bool = False,
-    notification_uuid: str | None = None,
-    notes: str | None = None,
-) -> Union[SlackBlock, SlackAttachment]:
-
-    return SlackIssuesMessageBuilder(
-        group,
-        event,
-        tags,
-        identity,
-        actions,
-        rules,
-        link_to_event,
-        issue_details,
-        is_unfurl=is_unfurl,
-        notes=notes,
-    ).build(notification_uuid=notification_uuid)

@@ -6,14 +6,15 @@ import logging
 import time
 import traceback
 import uuid
+import zoneinfo
+from collections.abc import Generator
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from random import Random
-from typing import Any, Generator
+from typing import Any
 from unittest import mock
 from urllib.parse import urlencode
 
-import pytz
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -254,7 +255,7 @@ def get_shared_context(rule, org, project: Project, group, event):
         "group": group,
         "group_header": get_group_substatus_text(group),
         "event": event,
-        "timezone": pytz.timezone("Europe/Vienna"),
+        "timezone": zoneinfo.ZoneInfo("Europe/Vienna"),
         # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
         #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
         "link": get_group_settings_link(group, None, rules, 1337),

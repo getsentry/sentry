@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import WrappedDataExport, {ExportQueryType} from 'sentry/components/dataExport';
-import {Organization as TOrganization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -22,24 +22,23 @@ const mockPayload = {
   queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
 };
 
-const mockRouterContext = (mockOrganization: TOrganization) =>
-  RouterContextFixture([
-    {
-      organization: mockOrganization,
-    },
-  ]);
+const mockContext = (organization: Organization) => {
+  const routerContext = RouterContextFixture([{organization}]);
+
+  return {context: routerContext, organization};
+};
 
 describe('DataExport', function () {
   it('should not render anything for an unauthorized organization', function () {
     render(<WrappedDataExport payload={mockPayload} />, {
-      context: mockRouterContext(mockUnauthorizedOrg),
+      ...mockContext(mockUnauthorizedOrg),
     });
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('should render the button for an authorized organization', function () {
     render(<WrappedDataExport payload={mockPayload} />, {
-      context: mockRouterContext(mockAuthorizedOrg),
+      ...mockContext(mockAuthorizedOrg),
     });
     expect(screen.getByText(/Export All to CSV/)).toBeInTheDocument();
   });
@@ -49,7 +48,7 @@ describe('DataExport', function () {
       <WrappedDataExport payload={mockPayload}>
         This is an example string
       </WrappedDataExport>,
-      {context: mockRouterContext(mockAuthorizedOrg)}
+      {...mockContext(mockAuthorizedOrg)}
     );
     expect(screen.getByText(/This is an example string/)).toBeInTheDocument();
   });
@@ -62,7 +61,7 @@ describe('DataExport', function () {
     });
 
     render(<WrappedDataExport payload={mockPayload} disabled />, {
-      context: mockRouterContext(mockAuthorizedOrg),
+      ...mockContext(mockAuthorizedOrg),
     });
 
     await userEvent.click(screen.getByRole('button'));
@@ -77,7 +76,7 @@ describe('DataExport', function () {
       body: {id: 721},
     });
     render(<WrappedDataExport payload={mockPayload} />, {
-      context: mockRouterContext(mockAuthorizedOrg),
+      ...mockContext(mockAuthorizedOrg),
     });
 
     await userEvent.click(screen.getByRole('button'));
@@ -108,7 +107,7 @@ describe('DataExport', function () {
     });
 
     const {rerender} = render(<WrappedDataExport payload={mockPayload} />, {
-      context: mockRouterContext(mockAuthorizedOrg),
+      ...mockContext(mockAuthorizedOrg),
     });
 
     await userEvent.click(screen.getByText(/Export All to CSV/));
@@ -135,7 +134,7 @@ describe('DataExport', function () {
     });
 
     render(<WrappedDataExport payload={mockPayload} />, {
-      context: mockRouterContext(mockAuthorizedOrg),
+      ...mockContext(mockAuthorizedOrg),
     });
 
     await userEvent.click(screen.getByRole('button'));
@@ -160,7 +159,7 @@ describe('DataExport', function () {
     });
 
     render(<WrappedDataExport payload={mockPayload} />, {
-      context: mockRouterContext(mockAuthorizedOrg),
+      ...mockContext(mockAuthorizedOrg),
     });
 
     await userEvent.click(screen.getByRole('button'));

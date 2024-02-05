@@ -1,8 +1,9 @@
 import logging
 import random
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Sequence, Set, Tuple, TypedDict, Union
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -12,7 +13,11 @@ from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.utils import get_date_range_from_params
 from sentry.incidents.models import AlertRule, AlertRuleStatus
-from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetTypes
+from sentry.models.dashboard_widget import (
+    DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
+    DashboardWidgetTypes,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
@@ -39,6 +44,8 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 
+OnDemandExtractionState = DashboardWidgetQueryOnDemand.OnDemandExtractionState
+
 logger = logging.getLogger(__name__)
 
 # GENERIC METRIC EXTRACTION
@@ -54,7 +61,7 @@ _MAX_ON_DEMAND_ALERTS = 50
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
 _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL = 3600 * 0.5  # 30m
 
-HashedMetricSpec = Tuple[str, MetricSpec, SpecVersion]
+HashedMetricSpec = tuple[str, MetricSpec, SpecVersion]
 
 
 class HighCardinalityWidgetException(Exception):
@@ -65,7 +72,7 @@ class MetricExtractionConfig(TypedDict):
     """Configuration for generic extraction of metrics from all data categories."""
 
     version: int
-    metrics: List[MetricSpec]
+    metrics: list[MetricSpec]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
@@ -79,7 +86,7 @@ def get_max_widget_specs(organization: Organization) -> int:
 
 
 @metrics.wraps("on_demand_metrics.get_metric_extraction_config")
-def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
+def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | None:
     """
     Returns generic metric extraction config for the given project.
 
@@ -107,7 +114,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
+def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
     feature_names = [
         "organizations:on-demand-metrics-extraction",
         "organizations:on-demand-metrics-extraction-widgets",  # Controls extraction for widgets
@@ -125,8 +132,8 @@ def on_demand_metrics_feature_flags(organization: Organization) -> Set[str]:
 
 @metrics.wraps("on_demand_metrics._get_alert_metric_specs")
 def _get_alert_metric_specs(
-    project: Project, enabled_features: Set[str], prefilling: bool
-) -> List[HashedMetricSpec]:
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
     if not ("organizations:on-demand-metrics-extraction" in enabled_features or prefilling):
         return []
 
@@ -176,15 +183,15 @@ def _get_alert_metric_specs(
                     specs.append(spec)
 
     max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
-    specs = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
+    (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
 
     return specs
 
 
 @metrics.wraps("on_demand_metrics._get_widget_metric_specs")
 def _get_widget_metric_specs(
-    project: Project, enabled_features: Set[str], prefilling: bool
-) -> List[HashedMetricSpec]:
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
     if "organizations:on-demand-metrics-extraction-widgets" not in enabled_features:
         metrics.incr("on_demand_metrics.get_widget_metric_specs.extraction_feature_disabled")
         return []
@@ -195,18 +202,23 @@ def _get_widget_metric_specs(
     )
 
     # fetch all queries of all on demand metrics widgets of this organization
-    widget_queries = DashboardWidgetQuery.objects.filter(
-        widget__dashboard__organization=project.organization,
-        widget__widget_type=DashboardWidgetTypes.DISCOVER,
-    ).prefetch_related("dashboardwidgetqueryondemand_set", "widget")
+    widget_queries = (
+        DashboardWidgetQuery.objects.filter(
+            widget__dashboard__organization=project.organization,
+            widget__widget_type=DashboardWidgetTypes.DISCOVER,
+        )
+        .prefetch_related("dashboardwidgetqueryondemand_set", "widget")
+        .order_by("-widget__dashboard__last_visited", "widget__order")
+    )
 
     metrics.incr(
         "on_demand_metrics.widgets_to_process", amount=len(widget_queries), sample_rate=1.0
     )
 
-    ignored_widget_ids: Dict[int, bool] = {}
-    specs_for_widget: Dict[int, list[HashedMetricSpec]] = defaultdict(list)
-    specs: List[HashedMetricSpec] = []
+    ignored_widget_ids: dict[int, bool] = {}
+    specs_for_widget: dict[int, list[HashedMetricSpec]] = defaultdict(list)
+    widget_query_for_spec_hash: dict[str, DashboardWidgetQuery] = {}
+    specs: list[HashedMetricSpec] = []
 
     total_spec_count = 0
 
@@ -221,6 +233,8 @@ def _get_widget_metric_specs(
 
             total_spec_count += 1
             specs_for_widget[widget_query.widget.id] += widget_specs
+            for spec in widget_specs:
+                widget_query_for_spec_hash[spec[0]] = widget_query
 
             can_widget_query_use_stateful_extraction = _can_widget_query_use_stateful_extraction(
                 widget_query, widget_specs
@@ -246,17 +260,18 @@ def _get_widget_metric_specs(
     specs = _trim_disabled_widgets(ignored_widget_ids, specs_for_widget)
     metrics.incr("on_demand_metrics.widget_query_specs.post_disabled_trim", amount=len(specs))
     max_widget_specs = get_max_widget_specs(project.organization)
-    specs = _trim_if_above_limit(specs, max_widget_specs, project, "widgets")
+    (specs, trimmed_specs) = _trim_if_above_limit(specs, max_widget_specs, project, "widgets")
 
+    _update_state_with_spec_limit(trimmed_specs, widget_query_for_spec_hash)
     metrics.incr("on_demand_metrics.widget_query_specs", amount=len(specs))
     return specs
 
 
 def _trim_disabled_widgets(
-    ignored_widgets: Dict[int, bool], specs_for_widget: Dict[int, list[HashedMetricSpec]]
+    ignored_widgets: dict[int, bool], specs_for_widget: dict[int, list[HashedMetricSpec]]
 ) -> list[HashedMetricSpec]:
     """Specifically remove only widget specs that share a widget (spec limit, cardinality limit)."""
-    enabled_specs: List[HashedMetricSpec] = []
+    enabled_specs: list[HashedMetricSpec] = []
 
     for widget_id, specs in specs_for_widget.items():
         if not ignored_widgets.get(widget_id, None):
@@ -270,41 +285,71 @@ def _trim_if_above_limit(
     max_specs: int,
     project: Project,
     widget_type: str,
-) -> list[HashedMetricSpec]:
-    """Trim specs per version if above max limit"""
+) -> tuple[list[HashedMetricSpec], list[HashedMetricSpec]]:
+    """Trim specs per version if above max limit, returns the accepted specs and the trimmed specs in a tuple"""
     return_specs = []
-    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
-    for hash, spec, spec_version in specs:
-        specs_per_version.setdefault(spec_version.version, [])
-        specs_per_version[spec_version.version].append((hash, spec, spec_version))
+    trimmed_specs = []
+    specs_per_version: dict[int, dict[str, HashedMetricSpec]] = {}
 
-    for version, specs_for_version in specs_per_version.items():
+    for hash, spec, spec_version in specs:
+        specs_per_version.setdefault(spec_version.version, {})
+        specs_per_version[spec_version.version][hash] = (hash, spec, spec_version)
+
+    for version, _specs_for_version in specs_per_version.items():
+        specs_for_version = _specs_for_version.values()
         if len(specs_for_version) > max_specs:
-            # Do not log for Sentry
-            if project.organization.id != 1:
-                logger.error(
-                    "Spec version %s: Too many (%s) on demand metric %s for project %s",
-                    version,
-                    len(specs_for_version),
-                    widget_type,
-                    project.slug,
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("project_id", project.id)
+                scope.set_context("specs", {"values": [spec[0] for spec in specs_for_version]})
+                sentry_sdk.capture_exception(
+                    Exception(
+                        f"Spec version {version}: Too many ({len(specs_for_version)}) on demand metric {widget_type} for org {project.organization.slug}"
+                    )
                 )
 
-            return_specs += specs_for_version[:max_specs]
+            return_specs += list(specs_for_version)[:max_specs]
+            trimmed_specs += list(specs_for_version)[max_specs:]
         else:
-            return_specs += specs_for_version
+            return_specs += list(specs_for_version)
 
-    return return_specs
+    return return_specs, trimmed_specs
+
+
+def _update_state_with_spec_limit(
+    trimmed_specs: Sequence[HashedMetricSpec],
+    widget_query_for_spec_hash: dict[str, DashboardWidgetQuery],
+) -> None:
+    """We don't want to picked randomly last-visited widgets to exclude for specs, since we ideally want the extracted specs to be stable.
+    This sets the extracted state to disabled for specs over the limit. With stateful extraction that means that we will pick a consistent set of specs
+    under the limit and not have churn.
+    """
+
+    widget_queries: dict[int, set] = {}
+
+    for spec in trimmed_specs:
+        spec_hash, _, spec_version = spec
+        widget_query = widget_query_for_spec_hash[spec_hash]
+        if widget_query:
+            widget_queries.setdefault(spec_version.version, set())
+            widget_queries[spec_version.version].add(widget_query)
+
+    for (version, widget_query_set) in widget_queries.items():
+        for widget_query in widget_query_set:
+            widget_query.dashboardwidgetqueryondemand_set.filter(spec_version=version).update(
+                extraction_state=OnDemandExtractionState.DISABLED_SPEC_LIMIT
+            )
+
+    return None
 
 
 @metrics.wraps("on_demand_metrics._merge_metric_specs")
 def _merge_metric_specs(
-    alert_specs: List[HashedMetricSpec], widget_specs: List[HashedMetricSpec]
-) -> List[MetricSpec]:
+    alert_specs: list[HashedMetricSpec], widget_specs: list[HashedMetricSpec]
+) -> list[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
     specs: dict[str, MetricSpec] = {}
     duplicated_specs = 0
-    for query_hash, spec, _ in alert_specs + widget_specs:
+    for query_hash, spec, _ in widget_specs + alert_specs:
         already_present = specs.get(query_hash)
         if already_present and not are_specs_equal(already_present, spec):
             logger.warning(
@@ -327,7 +372,7 @@ def _merge_metric_specs(
 
 def _convert_snuba_query_to_metrics(
     project: Project, snuba_query: SnubaQuery, prefilling: bool
-) -> Optional[Sequence[HashedMetricSpec]]:
+) -> Sequence[HashedMetricSpec] | None:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
@@ -350,14 +395,10 @@ def convert_widget_query_to_metric(
     Converts a passed metrics widget query to one or more MetricSpecs.
     Widget query can result in multiple metric specs if it selects multiple fields
     """
-    metrics_specs: List[HashedMetricSpec] = []
+    metrics_specs: list[HashedMetricSpec] = []
 
     if not widget_query.aggregates:
         return metrics_specs
-
-    if "event.type:error" in widget_query.conditions:
-        # Error widgets don't get on-demand extracted.
-        return []
 
     for aggregate in widget_query.aggregates:
         metrics.incr(
@@ -395,13 +436,32 @@ def convert_widget_query_to_metric(
     return metrics_specs
 
 
+def get_specs_per_version(specs: Sequence[HashedMetricSpec]) -> dict[int, list[HashedMetricSpec]]:
+    """This splits a list of specs into versioned specs for per-version logic"""
+    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    for hash, spec, spec_version in specs:
+        specs_per_version.setdefault(spec_version.version, [])
+        specs_per_version[spec_version.version].append((hash, spec, spec_version))
+
+    return specs_per_version
+
+
 def _can_widget_query_use_stateful_extraction(
     widget_query: DashboardWidgetQuery, metrics_specs: Sequence[HashedMetricSpec]
 ) -> bool:
     """Stateful extraction for metrics is not always used, in cases where a query has been recently modified.
-    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries."""
-    spec_hashes = [hashed_spec[0] for hashed_spec in metrics_specs]
-    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+    Separated from enabled state check to allow us to skip cardinality checks on the vast majority of widget queries.
+    """
+
+    specs_per_version = get_specs_per_version(metrics_specs)
+
+    stateful_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
+    default_version_specs = specs_per_version.get(stateful_extraction_version, [])
+    spec_hashes = [hashed_spec[0] for hashed_spec in default_version_specs]
+
+    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.filter(
+        spec_version=stateful_extraction_version
+    )
 
     if len(on_demand_entries) == 0:
         # 0 on-demand entries is expected, and happens when the on-demand task hasn't caught up yet for newly created widgets or widgets recently modified to have on-demand state.
@@ -447,13 +507,18 @@ def _can_widget_query_use_stateful_extraction(
 
 
 def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery) -> bool:
-    """Separate from the check on whether to use stateful extraction in the first place,
+    """Separate from the check on whether to use stateful extracion in the first place,
     this assumes stateful extraction can be used, and returns the enabled state."""
-    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.all()
+
+    stateful_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
+    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.filter(
+        spec_version=stateful_extraction_version
+    )
 
     if len(on_demand_entries) != 1:
         with sentry_sdk.push_scope() as scope:
             scope.set_extra("on_demand_entries", on_demand_entries)
+            scope.set_extra("spec_version", OnDemandMetricSpecVersioning.get_spec_versions())
             sentry_sdk.capture_exception(
                 Exception("Skipped extraction due to mismatched on_demand entries")
             )
@@ -487,7 +552,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
     New queries will be checked upon creation and not allowed at that time.
     """
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "statsPeriod": "30m",
         "project_objects": [project],
         "organization_id": project.organization_id,  # Organization id has to be specified to not violate allocation policy.
@@ -500,7 +565,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
 
     query_killswitch = options.get("on_demand.max_widget_cardinality.killswitch")
     if query_killswitch:
-        return False
+        return True
 
     # No columns or only errors means no high-cardinality tags.
     if not widget_query.columns or "event.type:error" in widget_query.conditions:
@@ -589,11 +654,11 @@ def _convert_aggregate_and_query_to_metrics(
     dataset: str,
     aggregate: str,
     query: str,
-    environment: Optional[str],
+    environment: str | None,
     prefilling: bool,
     spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
-    groupbys: Optional[Sequence[str]] = None,
-) -> Optional[Sequence[HashedMetricSpec]]:
+    groupbys: Sequence[str] | None = None,
+) -> Sequence[HashedMetricSpec] | None:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
 
@@ -641,9 +706,8 @@ def _convert_aggregate_and_query_to_metrics(
             logger.exception("Invalid on-demand metric spec", extra=extra)
         except Exception:
             # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
-            # Sentry console.
-            if not prefilling:
-                logger.exception("Failed on-demand metric spec creation.", extra=extra)
+            metrics.incr("on_demand_metrics.invalid_metric_spec.other")
+            logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
     return metric_specs_and_hashes
 
@@ -720,7 +784,7 @@ _DEFAULT_THRESHOLD = _DefaultThreshold(
 def get_metric_conditional_tagging_rules(
     project: Project,
 ) -> Sequence[MetricConditionalTaggingRule]:
-    rules: List[MetricConditionalTaggingRule] = []
+    rules: list[MetricConditionalTaggingRule] = []
 
     # transaction-specific overrides must precede the project-wide threshold in the list of rules.
     for threshold_override in project.projecttransactionthresholdoverride_set.all().order_by(
@@ -754,9 +818,9 @@ def get_metric_conditional_tagging_rules(
 
 
 def _threshold_to_rules(
-    threshold: Union[
-        ProjectTransactionThreshold, ProjectTransactionThresholdOverride, _DefaultThreshold
-    ],
+    threshold: (
+        ProjectTransactionThreshold | ProjectTransactionThresholdOverride | _DefaultThreshold
+    ),
     extra_conditions: Sequence[RuleCondition],
 ) -> Sequence[MetricConditionalTaggingRule]:
     frustrated: MetricConditionalTaggingRule = {
@@ -1260,9 +1324,7 @@ _HISTOGRAM_OUTLIERS_QUERY_RESULTS = [
 ]
 
 
-def _parse_percentiles(
-    value: Union[Tuple[()], Tuple[str, str, str, str, str]]
-) -> Tuple[float, float]:
+def _parse_percentiles(value: tuple[()] | tuple[str, str, str, str, str]) -> tuple[float, float]:
     if not value:
         return 0, 0
     _min, p25, _p50, p75, _max = map(float, value)
@@ -1270,7 +1332,7 @@ def _parse_percentiles(
 
 
 def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditionalTaggingRule]:
-    rules: List[MetricConditionalTaggingRule] = []
+    rules: list[MetricConditionalTaggingRule] = []
     for row in query_results:
         platform = row["platform"]
         op = row["op"]

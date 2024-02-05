@@ -8,7 +8,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Organization, Project} from 'sentry/types';
+import type {Group, Organization, Project} from 'sentry/types';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 

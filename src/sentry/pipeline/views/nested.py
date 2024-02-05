@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping, Type
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -24,7 +25,7 @@ class NestedPipelineView(PipelineView):
     def __init__(
         self,
         bind_key: str,
-        pipeline_cls: Type[Pipeline],
+        pipeline_cls: type[Pipeline],
         provider_key: str,
         config: Mapping[str, Any] | None = None,
     ) -> None:

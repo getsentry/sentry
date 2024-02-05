@@ -7,37 +7,34 @@ import {CanvasRenderer} from 'echarts/renderers';
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
-import BaseChart, {BaseChartProps} from 'sentry/components/charts/baseChart';
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import BaseChart from 'sentry/components/charts/baseChart';
 import {transformToLineSeries} from 'sentry/components/charts/lineChart';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
-import {DateTimeObject} from 'sentry/components/charts/utils';
-import {ReactEchartsRef} from 'sentry/types/echarts';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeOp} from 'sentry/utils/metrics';
 import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
-import {MetricCorrelation, MetricDisplayType} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import useRouter from 'sentry/utils/useRouter';
 import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
-import {FocusArea, useFocusArea} from 'sentry/views/ddm/focusArea';
+import type {FocusAreaProps} from 'sentry/views/ddm/context';
+import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
 
-import {useMetricSamples} from './useMetricSamples';
-import {Sample, ScatterSeries as ScatterSeriesType, Series} from './widget';
+import {useChartSamples} from './useChartSamples';
+import type {SamplesProps, ScatterSeries as ScatterSeriesType, Series} from './widget';
 
 type ChartProps = {
   displayType: MetricDisplayType;
-  focusArea: FocusArea | null;
   series: Series[];
   widgetIndex: number;
-  addFocusArea?: (area: FocusArea) => void;
-  correlations?: MetricCorrelation[];
-  drawFocusArea?: () => void;
+  focusArea?: FocusAreaProps;
   height?: number;
-  highlightedSampleId?: string;
-  onSampleClick?: (sample: Sample) => void;
   operation?: string;
-  removeFocusArea?: () => void;
+  scatter?: SamplesProps;
 };
 
 // We need to enable canvas renderer for echarts before we use it here.
@@ -47,20 +44,7 @@ echarts.use(CanvasRenderer);
 
 export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
   (
-    {
-      series,
-      displayType,
-      operation,
-      widgetIndex,
-      drawFocusArea,
-      addFocusArea,
-      focusArea,
-      removeFocusArea,
-      height,
-      correlations,
-      onSampleClick,
-      highlightedSampleId,
-    },
+    {series, displayType, operation, widgetIndex, focusArea, height, scatter},
     forwardedRef
   ) => {
     const router = useRouter();
@@ -73,17 +57,15 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       },
       [router]
     );
+
     const focusAreaBrush = useFocusArea({
+      ...focusArea,
       chartRef,
-      focusArea,
       opts: {
         widgetIndex,
-        isDisabled: !addFocusArea || !removeFocusArea || !handleZoom,
+        isDisabled: !focusArea?.onAdd || !handleZoom,
         useFullYAxis: isCumulativeOp(operation),
       },
-      onDraw: drawFocusArea,
-      onAdd: addFocusArea,
-      onRemove: removeFocusArea,
       onZoom: handleZoom,
     });
 
@@ -114,11 +96,11 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
       [unit, operation]
     );
 
-    const samples = useMetricSamples({
+    const samples = useChartSamples({
       chartRef,
-      correlations,
-      onClick: onSampleClick,
-      highlightedSampleId,
+      correlations: scatter?.data,
+      onClick: scatter?.onClick,
+      highlightedSampleId: scatter?.higlightedId,
       operation,
       timeseries: series,
     });

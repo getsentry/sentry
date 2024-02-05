@@ -4,7 +4,7 @@ import DateTime from 'sentry/components/dateTime';
 import NotAvailable from 'sentry/components/notAvailable';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
+import type {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
 
 type Props = {
   details?: AppStoreConnectStatusData;

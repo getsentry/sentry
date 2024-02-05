@@ -1,4 +1,5 @@
-import {Fragment, ReactElement, useState} from 'react';
+import type {ReactElement} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -23,7 +24,7 @@ import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/perf
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
-import {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import Chart from 'sentry/views/starfish/components/chart';
 
@@ -34,9 +35,9 @@ import {
   Subtitle,
   WidgetEmptyStateWarning,
 } from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
-import {PerformanceWidgetProps, WidgetDataResult} from '../types';
+import type {transformDiscoverToList} from '../transforms/transformDiscoverToList';
+import type {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
+import type {PerformanceWidgetProps, WidgetDataResult} from '../types';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
@@ -111,13 +112,13 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
                 scoreCount
               : 0
             : count !== undefined
-            ? calculateOpportunity(
-                projectScore.totalScore ?? 0,
-                count,
-                listItem.totalScore,
-                listItem['count()']
-              )
-            : 0;
+              ? calculateOpportunity(
+                  projectScore.totalScore ?? 0,
+                  count,
+                  listItem.totalScore,
+                  listItem['count()']
+                )
+              : 0;
           return (
             <Fragment>
               <GrowLink
