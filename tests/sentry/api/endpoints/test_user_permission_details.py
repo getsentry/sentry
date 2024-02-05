@@ -22,7 +22,7 @@ class UserDetailsTest(APITestCase):
         self.normal_user = self.create_user(is_superuser=False, is_staff=False)
 
     # For each request method testcase, ensure regular users fail
-    def test_fails_without_superuser_or_superuser(self):
+    def test_fails_without_superuser_or_staff(self):
         self.login_as(self.normal_user)
         response = self.get_response("me", "broadcasts.admin")
         assert response.status_code == 403
