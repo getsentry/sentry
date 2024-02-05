@@ -374,7 +374,7 @@ describe('ReplayReader', () => {
       timestamp: new Date('2024-01-01T00:02:30'),
     });
     const rrwebFrame2 = RRWebFullSnapshotFrameEventFixture({
-      timestamp: new Date('2024-01-01T00:03:05'),
+      timestamp: new Date('2024-01-01T00:03:09'),
     });
     const rrwebFrame3 = RRWebFullSnapshotFrameEventFixture({
       timestamp: new Date('2024-01-01T00:03:30'),
@@ -442,15 +442,10 @@ describe('ReplayReader', () => {
     });
 
     it('should adjust the end time and duration for the clip window', () => {
-      // Started time should be unmodified
-      expect(replay?.getReplay().started_at.getTime()).toEqual(replayStartedAt.getTime());
-      // Finished time should be the end of the clip window
-      expect(replay?.getReplay().finished_at.getTime()).toEqual(
-        clipEndTimestamp.getTime()
-      );
-      // Duration should be the duration between the start of the replay and the end of the clip window
-      expect(replay?.getReplay().duration.asMilliseconds()).toEqual(
-        clipEndTimestamp.getTime() - replayStartedAt.getTime()
+      // Duration should be between the clip start time and the last rrweb frame
+      // within the clip window
+      expect(replay?.getDurationMs()).toEqual(
+        rrwebFrame2.timestamp - clipStartTimestamp.getTime()
       );
       // Start offset should be set
       expect(replay?.getStartOffsetMs()).toEqual(
