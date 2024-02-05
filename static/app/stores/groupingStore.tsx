@@ -331,7 +331,7 @@ const storeConfig: GroupingStoreDefinition = {
       },
       similar: ([issue, scoreMap]) => {
         // Check which similarity endpoint is being used
-        const hasSimilarityEmbeddingsFeature = requests[0].endpoint.includes(
+        const hasSimilarityEmbeddingsFeature = requests[0]?.endpoint.includes(
           'similar-issues-embeddings'
         );
 
