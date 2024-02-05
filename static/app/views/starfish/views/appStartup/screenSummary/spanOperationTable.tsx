@@ -68,6 +68,8 @@ export function SpanOperationTable({
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
+  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
 
   const searchQuery = new MutableSearch([
     'transaction.op:ui.load',
@@ -76,10 +78,9 @@ export function SpanOperationTable({
     // Exclude root level spans because they're comprised of nested operations
     '!span.description:"Cold Start"',
     '!span.description:"Warm Start"',
-    `app_start_type:[cold,warm]`,
-    ...(spanOp
-      ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
-      : [`span.op:[${[...STARTUP_SPANS].join(',')}]`]),
+    `${SpanMetricsField.APP_START_TYPE}:${startType || '[cold,warm]'}`,
+    `${SpanMetricsField.SPAN_OP}:${spanOp || `[${[...STARTUP_SPANS].join(',')}]`}`,
+    ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,

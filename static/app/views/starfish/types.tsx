@@ -35,6 +35,8 @@ export enum SpanMetricsField {
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
   FILE_EXTENSION = 'file_extension',
   OS_NAME = 'os.name',
+  APP_START_TYPE = 'app_start_type',
+  DEVICE_CLASS = 'device.class',
 }
 
 export type SpanNumberFields =
