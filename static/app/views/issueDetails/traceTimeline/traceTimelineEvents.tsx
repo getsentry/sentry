@@ -50,7 +50,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
   return (
     <Fragment>
       {/* Add padding to the total columns, 1 column of padding on each side */}
-      <TimelineColumns totalColumns={totalColumns + 2}>
+      <TimelineColumns style={{gridTemplateColumns: `repeat(${totalColumns + 2}, 1fr)`}}>
         {Array.from(eventsByColumn.entries()).map(([column, colEvents]) => {
           // Calculate the timestamp range that this column represents
           const timeRange = getChunkTimeRange(
@@ -105,7 +105,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
  *   <Col>...</Col>
  * </Columns>
  */
-const TimelineColumns = styled('ul')<{totalColumns: number}>`
+const TimelineColumns = styled('div')`
   /* Reset defaults for <ul> */
   list-style: none;
   margin: 0;
@@ -113,7 +113,6 @@ const TimelineColumns = styled('ul')<{totalColumns: number}>`
 
   /* Layout of the lines */
   display: grid;
-  grid-template-columns: repeat(${p => p.totalColumns}, 1fr);
   margin-top: -1px;
   height: 0;
 `;
@@ -163,7 +162,7 @@ function NodeGroup({
 
   return (
     <Fragment>
-      <TimelineColumns totalColumns={totalSubColumns}>
+      <TimelineColumns style={{gridTemplateColumns: `repeat(${totalSubColumns}, 1fr)`}}>
         {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => {
           const isCurrentNode = groupEvents.some(e => e.id === currentEventId);
           return (
@@ -185,8 +184,6 @@ function NodeGroup({
             </EventColumn>
           );
         })}
-      </TimelineColumns>
-      <TimelineColumns totalColumns={totalSubColumns}>
         <Tooltip
           title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
           overlayStyle={{
@@ -208,7 +205,7 @@ function NodeGroup({
   );
 }
 
-const EventColumn = styled('li')`
+const EventColumn = styled('div')`
   place-items: stretch;
   display: grid;
   align-items: center;
@@ -277,9 +274,11 @@ const CurrentIconNode = styled(IconNode)`
 `;
 
 const TooltipHelper = styled('span')`
-  height: 8px;
-  margin-top: -4px;
-  margin-right: -2px;
+  height: 12px;
+  padding-left: 1px;
+  padding-right: 1px;
+  margin-top: -6px;
+  margin-right: -1px;
   min-width: 8px;
   z-index: 1;
 `;
