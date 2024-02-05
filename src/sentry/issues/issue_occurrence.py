@@ -4,7 +4,7 @@ import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, NotRequired, Sequence, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.utils.timezone import is_aware
 

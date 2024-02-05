@@ -1,5 +1,5 @@
-from enum import IntEnum
 from collections.abc import Mapping
+from enum import IntEnum
 
 
 class GroupSubStatus:
