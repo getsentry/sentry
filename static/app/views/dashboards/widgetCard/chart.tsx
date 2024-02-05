@@ -270,7 +270,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     if (chartRef && !this.chartRef) {
       this.chartRef = chartRef;
       // add chart to the group so that it has synced cursors
-      const instance = chartRef.getEchartsInstance();
+      const instance = chartRef.getEchartsInstance?.();
       if (instance && !instance.group) {
         instance.group = DASHBOARD_CHART_GROUP;
       }
