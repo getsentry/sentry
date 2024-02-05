@@ -1,0 +1,109 @@
+import {type ReactNode, useState} from 'react';
+import styled from '@emotion/styled';
+
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {space} from 'sentry/styles/space';
+import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
+import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
+import {SpanOpSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
+import {StartTypeSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
+import {
+  MobileCursors,
+  MobileSortKeys,
+} from 'sentry/views/starfish/views/screens/constants';
+import {DeviceClassSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/deviceClassSelector';
+
+const EVENT = 'event';
+const SPANS = 'spans';
+
+export function SamplesTables({transactionName}) {
+  const [sampleType, setSampleType] = useState<typeof EVENT | typeof SPANS>(SPANS);
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
+
+  let content: null | ReactNode = null;
+
+  if (sampleType === EVENT) {
+    content = (
+      <EventSplitContainer>
+        <ErrorBoundary mini>
+          {primaryRelease && (
+            <div>
+              <EventSamples
+                cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                release={primaryRelease}
+                transaction={transactionName}
+                footerAlignedPagination
+              />
+            </div>
+          )}
+        </ErrorBoundary>
+        <ErrorBoundary mini>
+          {secondaryRelease && (
+            <div>
+              <EventSamples
+                cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                release={secondaryRelease}
+                transaction={transactionName}
+                footerAlignedPagination
+              />
+            </div>
+          )}
+        </ErrorBoundary>
+      </EventSplitContainer>
+    );
+  } else {
+    content = (
+      <ErrorBoundary mini>
+        <SpanOperationTable
+          transaction={transactionName}
+          primaryRelease={primaryRelease}
+          secondaryRelease={secondaryRelease}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  return (
+    <div>
+      <Controls>
+        <FiltersContainer>
+          <SpanOpSelector
+            primaryRelease={primaryRelease}
+            transaction={transactionName}
+            secondaryRelease={secondaryRelease}
+          />
+          <StartTypeSelector />
+          <DeviceClassSelector />
+        </FiltersContainer>
+        <SegmentedControl onChange={value => setSampleType(value)} defaultValue={SPANS}>
+          <SegmentedControl.Item key={SPANS}>By Spans</SegmentedControl.Item>
+          <SegmentedControl.Item key={EVENT}>By Event</SegmentedControl.Item>
+        </SegmentedControl>
+      </Controls>
+      {content}
+    </div>
+  );
+}
+
+const EventSplitContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(1.5)}
+`;
+
+const Controls = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${space(1)};
+`;
+
+const FiltersContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;

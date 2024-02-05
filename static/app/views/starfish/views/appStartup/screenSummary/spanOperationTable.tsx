@@ -34,7 +34,6 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/te
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {SpanOpSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
@@ -77,8 +76,7 @@ export function SpanOperationTable({
     // Exclude root level spans because they're comprised of nested operations
     '!span.description:"Cold Start"',
     '!span.description:"Warm Start"',
-    // TODO: Add this back when we have the data
-    // `app_start_type:[cold,warm]`,
+    `app_start_type:[cold,warm]`,
     ...(spanOp
       ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
       : [`span.op:[${[...STARTUP_SPANS].join(',')}]`]),
@@ -130,11 +128,11 @@ export function SpanOperationTable({
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
-      'Duration (%s)',
+      'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
-      'Duration (%s)',
+      'Avg Duration (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
     [`avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`]:
@@ -247,11 +245,6 @@ export function SpanOperationTable({
 
   return (
     <Fragment>
-      <SpanOpSelector
-        primaryRelease={primaryRelease}
-        transaction={transaction}
-        secondaryRelease={secondaryRelease}
-      />
       <GridEditable
         isLoading={isLoading}
         data={data?.data as TableDataRow[]}

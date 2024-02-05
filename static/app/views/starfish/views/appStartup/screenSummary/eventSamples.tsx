@@ -25,6 +25,7 @@ type Props = {
   release: string;
   sortKey: string;
   transaction: string;
+  footerAlignedPagination?: boolean;
   showDeviceClassSelector?: boolean;
 };
 
@@ -34,6 +35,7 @@ export function EventSamples({
   release,
   sortKey,
   showDeviceClassSelector,
+  footerAlignedPagination,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
@@ -112,6 +114,7 @@ export function EventSamples({
       showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}
       sort={sort}
+      footerAlignedPagination={footerAlignedPagination}
     />
   );
 }
