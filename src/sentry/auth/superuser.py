@@ -88,7 +88,7 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
 
 
 def superuser_has_permission(
-    request: HttpRequest | Request, permissions: FrozenSet[str] | None = None
+    request: HttpRequest | Request, permissions: frozenset[str] | None = None
 ) -> bool:
     """
     This is used in place of is_active_superuser() in APIs / permission classes.
