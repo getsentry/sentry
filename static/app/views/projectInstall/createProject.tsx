@@ -40,7 +40,7 @@ import IssueAlertOptions, {
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
-type IssueAlertFragment = Parameters<
+export type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
 >[0];
 
