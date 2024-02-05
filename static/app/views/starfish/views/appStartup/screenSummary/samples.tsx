@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
@@ -80,8 +81,8 @@ export function SamplesTables({transactionName}) {
           <DeviceClassSelector size="md" />
         </FiltersContainer>
         <SegmentedControl onChange={value => setSampleType(value)} defaultValue={SPANS}>
-          <SegmentedControl.Item key={SPANS}>By Spans</SegmentedControl.Item>
-          <SegmentedControl.Item key={EVENT}>By Event</SegmentedControl.Item>
+          <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>
+          <SegmentedControl.Item key={EVENT}>{t('By Event')}</SegmentedControl.Item>
         </SegmentedControl>
       </Controls>
       {content}
