@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Union
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -73,7 +73,7 @@ class OperationValue(Field):
     or an object depending on the client.
     """
 
-    def to_representation(self, value) -> Union[Dict, bool]:
+    def to_representation(self, value) -> dict | bool:
         if isinstance(value, bool):
             return value
         elif isinstance(value, dict):
@@ -84,7 +84,7 @@ class OperationValue(Field):
                 return value
         raise ValidationError("value must be a boolean or object")
 
-    def to_internal_value(self, data) -> Union[Dict, bool]:
+    def to_internal_value(self, data) -> dict | bool:
         if isinstance(data, bool):
             return data
         elif isinstance(data, dict):
@@ -428,7 +428,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
 
 class SCIMListMembersResponse(SCIMListBaseResponse):
-    Resources: List[OrganizationMemberSCIMSerializerResponse]
+    Resources: list[OrganizationMemberSCIMSerializerResponse]
 
 
 @region_silo_endpoint

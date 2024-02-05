@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Mapping, Optional, Union
 
 from snuba_sdk import Condition, Direction, Op, OrderBy
 from snuba_sdk.function import Function
@@ -57,7 +57,7 @@ class Column:
     # data type associated with this column
     kind: Kind
     # some kinds will have an unit associated with it
-    unit: Optional[Unit] = None
+    unit: Unit | None = None
 
 
 COLUMNS = [
@@ -108,7 +108,7 @@ COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
 class ProfileColumnArg(ColumnArg):
     def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+        self, value: str, params: ParamsType, combinator: Combinator | None
     ) -> NormalizedArg:
         column = COLUMN_MAP.get(value)
 
@@ -170,14 +170,14 @@ class ProfilesDatasetConfig(DatasetConfig):
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
 
-    def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         value = search_filter.value.value
         if search_filter.value.is_wildcard():
             # XXX: We don't want the '^$' values at the beginning and end of
@@ -209,7 +209,7 @@ class ProfilesDatasetConfig(DatasetConfig):
                 0,
             )
 
-    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
     @property
@@ -394,7 +394,7 @@ class ProfilesDatasetConfig(DatasetConfig):
         except KeyError:
             raise InvalidSearchQuery(f"Unknown field: {column}")
 
-    def resolve_column_type(self, column: str, units: bool = False) -> Optional[str]:
+    def resolve_column_type(self, column: str, units: bool = False) -> str | None:
         try:
             col = COLUMN_MAP[column]
             if col.unit:
@@ -407,9 +407,9 @@ class ProfilesDatasetConfig(DatasetConfig):
 
     def _resolve_percentile(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
-        fixed_percentile: Optional[float] = None,
+        fixed_percentile: float | None = None,
     ) -> SelectType:
         return (
             Function(

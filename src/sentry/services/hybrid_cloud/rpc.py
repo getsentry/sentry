@@ -6,24 +6,10 @@ import hmac
 import inspect
 import logging
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    Mapping,
-    MutableMapping,
-    NoReturn,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
 
 import django.urls
 import pydantic
@@ -31,7 +17,6 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
-from typing_extensions import Self
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
@@ -71,7 +56,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
     resolving the arguments to the correct region for a remote call.
     """
 
-    def __init__(self, base_service_cls: Type[RpcService], base_method: Callable[..., Any]) -> None:
+    def __init__(self, base_service_cls: type[RpcService], base_method: Callable[..., Any]) -> None:
         self.base_service_cls = base_service_cls
         super().__init__(base_method, is_instance_method=True)
         self._region_resolution = self._extract_region_resolution()
@@ -125,7 +110,7 @@ class _RegionResolutionResult:
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
     def __init__(
         self,
-        base_service_cls: Type[RpcService],
+        base_service_cls: type[RpcService],
         constructors: Mapping[SiloMode, Callable[[], RpcService]],
         signatures: Mapping[str, RpcMethodSignature],
     ) -> None:
@@ -181,7 +166,7 @@ def regional_rpc_method(
     return decorator
 
 
-_global_service_registry: Dict[str, DelegatingRpcService] = {}
+_global_service_registry: dict[str, DelegatingRpcService] = {}
 
 
 class RpcService(abc.ABC):
@@ -378,7 +363,7 @@ class RpcResponseException(RpcException):
 
 def _look_up_service_method(
     service_name: str, method_name: str
-) -> Tuple[DelegatingRpcService, Callable[..., Any]]:
+) -> tuple[DelegatingRpcService, Callable[..., Any]]:
     try:
         service = _global_service_registry[service_name]
     except KeyError:
@@ -533,8 +518,7 @@ class _RemoteSiloCall:
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
         with sentry_sdk.configure_scope() as scope:
-            scope.set_tag("rpc_service", self.service_name)
-            scope.set_tag("rpc_method", self.method_name)
+            scope.set_tag("rpc_method", f"{self.service_name}.{self.method_name}")
             scope.set_tag("rpc_status_code", response.status_code)
 
         if in_test_environment():

@@ -77,6 +77,7 @@ export type ReplayEventParameters = {
   };
   'replay.list-view-setup-sidebar': {};
   'replay.play-pause': {
+    context: string;
     play: boolean;
     user_email: string;
   };
@@ -93,6 +94,7 @@ export type ReplayEventParameters = {
   };
   'replay.render-player': {
     aspect_ratio: 'portrait' | 'landscape';
+    context: string;
     // What scale is the video as a percent, bucketed into ranges of 10% increments
     // example:
     //  - The video is shown at 25% the normal size
@@ -104,6 +106,7 @@ export type ReplayEventParameters = {
     search_keys: string;
   };
   'replay.toggle-fullscreen': {
+    context: string;
     fullscreen: boolean;
     user_email: string;
   };

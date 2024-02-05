@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Type
 
 from django.db.models import Model
 
@@ -39,19 +38,19 @@ class ExhaustiveTests(BackupTestCase):
         return tmp_path
 
     @expect_models(EXHAUSTIVELY_TESTED, "__all__")
-    def test_exhaustive_clean_pks(self, expected_models: list[Type[Model]]):
+    def test_exhaustive_clean_pks(self, expected_models: list[type[Model]]):
         self.create_exhaustive_instance(is_superadmin=True)
         actual = self.import_export_then_validate(self._testMethodName, reset_pks=True)
         verify_models_in_output(expected_models, actual)
 
     @expect_models(EXHAUSTIVELY_TESTED, "__all__")
-    def test_exhaustive_dirty_pks(self, expected_models: list[Type[Model]]):
+    def test_exhaustive_dirty_pks(self, expected_models: list[type[Model]]):
         self.create_exhaustive_instance(is_superadmin=True)
         actual = self.import_export_then_validate(self._testMethodName, reset_pks=False)
         verify_models_in_output(expected_models, actual)
 
     @expect_models(UNIQUENESS_TESTED, "__all__")
-    def test_uniqueness(self, expected_models: list[Type[Model]]):
+    def test_uniqueness(self, expected_models: list[type[Model]]):
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Export the data once.

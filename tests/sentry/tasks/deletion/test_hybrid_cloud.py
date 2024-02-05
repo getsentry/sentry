@@ -1,4 +1,3 @@
-from typing import Tuple
 from unittest.mock import patch
 
 import pytest
@@ -113,7 +112,7 @@ def test_watermark_and_transaction_id(task_runner, saved_search_owner_id_field):
 @assume_test_silo_mode(SiloMode.MONOLITH)
 def setup_deletable_objects(
     count=1, send_tombstones=True, u_id=None
-) -> Tuple[QuerySet, ControlOutbox]:
+) -> tuple[QuerySet, ControlOutbox]:
     if u_id is None:
         u = Factories.create_user()
         u_id = u.id

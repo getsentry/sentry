@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Any, Dict, Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 from sentry import features
 from sentry.eventstore.models import Event
@@ -30,10 +31,10 @@ class MNPlusOneState(ABC):
     """Abstract base class for the MNPlusOneDBSpanDetector state machine."""
 
     @abstractmethod
-    def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
+    def next(self, span: Span) -> tuple[MNPlusOneState, PerformanceProblem | None]:
         raise NotImplementedError
 
-    def finish(self) -> Optional[PerformanceProblem]:
+    def finish(self) -> PerformanceProblem | None:
         return None
 
     def _equivalent(self, a: Span, b: Span) -> bool:
@@ -62,13 +63,13 @@ class SearchingForMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "recent_spans")
 
     def __init__(
-        self, settings: Dict[str, Any], event: Event, initial_spans: Optional[Sequence[Span]] = None
+        self, settings: dict[str, Any], event: Event, initial_spans: Sequence[Span] | None = None
     ) -> None:
         self.settings = settings
         self.event = event
         self.recent_spans = deque(initial_spans or [], self.settings["max_sequence_length"])
 
-    def next(self, span: Span) -> Tuple[MNPlusOneState, Optional[PerformanceProblem]]:
+    def next(self, span: Span) -> tuple[MNPlusOneState, PerformanceProblem | None]:
         # Can't be a potential MN+1 without at least 2 previous spans.
         if len(self.recent_spans) <= 1:
             self.recent_spans.append(span)
@@ -124,7 +125,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
     __slots__ = ("settings", "event", "pattern", "spans", "pattern_index")
 
     def __init__(
-        self, settings: Dict[str, Any], event: Event, pattern: Sequence[Span], first_span: Span
+        self, settings: dict[str, Any], event: Event, pattern: Sequence[Span], first_span: Span
     ) -> None:
         self.settings = settings
         self.event = event
@@ -155,10 +156,10 @@ class ContinuingMNPlusOne(MNPlusOneState):
             self._maybe_performance_problem(),
         )
 
-    def finish(self) -> Optional[PerformanceProblem]:
+    def finish(self) -> PerformanceProblem | None:
         return self._maybe_performance_problem()
 
-    def _maybe_performance_problem(self) -> Optional[PerformanceProblem]:
+    def _maybe_performance_problem(self) -> PerformanceProblem | None:
         times_occurred = int(len(self.spans) / len(self.pattern))
         minimum_occurrences_of_pattern = self.settings["minimum_occurrences_of_pattern"]
         if times_occurred < minimum_occurrences_of_pattern:
@@ -213,7 +214,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             ],
         )
 
-    def _first_db_span(self) -> Optional[Span]:
+    def _first_db_span(self) -> Span | None:
         for span in self.spans:
             if span["op"].startswith("db"):
                 return span
@@ -263,7 +264,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
         self.stored_problems = {}
         self.state = SearchingForMNPlusOne(self.settings, self.event())
 
-    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
+    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
         return features.has(
             "organizations:performance-issues-m-n-plus-one-db-detector",
             organization,
