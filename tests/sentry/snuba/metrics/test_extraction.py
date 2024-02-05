@@ -466,6 +466,25 @@ def test_spec_wildcard() -> None:
     }
 
 
+@pytest.mark.parametrize(
+    "query,expected_pattern",
+    [
+        ("title:*[dispatch:*", "*\\[dispatch:*"),
+        ("title:*{dispatch:*", "*\\{dispatch:*"),
+        ("title:*dispatch]:*", "*dispatch\\]:*"),
+        ("title:*dispatch}:*", "*dispatch\\}:*"),
+        ("title:*?dispatch:*", "*\\?dispatch:*"),
+    ],
+)
+def test_spec_wildcard_escaping(query, expected_pattern) -> None:
+    spec = OnDemandMetricSpec("count()", query)
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition["value"] == [expected_pattern]
+
+
 def test_spec_count_if() -> None:
     spec = OnDemandMetricSpec("count_if(transaction.duration,equals,300)", "")
 
