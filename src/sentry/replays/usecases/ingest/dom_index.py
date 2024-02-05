@@ -194,10 +194,7 @@ def get_user_actions(
 
                         if is_rage:
                             metrics.incr("replay.rage_click_detected")
-                            if features.has(
-                                "organizations:session-replay-rage-click-issue-creation",
-                                Project.objects.get(id=project_id).organization,
-                            ):
+                            if _should_report_rage_click_issue(project_id):
                                 report_rage_click_issue.delay(
                                     project_id, replay_id, cast(SentryEvent, event)
                                 )
@@ -351,3 +348,26 @@ def create_click_event(
 
 def _parse_classes(classes: str) -> list[str]:
     return list(filter(lambda n: n != "", classes.split(" ")))[:10]
+
+
+def _should_report_rage_click_issue(project_id: int) -> bool:
+    project = Project.objects.get(id=project_id)
+
+    def _project_has_feature_enabled() -> bool:
+        """
+        Check if the project has the feature flag enabled,
+        This is controlled by Sentry admins for release of the feature
+        """
+        return features.has(
+            "organizations:session-replay-rage-click-issue-creation",
+            project.organization,
+        )
+
+    def _project_has_option_enabled() -> bool:
+        """
+        Check if the project has the option enabled,
+        This is controlled by the project owner, and is a permanent setting
+        """
+        return project.get_option("sentry:replay_rage_click_issues", False)
+
+    return all([_project_has_feature_enabled(), _project_has_option_enabled()])
