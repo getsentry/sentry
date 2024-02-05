@@ -885,10 +885,7 @@ function GroupDetails(props: GroupDetailsProps) {
     return `${title || message || defaultTitle} — ${eventDetails}`;
   };
 
-  let config;
-  if (group) {
-    config = getConfigForIssueType(group, group.project);
-  }
+  const config = group && getConfigForIssueType(group, group.project);
 
   return (
     <Fragment>
