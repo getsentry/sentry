@@ -325,7 +325,7 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
         and parsed_mri.name.startswith("measurements.")
         and
         # Iterate through the transaction MRI and check that this parsed_mri isn't in there
-        parsed_mri.mri_string not in [mri.value for mri in TransactionMRI.__members__.values()]
+        all(parsed_mri.mri_string != mri.value for mri in TransactionMRI.__members__.values())
     )
 
 
