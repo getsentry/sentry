@@ -109,6 +109,7 @@ jest.mock('@sentry/react', function sentryReact() {
     startSpan: jest.spyOn(SentryReact, 'startSpan'),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
+    getClient: jest.spyOn(SentryReact, 'getClient'),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Hub: SentryReact.Hub,
