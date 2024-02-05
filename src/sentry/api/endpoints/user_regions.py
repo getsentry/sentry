@@ -19,7 +19,7 @@ from sentry.types.region import get_region_by_name
 
 # Grants access to the list of regions where a user has organizations.
 # This should only be accessible for the current user or
-# system/superuser/staff requests.
+# system/superuser requests.
 #
 # This will also grant access via user auth tokens assuming the
 # user ID matches the user that is being queried.
