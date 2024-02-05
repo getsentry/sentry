@@ -118,6 +118,45 @@ describe('TraceTree', () => {
     expect(tree.root.children[0].children).toHaveLength(1);
   });
 
+  it('isLastChild', () => {
+    const tree = TraceTree.FromTrace([
+      makeTransaction({
+        children: [makeTransaction(), makeTransaction()],
+      }),
+      makeTransaction(),
+    ]);
+
+    tree.expand(tree.list[0], true);
+
+    expect(tree.list[0].isLastChild).toBe(false);
+    expect(tree.list[1].isLastChild).toBe(false);
+    expect(tree.list[2].isLastChild).toBe(true);
+    expect(tree.list[3].isLastChild).toBe(true);
+  });
+
+  it('computes connectors', () => {
+    const tree = TraceTree.FromTrace([
+      makeTransaction({
+        children: [makeTransaction(), makeTransaction()],
+      }),
+      makeTransaction(),
+    ]);
+
+    // - node1 []
+    // | - child1 [0]
+    // | - child2 [0]
+    // - node2 []
+
+    tree.expand(tree.list[0], true);
+    expect(tree.list.length).toBe(4);
+
+    expect(tree.list[0].connectors.length).toBe(0);
+    expect(tree.list[1].connectors.length).toBe(1);
+    expect(tree.list[1].connectors[0]).toBe(0);
+    expect(tree.list[2].connectors[0]).toBe(0);
+    expect(tree.list[3].connectors.length).toBe(0);
+  });
+
   describe('expanding', () => {
     it('expands a node and updates the list', () => {
       const tree = TraceTree.FromTrace([

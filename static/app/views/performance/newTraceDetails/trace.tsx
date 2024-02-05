@@ -119,9 +119,6 @@ function RenderRow(props: {
     return null;
   }
 
-  const isLastChild =
-    props.node.parent?.children[props.node.parent?.children?.length - 1] === props.node;
-
   if (isTransactionNode(props.node)) {
     const transaction = props.node.value as TraceFullDetailed;
 
@@ -131,8 +128,6 @@ function RenderRow(props: {
         // @TODO check if we can just mutate style
         style={{...props.style, paddingLeft: props.node.depth * 23}}
       >
-        {props.node.isOrphaned ? 'Orphaned' : ''}
-        {isLastChild ? 'Last Child' : ''}
         {props.node.children.length > 0 ? (
           <ChildrenCountButton
             node={props.node}
@@ -162,8 +157,6 @@ function RenderRow(props: {
       // @TODO check if we can just mutate style
       style={{...props.style, paddingLeft: props.node.depth * 23}}
     >
-      {props.node.isOrphaned ? 'Orphaned' : ''}
-      {isLastChild ? 'Last Child' : ''}
       {props.node.children.length > 0 ? (
         <ChildrenCountButton
           node={props.node}
