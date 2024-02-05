@@ -83,10 +83,6 @@ def test_report_rage_click_issue_a_tag(mock_new_issue_occurrence, default_projec
         issue_occurence_call["evidence_display"][1].to_dict()
         == IssueEvidence(name="Selector Path", value="div.xyz > a", important=True).to_dict()
     )
-    assert (
-        issue_occurence_call["evidence_display"][2].to_dict()
-        == IssueEvidence(name="Page URL", value="https://www.sentry.io", important=True).to_dict()
-    )
 
     assert issue_occurence_call["extra_event_data"] == {
         "contexts": {"replay": {"replay_id": "b58a67446c914f44a4e329763420047b"}},

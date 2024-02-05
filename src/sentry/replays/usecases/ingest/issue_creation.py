@@ -70,7 +70,6 @@ def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent)
         evidence_display=[
             IssueEvidence(name="Clicked Element", value=clicked_element, important=True),
             IssueEvidence(name="Selector Path", value=selector, important=True),
-            IssueEvidence(name="Page URL", value=payload["data"]["url"], important=True),
         ],
         extra_event_data={
             "contexts": {"replay": {"replay_id": replay_id}},
