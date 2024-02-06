@@ -34,7 +34,7 @@ class OAuth2Provider(Provider):
     however may be overridden using the ``config['oauth_scopes']`` object.
     """
 
-    oauth_access_token_url = ""
+    oauth_access_token_url = "https://provider.example.com/oauth2/access_token"
     oauth_authorize_url = ""
     refresh_token_url = ""
 
