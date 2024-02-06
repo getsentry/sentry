@@ -11,13 +11,14 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as analytics from 'sentry/utils/analytics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues';
 
 const MockNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => MockNavigate,
 }));
+jest.mock('sentry/utils/analytics');
 
 describe('Issues Similar View', function () {
   let mock;
@@ -30,7 +31,7 @@ describe('Issues Similar View', function () {
     {
       router: {
         ...RouterFixture(),
-        params: {orgId: 'org-slug', projectId: 'project-slug', groupId: '1000000'},
+        params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
       },
     },
   ]);
@@ -48,11 +49,9 @@ describe('Issues Similar View', function () {
 
   const router = RouterFixture();
 
-  const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1000000/similar/?limit=50',
+      url: '/organizations/org-slug/issues/group-id/similar/?limit=50',
       body: mockData.similar,
     });
   });
@@ -76,7 +75,7 @@ describe('Issues Similar View', function () {
     render(
       <GroupSimilarIssues
         project={project}
-        params={{orgId: 'org-slug', groupId: '1000000'}}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
         router={router}
         routeParams={router.params}
@@ -105,7 +104,7 @@ describe('Issues Similar View', function () {
     render(
       <GroupSimilarIssues
         project={project}
-        params={{orgId: 'org-slug', groupId: '1000000'}}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
         router={router}
         routeParams={router.params}
@@ -138,7 +137,7 @@ describe('Issues Similar View', function () {
     render(
       <GroupSimilarIssues
         project={project}
-        params={{orgId: 'org-slug', groupId: '1000000'}}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
         router={router}
         routeParams={router.params}
@@ -216,7 +215,7 @@ describe('Issues Similar Embeddings View', function () {
     render(
       <GroupSimilarIssues
         project={project}
-        params={{orgId: 'org-slug', groupId: '1000000'}}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
         router={router}
         routeParams={router.params}
@@ -302,7 +301,7 @@ describe('Issues Similar Embeddings View', function () {
     render(
       <GroupSimilarIssues
         project={project}
-        params={{orgId: 'org-slug', groupId: '1000000'}}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
         location={router.location}
         router={router}
         routeParams={router.params}
@@ -315,11 +314,11 @@ describe('Issues Similar Embeddings View', function () {
 
     await selectNthSimilarItem(0);
     await userEvent.click(await screen.findByRole('button', {name: 'Agree (1)'}));
-    expect(analyticsSpy).toHaveBeenCalledTimes(1);
-    expect(analyticsSpy).toHaveBeenCalledWith(
+    expect(trackAnalytics).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledWith(
       'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
       expect.objectContaining({
-        parentGroupId: 1000000,
+        groupId: 'group-id',
         value: 'Yes',
       })
     );

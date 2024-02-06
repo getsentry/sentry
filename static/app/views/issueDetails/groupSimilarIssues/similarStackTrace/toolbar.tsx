@@ -9,13 +9,14 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
+import type {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {Project} from 'sentry/types';
 
 type Props = {
   onMerge: () => void;
+  groupId?: string;
+  organization?: Organization;
   project?: Project;
-  parentGroupId?: number;
 };
 
 const initialState = {
@@ -49,17 +50,17 @@ class SimilarToolbar extends Component<Props, State> {
     if (
       this.state.mergeList.length === 0 ||
       !this.props.organization ||
-      !this.props.parentGroupId
+      !this.props.groupId
     ) {
       return;
     }
-    for (const groupId of this.state.mergeList) {
+    for (const parentGroupId of this.state.mergeList) {
       trackAnalytics(
         'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
         {
           organization: this.props.organization,
-          groupId: Number(groupId),
-          parentGroupId: this.props.parentGroupId,
+          parentGroupId,
+          groupId: this.props.groupId,
           value,
         }
       );

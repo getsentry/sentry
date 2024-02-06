@@ -84,8 +84,8 @@ export type IssueEventParameters = {
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
-    groupId: number;
-    parentGroupId: number;
+    groupId: string;
+    parentGroupId: string;
     value: string;
   };
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
