@@ -91,7 +91,6 @@ class TimeseriesCardinalityLimiter:
         # for each metric path. ultimately, this can be moved into the
         # loop below to make rollout options occur on a per use case-basis
         rollout_option = {
-            UseCaseKey.EXPERIMENTAL: "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
             UseCaseKey.PERFORMANCE: "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
             UseCaseKey.RELEASE_HEALTH: "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
         }[metric_path_key]
