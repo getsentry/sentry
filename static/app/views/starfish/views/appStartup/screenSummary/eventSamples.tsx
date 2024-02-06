@@ -13,6 +13,10 @@ import {
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {
+  COLD_START_TYPE,
+  WARM_START_TYPE,
+} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {EventSamplesTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -55,7 +59,9 @@ export function EventSamples({
     'OR',
     'span.description:"Warm Start"',
     ')',
-    `${SpanMetricsField.APP_START_TYPE}:${startType || '[cold,warm]'}`,
+    `${SpanMetricsField.APP_START_TYPE}:${
+      startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
+    }`,
   ]);
 
   if (deviceClass) {

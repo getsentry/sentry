@@ -32,6 +32,10 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/te
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {
+  COLD_START_TYPE,
+  WARM_START_TYPE,
+} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
@@ -82,7 +86,9 @@ export function SpanOperationTable({
     // Exclude root level spans because they're comprised of nested operations
     '!span.description:"Cold Start"',
     '!span.description:"Warm Start"',
-    `${SpanMetricsField.APP_START_TYPE}:${startType || '[cold,warm]'}`,
+    `${SpanMetricsField.APP_START_TYPE}:${
+      startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
+    }`,
     `${SpanMetricsField.SPAN_OP}:${spanOp || `[${[...STARTUP_SPANS].join(',')}]`}`,
     ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);

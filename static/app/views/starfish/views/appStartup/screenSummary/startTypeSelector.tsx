@@ -7,6 +7,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 
+export const COLD_START_TYPE = 'cold';
+export const WARM_START_TYPE = 'warm';
+
 export function StartTypeSelector() {
   const location = useLocation();
 
@@ -14,8 +17,8 @@ export function StartTypeSelector() {
 
   const options = [
     {value: '', label: t('All')},
-    {value: 'cold', label: t('Cold')},
-    {value: 'warm', label: t('Warm')},
+    {value: COLD_START_TYPE, label: t('Cold')},
+    {value: WARM_START_TYPE, label: t('Warm')},
   ];
 
   return (
