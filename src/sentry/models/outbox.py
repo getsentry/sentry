@@ -4,7 +4,6 @@ import abc
 import contextlib
 import dataclasses
 import datetime
-import logging
 import threading
 from enum import IntEnum
 from typing import Any, Collection, Generator, Iterable, Mapping, TypeVar, cast
@@ -410,7 +409,6 @@ def _ensure_not_null(k: str, v: Any) -> Any:
 class OutboxBase(Model):
     sharding_columns: Iterable[str]
     coalesced_columns: Iterable[str]
-    logger: logging.Logger = logging.getLogger("outbox_logger")
 
     @classmethod
     def from_outbox_name(cls, name: str) -> type[Self]:
@@ -562,7 +560,8 @@ class OutboxBase(Model):
             yield next_shard_row
 
     def get_advisory_lock_key(self):
-        key_components = [str(getattr(self, col)) for col in self.sharding_columns]
+        key_components = [repr(getattr(self, col)) for col in self.sharding_columns]
+        # Use murmur hash for a good distribution of results + performance
         return mmh3.hash64(".".join(key_components))[0]
 
     @contextlib.contextmanager
@@ -574,9 +573,6 @@ class OutboxBase(Model):
         using: str = db.router.db_for_write(type(self))
         lock_id = self.get_advisory_lock_key()
 
-        self.logger.info(
-            "outbox.attempting_lock", extra={"lock_id": lock_id, "thread_id": threading.get_ident()}
-        )
         try:
             with advisory_lock(
                 using=using,
@@ -589,8 +585,7 @@ class OutboxBase(Model):
                 ).first()
 
                 yield next_shard_row
-        except OperationalError as e:
-            self.logger.info("outbox.contentious_operation")
+        except OperationalError:
             # We've elapsed the full lock timeout and need to handle this contention.
             # Partial flushes (synchronous drains) rely on work being completed up
             # to the specified message ID. We can safely return if the latest head
@@ -603,13 +598,11 @@ class OutboxBase(Model):
                 next_shard_row = self.selected_messages_in_shard(
                     latest_shard_row=latest_shard_row
                 ).first()
-                if next_shard_row.id > latest_shard_row.id:
-                    self.logger.info("outbox.synchronous_flush_contention_work_already_complete")
+                if not next_shard_row:
                     yield None
                     return
 
-                sentry_sdk.capture_exception(e)
-                self.logger.info("outbox.encountered_critical_contention")
+                sentry_sdk.capture_exception()
                 raise
 
     @contextlib.contextmanager
@@ -728,10 +721,6 @@ class OutboxBase(Model):
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
-                logging.info(
-                    "outbox.processing_shard_row",
-                    extra={"thread_id": threading.get_ident(), "shard_row": shard_row},
-                )
                 shard_row.process(is_synchronous_flush=not flush_all)
 
                 if _test_processing_barrier:
