@@ -196,6 +196,8 @@ class UserDetailsEndpoint(UserEndpoint):
 
         if request.access.has_permission("users.admin"):
             serializer_cls = PrivilegedUserSerializer
+        # with superuser read write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser
         elif is_active_superuser(request):
             serializer_cls = SuperuserUserSerializer
         else:

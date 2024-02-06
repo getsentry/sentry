@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.core import mail
 from django.db.models import F
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
@@ -747,6 +748,37 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         )
 
         self.get_error_response(self.organization.slug, member_om.id, status_code=403)
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_cannot_delete_as_superuser_read(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        member = self.create_user("bar@example.com")
+        member_om = self.create_member(
+            organization=self.organization,
+            user=member,
+            role="member",
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id, status_code=400)
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_can_delete_as_superuser_write(self):
+        superuser = self.create_user(is_superuser=True)
+        self.add_user_permission(superuser, "superuser.write")
+        self.login_as(superuser, superuser=True)
+
+        member = self.create_user("bar@example.com")
+        member_om = self.create_member(
+            organization=self.organization,
+            user=member,
+            role="member",
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id)
 
 
 @region_silo_test
