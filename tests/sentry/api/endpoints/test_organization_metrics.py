@@ -57,7 +57,6 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
-        ("sentry-api-0-organization-metrics-index",),
         ("sentry-api-0-organization-metrics-details",),
         ("sentry-api-0-organization-metric-details", "foo"),
         ("sentry-api-0-organization-metrics-tags",),
