@@ -5,19 +5,31 @@ import type {Event, EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
 /**
- * Fetching top level trace - trasactions max(100)
- * we do not have spans for each transaction - fetch those when user clicks on a view
- * - Tree<Transaction|Span|Meta>
- *  - expandable and needs to be able to fetch its child data
- *  - can output a flattened list of nodes to render
+ * Read this before proceeding:
  *
- * @DONE:
- * - implement data fetching for spans
- * - tree change commits should be optimize
- * @TODO:
- * - tree commits should have a simple API, splice is non intuitive and error prone
- * - constructing tree should be iterative
- * - implement zoom in/out swaps
+ * This file implements the tree data structure that is used to represent a trace. We do
+ * this both for performance reasons as well as flexibility. The requirement for a tree
+ * is to support incremental patching and updates. This is important because we want to
+ * be able to fetch more data as the user interacts with the tree, and we want to be able
+ * efficiently update the tree as we receive more data.
+ *
+ * The trace is represented as a tree with different node value types (transaction or span)
+ * Each tree node contains a reference to its parent and a list of references to its children,
+ * as well as a reference to the value that the node holds. Each node also contains
+ * some meta data and state about the node, such as if it is expanded or zoomed in. The benefit
+ * of abstracting parts of the UI state is that the tree will persist user actions such as expanding
+ * or collapsing nodes which would have otherwise been lost when individual nodes are remounted in the tree.
+ *
+ * Each tree holds a list reference, which is a live reference to a flattened representation
+ * of the tree (used to render the tree in the UI). Since the list is mutable (and we want to keep it that way for performance
+ * reasons as we want to support mutations on traces with ~100k+ nodes), callers need to manage reactivity themselves.
+ *
+ * An alternative, but not recommended approach is to call build() on the tree after each mutation,
+ * which will iterate over all of the children and build a fresh list reference.
+ *
+ * Notes:
+ * - collecting children should be O(n), it is currently O(n^2) as we are missing a proper queue implementation
+ * - the notion of expanded and zoomed is confusing, they stand for the same idea from a UI pov
  */
 
 export type Transaction = TraceFullDetailed;
@@ -154,6 +166,11 @@ export class TraceTree {
     expanded: boolean
   ): boolean {
     if (expanded === node.expanded) {
+      return false;
+    }
+
+    if (node.zoomedIn) {
+      // Expanding is not allowed for zoomed in nodes
       return false;
     }
 

@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -134,26 +134,10 @@ function RenderRow(props: {
             props.node.isOrphaned ? 'Orphaned' : ''
           }`}
         >
-          {props.node.connectors.map(c => {
-            return (
-              <div
-                key={c}
-                style={{left: (Math.abs(c) - props.node.depth) * 23}}
-                className={`TraceVerticalConnector ${c - 1 < 0 ? 'Orphaned' : ''}`}
-              />
-            );
-          })}
-          {props.node.expanded || props.node.zoomedIn ? (
-            <div className="TraceExpandedVerticalConnector" />
-          ) : null}
-          {props.node.isLastChild ? (
-            <div className="TraceVerticalLastChildConnector" />
-          ) : (
-            <div className="TraceVerticalConnector" />
-          )}
+          <Connectors node={props.node} />
           {props.node.children.length > 0 ? (
             <ChildrenCountButton
-              node={props.node}
+              expanded={props.node.expanded || props.node.zoomedIn}
               onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
             >
               {props.node.children.length}{' '}
@@ -184,26 +168,10 @@ function RenderRow(props: {
       <div
         className={`TraceChildrenCountWrapper ${props.node.isOrphaned ? 'Orphaned' : ''}`}
       >
-        {props.node.connectors.map(c => {
-          return (
-            <div
-              key={c}
-              style={{left: (Math.abs(c) - props.node.depth) * 23}}
-              className={`TraceVerticalConnector ${c < 0 ? 'Orphaned' : ''}`}
-            />
-          );
-        })}
-        {props.node.expanded || props.node.zoomedIn ? (
-          <div className="TraceExpandedVerticalConnector" />
-        ) : null}
-        {props.node.isLastChild ? (
-          <div className="TraceVerticalLastChildConnector" />
-        ) : (
-          <div className="TraceVerticalConnector" />
-        )}
+        <Connectors node={props.node} />
         {props.node.children.length > 0 ? (
           <ChildrenCountButton
-            node={props.node}
+            expanded={props.node.expanded || props.node.zoomedIn}
             onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
           >
             {props.node.children.length}{' '}
@@ -220,13 +188,38 @@ function RenderRow(props: {
   );
 }
 
+function Connectors(props: {node: TraceTreeNode<TraceFullDetailed | RawSpanType>}) {
+  const showVerticalConnector =
+    (props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0;
+
+  return (
+    <Fragment>
+      {props.node.connectors.map((c, i) => {
+        return (
+          <div
+            key={i}
+            style={{left: (Math.abs(c) - props.node.depth) * 23}}
+            className={`TraceVerticalConnector ${c - 1 < 0 ? 'Orphaned' : ''}`}
+          />
+        );
+      })}
+      {showVerticalConnector ? <div className="TraceExpandedVerticalConnector" /> : null}
+      {props.node.isLastChild ? (
+        <div className="TraceVerticalLastChildConnector" />
+      ) : (
+        <div className="TraceVerticalConnector" />
+      )}
+    </Fragment>
+  );
+}
+
 function ProjectBadge(props: {project: Project}) {
   return <ProjectAvatar project={props.project} />;
 }
 
 function ChildrenCountButton(props: {
   children: React.ReactNode;
-  node: TraceTreeNode<any>;
+  expanded: boolean;
   onClick: () => void;
 }) {
   return (
@@ -234,13 +227,19 @@ function ChildrenCountButton(props: {
       {props.children}
       <IconChevron
         size="xs"
-        direction={props.node.expanded ? 'up' : 'down'}
+        direction={props.expanded ? 'up' : 'down'}
         style={{marginLeft: 2}}
       />
     </button>
   );
 }
 
+/**
+ * This is a wrapper around the Trace component to apply styles
+ * to the trace tree. It exists because we _do not_ want to trigger
+ * emotion's css parsing logic as it is very slow and will cause
+ * the scrolling to flicker.
+ */
 const TraceStylingWrapper = styled('div')`
   .TraceRow {
     display: flex;
