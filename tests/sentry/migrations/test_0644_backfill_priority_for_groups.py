@@ -1,5 +1,7 @@
 import logging
 
+from django.conf import settings
+
 from sentry.issues.grouptype import (
     ErrorGroupType,
     FeedbackGroup,
@@ -27,7 +29,7 @@ class BackfillGroupPriority(TestMigrations):
 
     def setup_initial_state(self):
         self._create_groups_to_backfill(self.project)
-        redis_cluster = redis.redis_clusters.get("default")
+        redis_cluster = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
         redis_cluster.set("priority_backfill.last_processed_id", 3)
 
     def test(self):
