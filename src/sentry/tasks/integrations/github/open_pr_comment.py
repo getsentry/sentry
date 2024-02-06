@@ -213,7 +213,7 @@ def get_pr_files(pr_files: List[Dict[str, str]]) -> List[PullRequestFile]:
     # new files will not have sentry issues associated with them
     # only fetch Python files
     pullrequest_files = [
-        PullRequestFile(filename=file["filename"], patch=file["patch"]) for file in pr_files
+        PullRequestFile(filename=file["filename"], patch=file["patch"]) for file in pr_files if "patch" in file
     ]
 
     logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pullrequest_files)})
