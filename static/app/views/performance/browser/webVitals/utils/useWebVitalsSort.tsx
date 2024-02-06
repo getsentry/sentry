@@ -7,7 +7,10 @@ import {
   SORTABLE_FIELDS,
   SORTABLE_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
+
+const INP_FIELDS = ['measurements.inp', 'p75(measurements.inp)'];
 
 export function useWebVitalsSort({
   sortName = 'sort',
@@ -20,6 +23,7 @@ export function useWebVitalsSort({
 } = {}) {
   const location = useLocation();
   const shouldUseStoredScores = useStoredScoresSetting();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
   const filteredSortableFields = shouldUseStoredScores
     ? sortableFields
     : sortableFields.filter(field => !SORTABLE_SCORE_FIELDS.includes(field));
@@ -28,6 +32,11 @@ export function useWebVitalsSort({
     fromSorts(decodeScalar(location.query[sortName])).filter(s =>
       (filteredSortableFields as unknown as string[]).includes(s.field)
     )[0] ?? defaultSort;
+
+  // TODO: Remove this once we can query for INP.
+  if (shouldReplaceFidWithInp && INP_FIELDS.includes(sort.field)) {
+    sort.field = 'measurements.fid';
+  }
 
   return sort;
 }
