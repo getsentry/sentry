@@ -15,7 +15,6 @@ import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import List from './list';
@@ -49,9 +48,8 @@ function SimilarStackTrace({params, location, project}: Props) {
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
-  const organization = useOrganization();
-  const hasSimilarityEmbeddingsFeature = organization?.features?.includes(
-    'issues-similarity-embeddings'
+  const hasSimilarityEmbeddingsFeature = project.features.includes(
+    'similarity-embeddings'
   );
 
   const fetchData = useCallback(() => {
@@ -59,7 +57,17 @@ function SimilarStackTrace({params, location, project}: Props) {
 
     const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
 
-    if (hasSimilarityFeature) {
+    if (hasSimilarityEmbeddingsFeature) {
+      reqs.push({
+        endpoint: `/organizations/${orgId}/issues/${groupId}/similar-issues-embeddings/?${qs.stringify(
+          {
+            k: 5,
+            threshold: 0.99,
+          }
+        )}`,
+        dataKey: 'similar',
+      });
+    } else if (hasSimilarityFeature) {
       reqs.push({
         endpoint: `/organizations/${orgId}/issues/${groupId}/similar/?${qs.stringify({
           ...location.query,
@@ -70,7 +78,13 @@ function SimilarStackTrace({params, location, project}: Props) {
     }
 
     GroupingStore.onFetch(reqs);
-  }, [location.query, groupId, orgId, hasSimilarityFeature]);
+  }, [
+    location.query,
+    groupId,
+    orgId,
+    hasSimilarityFeature,
+    hasSimilarityEmbeddingsFeature,
+  ]);
 
   const onGroupingChange = useCallback(
     ({
@@ -137,7 +151,8 @@ function SimilarStackTrace({params, location, project}: Props) {
   }, [params, location.query, items]);
 
   const hasSimilarItems =
-    hasSimilarityFeature && (items.similar.length > 0 || items.filtered.length > 0);
+    (hasSimilarityFeature || hasSimilarityEmbeddingsFeature) &&
+    (items.similar.length > 0 || items.filtered.length > 0);
 
   return (
     <Layout.Body>
@@ -171,7 +186,6 @@ function SimilarStackTrace({params, location, project}: Props) {
             onMerge={handleMerge}
             orgId={orgId}
             project={project}
-            organization={organization}
             groupId={groupId}
             pageLinks={items.pageLinks}
           />
@@ -183,7 +197,6 @@ function SimilarStackTrace({params, location, project}: Props) {
             onMerge={handleMerge}
             orgId={orgId}
             project={project}
-            organization={organization}
             groupId={groupId}
             pageLinks={items.pageLinks}
           />
