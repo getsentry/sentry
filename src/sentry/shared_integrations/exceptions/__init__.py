@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 from requests import Response
+from requests.adapters import RetryError
 from requests.exceptions import RequestException
 
 from sentry.utils import json
@@ -107,6 +108,15 @@ class ApiHostError(ApiError):
     def from_request(cls, request: _RequestHasUrl) -> ApiHostError:
         host = urlparse(request.url).netloc
         return cls(f"Unable to reach host: {host}", url=request.url)
+
+
+class ApiRetryError(ApiError):
+    code = 503
+
+    @classmethod
+    def from_exception(cls, exception: RetryError) -> ApiRetryError:
+        msg = str(exception)
+        return cls(msg)
 
 
 class ApiTimeoutError(ApiError):

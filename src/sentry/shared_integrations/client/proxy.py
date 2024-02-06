@@ -156,7 +156,7 @@ class IntegrationProxyClient(ApiClient):
                     total=5,
                     backoff_factor=0.1,
                     status_forcelist=[503],
-                    allowed_methods=["PUT", "GET", "DELETE", "POST"],
+                    allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
                 ),
             )
         return build_session()
