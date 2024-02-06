@@ -1051,7 +1051,13 @@ function tryParseSearch<T extends {config: SearchConfig}>(
   try {
     return grammar.parse(query, config);
   } catch (e) {
-    Sentry.captureException(e);
+    Sentry.withScope(scope => {
+      scope.setFingerprint(['search-syntax-parse-error']);
+      scope.setExtra('message', e.message?.slice(-100));
+      scope.setExtra('found', e.found);
+      Sentry.captureException(e);
+    });
+
     return null;
   }
 }
