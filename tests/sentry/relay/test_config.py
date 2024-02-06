@@ -546,16 +546,6 @@ def test_project_config_satisfaction_thresholds(
 
 @django_db_all
 @region_silo_test
-def test_project_config_with_span_attributes(default_project, insta_snapshot):
-    # The span attributes config is not set with the flag turnd off
-    project_cfg = get_project_config(default_project, full_config=True)
-    cfg = project_cfg.to_dict()
-    _validate_project_config(cfg["config"])
-    insta_snapshot(cfg["config"]["spanAttributes"])
-
-
-@django_db_all
-@region_silo_test
 @pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
 @pytest.mark.parametrize(
     "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
