@@ -1,7 +1,8 @@
 import logging
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,8 +11,15 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.serializers import serialize
 from sentry.eventstore.models import GroupEvent
-from sentry.seer.utils import SimilarIssuesEmbeddingsRequest, get_similar_issues_embeddings
+from sentry.models.group import Group
+from sentry.models.user import User
+from sentry.seer.utils import (
+    SimilarIssuesEmbeddingsData,
+    SimilarIssuesEmbeddingsRequest,
+    get_similar_issues_embeddings,
+)
 from sentry.web.helpers import render_to_string
 
 logger = logging.getLogger(__name__)
@@ -50,12 +58,48 @@ def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> st
     return "\n".join(output)
 
 
+class FormattedSimilarIssuesEmbeddingsData(TypedDict):
+    exception: float
+    message: float
+    shouldBeGrouped: str
+
+
 @region_silo_endpoint
 class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+
+    def get_formatted_results(
+        self, responses: Sequence[SimilarIssuesEmbeddingsData | None], user: User | AnonymousUser
+    ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
+        """Format the responses using to be used by the frontend."""
+        group_data = {}
+        for response in responses:
+            if response:
+                formatted_response: FormattedSimilarIssuesEmbeddingsData = {
+                    "message": response["message_similarity"],
+                    "exception": response["stacktrace_similarity"],
+                    "shouldBeGrouped": "Yes" if response["should_group"] else "No",
+                }
+                group_data.update({response["parent_group_id"]: formatted_response})
+
+        serialized_groups = {
+            int(g["id"]): g
+            for g in serialize(
+                list(Group.objects.get_many_from_cache(group_data.keys())), user=user
+            )
+        }
+
+        result = []
+        for group_id in group_data:
+            try:
+                result.append((serialized_groups[group_id], group_data[group_id]))
+            except KeyError:
+                # KeyErrors may occur if seer API returns a deleted/merged group
+                continue
+        return result
 
     def get(self, request: Request, group) -> Response:
         if not features.has("projects:similarity-embeddings", group.project):
@@ -76,4 +120,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             similar_issues_params.update({"threshold": float(request.GET["threshold"])})
 
         results = get_similar_issues_embeddings(similar_issues_params)
-        return Response(results)
+
+        if not results["responses"]:
+            return Response([])
+        formatted_results = self.get_formatted_results(results["responses"], request.user)
+
+        return Response(formatted_results)
