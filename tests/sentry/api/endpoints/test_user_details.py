@@ -1,3 +1,4 @@
+from django.test import override_settings
 from pytest import fixture
 
 from sentry.models.deletedorganization import DeletedOrganization
@@ -216,6 +217,39 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_cannot_change_is_active(self):
+        self.user.update(is_active=True)
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        self.get_error_response(
+            self.user.id,
+            isActive="false",
+            status_code=403,
+        )
+
+        self.user.refresh_from_db()
+        assert self.user.is_active
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_write_can_change_is_active(self):
+        self.user.update(is_active=True)
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        self.add_user_permission(superuser, "superuser.write")
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            isActive="false",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        self.user.refresh_from_db()
+        assert not self.user.is_active
 
     def test_superuser_cannot_add_superuser(self):
         self.user.update(is_superuser=False)

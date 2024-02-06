@@ -204,6 +204,9 @@ class UserDetailsEndpoint(UserEndpoint):
 
         if can_elevate_user:
             serializer_cls = PrivilegedUserSerializer
+        # With superuser read/write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser. Once the feature flag is
+        # removed and we only check is_active_staff, we can remove this comment.
         elif has_elevated_mode(request):
             # TODO(schew2381): Rename to staff serializer
             serializer_cls = SuperuserUserSerializer

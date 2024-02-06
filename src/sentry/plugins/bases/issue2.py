@@ -30,8 +30,8 @@ from sentry.utils.safe import safe_execute
 @region_silo_endpoint
 class IssueGroupActionEndpoint(PluginGroupEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     view_method_name = None
     plugin = None

@@ -27,6 +27,7 @@ import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {isChartHovered} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import type {
@@ -279,14 +280,7 @@ function Chart({
     params,
     asyncTicket
   ) => {
-    // Kinda jank. Get hovered dom elements and check if any of them are the chart
-    const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
-      element => {
-        return element.classList.contains('echarts-for-react');
-      }
-    );
-
-    if (hoveredEchartElement === chartRef?.current?.ele) {
+    if (isChartHovered(chartRef?.current)) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,

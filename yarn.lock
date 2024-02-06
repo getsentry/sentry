@@ -2858,6 +2858,11 @@
     "@sentry/types" "7.99.0"
     "@sentry/utils" "7.99.0"
 
+"@sentry/babel-plugin-component-annotate@^2.14.0":
+  version "2.14.0"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.14.0.tgz#e62f448dd3c922a6d32e9f1c0a5ae85fa6ec22c2"
+  integrity sha512-FWU4+Lx6fgxjAkwmc3S9j1Q/6pqKZyZzfi52B+8WMNw7a5QjGXgxc5ucBazZYgrcsJKCFBp4QG3PPxNAieFimQ==
+
 "@sentry/browser@7.99.0":
   version "7.99.0"
   resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-7.99.0.tgz#3e78beb490d141c988038ea902689a1e9171c6cf"

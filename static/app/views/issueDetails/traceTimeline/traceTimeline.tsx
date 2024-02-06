@@ -7,7 +7,6 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
 
 import {TraceTimelineEvents} from './traceTimelineEvents';
@@ -20,11 +19,10 @@ interface TraceTimelineProps {
 }
 
 export function TraceTimeline({event}: TraceTimelineProps) {
-  const user = useUser();
   const organization = useOrganization({allowNull: true});
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
-  const hasFeature = hasTraceTimelineFeature(organization, user);
+  const hasFeature = hasTraceTimelineFeature(organization);
   const {isError, isLoading, data} = useTraceTimelineEvents({event}, hasFeature);
 
   if (!hasFeature || !event.contexts?.trace?.trace_id) {

@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -15,6 +15,8 @@ describe('PageOverview', function () {
   const organization = OrganizationFixture({
     features: ['starfish-browser-webvitals', 'performance-database-view'],
   });
+
+  let eventsMock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({
@@ -44,7 +46,7 @@ describe('PageOverview', function () {
     });
     jest.mocked(useOrganization).mockReturnValue(organization);
 
-    MockApiClient.addMockResponse({
+    eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [],
@@ -61,7 +63,7 @@ describe('PageOverview', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   it('renders performance score migration alert', async () => {
@@ -77,6 +79,40 @@ describe('PageOverview', function () {
     render(<PageOverview />);
     await screen.findByText(
       /We made improvements to how Performance Scores are calculated for your projects/
+    );
+  });
+
+  it('renders pageload and interaction switcher', async () => {
+    const organizationWithInp = OrganizationFixture({
+      features: [
+        'starfish-browser-webvitals',
+        'performance-database-view',
+        'starfish-browser-webvitals-replace-fid-with-inp',
+      ],
+    });
+    jest.mocked(useOrganization).mockReturnValue(organizationWithInp);
+    jest.mocked(useLocation).mockReturnValue({
+      pathname: '',
+      search: '',
+      query: {useStoredScores: 'true', transaction: '/'},
+      hash: '',
+      state: undefined,
+      action: 'PUSH',
+      key: '',
+    });
+    render(<PageOverview />);
+    await screen.findAllByText('Interactions');
+    userEvent.click(screen.getAllByText('Interactions')[0]);
+    await waitFor(() =>
+      expect(eventsMock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query:
+              'transaction.op:pageload transaction:"/" has:measurements.score.total has:measurements.fid (has:profile.id OR has:replayId) ',
+          }),
+        })
+      )
     );
   });
 });

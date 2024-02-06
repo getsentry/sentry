@@ -45,13 +45,12 @@ class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
     """
 
 
-class OrganizationUserPermission(UserPermission):
+class OrganizationUserPermission(UserAndStaffPermission):
     scope_map = {"DELETE": ["member:admin"]}
 
     def has_org_permission(self, request: Request, user):
         """
-        Org can act on a user account,
-        if the user is a member of only one org
+        Org can act on a user account, if the user is a member of only one org
         e.g. reset org member's 2FA
         """
 
