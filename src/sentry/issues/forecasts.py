@@ -3,8 +3,8 @@ This module is for helper functions for escalating issues forecasts.
 """
 
 import logging
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Sequence
 
 from sentry import analytics
 from sentry.issues.escalating import (

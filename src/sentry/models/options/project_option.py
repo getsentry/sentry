@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 
@@ -39,6 +40,7 @@ OPTION_KEYS = frozenset(
         "sentry:scrape_javascript",
         "sentry:recap_server_url",
         "sentry:recap_server_token",
+        "sentry:replay_rage_click_issues",
         "sentry:token",
         "sentry:token_header",
         "sentry:verify_ssl",
@@ -54,7 +56,6 @@ OPTION_KEYS = frozenset(
         "sentry:dynamic_sampling",
         "sentry:dynamic_sampling_biases",
         "sentry:breakdowns",
-        "sentry:span_attributes",
         "sentry:transaction_name_cluster_rules",
         "sentry:span_description_cluster_rules",
         "quotas:spike-protection-disabled",

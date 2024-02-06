@@ -1,6 +1,5 @@
 import hashlib
 import hmac
-from typing import Optional
 
 import responses
 from rest_framework.response import Response
@@ -56,7 +55,7 @@ class VercelReleasesTest(APITestCase):
             digestmod=hashlib.sha1,
         ).hexdigest()
 
-    def _get_response(self, message: str, signature: Optional[str] = None) -> Response:
+    def _get_response(self, message: str, signature: str | None = None) -> Response:
         signature = signature or self.get_signature(message)
         return self.client.post(
             path=self.webhook_url,

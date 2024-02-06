@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Any
 
 
 @dataclass
@@ -18,7 +18,7 @@ class DynamicSamplingLogState:
     num_orgs: int = 0
     execution_time: float = 0.0
 
-    def to_dict(self) -> dict[str, Union[int, float]]:
+    def to_dict(self) -> dict[str, int | float]:
         return {
             "numRowsTotal": self.num_rows_total,
             "numDbCalls": self.num_db_calls,
@@ -45,7 +45,7 @@ class DynamicSamplingLogState:
         return self
 
     @staticmethod
-    def from_dict(val: Optional[dict[Any, Any]]) -> "DynamicSamplingLogState":
+    def from_dict(val: dict[Any, Any] | None) -> "DynamicSamplingLogState":
         if val is not None:
             return DynamicSamplingLogState(
                 num_iterations=val.get("numIterations", 0),
@@ -72,7 +72,7 @@ class TaskContext:
 
     name: str
     num_seconds: float
-    context_data: Optional[dict[str, DynamicSamplingLogState]] = None
+    context_data: dict[str, DynamicSamplingLogState] | None = None
 
     def __post_init__(self):
         # always override
@@ -140,7 +140,7 @@ class TaskContext:
 @dataclass
 class TimerState:
     elapsed: float
-    started: Optional[float]
+    started: float | None
 
 
 class Timers:

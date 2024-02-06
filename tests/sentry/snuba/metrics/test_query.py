@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Sequence
 
 import pytest
 from snuba_sdk import Direction, Granularity, Limit, Offset

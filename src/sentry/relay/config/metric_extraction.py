@@ -1,8 +1,9 @@
 import logging
 import random
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, Optional, Sequence, TypedDict, Union
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -85,7 +86,7 @@ def get_max_widget_specs(organization: Organization) -> int:
 
 
 @metrics.wraps("on_demand_metrics.get_metric_extraction_config")
-def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
+def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | None:
     """
     Returns generic metric extraction config for the given project.
 
@@ -371,7 +372,7 @@ def _merge_metric_specs(
 
 def _convert_snuba_query_to_metrics(
     project: Project, snuba_query: SnubaQuery, prefilling: bool
-) -> Optional[Sequence[HashedMetricSpec]]:
+) -> Sequence[HashedMetricSpec] | None:
     """
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a tuple of (hash, MetricSpec) for the query. Otherwise, returns None.
@@ -487,6 +488,14 @@ def _can_widget_query_use_stateful_extraction(
     on_demand_entry = on_demand_entries[0]
     on_demand_hashes = on_demand_entry.spec_hashes
 
+    if on_demand_entry.date_modified < widget_query.date_modified:
+        # On demand entry was updated before the widget_query got updated, meaning it's potentially out of date
+        metrics.incr(
+            "on_demand_metrics.on_demand_spec.out_of_date_on_demand",
+            sample_rate=1.0,
+        )
+        return False
+
     if set(spec_hashes) != set(on_demand_hashes):
         # Spec hashes should match.
         with sentry_sdk.push_scope() as scope:
@@ -500,6 +509,7 @@ def _can_widget_query_use_stateful_extraction(
             amount=len(metrics_specs),
             sample_rate=1.0,
         )
+
         return False
 
     return True
@@ -653,11 +663,11 @@ def _convert_aggregate_and_query_to_metrics(
     dataset: str,
     aggregate: str,
     query: str,
-    environment: Optional[str],
+    environment: str | None,
     prefilling: bool,
     spec_type: MetricSpecType = MetricSpecType.SIMPLE_QUERY,
-    groupbys: Optional[Sequence[str]] = None,
-) -> Optional[Sequence[HashedMetricSpec]]:
+    groupbys: Sequence[str] | None = None,
+) -> Sequence[HashedMetricSpec] | None:
     """
     Converts an aggregate and a query to a metric spec with its hash value.
 
@@ -705,9 +715,8 @@ def _convert_aggregate_and_query_to_metrics(
             logger.exception("Invalid on-demand metric spec", extra=extra)
         except Exception:
             # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
-            # Sentry console.
-            if not prefilling:
-                logger.exception("Failed on-demand metric spec creation.", extra=extra)
+            metrics.incr("on_demand_metrics.invalid_metric_spec.other")
+            logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
     return metric_specs_and_hashes
 
@@ -818,9 +827,9 @@ def get_metric_conditional_tagging_rules(
 
 
 def _threshold_to_rules(
-    threshold: Union[
-        ProjectTransactionThreshold, ProjectTransactionThresholdOverride, _DefaultThreshold
-    ],
+    threshold: (
+        ProjectTransactionThreshold | ProjectTransactionThresholdOverride | _DefaultThreshold
+    ),
     extra_conditions: Sequence[RuleCondition],
 ) -> Sequence[MetricConditionalTaggingRule]:
     frustrated: MetricConditionalTaggingRule = {
@@ -1324,9 +1333,7 @@ _HISTOGRAM_OUTLIERS_QUERY_RESULTS = [
 ]
 
 
-def _parse_percentiles(
-    value: Union[tuple[()], tuple[str, str, str, str, str]]
-) -> tuple[float, float]:
+def _parse_percentiles(value: tuple[()] | tuple[str, str, str, str, str]) -> tuple[float, float]:
     if not value:
         return 0, 0
     _min, p25, _p50, p75, _max = map(float, value)

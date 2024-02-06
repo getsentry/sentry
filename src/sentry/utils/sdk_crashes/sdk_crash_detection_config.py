@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Optional, Sequence
 
 import sentry_sdk
 from typing_extensions import TypedDict
@@ -155,7 +155,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
 
 def _get_options(
     sdk_name: SdkName, has_organization_allowlist: bool
-) -> Optional[SDKCrashDetectionOptions]:
+) -> SDKCrashDetectionOptions | None:
     options_prefix = f"issues.sdk_crash_detection.{sdk_name.value}"
 
     project_id = options.get(f"{options_prefix}.project_id")

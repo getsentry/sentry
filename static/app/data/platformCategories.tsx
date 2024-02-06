@@ -418,10 +418,12 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'python-wsgi',
   'rust',
   'node',
-  'node-express',
-  'node-koa',
-  'node-connect',
+  'node-awslambda',
   'node-azurefunctions',
+  'node-connect',
+  'node-express',
+  'node-gcpfunctions',
+  'node-koa',
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [

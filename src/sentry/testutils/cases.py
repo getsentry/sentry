@@ -7,10 +7,11 @@ import os.path
 import random
 import re
 import time
+from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
-from typing import Any, Literal, Mapping, Sequence, Union
+from typing import Any, Literal, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -1437,6 +1438,7 @@ class BaseSpansTestCase(SnubaTestCase):
         profile_id: str | None = None,
         transaction: str | None = None,
         duration: int = 10,
+        exclusive_time: int = 5,
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
@@ -1451,7 +1453,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "span_id": span_id,
             "trace_id": trace_id,
             "duration_ms": int(duration),
-            "exclusive_time_ms": 5,
+            "exclusive_time_ms": int(exclusive_time),
             "is_segment": True,
             "received": datetime.now(tz=timezone.utc).timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
@@ -2820,7 +2822,15 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
         )
         assert (
-            blocks[3]["elements"][0]["text"]
+            blocks[3]["text"]["text"]
+            == "environment: `production`  release: `<http://testserver/releases/0.1/|0.1>`  "
+        )
+        assert (
+            blocks[4]["elements"][0]["text"]
+            == "Events: *1*   State: *Ongoing*   First Seen: *10\xa0minutes ago*"
+        )
+        assert (
+            blocks[5]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 

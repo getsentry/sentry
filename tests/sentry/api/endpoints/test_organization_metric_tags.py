@@ -1,5 +1,5 @@
 import time
-from typing import Collection
+from collections.abc import Collection
 from unittest.mock import patch
 
 import pytest

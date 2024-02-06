@@ -49,6 +49,8 @@ This pull request was deployed and Sentry observed the following issues:
 
 MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
 
+MAX_SUSPECT_COMMITS = 1000
+
 
 def format_comment_subtitle(subtitle):
     return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
@@ -138,7 +140,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     gh_repo_id, pr_key, org_id, issue_list = pr_to_issue_query(pullrequest_id)[0]
 
     # cap to 1000 issues in which the merge commit is the suspect commit
-    issue_list = issue_list[:1000]
+    issue_list = issue_list[:MAX_SUSPECT_COMMITS]
 
     try:
         organization = Organization.objects.get_from_cache(id=org_id)

@@ -2,8 +2,8 @@
 import dataclasses
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
+from django.conf import settings
 from django.db import migrations
 from django.db.models import F, Window
 from django.db.models.functions import Rank
@@ -28,7 +28,7 @@ class GroupValues:
     id: int
     project_id: int
     status: int
-    substatus: Optional[int]
+    substatus: int | None
     first_seen: datetime
     num_comments: int
 
@@ -125,7 +125,7 @@ def backfill_group_attributes_to_snuba(apps, schema_editor):
     GroupOwner = apps.get_model("sentry", "GroupOwner")
 
     backfill_key = "backfill_group_attributes_to_snuba_progress"
-    redis_client = redis.redis_clusters.get("default")
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     progress_id = int(redis_client.get(backfill_key) or 0)
 

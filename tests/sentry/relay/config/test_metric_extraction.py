@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Optional, Sequence
 from unittest import mock
 
 import pytest
@@ -44,7 +44,7 @@ def create_alert(
     query: str,
     project: Project,
     dataset: Dataset = Dataset.PerformanceMetrics,
-    environment: Optional[Environment] = None,
+    environment: Environment | None = None,
 ) -> AlertRule:
     snuba_query = SnubaQuery.objects.create(
         aggregate=aggregate,
@@ -72,8 +72,8 @@ def create_widget(
     aggregates: Sequence[str],
     query: str,
     project: Project,
-    title: Optional[str] = "Dashboard",
-    columns: Optional[Sequence[str]] = None,
+    title: str | None = "Dashboard",
+    columns: Sequence[str] | None = None,
 ) -> DashboardWidgetQuery:
     columns = columns or []
     dashboard = Dashboard.objects.create(
@@ -1750,7 +1750,7 @@ def _on_demand_spec_from_alert(project: Project, alert: AlertRule) -> OnDemandMe
     )
 
 
-def widget_to_metric_spec(query_hash: str, condition: Optional[RuleCondition] = None) -> MetricSpec:
+def widget_to_metric_spec(query_hash: str, condition: RuleCondition | None = None) -> MetricSpec:
     _tags: Sequence[TagSpec] = [
         {"key": "query_hash", "value": query_hash},
         {"field": "event.environment", "key": "environment"},
@@ -1943,7 +1943,7 @@ def test_event_type(
     query: str,
     config_assertion: bool,
     expected_hashes: list[str],
-    expected_condition: Optional[RuleCondition],
+    expected_condition: RuleCondition | None,
 ) -> None:
     aggr = "count()"
 
@@ -1959,3 +1959,40 @@ def test_event_type(
             ]
             widget_spec = _on_demand_spec_from_widget(default_project, widget)
             assert widget_spec._query_str_for_hash == f"None;{_deep_sorted(expected_condition)}"
+
+
+@django_db_all
+def test_level_field(default_project: Project) -> None:
+    aggr = "count()"
+    query = "level:irrelevant_value"
+
+    with Feature(ON_DEMAND_METRICS_WIDGETS):
+        create_widget([aggr], query, default_project)
+        config = get_metric_extraction_config(default_project)
+        assert config is None
+
+
+@django_db_all
+def test_widget_modifed_after_on_demand(default_project: Project) -> None:
+    duration = 1000
+    with Feature(
+        {
+            ON_DEMAND_METRICS_WIDGETS: True,
+            "organizations:on-demand-metrics-query-spec-version-two": True,
+        }
+    ):
+        widget_query = create_widget(
+            ["epm()"],
+            f"transaction.duration:>={duration}",
+            default_project,
+            columns=["user.id", "release", "count()"],
+        )
+
+        with mock.patch("sentry_sdk.capture_exception") as capture_exception:
+
+            process_widget_specs([widget_query.id])
+            config = get_metric_extraction_config(default_project)
+
+            assert config and config["metrics"]
+
+            assert capture_exception.call_count == 0

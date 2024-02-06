@@ -24,7 +24,7 @@ GROUPING_CONFIG = get_default_grouping_config_dict()
 
 @pytest.fixture
 def default_bases():
-    return ["sentry.javascript.nextjs@2023-12-22"]
+    return ["sentry.javascript@2024-02-02"]
 
 
 def test_default_bases(default_bases):
@@ -33,22 +33,22 @@ def test_default_bases(default_bases):
     assert {
         k: [r._to_config_structure() for r in rs] for k, rs in FINGERPRINTING_BASES.items()
     } == {
-        "sentry.javascript.nextjs@2023-12-22": [
+        "sentry.javascript@2024-02-02": [
             {
-                "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
+                "matchers": [["family", "javascript"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
                 "is_builtin": True,
             },
             {
-                "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
+                "matchers": [["family", "javascript"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
                 "is_builtin": True,
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -61,7 +61,7 @@ def test_default_bases(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -74,7 +74,7 @@ def test_default_bases(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -87,7 +87,7 @@ def test_default_bases(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -100,7 +100,7 @@ def test_default_bases(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     ["message", "Text content does not match server-rendered HTML."],
                 ],
@@ -119,20 +119,20 @@ def test_built_in_nextjs_rules_base(default_bases):
     assert rules._to_config_structure(include_builtin=True) == {
         "rules": [
             {
-                "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
+                "matchers": [["family", "javascript"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
                 "is_builtin": True,
             },
             {
-                "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
+                "matchers": [["family", "javascript"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
                 "is_builtin": True,
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -145,7 +145,7 @@ def test_built_in_nextjs_rules_base(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -158,7 +158,7 @@ def test_built_in_nextjs_rules_base(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -171,7 +171,7 @@ def test_built_in_nextjs_rules_base(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -184,7 +184,7 @@ def test_built_in_nextjs_rules_base(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     ["message", "Text content does not match server-rendered HTML."],
                 ],
@@ -204,20 +204,20 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
     assert rules._to_config_structure(include_builtin=True) == {
         "rules": [
             {
-                "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
+                "matchers": [["family", "javascript"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
                 "is_builtin": True,
             },
             {
-                "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
+                "matchers": [["family", "javascript"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
                 "is_builtin": True,
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -230,7 +230,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -243,7 +243,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -256,7 +256,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -269,7 +269,7 @@ def test_built_in_nextjs_rules_from_empty_config_string(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     ["message", "Text content does not match server-rendered HTML."],
                 ],
@@ -305,20 +305,20 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
                 "attributes": {},
             },
             {
-                "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
+                "matchers": [["family", "javascript"], ["type", "ChunkLoadError"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
                 "is_builtin": True,
             },
             {
-                "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
+                "matchers": [["family", "javascript"], ["value", "ChunkLoadError*"]],
                 "fingerprint": ["chunkloaderror"],
                 "attributes": {},
                 "is_builtin": True,
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -331,7 +331,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -344,7 +344,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -357,7 +357,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     [
                         "message",
@@ -370,7 +370,7 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(default_bases):
             },
             {
                 "matchers": [
-                    ["sdk", "sentry.javascript.nextjs"],
+                    ["family", "javascript"],
                     ["tags.transaction", "*"],
                     ["message", "Text content does not match server-rendered HTML."],
                 ],
@@ -522,7 +522,7 @@ class BuiltInFingerprintingTest(TestCase):
         assert event.data["_fingerprint_info"]["matched_rule"] == {
             "attributes": {},
             "fingerprint": ["chunkloaderror"],
-            "matchers": [["sdk", "sentry.javascript.nextjs"], ["type", "ChunkLoadError"]],
+            "matchers": [["family", "javascript"], ["type", "ChunkLoadError"]],
             "is_builtin": True,
         }
 
@@ -541,7 +541,7 @@ class BuiltInFingerprintingTest(TestCase):
             "description": "Sentry defined fingerprint",
             "values": ["chunkloaderror"],
             "client_values": ["my-route", "{{ default }}"],
-            "matched_rule": 'sdk:"sentry.javascript.nextjs" type:"ChunkLoadError" -> "chunkloaderror"',
+            "matched_rule": 'family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"',
         }
 
     def test_built_in_chunkload_rules_disabled(self):
@@ -564,20 +564,26 @@ class BuiltInFingerprintingTest(TestCase):
         assert event.data["_fingerprint_info"]["matched_rule"] == {
             "attributes": {},
             "fingerprint": ["chunkloaderror"],
-            "matchers": [["sdk", "sentry.javascript.nextjs"], ["value", "ChunkLoadError*"]],
+            "matchers": [["family", "javascript"], ["value", "ChunkLoadError*"]],
             "is_builtin": True,
         }
 
     @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_chunkload_rules_wrong_sdk(self):
         """
-        Built-in ChunkLoadError rule should not apply if SDK is not sentry.javascript.nextjs.
+        Built-in ChunkLoadError rule should also apply event if SDK is not sentry.javascript.nextjs.
         """
         self.chunkload_error_trace["sdk"]["name"] = "sentry.javascript.react"  # type: ignore[index]
 
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
-        assert event.data["fingerprint"] == ["my-route", "{{ default }}"]
-        assert event.data.get("_fingerprint_info") is None
+
+        assert event.data["fingerprint"] == ["chunkloaderror"]
+        assert event.data["_fingerprint_info"]["matched_rule"] == {
+            "attributes": {},
+            "fingerprint": ["chunkloaderror"],
+            "matchers": [["family", "javascript"], ["type", "ChunkLoadError"]],
+            "is_builtin": True,
+        }
 
     @with_feature("organizations:grouping-built-in-fingerprint-rules")
     def test_built_in_hydration_rules_same_transactions(self):
@@ -598,7 +604,7 @@ class BuiltInFingerprintingTest(TestCase):
             "attributes": {},
             "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
             "matchers": [
-                ["sdk", "sentry.javascript.nextjs"],
+                ["family", "javascript"],
                 ["tags.transaction", "*"],
                 ["message", self.hydration_error_trace["message"]],
             ],
@@ -609,7 +615,7 @@ class BuiltInFingerprintingTest(TestCase):
             "attributes": {},
             "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
             "matchers": [
-                ["sdk", "sentry.javascript.nextjs"],
+                ["family", "javascript"],
                 ["tags.transaction", "*"],
                 ["message", data_message2["message"]],
             ],
@@ -642,7 +648,7 @@ class BuiltInFingerprintingTest(TestCase):
             "attributes": {},
             "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
             "matchers": [
-                ["sdk", "sentry.javascript.nextjs"],
+                ["family", "javascript"],
                 ["tags.transaction", "*"],
                 ["message", self.hydration_error_trace["message"]],
             ],
@@ -656,7 +662,7 @@ class BuiltInFingerprintingTest(TestCase):
             "attributes": {},
             "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
             "matchers": [
-                ["sdk", "sentry.javascript.nextjs"],
+                ["family", "javascript"],
                 ["tags.transaction", "*"],
                 ["message", self.hydration_error_trace["message"]],
             ],
@@ -695,3 +701,32 @@ class BuiltInFingerprintingTest(TestCase):
         assert "built-in-fingerprint" not in variants
         assert event_transaction_no_tx.data["fingerprint"] == ["my-route", "{{ default }}"]
         assert event_transaction_no_tx.data.get("_fingerprint_info") is None
+
+    def test_hydration_rule_w_family_matcher(self):
+        """
+        Testing if rules are applied correctly with a family matcher
+        """
+
+        mgr = EventManager(data=self.hydration_error_trace, grouping_config=GROUPING_CONFIG)
+        mgr.normalize()
+        data = mgr.get_data()
+        data.setdefault("fingerprint", ["{{ default }}"])
+        fingerprinting_config = FingerprintingRules.from_config_string(
+            'family:javascript tags.transaction:"*" message:"Text content does not match server-rendered HTML." -> hydrationerror, {{tags.transaction}}'
+        )
+        apply_server_fingerprinting(data, fingerprinting_config)
+        event_type = get_event_type(data)
+        event_metadata = event_type.get_metadata(data)
+        data.update(materialize_metadata(data, event_type, event_metadata))
+
+        event = eventstore.backend.create_event(data=data)
+
+        assert event.data.data["_fingerprint_info"]["matched_rule"] == {
+            "attributes": {},
+            "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
+            "matchers": [
+                ["family", "javascript"],
+                ["tags.transaction", "*"],
+                ["message", self.hydration_error_trace["message"]],
+            ],
+        }

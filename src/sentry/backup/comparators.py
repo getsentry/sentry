@@ -3,9 +3,9 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Callable
 
 from dateutil import parser
 from django.db import models
@@ -782,6 +782,7 @@ def get_default_comparators():
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
+            "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [

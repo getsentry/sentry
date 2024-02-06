@@ -6,12 +6,13 @@ import os
 import re
 import time
 from collections import namedtuple
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any, Callable, Mapping, MutableMapping, Sequence, Union
+from typing import Any, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -1515,9 +1516,9 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 )
             )(col, fwd_map)
             rev = (
-                lambda col, trans: lambda row: replace(row, col, trans[row[col]])
-                if col in row
-                else row
+                lambda col, trans: lambda row: (
+                    replace(row, col, trans[row[col]]) if col in row else row
+                )
             )(col, rev_map)
 
         if fwd is not None:
@@ -1528,18 +1529,20 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     # Extra reverse translator for time column.
     reverse = compose(
         reverse,
-        lambda row: replace(row, "time", int(to_timestamp(parse_datetime(row["time"]))))
-        if "time" in row
-        else row,
+        lambda row: (
+            replace(row, "time", int(to_timestamp(parse_datetime(row["time"]))))
+            if "time" in row
+            else row
+        ),
     )
     # Extra reverse translator for bucketed_end column.
     reverse = compose(
         reverse,
-        lambda row: replace(
-            row, "bucketed_end", int(to_timestamp(parse_datetime(row["bucketed_end"])))
-        )
-        if "bucketed_end" in row
-        else row,
+        lambda row: (
+            replace(row, "bucketed_end", int(to_timestamp(parse_datetime(row["bucketed_end"]))))
+            if "bucketed_end" in row
+            else row
+        ),
     )
 
     return (forward, reverse)

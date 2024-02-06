@@ -1,4 +1,5 @@
-from typing import Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Optional, Union
 
 from snuba_sdk import BooleanCondition, Condition, Formula, Timeseries
 

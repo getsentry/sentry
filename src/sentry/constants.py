@@ -6,8 +6,9 @@ web-server
 import logging
 import os.path
 from collections import namedtuple
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Optional, Sequence, cast
+from typing import cast
 
 import sentry_relay.consts
 import sentry_relay.processing
@@ -412,7 +413,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
 
 # to go from a marketing page slug like /for/android/ to the integration id
 # (in _platforms.json), for looking up documentation urls, etc.
-def get_integration_id_for_marketing_slug(slug: str) -> Optional[str]:
+def get_integration_id_for_marketing_slug(slug: str) -> str | None:
     if slug in MARKETING_SLUG_TO_INTEGRATION_ID:
         return MARKETING_SLUG_TO_INTEGRATION_ID[slug]
 
@@ -438,7 +439,7 @@ PLATFORM_INTEGRATION_TO_INTEGRATION_ID = {
 #          "integrations": ["java.util.logging"]}} -> java-logging
 def get_integration_id_for_event(
     platform: str, sdk_name: str, integrations: list[str]
-) -> Optional[str]:
+) -> str | None:
     if integrations:
         for integration in integrations:
             # check special cases
