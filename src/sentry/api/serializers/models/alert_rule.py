@@ -321,6 +321,8 @@ class CombinedRuleSerializer(Serializer):
         user: User | RpcUser,
         **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
+        if attrs is None:
+            attrs = {}
         if isinstance(obj, AlertRule):
             alert_rule_attrs: MutableMapping[Any, Any] = {**attrs}
             alert_rule_attrs["type"] = "alert_rule"
