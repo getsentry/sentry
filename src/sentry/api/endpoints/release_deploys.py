@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models import F
 from django.utils import timezone
 from rest_framework import serializers
@@ -16,6 +18,8 @@ from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.signals import deploy_created
+
+logger = logging.getLogger(__name__)
 
 
 class DeploySerializer(serializers.Serializer):
@@ -90,12 +94,37 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                                       the deploy ended. If not provided, the
                                       current time is used.
         """
+        logging_info = {
+            "org_slug": organization.slug,
+            "org_id": organization.id,
+            "version": version,
+        }
+
         try:
             release = Release.objects.get(version=version, organization=organization)
         except Release.DoesNotExist:
+            logger.info(
+                "create_release_deploy.release_not_found",
+                extra=logging_info,
+            )
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
+            # Logic here copied from `has_release_permission` (lightly edited for results to be more
+            # human-readable)
+            auth = None
+            if getattr(request, "user", None) and request.user.id:
+                auth = f"user.id: {request.user.id}"
+            elif getattr(request, "auth", None) and getattr(request.auth, "id", None):
+                auth = f"auth.id: {request.auth.id}"  # type: ignore
+            elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
+                auth = f"auth.entity_id: {request.auth.entity_id}"  # type: ignore
+            if auth is not None:
+                logging_info.update({"auth": auth})
+                logger.info(
+                    "create_release_deploy.no_release_permission",
+                    extra=logging_info,
+                )
             raise ResourceDoesNotExist
 
         serializer = DeploySerializer(
