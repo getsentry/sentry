@@ -225,7 +225,7 @@ export interface SamplesProps {
   onClick?: (sample: Sample) => void;
 }
 
-export const MetricWidgetBody = memo(
+const MetricWidgetBody = memo(
   ({
     onChange,
     displayType,

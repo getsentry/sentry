@@ -275,7 +275,7 @@ export function PageOverviewWebVitalsDetailPanel({
   };
 
   const webVitalScore = projectScore[`${webVital}Score`];
-  const webVitalValue = projectData?.data[0][`p75(measurements.${webVital})`] as
+  const webVitalValue = projectData?.data[0]?.[`p75(measurements.${webVital})`] as
     | number
     | undefined;
 
