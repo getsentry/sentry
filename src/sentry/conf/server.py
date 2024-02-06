@@ -10,19 +10,9 @@ import re
 import socket
 import sys
 import tempfile
+from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Final,
-    List,
-    Mapping,
-    MutableSequence,
-    Optional,
-    Union,
-    overload,
-)
+from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -52,14 +42,14 @@ def env(key: str) -> str:
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Optional[Type] = None) -> _EnvTypes:
+def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes:
     ...
 
 
 def env(
     key: str,
     default: str | _EnvTypes = "",
-    type: Optional[Type] = None,
+    type: Type | None = None,
 ) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
@@ -559,7 +549,7 @@ AUTHENTICATION_BACKENDS = (
     "social_auth.backends.visualstudio.VisualStudioBackend",
 )
 
-AUTH_PASSWORD_VALIDATORS: List[Dict[str, Any]] = [
+AUTH_PASSWORD_VALIDATORS: list[dict[str, Any]] = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -1807,6 +1797,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-using-transactions": False,
     # Enable profiling view
     "organizations:profiling-view": False,
+    # Enable asking for feedback after project-create when replay is disabled
+    "organizations:project-create-replay-feedback": False,
     # Limit project events endpoint to only query back a certain number of days
     "organizations:project-event-date-limit": False,
     # Enable project selection on the stats page
@@ -1857,8 +1849,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-issue-emails": False,
     # Enable the new event linking columns to be queried
     "organizations:session-replay-new-event-counts": False,
-    # Enable View Sample Replay button on the Replay-List empty-state page
-    "organizations:session-replay-onboarding-cta-button": False,
     # Enable Rage Click Issue Creation In Recording Consumer
     "organizations:session-replay-rage-click-issue-creation": False,
     # Enable data scrubbing of replay recording payloads in Relay.
@@ -1932,6 +1922,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:team-workflow-notifications": False,
     # Enable feature to load more than 100 rows in performance trace view.
     "organizations:trace-view-load-more": False,
+    # Enable feature to load new trace view.
+    "organizations:trace-view-v1": False,
     # Extraction metrics for transactions during ingestion.
     "organizations:transaction-metrics-extraction": False,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
@@ -1995,6 +1987,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:rate-limits": True,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
+    # Enable similarity embeddings API call
+    "projects:similarity-embeddings": False,
     # Starfish: extract metrics from the spans
     "projects:span-metrics-extraction": False,
     "projects:span-metrics-extraction-ga-modules": False,
@@ -3457,7 +3451,7 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 
 
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
+KAFKA_TOPICS: Mapping[str, TopicDefinition | None] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -3925,7 +3919,7 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 
 # This webhook url can be configured to log the changes made to runtime options as they
 # are changed by sentry configoptions.
-OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: Optional[str] = None
+OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
 SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
 SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
@@ -3960,6 +3954,7 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-user-reports",
     "sentry-api-0-group-attachments",
     "sentry-api-0-group-similar",
+    "sentry-api-0-group-similar-issues-embeddings",
     "sentry-api-0-group-external-issues",
     "sentry-api-0-group-external-issues-details",
     "sentry-api-0-group-integrations",

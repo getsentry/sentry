@@ -108,6 +108,7 @@ class DashboardWidgetQuery(Model):
     # Order of the widget query in the widget.
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    date_modified = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
@@ -182,7 +183,7 @@ class DashboardWidgetQueryOnDemand(Model):
         app_label = "sentry"
         db_table = "sentry_dashboardwidgetqueryondemand"
 
-    __repr__ = sane_repr("extraction_state", "extraction_enabled")
+    __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
 @region_silo_only_model

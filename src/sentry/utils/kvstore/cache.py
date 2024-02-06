@@ -1,5 +1,6 @@
+from collections.abc import Iterator, Sequence
 from datetime import timedelta
-from typing import Any, Iterator, Optional, Sequence, Tuple
+from typing import Any
 
 from django.conf import settings
 
@@ -28,10 +29,10 @@ class CacheKVStorage(KVStorage[Any, Any]):
     def __init__(self, backend: BaseCache) -> None:
         self.backend = backend
 
-    def get(self, key: Any) -> Optional[Any]:
+    def get(self, key: Any) -> Any | None:
         return self.backend.get(key)
 
-    def set(self, key: Any, value: Any, ttl: Optional[timedelta] = None) -> None:
+    def set(self, key: Any, value: Any, ttl: timedelta | None = None) -> None:
         self.backend.set(key, value, timeout=int(ttl.total_seconds()) if ttl is not None else None)
 
     def delete(self, key: Any) -> None:
@@ -67,7 +68,7 @@ class CacheKeyWrapper(KVStorage[str, V]):
         self,
         storage: KVStorage[str, V],
         prefix: str = BaseCache.prefix,
-        version: Optional[Any] = None,
+        version: Any | None = None,
     ):
         if version is None:
             version = settings.CACHE_VERSION
@@ -76,15 +77,15 @@ class CacheKeyWrapper(KVStorage[str, V]):
         self.prefix = prefix
         self.version = version
 
-    def get(self, key: str) -> Optional[V]:
+    def get(self, key: str) -> V | None:
         return self.storage.get(wrap_key(self.prefix, self.version, key))
 
-    def get_many(self, keys: Sequence[str]) -> Iterator[Tuple[str, V]]:
+    def get_many(self, keys: Sequence[str]) -> Iterator[tuple[str, V]]:
         results = self.storage.get_many([wrap_key(self.prefix, self.version, key) for key in keys])
         for key, value in results:
             yield unwrap_key(self.prefix, self.version, key), value
 
-    def set(self, key: str, value: V, ttl: Optional[timedelta] = None) -> None:
+    def set(self, key: str, value: V, ttl: timedelta | None = None) -> None:
         return self.storage.set(
             wrap_key(self.prefix, self.version, key),
             value,

@@ -4,8 +4,9 @@ import copy
 import logging
 import random
 import sys
+from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
-from typing import TYPE_CHECKING, Any, Generator, List, Mapping, NamedTuple, Sequence
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
 from django.conf import settings
@@ -635,7 +636,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
 
 
 def bind_ambiguous_org_context(
-    orgs: Sequence[Organization] | Sequence[RpcOrganization] | List[str], source: str | None = None
+    orgs: Sequence[Organization] | Sequence[RpcOrganization] | list[str], source: str | None = None
 ) -> None:
     """
     Add org context information to the scope in the case where the current org might be one of a

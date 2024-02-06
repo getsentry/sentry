@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models
@@ -31,19 +32,29 @@ if TYPE_CHECKING:
 
 
 class ActivityManager(BaseManager["Activity"]):
-    def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
+    def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
+        from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
+
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
+        initial_priority = None
 
         if not features.has("projects:issue-priority", group.project):
-            activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
+            activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
+        else:
+            event_metadata = group.get_event_metadata()
+            # Check if 'initial_priority' is available and the feature flag is on
+            initial_priority_key = event_metadata.get("initial_priority")
+            initial_priority = (
+                PRIORITY_LEVEL_TO_STR[initial_priority_key] if initial_priority_key else None
+            )
 
         prev_sig = None
         sig = None
         # we select excess so we can filter dupes
         for item in activity_qs[: num * 2]:
             prev_sig = sig
-            sig = (item.type, item.ident, item.user_id)
+            sig = (item.type, item.ident, item.user_id, item.data)
 
             if item.type == ActivityType.NOTE.value:
                 activities.append(item)
@@ -58,6 +69,7 @@ class ActivityManager(BaseManager["Activity"]):
                 project=group.project,
                 group=group,
                 type=ActivityType.FIRST_SEEN.value,
+                data={"priority": initial_priority},
                 datetime=group.first_seen,
             )
         )
@@ -68,9 +80,9 @@ class ActivityManager(BaseManager["Activity"]):
         self,
         group: Group,
         type: ActivityType,
-        user: Optional[User | RpcUser] = None,
-        user_id: Optional[int] = None,
-        data: Optional[Mapping[str, Any]] = None,
+        user: User | RpcUser | None = None,
+        user_id: int | None = None,
+        data: Mapping[str, Any] | None = None,
         send_notification: bool = True,
     ) -> Activity:
         if user:

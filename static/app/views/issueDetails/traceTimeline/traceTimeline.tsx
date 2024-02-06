@@ -3,51 +3,54 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
+import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useUser} from 'sentry/utils/useUser';
 import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
 
 import {TraceTimelineEvents} from './traceTimelineEvents';
 import {useTraceTimelineEvents} from './useTraceTimelineEvents';
+
+const PLACEHOLDER_SIZE = '45px';
 
 interface TraceTimelineProps {
   event: Event;
 }
 
 export function TraceTimeline({event}: TraceTimelineProps) {
-  const user = useUser();
   const organization = useOrganization({allowNull: true});
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
-  const hasFeature = hasTraceTimelineFeature(organization, user);
+  const hasFeature = hasTraceTimelineFeature(organization);
   const {isError, isLoading, data} = useTraceTimelineEvents({event}, hasFeature);
 
-  if (!hasFeature) {
+  if (!hasFeature || !event.contexts?.trace?.trace_id) {
     return null;
   }
 
-  if (isError || (!isLoading && data.length === 0)) {
-    // display placeholder to reduce layout shift
-    return <div style={{height: 45}} />;
+  const noEvents = !isLoading && data.length === 0;
+  // Timelines with only the current event are not useful
+  const onlySelfEvent =
+    !isLoading && data.length > 0 && data.every(item => item.id === event.id);
+  if (isError || noEvents || onlySelfEvent) {
+    // display empty placeholder to reduce layout shift
+    return <div style={{height: PLACEHOLDER_SIZE}} data-test-id="trace-timeline-empty" />;
   }
 
   return (
     <ErrorBoundary mini>
-      <div>
-        <Stacked ref={timelineRef}>
-          {isLoading ? (
-            <Placeholder height="45px" />
-          ) : (
-            <TimelineEventsContainer>
-              <TimelineOutline />
-              {/* Sets a min width of 200 for testing */}
-              <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
-            </TimelineEventsContainer>
-          )}
-        </Stacked>
-      </div>
+      <Stacked ref={timelineRef}>
+        {isLoading ? (
+          <Placeholder height={PLACEHOLDER_SIZE} />
+        ) : (
+          <TimelineEventsContainer>
+            <TimelineOutline />
+            {/* Sets a min width of 200 for testing */}
+            <TraceTimelineEvents event={event} width={Math.max(width, 200)} />
+          </TimelineEventsContainer>
+        )}
+      </Stacked>
     </ErrorBoundary>
   );
 }
@@ -60,9 +63,10 @@ const TimelineOutline = styled('div')`
   left: 0;
   top: 5px;
   width: 100%;
-  height: 6px;
+  height: 8px;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.backgroundSecondary};
 `;
 
 /**
@@ -80,6 +84,7 @@ const Stacked = styled('div')`
   > * {
     grid-area: 1 / 1;
   }
+  margin-top: ${space(1)};
 `;
 
 const TimelineEventsContainer = styled('div')`

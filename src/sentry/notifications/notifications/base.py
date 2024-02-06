@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import uuid
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 import sentry_sdk
@@ -48,7 +49,6 @@ class BaseNotification(abc.ABC):
         When we want to collect analytics about this type of notification, we
         will use this key. This MUST be snake_case.
         """
-        pass
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         return {}
@@ -86,7 +86,6 @@ class BaseNotification(abc.ABC):
          - src/sentry/templates/path/to/example.txt
         then set `template_path` for the notification to `path/to/example`.
         """
-        pass
 
     def get_recipient_context(
         self, recipient: RpcActor, extra_context: Mapping[str, Any]
@@ -171,9 +170,7 @@ class BaseNotification(abc.ABC):
                     **self.get_custom_analytics_params(recipient),
                 )
 
-    def get_referrer(
-        self, provider: ExternalProviders, recipient: Optional[RpcActor] = None
-    ) -> str:
+    def get_referrer(self, provider: ExternalProviders, recipient: RpcActor | None = None) -> str:
         # referrer needs the provider and recipient
         referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
@@ -181,7 +178,7 @@ class BaseNotification(abc.ABC):
         return referrer
 
     def get_sentry_query_params(
-        self, provider: ExternalProviders, recipient: Optional[RpcActor] = None
+        self, provider: ExternalProviders, recipient: RpcActor | None = None
     ) -> str:
         """
         Returns the query params that allow us to track clicks into Sentry links.

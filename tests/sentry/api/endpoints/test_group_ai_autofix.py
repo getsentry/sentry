@@ -49,7 +49,9 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
         release = self.create_release(project=self.project, version="1.0.0")
 
         repo = self.create_repo(
-            project=self.project, name="getsentry/sentry", provider="integrations:github"
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
         )
         repo.save()
 
@@ -86,8 +88,8 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             actual_group_arg = mock_call.call_args[0][0]
             assert actual_group_arg.id == group.id
 
-            exceptions_arg = mock_call.call_args[0][2]
-            assert dict(event.data.get("exception", {}).get("values", [])) == dict(exceptions_arg)
+            entries_arg = mock_call.call_args[0][2]
+            assert any([entry.get("type") == "exception" for entry in entries_arg])
 
         group = Group.objects.get(id=group.id)
 
@@ -132,7 +134,7 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=group.id)
 
-        error_msg = "No valid base commit found for release; only getsentry/sentry repo is supported right now."
+        error_msg = "No valid base commit from the public sentry repo found associated through issue's releases; only the public sentry repo is supported right now."
 
         assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
         assert response.data["detail"] == error_msg
@@ -159,7 +161,8 @@ class GroupAIAutofixEndpointTest(APITestCase, SnubaTestCase):
             data={
                 **data,
                 "release": release.version,
-                "exception": {"values": [{"type": "breadcrumbs", "data": {"values": []}}]},
+                "exception": None,
+                "stacktrace": None,
             },
             project_id=self.project.id,
         )

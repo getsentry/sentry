@@ -1,4 +1,4 @@
-from typing import List, Mapping
+from collections.abc import Mapping
 
 import pytest
 
@@ -40,7 +40,7 @@ intensity = [0.0, 0.5, 1.0]
 
 
 def get_num_sampled_elements(
-    transactions: List[RebalancedItem], trans_dict: Mapping[str, float], global_rate: float
+    transactions: list[RebalancedItem], trans_dict: Mapping[str, float], global_rate: float
 ) -> float:
     num_transactions = 0.0
     for transaction in transactions:

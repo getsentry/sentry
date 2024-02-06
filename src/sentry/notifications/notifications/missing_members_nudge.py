@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from typing import Any
 
 from sentry.db.models.base import Model
 from sentry.models.organization import Organization
@@ -26,7 +27,7 @@ class MissingMembersNudgeNotification(BaseNotification):
     def __init__(
         self,
         organization: Organization,
-        commit_authors: Sequence[Dict[str, Any]],
+        commit_authors: Sequence[dict[str, Any]],
         provider: str,
     ) -> None:
         super().__init__(organization)
@@ -48,7 +49,7 @@ class MissingMembersNudgeNotification(BaseNotification):
         return [ExternalProviders.EMAIL]
 
     def get_members_list_url(
-        self, provider: ExternalProviders, recipient: Optional[RpcActor] = None
+        self, provider: ExternalProviders, recipient: RpcActor | None = None
     ) -> str:
         url = self.organization.absolute_url(
             f"/settings/{self.organization.slug}/members/",

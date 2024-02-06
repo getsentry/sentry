@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import cached_property
 from time import time
-from typing import Any, List
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -37,7 +37,7 @@ pytestmark = [requires_snuba]
 
 def generate_mock_response(*, method: str, non_region_url: str, path: str, **kwargs):
     if SiloMode.get_current_mode() == SiloMode.REGION:
-        match: List[Any] | None = kwargs.pop("match", None)
+        match: list[Any] | None = kwargs.pop("match", None)
         if match is None:
             match = [matchers.header_matcher({PROXY_PATH: path})]
         else:

@@ -2,14 +2,15 @@ import logging
 import math
 import random
 from collections import namedtuple
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, NotRequired
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Condition, Function, Op
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -67,7 +68,7 @@ FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 
 class EventsMeta(TypedDict):
-    fields: Dict[str, str]
+    fields: dict[str, str]
     datasetReason: NotRequired[str]
     isMetricsData: NotRequired[bool]
     isMetricsExtractedData: NotRequired[bool]
@@ -82,7 +83,7 @@ EventsMeta.__annotations__["isMetricsExtractedData"] = bool
 
 
 class EventsResponse(TypedDict):
-    data: List[Dict[str, Any]]
+    data: list[dict[str, Any]]
     meta: EventsMeta
 
 
@@ -270,12 +271,12 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, Any],
+    params: dict[str, Any],
     rollup: int,
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     zerofill_results: bool = True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
@@ -574,8 +575,8 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
-    per_page: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
-    cursor: Optional[int] = 0,
+    per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: int | None = 0,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -1417,8 +1418,8 @@ def check_multihistogram_fields(fields):
 
 
 def corr_snuba_timeseries(
-    x: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
-    y: Sequence[Tuple[int, Sequence[Dict[str, float]]]],
+    x: Sequence[tuple[int, Sequence[dict[str, float]]]],
+    y: Sequence[tuple[int, Sequence[dict[str, float]]]],
 ):
     """
     Returns the Pearson's coefficient of two snuba timeseries.

@@ -24,13 +24,13 @@ import {
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
-import {
-  type MetricCorrelation,
-  MetricDisplayType,
-  type MetricWidgetQueryParams,
+import type {
+  MetricCorrelation,
+  MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
-import {useCorrelatedSamples} from 'sentry/utils/metrics/useMetricsCodeLocations';
+import {useMetricSamples} from 'sentry/utils/metrics/useMetricsCorrelations';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {MetricChart} from 'sentry/views/ddm/chart';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
@@ -38,7 +38,7 @@ import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
-import {MIN_WIDGET_WIDTH} from './constants';
+import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
   datetime: PageFilters['datetime'];
@@ -62,6 +62,12 @@ export type Sample = {
   spanId: string;
   transactionId: string;
   transactionSpanId: string;
+};
+
+const constructQueryString = (queryObject: Record<string, string>) => {
+  return Object.entries(queryObject)
+    .map(([key, value]) => `${key}:"${value}"`)
+    .join(' ');
 };
 
 export const MetricWidget = memo(
@@ -124,6 +130,21 @@ export const MetricWidget = memo(
       onChange(index, {displayType: value});
     };
 
+    const samplesQuery = useMetricSamples(metricsQuery.mri, {
+      ...focusArea?.selection?.range,
+      query: widget?.focusedSeries?.groupBy
+        ? `${widget.query} ${constructQueryString(widget.focusedSeries.groupBy)}`.trim()
+        : widget?.query,
+    });
+
+    const samples = useMemo(() => {
+      return {
+        data: samplesQuery.data,
+        onClick: onSampleClick,
+        higlightedId: highlightedSampleId,
+      };
+    }, [samplesQuery.data, onSampleClick, highlightedSampleId]);
+
     const widgetTitle = metricsQuery.title ?? stringifyMetricWidget(metricsQuery);
 
     return (
@@ -167,9 +188,9 @@ export const MetricWidget = memo(
                 environments={environments}
                 onChange={handleChange}
                 focusArea={focusArea}
-                onSampleClick={onSampleClick}
+                samples={samples}
                 chartHeight={300}
-                highlightedSampleId={highlightedSampleId}
+                chartGroup={DDM_CHART_GROUP}
                 {...widget}
               />
             ) : (
@@ -190,12 +211,18 @@ export const MetricWidget = memo(
 
 interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   widgetIndex: number;
+  chartGroup?: string;
   chartHeight?: number;
   focusArea?: FocusAreaProps;
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
-  highlightedSampleId?: string;
   onChange?: (data: Partial<MetricWidgetQueryParams>) => void;
-  onSampleClick?: (sample: Sample) => void;
+  samples?: SamplesProps;
+}
+
+export interface SamplesProps {
+  data?: MetricCorrelation[];
+  higlightedId?: string;
+  onClick?: (sample: Sample) => void;
 }
 
 export const MetricWidgetBody = memo(
@@ -203,13 +230,13 @@ export const MetricWidgetBody = memo(
     onChange,
     displayType,
     focusedSeries,
-    highlightedSampleId,
     sort,
     widgetIndex,
     getChartPalette = createChartPalette,
     focusArea,
     chartHeight,
-    onSampleClick,
+    chartGroup,
+    samples,
     ...metricsQuery
   }: MetricWidgetBodyProps & PageFilters) => {
     const {mri, op, query, groupBy, projects, environments, datetime} = metricsQuery;
@@ -231,11 +258,6 @@ export const MetricWidgetBody = memo(
       },
       {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
     );
-
-    const {data: samplesData} = useCorrelatedSamples(mri, {
-      ...focusArea?.selection?.range,
-      query,
-    });
 
     const chartRef = useRef<ReactEchartsRef>(null);
 
@@ -277,17 +299,6 @@ export const MetricWidgetBody = memo(
       focusedSeries?.seriesName,
       metricsQuery.groupBy,
     ]);
-
-    const correlations = useMemo(() => {
-      return (
-        samplesData
-          ? samplesData.metrics
-              .map(m => m.metricSpans)
-              .flat()
-              .filter(correlation => !!correlation)
-          : []
-      ) as MetricCorrelation[];
-    }, [samplesData]);
 
     const handleSortChange = useCallback(
       newSort => {
@@ -331,10 +342,9 @@ export const MetricWidgetBody = memo(
           operation={metricsQuery.op}
           widgetIndex={widgetIndex}
           height={chartHeight}
-          highlightedSampleId={highlightedSampleId}
-          correlations={correlations}
-          onSampleClick={onSampleClick}
+          scatter={samples}
           focusArea={focusArea}
+          group={chartGroup}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable

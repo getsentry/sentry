@@ -1,21 +1,11 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    FrozenSet,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.db import DataError, connections, router
 from django.utils import timezone as django_timezone
@@ -56,7 +46,7 @@ def get_user_tag(projects: Sequence[Project], key: str, value: str) -> str:
     return euser.tag_value
 
 
-def parse_status_value(status: Union[str, int]) -> int:
+def parse_status_value(status: str | int) -> int:
     if status in STATUS_QUERY_CHOICES:
         return int(STATUS_QUERY_CHOICES[status])
     if status in STATUS_QUERY_CHOICES.values():
@@ -64,7 +54,7 @@ def parse_status_value(status: Union[str, int]) -> int:
     raise ValueError("Invalid status value")
 
 
-def parse_substatus_value(substatus: Union[str, int]) -> int:
+def parse_substatus_value(substatus: str | int) -> int:
     if substatus in SUBSTATUS_UPDATE_CHOICES:
         return int(SUBSTATUS_UPDATE_CHOICES[substatus])
     if substatus in SUBSTATUS_UPDATE_CHOICES.values():
@@ -166,7 +156,7 @@ def parse_percentage(value: str) -> float:
     return parsed_value / 100
 
 
-def parse_numeric_value(value: str, suffix: Optional[str] = None) -> float:
+def parse_numeric_value(value: str, suffix: str | None = None) -> float:
     try:
         parsed_value = float(value)
     except ValueError:
@@ -184,7 +174,7 @@ def parse_numeric_value(value: str, suffix: Optional[str] = None) -> float:
 
 def parse_datetime_range(
     value: str,
-) -> Union[tuple[tuple[datetime, bool], None], tuple[None, tuple[datetime, bool]]]:
+) -> tuple[tuple[datetime, bool], None] | tuple[None, tuple[datetime, bool]]:
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]
     except (ValueError, TypeError, IndexError):
@@ -243,7 +233,7 @@ def parse_datetime_string(value: str) -> datetime:
     raise InvalidQuery(f"{value} is not a valid ISO8601 date query")
 
 
-ParsedDatetime = Optional[Tuple[datetime, bool]]
+ParsedDatetime = Optional[tuple[datetime, bool]]
 
 
 def parse_datetime_comparison(
@@ -297,9 +287,9 @@ def parse_datetime_expression(value: str) -> tuple[ParsedDatetime, ParsedDatetim
         return parse_datetime_value(value)
 
 
-def get_date_params(value: str, from_field: str, to_field: str) -> dict[str, Union[datetime, bool]]:
+def get_date_params(value: str, from_field: str, to_field: str) -> dict[str, datetime | bool]:
     date_from, date_to = parse_datetime_expression(value)
-    result: dict[str, Union[datetime, bool]] = {}
+    result: dict[str, datetime | bool] = {}
     if date_from is not None:
         date_from_value, date_from_inclusive = date_from
         result.update({from_field: date_from_value, f"{from_field}_inclusive": date_from_inclusive})
@@ -330,7 +320,7 @@ def get_teams_for_users(projects: Sequence[Project], users: Sequence[User]) -> l
 
 def parse_actor_value(
     projects: Sequence[Project], value: str, user: RpcUser | User
-) -> Union[RpcUser, Team]:
+) -> RpcUser | Team:
     if value.startswith("#"):
         return parse_team_value(projects, value)
     return parse_user_value(value, user)
@@ -338,7 +328,7 @@ def parse_actor_value(
 
 def parse_actor_or_none_value(
     projects: Sequence[Project], value: str, user: User
-) -> Optional[Union[RpcUser, Team]]:
+) -> RpcUser | Team | None:
     if value == "none":
         return None
     return parse_actor_value(projects, value, user)
@@ -365,8 +355,8 @@ class LatestReleaseOrders(Enum):
 
 def get_latest_release(
     projects: Sequence[Project | int],
-    environments: Optional[Sequence[Environment]],
-    organization_id: Optional[int] = None,
+    environments: Sequence[Environment] | None,
+    organization_id: int | None = None,
     adopted=False,
 ) -> Sequence[str]:
     if organization_id is None:
@@ -387,7 +377,7 @@ def get_latest_release(
         else:
             date_project_ids.append(project_id)
 
-    versions: Set[str] = set()
+    versions: set[str] = set()
     versions.update(
         _run_latest_release_query(
             LatestReleaseOrders.SEMVER,
@@ -413,7 +403,7 @@ def get_latest_release(
     return list(sorted(versions))
 
 
-def _get_release_query_type_sql(query_type: LatestReleaseOrders, last: bool) -> Tuple[str, str]:
+def _get_release_query_type_sql(query_type: LatestReleaseOrders, last: bool) -> tuple[str, str]:
     direction = "DESC" if last else "ASC"
     extra_conditions = ""
     if query_type == LatestReleaseOrders.SEMVER:
@@ -427,7 +417,7 @@ def _get_release_query_type_sql(query_type: LatestReleaseOrders, last: bool) -> 
 def _run_latest_release_query(
     query_type: LatestReleaseOrders,
     project_ids: Sequence[int],
-    environments: Optional[Sequence[Environment]],
+    environments: Sequence[Environment] | None,
     organization_id: int,
     # Only include adopted releases in the results
     adopted: bool = False,
@@ -512,8 +502,8 @@ def get_first_last_release_for_group(
 def parse_release(
     value: str,
     projects: Sequence[Project | int],
-    environments: Optional[Sequence[Environment]],
-    organization_id: Optional[int] = None,
+    environments: Sequence[Environment] | None,
+    organization_id: int | None = None,
 ) -> Sequence[str]:
     if value == "latest":
         try:
@@ -526,7 +516,7 @@ def parse_release(
 
 
 numeric_modifiers: Sequence[
-    Tuple[str, Callable[[str, Union[int, float]], dict[str, Union[int, float, bool]]]]
+    tuple[str, Callable[[str, int | float], dict[str, int | float | bool]]]
 ] = [
     (
         ">=",
@@ -560,8 +550,8 @@ numeric_modifiers: Sequence[
 
 
 def get_numeric_field_value(
-    field: str, raw_value: str, type: Callable[[str], Union[int, float]] = int
-) -> dict[str, Union[int, float, bool]]:
+    field: str, raw_value: str, type: Callable[[str], int | float] = int
+) -> dict[str, int | float | bool]:
     try:
         for modifier, function in numeric_modifiers:
             if raw_value.startswith(modifier):
@@ -809,7 +799,7 @@ def parse_query(
     return results
 
 
-def convert_user_tag_to_query(key: str, value: str) -> Optional[str]:
+def convert_user_tag_to_query(key: str, value: str) -> str | None:
     """
     Converts a user tag to a query string that can be used to search for that
     user. Returns None if not a user tag.
@@ -824,7 +814,7 @@ def convert_user_tag_to_query(key: str, value: str) -> Optional[str]:
 @dataclass
 class SupportedConditions:
     field_name: str
-    operators: Optional[FrozenSet[str]] = None
+    operators: frozenset[str] | None = None
 
 
 supported_cdc_conditions = [
@@ -835,7 +825,7 @@ supported_cdc_conditions_lookup = {
 }
 
 
-def validate_cdc_search_filters(search_filters: Optional[Sequence[SearchFilter]]) -> bool:
+def validate_cdc_search_filters(search_filters: Sequence[SearchFilter] | None) -> bool:
     """
     Validates whether a set of search filters can be handled by the cdc search backend.
     """
@@ -852,14 +842,14 @@ def validate_cdc_search_filters(search_filters: Optional[Sequence[SearchFilter]]
 
 
 # Mapping of device class to the store corresponding tag value
-DEVICE_CLASS: Dict[str, Set[str]] = {
+DEVICE_CLASS: dict[str, set[str]] = {
     "low": {"1"},
     "medium": {"2"},
     "high": {"3"},
 }
 
 
-def map_device_class_level(device_class: str) -> Optional[str]:
+def map_device_class_level(device_class: str) -> str | None:
     for key, value in DEVICE_CLASS.items():
         if device_class in value:
             return key

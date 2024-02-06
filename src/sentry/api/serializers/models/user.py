@@ -3,19 +3,9 @@ from __future__ import annotations
 import itertools
 import warnings
 from collections import defaultdict
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import Any, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -45,7 +35,7 @@ from sentry.utils.avatar import get_gravatar_url
 
 
 def manytoone_to_dict(
-    queryset: QuerySet, key: str, filter_func: Optional[Callable[[Any], bool]] = None
+    queryset: QuerySet, key: str, filter_func: Callable[[Any], bool] | None = None
 ) -> MutableMapping[Any, Any]:
     result = defaultdict(list)
     for row in queryset:
@@ -91,9 +81,9 @@ class _UserOptions(TypedDict):
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
-    identities: List[_Identity]
+    identities: list[_Identity]
     avatar: SerializedAvatarFields
-    authenticators: List[Any]  # TODO: find out what type this is
+    authenticators: list[Any]  # TODO: find out what type this is
     canReset2fa: bool
 
 
@@ -112,8 +102,8 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     lastActive: datetime
     isSuperuser: bool
     isStaff: bool
-    experiments: Dict[str, Any]  # TODO
-    emails: List[_UserEmails]
+    experiments: dict[str, Any]  # TODO
+    emails: list[_UserEmails]
 
 
 class UserSerializerResponseSelf(UserSerializerResponse):
@@ -132,7 +122,7 @@ class UserSerializer(Serializer):
 
     def _get_identities(
         self, item_list: Sequence[User], user: User
-    ) -> Dict[int, List[AuthIdentity]]:
+    ) -> dict[int, list[AuthIdentity]]:
         if not (env.request and is_active_superuser(env.request)):
             item_list = [x for x in item_list if x.id == user.id]
 
@@ -142,7 +132,7 @@ class UserSerializer(Serializer):
             "auth_provider",
         )
 
-        results: Dict[int, List[AuthIdentity]] = {i.id: [] for i in item_list}
+        results: dict[int, list[AuthIdentity]] = {i.id: [] for i in item_list}
         for item in queryset:
             results[item.user_id].append(item)
         return results
@@ -167,7 +157,7 @@ class UserSerializer(Serializer):
 
     def serialize(
         self, obj: User, attrs: MutableMapping[str, Any], user: User | AnonymousUser | RpcUser
-    ) -> Union[UserSerializerResponse, UserSerializerResponseSelf]:
+    ) -> UserSerializerResponse | UserSerializerResponseSelf:
         experiment_assignments = experiments.all(user=user)
 
         d: UserSerializerResponse = {
@@ -257,7 +247,7 @@ class UserSerializer(Serializer):
 
 
 class DetailedUserSerializerResponse(UserSerializerResponse):
-    authenticators: List[Any]  # TODO
+    authenticators: list[Any]  # TODO
     canReset2fa: bool
 
 
@@ -322,7 +312,7 @@ class DetailedUserSerializer(UserSerializer):
 
 class DetailedSelfUserSerializerResponse(UserSerializerResponse):
     permissions: Any
-    authenticators: List[Any]  # TODO
+    authenticators: list[Any]  # TODO
 
 
 class DetailedSelfUserSerializer(UserSerializer):
