@@ -1,5 +1,5 @@
 const csv = require('csv-parser');
-const fs = require('fs');
+const fs = require('node:fs');
 
 const transformResults = res => {
   const deviceMapping = {};
