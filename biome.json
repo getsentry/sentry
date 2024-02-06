@@ -13,11 +13,17 @@
     "enabled": true,
     "rules": {
       "recommended": false,
+      "complexity": {
+        "useFlatMap": "error"
+      },
       "nursery": {
         "noDuplicateJsonKeys": "error",
         "noNodejsModules": "error",
         "useExportType": "error",
         "useImportType": "error"
+      },
+      "suspicious": {
+        "useIsArray": "error"
       }
     }
   },
