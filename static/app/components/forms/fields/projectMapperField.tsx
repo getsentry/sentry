@@ -130,7 +130,9 @@ export class RenderField extends Component<RenderProps, State> {
 
     const handleSelectProject = ({value}: {value: number}) => {
       if (value === -1) {
-        openProjectCreationModal({defaultCategory: 'popular'});
+        openProjectCreationModal({
+          defaultCategory: iconType === 'vercel' ? 'browser' : 'popular',
+        });
       } else {
         this.setState({selectedSentryProjectId: value});
       }
