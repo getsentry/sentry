@@ -307,7 +307,7 @@ class ReactPageViewTest(TestCase):
                 ]
             assert self.client.session["activeorg"] == other_org.slug
 
-            # Access another org as superuser on non-customer domain
+            # Accessing org on non-customer domain with superuser and/or staff.
             response = self.client.get(
                 reverse("sentry-organization-issue-list", args=[org.slug]),
                 follow=True,
