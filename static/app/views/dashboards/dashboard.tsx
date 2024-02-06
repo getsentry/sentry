@@ -23,7 +23,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -52,7 +52,7 @@ import {
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardWidgetSource, WidgetType} from './types';
-import {getDashboardFiltersFromURL} from './utils';
+import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -69,6 +69,7 @@ const BOTTOM_MOBILE_VIEW_POSITION = {
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints.small, 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
+export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 
 type Props = {
   api: Client;
@@ -158,6 +159,8 @@ class Dashboard extends Component<Props, State> {
 
     // Get member list data for issue widgets
     this.fetchMemberList();
+
+    connectDashboardCharts(DASHBOARD_CHART_GROUP);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -314,10 +317,7 @@ class Dashboard extends Component<Props, State> {
 
     const widget = this.props.dashboard.widgets[index];
 
-    if (
-      widget.widgetType === WidgetType.METRICS &&
-      hasDDMExperimentalFeature(organization)
-    ) {
+    if (widget.widgetType === WidgetType.METRICS && hasDDMFeature(organization)) {
       this.handleStartEditMetricWidget(index);
       return;
     }
@@ -541,6 +541,9 @@ class Dashboard extends Component<Props, State> {
       if (widgetType === WidgetType.RELEASE) {
         return organization.features.includes('dashboards-rh-widget');
       }
+      if (widgetType === WidgetType.METRICS) {
+        return hasDDMFeature(organization);
+      }
       return true;
     });
 
@@ -551,7 +554,7 @@ class Dashboard extends Component<Props, State> {
     const canModifyLayout = !isMobile && isEditingDashboard;
 
     const displayInlineAddWidget =
-      hasDDMExperimentalFeature(organization) &&
+      hasDDMFeature(organization) &&
       isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (
@@ -631,6 +634,4 @@ const WidgetWidthWrapper = styled('div')`
   left: 16px !important;
   right: 16px !important;
   width: auto !important;
-  /* minimal working z-index */
-  z-index: 6;
 `;

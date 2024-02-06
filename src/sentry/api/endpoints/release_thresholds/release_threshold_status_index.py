@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, DefaultDict, List
+from typing import TYPE_CHECKING, DefaultDict
 
 from django.db.models import F, Q
 from django.http import HttpResponse
@@ -215,7 +215,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
             ]
 
             for project in project_list:
-                thresholds_list: List[ReleaseThreshold] = [
+                thresholds_list: list[ReleaseThreshold] = [
                     t
                     for t in project.release_thresholds.all()
                     if (
@@ -308,7 +308,7 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
         for threshold_type, filter_list in thresholds_by_type.items():
             project_id_list = [proj_id for proj_id in filter_list["project_ids"]]
             release_value_list = [release_version for release_version in filter_list["releases"]]
-            category_thresholds: List[EnrichedThreshold] = filter_list["thresholds"]
+            category_thresholds: list[EnrichedThreshold] = filter_list["thresholds"]
             query_window = query_windows_by_type[threshold_type]
             if threshold_type == ReleaseThresholdType.TOTAL_ERROR_COUNT:
                 metrics.incr("release.threshold_health_status.check.error_count")

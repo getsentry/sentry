@@ -24,11 +24,12 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  analyticsContext: string;
   eventTimestampMs: number;
   orgSlug: string;
   replaySlug: string;
-  buttonProps?: Partial<ComponentProps<typeof LinkButton>>;
   focusTab?: TabKey;
+  fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
 };
 
 function getReplayAnalyticsStatus({
@@ -54,7 +55,8 @@ function getReplayAnalyticsStatus({
 }
 
 function ReplayPreview({
-  buttonProps,
+  analyticsContext,
+  fullReplayButtonProps,
   eventTimestampMs,
   focusTab,
   orgSlug,
@@ -118,6 +120,7 @@ function ReplayPreview({
       isFetching={fetching}
       replay={replay}
       initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
+      analyticsContext={analyticsContext}
     >
       <PlayerContainer data-test-id="player-container">
         {replay?.hasProcessingErrors() ? (
@@ -130,7 +133,7 @@ function ReplayPreview({
 
             <CTAOverlay>
               <LinkButton
-                {...buttonProps}
+                {...fullReplayButtonProps}
                 icon={<IconPlay />}
                 priority="primary"
                 to={fullReplayUrl}

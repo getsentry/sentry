@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum, unique
 from functools import lru_cache
 from string import Template
-from typing import Any, Generator, Optional, Tuple
+from typing import Any
 
 from django.utils import timezone
 
@@ -359,7 +360,7 @@ def send_relocation_update_email(
 
 def start_relocation_task(
     uuid: str, task: OrderedTask, allowed_task_attempts: int
-) -> Tuple[Optional[Relocation], int]:
+) -> tuple[Relocation | None, int]:
     """
     All tasks for relocation are done sequentially, and take the UUID of the `Relocation` model as
     the input. We can leverage this information to do some common pre-task setup.

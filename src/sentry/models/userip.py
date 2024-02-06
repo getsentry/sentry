@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
-
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
@@ -47,7 +45,7 @@ class UserIP(Model):
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         from sentry.models.user import User
 
         old_user_id = self.user_id
@@ -72,7 +70,7 @@ class UserIP(Model):
 
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # Ensures that the IP address is valid. Exclude the codes, as they should be `None` until we
         # `log()` them below.
         self.full_clean(exclude=["country_code", "region_code", "user"])

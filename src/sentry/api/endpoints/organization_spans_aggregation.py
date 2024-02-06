@@ -1,7 +1,8 @@
 import hashlib
 from collections import defaultdict, namedtuple
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, TypedDict
+from typing import Any, Optional, TypedDict
 
 import sentry_sdk
 from rest_framework import status
@@ -40,7 +41,7 @@ EventSpan = namedtuple(
 
 class EventSpans(TypedDict):
     transaction_id: str
-    spans: List[EventSpan]
+    spans: list[EventSpan]
 
 
 AggregateSpanRow = TypedDict(
@@ -59,7 +60,7 @@ AggregateSpanRow = TypedDict(
         "avg(absolute_offset)": float,
         "avg(relative_offset)": float,
         "count()": int,
-        "samples": Set[Tuple[Optional[str], str]],
+        "samples": set[tuple[Optional[str], str]],
     },
 )
 
@@ -68,8 +69,8 @@ NULL_GROUP = "00"
 
 class BaseAggregateSpans:
     def __init__(self) -> None:
-        self.aggregated_tree: Dict[str, AggregateSpanRow] = {}
-        self.current_transaction: Optional[str] = None
+        self.aggregated_tree: dict[str, AggregateSpanRow] = {}
+        self.current_transaction: str | None = None
 
     def fingerprint_nodes(
         self,
@@ -167,7 +168,7 @@ class BaseAggregateSpans:
 
         # Handles sibling spans that have the same group
         span_tree["children"].sort(key=lambda s: s["start_timestamp_ms"])
-        span_hash_seen: Dict[str, int] = defaultdict(lambda: 0)
+        span_hash_seen: dict[str, int] = defaultdict(int)
 
         for child in span_tree["children"]:
             child_span_hash = child["key"]
@@ -211,8 +212,8 @@ class AggregateIndexedSpans(BaseAggregateSpans):
                     span_tree[span_id]["children"] = []
 
             for span_ in span_tree.values():
-                parent_id = span_["parent_span_id"]
-                if parent_id in span_tree:
+                parent_id = span_.get("parent_span_id")
+                if parent_id is not None and parent_id in span_tree:
                     parent_span = span_tree[parent_id]
                     children = parent_span["children"]
                     children.append(span_)
@@ -256,7 +257,7 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                     spans_dict = {
                         "span_id": span["span_id"],
                         "is_segment": False,
-                        "parent_span_id": span["parent_span_id"],
+                        "parent_span_id": span.get("parent_span_id"),
                         "group": span.get("sentry_tags", {}).get("group")
                         or span.get("data", {}).get("span.group", NULL_GROUP),
                         "description": span.get("sentry_tags", {}).get("description", ""),
@@ -278,8 +279,8 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                     span_tree[span_id]["children"] = []
 
             for span_ in span_tree.values():
-                parent_id = span_["parent_span_id"]
-                if parent_id in span_tree:
+                parent_id = span_.get("parent_span_id")
+                if parent_id is not None and parent_id in span_tree:
                     parent_span = span_tree[parent_id]
                     children = parent_span["children"]
                     children.append(span_)

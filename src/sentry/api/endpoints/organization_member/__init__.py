@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Collection, List, Tuple
+from collections.abc import Collection
 
 from django.db import router, transaction
 from rest_framework import status
@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from sentry import roles
 from sentry.api.exceptions import SentryAPIException
 from sentry.auth.access import Access
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -27,8 +27,8 @@ class InvalidTeam(SentryAPIException):
 
 def save_team_assignments(
     organization_member: OrganizationMember,
-    teams: List[Team] | None,
-    teams_with_roles: List[Tuple[Team, str]] | None = None,
+    teams: list[Team] | None,
+    teams_with_roles: list[tuple[Team, str]] | None = None,
 ):
     # https://github.com/getsentry/sentry/pull/6054/files/8edbdb181cf898146eda76d46523a21d69ab0ec7#r145798271
     lock = locks.get(
@@ -65,11 +65,11 @@ def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
     """
     User can set a team role:
 
-    * If they are an active superuser
+    * If they are an active superuser (with the feature flag, they must be superuser write)
     * If they are an org owner/manager/admin
     * If they are a team admin on the team
     """
-    if is_active_superuser(request):
+    if superuser_has_permission(request):
         return True
 
     access: Access = request.access

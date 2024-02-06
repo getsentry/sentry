@@ -1,11 +1,9 @@
-from typing import List
-
 from rest_framework import serializers
 
 from sentry.models.savedsearch import SortOptions, Visibility
 
 
-def select_visibility_choices(allowed_visibility: List[str]):
+def select_visibility_choices(allowed_visibility: list[str]):
     return list(filter(lambda item: item[0] in allowed_visibility, Visibility.as_choices()))
 
 

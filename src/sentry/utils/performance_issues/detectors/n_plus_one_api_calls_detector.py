@@ -3,8 +3,8 @@ from __future__ import annotations
 import hashlib
 import os
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import List, Mapping, Optional, Sequence
 from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
@@ -204,13 +204,13 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             ],
         )
 
-    def _get_parameters(self) -> List[str]:
+    def _get_parameters(self) -> list[str]:
         if not self.spans or len(self.spans) == 0:
             return []
 
         urls = [get_url_from_span(span) for span in self.spans]
 
-        all_parameters: Mapping[str, List[str]] = defaultdict(list)
+        all_parameters: Mapping[str, list[str]] = defaultdict(list)
 
         for url in urls:
             parsed_url = urlparse(url)
@@ -231,7 +231,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         parsed_url = urlparse(url)
         return parsed_url.path or ""
 
-    def _fingerprint(self) -> Optional[str]:
+    def _fingerprint(self) -> str | None:
         first_url = get_url_from_span(self.spans[0])
         parameterized_first_url = parameterize_url(first_url)
 
@@ -274,7 +274,7 @@ HTTP_METHODS = {
 }
 
 
-def get_span_hash(span: Span) -> Optional[str]:
+def get_span_hash(span: Span) -> str | None:
     if span.get("op") != "http.client":
         return span.get("hash")
 
@@ -289,7 +289,7 @@ def get_span_hash(span: Span) -> Optional[str]:
     return hash.hexdigest()[:16]
 
 
-def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[str]]:
+def remove_http_client_query_string_strategy(span: Span) -> Sequence[str] | None:
     """
     This is an inline version of the `http.client` parameterization code in
     `"default:2022-10-27"`, the default span grouping strategy at time of

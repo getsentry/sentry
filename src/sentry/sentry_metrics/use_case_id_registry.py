@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from enum import Enum
-from typing import Mapping, Optional
 
 from sentry_kafka_schemas.codecs import ValidationError
 
@@ -51,7 +51,7 @@ USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
 }
 
 
-def get_use_case_key(use_case_id: UseCaseID) -> Optional[UseCaseKey]:
+def get_use_case_key(use_case_id: UseCaseID) -> UseCaseKey | None:
     return METRIC_PATH_MAPPING.get(use_case_id)
 
 

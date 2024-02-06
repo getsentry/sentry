@@ -3,7 +3,8 @@ from __future__ import annotations
 import copy
 import random
 import time
-from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence
+from collections.abc import MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.conf import settings
@@ -187,7 +188,7 @@ def _should_run_secondary_grouping(project: Project) -> bool:
 
 def _calculate_secondary_hash(
     project: Project, job: Job, secondary_grouping_config: GroupingConfig
-) -> None | CalculatedHashes:
+) -> CalculatedHashes | None:
     """Calculate secondary hash for event using a fallback grouping config for a period of time.
     This happens when we upgrade all projects that have not opted-out to automatic upgrades plus
     when the customer changes the grouping config.
@@ -225,8 +226,8 @@ def _calculate_primary_hash(
 def find_existing_grouphash(
     project: Project,
     flat_grouphashes: Sequence[GroupHash],
-    hierarchical_hashes: Optional[Sequence[str]],
-) -> tuple[Optional[GroupHash], Optional[str]]:
+    hierarchical_hashes: Sequence[str] | None,
+) -> tuple[GroupHash | None, str | None]:
     all_grouphashes = []
     root_hierarchical_hash = None
 

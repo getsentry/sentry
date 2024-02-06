@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping, Sequence
 from enum import IntEnum
-from typing import Any, ClassVar, Collection, FrozenSet, Mapping, Optional, Sequence
+from typing import Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -221,7 +222,7 @@ class Organization(
     objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
 
     # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
-    customer_id: Optional[str] = None
+    customer_id: str | None = None
 
     class Meta:
         app_label = "sentry"
@@ -440,7 +441,7 @@ class Organization(
         except NoReverseMatch:
             return reverse(Organization.get_url_viewname())
 
-    def get_scopes(self, role: Role) -> FrozenSet[str]:
+    def get_scopes(self, role: Role) -> frozenset[str]:
         """
         Note that scopes for team-roles are filtered through this method too.
         """
@@ -454,7 +455,7 @@ class Organization(
             scopes.discard("alerts:write")
         return frozenset(scopes)
 
-    def get_teams_with_org_roles(self, roles: Optional[Collection[str]]) -> QuerySet:
+    def get_teams_with_org_roles(self, roles: Collection[str] | None) -> QuerySet:
         from sentry.models.team import Team
 
         if roles is not None:

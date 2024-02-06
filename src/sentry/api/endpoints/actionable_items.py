@@ -1,5 +1,3 @@
-from typing import List, Union
-
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,11 +21,11 @@ from sentry.models.project import Project
 class ActionableItemResponse(TypedDict):
     type: str
     message: str
-    data: Union[dict, None]
+    data: dict | None
 
 
 class SourceMapProcessingResponse(TypedDict):
-    errors: List[ActionableItemResponse]
+    errors: list[ActionableItemResponse]
 
 
 # This endpoint is used to retrieve actionable items that a user can perform on an event. It is a private endpoint

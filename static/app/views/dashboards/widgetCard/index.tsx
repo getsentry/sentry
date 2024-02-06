@@ -26,7 +26,7 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {isSupportedDisplayType} from 'sentry/utils/metrics';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   MEPConsumer,
@@ -38,6 +38,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {MetricWidgetCard} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
@@ -269,10 +270,7 @@ class WidgetCard extends Component<Props, State> {
     );
 
     if (widget.widgetType === WidgetType.METRICS) {
-      if (
-        hasDDMExperimentalFeature(organization) &&
-        isSupportedDisplayType(widget.displayType)
-      ) {
+      if (hasDDMFeature(organization) && isSupportedDisplayType(widget.displayType)) {
         return (
           <MetricWidgetCard
             index={this.props.index}
@@ -287,6 +285,8 @@ class WidgetCard extends Component<Props, State> {
             organization={organization}
             selection={selection}
             widget={widget}
+            dashboardFilters={dashboardFilters}
+            renderErrorMessage={renderErrorMessage}
           />
         );
       }
@@ -360,6 +360,7 @@ class WidgetCard extends Component<Props, State> {
                     windowWidth={windowWidth}
                     onDataFetched={this.setData}
                     dashboardFilters={dashboardFilters}
+                    chartGroup={DASHBOARD_CHART_GROUP}
                   />
                 ) : (
                   <LazyLoad once resize height={200}>
@@ -375,6 +376,7 @@ class WidgetCard extends Component<Props, State> {
                       windowWidth={windowWidth}
                       onDataFetched={this.setData}
                       dashboardFilters={dashboardFilters}
+                      chartGroup={DASHBOARD_CHART_GROUP}
                     />
                   </LazyLoad>
                 )}

@@ -13,8 +13,8 @@ from sentry.utils import metrics
 
 logger = logging.getLogger()
 
-RAGE_CLICK_TITLE = "Suspected Rage Click"
-RAGE_CLICK_LEVEL = "warning"
+RAGE_CLICK_TITLE = "Rage Click"
+RAGE_CLICK_LEVEL = "error"
 
 
 @instrumented_task(
@@ -32,7 +32,7 @@ def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent)
 
     # Seconds since epoch is UTC.
     timestamp = datetime.datetime.fromtimestamp(payload["timestamp"])
-    timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
+    timestamp = timestamp.replace(tzinfo=datetime.UTC)
 
     replay_info_list = query_replay_instance(
         project_id=project_id,
@@ -70,7 +70,6 @@ def report_rage_click_issue(project_id: int, replay_id: str, event: SentryEvent)
         evidence_display=[
             IssueEvidence(name="Clicked Element", value=clicked_element, important=True),
             IssueEvidence(name="Selector Path", value=selector, important=True),
-            IssueEvidence(name="Page URL", value=payload["data"]["url"], important=True),
         ],
         extra_event_data={
             "contexts": {"replay": {"replay_id": replay_id}},

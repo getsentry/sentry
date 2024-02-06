@@ -4,22 +4,9 @@ import itertools
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Protocol,
-    Sequence,
-    Set,
-    Tuple,
-    TypedDict,
-    Union,
-)
+from typing import Any, Protocol, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -81,7 +68,7 @@ logger = logging.getLogger(__name__)
 
 
 def merge_list_dictionaries(
-    dict1: MutableMapping[Any, List[Any]], dict2: Mapping[Any, Sequence[Any]]
+    dict1: MutableMapping[Any, list[Any]], dict2: Mapping[Any, Sequence[Any]]
 ):
     for key, val in dict2.items():
         dict1.setdefault(key, []).extend(val)
@@ -144,7 +131,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     title: str
     culprit: str
     permalink: str
-    logger: Optional[str]
+    logger: str | None
     level: str
     status: str
     statusDetails: GroupStatusDetailsResponseOptional
@@ -158,7 +145,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     assignedTo: UserSerializerResponse
     isBookmarked: bool
     isSubscribed: bool
-    subscriptionDetails: Optional[GroupSubscriptionResponseOptional]
+    subscriptionDetails: GroupSubscriptionResponseOptional | None
     hasSeen: bool
     annotations: Sequence[str]
 
@@ -179,11 +166,11 @@ class GroupSerializerBase(Serializer, ABC):
         self.collapse = collapse
         self.expand = expand
 
-    def _serialize_assignees(self, item_list: Sequence[Group]) -> Mapping[int, Union[Team, Any]]:
+    def _serialize_assignees(self, item_list: Sequence[Group]) -> Mapping[int, Team | Any]:
         gas = GroupAssignee.objects.filter(group__in=item_list)
-        result: MutableMapping[int, Union[Team, Any]] = {}
-        all_team_ids: MutableMapping[int, Set[int]] = defaultdict(set)
-        all_user_ids: MutableMapping[int, Set[int]] = defaultdict(set)
+        result: MutableMapping[int, Team | Any] = {}
+        all_team_ids: MutableMapping[int, set[int]] = defaultdict(set)
+        all_user_ids: MutableMapping[int, set[int]] = defaultdict(set)
 
         for g in gas:
             if g.team_id:
@@ -272,7 +259,7 @@ class GroupSerializerBase(Serializer, ABC):
 
         authorized = self._is_authorized(user, organization_id)
 
-        annotations_by_group_id: MutableMapping[int, List[Any]] = defaultdict(list)
+        annotations_by_group_id: MutableMapping[int, list[Any]] = defaultdict(list)
         for annotations_by_group in itertools.chain.from_iterable(
             [
                 self._resolve_integration_annotations(organization_id, item_list),
@@ -367,6 +354,7 @@ class GroupSerializerBase(Serializer, ABC):
         if features.has("projects:issue-priority", obj.project, actor=None):
             priority_label = PRIORITY_LEVEL_TO_STR[obj.priority] if obj.priority else None
             group_dict["priority"] = priority_label
+            group_dict["priorityLockedAt"] = obj.priority_locked_at
 
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
@@ -457,9 +445,7 @@ class GroupSerializerBase(Serializer, ABC):
             status_label = "unresolved"
         return status_details, status_label
 
-    def _get_seen_stats(
-        self, item_list: Sequence[Group], user
-    ) -> Optional[Mapping[Group, SeenStats]]:
+    def _get_seen_stats(self, item_list: Sequence[Group], user) -> Mapping[Group, SeenStats] | None:
         """
         Returns a dictionary keyed by item that includes:
             - times_seen
@@ -489,7 +475,7 @@ class GroupSerializerBase(Serializer, ABC):
         return {group: agg_stats.get(group, {}) for group in item_list}
 
     def _get_group_snuba_stats(
-        self, item_list: Sequence[Group], seen_stats: Optional[Mapping[Group, SeenStats]]
+        self, item_list: Sequence[Group], seen_stats: Mapping[Group, SeenStats] | None
     ):
         if (
             self._collapse("unhandled")
@@ -548,7 +534,7 @@ class GroupSerializerBase(Serializer, ABC):
         return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
 
     @staticmethod
-    def _get_start_from_seen_stats(seen_stats: Optional[Mapping[Group, SeenStats]]):
+    def _get_start_from_seen_stats(seen_stats: Mapping[Group, SeenStats] | None):
         # Try to figure out what is a reasonable time frame to look into stats,
         # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
         # but it has to be at least 14 days, and not more than 90 days ago.
@@ -570,7 +556,7 @@ class GroupSerializerBase(Serializer, ABC):
     @staticmethod
     def _get_subscriptions(
         groups: Iterable[Group], user: User
-    ) -> Mapping[int, Tuple[bool, bool, Optional[GroupSubscription]]]:
+    ) -> Mapping[int, tuple[bool, bool, GroupSubscription | None]]:
         """
         Returns a mapping of group IDs to a two-tuple of (is_disabled: bool,
         subscribed: bool, subscription: Optional[GroupSubscription]) for the
@@ -622,7 +608,7 @@ class GroupSerializerBase(Serializer, ABC):
     @staticmethod
     def _resolve_resolutions(
         groups: Sequence[Group], user
-    ) -> Tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
+    ) -> tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
         resolved_groups = [i for i in groups if i.status == GroupStatus.RESOLVED]
         if not resolved_groups:
             return {}, {}
@@ -702,7 +688,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _resolve_and_extend_plugin_annotation(
-        item: Group, current_annotations: List[Any]
+        item: Group, current_annotations: list[Any]
     ) -> Sequence[Any]:
         from sentry.plugins.base import plugins
 
@@ -782,11 +768,11 @@ class GroupSerializer(GroupSerializerBase):
             self,
             project_ids: Sequence[int],
             item_ids: Sequence[int],
-            environment_ids: Optional[Sequence[int]],
+            environment_ids: Sequence[int] | None,
         ) -> Mapping[int, int]:
             pass
 
-    def __init__(self, environment_func: Optional[Callable[[], Environment]] = None):
+    def __init__(self, environment_func: Callable[[], Environment] | None = None):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 

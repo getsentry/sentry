@@ -19,8 +19,8 @@ from sentry.types.activity import ActivityType
 @region_silo_endpoint
 class GroupNotesDetailsEndpoint(GroupEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     # We explicitly don't allow a request with an ApiKey
