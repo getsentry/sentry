@@ -82,17 +82,15 @@ describe('SpanOpSelector', function () {
 
     expect(await screen.findByRole('link', {name: 'Operation'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Span Description'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Duration (R1)'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Duration (R2)'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Avg Duration (R1)'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Avg Duration (R2)'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Change'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Total Count'})).toBeInTheDocument();
 
     expect(await screen.findByRole('cell', {name: 'app.start.warm'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Application Init'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '22.55ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '12.50s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '+50%'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '14'})).toBeInTheDocument();
 
     expect(screen.getByRole('link', {name: 'Application Init'})).toHaveAttribute(
       'href',
