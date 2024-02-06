@@ -270,6 +270,10 @@ class Endpoint(APIView):
             # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
             # and caught below.
             response = super().handle_exception(exc)
+        # Custom handling for OAuth-related exceptions
+        if isinstance(exc, IdentityNotValid):
+            logger.error('OAuth identity not valid: %s', exc, extra={'request': request})
+            return Response({'detail': 'Authorization Error: Identity not valid. Please re-authenticate.'}, status=401)
         except Exception as err:
             import sys
             import traceback
