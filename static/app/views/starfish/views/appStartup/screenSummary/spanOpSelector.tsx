@@ -11,7 +11,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {STARTUP_SPANS} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -28,12 +27,15 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
   const value = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
 
   const searchQuery = new MutableSearch([
-    'transaction.op:ui.load',
-    `transaction:${transaction}`,
-    `span.op:[${[...STARTUP_SPANS].join(',')}]`,
-    'has:span.description',
+    // Exclude root level spans because they're comprised of nested operations
     '!span.description:"Cold Start"',
     '!span.description:"Warm Start"',
+    // Exclude this span because we can get TTID contributing spans instead
+    '!span.description:"Initial Frame Render"',
+    'has:span.description',
+    'transaction.op:ui.load',
+    `transaction:${transaction}`,
+    `has:ttid`,
   ]);
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
