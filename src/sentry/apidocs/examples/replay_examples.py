@@ -58,3 +58,30 @@ class ReplayExamples:
             response_only=True,
         ),
     ]
+
+    GET_SELECTORS = [
+        OpenApiExample(
+            "Retrieve a collection of selectors for an organization.",
+            description="Returns a list of objects with selector attributes.",
+            value=[
+                {
+                    "count_dead_clicks": 2,
+                    "count_rage_clicks": 1,
+                    "dom_element": "div#myid.class1.class2",
+                    "element": {
+                        "alt": "",
+                        "aria_label": "",
+                        "class": ["class1", "class2"],
+                        "id": "myid",
+                        "role": "",
+                        "tag": "div",
+                        "testid": "",
+                        "title": "",
+                    },
+                    "project_id": "1",
+                }
+            ],
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]

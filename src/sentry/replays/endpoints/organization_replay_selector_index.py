@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from drf_spectacular.utils import OpenApiExample, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -29,7 +29,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.parameters import GlobalParams
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.conditions import IntegerScalar
@@ -40,33 +41,6 @@ from sentry.replays.usecases.errors import handled_snuba_exceptions
 from sentry.replays.usecases.query import Paginators, handle_ordering, handle_search_filters
 from sentry.replays.validators import ReplaySelectorValidator
 from sentry.utils.snuba import raw_snql_query
-
-RESPONSE_EXAMPLES = [
-    OpenApiExample(
-        "Retrieve a collection of selectors for an organization.",
-        description="Returns a list of objects with selector attributes.",
-        value=[
-            {
-                "count_dead_clicks": 2,
-                "count_rage_clicks": 1,
-                "dom_element": "div#myid.class1.class2",
-                "element": {
-                    "alt": "",
-                    "aria_label": "",
-                    "class": ["class1", "class2"],
-                    "id": "myid",
-                    "role": "",
-                    "tag": "div",
-                    "testid": "",
-                    "title": "",
-                },
-                "project_id": "1",
-            }
-        ],
-        status_codes=["200"],
-        response_only=True,
-    )
-]
 
 
 @region_silo_endpoint
@@ -91,18 +65,8 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
     @handled_snuba_exceptions
     @extend_schema(
         operation_id="List an Organization's Selectors",
-        parameters=[
-            GlobalParams.END,
-            GlobalParams.ORG_SLUG,
-            GlobalParams.START,
-            GlobalParams.STATS_PERIOD,
-            OrganizationParams.PROJECT,
-            VisibilityParams.QUERY,
-            VisibilityParams.PER_PAGE,
-            VisibilityParams.SORT,
-        ],
-        examples=RESPONSE_EXAMPLES,
-        tags=["Replays"],
+        parameters=[GlobalParams.ORG_SLUG, ReplaySelectorValidator],
+        examples=ReplayExamples.GET_SELECTORS,
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """Return a list of selectors for a given organization."""
