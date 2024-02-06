@@ -52,13 +52,8 @@ function TeamSettings({team, params}: TeamSettingsProps) {
     }
   };
 
-  const idpProvisioned = team.flags['idp:provisioned'];
-  const orgRoleList = organization.orgRoleList;
-  const hasOrgRoleFlag = organization.features.includes('org-roles-for-teams');
-
   const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
   const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
-  const hasOrgAdmin = hasEveryAccess(['org:admin'], {organization});
 
   return (
     <Fragment>
@@ -81,11 +76,7 @@ function TeamSettings({team, params}: TeamSettingsProps) {
       >
         <JsonForm
           additionalFieldProps={{
-            idpProvisioned,
-            hasOrgRoleFlag,
             hasTeamWrite,
-            hasOrgAdmin,
-            orgRoleList,
           }}
           forms={teamSettingsFields}
         />
