@@ -1702,6 +1702,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Overrides modified date and always updates the row. Can be removed if not needed later.
+register(
+    "on_demand.update_on_demand_modified",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "delightful_metrics.minimetrics_sample_rate",
