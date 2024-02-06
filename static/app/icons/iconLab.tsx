@@ -1,6 +1,7 @@
 import {forwardRef} from 'react';
 
-import {SvgIcon, SVGIconProps} from './svgIcon';
+import type {SVGIconProps} from './svgIcon';
+import {SvgIcon} from './svgIcon';
 
 interface IconLabProps extends SVGIconProps {
   isSolid?: boolean;

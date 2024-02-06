@@ -16,7 +16,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Organization, User} from 'sentry/types';
+import type {Organization, User} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useApi from 'sentry/utils/useApi';
@@ -83,8 +83,6 @@ export function OrganizationContextProvider({children}: Props) {
   const {organizations} = useLegacyStore(OrganizationsStore);
   const {organization, error} = useLegacyStore(OrganizationStore);
 
-  const hasMadeFirstFetch = useRef(false);
-
   const lastOrganizationSlug: string | null =
     configStore.lastOrganization ?? organizations[0]?.slug ?? null;
 
@@ -110,8 +108,7 @@ export function OrganizationContextProvider({children}: Props) {
     }
 
     metric.mark({name: 'organization-details-fetch-start'});
-    fetchOrganizationDetails(api, orgSlug, false, hasMadeFirstFetch.current);
-    hasMadeFirstFetch.current = true;
+    fetchOrganizationDetails(api, orgSlug, false, true);
   }, [api, orgSlug, organization]);
 
   // Take a measurement for when organization details are done loading and the

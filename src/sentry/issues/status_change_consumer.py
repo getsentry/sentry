@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, Sequence, Tuple
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
 
 from sentry_sdk.tracing import NoOpSpan, Transaction
 
@@ -107,8 +108,8 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
 
 
 def bulk_get_groups_from_fingerprints(
-    project_fingerprint_pairs: Iterable[Tuple[int, Sequence[str]]]
-) -> dict[Tuple[int, str], Group]:
+    project_fingerprint_pairs: Iterable[tuple[int, Sequence[str]]]
+) -> dict[tuple[int, str], Group]:
     """
     Returns a map of (project, fingerprint) to the group.
 
@@ -128,7 +129,7 @@ def bulk_get_groups_from_fingerprints(
             ).select_related("group")
         )
 
-    result: dict[Tuple[int, str], Group] = {
+    result: dict[tuple[int, str], Group] = {
         (grouphash.project_id, grouphash.hash): grouphash.group for grouphash in query
     }
 

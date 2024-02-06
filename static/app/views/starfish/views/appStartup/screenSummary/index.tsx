@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
+import type {Crumb} from 'sentry/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -12,16 +13,16 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  ReleaseComparisonSelector,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
 import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -81,13 +82,10 @@ function ScreenSummary() {
     },
   ];
 
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 10);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 10);
-
   return (
     <SentryDocumentTitle title={transactionName} orgSlug={organization.slug}>
       <Layout.Page>
-        <PageErrorProvider>
+        <PageAlertProvider>
           <Layout.Header>
             <Layout.HeaderContent>
               <Breadcrumbs crumbs={crumbs} />
@@ -97,7 +95,7 @@ function ScreenSummary() {
 
           <Layout.Body>
             <Layout.Main fullWidth>
-              <PageErrorAlert />
+              <PageAlert />
               <PageFiltersContainer>
                 <Container>
                   <PageFilterBar condensed>
@@ -124,7 +122,7 @@ function ScreenSummary() {
                     blocks={[
                       {
                         type: 'duration',
-                        title: t('Cold Start (%s)', truncatedPrimary),
+                        title: t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.cold'
@@ -138,7 +136,7 @@ function ScreenSummary() {
                       },
                       {
                         type: 'duration',
-                        title: t('Cold Start (%s)', truncatedSecondary),
+                        title: t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.cold'
@@ -152,7 +150,7 @@ function ScreenSummary() {
                       },
                       {
                         type: 'duration',
-                        title: t('Warm Start (%s)', truncatedPrimary),
+                        title: t('Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.warm'
@@ -166,7 +164,7 @@ function ScreenSummary() {
                       },
                       {
                         type: 'duration',
-                        title: t('Warm Start (%s)', truncatedSecondary),
+                        title: t('Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
                         dataKey: data => {
                           const matchingRow = data?.find(
                             row => row['span.op'] === 'app.start.warm'
@@ -248,7 +246,7 @@ function ScreenSummary() {
               )}
             </Layout.Main>
           </Layout.Body>
-        </PageErrorProvider>
+        </PageAlertProvider>
       </Layout.Page>
     </SentryDocumentTitle>
   );

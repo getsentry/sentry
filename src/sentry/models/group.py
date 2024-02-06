@@ -5,11 +5,12 @@ import math
 import re
 import warnings
 from collections import defaultdict, namedtuple
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
 from django.db import models
@@ -37,7 +38,13 @@ from sentry.db.models import (
 )
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
-from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.issues.priority import (
+    PRIORITY_LEVEL_TO_STR,
+    PRIORITY_TO_GROUP_HISTORY_STATUS,
+    PriorityChangeReason,
+    get_priority_for_ongoing_group,
+)
+from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
@@ -249,7 +256,7 @@ def get_oldest_or_latest_event_for_environments(
 def get_recommended_event_for_environments(
     environments: Sequence[Environment],
     group: Group,
-    conditions: Optional[Sequence[Condition]] = None,
+    conditions: Sequence[Condition] | None = None,
 ) -> GroupEvent | None:
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
@@ -427,8 +434,9 @@ class GroupManager(BaseManager["Group"]):
         status: int,
         substatus: int | None,
         activity_type: ActivityType,
-        activity_data: Optional[Mapping[str, Any]] = None,
+        activity_data: Mapping[str, Any] | None = None,
         send_activity_notification: bool = True,
+        from_substatus: int | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models.activity import Activity
@@ -438,12 +446,24 @@ class GroupManager(BaseManager["Group"]):
             status=status, substatus=substatus
         )
 
+        should_update_priority = (
+            from_substatus == GroupSubStatus.ESCALATING
+            and activity_type == ActivityType.AUTO_SET_ONGOING
+        )
+
+        updated_priority = {}
         for group in selected_groups:
             group.status = status
             group.substatus = substatus
+            if should_update_priority:
+                priority = get_priority_for_ongoing_group(group)
+                if priority:
+                    group.priority = priority
+                    updated_priority[group.id] = priority
+
             modified_groups_list.append(group)
 
-        Group.objects.bulk_update(modified_groups_list, ["status", "substatus"])
+        Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])
 
         for group in modified_groups_list:
             Activity.objects.create_group_activity(
@@ -452,8 +472,19 @@ class GroupManager(BaseManager["Group"]):
                 data=activity_data,
                 send_notification=send_activity_notification,
             )
-
             record_group_history_from_activity_type(group, activity_type.value)
+
+            if group.id in updated_priority:
+                new_priority = updated_priority[group.id]
+                Activity.objects.create_group_activity(
+                    group=group,
+                    type=ActivityType.SET_PRIORITY,
+                    data={
+                        "priority": PRIORITY_LEVEL_TO_STR[new_priority],
+                        "reason": PriorityChangeReason.ONGOING,
+                    },
+                )
+                record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
@@ -561,16 +592,16 @@ class Group(Model):
         verbose_name_plural = _("grouped messages")
         verbose_name = _("grouped message")
         permissions = (("can_view", "Can view"),)
-        index_together = [
-            ("project", "first_release"),
-            ("project", "id"),
-            ("project", "status", "last_seen", "id"),
-            ("project", "status", "type", "last_seen", "id"),
-            ("project", "status", "substatus", "last_seen", "id"),
-            ("project", "status", "substatus", "type", "last_seen", "id"),
-            ("project", "status", "substatus", "id"),
-            ("status", "substatus", "id"),  # TODO: Remove this
-            ("status", "substatus", "first_seen"),
+        indexes = [
+            models.Index(fields=("project", "first_release")),
+            models.Index(fields=("project", "id")),
+            models.Index(fields=("project", "status", "last_seen", "id")),
+            models.Index(fields=("project", "status", "type", "last_seen", "id")),
+            models.Index(fields=("project", "status", "substatus", "last_seen", "id")),
+            models.Index(fields=("project", "status", "substatus", "type", "last_seen", "id")),
+            models.Index(fields=("project", "status", "substatus", "id")),
+            models.Index(fields=("status", "substatus", "id")),  # TODO: Remove this
+            models.Index(fields=("status", "substatus", "first_seen")),
         ]
         unique_together = (
             ("project", "short_id"),
@@ -772,7 +803,7 @@ class Group(Model):
     def get_recommended_event_for_environments(
         self,
         environments: Sequence[Environment] = (),
-        conditions: Optional[Sequence[Condition]] = None,
+        conditions: Sequence[Condition] | None = None,
     ) -> GroupEvent | None:
         maybe_event = get_recommended_event_for_environments(
             environments,

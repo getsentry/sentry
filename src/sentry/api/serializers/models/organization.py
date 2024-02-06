@@ -1,21 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, cast
 
+import sentry_sdk
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
@@ -80,8 +69,8 @@ if TYPE_CHECKING:
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
 # Enabling feature-flagging frontend components without an extra API call/endpoint to verify
 # the OrganizationOption.
-OptionFeature = Tuple[str, Callable[[OrganizationOption], bool]]
-ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
+OptionFeature = tuple[str, Callable[[OrganizationOption], bool]]
+ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
     "sentry:project-rate-limit": [
         ("legacy-rate-limits", lambda opt: True),
     ],
@@ -271,24 +260,28 @@ class OrganizationSerializer(Serializer):
         ]
         feature_list = set()
 
-        # Check features in batch using the entity handler
-        batch_features = features.batch_has(org_features, actor=user, organization=obj)
+        with sentry_sdk.start_span(op="features.check", description="check batch features"):
+            # Check features in batch using the entity handler
+            batch_features = features.batch_has(org_features, actor=user, organization=obj)
 
-        # batch_has has found some features
-        if batch_features:
-            for feature_name, active in batch_features.get(f"organization:{obj.id}", {}).items():
-                if active:
-                    # Remove organization prefix
+            # batch_has has found some features
+            if batch_features:
+                for feature_name, active in batch_features.get(
+                    f"organization:{obj.id}", {}
+                ).items():
+                    if active:
+                        # Remove organization prefix
+                        feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+
+                    # This feature_name was found via `batch_has`, don't check again using `has`
+                    org_features.remove(feature_name)
+
+        with sentry_sdk.start_span(op="features.check", description="check individual features"):
+            # Remaining features should not be checked via the entity handler
+            for feature_name in org_features:
+                if features.has(feature_name, obj, actor=user, skip_entity=True):
+                    # Remove the organization scope prefix
                     feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
-
-                # This feature_name was found via `batch_has`, don't check again using `has`
-                org_features.remove(feature_name)
-
-        # Remaining features should not be checked via the entity handler
-        for feature_name in org_features:
-            if features.has(feature_name, obj, actor=user, skip_entity=True):
-                # Remove the organization scope prefix
-                feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 
         # Do not include the onboarding feature if OrganizationOptions exist
         if (
@@ -354,14 +347,14 @@ class OrganizationSerializer(Serializer):
 
 
 class _OnboardingTasksAttrs(TypedDict):
-    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+    user: UserSerializerResponse | UserSerializerResponseSelf | None
 
 
 class OnboardingTasksSerializerResponse(TypedDict):
 
     task: str  # TODO: literal/enum
     status: str  # TODO: literal/enum
-    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+    user: UserSerializerResponse | UserSerializerResponseSelf | None
     completionSeen: datetime
     dateCompleted: datetime
     data: Any  # JSON object
@@ -406,8 +399,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     isDefault: bool
     defaultRole: bool
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
-    orgRoleList: List[OrganizationRoleSerializerResponse]
-    teamRoleList: List[TeamRoleSerializerResponse]
+    orgRoleList: list[OrganizationRoleSerializerResponse]
+    teamRoleList: list[TeamRoleSerializerResponse]
     openMembership: bool
     allowSharedIssues: bool
     enhancedPrivacy: bool
@@ -423,7 +416,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     scrubIPAddresses: bool
     scrapeJavaScript: bool
     allowJoinRequests: bool
-    relayPiiConfig: Optional[str]
+    relayPiiConfig: str | None
     trustedRelays: Any  # TODO
     access: frozenset[str]
     pendingAccessRequests: int
@@ -570,7 +563,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
             context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
-        desired_sample_rate: Optional[float] = get_sliding_window_org_sample_rate(obj.id)
+        desired_sample_rate: float | None = get_sliding_window_org_sample_rate(obj.id)
         if desired_sample_rate is not None:
             context["desiredSampleRate"] = desired_sample_rate
 
@@ -633,7 +626,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
 
-        collapse_projects: Set[str] = set()
+        collapse_projects: set[str] = set()
         if killswitch_matches_context(
             "api.organization.disable-last-deploys",
             {

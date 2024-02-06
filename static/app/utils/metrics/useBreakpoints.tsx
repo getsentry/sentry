@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
-import {Theme, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 

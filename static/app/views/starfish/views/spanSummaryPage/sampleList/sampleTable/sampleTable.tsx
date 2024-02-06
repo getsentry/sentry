@@ -6,17 +6,17 @@ import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  SamplesTableColumnHeader,
-  SpanSamplesTable,
-} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
+import type {SamplesTableColumnHeader} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
+import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
+import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
+import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
-import {SpanMetricsField, SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -72,7 +72,7 @@ function SampleTable({
 
   const organization = useOrganization();
 
-  const {setPageError} = usePageError();
+  const {setPageError} = usePageAlert();
 
   const {
     data: spans,
@@ -134,7 +134,7 @@ function SampleTable({
     (!areNoSamples && isFetchingTransactions && !isTransactionsEnabled);
 
   if (sampleError || transactionError) {
-    setPageError(t('An error has occured while loading the samples table'));
+    setPageError(t('An error has occurred while loading the samples table'));
   }
 
   return (

@@ -1,4 +1,4 @@
-import {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types';
 
 export enum PlatformCategory {
   FRONTEND,
@@ -418,10 +418,12 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'python-wsgi',
   'rust',
   'node',
-  'node-express',
-  'node-koa',
-  'node-connect',
+  'node-awslambda',
   'node-azurefunctions',
+  'node-connect',
+  'node-express',
+  'node-gcpfunctions',
+  'node-koa',
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [

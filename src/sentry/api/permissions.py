@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
@@ -45,16 +46,43 @@ class NoPermission(BasePermission):
 
 
 class SuperuserPermission(BasePermission):
+    """
+    This permission class is used for endpoints that should ONLY be accessible
+    by superuser.
+    """
+
     def has_permission(self, request: Request, view: object) -> bool:
         return is_active_superuser(request)
 
 
 class StaffPermission(BasePermission):
+    """
+    This permission class is used for endpoints that should ONLY be accessible
+    by staff.
+    """
+
     def has_permission(self, request: Request, view: object) -> bool:
         return is_active_staff(request)
 
 
-# XXX(schew2381): This is a temporary permission that does NOT perform an OR
+class StaffPermissionMixin:
+    """
+    Sentry endpoints that should be accessible by staff but have an existing permission
+    class (that is not StaffPermission) require this mixin because staff does not give
+    any scopes.
+    NOTE: This mixin MUST be the leftmost parent class in the child class declaration in
+    order to work properly. See 'OrganizationAndStaffPermission' for an example of this or
+    https://www.python.org/download/releases/2.3/mro/ to learn more.
+    """
+
+    def has_permission(self, request, *args, **kwargs):
+        return super().has_permission(request, *args, **kwargs) or is_active_staff(request)
+
+    def has_object_permission(self, request, *args, **kwargs):
+        return super().has_object_permission(request, *args, **kwargs) or is_active_staff(request)
+
+
+# NOTE(schew2381): This is a temporary permission that does NOT perform an OR
 # between SuperuserPermission and StaffPermission. Instead, it uses StaffPermission
 # if the feature flag is enabled, and otherwise uses SuperuserPermission. We
 # need this to handle the transition for endpoints that will only be accessible to

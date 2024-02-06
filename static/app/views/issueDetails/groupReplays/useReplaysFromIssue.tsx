@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {type Group, IssueCategory, type Organization} from 'sentry/types';
@@ -26,8 +26,9 @@ export default function useReplayFromIssue({
 
   const [fetchError, setFetchError] = useState();
 
+  // use Discover for errors and Issue Platform for everything else
   const dataSource =
-    group.issueCategory === IssueCategory.PERFORMANCE ? 'search_issues' : 'discover';
+    group.issueCategory === IssueCategory.ERROR ? 'discover' : 'search_issues';
 
   const fetchReplayIds = useCallback(async () => {
     try {

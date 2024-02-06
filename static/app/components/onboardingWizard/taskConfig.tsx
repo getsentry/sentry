@@ -2,22 +2,22 @@ import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Client} from 'sentry/api';
-import {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
+import type {Client} from 'sentry/api';
+import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   OnboardingSupplementComponentProps,
   OnboardingTask,
   OnboardingTaskDescriptor,
-  OnboardingTaskKey,
   Organization,
   Project,
 } from 'sentry/types';
+import {OnboardingTaskKey} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
@@ -180,21 +180,18 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: getOnboardingInstructionsUrl({projects, organization}),
       display: true,
-      SupplementComponent: withApi(
-        ({api, task, onCompleteTask}: FirstEventWaiterProps) =>
-          !!projects?.length &&
-          task.requisiteTasks.length === 0 &&
-          !task.completionSeen ? (
-            <EventWaiter
-              api={api}
-              organization={organization}
-              project={projects[0]}
-              eventType="error"
-              onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
-            >
-              {() => <EventWaitingIndicator />}
-            </EventWaiter>
-          ) : null
+      SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
+        !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
+          <EventWaiter
+            api={api}
+            organization={organization}
+            project={projects[0]}
+            eventType="error"
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+          >
+            {() => <EventWaitingIndicator />}
+          </EventWaiter>
+        ) : null
       ),
     },
     {
@@ -281,21 +278,18 @@ export function getOnboardingTasks({
         );
       },
       display: true,
-      SupplementComponent: withApi(
-        ({api, task, onCompleteTask}: FirstEventWaiterProps) =>
-          !!projects?.length &&
-          task.requisiteTasks.length === 0 &&
-          !task.completionSeen ? (
-            <EventWaiter
-              api={api}
-              organization={organization}
-              project={projects[0]}
-              eventType="transaction"
-              onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
-            >
-              {() => <EventWaitingIndicator />}
-            </EventWaiter>
-          ) : null
+      SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
+        !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
+          <EventWaiter
+            api={api}
+            organization={organization}
+            project={projects[0]}
+            eventType="transaction"
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+          >
+            {() => <EventWaitingIndicator />}
+          </EventWaiter>
+        ) : null
       ),
     },
     {
@@ -324,21 +318,18 @@ export function getOnboardingTasks({
         `/organizations/${organization.slug}/replays/#replay-sidequest`
       ),
       display: organization.features?.includes('session-replay'),
-      SupplementComponent: withApi(
-        ({api, task, onCompleteTask}: FirstEventWaiterProps) =>
-          !!projects?.length &&
-          task.requisiteTasks.length === 0 &&
-          !task.completionSeen ? (
-            <EventWaiter
-              api={api}
-              organization={organization}
-              project={projects[0]}
-              eventType="replay"
-              onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
-            >
-              {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
-            </EventWaiter>
-          ) : null
+      SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
+        !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
+          <EventWaiter
+            api={api}
+            organization={organization}
+            project={projects[0]}
+            eventType="replay"
+            onIssueReceived={() => !taskIsDone(task) && onCompleteTask()}
+          >
+            {() => <EventWaitingIndicator text={t('Waiting for user session')} />}
+          </EventWaiter>
+        ) : null
       ),
     },
     {

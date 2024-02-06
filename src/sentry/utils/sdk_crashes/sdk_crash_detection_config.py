@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import List, Optional, Sequence, Set
 
 import sentry_sdk
 from typing_extensions import TypedDict
@@ -15,9 +15,9 @@ from sentry.utils.sdk_crashes.path_replacer import (
 
 @dataclass
 class SDKFrameConfig:
-    function_patterns: Set[str]
+    function_patterns: set[str]
 
-    filename_patterns: Set[str]
+    filename_patterns: set[str]
 
     path_replacer: PathReplacer
 
@@ -38,28 +38,28 @@ class SDKCrashDetectionConfig:
     project_id: int
     """The percentage of events to sample. 0.0 = 0%, 0.5 = 50% 1.0 = 100%."""
     sample_rate: float
-    """The organization allowlist to detect crashes for. If None, all organizations are allowed."""
-    organization_allowlist: Optional[list[int]]
+    """The organization allowlist to detect crashes for. If empty, all organizations are allowed. Use the sample_rate to disable the SDK crash detection for all organizations."""
+    organization_allowlist: list[int]
     """The SDK names to detect crashes for. For example, ["sentry.cocoa", "sentry.cocoa.react-native"]."""
     sdk_names: Sequence[str]
     """The minimum SDK version to detect crashes for. For example, "8.2.0"."""
     min_sdk_version: str
     """The system library path patterns to detect system frames. For example, `System/Library/*` """
-    system_library_path_patterns: Set[str]
+    system_library_path_patterns: set[str]
     """The configuration for detecting SDK frames."""
     sdk_frame_config: SDKFrameConfig
     """The functions to ignore when detecting SDK crashes. For example, `**SentrySDK crash**`"""
-    sdk_crash_ignore_functions_matchers: Set[str]
+    sdk_crash_ignore_functions_matchers: set[str]
 
 
 class SDKCrashDetectionOptions(TypedDict):
     project_id: int
     sample_rate: float
-    organization_allowlist: Optional[list[int]]
+    organization_allowlist: list[int]
 
 
 def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
-    configs: List[SDKCrashDetectionConfig] = []
+    configs: list[SDKCrashDetectionConfig] = []
 
     cocoa_options = _get_options(sdk_name=SdkName.Cocoa, has_organization_allowlist=False)
 
@@ -155,7 +155,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
 
 def _get_options(
     sdk_name: SdkName, has_organization_allowlist: bool
-) -> Optional[SDKCrashDetectionOptions]:
+) -> SDKCrashDetectionOptions | None:
     options_prefix = f"issues.sdk_crash_detection.{sdk_name.value}"
 
     project_id = options.get(f"{options_prefix}.project_id")
@@ -167,7 +167,7 @@ def _get_options(
     if not sample_rate:
         return None
 
-    organization_allowlist: Optional[list[int]] = None
+    organization_allowlist: list[int] = []
     if has_organization_allowlist:
         organization_allowlist = options.get(f"{options_prefix}.organization_allowlist")
 

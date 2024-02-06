@@ -1,8 +1,8 @@
 /* eslint no-console:0 */
 import {DefaultIssuePlugin} from 'sentry/plugins/defaultIssuePlugin';
 import {DefaultPlugin} from 'sentry/plugins/defaultPlugin';
-import SessionStackPlugin from 'sentry/plugins/sessionstack';
-import {Plugin} from 'sentry/types';
+import type SessionStackPlugin from 'sentry/plugins/sessionstack';
+import type {Plugin} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 type PluginComponent =

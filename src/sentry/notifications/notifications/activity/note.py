@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from django.utils.html import format_html
 from django.utils.safestring import SafeString
@@ -17,7 +18,7 @@ class NoteActivityNotification(GroupActivityNotification):
     metrics_key = "note_activity"
     template_path = "sentry/emails/activity/note"
 
-    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         # Notes may contain {} characters so we should escape them.
         text = str(self.activity.data["text"]).replace("{", "{{").replace("}", "}}")
         return text, None, {}

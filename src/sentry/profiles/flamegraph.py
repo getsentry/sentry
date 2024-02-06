@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
@@ -15,10 +15,10 @@ from sentry.utils.snuba import raw_snql_query
 def query_profiles_data(
     params: ParamsType,
     referrer: str,
-    selected_columns: List[str],
-    query: Optional[str] = None,
-    additional_conditions: Optional[List[Condition]] = None,
-) -> List[Dict[str, Any]]:
+    selected_columns: list[str],
+    query: str | None = None,
+    additional_conditions: list[Condition] | None = None,
+) -> list[dict[str, Any]]:
     builder = QueryBuilder(
         dataset=Dataset.Discover,
         params=params,
@@ -45,8 +45,8 @@ def query_profiles_data(
 
 def get_profile_ids(
     params: ParamsType,
-    query: Optional[str] = None,
-) -> Dict[str, List[str]]:
+    query: str | None = None,
+) -> dict[str, list[str]]:
     data = query_profiles_data(
         params,
         Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
@@ -135,14 +135,30 @@ def get_profiles_with_function(
     conditions = [query, f"fingerprint:{function_fingerprint}"]
 
     result = functions.query(
-        selected_columns=["unique_examples(100)"],
+        selected_columns=["timestamp", "unique_examples()"],
         query=" ".join(cond for cond in conditions if cond),
         params=params,
-        limit=1,
+        limit=100,
+        orderby=["-timestamp"],
         referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
         auto_aggregations=True,
         use_aggregate_conditions=True,
         transform_alias_to_input_format=True,
     )
 
-    return {"profile_ids": result["data"][0]["unique_examples(100)"]}
+    def extract_profile_ids() -> list[str]:
+        max_profiles = options.get("profiling.flamegraph.profile-set.size")
+        profile_ids = []
+
+        for i in range(5):
+            for row in result["data"]:
+                examples = row["unique_examples()"]
+                if i < len(examples):
+                    profile_ids.append(examples[i])
+
+                    if len(profile_ids) >= max_profiles:
+                        return profile_ids
+
+        return profile_ids
+
+    return {"profile_ids": extract_profile_ids()}

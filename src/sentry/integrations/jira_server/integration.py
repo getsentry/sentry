@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -11,6 +12,7 @@ from django import forms
 from django.core.validators import URLValidator
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
@@ -188,7 +190,7 @@ class OAuthLoginView(PipelineView):
     and redirecting the user to approve it.
     """
 
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
@@ -228,7 +230,7 @@ class OAuthCallbackView(PipelineView):
     into an access token.
     """
 
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         config = pipeline.fetch_state("installation_data")
         client = JiraServerSetupClient(
@@ -432,8 +434,9 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_config_data(self):
         config = self.org_integration.config
-        project_mappings = IntegrationExternalProject.objects.filter(
-            organization_integration_id=self.org_integration.id
+        project_mappings = integration_service.get_integration_external_projects(
+            organization_id=self.org_integration.organization_id,
+            integration_id=self.org_integration.integration_id,
         )
         sync_status_forward = {}
         for pm in project_mappings:
@@ -1013,7 +1016,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: Optional[RpcUser],
+        user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:

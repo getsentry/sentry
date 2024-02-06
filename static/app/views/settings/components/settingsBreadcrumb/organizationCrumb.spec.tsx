@@ -5,10 +5,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 import {OrganizationCrumb} from 'sentry/views/settings/components/settingsBreadcrumb/organizationCrumb';
 
-import {RouteWithName} from './types';
+import type {RouteWithName} from './types';
 
 jest.unmock('sentry/utils/recreateRoute');
 

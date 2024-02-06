@@ -1,4 +1,5 @@
-import {RefObject, useCallback} from 'react';
+import type {RefObject} from 'react';
+import {useCallback} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
@@ -9,7 +10,8 @@ type Opts<T extends Element> = {
 };
 
 export function useScrubberMouseTracking<T extends Element>({elem}: Opts<T>) {
-  const {setCurrentHoverTime, durationMs} = useReplayContext();
+  const {replay, setCurrentHoverTime} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
 
   const handlePositionChange = useCallback(
     params => {
@@ -41,7 +43,8 @@ export function useTimelineScrubberMouseTracking<T extends Element>(
   {elem}: Opts<T>,
   scale: number
 ) {
-  const {currentTime, setCurrentHoverTime, durationMs} = useReplayContext();
+  const {replay, currentTime, setCurrentHoverTime} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
 
   const handlePositionChange = useCallback(
     params => {

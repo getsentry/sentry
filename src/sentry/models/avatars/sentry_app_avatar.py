@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, ClassVar, List
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 
@@ -25,7 +25,7 @@ class SentryAppAvatarTypes(Enum):
 
 
 class SentryAppAvatarManager(BaseManager["SentryAppAvatar"]):
-    def get_by_apps_as_dict(self, sentry_apps: List[SentryApp]):
+    def get_by_apps_as_dict(self, sentry_apps: list[SentryApp]):
         """
         Returns a dict mapping sentry_app_id (key) to List[SentryAppAvatar] (value)
         """

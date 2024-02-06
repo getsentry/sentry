@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
+import type {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
 import {parseFunction} from 'sentry/utils/discover/fields';
 
 export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';

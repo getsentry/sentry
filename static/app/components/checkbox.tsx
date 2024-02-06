@@ -1,9 +1,11 @@
 import {useEffect, useRef} from 'react';
-import {css, Theme} from '@emotion/react';
-import styled, {Interpolation} from '@emotion/styled';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
+import type {Interpolation} from '@emotion/styled';
+import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>;
 
@@ -122,7 +124,7 @@ const HiddenInput = styled('input')`
   padding: 0;
   cursor: pointer;
 
-  &.focus-visible + * {
+  &:focus-visible + * {
     ${p =>
       p.checked
         ? `
@@ -171,11 +173,11 @@ const StyledCheckbox = styled('div')<{
           border: 0;
         `
       : p.checked
-      ? css`
+        ? css`
           background: ${p.color ?? p.theme.active};
           border: 0;
         `
-      : css`
+        : css`
           background: ${p.theme.background};
           border: 1px solid ${p.theme.gray200};
         `}

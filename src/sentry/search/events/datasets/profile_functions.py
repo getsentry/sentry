@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Mapping, Optional, Union
 
 from snuba_sdk import Column as SnQLColumn
 from snuba_sdk import Condition, Direction, Op, OrderBy
@@ -18,7 +18,6 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import (
     ColumnArg,
     Combinator,
-    IntArg,
     InvalidFunctionArgument,
     NumberRange,
     NumericColumn,
@@ -60,9 +59,9 @@ class Column:
     # data type associated with this column
     kind: Kind
     # the external name to expose
-    alias: Optional[str] = None
+    alias: str | None = None
     # some kinds will have an unit associated with it
-    unit: Optional[Unit] = None
+    unit: Unit | None = None
 
 
 COLUMNS = [
@@ -99,7 +98,7 @@ AGG_STATE_COLUMNS = [
 
 class ProfileFunctionColumnArg(ColumnArg):
     def normalize(
-        self, value: str, params: ParamsType, combinator: Optional[Combinator]
+        self, value: str, params: ParamsType, combinator: Combinator | None
     ) -> NormalizedArg:
         column = COLUMN_MAP.get(value)
 
@@ -152,7 +151,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             "fingerprint": self._fingerprint_filter_converter,
             "message": self._message_filter_converter,
@@ -160,7 +159,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
 
-    def _fingerprint_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _fingerprint_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         try:
             return Condition(
                 self.builder.resolve_column("fingerprint"),
@@ -172,7 +171,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 "Invalid value for fingerprint condition. Accepted values are numeric."
             )
 
-    def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         value = search_filter.value.value
         if search_filter.value.is_wildcard():
             # XXX: We don't want the '^$' values at the beginning and end of
@@ -204,7 +203,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 0,
             )
 
-    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
     @property
@@ -342,21 +341,30 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "unique_examples",
-                    optional_args=[
-                        with_default(5, IntArg("count", negative=False)),
-                    ],
                     snql_aggregate=lambda args, alias: Function(
-                        "arrayMap",
+                        "arrayFilter",
                         [
-                            # TODO: should this transform be moved to snuba?
+                            # Filter out the profile ids for processed profiles
                             Lambda(
                                 ["x"],
                                 Function(
-                                    "replaceAll", [Function("toString", [Identifier("x")]), "-", ""]
+                                    "notEquals",
+                                    [Identifier("x"), uuid.UUID(int=0).hex],
                                 ),
                             ),
                             Function(
-                                f"groupUniqArrayMerge({args['count']})", [SnQLColumn("examples")]
+                                "arrayMap",
+                                [
+                                    # TODO: should this transform be moved to snuba?
+                                    Lambda(
+                                        ["x"],
+                                        Function(
+                                            "replaceAll",
+                                            [Function("toString", [Identifier("x")]), "-", ""],
+                                        ),
+                                    ),
+                                    Function("groupUniqArrayMerge(5)", [SnQLColumn("examples")]),
+                                ],
                             ),
                         ],
                         alias,
@@ -550,7 +558,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         except KeyError:
             raise InvalidSearchQuery(f"Unknown field: {column}")
 
-    def resolve_column_type(self, column: str, units: bool = False) -> Optional[str]:
+    def resolve_column_type(self, column: str, units: bool = False) -> str | None:
         try:
             col = COLUMN_MAP[column]
             if col.unit:
@@ -563,9 +571,9 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
 
     def _resolve_percentile(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
-        fixed_percentile: Optional[float] = None,
+        fixed_percentile: float | None = None,
     ) -> SelectType:
         return Function(
             "arrayElement",
@@ -581,7 +589,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
 
     def _resolve_cpm(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
     ) -> SelectType:
         interval = (self.builder.params.end - self.builder.params.start).total_seconds()
@@ -597,7 +605,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
 
     def _resolve_cpm_cond(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
         cond: str,
     ) -> SelectType:
@@ -631,7 +639,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
 
     def _resolve_cpm_delta(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         return Function(
@@ -645,7 +653,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
 
     def _resolve_percentile_cond(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
         cond: str,
     ) -> SelectType:
@@ -672,7 +680,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
 
     def _resolve_percentile_delta(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         return Function(

@@ -1,4 +1,4 @@
-import {Layout} from 'react-grid-layout';
+import type {Layout} from 'react-grid-layout';
 import {compact} from 'react-grid-layout/build/utils';
 import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
@@ -8,10 +8,11 @@ import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 
 import {NUM_DESKTOP_COLS} from './dashboard';
-import {DisplayType, Widget, WidgetLayout} from './types';
+import type {Widget, WidgetLayout} from './types';
+import {DisplayType} from './types';
 
 export const DEFAULT_WIDGET_WIDTH = 2;
-export const METRIC_WIDGET_MIN_SIZE = {minH: 2, h: 2, w: 3};
+export const METRIC_WIDGET_MIN_SIZE = {minH: 2, h: 2, w: 2};
 
 const WIDGET_PREFIX = 'grid-item';
 

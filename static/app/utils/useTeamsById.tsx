@@ -4,7 +4,8 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types';
-import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface UseTeamsById {
   ids: string[] | undefined;

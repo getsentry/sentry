@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -6,7 +6,7 @@ import Form from 'sentry/components/forms/form';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 

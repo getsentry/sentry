@@ -1,9 +1,16 @@
+import type {TitledPlugin} from 'sentry/components/group/pluginActions';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
-import type {Commit, PullRequest, Repository} from './integrations';
+import type {
+  Commit,
+  ExternalIssue,
+  PlatformExternalIssue,
+  PullRequest,
+  Repository,
+} from './integrations';
 import type {Team} from './organization';
 import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
@@ -54,6 +61,7 @@ export enum IssueCategory {
   ERROR = 'error',
   CRON = 'cron',
   PROFILE = 'profile',
+  REPLAY = 'replay',
 }
 
 export enum IssueType {
@@ -84,6 +92,9 @@ export enum IssueType {
   PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
   PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
   PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
+
+  // Replay
+  REPLAY_RAGE_CLICK = 'replay_click_rage',
 }
 
 export enum IssueTitle {
@@ -715,9 +726,9 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: any[]; // TODO(ts)
+  pluginActions: TitledPlugin[];
   pluginContexts: any[]; // TODO(ts)
-  pluginIssues: any[]; // TODO(ts)
+  pluginIssues: TitledPlugin[];
   project: Project;
   seenBy: User[];
   shareId: string;
@@ -729,8 +740,10 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
+  sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
 }
 
@@ -820,7 +833,7 @@ export type ChunkType = {
 };
 
 /**
- * User Feedback
+ * Old User Feedback
  */
 export type UserReport = {
   comments: string;

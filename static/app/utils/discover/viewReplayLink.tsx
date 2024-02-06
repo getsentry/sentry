@@ -1,4 +1,4 @@
-import {ComponentProps, ReactNode, ReactText} from 'react';
+import type {ComponentProps, ReactNode, ReactText} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';

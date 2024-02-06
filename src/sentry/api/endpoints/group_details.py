@@ -1,7 +1,7 @@
 import functools
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -23,6 +23,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
+from sentry.api.serializers.models.platformexternalissue import PlatformExternalIssueSerializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import TeamSerializer
 from sentry.issues.constants import get_issue_tsdb_group_model
@@ -36,6 +37,7 @@ from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
 from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.plugins.base import plugins
@@ -225,6 +227,13 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     serializer=ExternalIssueSerializer(),
                 )
                 data.update({"integrationIssues": integration_issues})
+
+            if "sentryAppIssues" in expand:
+                external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
+                sentry_app_issues = serialize(
+                    list(external_issues), request, serializer=PlatformExternalIssueSerializer()
+                )
+                data.update({"sentryAppIssues": sentry_app_issues})
 
             data.update(
                 {

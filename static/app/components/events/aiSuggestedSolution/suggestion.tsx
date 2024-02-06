@@ -12,14 +12,14 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconFile, IconFlag, IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Event, Project} from 'sentry/types';
+import type {Event, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import marked from 'sentry/utils/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {ExperimentalFeatureBadge} from './experimentalFeatureBadge';
@@ -104,7 +104,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
     useOpenAISuggestionLocalStorage();
   const [piiCertified, setPiiCertified] = useState(false);
-  const {isStaff} = ConfigStore.get('user');
+  const isSentryEmployee = useIsSentryEmployee();
 
   const {
     data,
@@ -118,12 +118,12 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
       {
         query: {
           consent: suggestedSolutionLocalConfig.individualConsent ? 'yes' : undefined,
-          pii_certified: isStaff ? (piiCertified ? 'yes' : 'no') : undefined,
+          pii_certified: isSentryEmployee ? (piiCertified ? 'yes' : 'no') : undefined,
         },
       },
     ],
     {
-      enabled: isStaff ? (piiCertified ? true : false) : true,
+      enabled: isSentryEmployee ? (piiCertified ? true : false) : true,
       staleTime: Infinity,
       retry: false,
     }
@@ -133,7 +133,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
     addSuccessMessage('Thank you for your feedback!');
   }, []);
 
-  if (isStaff && !piiCertified) {
+  if (isSentryEmployee && !piiCertified) {
     return (
       <EmptyMessage
         icon={<IconFlag size="xl" />}

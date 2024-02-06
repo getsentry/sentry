@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+import logging
+from collections.abc import Callable
+from typing import Any
 
 from django.conf import settings
 from django.http.response import HttpResponseBase
@@ -25,6 +27,8 @@ SENTRY_APP_REGION_URL_NAMES = (
     "sentry-api-0-sentry-app-requests",
     "sentry-api-0-sentry-app-interaction",
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _get_view_silo_mode(view_func: Callable[..., HttpResponseBase]) -> frozenset[SiloMode] | None:
@@ -112,4 +116,17 @@ def proxy_request_if_needed(
         )
 
         return proxy_region_request(request, region, url_name)
+
+    if url_name != "unknown":
+        # If we know the URL but didn't proxy it record we could be missing
+        # URL handling and that needs to be fixed.
+        metrics.incr(
+            "apigateway.proxy_request",
+            tags={
+                "kind": "noop",
+                "url_name": url_name,
+            },
+        )
+        logger.info("apigateway.unknown_url", extra={"url": request.path})
+
     return None

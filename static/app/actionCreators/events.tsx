@@ -1,33 +1,35 @@
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ApiResult, Client, ResponseMeta} from 'sentry/api';
+import type {ApiResult, Client, ResponseMeta} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {
+import type {
   DateString,
   EventsStats,
   IssueAttachment,
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types';
-import {LocationQuery} from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {LocationQuery} from 'sentry/utils/discover/eventView';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
-import {
+import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {
   ApiQueryKey,
+  UseApiQueryOptions,
+  UseMutationOptions,
+} from 'sentry/utils/queryClient';
+import {
   getApiQueryData,
   setApiQueryData,
   useApiQuery,
-  UseApiQueryOptions,
   useMutation,
-  UseMutationOptions,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 

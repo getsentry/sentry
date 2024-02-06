@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
-import {WithRouterProps} from 'react-router';
-import {useSortable} from '@dnd-kit/sortable';
+import type {WithRouterProps} from 'react-router';
+import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
@@ -19,13 +19,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {Organization, PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import {getFormattedDate} from 'sentry/utils/dates';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {AggregationOutputType, parseFunction} from 'sentry/utils/discover/fields';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {isSupportedDisplayType} from 'sentry/utils/metrics';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {ExtractedMetricsTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {
   MEPConsumer,
@@ -37,10 +38,12 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {MetricWidgetCard} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
-import {DashboardFilters, DisplayType, Widget, WidgetType} from '../types';
+import type {DashboardFilters, Widget} from '../types';
+import {DisplayType, WidgetType} from '../types';
 import {getColoredWidgetIndicator, hasThresholdMaxValue} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
@@ -257,8 +260,8 @@ class WidgetCard extends Component<Props, State> {
         ERROR_FIELDS.some(
           errorField =>
             columns.includes(errorField) ||
-            aggregates.some(
-              aggregate => parseFunction(aggregate)?.arguments.includes(errorField)
+            aggregates.some(aggregate =>
+              parseFunction(aggregate)?.arguments.includes(errorField)
             ) ||
             parseSearch(conditions)?.some(
               filter => (filter as SearchFilterKey).key?.value === errorField
@@ -267,10 +270,7 @@ class WidgetCard extends Component<Props, State> {
     );
 
     if (widget.widgetType === WidgetType.METRICS) {
-      if (
-        hasDDMExperimentalFeature(organization) &&
-        isSupportedDisplayType(widget.displayType)
-      ) {
+      if (hasDDMFeature(organization) && isSupportedDisplayType(widget.displayType)) {
         return (
           <MetricWidgetCard
             index={this.props.index}
@@ -285,6 +285,8 @@ class WidgetCard extends Component<Props, State> {
             organization={organization}
             selection={selection}
             widget={widget}
+            dashboardFilters={dashboardFilters}
+            renderErrorMessage={renderErrorMessage}
           />
         );
       }
@@ -358,6 +360,7 @@ class WidgetCard extends Component<Props, State> {
                     windowWidth={windowWidth}
                     onDataFetched={this.setData}
                     dashboardFilters={dashboardFilters}
+                    chartGroup={DASHBOARD_CHART_GROUP}
                   />
                 ) : (
                   <LazyLoad once resize height={200}>
@@ -373,6 +376,7 @@ class WidgetCard extends Component<Props, State> {
                       windowWidth={windowWidth}
                       onDataFetched={this.setData}
                       dashboardFilters={dashboardFilters}
+                      chartGroup={DASHBOARD_CHART_GROUP}
                     />
                   </LazyLoad>
                 )}

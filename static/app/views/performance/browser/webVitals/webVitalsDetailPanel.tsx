@@ -2,21 +2,18 @@ import {useMemo} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {
   GridColumnHeader,
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/formatters';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
@@ -29,11 +26,12 @@ import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performa
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
-import {
+import type {
   Row,
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
@@ -61,31 +59,33 @@ export function WebVitalsDetailPanel({
   const organization = useOrganization();
   const location = useLocation();
   const shouldUseStoredScores = useStoredScoresSetting();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
+  // TODO: Revert this when INP is queryable in discover.
+  const webVitalFilter = shouldReplaceFidWithInp && webVital === 'inp' ? 'fid' : webVital;
 
   const {data: projectData} = useProjectRawWebVitalsQuery({});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     enabled: shouldUseStoredScores,
-    weightWebVital: webVital ?? 'total',
+    weightWebVital: webVitalFilter ?? 'total',
   });
 
   const projectScore = shouldUseStoredScores
     ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
-
   const {data, isLoading} = useTransactionWebVitalsQuery({
     limit: 100,
-    opportunityWebVital: webVital ?? 'total',
+    opportunityWebVital: webVitalFilter ?? 'total',
     ...(webVital
       ? shouldUseStoredScores
         ? {
-            query: `count_scores(measurements.score.${webVital}):>0`,
+            query: `count_scores(measurements.score.${webVitalFilter}):>0`,
             defaultSort: {
-              field: `opportunity_score(measurements.score.${webVital})`,
+              field: `opportunity_score(measurements.score.${webVitalFilter})`,
               kind: 'desc',
             },
           }
         : {
-            query: `count_web_vitals(measurements.${webVital},any):>0`,
+            query: `count_web_vitals(measurements.${webVitalFilter},any):>0`,
           }
       : {}),
     enabled: webVital !== null,
@@ -97,7 +97,7 @@ export function WebVitalsDetailPanel({
     }
     const count = projectData?.data?.[0]?.['count()'] as number;
     const sumWeights = projectScoresData?.data?.[0]?.[
-      `sum(measurements.score.weight.${webVital})`
+      `sum(measurements.score.weight.${webVitalFilter})`
     ] as number;
     return data
       .map(row => ({
@@ -131,6 +131,7 @@ export function WebVitalsDetailPanel({
     projectScoresData?.data,
     shouldUseStoredScores,
     webVital,
+    webVitalFilter,
   ]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
@@ -201,7 +202,7 @@ export function WebVitalsDetailPanel({
     }
     if (col.key === 'webVital') {
       let value: string | number = row[mapWebVitalToColumn(webVital)];
-      if (webVital && ['lcp', 'fcp', 'ttfb', 'fid'].includes(webVital)) {
+      if (webVital && ['lcp', 'fcp', 'ttfb', 'fid', 'inp'].includes(webVital)) {
         value = getFormattedDuration(value);
       } else if (webVital === 'cls') {
         value = value?.toFixed(2);
@@ -240,7 +241,7 @@ export function WebVitalsDetailPanel({
     | undefined;
 
   return (
-    <PageErrorProvider>
+    <PageAlertProvider>
       <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
         {webVital && (
           <WebVitalDescription
@@ -272,9 +273,9 @@ export function WebVitalsDetailPanel({
             location={location}
           />
         </TableContainer>
-        <PageErrorAlert />
+        <PageAlert />
       </DetailPanel>
-    </PageErrorProvider>
+    </PageAlertProvider>
   );
 }
 
@@ -290,6 +291,8 @@ const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
       return 'p75(measurements.ttfb)';
     case 'fid':
       return 'p75(measurements.fid)';
+    case 'inp':
+      return 'p75(measurements.inp)';
     default:
       return 'count()';
   }

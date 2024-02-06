@@ -1,15 +1,16 @@
-import {Fragment, ReactNode} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import InviteButton from 'sentry/components/modals/inviteMembersModal/inviteButton';
 import InviteRowControl from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
 import InviteStatusMessage from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
-import {
+import type {
   InviteRow,
   InviteStatus,
   NormalizedInvite,
@@ -18,8 +19,7 @@ import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Member} from 'sentry/types';
 
 interface Props {
   Footer: ModalRenderProps['Footer'];
@@ -27,19 +27,15 @@ interface Props {
   canSend: boolean;
   closeModal: ModalRenderProps['closeModal'];
   complete: boolean;
-  hasDuplicateEmails: boolean;
   headerInfo: ReactNode;
   inviteStatus: InviteStatus;
   invites: NormalizedInvite[];
-  isValidInvites: boolean;
-  member: Member;
-  organization: Organization;
+  member: Member | undefined;
   pendingInvites: InviteRow[];
   removeInviteRow: (index: number) => void;
   reset: () => void;
   sendInvites: () => void;
   sendingInvites: boolean;
-  sessionId: string;
   setEmails: (emails: string[], index: number) => void;
   setRole: (role: string, index: number) => void;
   setTeams: (teams: string[], index: number) => void;
@@ -52,25 +48,25 @@ export default function InviteMembersModalView({
   closeModal,
   complete,
   Footer,
-  hasDuplicateEmails,
   headerInfo,
   invites,
   inviteStatus,
-  isValidInvites,
   member,
-  organization,
   pendingInvites,
   removeInviteRow,
   reset,
   sendingInvites,
   sendInvites,
-  sessionId,
   setEmails,
   setRole,
   setTeams,
   willInvite,
 }: Props) {
   const disableInputs = sendingInvites || complete;
+
+  const inviteEmails = invites.map(inv => inv.email);
+  const hasDuplicateEmails = inviteEmails.length !== new Set(inviteEmails).size;
+  const isValidInvites = invites.length > 0 && !hasDuplicateEmails;
 
   return (
     <Fragment>
@@ -146,13 +142,7 @@ export default function InviteMembersModalView({
                   data-test-id="close"
                   priority="primary"
                   size="sm"
-                  onClick={() => {
-                    trackAnalytics('invite_modal.closed', {
-                      organization,
-                      modal_session: sessionId,
-                    });
-                    closeModal();
-                  }}
+                  onClick={closeModal}
                 >
                   {t('Close')}
                 </Button>

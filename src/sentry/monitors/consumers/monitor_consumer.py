@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, wait
+from collections.abc import Mapping
+from concurrent.futures import Executor, ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
-from typing import Dict, List, Mapping, Optional
+from functools import partial
+from typing import Literal
 
 import msgpack
 import sentry_sdk
@@ -18,7 +20,7 @@ from arroyo.types import BrokerValue, Commit, Message, Partition
 from django.db import router, transaction
 from sentry_sdk.tracing import Span, Transaction
 
-from sentry import features, quotas, ratelimits
+from sentry import quotas, ratelimits
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
@@ -51,14 +53,15 @@ from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
 
-CHECKIN_QUOTA_LIMIT = 5
+CHECKIN_QUOTA_LIMIT = 6
 CHECKIN_QUOTA_WINDOW = 60
+StrategyMode = Literal["parallel", "serial"]
 
 
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
-    config: Optional[Dict],
+    config: dict | None,
     quotas_outcome: PermitCheckInStatus,
 ):
     try:
@@ -86,12 +89,6 @@ def _ensure_monitor_with_config(
 
     validated_config = validator.validated_data
     created = False
-
-    if (
-        features.has("organizations:crons-disable-new-projects", project.organization)
-        and not project.flags.has_cron_monitors
-    ):
-        return monitor
 
     # Create monitor
     if not monitor:
@@ -137,7 +134,7 @@ def _ensure_monitor_with_config(
 
 
 def check_killswitch(
-    metric_kwargs: Dict,
+    metric_kwargs: dict,
     project: Project,
 ):
     """
@@ -155,16 +152,15 @@ def check_killswitch(
     return is_blocked
 
 
-def check_ratelimit(
-    metric_kwargs: Dict,
-    project: Project,
-    monitor_slug: str,
-    environment: str | None,
-):
+def check_ratelimit(metric_kwargs: dict, item: CheckinItem):
     """
     Enforce check-in rate limits. Returns True if rate limit is enforced.
     """
-    ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
+    # Use the kafka message timestamp as part of the key to ensure we do not
+    # rate-limit during backlog processing.
+    ts = item.ts.replace(second=0, microsecond=0)
+
+    ratelimit_key = f"{item.processing_key}:{ts}"
 
     is_blocked = ratelimits.backend.is_limited(
         f"monitor-checkins:{ratelimit_key}",
@@ -182,7 +178,7 @@ def check_ratelimit(
 
 def transform_checkin_uuid(
     txn: Transaction | Span,
-    metric_kwargs: Dict,
+    metric_kwargs: dict,
     monitor_slug: str,
     check_in_id: str,
 ):
@@ -227,7 +223,7 @@ def transform_checkin_uuid(
 
 def update_existing_check_in(
     txn: Transaction | Span,
-    metric_kwargs: Dict,
+    metric_kwargs: dict,
     project_id: int,
     monitor_environment: MonitorEnvironment,
     start_time: datetime,
@@ -342,7 +338,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         )
         return
 
-    if check_ratelimit(metric_kwargs, project, monitor_slug, environment):
+    if check_ratelimit(metric_kwargs, item):
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -752,9 +748,6 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span):
         logger.exception("Failed to process check-in")
 
 
-_checkin_worker = ThreadPoolExecutor()
-
-
 def process_checkin(item: CheckinItem):
     """
     Process an individual check-in
@@ -769,7 +762,7 @@ def process_checkin(item: CheckinItem):
         logger.exception("Failed to process check-in")
 
 
-def process_checkin_group(items: List[CheckinItem]):
+def process_checkin_group(items: list[CheckinItem]):
     """
     Process a group of related check-ins (all part of the same monitor)
     completely serially.
@@ -778,7 +771,7 @@ def process_checkin_group(items: List[CheckinItem]):
         process_checkin(item)
 
 
-def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
+def process_batch(message: Message[ValuesBatch[KafkaPayload]], worker: Executor):
     """
     Receives batches of check-in messages. This function will take the batch
     and group them together by monitor ID (ensuring order is preserved) and
@@ -790,7 +783,7 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
     batch = message.payload
 
     latest_partition_ts: Mapping[int, datetime] = {}
-    checkin_mapping: Mapping[str, List[CheckinItem]] = defaultdict(list)
+    checkin_mapping: Mapping[str, list[CheckinItem]] = defaultdict(list)
 
     for item in batch:
         assert isinstance(item, BrokerValue)
@@ -817,11 +810,16 @@ def process_batch(message: Message[ValuesBatch[KafkaPayload]]):
         )
         checkin_mapping[item.processing_key].append(item)
 
+    # Number of check-ins that are being processed in this batch
+    metrics.gauge("monitors.checkin.parallel_batch_count", len(batch))
+
+    # Number of check-in groups we've collected to be processed in parallel
+    metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
+
     # Submit check-in groups for processing
     with sentry_sdk.start_transaction(op="process_batch", name="monitors.monitor_consumer"):
         futures = [
-            _checkin_worker.submit(process_checkin_group, group)
-            for group in checkin_mapping.values()
+            worker.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]
         wait(futures)
 
@@ -866,17 +864,48 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
     Does the consumer process unrelated check-ins in parallel?
     """
 
-    def __init__(self, parallel=False) -> None:
-        self.parallel = parallel
+    max_workers: int | None = None
+    """
+    Number of Executor workers to use when running in parallel
+    """
 
-    def create_paralell_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+    max_batch_size = 500
+    """
+    How many messages will be batched at once when in parallel mode.
+    """
+
+    max_batch_time = 10
+    """
+    The maximum time in seconds to accumulate a bach of check-ins.
+    """
+
+    def __init__(
+        self,
+        mode: StrategyMode | None = None,
+        max_batch_size: int | None = None,
+        max_batch_time: int | None = None,
+        max_workers: int | None = None,
+    ) -> None:
+        if mode == "parallel":
+            self.parallel = True
+
+        if max_batch_size is not None:
+            self.max_batch_size = max_batch_size
+        if max_batch_time is not None:
+            self.max_batch_time = max_batch_time
+        if max_workers is not None:
+            self.max_workers = max_workers
+
+    def create_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        worker = ThreadPoolExecutor(max_workers=self.max_workers)
+
         batch_processor = RunTask(
-            function=process_batch,
+            function=partial(process_batch, worker=worker),
             next_step=CommitOffsets(commit),
         )
         return BatchStep(
-            max_batch_size=500,
-            max_batch_time=10,
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
             next_step=batch_processor,
         )
 
@@ -892,6 +921,6 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         if self.parallel:
-            return self.create_paralell_worker(commit)
+            return self.create_parallel_worker(commit)
         else:
             return self.create_synchronous_worker(commit)

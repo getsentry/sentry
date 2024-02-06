@@ -16,6 +16,7 @@ from django.conf import settings
 from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
+from sentry.silo import SiloMode
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
@@ -49,7 +50,11 @@ def configure_split_db() -> None:
     settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
+DEFAULT_SILO_MODE_FOR_TEST_CASES = SiloMode.MONOLITH
+
+
 def _configure_test_env_regions() -> None:
+    settings.SILO_MODE = DEFAULT_SILO_MODE_FOR_TEST_CASES
 
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
@@ -85,6 +90,10 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
     config.addinivalue_line("markers", "migrations: requires --migrations")
+
+    if not config.getvalue("nomigrations"):
+        # XXX: ignore warnings in historic migrations
+        config.addinivalue_line("filterwarnings", "ignore:.*index_together.*")
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change

@@ -39,8 +39,9 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import Mapping, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -224,18 +225,27 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             }
         )
 
-    with sentry_sdk.start_span(op="replays.consumer.recording.decompress_segment"):
-        decompressed_segment = decompress(recording_data)
+    try:
+        with sentry_sdk.start_span(op="replays.consumer.recording.decompress_segment"):
+            decompressed_segment = decompress(recording_data)
 
-    with sentry_sdk.start_span(op="replays.consumer.recording.json_loads_segment"):
-        parsed_recording_data = json.loads(decompressed_segment, use_rapid_json=True)
+        with sentry_sdk.start_span(op="replays.consumer.recording.json_loads_segment"):
+            parsed_recording_data = json.loads(decompressed_segment)
 
-    replay_actions = parse_replay_actions(
-        decoded_message["project_id"],
-        decoded_message["replay_id"],
-        decoded_message["retention_days"],
-        parsed_recording_data,
-    )
+        replay_actions = parse_replay_actions(
+            decoded_message["project_id"],
+            decoded_message["replay_id"],
+            decoded_message["retention_days"],
+            parsed_recording_data,
+        )
+    except Exception:
+        logging.exception(
+            "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
+            decoded_message["org_id"],
+            decoded_message["project_id"],
+            decoded_message["replay_id"],
+            headers["segment_id"],
+        )
 
     if replay_actions is not None:
         buffer.replay_action_events.append(replay_actions)

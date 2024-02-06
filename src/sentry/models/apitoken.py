@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import secrets
+from collections.abc import Collection
 from datetime import timedelta
-from typing import Any, ClassVar, Collection, Optional, Tuple
+from typing import Any, ClassVar
 
 from django.db import models, router, transaction
 from django.utils import timezone
@@ -113,7 +114,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # If there is a token collision, generate new tokens.
         query = models.Q(token=self.token) | models.Q(
             refresh_token__isnull=False, refresh_token=self.refresh_token

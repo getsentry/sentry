@@ -2,11 +2,12 @@ import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
 import {Component} from 'react';
-import {Layouts, Responsive, WidthProvider} from 'react-grid-layout';
+import type {Layouts} from 'react-grid-layout';
+import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -15,14 +16,14 @@ import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import type {Organization, PageFilters} from 'sentry/types';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -30,6 +31,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
+import type {Position} from './layoutUtils';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -46,11 +48,11 @@ import {
   isValidLayout,
   METRIC_WIDGET_MIN_SIZE,
   pickDefinedStoreKeys,
-  Position,
 } from './layoutUtils';
 import SortableWidget from './sortableWidget';
-import {DashboardDetails, DashboardWidgetSource, Widget, WidgetType} from './types';
-import {getDashboardFiltersFromURL} from './utils';
+import type {DashboardDetails, Widget} from './types';
+import {DashboardWidgetSource, WidgetType} from './types';
+import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -67,6 +69,7 @@ const BOTTOM_MOBILE_VIEW_POSITION = {
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints.small, 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
+export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 
 type Props = {
   api: Client;
@@ -156,6 +159,8 @@ class Dashboard extends Component<Props, State> {
 
     // Get member list data for issue widgets
     this.fetchMemberList();
+
+    connectDashboardCharts(DASHBOARD_CHART_GROUP);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -312,10 +317,7 @@ class Dashboard extends Component<Props, State> {
 
     const widget = this.props.dashboard.widgets[index];
 
-    if (
-      widget.widgetType === WidgetType.METRICS &&
-      hasDDMExperimentalFeature(organization)
-    ) {
+    if (widget.widgetType === WidgetType.METRICS && hasDDMFeature(organization)) {
       this.handleStartEditMetricWidget(index);
       return;
     }
@@ -539,6 +541,9 @@ class Dashboard extends Component<Props, State> {
       if (widgetType === WidgetType.RELEASE) {
         return organization.features.includes('dashboards-rh-widget');
       }
+      if (widgetType === WidgetType.METRICS) {
+        return hasDDMFeature(organization);
+      }
       return true;
     });
 
@@ -549,7 +554,7 @@ class Dashboard extends Component<Props, State> {
     const canModifyLayout = !isMobile && isEditingDashboard;
 
     const displayInlineAddWidget =
-      hasDDMExperimentalFeature(organization) &&
+      hasDDMFeature(organization) &&
       isValidLayout({...this.addWidgetLayout, i: ADD_WIDGET_BUTTON_DRAG_ID});
 
     return (
@@ -629,6 +634,4 @@ const WidgetWidthWrapper = styled('div')`
   left: 16px !important;
   right: 16px !important;
   width: auto !important;
-  /* minimal working z-index */
-  z-index: 6;
 `;

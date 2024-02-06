@@ -1,9 +1,7 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-import path from 'path';
-import process from 'process';
-
 import type {Config} from '@jest/types';
+import path from 'node:path';
+import process from 'node:process';
 
 import babelConfig from './babel.config';
 
@@ -222,7 +220,6 @@ const config: Config.InitialOptions = {
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
-    'integration-docs-platforms': '<rootDir>/fixtures/integration-docs/_platforms.json',
 
     // Disable echarts in test, since they're very slow and take time to
     // transform

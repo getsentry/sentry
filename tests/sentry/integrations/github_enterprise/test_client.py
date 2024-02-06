@@ -1,3 +1,4 @@
+import datetime
 from unittest import mock
 
 import pytest
@@ -7,6 +8,7 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 
 GITHUB_CODEOWNERS = {
     "filepath": "CODEOWNERS",
@@ -15,6 +17,7 @@ GITHUB_CODEOWNERS = {
 }
 
 
+@region_silo_test
 class GitHubAppsClientTest(TestCase):
     base_url = "https://github.example.org/api/v3"
 
@@ -33,14 +36,15 @@ class GitHubAppsClientTest(TestCase):
         patcher_2.start()
         self.addCleanup(patcher_2.stop)
 
+        ten_days = datetime.datetime.utcnow() + datetime.timedelta(days=10)
         integration = self.create_integration(
             organization=self.organization,
             provider="github_enterprise",
             name="Github Test Org",
             external_id="1",
             metadata={
-                "access_token": None,
-                "expires_at": None,
+                "access_token": "12345token",
+                "expires_at": ten_days.strftime("%Y-%m-%dT%H:%M:%S"),
                 "icon": "https://github.example.org/avatar.png",
                 "domain_name": "github.example.org/Test-Organization",
                 "account_type": "Organization",
@@ -69,13 +73,6 @@ class GitHubAppsClientTest(TestCase):
         assert isinstance(install, GitHubEnterpriseIntegration)
         self.install = install
         self.gh_client = self.install.get_client()
-        responses.add(
-            method=responses.POST,
-            url=f"{self.base_url}/app/installations/install_id_1/access_tokens",
-            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
-            status=200,
-            content_type="application/json",
-        )
 
     @responses.activate
     def test_check_file(self):
@@ -102,7 +99,8 @@ class GitHubAppsClientTest(TestCase):
 
         with pytest.raises(ApiError):
             self.gh_client.check_file(self.repo, path, version)
-        assert responses.calls[1].response.status_code == 404
+
+        assert responses.calls[0].response.status_code == 404
 
     @responses.activate
     def test_get_stacktrace_link(self):
@@ -122,12 +120,8 @@ class GitHubAppsClientTest(TestCase):
             == "https://github.example.org/Test-Organization/foo/blob/master/src/sentry/integrations/github/client.py"
         )
 
-    @mock.patch(
-        "sentry.integrations.github.integration.GitHubIntegration.check_file",
-        return_value=GITHUB_CODEOWNERS["html_url"],
-    )
     @responses.activate
-    def test_get_codeowner_file(self, mock_check_file):
+    def test_get_codeowner_file(self):
         self.config = self.create_code_mapping(
             repo=self.repo,
             project=self.project,
@@ -147,9 +141,7 @@ class GitHubAppsClientTest(TestCase):
         result = self.install.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
         )
-
         assert (
-            responses.calls[3].request.headers["Content-Type"] == "application/raw; charset=utf-8"
+            responses.calls[1].request.headers["Content-Type"] == "application/raw; charset=utf-8"
         )
-        assert responses.calls[3].request.headers["Accept"] == "application/vnd.github.raw"
         assert result == GITHUB_CODEOWNERS

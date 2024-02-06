@@ -1,4 +1,4 @@
-import {ReactText} from 'react';
+import type {ReactText} from 'react';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -6,12 +6,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {mapWebVitalToOrderBy} from 'sentry/views/performance/browser/webVitals/utils/mapWebVitalToOrderBy';
+import type {
+  TransactionSampleRowWithScore,
+  WebVitals,
+} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {
   DEFAULT_INDEXED_SORT,
   SORTABLE_INDEXED_FIELDS,
   SORTABLE_INDEXED_SCORE_FIELDS,
-  TransactionSampleRowWithScore,
-  WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
@@ -115,6 +117,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
             'measurements.cls': toNumber(row['measurements.cls']),
             'measurements.ttfb': toNumber(row['measurements.ttfb']),
             'measurements.fid': toNumber(row['measurements.fid']),
+            'measurements.inp': toNumber(row['measurements.fid']),
             'transaction.duration': toNumber(row['transaction.duration']),
             replayId: row.replayId?.toString(),
             'profile.id': row['profile.id']?.toString(),
@@ -138,7 +141,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           })
           // TODO: Discover doesn't let us query more than 20 fields and we're hitting that limit.
           // Clean up the types to account for this so we don't need to do this casting.
-        ) as TransactionSampleRowWithScore[])
+        ) as unknown as TransactionSampleRowWithScore[])
       : [];
 
   return {

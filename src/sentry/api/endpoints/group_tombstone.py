@@ -14,7 +14,7 @@ from sentry.models.grouptombstone import GroupTombstone
 class GroupTombstoneEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project) -> Response:

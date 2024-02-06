@@ -1,8 +1,9 @@
 import dataclasses
 import functools
 import threading
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, ContextManager
+from typing import Any, ContextManager
 from unittest.mock import call, patch
 
 import pytest
@@ -34,7 +35,12 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    assume_test_silo_mode_of,
+    control_silo_test,
+    region_silo_test,
+)
 from sentry.types.region import Region, RegionCategory, get_local_region
 
 
@@ -51,7 +57,6 @@ def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @pytest.fixture(autouse=True, scope="function")
-@pytest.mark.django_db(transaction=True)
 def setup_clear_fixture_outbox_messages():
     with outbox_runner():
         pass
@@ -601,6 +606,7 @@ class RegionOutboxTest(TestCase):
             assert RegionOutbox.objects.count() == 0
 
 
+@region_silo_test
 class TestOutboxesManager(TestCase):
     def test_bulk_operations(self):
         org = self.create_organization()
@@ -621,12 +627,14 @@ class TestOutboxesManager(TestCase):
 
         with outbox_runner():
             assert RegionOutbox.objects.count() == 10
-            assert OrganizationMemberTeamReplica.objects.count() == 1
             assert OrganizationMemberTeam.objects.count() == 11
+            with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+                assert OrganizationMemberTeamReplica.objects.count() == 1
 
         assert RegionOutbox.objects.count() == 0
-        assert OrganizationMemberTeamReplica.objects.count() == 11
         assert OrganizationMemberTeam.objects.count() == 11
+        with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+            assert OrganizationMemberTeamReplica.objects.count() == 11
 
         existing = OrganizationMemberTeam.objects.all().exclude(id=do_not_touch.id).all()
         for obj in existing:
@@ -635,22 +643,27 @@ class TestOutboxesManager(TestCase):
 
         with outbox_runner():
             assert RegionOutbox.objects.count() == 10
-            assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 0
+            with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+                assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 0
 
         assert RegionOutbox.objects.count() == 0
-        assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 10
+        with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+            assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 10
 
         OrganizationMemberTeam.objects.bulk_delete(existing)
 
         with outbox_runner():
             assert RegionOutbox.objects.count() == 10
-            assert OrganizationMemberTeamReplica.objects.count() == 11
             assert OrganizationMemberTeam.objects.count() == 1
+            with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+                assert OrganizationMemberTeamReplica.objects.count() == 11
 
         assert RegionOutbox.objects.count() == 0
-        assert OrganizationMemberTeamReplica.objects.count() == 1
+        with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+            assert OrganizationMemberTeamReplica.objects.count() == 1
 
 
+@control_silo_test
 class OutboxAggregationTest(TestCase):
     def setUp(self):
         shard_counts = {1: (4, "eu"), 2: (7, "us"), 3: (1, "us")}

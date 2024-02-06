@@ -3,16 +3,14 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageAlert, usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
@@ -21,7 +19,7 @@ import {
   IMAGE_FILE_EXTENSIONS,
 } from 'sentry/views/performance/browser/resources/shared/constants';
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
-import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
+import type {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
@@ -46,12 +44,9 @@ const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 const {SPM} = SpanFunction;
 
-const RESOURCE_SIZE_ALERT: PageAlert = {
-  type: 'info',
-  message: t(
-    `If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher.`
-  ),
-};
+const RESOURCE_SIZE_ALERT = t(
+  `If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher.`
+);
 
 type Row = {
   'avg(http.response_content_length)': number;
@@ -75,7 +70,7 @@ type Props = {
 function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
-  const {setPageError, pageError} = usePageError();
+  const {setPageInfo, pageAlert} = usePageAlert();
 
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
@@ -106,16 +101,16 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   const tableData: Row[] = data;
 
   useEffect(() => {
-    if (pageError !== RESOURCE_SIZE_ALERT) {
+    if (pageAlert?.message !== RESOURCE_SIZE_ALERT) {
       for (const row of tableData) {
         const encodedSize = row[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`];
         if (encodedSize >= 2147483647) {
-          setPageError(RESOURCE_SIZE_ALERT);
+          setPageInfo(RESOURCE_SIZE_ALERT, {dismissId: DismissId.RESOURCE_SIZE_ALERT});
           break;
         }
       }
     }
-  }, [tableData, setPageError, pageError]);
+  }, [tableData, setPageInfo, pageAlert?.message]);
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;

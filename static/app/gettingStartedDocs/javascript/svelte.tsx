@@ -1,5 +1,5 @@
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -34,7 +34,7 @@ Sentry.init({
   }${
     params.isReplaySelected
       ? `
-        new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
+        Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
       : ''
   }
 ],${

@@ -1,21 +1,8 @@
 import logging
 from collections import defaultdict
+from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Dict,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Any, Literal, TypeVar
 
 from snuba_sdk import Column, Condition, Direction, Op
 from snuba_sdk.expressions import Granularity, Limit
@@ -99,13 +86,13 @@ def filter_releases_by_project_release(project_releases: Sequence[ProjectRelease
 
 def _model_environment_ids_to_environment_names(
     environment_ids: Sequence[int],
-) -> Mapping[int, Optional[str]]:
+) -> Mapping[int, str | None]:
     """
     Maps Environment Model ids to the environment name
     Note: this does a Db lookup
     """
-    empty_string_to_none: Callable[[Any], Optional[Any]] = lambda v: None if v == "" else v
-    id_to_name: Mapping[int, Optional[str]] = {
+    empty_string_to_none: Callable[[Any], Any | None] = lambda v: None if v == "" else v
+    id_to_name: Mapping[int, str | None] = {
         k: empty_string_to_none(v)
         for k, v in Environment.objects.filter(id__in=environment_ids).values_list("id", "name")
     }
@@ -126,9 +113,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return MetricsReleaseHealthBackend._get_projects_and_org_id(project_ids)[0]
 
     @staticmethod
-    def _get_projects_and_org_id(project_ids: Sequence[int]) -> Tuple[Sequence[Project], int]:
+    def _get_projects_and_org_id(project_ids: Sequence[int]) -> tuple[Sequence[Project], int]:
         projects = Project.objects.get_many_from_cache(project_ids)
-        org_ids: Set[int] = {project.organization_id for project in projects}
+        org_ids: set[int] = {project.organization_id for project in projects}
         if len(org_ids) != 1:
             raise ValueError("Expected projects to be from the same organization")
 
@@ -141,7 +128,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         end: datetime,
         rollup: int,
-    ) -> Dict[int, float]:
+    ) -> dict[int, float]:
 
         project_ids = [p.id for p in projects]
 
@@ -200,7 +187,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         previous_start: datetime,
         previous_end: datetime,
         rollup: int,
-        org_id: Optional[int] = None,
+        org_id: int | None = None,
     ) -> CurrentAndPreviousCrashFreeRates:
 
         projects, proj_org_id = self._get_projects_and_org_id(project_ids)
@@ -241,9 +228,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_release_adoption(
         self,
         project_releases: Sequence[ProjectRelease],
-        environments: Optional[Sequence[EnvironmentName]] = None,
-        now: Optional[datetime] = None,
-        org_id: Optional[OrganizationId] = None,
+        environments: Sequence[EnvironmentName] | None = None,
+        now: datetime | None = None,
+        org_id: OrganizationId | None = None,
     ) -> ReleasesAdoption:
         project_ids = list({x[0] for x in project_releases})
         if org_id is None:
@@ -259,14 +246,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         now: datetime,
         org_id: int,
         project_releases: Sequence[ProjectRelease],
-        environments: Optional[Sequence[EnvironmentName]] = None,
+        environments: Sequence[EnvironmentName] | None = None,
     ) -> ReleasesAdoption:
         start = now - timedelta(days=1)
         project_ids = [proj for proj, _rel in project_releases]
         projects = MetricsReleaseHealthBackend._get_projects(project_ids)
 
-        def _get_common_where(total: bool) -> List[Condition]:
-            where_common: List[Condition] = [
+        def _get_common_where(total: bool) -> list[Condition]:
+            where_common: list[Condition] = [
                 filter_projects_by_project_release(project_releases),
             ]
 
@@ -284,7 +271,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
             return where_common
 
-        def _get_common_groupby(total: bool) -> List[MetricGroupByField]:
+        def _get_common_groupby(total: bool) -> list[MetricGroupByField]:
             if total:
                 return [MetricGroupByField(field="project_id")]
             else:
@@ -293,7 +280,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     MetricGroupByField(field="release"),
                 ]
 
-        def _convert_results(groups: Any, total: bool) -> Dict[Any, int]:
+        def _convert_results(groups: Any, total: bool) -> dict[Any, int]:
             """
             Converts the result groups into an array of values:
 
@@ -315,7 +302,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         def _count_sessions(
             total: bool, project_ids: Sequence[int], referrer: str
-        ) -> Dict[Any, int]:
+        ) -> dict[Any, int]:
             select = [
                 MetricField(metric_mri=SessionMRI.ALL.value, alias="value", op=None),
             ]
@@ -336,7 +323,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
             return _convert_results(raw_result["groups"], total=total)
 
-        def _count_users(total: bool, referrer: str) -> Dict[Any, int]:
+        def _count_users(total: bool, referrer: str) -> dict[Any, int]:
             select = [
                 MetricField(metric_mri=SessionMRI.RAW_USER.value, alias="value", op="count_unique")
             ]
@@ -368,22 +355,22 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # business please!
 
         # Count of sessions/users for given list of environments and timerange, per-project
-        sessions_per_project: Dict[int, int] = _count_sessions(
+        sessions_per_project: dict[int, int] = _count_sessions(
             total=True,
             project_ids=project_ids,
             referrer="release_health.metrics.get_release_adoption.total_sessions",
         )
-        users_per_project: Dict[int, int] = _count_users(
+        users_per_project: dict[int, int] = _count_users(
             total=True, referrer="release_health.metrics.get_release_adoption.total_users"
         )
 
         # Count of sessions/users for given list of environments and timerange AND GIVEN RELEASES, per-project
-        sessions_per_release: Dict[Tuple[int, str], int] = _count_sessions(
+        sessions_per_release: dict[tuple[int, str], int] = _count_sessions(
             total=False,
             project_ids=project_ids,
             referrer="release_health.metrics.get_release_adoption.releases_sessions",
         )
-        users_per_release: Dict[Tuple[int, str], int] = _count_users(
+        users_per_release: dict[tuple[int, str], int] = _count_users(
             total=False, referrer="release_health.metrics.get_release_adoption.releases_users"
         )
 
@@ -439,7 +426,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_id: ProjectId,
         release: ReleaseName,
         org_id: OrganizationId,
-        environments: Optional[Sequence[EnvironmentName]] = None,
+        environments: Sequence[EnvironmentName] | None = None,
     ) -> ReleaseSessionsTimeBounds:
 
         projects, org_id = self._get_projects_and_org_id([project_id])
@@ -508,7 +495,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         formatted_unix_start_time = datetime.utcfromtimestamp(0).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
-        def clean_date_string(d: Optional[str]) -> Optional[str]:
+        def clean_date_string(d: str | None) -> str | None:
             # This check is added because if there are no sessions found, then the
             # aggregation queries return both the sessions_lower_bound and the
             # sessions_upper_bound as `0` timestamp, and we do not want that behaviour
@@ -549,8 +536,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def check_has_health_data(
         self,
         projects_list: Collection[ProjectOrRelease],
-        now: Optional[datetime] = None,
-    ) -> Set[ProjectOrRelease]:
+        now: datetime | None = None,
+    ) -> set[ProjectOrRelease]:
         if now is None:
             now = datetime.now(timezone.utc)
 
@@ -564,7 +551,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         includes_releases = isinstance(projects_list[0], tuple)
 
         if includes_releases:
-            project_ids: List[ProjectId] = [x[0] for x in projects_list]  # type: ignore
+            project_ids: list[ProjectId] = [x[0] for x in projects_list]  # type: ignore
         else:
             project_ids = projects_list  # type: ignore
 
@@ -619,7 +606,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         release_versions: Sequence[ReleaseName],
         start: datetime,
         end: datetime,
-    ) -> Set[ReleaseName]:
+    ) -> set[ReleaseName]:
         """
         Returns a set of all release versions that have health data within a given period of time.
         """
@@ -668,12 +655,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     @staticmethod
     def _get_session_duration_data_for_overview(
         projects: Sequence[Project],
-        where: List[Condition],
+        where: list[Condition],
         org_id: int,
         granularity: int,
         start: datetime,
         end: datetime,
-    ) -> Mapping[Tuple[int, str], Any]:
+    ) -> Mapping[tuple[int, str], Any]:
         """
         Percentiles of session duration
         """
@@ -728,12 +715,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     @staticmethod
     def _get_errored_sessions_for_overview(
         projects: Sequence[Project],
-        where: List[Condition],
+        where: list[Condition],
         org_id: int,
         granularity: int,
         start: datetime,
         end: datetime,
-    ) -> Mapping[Tuple[int, str], int]:
+    ) -> Mapping[tuple[int, str], int]:
         """
         Count of errored sessions, incl fatal (abnormal, crashed) sessions,
         excl errored *preaggregated* sessions
@@ -782,12 +769,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     @staticmethod
     def _get_session_by_status_for_overview(
         projects: Sequence[Project],
-        where: List[Condition],
+        where: list[Condition],
         org_id: int,
         granularity: int,
         start: datetime,
         end: datetime,
-    ) -> Mapping[Tuple[int, str, str], int]:
+    ) -> Mapping[tuple[int, str, str], int]:
         """
         Counts of init, abnormal and crashed sessions, purpose-built for overview
         """
@@ -845,12 +832,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     @staticmethod
     def _get_users_and_crashed_users_for_overview(
         projects: Sequence[Project],
-        where: List[Condition],
+        where: list[Condition],
         org_id: int,
         granularity: int,
         start: datetime,
         end: datetime,
-    ) -> Mapping[Tuple[int, str, str], int]:
+    ) -> Mapping[tuple[int, str, str], int]:
 
         project_ids = [p.id for p in projects]
 
@@ -899,14 +886,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     @staticmethod
     def _get_health_stats_for_overview(
         projects: Sequence[Project],
-        where: List[Condition],
+        where: list[Condition],
         org_id: int,
         stat: OverviewStat,
         granularity: int,
         start: datetime,
         end: datetime,
         buckets: int,
-    ) -> Mapping[ProjectRelease, List[List[int]]]:
+    ) -> Mapping[ProjectRelease, list[list[int]]]:
 
         project_ids = [p.id for p in projects]
 
@@ -939,7 +926,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             use_case_id=USE_CASE_ID,
         )
         groups = raw_result["groups"]
-        ret_val: Dict[ProjectRelease, List[List[int]]] = defaultdict(
+        ret_val: dict[ProjectRelease, list[list[int]]] = defaultdict(
             lambda: _make_stats(start, granularity, buckets)
         )
 
@@ -959,11 +946,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_release_health_data_overview(
         self,
         project_releases: Sequence[ProjectRelease],
-        environments: Optional[Sequence[EnvironmentName]] = None,
-        summary_stats_period: Optional[StatsPeriod] = None,
-        health_stats_period: Optional[StatsPeriod] = None,
-        stat: Optional[Literal["users", "sessions"]] = None,
-        now: Optional[datetime] = None,
+        environments: Sequence[EnvironmentName] | None = None,
+        summary_stats_period: StatsPeriod | None = None,
+        health_stats_period: StatsPeriod | None = None,
+        stat: Literal["users", "sessions"] | None = None,
+        now: datetime | None = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         """Checks quickly for which of the given project releases we have
         health data available.  The argument is a tuple of `(project_id, release_name)`
@@ -1022,7 +1009,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         # that makes the entire backend too hard to test though.
         release_adoption = self.get_release_adoption(project_releases, environments)
 
-        rv: Dict[ProjectRelease, ReleaseHealthOverview] = {}
+        rv: dict[ProjectRelease, ReleaseHealthOverview] = {}
 
         fetch_has_health_data_releases = set()
 
@@ -1105,7 +1092,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_id: ProjectId,
         release: ReleaseName,
         start: datetime,
-        environments: Optional[Sequence[EnvironmentName]] = None,
+        environments: Sequence[EnvironmentName] | None = None,
     ) -> Callable[[datetime], CrashFreeBreakdown]:
 
         projects = self._get_projects([project_id])
@@ -1129,7 +1116,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
 
         def query_stats(end: datetime) -> CrashFreeBreakdown:
-            def _get_data(select: List[MetricField]) -> Tuple[int, int]:
+            def _get_data(select: list[MetricField]) -> tuple[int, int]:
                 query = MetricsQuery(
                     org_id=org_id,
                     project_ids=[project_id],
@@ -1184,8 +1171,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_id: ProjectId,
         release: ReleaseName,
         start: datetime,
-        environments: Optional[Sequence[EnvironmentName]] = None,
-        now: Optional[datetime] = None,
+        environments: Sequence[EnvironmentName] | None = None,
+        now: datetime | None = None,
     ) -> Sequence[CrashFreeBreakdown]:
 
         projects, org_id = self._get_projects_and_org_id([project_id])
@@ -1197,7 +1184,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             org_id, project_id, release, start, environments
         )
 
-        last: Optional[datetime] = None
+        last: datetime | None = None
         rv = []
         for offset in (
             timedelta(days=1),
@@ -1223,7 +1210,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
-        now: Optional[datetime] = None,
+        now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
 
         if now is None:
@@ -1274,7 +1261,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_oldest_health_data_for_releases(
         self,
         project_releases: Sequence[ProjectRelease],
-        now: Optional[datetime] = None,
+        now: datetime | None = None,
     ) -> Mapping[ProjectRelease, str]:
         if now is None:
             now = datetime.now(timezone.utc)
@@ -1331,8 +1318,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         organization_id: OrganizationId,
         project_ids: Sequence[ProjectId],
         scope: str,
-        stats_period: Optional[str] = None,
-        environments: Optional[Sequence[EnvironmentName]] = None,
+        stats_period: str | None = None,
+        environments: Sequence[EnvironmentName] | None = None,
     ) -> int:
 
         projects = self._get_projects(project_ids)
@@ -1407,8 +1394,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rollup: int,
         start: datetime,
         end: datetime,
-        environments: Optional[Sequence[EnvironmentName]] = None,
-    ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
+        environments: Sequence[EnvironmentName] | None = None,
+    ) -> ProjectReleaseUserStats | ProjectReleaseSessionStats:
         assert stat in ("users", "sessions")
 
         projects, org_id = self._get_projects_and_org_id([project_id])
@@ -1541,7 +1528,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rollup: int,  # rollup in seconds
         start: datetime,
         end: datetime,
-        environment_id: Optional[int] = None,
+        environment_id: int | None = None,
     ) -> int:
         """
         Returns the number of sessions in the specified period (optionally
@@ -1590,8 +1577,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_ids: Sequence[ProjectId],
         start: datetime,
         end: datetime,
-        environment_ids: Optional[Sequence[int]] = None,
-        rollup: Optional[int] = None,  # rollup in seconds
+        environment_ids: Sequence[int] | None = None,
+        rollup: int | None = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:
 
         projects, org_id = self._get_projects_and_org_id(project_ids)
@@ -1644,12 +1631,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_project_releases_by_stability(
         self,
         project_ids: Sequence[ProjectId],
-        offset: Optional[int],
-        limit: Optional[int],
+        offset: int | None,
+        limit: int | None,
         scope: str,
-        stats_period: Optional[str] = None,
-        environments: Optional[Sequence[str]] = None,
-        now: Optional[datetime] = None,
+        stats_period: str | None = None,
+        environments: Sequence[str] | None = None,
+        now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
 
         if len(project_ids) == 0:

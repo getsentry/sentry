@@ -17,11 +17,10 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
-  Action,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
-  MetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -47,15 +46,15 @@ function TriggerDescription({
     label === AlertRuleTriggerType.CRITICAL
       ? t('Critical')
       : label === AlertRuleTriggerType.WARNING
-      ? t('Warning')
-      : t('Resolved');
+        ? t('Warning')
+        : t('Resolved');
 
   const statusIconColor =
     label === AlertRuleTriggerType.CRITICAL
       ? 'errorText'
       : label === AlertRuleTriggerType.WARNING
-      ? 'warningText'
-      : 'successText';
+        ? 'warningText'
+        : 'successText';
 
   const defaultAction = t('Change alert status to %s', status);
 
@@ -69,8 +68,8 @@ function TriggerDescription({
       ? t('higher')
       : t('above')
     : rule.comparisonDelta
-    ? t('lower')
-    : t('below');
+      ? t('lower')
+      : t('below');
   const timeWindow = <Duration seconds={rule.timeWindow * 60} />;
   const metricName = capitalize(
     AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]

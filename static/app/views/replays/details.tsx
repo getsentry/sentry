@@ -13,9 +13,8 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useInitialTimeOffsetMs, {
-  TimeOffsetLocationQueryParams,
-} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
@@ -146,6 +145,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
 
   return (
     <ReplayContextProvider
+      analyticsContext="replay_details"
       isFetching={fetching}
       replay={replay}
       initialTimeOffsetMs={initialTimeOffsetMs}

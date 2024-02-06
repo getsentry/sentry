@@ -2,11 +2,12 @@ from sentry.grouping.strategies.base import (
     RISK_LEVEL_HIGH,
     RISK_LEVEL_LOW,
     RISK_LEVEL_MEDIUM,
+    StrategyConfiguration,
     create_strategy_configuration,
 )
 
 # The full mapping of all known configurations.
-CONFIGURATIONS = {}
+CONFIGURATIONS: dict[str, type[StrategyConfiguration]] = {}
 
 # The implied base strategy *every* strategy inherits from if no
 # base is defined.
@@ -77,13 +78,13 @@ BASE_STRATEGY = create_strategy_configuration(
 )
 
 
-def register_strategy_config(id, **kwargs):
+def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
     if kwargs.get("base") is not None:
         kwargs["base"] = CONFIGURATIONS[kwargs["base"]]
     else:
         kwargs["base"] = BASE_STRATEGY
     rv = create_strategy_configuration(id, **kwargs)
-    CONFIGURATIONS[rv.id] = rv
+    CONFIGURATIONS[id] = rv
     return rv
 
 
@@ -200,7 +201,7 @@ register_strategy_config(
         "java_cglib_hibernate_logic": True,
     },
     enhancements_base="newstyle:2023-01-11",
-    fingerprinting_bases=["sentry.javascript.nextjs@2023-12-22"],
+    fingerprinting_bases=["sentry.javascript@2024-02-02"],
 )
 
 

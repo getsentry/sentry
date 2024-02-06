@@ -1,5 +1,5 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -336,10 +336,10 @@ describe('Screen Summary', function () {
       });
 
       const blocks = [
-        {header: 'TTID (2.10.5)', value: '1.00s'},
-        {header: 'TTID (2.10.… (42))', value: '2.00s'},
-        {header: 'TTFD (2.10.5)', value: '3.00s'},
-        {header: 'TTFD (2.10.… (42))', value: '4.00s'},
+        {header: 'TTID (R1)', value: '1.00s'},
+        {header: 'TTID (R2)', value: '2.00s'},
+        {header: 'TTFD (R1)', value: '3.00s'},
+        {header: 'TTFD (R2)', value: '4.00s'},
         {header: 'Count', value: '20'},
       ];
 

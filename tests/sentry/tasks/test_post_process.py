@@ -29,6 +29,7 @@ from sentry.issues.grouptype import (
     ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.priority import PriorityLevel
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -1817,7 +1818,7 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         assert cocoa_config.sdk_name == SdkName.Cocoa
         assert cocoa_config.project_id == 1234
         assert cocoa_config.sample_rate == 1.0
-        assert cocoa_config.organization_allowlist is None
+        assert cocoa_config.organization_allowlist == []
 
         react_native_config = args["configs"][1]
         assert react_native_config.sdk_name == SdkName.ReactNative
@@ -2021,10 +2022,15 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
 
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    @with_feature("projects:issue-priority")
     def test_has_escalated(self, mock_run_post_process_job):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10)
+        group.update(
+            first_seen=django_timezone.now() - timedelta(hours=1),
+            times_seen=10,
+            priority=PriorityLevel.LOW,
+        )
         event.group = Group.objects.get(id=group.id)
 
         with self.feature("projects:first-event-severity-new-escalation"):
@@ -2039,9 +2045,11 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.ESCALATING
+        assert group.priority == PriorityLevel.MEDIUM
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    @with_feature("projects:issue-priority")
     def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2057,9 +2065,11 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert not job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
+        assert group.priority == PriorityLevel.HIGH
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    @with_feature("projects:issue-priority")
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2077,13 +2087,19 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert not job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
+        assert group.priority == PriorityLevel.HIGH
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=11)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    @with_feature("projects:issue-priority")
     def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10)
+        group.update(
+            first_seen=django_timezone.now() - timedelta(hours=1),
+            times_seen=10,
+            priority=PriorityLevel.LOW,
+        )
 
         with self.feature("projects:first-event-severity-new-escalation"):
             self.call_post_process_group(
@@ -2097,6 +2113,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert not job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
+        assert group.priority == PriorityLevel.LOW
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
@@ -2133,6 +2150,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             first_seen=django_timezone.now() - timedelta(hours=1),
             times_seen=10000,
             substatus=GroupSubStatus.ESCALATING,
+            priority=PriorityLevel.MEDIUM,
         )
         with self.feature("projects:first-event-severity-new-escalation"):
             self.call_post_process_group(
@@ -2146,6 +2164,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert not job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.ESCALATING
+        assert group.priority == PriorityLevel.MEDIUM
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)

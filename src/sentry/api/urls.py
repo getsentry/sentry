@@ -4,6 +4,9 @@ from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
+from sentry.api.endpoints.group_similar_issues_embeddings import (
+    GroupSimilarIssuesEmbeddingsEndpoint,
+)
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
@@ -42,6 +45,7 @@ from sentry.api.endpoints.relocations.pause import RelocationPauseEndpoint
 from sentry.api.endpoints.relocations.public_key import RelocationPublicKeyEndpoint
 from sentry.api.endpoints.relocations.retry import RelocationRetryEndpoint
 from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
+from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -204,6 +208,7 @@ from .endpoints.event_owners import EventOwnersEndpoint
 from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.group_activities import GroupActivitiesEndpoint
+from .endpoints.group_ai_autofix import GroupAiAutofixEndpoint
 from .endpoints.group_attachments import GroupAttachmentsEndpoint
 from .endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
@@ -241,7 +246,6 @@ from .endpoints.integrations import (
     OrganizationPluginsEndpoint,
 )
 from .endpoints.integrations.sentry_apps import (
-    NewSentryInternalAppTokenDetailsEndpoint,
     OrganizationSentryAppComponentsEndpoint,
     OrganizationSentryAppsEndpoint,
     SentryAppAuthorizationsEndpoint,
@@ -484,6 +488,7 @@ from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
+from .endpoints.project_metrics import ProjectMetricsVisibilityEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -702,6 +707,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-similar",
         ),
         re_path(
+            r"^(?P<issue_id>[^\/]+)/similar-issues-embeddings/$",
+            GroupSimilarIssuesEmbeddingsEndpoint.as_view(),
+            name=f"{name_prefix}-group-similar-issues-embeddings",
+        ),
+        re_path(
             r"^(?P<issue_id>[^\/]+)/external-issues/$",
             GroupExternalIssuesEndpoint.as_view(),
             name=f"{name_prefix}-group-external-issues",
@@ -735,6 +745,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/participants/$",
             GroupParticipantsEndpoint.as_view(),
             name=f"{name_prefix}-group-participants",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/ai-autofix/$",
+            GroupAiAutofixEndpoint.as_view(),
+            name=f"{name_prefix}-group-ai-autofix",
         ),
         # Load plugin group urls
         re_path(
@@ -2271,6 +2286,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-member-index",
     ),
     re_path(
+        r"^(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/metrics/visibility/$",
+        ProjectMetricsVisibilityEndpoint.as_view(),
+        name="sentry-api-0-project-metrics-visibility",
+    ),
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$",
         ProjectReleasesEndpoint.as_view(),
         name="sentry-api-0-project-releases",
@@ -2748,15 +2768,8 @@ SENTRY_APP_URLS = [
         SentryInternalAppTokensEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-tokens",
     ),
-    # The order of the next 2 urls matters. We want to let the numeric id handler try to match the regex first,
-    # before moving to alphanumeric which is a catch-all.
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>\d+)/$",
-        NewSentryInternalAppTokenDetailsEndpoint.as_view(),
-        name="sentry-api-0-sentry-internal-app-token-details",
-    ),
-    re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>\w+)/$",
+        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token_id>[^\/]+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
     ),
@@ -2878,6 +2891,11 @@ INTERNAL_URLS = [
         r"^rpc/(?P<service_name>\w+)/(?P<method_name>\w+)/$",
         InternalRpcServiceEndpoint.as_view(),
         name="sentry-api-0-rpc-service",
+    ),
+    re_path(
+        r"^seer-rpc/(?P<method_name>\w+)/$",
+        SeerRpcServiceEndpoint.as_view(),
+        name="sentry-api-0-seer-rpc-service",
     ),
     re_path(
         r"^check-am2-compatibility/$",

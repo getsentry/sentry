@@ -1,7 +1,6 @@
 __all__ = ("Stacktrace",)
 
 import math
-from typing import Optional
 
 from django.utils.translation import gettext as _
 
@@ -454,7 +453,7 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, datapath: Optional[DataPath] = None, **kwargs):
+    def to_python(cls, data, datapath: DataPath | None = None, **kwargs):
         data = dict(data)
         frame_list = []
         for i, f in enumerate(data.get("frames") or []):

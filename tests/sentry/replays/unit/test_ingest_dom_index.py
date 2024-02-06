@@ -285,8 +285,9 @@ def test_parse_replay_dead_click_actions(patch_rage_click_issue, default_project
             "organizations:session-replay-rage-click-issue-creation": True,
         }
     ):
+        default_project.update_option("sentry:replay_rage_click_issues", True)
         replay_actions = parse_replay_actions(default_project.id, "1", 30, events)
-    assert patch_rage_click_issue.call_count == 2
+    assert patch_rage_click_issue.delay.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)

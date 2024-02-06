@@ -4,7 +4,7 @@ import {Component, createRef, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
 import {
@@ -24,6 +24,7 @@ import {
   DividerLine,
   DividerLineGhostContainer,
   ErrorBadge,
+  MetricsBadge,
   ProfileBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
@@ -48,13 +49,15 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventOrGroupType, EventTransaction} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
-import {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import {
+import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import type {
   QuickTraceEvent,
   TraceErrorOrIssue,
   TraceFull,
@@ -66,12 +69,14 @@ import {StyledZoomIcon} from 'sentry/views/performance/traceDetails/newTraceDeta
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
-import {SpanDetailProps} from './newTraceDetailsSpanDetails';
+import type {SpanDetailProps} from './newTraceDetailsSpanDetails';
 import {withScrollbarManager} from './scrollbarManager';
-import {SpanBarProps} from './spanBar';
+import type {SpanBarProps} from './spanBar';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import {AggregateSpanType, GapSpanType, GroupType, ProcessedSpanType} from './types';
+import type {AggregateSpanType, GapSpanType, ProcessedSpanType} from './types';
+import {GroupType} from './types';
+import type {SpanGeneratedBoundsType, SpanViewBoundsType, VerticalMark} from './utils';
 import {
   durationlessBrowserOps,
   formatSpanTreeLabel,
@@ -86,12 +91,9 @@ import {
   isOrphanTreeDepth,
   parseTraceDetailsURLHash,
   shouldLimitAffectedToTiming,
-  SpanGeneratedBoundsType,
   spanTargetHash,
-  SpanViewBoundsType,
   transactionTargetHash,
   unwrapTreeDepth,
-  VerticalMark,
 } from './utils';
 
 export const MARGIN_LEFT = 0;
@@ -692,6 +694,15 @@ export class NewTraceDetailsSpanBar extends Component<
     return errors?.length ? <ErrorBadge /> : null;
   }
 
+  renderMetricsBadge(span: NewTraceDetailsSpanBarProps['span']): React.ReactNode {
+    const hasMetrics =
+      '_metrics_summary' in span && Object.keys(span._metrics_summary ?? {}).length > 0;
+
+    return hasMetrics && hasDDMExperimentalFeature(this.props.organization) ? (
+      <MetricsBadge />
+    ) : null;
+  }
+
   renderEmbeddedTransactionsBadge(
     transactions: QuickTraceEvent[] | null
   ): React.ReactNode {
@@ -857,6 +868,7 @@ export class NewTraceDetailsSpanBar extends Component<
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
+          {this.renderMetricsBadge(this.props.span)}
           {this.renderErrorBadge(errors)}
           {this.renderEmbeddedTransactionsBadge(transactions)}
           {this.renderMissingInstrumentationProfileBadge()}

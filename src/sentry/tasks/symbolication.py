@@ -1,7 +1,8 @@
 import logging
 import random
+from collections.abc import Callable
 from time import time
-from typing import Any, Callable, Optional, Tuple
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -81,7 +82,7 @@ def should_demote_symbolication(project_id: int) -> bool:
 # This is f*** joke:
 # The `mock.patch` in `test_symbolication.py` will not work with a static import,
 # so we gotta import the function dynamically here. Great! Hooray!
-def get_native_symbolication_function(data: Any) -> Optional[Callable[[Symbolicator, Any], Any]]:
+def get_native_symbolication_function(data: Any) -> Callable[[Symbolicator, Any], Any] | None:
     from sentry.lang.native.processing import get_native_symbolication_function
 
     return get_native_symbolication_function(data)
@@ -89,7 +90,7 @@ def get_native_symbolication_function(data: Any) -> Optional[Callable[[Symbolica
 
 def get_symbolication_function(
     data: Any,
-) -> Tuple[bool, Optional[Callable[[Symbolicator, Any], Any]]]:
+) -> tuple[bool, Callable[[Symbolicator, Any], Any] | None]:
     if data["platform"] in ("javascript", "node"):
         return True, process_js_stacktraces
     else:
@@ -102,10 +103,10 @@ class SymbolicationTimeout(Exception):
 
 def _do_symbolicate_event(
     cache_key: str,
-    start_time: Optional[int],
-    event_id: Optional[str],
-    symbolicate_task: Callable[[Optional[str], Optional[int], Optional[str]], None],
-    data: Optional[Event] = None,
+    start_time: int | None,
+    event_id: str | None,
+    symbolicate_task: Callable[[str | None, int | None, str | None], None],
+    data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
 ) -> None:
@@ -315,8 +316,8 @@ def get_kind_from_task(task: Any) -> SymbolicatorTaskKind:
 def submit_symbolicate(
     task_kind: SymbolicatorTaskKind,
     cache_key: str,
-    event_id: Optional[str],
-    start_time: Optional[int],
+    event_id: str | None,
+    start_time: int | None,
     queue_switches: int = 0,
     has_attachments: bool = False,
 ) -> None:
@@ -354,9 +355,9 @@ def submit_symbolicate(
 )
 def symbolicate_event(
     cache_key: str,
-    start_time: Optional[int] = None,
-    event_id: Optional[str] = None,
-    data: Optional[Event] = None,
+    start_time: int | None = None,
+    event_id: str | None = None,
+    data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
     **kwargs: Any,
@@ -389,9 +390,9 @@ def symbolicate_event(
 )
 def symbolicate_js_event(
     cache_key: str,
-    start_time: Optional[int] = None,
-    event_id: Optional[str] = None,
-    data: Optional[Event] = None,
+    start_time: int | None = None,
+    event_id: str | None = None,
+    data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
     **kwargs: Any,
@@ -424,9 +425,9 @@ def symbolicate_js_event(
 )
 def symbolicate_event_low_priority(
     cache_key: str,
-    start_time: Optional[int] = None,
-    event_id: Optional[str] = None,
-    data: Optional[Event] = None,
+    start_time: int | None = None,
+    event_id: str | None = None,
+    data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
     **kwargs: Any,
@@ -462,9 +463,9 @@ def symbolicate_event_low_priority(
 )
 def symbolicate_js_event_low_priority(
     cache_key: str,
-    start_time: Optional[int] = None,
-    event_id: Optional[str] = None,
-    data: Optional[Event] = None,
+    start_time: int | None = None,
+    event_id: str | None = None,
+    data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
     **kwargs: Any,
@@ -500,9 +501,9 @@ def symbolicate_js_event_low_priority(
 )
 def symbolicate_event_from_reprocessing(
     cache_key: str,
-    start_time: Optional[int] = None,
-    event_id: Optional[str] = None,
-    data: Optional[Event] = None,
+    start_time: int | None = None,
+    event_id: str | None = None,
+    data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
     **kwargs: Any,
@@ -528,9 +529,9 @@ def symbolicate_event_from_reprocessing(
 )
 def symbolicate_event_from_reprocessing_low_priority(
     cache_key: str,
-    start_time: Optional[int] = None,
-    event_id: Optional[str] = None,
-    data: Optional[Event] = None,
+    start_time: int | None = None,
+    event_id: str | None = None,
+    data: Event | None = None,
     queue_switches: int = 0,
     has_attachments: bool = False,
     **kwargs: Any,

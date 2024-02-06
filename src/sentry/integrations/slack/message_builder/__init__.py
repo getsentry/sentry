@@ -1,11 +1,12 @@
-from typing import Any, List, Mapping, Union
+from collections.abc import Mapping
+from typing import Any, Union
 
 from sentry.issues.grouptype import GroupCategory
 
 # TODO(mgaeta): Continue fleshing out these types.
 SlackAttachment = Mapping[str, Any]
 SlackBlock = Mapping[str, Any]
-SlackBody = Union[SlackAttachment, SlackBlock, List[SlackAttachment]]
+SlackBody = Union[SlackAttachment, SlackBlock, list[SlackAttachment]]
 
 # Attachment colors used for issues with no actions take.
 LEVEL_TO_COLOR = {
@@ -37,7 +38,7 @@ LEVEL_TO_EMOJI = {
 }
 
 CATEGORY_TO_EMOJI = {
-    GroupCategory.PERFORMANCE: ":chart_with_downwards_trend:",
+    GroupCategory.PERFORMANCE: ":chart_with_upwards_trend:",
     GroupCategory.FEEDBACK: ":busts_in_silhouette:",
     GroupCategory.CRON: ":spiral_calendar_pad:",
 }

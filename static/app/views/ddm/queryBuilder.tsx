@@ -1,24 +1,28 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import Tag from 'sentry/components/tag';
 import {IconLightning, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
+import type {MetricMeta, MetricsOperation, MRI} from 'sentry/types';
 import {
   getDefaultMetricDisplayType,
-  getReadableMetricType,
   isAllowedOp,
   isCustomMetric,
   isMeasurement,
+  isSpanMetric,
   isTransactionDuration,
+} from 'sentry/utils/metrics';
+import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
+import {formatMRI} from 'sentry/utils/metrics/mri';
+import type {
   MetricDisplayType,
   MetricsQuerySubject,
   MetricWidgetQueryParams,
-} from 'sentry/utils/metrics';
-import {formatMRI} from 'sentry/utils/metrics/mri';
+} from 'sentry/utils/metrics/types';
 import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
@@ -38,7 +42,10 @@ type QueryBuilderProps = {
 };
 
 const isShownByDefault = (metric: MetricMeta) =>
-  isMeasurement(metric) || isCustomMetric(metric) || isTransactionDuration(metric);
+  isCustomMetric(metric) ||
+  isTransactionDuration(metric) ||
+  isMeasurement(metric) ||
+  isSpanMetric(metric);
 
 function getOpsForMRI(mri: MRI, meta: MetricMeta[]) {
   return meta.find(metric => metric.mri === mri)?.operations.filter(isAllowedOp) ?? [];
