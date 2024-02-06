@@ -36,7 +36,6 @@ class ApiTokensListTest(APITestCase):
         token = ApiToken.objects.create(user=self.user, scope_list=[])
 
         self.get_error_response(
-            format="json",
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
             status_code=status.HTTP_403_FORBIDDEN,
         )
