@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import {connect} from 'echarts';
 import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
@@ -662,4 +663,8 @@ export function dashboardFiltersToString(
     }
   }
   return dashboardFilterConditions;
+}
+
+export function connectDashboardCharts(groupName: string) {
+  connect?.(groupName);
 }
