@@ -1,4 +1,9 @@
 ---
+<<<<<<< HEAD
+=======
+created: '2024-02-06T15:14:32.264177Z'
+creator: sentry
+>>>>>>> 3d205ca4310 (update tests)
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -97,7 +102,7 @@ config:
       - '*/readyz'
       - '*/ping'
   groupingConfig:
-    enhancements: eJybzDRxc15qeXFJZU6qlZGBkbGugaGuoeEEAHJMCAM
+    enhancements: KLUv_SAYwQAAkwKRs25ld3N0eWxlOjIwMjMtMDEtMTGQ
     id: newstyle:2023-01-11
   piiConfig:
     applications:

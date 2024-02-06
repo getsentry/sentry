@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-import random
 import time
 import uuid
 from collections.abc import Callable
@@ -237,10 +236,6 @@ class SymbolicatorSession:
     - Otherwise, it retries failed requests.
     """
 
-    # Used as the `x-sentry-worker-id` HTTP header which is the routing key of
-    # the Symbolicator load balancer.
-    _worker_id = None
-
     def __init__(
         self,
         url=None,
@@ -253,7 +248,7 @@ class SymbolicatorSession:
         self.event_id = event_id
         self.timeout = timeout
         self.session = None
-        self.worker_id = self._get_worker_id()
+        self.reset_worker_id()
 
     def __enter__(self):
         self.open()
@@ -365,21 +360,5 @@ class SymbolicatorSession:
         with metrics.timer("events.symbolicator.query_task"):
             return self._request("get", task_url, params=params)
 
-    @classmethod
-    def _get_worker_id(cls) -> str:
-        if random.random() <= options.get("symbolicator.worker-id-randomization-sample-rate"):
-            return uuid.uuid4().hex
-
-        # as class attribute to keep it static for life of process
-        if cls._worker_id is None:
-            # %5000 to reduce cardinality of metrics tagging with worker id
-            cls._worker_id = str(uuid.uuid4().int % 5000)
-        return cls._worker_id
-
-    @classmethod
-    def _reset_worker_id(cls):
-        cls._worker_id = None
-
     def reset_worker_id(self):
-        self._reset_worker_id()
-        self.worker_id = self._get_worker_id()
+        self.worker_id = uuid.uuid4().hex
