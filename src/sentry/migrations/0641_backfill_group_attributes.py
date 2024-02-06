@@ -12,7 +12,7 @@ from sentry.issues.attributes import produce_snapshot_to_kafka
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import redis
 from sentry.utils.iterators import chunked
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 CHUNK_SIZE = 10000
 
@@ -130,7 +130,7 @@ def backfill_group_attributes_to_snuba(apps, schema_editor):
     progress_id = int(redis_client.get(backfill_key) or 0)
 
     for group_ids in chunked(
-        RangeQuerySetWrapperWithProgressBar(
+        RangeQuerySetWrapperWithProgressBarApprox(
             Group.objects.filter(id__gt=progress_id).values_list("id", flat=True),
             step=CHUNK_SIZE,
             result_value_getter=lambda item: item,
