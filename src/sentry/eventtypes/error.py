@@ -29,6 +29,8 @@ class ErrorEvent(BaseEvent):
     def extract_metadata(self, data: MutableMapping[str, Any]) -> Metadata:
 
         exceptions = get_path(data, "exception", "values")
+        if exceptions is None:
+            return {}
         if not exceptions:
             return {}
 
