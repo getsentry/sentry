@@ -32,8 +32,11 @@ import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types'
  * - the notion of expanded and zoomed is confusing, they stand for the same idea from a UI pov
  */
 
-export type Transaction = TraceFullDetailed;
+// Connectors todo
+// - last span child shouldnt dispay a connector below itself
+// - first child does not have a full vertical connector
 
+export type Transaction = TraceFullDetailed;
 export type TraceTreeNodeMetadata = {
   event_id: string | undefined;
   project_slug: string | undefined;
@@ -54,63 +57,6 @@ export function isTransactionNode(
   node: TraceTreeNode<TraceFullDetailed | RawSpanType>
 ): node is TraceTreeNode<TraceFullDetailed> {
   return !!(node.value && 'transaction' in node.value);
-}
-
-function createSpanTree(
-  parent: TraceTreeNode<RawSpanType | TraceFullDetailed>,
-  spans: RawSpanType[]
-): TraceTreeNode<RawSpanType | TraceFullDetailed> {
-  const parentIsSpan = !isTransactionNode(parent);
-  const root = new TraceTreeNode(parent, parent.value, 0, parent.metadata);
-  root.zoomedIn = true;
-  const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<RawSpanType>> = {};
-
-  const childrenLinks = new Map<string, TraceTreeNodeMetadata>();
-  for (const child of parent.children) {
-    if (typeof child.value.parent_span_id !== 'string') {
-      continue;
-    }
-    childrenLinks.set(child.value.parent_span_id, child.metadata);
-  }
-
-  for (const span of spans) {
-    const node = new TraceTreeNode(null, span, parent.depth, {
-      event_id: undefined,
-      project_slug: undefined,
-    });
-
-    const parentLinkMetadata = childrenLinks.get(span.span_id);
-    node.expanded = true;
-    node.canFetchData = !!parentLinkMetadata;
-
-    if (parentLinkMetadata) {
-      node.metadata = parentLinkMetadata;
-    }
-
-    lookuptable[span.span_id] = node;
-
-    if (parentIsSpan) {
-      node.parent = root as TraceTreeNode<RawSpanType>;
-      root.children.push(node);
-      continue;
-    }
-
-    if (span.parent_span_id) {
-      if (span.parent_span_id === root.value.span_id) {
-        node.parent = root as TraceTreeNode<RawSpanType>;
-        root.children.push(node);
-        continue;
-      }
-      const parentNode = lookuptable[span.parent_span_id];
-      if (parentNode) {
-        node.parent = parentNode;
-        parentNode.children.push(node);
-        continue;
-      }
-    }
-  }
-
-  return root;
 }
 
 export class TraceTree {
@@ -154,6 +100,60 @@ export class TraceTree {
     }
 
     return tree.build();
+  }
+
+  static FromSpans(
+    parent: TraceTreeNode<RawSpanType | TraceFullDetailed>,
+    spans: RawSpanType[]
+  ): TraceTreeNode<RawSpanType | TraceFullDetailed> {
+    const parentIsSpan = !isTransactionNode(parent);
+    const root = new TraceTreeNode(parent, parent.value, 0, parent.metadata);
+    root.zoomedIn = true;
+    const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<RawSpanType>> = {};
+
+    if (parentIsSpan) {
+      lookuptable[root.value.span_id] = root as TraceTreeNode<RawSpanType>;
+    }
+
+    const childrenLinks = new Map<string, TraceTreeNodeMetadata>();
+    for (const child of parent.children) {
+      if (typeof child.value.parent_span_id !== 'string') {
+        continue;
+      }
+      childrenLinks.set(child.value.parent_span_id, child.metadata);
+    }
+
+    for (const span of spans) {
+      const node = new TraceTreeNode(null, span, parent.depth, {
+        event_id: undefined,
+        project_slug: undefined,
+      });
+
+      const parentLinkMetadata = childrenLinks.get(span.span_id);
+      node.expanded = true;
+      node.canFetchData = !!parentLinkMetadata;
+
+      if (parentLinkMetadata) {
+        node.metadata = parentLinkMetadata;
+      }
+
+      lookuptable[span.span_id] = node;
+
+      if (span.parent_span_id) {
+        const parentNode = lookuptable[span.parent_span_id];
+        if (parentNode) {
+          node.parent = parentNode;
+          parentNode.spanChildren.push(node);
+          continue;
+        }
+      }
+
+      // Orphaned span
+      root.spanChildren.push(node);
+      node.parent = root as TraceTreeNode<RawSpanType>;
+    }
+
+    return root;
   }
 
   get list(): ReadonlyArray<TraceTreeNode<TraceFullDetailed | RawSpanType>> {
@@ -234,7 +234,7 @@ export class TraceTree {
       }
 
       // Create a new tree and update the list
-      const root = createSpanTree(node, (spans?.data ?? []) as RawSpanType[]);
+      const root = TraceTree.FromSpans(node, (spans?.data ?? []) as RawSpanType[]);
       node.setSpanChildren(root.spanChildren);
       node.zoomedIn = zoomedIn;
       root.depth = node.depth;
@@ -353,6 +353,10 @@ export class TraceTreeNode<TreeNodeValue> {
   }
 
   get children(): TraceTreeNode<TraceFullDetailed | RawSpanType>[] {
+    // if node is not a transaction node, return span children
+    if (this.value && !('event_id' in this.value)) {
+      return this.spanChildren;
+    }
     return this.zoomedIn ? this._spanChildren : this._children;
   }
 
@@ -400,19 +404,20 @@ export class TraceTreeNode<TreeNodeValue> {
     }
 
     const visibleChildren: TraceTreeNode<RawSpanType | TraceFullDetailed>[] = [];
-    // @TODO: should be a proper FIFO queue as shift is O(n)
-    const queue = [...this.children];
+    // @TODO: should be a proper FIFO queue as shift is O(n
 
-    while (queue.length > 0) {
-      const next = queue.shift()!;
+    function visit(node) {
+      visibleChildren.push(node);
 
-      if (next.expanded) {
-        for (let i = 0; i < next.children.length; i++) {
-          queue.unshift(next.children[i]);
+      if (node.expanded) {
+        for (let i = 0; i < node.children.length; i++) {
+          visit(node.children[i]);
         }
       }
+    }
 
-      visibleChildren.push(next);
+    for (const child of this.children) {
+      visit(child);
     }
 
     return visibleChildren;
