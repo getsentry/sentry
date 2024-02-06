@@ -630,6 +630,4 @@ const WidgetWidthWrapper = styled('div')`
   left: 16px !important;
   right: 16px !important;
   width: auto !important;
-  /* minimal working z-index */
-  z-index: 6;
 `;
