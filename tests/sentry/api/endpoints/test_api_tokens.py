@@ -123,32 +123,32 @@ class ApiTokensCreateTest(APITestCase):
 
 @control_silo_test
 class ApiTokensDeleteTest(APITestCase):
-    def test_simple(self):
-        token = ApiToken.objects.create(user=self.user)
+    endpoint = "sentry-api-0-api-tokens"
+    method = "delete"
+
+    def setUp(self):
+        super().setUp()
+        self.token = ApiToken.objects.create(user=self.user)
+
         self.login_as(self.user)
-        url = reverse("sentry-api-0-api-tokens")
-        response = self.client.delete(url, data={"tokenId": token.id})
-        assert response.status_code == 204
-        assert not ApiToken.objects.filter(id=token.id).exists()
+
+    def test_simple(self):
+        self.get_success_response(tokenId=self.token.id, status_code=status.HTTP_204_NO_CONTENT)
+        assert not ApiToken.objects.filter(id=self.token.id).exists()
 
     def test_never_cache(self):
-        token = ApiToken.objects.create(user=self.user)
-        self.login_as(self.user)
-        url = reverse("sentry-api-0-api-tokens")
-        response = self.client.delete(url, data={"tokenId": token.id})
-        assert response.status_code == 204
+        response = self.get_success_response(
+            tokenId=self.token.id, status_code=status.HTTP_204_NO_CONTENT
+        )
         assert (
             response.get("cache-control")
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
 
     def test_returns_400_when_no_token_param_is_sent(self) -> None:
-        token = ApiToken.objects.create(user=self.user)
-        self.login_as(self.user)
-        url = reverse("sentry-api-0-api-tokens")
-        response = self.client.delete(url, data={})
-        assert response.status_code == 400
-        assert ApiToken.objects.filter(id=token.id).exists()
+        self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST)
+
+        assert ApiToken.objects.filter(id=self.token.id).exists()
 
 
 @control_silo_test
