@@ -72,11 +72,13 @@ export function SamplesTables({transactionName}) {
     <div>
       <Controls>
         <FiltersContainer>
-          <SpanOpSelector
-            primaryRelease={primaryRelease}
-            transaction={transactionName}
-            secondaryRelease={secondaryRelease}
-          />
+          {sampleType === SPANS && (
+            <SpanOpSelector
+              primaryRelease={primaryRelease}
+              transaction={transactionName}
+              secondaryRelease={secondaryRelease}
+            />
+          )}
           <StartTypeSelector />
           <DeviceClassSelector size="md" />
         </FiltersContainer>

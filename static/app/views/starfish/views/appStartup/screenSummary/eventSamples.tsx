@@ -42,6 +42,8 @@ export function EventSamples({
   const {selection} = usePageFilters();
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
+
+  const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
   const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
 
   const searchQuery = new MutableSearch([
@@ -55,8 +57,6 @@ export function EventSamples({
     ')',
     `${SpanMetricsField.APP_START_TYPE}:${startType || '[cold,warm]'}`,
   ]);
-
-  const deviceClass = decodeScalar(location.query['device.class']);
 
   if (deviceClass) {
     if (deviceClass === 'Unknown') {
