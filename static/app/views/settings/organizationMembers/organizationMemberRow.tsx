@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarUser, Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 type Props = {
   canAddMembers: boolean;
@@ -87,7 +88,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
         </InvitedRole>
       );
     }
-    return <Fragment>{member.orgRole}</Fragment>;
+    return <Fragment>{capitalize(member.orgRole)}</Fragment>;
   }
 
   render() {
