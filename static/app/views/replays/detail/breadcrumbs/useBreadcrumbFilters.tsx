@@ -103,7 +103,7 @@ function useBreadcrumbFilters({frames}: Options): Return {
         dict[value] ? {...dict, [value]: [dict[value], key]} : {...dict, [value]: key},
       {}
     );
-    const OpOrCategory = type.map(theType => TYPE_TO_OPORCATEGORY[theType]).flat();
+    const OpOrCategory = type.flatMap(theType => TYPE_TO_OPORCATEGORY[theType]);
     return filterItems({
       items: frames,
       filterFns: FILTERS,
