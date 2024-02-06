@@ -104,12 +104,12 @@ describe('PageOverview', function () {
     await screen.findAllByText('Interactions');
     userEvent.click(screen.getAllByText('Interactions')[0]);
     await waitFor(() =>
-      expect(eventsMock).toHaveBeenCalledWith(
+      expect(eventsMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
             query:
-              'transaction.op:pageload transaction:"/" has:measurements.score.total has:measurements.fid ',
+              'transaction.op:pageload transaction:"/" has:measurements.score.total has:measurements.fid (has:profile.id OR has:replayId) ',
           }),
         })
       )
