@@ -367,7 +367,12 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             return Response(serialize(updated_rule, request.user))
 
-        return Response({"detail": "Your request contains patterns that are too repetitive, leading to a BadRequest. Please review your request for potential optimization."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            {
+                "detail": "Your request contains patterns that are too repetitive, leading to a BadRequest. Please review your request for potential optimization."
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     @extend_schema(
         operation_id="Delete an Issue Alert Rule",
