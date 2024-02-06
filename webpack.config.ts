@@ -1,5 +1,4 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
 
 import {WebpackReactSourcemapsPlugin} from '@acemarke/react-prod-sourcemaps';
 import {RsdoctorWebpackPlugin} from '@rsdoctor/webpack-plugin';
