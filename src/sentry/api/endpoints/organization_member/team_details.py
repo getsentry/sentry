@@ -26,7 +26,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.access import Access
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import superuser_has_permission
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
@@ -135,7 +135,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         * If they are removing their own membership
         * If they are a team admin or have global write access
         """
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         if not request.user.is_authenticated:
