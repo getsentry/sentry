@@ -264,11 +264,6 @@ class _SiloModeTestModification:
         if not (is_test_case_class or is_function):
             raise ValueError("@SiloModeTest must decorate a function or TestCase class")
 
-        if is_test_case_class:
-            self._validate_that_no_ancestor_is_silo_decorated(decorated_obj)
-            # _silo_modes is used to mark the class as silo decorated in the above validation
-            decorated_obj._silo_modes = self.silo_modes
-
         if SENTRY_USE_MONOLITH_DBS:
             # In this case, skip modifying the object and let it run in the default
             # silo mode (monolith)
@@ -280,6 +275,15 @@ class _SiloModeTestModification:
         return self._mark_parameterized_by_silo_mode(decorated_obj)
 
     def _validate_that_no_ancestor_is_silo_decorated(self, object_to_validate: Any):
+        # Deprecated? Silo decorators at multiple places in the inheritance tree may
+        # be necessary if a base class needs to be run in a non-default mode,
+        # especially when the default is no longer region mode. The previous
+        # rationale may have been limited to problems around swapping the local
+        # region, which may now be resolved.
+        #
+        # TODO(RyanSkonnord): Delete this after ascertaining that it's safe to have
+        #  silo decorators on test case class ancestors
+
         class_queue = [object_to_validate]
 
         # Do a breadth-first traversal of all base classes to ensure that the
@@ -293,6 +297,8 @@ class _SiloModeTestModification:
                     f"which inherits from a silo decorated class ({current_class.__name__})"
                 )
             class_queue.extend(current_class.__bases__)
+
+        object_to_validate._silo_modes = self.silo_modes
 
 
 all_silo_test = SiloModeTestDecorator(*SiloMode)
