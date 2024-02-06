@@ -41,7 +41,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
       <Stacked ref={timelineRef}>
         {isLoading ? (
           <LoadingSkeleton>
-            <Placeholder height="12px" />
+            <Placeholder height="14px" />
             <Placeholder height="8px" />
           </LoadingSkeleton>
         ) : (
@@ -62,9 +62,9 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 const TimelineOutline = styled('div')`
   position: absolute;
   left: 0;
-  top: 5px;
+  top: 3px;
   width: 100%;
-  height: 8px;
+  height: 10px;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.backgroundSecondary};
