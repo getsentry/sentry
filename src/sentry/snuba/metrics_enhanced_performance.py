@@ -231,11 +231,13 @@ def top_events_timeseries(
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            breakpoint()
             metrics_compatible = False
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
         sentry_sdk.set_tag("performance.dataset", "discover")
+        breakpoint()
         return discover.top_events_timeseries(
             timeseries_columns,
             selected_columns,

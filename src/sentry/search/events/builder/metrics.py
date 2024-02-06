@@ -61,7 +61,7 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
-from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricsQuery
+from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricOrderByField, MetricsQuery
 from sentry.snuba.metrics.utils import get_num_intervals
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
@@ -101,6 +101,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         if granularity is not None:
             self._granularity = granularity
+
 
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
@@ -208,6 +209,7 @@ class MetricsQueryBuilder(QueryBuilder):
         spec: OnDemandMetricSpec,
         require_time_range: bool = True,
         groupby: Sequence[MetricGroupByField] | None = None,
+        orderby: Sequence[MetricOrderByField] | None = None,
         # Where normally isn't accepted for on-demand since it should only encoded into the metric
         # but in the case of top events, etc. there is need for another where condition dynamically for top N groups.
         additional_where: Sequence[Condition] | None = None,
@@ -293,6 +295,7 @@ class MetricsQueryBuilder(QueryBuilder):
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
             include_series=include_series,
+            orderby=orderby,
             groupby=groupby,
             start=start,
             end=end,
@@ -363,10 +366,13 @@ class MetricsQueryBuilder(QueryBuilder):
             # aliases back to their original functions.
             for column in selected_columns:
                 try:
-                    self.resolve_select([column], [])
+                    self.columns = self.resolve_select([column], [])
                 except (IncompatibleMetricsQuery, InvalidSearchQuery):
                     # This may fail for some columns like apdex but it will still enter into the field_alias_map
                     pass
+            # On demand also needs the order-by populated so it can be passed to metrics layer.
+            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
+                self.orderby = self.resolve_orderby(orderby)
 
         if len(self.metric_ids) > 0 and not self.use_metrics_layer:
             self.where.append(
@@ -1050,6 +1056,7 @@ class MetricsQueryBuilder(QueryBuilder):
                                         spec=spec,
                                         require_time_range=True,
                                         groupby=[MetricGroupByField(field=c) for c in group_bys],
+                                        orderby=[MetricOrderByField(field=o) for o in self.orderby],
                                     )
                                 )
                         else:
