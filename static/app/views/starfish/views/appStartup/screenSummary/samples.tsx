@@ -1,4 +1,4 @@
-import {type ReactNode, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -23,41 +23,41 @@ export function SamplesTables({transactionName}) {
   const [sampleType, setSampleType] = useState<typeof EVENT | typeof SPANS>(SPANS);
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
-  let content: null | ReactNode = null;
+  const content = useMemo(() => {
+    if (sampleType === EVENT) {
+      return (
+        <EventSplitContainer>
+          <ErrorBoundary mini>
+            {primaryRelease && (
+              <div>
+                <EventSamples
+                  cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
+                  sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                  release={primaryRelease}
+                  transaction={transactionName}
+                  footerAlignedPagination
+                />
+              </div>
+            )}
+          </ErrorBoundary>
+          <ErrorBoundary mini>
+            {secondaryRelease && (
+              <div>
+                <EventSamples
+                  cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                  sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                  release={secondaryRelease}
+                  transaction={transactionName}
+                  footerAlignedPagination
+                />
+              </div>
+            )}
+          </ErrorBoundary>
+        </EventSplitContainer>
+      );
+    }
 
-  if (sampleType === EVENT) {
-    content = (
-      <EventSplitContainer>
-        <ErrorBoundary mini>
-          {primaryRelease && (
-            <div>
-              <EventSamples
-                cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                release={primaryRelease}
-                transaction={transactionName}
-                footerAlignedPagination
-              />
-            </div>
-          )}
-        </ErrorBoundary>
-        <ErrorBoundary mini>
-          {secondaryRelease && (
-            <div>
-              <EventSamples
-                cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                release={secondaryRelease}
-                transaction={transactionName}
-                footerAlignedPagination
-              />
-            </div>
-          )}
-        </ErrorBoundary>
-      </EventSplitContainer>
-    );
-  } else {
-    content = (
+    return (
       <ErrorBoundary mini>
         <SpanOperationTable
           transaction={transactionName}
@@ -66,7 +66,7 @@ export function SamplesTables({transactionName}) {
         />
       </ErrorBoundary>
     );
-  }
+  }, [primaryRelease, sampleType, secondaryRelease, transactionName]);
 
   return (
     <div>
