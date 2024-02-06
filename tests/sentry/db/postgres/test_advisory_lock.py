@@ -1,7 +1,8 @@
 import functools
 import threading
 import time
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 import pytest
 from django.db import connections, transaction
@@ -19,8 +20,8 @@ advisory_lock_key = 1234
 def acquire_advisory_lock_with_barrier(
     lock_key: int,
     lock_timeout: int,
-    entry_barrier: Optional[threading.Barrier] = None,
-    exit_barrier: Optional[threading.Barrier] = None,
+    entry_barrier: threading.Barrier | None = None,
+    exit_barrier: threading.Barrier | None = None,
 ):
     with advisory_lock(
         using="default",
