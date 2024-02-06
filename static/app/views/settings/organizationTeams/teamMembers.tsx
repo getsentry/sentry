@@ -145,8 +145,11 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
           });
           addSuccessMessage(t('Successfully added member to team.'));
         },
-        error: () => {
-          addErrorMessage(t('Unable to add team member.'));
+        error: resp => {
+          const errorMessage =
+            (resp && resp.responseJSON && resp.responseJSON.detail) ||
+            t('Unable to add team member.');
+          addErrorMessage(errorMessage);
         },
       }
     );
