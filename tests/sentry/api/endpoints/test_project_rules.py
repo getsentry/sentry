@@ -17,7 +17,7 @@ from sentry.models.user import User
 from sentry.silo import SiloMode
 from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import install_slack, with_feature
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -27,7 +27,7 @@ class ProjectRuleBaseTestCase(APITestCase):
 
     def setUp(self):
         self.rule = self.create_project_rule(project=self.project)
-        self.slack_integration = install_slack(organization=self.organization)
+        self.slack_integration = self.create_slack_integration(organization=self.organization)
         self.sentry_app = self.create_sentry_app(
             name="Pied Piper",
             organization=self.organization,

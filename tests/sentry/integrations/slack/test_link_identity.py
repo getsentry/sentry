@@ -4,7 +4,7 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import add_identity, install_slack
+from sentry.testutils.helpers import add_identity
 from sentry.testutils.silo import control_silo_test
 
 
@@ -17,7 +17,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
         self.channel_id = "my-channel"
         self.response_url = "http://example.slack.com/response_url"
 
-        self.integration = install_slack(self.organization)
+        self.integration = self.create_slack_integration(self.organization)
         self.idp = add_identity(self.integration, self.user, self.external_id)
 
         responses.add(

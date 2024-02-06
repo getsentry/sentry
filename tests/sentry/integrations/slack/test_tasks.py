@@ -16,7 +16,6 @@ from sentry.tasks.integrations.slack import (
     post_message,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -27,7 +26,7 @@ pytestmark = [requires_snuba]
 @region_silo_test
 class SlackTasksTest(TestCase):
     def setUp(self):
-        self.integration = install_slack(self.organization)
+        self.integration = self.create_slack_integration(organization=self.organization)
         self.uuid = uuid4().hex
 
     @pytest.fixture(autouse=True)

@@ -14,7 +14,7 @@ from sentry.models.identity import Identity
 from sentry.models.team import Team
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers import find_identity, install_slack, link_team, link_user
+from sentry.testutils.helpers import find_identity, link_team, link_user
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
@@ -33,7 +33,9 @@ class SlackCommandsTest(APITestCase, TestCase):
         self.channel_id = "my-channel_id"
         self.response_url = "http://example.slack.com/response_url"
 
-        self.integration = install_slack(self.organization, self.external_id)
+        self.integration = self.create_slack_integration(
+            organization=self.organization, external_id=self.external_id
+        )
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.idp = self.create_identity_provider(
                 type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],

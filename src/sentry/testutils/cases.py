@@ -125,7 +125,6 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.utils import json
@@ -2761,7 +2760,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
                     **base_params,
                 )
             UserOption.objects.create(user=self.user, key="self_notifications", value="1")
-            self.integration = install_slack(self.organization)
+            self.integration = self.create_slack_integration(self.organization)
             self.idp = IdentityProvider.objects.create(
                 type="slack", external_id="TXXXXXXX1", config={}
             )

@@ -16,7 +16,6 @@ from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handl
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
@@ -177,7 +176,7 @@ class UnfurlTest(TestCase):
         # We're redefining project to ensure that the individual tests have unique project ids.
         # Sharing project ids across tests could result in some race conditions
         self.project = self.create_project()
-        self._integration = install_slack(self.organization)
+        self._integration = self.create_slack_integration(organization=self.organization)
         self.integration = serialize_integration(self._integration)
 
         self.request = RequestFactory().get("slack/event")

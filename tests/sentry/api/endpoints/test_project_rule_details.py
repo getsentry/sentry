@@ -16,7 +16,6 @@ from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityTy
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
@@ -78,7 +77,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
     def setUp(self):
         self.rule = self.create_project_rule(project=self.project)
         self.environment = self.create_environment(self.project, name="production")
-        self.slack_integration = install_slack(organization=self.organization)
+        self.slack_integration = self.create_slack_integration(organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.jira_integration = self.create_provider_integration(
                 provider="jira", name="Jira", external_id="jira:1"

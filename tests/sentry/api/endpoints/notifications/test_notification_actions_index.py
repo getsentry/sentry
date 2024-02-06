@@ -16,7 +16,6 @@ from sentry.models.notificationaction import (
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
@@ -271,7 +270,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         channel_name = "journal"
         channel_id = "CABC123"
 
-        integration = install_slack(organization=self.organization)
+        integration = self.create_slack_integration(organization=self.organization)
         data = {
             "triggerType": "audit-log",
             "targetType": "specific",

@@ -19,7 +19,6 @@ from sentry.rules.conditions import EventCondition
 from sentry.rules.filters.base import EventFilter
 from sentry.rules.processor import RuleProcessor
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -147,7 +146,7 @@ class RuleProcessorTest(TestCase):
 
     def test_muted_slack_rule(self):
         """Test that we don't sent a notification for a muted Slack rule"""
-        integration = install_slack(self.organization)
+        integration = self.create_slack_integration(organization=self.organization)
         action_data = [
             {
                 "channel": "#my-channel",
@@ -673,7 +672,7 @@ class RuleProcessorTestFilters(TestCase):
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
     def test_slack_title_link_notification_uuid(self, mock_post):
         """Test that the slack title link includes the notification uuid from apply function"""
-        integration = install_slack(self.organization)
+        integration = self.create_slack_integration(organization=self.organization)
         action_data = [
             {
                 "channel": "#my-channel",

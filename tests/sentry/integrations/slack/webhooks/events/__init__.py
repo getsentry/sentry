@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import install_slack
 from sentry.utils import json
 
 UNSET = object()
@@ -49,7 +48,7 @@ def build_test_block(link):
 class BaseEventTest(APITestCase):
     def setUp(self):
         super().setUp()
-        self.integration = install_slack(self.organization)
+        self.integration = self.create_slack_integration(organization=self.organization)
 
     @patch(
         "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True

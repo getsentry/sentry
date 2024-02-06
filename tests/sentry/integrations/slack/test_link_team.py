@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
+from sentry.testutils.helpers import add_identity, get_response_text, link_team
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -34,7 +34,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.channel_id = "my-channel_id"
         self.response_url = "http://example.slack.com/response_url"
 
-        self.integration = install_slack(self.organization)
+        self.integration = self.create_slack_integration(self.organization)
         self.idp = add_identity(self.integration, self.user, self.external_id)
 
         responses.add(

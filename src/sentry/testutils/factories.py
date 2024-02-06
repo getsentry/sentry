@@ -1569,18 +1569,32 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_slack_integration(
-        organization: Organization, external_id: str, **kwargs: Any
+        organization: Organization,
+        external_id: str = "TXXXXXXX1",
+        user: User | None = None,
     ) -> Integration:
-        integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id=external_id,
-            metadata={
+        integration_params = {
+            "provider": "slack",
+            "name": "Team A",
+            "external_id": external_id,
+            "metadata": {
                 "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
                 "installation_type": "born_as_bot",
             },
-        )
-        integration.add_organization(organization)
+        }
+        if user:
+            integration, _, _, _ = Factories.create_identity_integration(
+                user=user,
+                organization=organization,
+                integration_params=integration_params,
+                identity_params={"external_id": "UXXXXXXX1"},
+            )
+        else:
+            integration, _ = Factories.create_provider_integration_for(
+                user=user,
+                organization=organization,
+                **integration_params,
+            )
         return integration
 
     @staticmethod

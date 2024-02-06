@@ -5,7 +5,6 @@ from sentry.integrations.slack.utils import get_channel_id
 from sentry.integrations.slack.utils.channel import CHANNEL_PREFIX, MEMBER_PREFIX
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import install_slack
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
@@ -17,7 +16,9 @@ class GetChannelIdTest(TestCase):
         self.resp = responses.mock
         self.resp.__enter__()
 
-        self.integration = install_slack(self.event.project.organization)
+        self.integration = self.create_slack_integration(
+            organization=self.event.project.organization
+        )
 
     def tearDown(self):
         self.resp.__exit__(None, None, None)

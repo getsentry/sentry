@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import add_identity, install_slack
+from sentry.testutils.helpers import add_identity
 from sentry.utils import json
 
 
@@ -9,7 +9,7 @@ class BaseEventTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.external_id = "slack:1"
-        self.integration = install_slack(self.organization)
+        self.integration = self.create_slack_integration(organization=self.organization)
         self.idp = add_identity(self.integration, self.user, self.external_id)
 
         self.trigger_id = "13345224609.738474920.8088930838d88f008e0"

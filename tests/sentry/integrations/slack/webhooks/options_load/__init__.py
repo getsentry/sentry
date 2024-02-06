@@ -1,7 +1,6 @@
 from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.slack import install_slack
 from sentry.utils import json
 
 
@@ -9,7 +8,7 @@ class BaseEventTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.external_id = "slack:1"
-        self.integration = install_slack(self.organization)
+        self.integration = self.create_slack_integration(organization=self.organization)
         self.channel = {"channel_id": "C065W1189", "name": "workflow"}
 
     @patch(
