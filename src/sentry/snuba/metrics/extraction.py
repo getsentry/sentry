@@ -1547,7 +1547,7 @@ def _escape_wildcard(value: str) -> str:
         i = i + 1
 
         if c in "[]{}?":
-            escaped += "\\" + c
+            escaped += rf"\{c}"
         else:
             escaped += c
 
