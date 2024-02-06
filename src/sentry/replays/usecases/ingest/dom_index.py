@@ -368,6 +368,6 @@ def _should_report_rage_click_issue(project_id: int) -> bool:
         Check if the project has the option enabled,
         This is controlled by the project owner, and is a permanent setting
         """
-        return project.get_option("sentry:replay_rage_click_issues", False)
+        return project.get_option("sentry:replay_rage_click_issues")
 
     return all([_project_has_feature_enabled(), _project_has_option_enabled()])
