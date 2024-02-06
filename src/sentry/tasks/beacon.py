@@ -74,7 +74,7 @@ def get_events_24h() -> int:
     return sum_events
 
 
-def get_category_event_count_24h() -> int:
+def get_category_event_count_24h() -> dict[str, int]:
     from sentry.models.organization import Organization
 
     organization_ids = list(Organization.objects.all().values_list("id", flat=True))
