@@ -12,8 +12,6 @@ import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/u
 import {TraceTimelineEvents} from './traceTimelineEvents';
 import {useTraceTimelineEvents} from './useTraceTimelineEvents';
 
-const PLACEHOLDER_SIZE = '45px';
-
 interface TraceTimelineProps {
   event: Event;
 }
@@ -35,14 +33,17 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     !isLoading && data.length > 0 && data.every(item => item.id === event.id);
   if (isError || noEvents || onlySelfEvent) {
     // display empty placeholder to reduce layout shift
-    return <div style={{height: PLACEHOLDER_SIZE}} data-test-id="trace-timeline-empty" />;
+    return <div style={{height: 34}} data-test-id="trace-timeline-empty" />;
   }
 
   return (
     <ErrorBoundary mini>
       <Stacked ref={timelineRef}>
         {isLoading ? (
-          <Placeholder height={PLACEHOLDER_SIZE} />
+          <LoadingSkeleton>
+            <Placeholder height="12px" />
+            <Placeholder height="8px" />
+          </LoadingSkeleton>
         ) : (
           <TimelineEventsContainer>
             <TimelineOutline />
@@ -84,11 +85,19 @@ const Stacked = styled('div')`
   > * {
     grid-area: 1 / 1;
   }
-  margin-top: ${space(1)};
+  margin-top: ${space(0.5)};
 `;
 
 const TimelineEventsContainer = styled('div')`
   position: relative;
-  height: 45px;
+  height: 34px;
   padding-top: 10px;
+`;
+
+const LoadingSkeleton = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
+  padding: ${space(0.75)} 0 ${space(1)};
+  height: 34px;
 `;
