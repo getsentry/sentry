@@ -210,6 +210,29 @@ describe('TraceTree', () => {
       expect(tree.expand(tree.list[0], true)).toBe(true);
       expect(tree.list[tree.list.length - 1].value).toBe(lastTransaction);
     });
+
+    it('expanding or collapsing a zoomed in node doesnt do anything', async () => {
+      const organization = OrganizationFixture();
+      const api = new MockApiClient();
+
+      const tree = TraceTree.FromTrace([
+        makeTransaction({children: [makeTransaction()]}),
+      ]);
+      const node = tree.list[0];
+
+      const request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/undefined:undefined/',
+        method: 'GET',
+        body: makeEvent(),
+      });
+
+      tree.zoomIn(node, true, {api, organization});
+      await waitFor(() => {
+        expect(node.zoomedIn).toBe(true);
+      });
+      expect(request).toHaveBeenCalled();
+      expect(tree.expand(node, true)).toBe(false);
+    });
   });
 
   describe('zooming', () => {
