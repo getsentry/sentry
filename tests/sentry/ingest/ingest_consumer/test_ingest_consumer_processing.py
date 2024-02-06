@@ -317,7 +317,8 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
         (attachment,) = persisted_attachments
         assert attachment.content_type == "text/plain"
         assert attachment.name == "lol.txt"
-        assert attachment.getfile().read() == b"Hello World!"
+        with attachment.getfile() as file:
+            assert file.read() == b"Hello World!"
     else:
         assert not persisted_attachments
 
@@ -395,7 +396,8 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
     (attachment,) = persisted_attachments
     assert attachment.content_type == "application/json"
     assert attachment.name == "view_hierarchy.json"
-    assert attachment.getfile().read() == expected_response
+    with attachment.getfile() as file:
+        assert file.read() == expected_response
 
 
 @django_db_all
@@ -472,8 +474,8 @@ def test_individual_attachments(
         assert attachment.group_id == group_id
         assert attachment.content_type == chunks[2]
 
-        file_contents = attachment.getfile()
-        assert file_contents.read() == b"".join(chunks[0])
+        with attachment.getfile() as file_contents:
+            assert file_contents.read() == b"".join(chunks[0])
 
 
 @django_db_all
