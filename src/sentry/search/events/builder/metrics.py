@@ -61,7 +61,12 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
-from sentry.snuba.metrics.query import MetricField, MetricGroupByField, MetricOrderByField, MetricsQuery
+from sentry.snuba.metrics.query import (
+    MetricField,
+    MetricGroupByField,
+    MetricOrderByField,
+    MetricsQuery,
+)
 from sentry.snuba.metrics.utils import get_num_intervals
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
@@ -101,7 +106,6 @@ class MetricsQueryBuilder(QueryBuilder):
 
         if granularity is not None:
             self._granularity = granularity
-
 
         super().__init__(
             # TODO: defaulting to Metrics for now so I don't have to update incidents tests. Should be
@@ -204,6 +208,14 @@ class MetricsQueryBuilder(QueryBuilder):
         }
         return map
 
+    def get_spec_alias(self, spec: OnDemandMetricSpec) -> str | None:
+        if isinstance(self, (TopMetricsQueryBuilder, TimeseriesMetricQueryBuilder)):
+            return get_function_alias(spec.field) or "count"
+        elif isinstance(self, AlertMetricsQueryBuilder):
+            return spec.mri
+        else:
+            return get_function_alias(spec.field) or spec.mri
+
     def _get_metrics_query_from_on_demand_spec(
         self,
         spec: OnDemandMetricSpec,
@@ -236,22 +248,18 @@ class MetricsQueryBuilder(QueryBuilder):
             if intervals_len > 0:
                 limit = Limit(int(limit.limit / intervals_len))
             max_limit = 10_000
-            alias = get_function_alias(spec.field) or "count"
             include_series = True
             interval = self.interval
         elif isinstance(self, TimeseriesMetricQueryBuilder):
             limit = Limit(1)
-            alias = get_function_alias(spec.field) or "count"
             include_series = True
             interval = self.interval
         elif isinstance(self, AlertMetricsQueryBuilder):
             limit = self.limit or Limit(1)
-            alias = spec.mri
             include_series = False
             interval = None
         else:
             limit = self.limit or Limit(1)
-            alias = get_function_alias(spec.field) or spec.mri
             include_series = False
             interval = None
 
@@ -284,7 +292,7 @@ class MetricsQueryBuilder(QueryBuilder):
             where.extend(additional_where)
 
         return MetricsQuery(
-            select=[MetricField(spec.op, spec.mri, alias=alias)],
+            select=[MetricField(spec.op, spec.mri, alias=self.get_spec_alias(spec))],
             where=where,
             limit=limit,
             max_limit=max_limit,
@@ -299,6 +307,7 @@ class MetricsQueryBuilder(QueryBuilder):
             groupby=groupby,
             start=start,
             end=end,
+            skip_orderby_validation=True,
         )
 
     def validate_aggregate_arguments(self) -> None:
@@ -370,15 +379,37 @@ class MetricsQueryBuilder(QueryBuilder):
                 except (IncompatibleMetricsQuery, InvalidSearchQuery):
                     # This may fail for some columns like apdex but it will still enter into the field_alias_map
                     pass
-            # On demand also needs the order-by populated so it can be passed to metrics layer.
-            with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
-                self.orderby = self.resolve_orderby(orderby)
 
         if len(self.metric_ids) > 0 and not self.use_metrics_layer:
             self.where.append(
                 # Metric id is intentionally sorted, so we create consistent queries here both for testing & caching.
                 Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
             )
+
+    #    def resolve_orderby(self, orderby: list[str] | str | None) -> list[OrderBy]:
+    #        if self.use_on_demand:
+    #            metric_layer_config = MetricsLayerDatasetConfig(self)
+    #            self.field_alias_converter = metric_layer_config.field_alias_converter
+    #            self.function_converter = metric_layer_config.function_converter
+    #            self.search_filter_converter = metric_layer_config.search_filter_converter
+    #            self.orderby_converter = metric_layer_config.orderby_converter
+    #
+    #            raw_result = super().resolve_orderby(orderby, validate=False)
+    #            result = []
+    #            # Strip the aliases out of the orderby since we skipped validation and we might have shadow aliasing
+    #            for orderby in raw_result:
+    #                if isinstance(orderby.exp, Column):
+    #                    result.append(orderby)
+    #                elif isinstance(orderby.exp, CurriedFunction):
+    #                    result.append(OrderBy(Function(orderby.exp.function, orderby.exp.parameters), orderby.direction))
+    #
+    #            self.field_alias_converter = self.config.field_alias_converter
+    #            self.function_converter = self.config.function_converter
+    #            self.search_filter_converter = self.config.search_filter_converter
+    #            self.orderby_converter = self.config.orderby_converter
+    #            return result
+    #        else:
+    #            return super().resolve_orderby(orderby)
 
     def resolve_column_name(self, col: str) -> str:
         if col.startswith("tags["):
@@ -971,6 +1002,31 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return use_case_ids.pop()
 
+    def resolve_ondemand_orderby(self) -> Any:
+        result = []
+        raw_orderby = self.raw_orderby
+        if isinstance(self.raw_orderby, str):
+            raw_orderby = [self.raw_orderby]
+
+        for orderby in raw_orderby:
+            direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
+            bare_orderby = orderby.lstrip("-")
+            if bare_orderby in self._on_demand_metric_spec_map:
+                spec = self._on_demand_metric_spec_map[bare_orderby]
+                result.append(
+                    MetricOrderByField(
+                        field=MetricField(spec.op, spec.mri, alias=self.get_spec_alias(spec)),
+                        direction=direction,
+                    )
+                )
+            else:
+                orderby = self.resolve_orderby(orderby, validate=False)
+                for order_field in orderby:
+                    result.append(
+                        MetricOrderByField(field=order_field.exp, direction=order_field.direction)
+                    )
+        return result
+
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
@@ -1056,7 +1112,7 @@ class MetricsQueryBuilder(QueryBuilder):
                                         spec=spec,
                                         require_time_range=True,
                                         groupby=[MetricGroupByField(field=c) for c in group_bys],
-                                        orderby=[MetricOrderByField(field=o) for o in self.orderby],
+                                        orderby=self.resolve_ondemand_orderby(),
                                     )
                                 )
                         else:

@@ -209,6 +209,7 @@ class BaseQueryBuilder:
             org_id if org_id is not None and isinstance(org_id, int) else None
         )
         self.raw_equations = equations
+        self.raw_orderby = orderby
         self.query = query
         self.selected_columns = selected_columns
         self.groupby_columns = groupby_columns
@@ -811,7 +812,9 @@ class BaseQueryBuilder:
             rhs = Function("nullIf", [rhs, 0])
         return Function(equation.operator, [lhs, rhs], alias)
 
-    def resolve_orderby(self, orderby: list[str] | str | None) -> list[OrderBy]:
+    def resolve_orderby(
+        self, orderby: list[str] | str | None, validate: bool = True
+    ) -> list[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
         represent direction, construct a list of Snql Orderbys
         """
@@ -881,6 +884,8 @@ class BaseQueryBuilder:
                     validated.append(OrderBy(selected_column, direction))
                     break
 
+        if not validate:
+            return []
         if len(validated) == len(orderby_columns):
             return validated
 
