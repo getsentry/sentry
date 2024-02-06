@@ -17,7 +17,7 @@ import {
   IssueCategory,
   IssueType,
 } from 'sentry/types';
-import type {Event, ExceptionValue, Thread, Frame} from 'sentry/types/event';
+import type {Event, ExceptionValue, Frame, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
