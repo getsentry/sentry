@@ -88,7 +88,7 @@ const render: typeof baseRender = children => {
         routes: router.routes,
       }}
     >
-      <OrganizationContext.Provider value={OrganizationFixture()}>
+      <OrganizationContext.Provider value={OrganizationFixture({slug: mockOrgSlug})}>
         {children}
       </OrganizationContext.Provider>
     </RouteContext.Provider>,
