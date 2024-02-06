@@ -11,7 +11,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
-from datetime import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
