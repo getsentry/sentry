@@ -152,8 +152,8 @@ describe('TraceTree', () => {
 
     expect(tree.list[0].connectors.length).toBe(0);
     expect(tree.list[1].connectors.length).toBe(1);
-    expect(tree.list[1].connectors[0]).toBe(0);
-    expect(tree.list[2].connectors[0]).toBe(0);
+    expect(tree.list[1].connectors[0]).toBe(-0);
+    expect(tree.list[2].connectors[0]).toBe(-0);
     expect(tree.list[3].connectors.length).toBe(0);
   });
 
@@ -186,6 +186,21 @@ describe('TraceTree', () => {
       // Assert that the list has been updated
       expect(tree.list).toHaveLength(1);
       expect(tree.list[0]).toBe(node);
+    });
+
+    it('preserves children expanded state', () => {
+      const tree = TraceTree.FromTrace([
+        makeTransaction({children: [makeTransaction({children: [makeTransaction()]})]}),
+      ]);
+
+      expect(tree.expand(tree.list[0], true)).toBe(true);
+      expect(tree.expand(tree.list[1], true)).toBe(true);
+      // Assert that the list has been updated
+      expect(tree.list).toHaveLength(3);
+
+      expect(tree.expand(tree.list[0], false)).toBe(true);
+      expect(tree.expand(tree.list[0], true)).toBe(true);
+      expect(tree.list).toHaveLength(3);
     });
   });
 
