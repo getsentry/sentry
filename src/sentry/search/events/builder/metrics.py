@@ -208,13 +208,14 @@ class MetricsQueryBuilder(QueryBuilder):
         }
         return map
 
-    def get_spec_alias(self, spec: OnDemandMetricSpec) -> str | None:
+    def convert_spec_to_metric_field(self, spec: OnDemandMetricSpec) -> MetricField | None:
         if isinstance(self, (TopMetricsQueryBuilder, TimeseriesMetricQueryBuilder)):
-            return get_function_alias(spec.field) or "count"
+            alias = get_function_alias(spec.field) or "count"
         elif isinstance(self, AlertMetricsQueryBuilder):
-            return spec.mri
+            alias = spec.mri
         else:
-            return get_function_alias(spec.field) or spec.mri
+            alias = get_function_alias(spec.field) or spec.mri
+        return MetricField(spec.op, spec.mri, alias=alias)
 
     def _get_metrics_query_from_on_demand_spec(
         self,
@@ -292,7 +293,7 @@ class MetricsQueryBuilder(QueryBuilder):
             where.extend(additional_where)
 
         return MetricsQuery(
-            select=[MetricField(spec.op, spec.mri, alias=self.get_spec_alias(spec))],
+            select=[self.convert_spec_to_metric_field(spec)],
             where=where,
             limit=limit,
             max_limit=max_limit,
@@ -385,31 +386,6 @@ class MetricsQueryBuilder(QueryBuilder):
                 # Metric id is intentionally sorted, so we create consistent queries here both for testing & caching.
                 Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
             )
-
-    #    def resolve_orderby(self, orderby: list[str] | str | None) -> list[OrderBy]:
-    #        if self.use_on_demand:
-    #            metric_layer_config = MetricsLayerDatasetConfig(self)
-    #            self.field_alias_converter = metric_layer_config.field_alias_converter
-    #            self.function_converter = metric_layer_config.function_converter
-    #            self.search_filter_converter = metric_layer_config.search_filter_converter
-    #            self.orderby_converter = metric_layer_config.orderby_converter
-    #
-    #            raw_result = super().resolve_orderby(orderby, validate=False)
-    #            result = []
-    #            # Strip the aliases out of the orderby since we skipped validation and we might have shadow aliasing
-    #            for orderby in raw_result:
-    #                if isinstance(orderby.exp, Column):
-    #                    result.append(orderby)
-    #                elif isinstance(orderby.exp, CurriedFunction):
-    #                    result.append(OrderBy(Function(orderby.exp.function, orderby.exp.parameters), orderby.direction))
-    #
-    #            self.field_alias_converter = self.config.field_alias_converter
-    #            self.function_converter = self.config.function_converter
-    #            self.search_filter_converter = self.config.search_filter_converter
-    #            self.orderby_converter = self.config.orderby_converter
-    #            return result
-    #        else:
-    #            return super().resolve_orderby(orderby)
 
     def resolve_column_name(self, col: str) -> str:
         if col.startswith("tags["):
@@ -1015,7 +991,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 spec = self._on_demand_metric_spec_map[bare_orderby]
                 result.append(
                     MetricOrderByField(
-                        field=MetricField(spec.op, spec.mri, alias=self.get_spec_alias(spec)),
+                        field=self.convert_spec_to_metric_field(spec),
                         direction=direction,
                     )
                 )
