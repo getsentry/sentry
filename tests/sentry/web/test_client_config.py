@@ -206,7 +206,6 @@ def test_client_config_links_regionurl():
 @multiregion_client_config_test
 @django_db_all
 def test_client_config_links_with_priority_org():
-    # request, user = make_user_request_from_non_existant_org()
     request, user = make_user_request_from_org()
     request.user = user
 
