@@ -237,11 +237,12 @@ class ClientConfigViewTest(TestCase):
                 assert response.redirect_chain == [
                     (f"http://{other_org.slug}.testserver/issues/", 302)
                 ]
+                assert self.client.session["activeorg"] == other_org.slug
             else:
                 assert response.redirect_chain == [
                     (f"http://{other_org.slug}.testserver/auth/login/{other_org.slug}/", 302)
                 ]
-            assert self.client.session["activeorg"] == other_org.slug
+                assert "activeorg" not in self.client.session
 
         # lastOrganization is set
         with mock.patch("sentry.auth.superuser.ORG_ID", self.organization.id):
@@ -250,8 +251,9 @@ class ClientConfigViewTest(TestCase):
         assert resp["Content-Type"] == "application/json"
 
         data = json.loads(resp.content)
-        assert data["lastOrganization"] == other_org.slug
+
         if is_superuser:
+            assert data["lastOrganization"] == other_org.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{other_org.slug}.testserver",
                 "regionUrl": generate_region_url(),
@@ -259,9 +261,10 @@ class ClientConfigViewTest(TestCase):
                 "superuserUrl": f"http://{self.organization.slug}.testserver",
             }
         else:
+            assert data["lastOrganization"] is None
             assert data["links"] == {
-                "organizationUrl": f"http://{other_org.slug}.testserver",
-                "regionUrl": generate_region_url(),
+                "organizationUrl": None,
+                "regionUrl": None,
                 "sentryUrl": "http://testserver",
             }
 

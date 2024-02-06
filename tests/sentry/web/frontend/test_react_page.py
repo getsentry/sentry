@@ -301,11 +301,12 @@ class ReactPageViewTest(TestCase):
                 assert response.redirect_chain == [
                     (f"http://{other_org.slug}.testserver/issues/", 302)
                 ]
+                assert self.client.session["activeorg"] == other_org.slug
             else:
                 assert response.redirect_chain == [
                     (f"http://{other_org.slug}.testserver/auth/login/{other_org.slug}/", 302)
                 ]
-            assert self.client.session["activeorg"] == other_org.slug
+                assert "activeorg" not in self.client.session
 
             # Accessing org on non-customer domain with superuser and/or staff.
             response = self.client.get(

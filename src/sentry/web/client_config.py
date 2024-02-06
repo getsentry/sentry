@@ -16,7 +16,7 @@ from packaging.version import parse as parse_version
 import sentry
 from sentry import features, options
 from sentry.api.utils import generate_organization_url, generate_region_url
-from sentry.auth import staff, superuser
+from sentry.auth import superuser
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
@@ -149,10 +149,7 @@ def _resolve_last_org(
     has_org_access = bool(org_context and org_context.member)
 
     if not has_org_access and user_is_authenticated:
-        has_staff = features.has("auth:enterprise-staff-cookie", actor=user)
-        is_active_staff = has_staff and staff.is_active_staff(request)
-        is_active_superuser = not has_staff and superuser.is_active_superuser(request)
-        has_org_access = is_active_staff or is_active_superuser
+        has_org_access = superuser.is_active_superuser(request)
 
     if org_context and has_org_access:
         return org_context.organization
