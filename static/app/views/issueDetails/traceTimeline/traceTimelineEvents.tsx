@@ -254,14 +254,18 @@ const CurrentNodeRing = styled('div')`
   position: absolute;
   top: -4px;
   left: -12px;
-  animation: pulse 1s ease-out infinite;
+  animation: pulse 4s ease-out infinite;
 
   @keyframes pulse {
     0% {
       transform: scale(0.1, 0.1);
       opacity: 0.0;
     }
-    50% {
+    80% {
+      transform: scale(0.1, 0.1);
+      opacity: 0.0;
+    }
+    90% {
       opacity: 1.0;
     }
     100% {
