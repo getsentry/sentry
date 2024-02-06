@@ -10,6 +10,7 @@ import useInviteModal from 'sentry/components/modals/inviteMembersModal/useInvit
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface InviteMembersModalProps extends ModalRenderProps {
@@ -47,17 +48,25 @@ function InviteMembersModal({
     source,
   });
 
+  let member = memberResult.data;
+
   if (memberResult.isLoading) {
     return <LoadingIndicator />;
   }
 
   if (memberResult.isError) {
-    return (
-      <LoadingError
-        message={t('Failed to load members')}
-        onRetry={memberResult.refetch}
-      />
-    );
+    if (!isActiveSuperuser()) {
+      return (
+        <LoadingError
+          message={t('Failed to load members')}
+          onRetry={memberResult.refetch}
+        />
+      );
+    }
+    // superuser may not be a member of the organization
+    // setting member to undefined allows superuser to
+    // invite all roles in InviteMembersModalView
+    member = undefined;
   }
 
   return (
@@ -84,7 +93,7 @@ function InviteMembersModal({
               headerInfo={headerInfo}
               invites={invites}
               inviteStatus={inviteStatus}
-              member={memberResult.data}
+              member={member}
               pendingInvites={pendingInvites}
               removeInviteRow={removeInviteRow}
               reset={reset}
