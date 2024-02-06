@@ -8,6 +8,16 @@ import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
 
 const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
 
+export function getMetricsMetaQueryKeys(
+  orgSlug: string,
+  projects: PageFilters['projects'],
+  useCases?: UseCase[]
+): ApiQueryKey[] {
+  return (
+    useCases?.map(useCase => getMetricsMetaQueryKey(orgSlug, projects, useCase)) ?? []
+  );
+}
+
 export function getMetricsMetaQueryKey(
   orgSlug: string,
   projects: PageFilters['projects'],

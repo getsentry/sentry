@@ -286,6 +286,7 @@ class WidgetCard extends Component<Props, State> {
             selection={selection}
             widget={widget}
             dashboardFilters={dashboardFilters}
+            renderErrorMessage={renderErrorMessage}
           />
         );
       }
