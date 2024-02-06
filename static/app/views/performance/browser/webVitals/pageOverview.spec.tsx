@@ -10,7 +10,6 @@ import PageOverview from 'sentry/views/performance/browser/webVitals/pageOvervie
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useOrganization');
-jest.unmock('lodash/debounce');
 
 describe('PageOverview', function () {
   const organization = OrganizationFixture({
@@ -64,7 +63,7 @@ describe('PageOverview', function () {
   });
 
   afterEach(function () {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   it('renders performance score migration alert', async () => {
