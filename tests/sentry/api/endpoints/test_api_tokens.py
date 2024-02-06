@@ -10,27 +10,23 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class ApiTokensListTest(APITestCase):
+    endpoint = "sentry-api-0-api-tokens"
+
     def setUp(self) -> None:
         super().setUp()
         for _ in range(2):
             ApiToken.objects.create(user=self.user)
 
-    def test_simple(self):
         self.login_as(self.user)
 
-        url = reverse("sentry-api-0-api-tokens")
-        response = self.client.get(url)
+    def test_simple(self):
+        response = self.get_success_response()
 
-        assert response.status_code == 200, response.content
         assert len(response.data) == 2
 
     def test_never_cache(self):
-        self.login_as(self.user)
+        response = self.get_success_response()
 
-        url = reverse("sentry-api-0-api-tokens")
-        response = self.client.get(url)
-
-        assert response.status_code == 200, response.content
         assert (
             response.get("cache-control")
             == "max-age=0, no-cache, no-store, must-revalidate, private"
@@ -39,9 +35,11 @@ class ApiTokensListTest(APITestCase):
     def test_deny_token_access(self):
         token = ApiToken.objects.create(user=self.user, scope_list=[])
 
-        url = reverse("sentry-api-0-api-tokens")
-        response = self.client.get(url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}")
-        assert response.status_code == 403, response.content
+        self.get_error_response(
+            format="json",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
 
 
 @control_silo_test
@@ -189,6 +187,21 @@ class ApiTokensSuperUserTest(APITestCase):
         assert response.data[0]["id"] != str(self.user_token.id)
         assert response.data[0]["id"] == str(self.superuser_token.id)
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_get_as_su_read_write_implicit_userid(self):
+        response = self.get_success_response()
+        assert len(response.data) == 1
+        assert response.data[0]["id"] != str(self.user_token.id)
+        assert response.data[0]["id"] == str(self.superuser_token.id)
+
+        self.add_user_permission(self.superuser, "superuser.write")
+
+        response = self.get_success_response()
+        assert len(response.data) == 1
+        assert response.data[0]["id"] != str(self.user_token.id)
+        assert response.data[0]["id"] == str(self.superuser_token.id)
+
     def test_get_as_user(self):
         self.login_as(self.superuser)
 
@@ -243,6 +256,42 @@ class ApiTokensSuperUserTest(APITestCase):
         )
         assert ApiToken.objects.filter(id=self.user_token.id).exists()
         assert not ApiToken.objects.filter(id=self.superuser_token.id).exists()
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_delete_as_su_read_implicit_userid(self):
+        # The superusers' id will be used since no override is sent, and because it does not exist, it is a bad request
+        self.get_error_response(
+            method="delete",
+            tokenId=self.user_token.id,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+        # superuser read can delete their own
+        self.get_success_response(
+            method="delete",
+            tokenId=self.superuser_token.id,
+            status=status.HTTP_204_NO_CONTENT,
+        )
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_delete_as_su_write_implicit_userid(self):
+        self.add_user_permission(self.superuser, "superuser.write")
+
+        # The superusers' id will be used since no override is sent, and because it does not exist, it is a bad request
+        self.get_error_response(
+            method="delete",
+            tokenId=self.user_token.id,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+        # superuser write can delete their own
+        self.get_success_response(
+            method="delete",
+            tokenId=self.superuser_token.id,
+            status=status.HTTP_204_NO_CONTENT,
+        )
 
     def test_delete_as_user(self):
         self.login_as(self.superuser)
