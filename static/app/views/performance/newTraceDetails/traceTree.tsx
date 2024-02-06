@@ -32,15 +32,23 @@ import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types'
  * - the notion of expanded and zoomed is confusing, they stand for the same idea from a UI pov
  */
 
-// Connectors todo
-// - last span child shouldnt dispay a connector below itself
-// - first child does not have a full vertical connector
+declare namespace TraceTree {
+  type Transaction = TraceFullDetailed;
+  type Span = RawSpanType;
+  interface AutoGroup extends RawSpanType {
+    autogroup: {
+      description: string;
+      op: string;
+    };
+  }
 
-export type Transaction = TraceFullDetailed;
-export type TraceTreeNodeMetadata = {
-  event_id: string | undefined;
-  project_slug: string | undefined;
-};
+  type NodeValue = Transaction | Span | AutoGroup;
+
+  type Metadata = {
+    event_id: string | undefined;
+    project_slug: string | undefined;
+  };
+}
 
 function fetchTransactionEvent(
   api: Client,
@@ -54,29 +62,27 @@ function fetchTransactionEvent(
 }
 
 export function isTransactionNode(
-  node: TraceTreeNode<TraceFullDetailed | RawSpanType>
-): node is TraceTreeNode<TraceFullDetailed> {
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.Transaction> {
   return !!(node.value && 'transaction' in node.value);
 }
 
 export class TraceTree {
   root: TraceTreeNode<null> = TraceTreeNode.Root();
-  private _spanPromises: Map<
-    TraceTreeNode<TraceFullDetailed | RawSpanType>,
-    Promise<Event>
-  > = new Map();
-  private _list: TraceTreeNode<TraceFullDetailed | RawSpanType>[] = [];
+  private _spanPromises: Map<TraceTreeNode<TraceTree.NodeValue>, Promise<Event>> =
+    new Map();
+  private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
   static Empty() {
     return new TraceTree().build();
   }
 
-  static FromTrace(transactions: Transaction[]): TraceTree {
+  static FromTrace(transactions: TraceTree.Transaction[]): TraceTree {
     const tree = new TraceTree();
 
     function visit(
-      parent: TraceTreeNode<TraceFullDetailed | RawSpanType | null>,
-      value: TraceFullDetailed,
+      parent: TraceTreeNode<TraceTree.NodeValue | null>,
+      value: TraceTree.Transaction,
       depth: number
     ) {
       const node = new TraceTreeNode(parent, value, depth, {
@@ -85,7 +91,7 @@ export class TraceTree {
       });
 
       if (parent) {
-        parent.children.push(node as TraceTreeNode<TraceFullDetailed | RawSpanType>);
+        parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
       }
 
       for (const child of value.children) {
@@ -103,19 +109,19 @@ export class TraceTree {
   }
 
   static FromSpans(
-    parent: TraceTreeNode<RawSpanType | TraceFullDetailed>,
+    parent: TraceTreeNode<TraceTree.NodeValue>,
     spans: RawSpanType[]
-  ): TraceTreeNode<RawSpanType | TraceFullDetailed> {
+  ): TraceTreeNode<TraceTree.NodeValue> {
     const parentIsSpan = !isTransactionNode(parent);
     const root = new TraceTreeNode(parent, parent.value, 0, parent.metadata);
     root.zoomedIn = true;
-    const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<RawSpanType>> = {};
+    const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<TraceTree.Span>> = {};
 
     if (parentIsSpan) {
-      lookuptable[root.value.span_id] = root as TraceTreeNode<RawSpanType>;
+      lookuptable[root.value.span_id] = root as TraceTreeNode<TraceTree.Span>;
     }
 
-    const childrenLinks = new Map<string, TraceTreeNodeMetadata>();
+    const childrenLinks = new Map<string, TraceTree.Metadata>();
     for (const child of parent.children) {
       if (typeof child.value.parent_span_id !== 'string') {
         continue;
@@ -150,21 +156,95 @@ export class TraceTree {
 
       // Orphaned span
       root.spanChildren.push(node);
-      node.parent = root as TraceTreeNode<RawSpanType>;
+      node.parent = root as TraceTreeNode<TraceTree.Span>;
     }
 
+    TraceTree.AutogroupSiblingSpanNodes(root);
     return root;
   }
 
-  get list(): ReadonlyArray<TraceTreeNode<TraceFullDetailed | RawSpanType>> {
+  get list(): ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>> {
     return this._list;
   }
 
+  static AutogroupChildrenSpanNodes(_root: TraceTreeNode<TraceTree.NodeValue>): void {}
+
+  static AutogroupSiblingSpanNodes(root: TraceTreeNode<TraceTree.NodeValue>): void {
+    // Span sibling grouping is when min 5 consecutive spans without children have matching op and description
+    // Span chain grouping is when multiple spans with the same op are nested as direct and only children
+    const queue = [root];
+
+    while (queue.length > 0) {
+      const node = queue.pop()!;
+
+      if (node.children.length < 5) {
+        for (const child of node.children) {
+          queue.push(child);
+        }
+        continue;
+      }
+
+      let startIndex = 0;
+      let matchCount = 0;
+
+      for (let i = 0; i < node.children.length - 1; i++) {
+        const current = node.children[i] as TraceTreeNode<TraceTree.Span>;
+        const next = node.children[i + 1] as TraceTreeNode<TraceTree.Span>;
+
+        if (
+          next.children.length === 0 &&
+          current.children.length === 0 &&
+          // @TODO this should check for typeof op and description
+          // to be of type string for runtime safety. Afaik it is impossible
+          // for these to be anything else but a string, but we should still check
+          next.value.op === current.value.op &&
+          next.value.description === current.value.description
+        ) {
+          matchCount++;
+          if (i < node.children.length - 2) {
+            continue;
+          }
+        }
+
+        if (matchCount >= 4) {
+          const autoGroupedNode = new TraceTreeNode(
+            node,
+            {
+              ...current.value,
+              autogroup: {
+                op: current.value.op ?? '',
+                description: current.value.description ?? '',
+              },
+            },
+            current.depth,
+            {
+              event_id: undefined,
+              project_slug: undefined,
+            }
+          );
+
+          // Copy the children under the new node.
+          // @ts-expect-error ignore readonly assignment
+          autoGroupedNode._children = node.children.slice(startIndex, matchCount);
+
+          // Remove the old children from the parent and insert the new node.
+          node.children.splice(startIndex, matchCount + 1, autoGroupedNode);
+
+          // @ts-expect-error ignore readonly assignment
+          for (let j = 0; j < autoGroupedNode._children.length; j++) {
+            // @ts-expect-error ignore readonly assignment
+            autoGroupedNode._children[j].parent = autoGroupedNode;
+          }
+        }
+
+        startIndex = i;
+        matchCount = 0;
+      }
+    }
+  }
+
   // Returns boolean to indicate if node was updated
-  expand(
-    node: TraceTreeNode<TraceFullDetailed | RawSpanType>,
-    expanded: boolean
-  ): boolean {
+  expand(node: TraceTreeNode<TraceTree.NodeValue>, expanded: boolean): boolean {
     if (expanded === node.expanded) {
       return false;
     }
@@ -186,7 +266,7 @@ export class TraceTree {
   }
 
   zoomIn(
-    node: TraceTreeNode<TraceFullDetailed | RawSpanType>,
+    node: TraceTreeNode<TraceTree.NodeValue>,
     zoomedIn: boolean,
     options: {
       api: Client;
@@ -250,13 +330,13 @@ export class TraceTree {
   }
 
   static updateTreeDepths(
-    node: TraceTreeNode<RawSpanType | TraceFullDetailed>
-  ): TraceTreeNode<RawSpanType | TraceFullDetailed> {
+    node: TraceTreeNode<TraceTree.NodeValue>
+  ): TraceTreeNode<TraceTree.NodeValue> {
     if (!node.children.length) {
       return node;
     }
 
-    function visit(n: TraceTreeNode<RawSpanType | TraceFullDetailed>, depth: number) {
+    function visit(n: TraceTreeNode<TraceTree.NodeValue>, depth: number) {
       n.depth = depth;
 
       for (const child of n.children) {
@@ -271,10 +351,10 @@ export class TraceTree {
     return node;
   }
 
-  toList(): TraceTreeNode<TraceFullDetailed | RawSpanType>[] {
-    const list: TraceTreeNode<TraceFullDetailed | RawSpanType>[] = [];
+  toList(): TraceTreeNode<TraceTree.NodeValue>[] {
+    const list: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
-    function visit(node: TraceTreeNode<TraceFullDetailed | RawSpanType>) {
+    function visit(node: TraceTreeNode<TraceTree.NodeValue>) {
       list.push(node);
 
       if (!node.expanded) {
@@ -299,27 +379,27 @@ export class TraceTree {
   }
 }
 
-export class TraceTreeNode<TreeNodeValue> {
-  parent: TraceTreeNode<TreeNodeValue> | null = null;
-  value: TreeNodeValue;
+export class TraceTreeNode<T> {
+  parent: TraceTreeNode<T> | null = null;
+  value: T;
   depth: number = 0;
   expanded: boolean = false;
   zoomedIn: boolean = false;
   canFetchData: boolean = true;
-  metadata: TraceTreeNodeMetadata = {
+  metadata: TraceTree.Metadata = {
     project_slug: undefined,
     event_id: undefined,
   };
 
-  private _children: TraceTreeNode<TraceFullDetailed>[] = [];
-  private _spanChildren: TraceTreeNode<RawSpanType>[] = [];
+  private _children: TraceTreeNode<TraceTree.Transaction>[] = [];
+  private _spanChildren: TraceTreeNode<TraceTree.Span>[] = [];
   private _connectors: number[] | undefined = undefined;
 
   constructor(
-    parent: TraceTreeNode<TreeNodeValue> | null,
-    node: TreeNodeValue,
+    parent: TraceTreeNode<T> | null,
+    node: T,
     depth: number,
-    metadata: TraceTreeNodeMetadata
+    metadata: TraceTree.Metadata
   ) {
     this.parent = parent ?? null;
     this.value = node;
@@ -333,7 +413,7 @@ export class TraceTreeNode<TreeNodeValue> {
     }
 
     this._connectors = [];
-    let node: TraceTreeNode<TreeNodeValue> | null = this.parent;
+    let node: TraceTreeNode<T> | null = this.parent;
 
     while (node) {
       if (node.value === null) {
@@ -352,15 +432,22 @@ export class TraceTreeNode<TreeNodeValue> {
     return this._connectors;
   }
 
-  get children(): TraceTreeNode<TraceFullDetailed | RawSpanType>[] {
+  get children(): TraceTreeNode<TraceTree.NodeValue>[] {
+    // if node is not a autogrouped node, return children
+    // @ts-expect-error ignore primitive type
+    if (this.value && 'autogrouped' in this.value) {
+      return this._children;
+    }
     // if node is not a transaction node, return span children
+    // @ts-expect-error ignore primitive type
     if (this.value && !('event_id' in this.value)) {
       return this.spanChildren;
     }
+    // if a node is zoomed in, return span children, else return transaction children
     return this.zoomedIn ? this._spanChildren : this._children;
   }
 
-  get spanChildren(): TraceTreeNode<RawSpanType>[] {
+  get spanChildren(): TraceTreeNode<TraceTree.Span>[] {
     return this._spanChildren;
   }
 
@@ -372,7 +459,7 @@ export class TraceTreeNode<TreeNodeValue> {
     return this.parent?.children[this.parent.children.length - 1] === this;
   }
 
-  setSpanChildren(children: TraceTreeNode<RawSpanType>[]) {
+  setSpanChildren(children: TraceTreeNode<TraceTree.Span>[]) {
     this._spanChildren = children;
   }
 
@@ -398,12 +485,12 @@ export class TraceTreeNode<TreeNodeValue> {
     return count;
   }
 
-  getVisibleChildren(): TraceTreeNode<RawSpanType | TraceFullDetailed>[] {
+  getVisibleChildren(): TraceTreeNode<TraceTree.NodeValue>[] {
     if (!this.children.length) {
       return [];
     }
 
-    const visibleChildren: TraceTreeNode<RawSpanType | TraceFullDetailed>[] = [];
+    const visibleChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
     // @TODO: should be a proper FIFO queue as shift is O(n
 
     function visit(node) {
