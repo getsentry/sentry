@@ -104,7 +104,6 @@ describe('TraceTree', () => {
     //  2
     //   3
     //  4
-
     tree.zoomIn(node, true, {api, organization});
     await waitFor(() => {
       expect(node.zoomedIn).toBe(true);
@@ -115,8 +114,6 @@ describe('TraceTree', () => {
     expect(tree.list[0].value.start_timestamp).toBe(0);
     expect(tree.list[1].value.start_timestamp).toBe(1);
     expect(tree.list[2].value.start_timestamp).toBe(2);
-    // expect(tree.list[3].value.start_timestamp).toBe(3);
-    // expect(tree.list[4].value.start_timestamp).toBe(4);
   });
 
   it('preserves input order', () => {
@@ -507,6 +504,81 @@ describe('TraceTree', () => {
         expect(tree.list.length).toBe(2);
       });
       expect(tree.list[0].expanded).toBe(true);
+    });
+  });
+
+  describe('autogrouping', () => {
+    it('auto groups sibling spans and preserves tail spans', () => {
+      const root = new TraceTreeNode(null, makeRawSpan({description: 'span1'}), 0, {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'db'}), 1, {
+            project_slug: '',
+            event_id: '',
+          })
+        );
+      }
+
+      root.children.push(
+        new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'http'}), 1, {
+          project_slug: '',
+          event_id: '',
+        })
+      );
+
+      expect(root.children.length).toBe(6);
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+
+      expect(root.children.length).toBe(2);
+    });
+
+    it('autogroups when number of children is exactly 5', () => {
+      const root = new TraceTreeNode(null, makeRawSpan({description: 'span1'}), 0, {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 5; i++) {
+        root.children.push(
+          new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'db'}), 1, {
+            project_slug: '',
+            event_id: '',
+          })
+        );
+      }
+
+      expect(root.children.length).toBe(5);
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
+    });
+
+    it('autogroups when number of children is > 5', () => {
+      const root = new TraceTreeNode(null, makeRawSpan({description: 'span1'}), 0, {
+        project_slug: '',
+        event_id: '',
+      });
+
+      for (let i = 0; i < 7; i++) {
+        root.children.push(
+          new TraceTreeNode(root, makeRawSpan({description: 'span', op: 'db'}), 1, {
+            project_slug: '',
+            event_id: '',
+          })
+        );
+      }
+
+      expect(root.children.length).toBe(7);
+
+      TraceTree.AutogroupSiblingSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
     });
   });
 });
