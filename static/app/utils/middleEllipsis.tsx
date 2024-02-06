@@ -54,16 +54,14 @@ export function middleEllipsis(
   if (getLength(words) <= maxLength) {
     const divider = Math.floor(words.length / 2);
     const firstHalf = words.slice(0, divider);
-    const firstHalfWithDelimiters = firstHalf
-      .map((word, i) => (i === divider - 1 ? [word] : [word, delimiters[i]]))
-      .flat();
+    const firstHalfWithDelimiters = firstHalf.flatMap((word, i) =>
+      i === divider - 1 ? [word] : [word, delimiters[i]]
+    );
 
     const secondHalf = words.slice(divider);
-    const secondHalfWithDelimiters = secondHalf
-      .map((word, i) =>
-        i === 0 ? [word] : [delimiters[delimiters.length - secondHalf.length + i], word]
-      )
-      .flat();
+    const secondHalfWithDelimiters = secondHalf.flatMap((word, i) =>
+      i === 0 ? [word] : [delimiters[delimiters.length - secondHalf.length + i], word]
+    );
 
     return `${firstHalfWithDelimiters.join('')}\u2026${secondHalfWithDelimiters.join(
       ''

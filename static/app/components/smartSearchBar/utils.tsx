@@ -333,7 +333,7 @@ export function getValidOps(
 
   // Find all valid operations
   const validOps = new Set<TermOperator>(
-    allValidTypes.map(type => filterTypeConfig[type].validOps).flat()
+    allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
 
   return [...validOps];

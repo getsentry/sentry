@@ -152,8 +152,7 @@ export function useMetricSamples(
   }
 
   const data = queryInfo.data.metrics
-    .map(m => m.metricSpans)
-    .flat()
+    .flatMap(m => m.metricSpans)
     .filter(correlation => !!correlation)
     .slice(0, 10) as MetricCorrelation[];
 

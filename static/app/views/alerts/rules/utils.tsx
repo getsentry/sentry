@@ -85,7 +85,7 @@ export function getRuleActionCategory(rule: IssueAlertRule) {
 }
 
 export function getAlertRuleActionCategory(rule: MetricRule) {
-  const actions = rule.triggers.map(trigger => trigger.actions).flat();
+  const actions = rule.triggers.flatMap(trigger => trigger.actions);
   const numDefaultActions = actions.filter(action => action.type === 'email').length;
 
   switch (numDefaultActions) {

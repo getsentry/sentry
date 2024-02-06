@@ -17,7 +17,7 @@ import {
   IssueCategory,
   IssueType,
 } from 'sentry/types';
-import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
+import type {Event, ExceptionValue, Frame, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
@@ -309,10 +309,8 @@ export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
 function getExceptionFrames(event: Event, inAppOnly: boolean) {
   const exceptions = getExceptionEntries(event);
   const frames = exceptions
-    .map(exception => exception.data.values || [])
-    .flat()
-    .map(exceptionValue => exceptionValue?.stacktrace?.frames || [])
-    .flat();
+    .flatMap(exception => exception.data.values || [])
+    .flatMap(exceptionValue => exceptionValue?.stacktrace?.frames || []);
   return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
 }
 
@@ -327,18 +325,14 @@ function getExceptionEntries(event: Event) {
 /**
  * Returns all stack frames of type 'exception' or 'threads' of this event
  */
-function getAllFrames(event: Event, inAppOnly: boolean) {
-  const exceptions = getEntriesWithFrames(event);
-  const frames = exceptions
-    .map(
-      (withStacktrace: EntryException | EntryThreads) => withStacktrace.data.values || []
-    )
-    .flat()
-    .map(
+function getAllFrames(event: Event, inAppOnly: boolean): Frame[] {
+  const exceptions: EntryException[] | EntryThreads[] = getEntriesWithFrames(event);
+  const frames: Frame[] = exceptions
+    .flatMap(withStacktrace => withStacktrace.data.values ?? [])
+    .flatMap(
       (withStacktrace: ExceptionValue | Thread) =>
-        withStacktrace?.stacktrace?.frames || []
-    )
-    .flat();
+        withStacktrace?.stacktrace?.frames ?? []
+    );
   return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
 }
 
