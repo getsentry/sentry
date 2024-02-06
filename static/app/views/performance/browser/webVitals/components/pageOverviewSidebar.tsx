@@ -19,6 +19,7 @@ import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import type {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 const CHART_HEIGHTS = 100;
@@ -52,6 +53,8 @@ export function PageOverviewSidebar({
     end: doubledPeriod.end ?? null,
     utc,
   };
+
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
@@ -118,12 +121,12 @@ export function PageOverviewSidebar({
   // Gets weights to dynamically size the performance score ring segments
   const weights = projectScore
     ? {
-        cls: projectScore.clsWeight,
-        fcp: projectScore.fcpWeight,
-        fid: projectScore.fidWeight,
         lcp: projectScore.lcpWeight,
+        fcp: projectScore.fcpWeight,
+        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
+        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
+        cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
-        inp: projectScore.inpWeight,
       }
     : undefined;
 
@@ -151,7 +154,7 @@ export function PageOverviewSidebar({
             projectScore={projectScore}
             text={projectScore.totalScore}
             width={220}
-            height={180}
+            height={200}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
             weights={weights}
