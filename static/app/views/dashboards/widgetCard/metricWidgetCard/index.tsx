@@ -24,6 +24,7 @@ import {
   toMetricDisplayType,
 } from '../../../../utils/metrics/dashboard';
 import {parseField} from '../../../../utils/metrics/mri';
+import {DASHBOARD_CHART_GROUP} from '../../dashboard';
 import type {DashboardFilters, Widget} from '../../types';
 
 type Props = {
@@ -206,6 +207,7 @@ export function MetricWidgetChartContainer({
       query={extendQuery(metricWidgetQueryParams.query, dashboardFilters)}
       groupBy={metricWidgetQueryParams.groupBy}
       displayType={toMetricDisplayType(metricWidgetQueryParams.displayType)}
+      chartGroup={DASHBOARD_CHART_GROUP}
     />
   );
 }
