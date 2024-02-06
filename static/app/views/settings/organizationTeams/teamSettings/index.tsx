@@ -71,7 +71,6 @@ function TeamSettings({team, params}: TeamSettingsProps) {
         initialData={{
           name: team.name,
           slug: team.slug,
-          orgRole: team.orgRole,
         }}
       >
         <JsonForm
