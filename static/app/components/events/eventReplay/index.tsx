@@ -30,9 +30,8 @@ function EventReplayContent({
   const organization = useOrganization();
   const {hasOrgSentReplays, fetching} = useHasOrganizationSentAnyReplayEvents();
 
-  const onboardingPanel = useCallback(() => import('./replayInlineOnboardingPanel'), []);
-  const onboardingPanelBackend = useCallback(
-    () => import('./replayInlineOnboardingPanelBackend'),
+  const replayOnboardingPanel = useCallback(
+    () => import('./replayInlineOnboardingPanel'),
     []
   );
   const replayPreview = useCallback(() => import('./replayPreview'), []);
@@ -46,20 +45,18 @@ function EventReplayContent({
     return null;
   }
 
-  if (!hasOrgSentReplays) {
-    return (
-      <ErrorBoundary mini>
-        <LazyLoad component={onboardingPanel} />
-      </ErrorBoundary>
-    );
-  }
+  const platform = group?.project.platform ?? group?.platform ?? 'other';
+  const projectId = group?.project.id ?? event.projectID ?? '';
 
-  const platform = group?.project.platform ?? 'other';
-  if (!replayId && replayBackendPlatforms.includes(platform)) {
-    // if backend project, show new onboarding panel
+  // frontend or backend platforms
+  if (!hasOrgSentReplays || (!replayId && replayBackendPlatforms.includes(platform))) {
     return (
       <ErrorBoundary mini>
-        <LazyLoad component={onboardingPanelBackend} platform={platform} />
+        <LazyLoad
+          component={replayOnboardingPanel}
+          platform={platform}
+          projectId={projectId}
+        />
       </ErrorBoundary>
     );
   }

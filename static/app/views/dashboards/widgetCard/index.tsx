@@ -38,6 +38,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
 import {MetricWidgetCard} from 'sentry/views/dashboards/widgetCard/metricWidgetCard';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 
@@ -285,6 +286,7 @@ class WidgetCard extends Component<Props, State> {
             selection={selection}
             widget={widget}
             dashboardFilters={dashboardFilters}
+            renderErrorMessage={renderErrorMessage}
           />
         );
       }
@@ -358,6 +360,7 @@ class WidgetCard extends Component<Props, State> {
                     windowWidth={windowWidth}
                     onDataFetched={this.setData}
                     dashboardFilters={dashboardFilters}
+                    chartGroup={DASHBOARD_CHART_GROUP}
                   />
                 ) : (
                   <LazyLoad once resize height={200}>
@@ -373,6 +376,7 @@ class WidgetCard extends Component<Props, State> {
                       windowWidth={windowWidth}
                       onDataFetched={this.setData}
                       dashboardFilters={dashboardFilters}
+                      chartGroup={DASHBOARD_CHART_GROUP}
                     />
                   </LazyLoad>
                 )}
