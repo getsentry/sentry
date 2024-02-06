@@ -12,6 +12,7 @@ from django import forms
 from django.core.validators import URLValidator
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
@@ -189,7 +190,7 @@ class OAuthLoginView(PipelineView):
     and redirecting the user to approve it.
     """
 
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
@@ -229,7 +230,7 @@ class OAuthCallbackView(PipelineView):
     into an access token.
     """
 
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
         config = pipeline.fetch_state("installation_data")
         client = JiraServerSetupClient(

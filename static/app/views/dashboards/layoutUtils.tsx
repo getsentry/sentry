@@ -12,7 +12,7 @@ import type {Widget, WidgetLayout} from './types';
 import {DisplayType} from './types';
 
 export const DEFAULT_WIDGET_WIDTH = 2;
-export const METRIC_WIDGET_MIN_SIZE = {minH: 2, h: 2, w: 3};
+export const METRIC_WIDGET_MIN_SIZE = {minH: 2, h: 2, w: 2};
 
 const WIDGET_PREFIX = 'grid-item';
 

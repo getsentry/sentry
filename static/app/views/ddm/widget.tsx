@@ -38,7 +38,7 @@ import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
-import {MIN_WIDGET_WIDTH} from './constants';
+import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
   datetime: PageFilters['datetime'];
@@ -62,6 +62,12 @@ export type Sample = {
   spanId: string;
   transactionId: string;
   transactionSpanId: string;
+};
+
+const constructQueryString = (queryObject: Record<string, string>) => {
+  return Object.entries(queryObject)
+    .map(([key, value]) => `${key}:"${value}"`)
+    .join(' ');
 };
 
 export const MetricWidget = memo(
@@ -126,7 +132,9 @@ export const MetricWidget = memo(
 
     const samplesQuery = useMetricSamples(metricsQuery.mri, {
       ...focusArea?.selection?.range,
-      query: metricsQuery.query,
+      query: widget?.focusedSeries?.groupBy
+        ? `${widget.query} ${constructQueryString(widget.focusedSeries.groupBy)}`.trim()
+        : widget?.query,
     });
 
     const samples = useMemo(() => {
@@ -182,6 +190,7 @@ export const MetricWidget = memo(
                 focusArea={focusArea}
                 samples={samples}
                 chartHeight={300}
+                chartGroup={DDM_CHART_GROUP}
                 {...widget}
               />
             ) : (
@@ -202,6 +211,7 @@ export const MetricWidget = memo(
 
 interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   widgetIndex: number;
+  chartGroup?: string;
   chartHeight?: number;
   focusArea?: FocusAreaProps;
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
@@ -215,7 +225,7 @@ export interface SamplesProps {
   onClick?: (sample: Sample) => void;
 }
 
-export const MetricWidgetBody = memo(
+const MetricWidgetBody = memo(
   ({
     onChange,
     displayType,
@@ -225,6 +235,7 @@ export const MetricWidgetBody = memo(
     getChartPalette = createChartPalette,
     focusArea,
     chartHeight,
+    chartGroup,
     samples,
     ...metricsQuery
   }: MetricWidgetBodyProps & PageFilters) => {
@@ -333,6 +344,7 @@ export const MetricWidgetBody = memo(
           height={chartHeight}
           scatter={samples}
           focusArea={focusArea}
+          group={chartGroup}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable

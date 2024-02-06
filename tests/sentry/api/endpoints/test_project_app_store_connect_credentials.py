@@ -1,15 +1,14 @@
-from unittest import mock
+from unittest.mock import patch
 
-import django.urls
-import pytest
 from django.test import override_settings
+from django.urls import reverse
 
-import sentry.tasks.app_store_connect
 from sentry.api.endpoints.project_app_store_connect_credentials import (
     AppStoreUpdateCredentialsSerializer,
 )
 from sentry.lang.native.appconnect import AppStoreConnectConfig
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
@@ -82,15 +81,17 @@ class TestAppStoreUpdateCredentialsSerializer:
         assert data["appconnectPrivateKey"] == "honk"
 
 
-class TestAppStoreConnectRefreshEndpoint:
-    @pytest.fixture
-    def config_id(self, default_project):
-        """A valid App Store Connect symbol server config ID."""
-        cfg_id = "abc123"
+@region_silo_test
+class TestAppStoreConnectRefreshEndpoint(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+        # A valid App Store Connect symbol server config ID.
+        self.config_id = "abc123"
         cfg = AppStoreConnectConfig.from_json(
             {
                 "type": "appStoreConnect",
-                "id": cfg_id,
+                "id": self.config_id,
                 "name": "Apple App Store Connect",
                 "appconnectIssuer": "abc123" * 6,
                 "appconnectKey": "abc123",
@@ -100,56 +101,33 @@ class TestAppStoreConnectRefreshEndpoint:
                 "bundleId": "com.example.app",
             }
         )
-        cfg.update_project_symbol_source(default_project, allow_multiple=True)
-        return cfg_id
-
-    @pytest.fixture
-    def mocked_dsym_download_task(self, monkeypatch):
-        dsym_download_task = mock.Mock()
-        monkeypatch.setattr(
-            sentry.tasks.app_store_connect, "inner_dsym_download", dsym_download_task
-        )
-        return dsym_download_task
-
-    @pytest.fixture
-    def refresh_url(self, default_project, default_organization, config_id):
-        return django.urls.reverse(
+        cfg.update_project_symbol_source(self.project, allow_multiple=True)
+        self.refresh_url = reverse(
             "sentry-api-0-project-appstoreconnect-refresh",
             kwargs={
-                "project_slug": default_project.slug,
-                "organization_slug": default_organization.slug,
-                "credentials_id": config_id,
+                "project_slug": self.project.slug,
+                "organization_slug": self.organization.slug,
+                "credentials_id": self.config_id,
             },
         )
 
-    @django_db_all
-    def test_ok(
-        self,
-        client,
-        default_user,
-        default_project,
-        config_id,
-        mocked_dsym_download_task,
-        refresh_url,
-    ):
-        client.login(username=default_user.username, password="admin")
-
-        response = client.post(refresh_url, format="json")
+    @patch("sentry.tasks.app_store_connect.inner_dsym_download")
+    def test_ok(self, mocked_dsym_download_task):
+        response = self.client.post(self.refresh_url, format="json")
 
         assert response.status_code == 200, response.content
         assert mocked_dsym_download_task.call_assert_called_once_with(
-            project_id=default_project.id, config_id=config_id
+            project_id=self.project.id, config_id=self.config_id
         )
 
-    @django_db_all
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_rate_limited(self, client, default_user, mocked_dsym_download_task, refresh_url):
-        client.login(username=default_user.username, password="admin")
+    @patch("sentry.tasks.app_store_connect.inner_dsym_download")
+    def test_rate_limited(self, mocked_dsym_download_task):
         for i in range(5):
-            client.post(refresh_url, format="json")
+            self.client.post(self.refresh_url, format="json")
         mocked_dsym_download_task.reset_mock()
 
-        response = client.post(refresh_url, format="json")
+        response = self.client.post(self.refresh_url, format="json")
 
         assert response.status_code == 429, response.content
         assert not mocked_dsym_download_task.called
