@@ -75,7 +75,7 @@ const inputStyles = (props: Props) => css`
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${props.theme.focusBorder};
     box-shadow: ${props.theme.focusBorder} 0 0 0 1px;
