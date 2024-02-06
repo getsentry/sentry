@@ -167,20 +167,20 @@ function NodeGroup({
           const isCurrentNode = groupEvents.some(e => e.id === currentEventId);
           return (
             <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
-              {groupEvents.map(groupEvent => (
-                <Fragment key={groupEvent.id}>
-                  {isCurrentNode ? (
-                    <CurrentNodeContainer aria-label={t('Current Event')}>
-                      <CurrentNodeRing />
-                      <CurrentIconNode />
-                    </CurrentNodeContainer>
-                  ) : !('event.type' in groupEvent) ? (
-                    <PerformanceIconNode />
+              {isCurrentNode && (
+                <CurrentNodeContainer aria-label={t('Current Event')}>
+                  <CurrentNodeRing />
+                  <CurrentIconNode />
+                </CurrentNodeContainer>
+              )}
+              {!isCurrentNode &&
+                groupEvents.map(groupEvent =>
+                  'event.type' in groupEvent ? (
+                    <IconNode key={groupEvent.id} />
                   ) : (
-                    <IconNode />
-                  )}
-                </Fragment>
-              ))}
+                    <PerformanceIconNode key={groupEvent.id} />
+                  )
+                )}
             </EventColumn>
           );
         })}
