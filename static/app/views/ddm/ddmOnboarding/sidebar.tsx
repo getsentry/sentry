@@ -42,13 +42,12 @@ function MetricsOnboardingSidebar(props: CommonSidebarProps) {
   const projectSelectOptions = useMemo(() => {
     const supportedProjectItems: SelectValue<string>[] = supportedProjects
       .sort((aProject, bProject) => {
-        // TODO(aknaus): Enable once we have thw hasCustomMetrics flag
         // if we're comparing two projects w/ or w/o custom metrics alphabetical sort
-        // if (aProject.hasCustomMetrics === bProject.hasCustomMetrics) {
-        return aProject.slug.localeCompare(bProject.slug);
-        // }
+        if (aProject.hasCustomMetrics === bProject.hasCustomMetrics) {
+          return aProject.slug.localeCompare(bProject.slug);
+        }
         // otherwise sort by whether or not they have custom metrics
-        // return aProject.hasCustomMetrics ? 1 : -1;
+        return aProject.hasCustomMetrics ? 1 : -1;
       })
       .map(project => {
         return {
