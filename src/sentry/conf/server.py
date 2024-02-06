@@ -1612,6 +1612,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:issue-details-tag-improvements": False,
     # Enable issue platform
     "organizations:issue-platform": False,
+    # Enable issue priority in the UI
+    "organizations:issue-priority-ui": False,
     # Whether to allow issue only search on the issue list
     "organizations:issue-search-allow-postgres-only-search": False,
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
