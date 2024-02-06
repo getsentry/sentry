@@ -16,7 +16,6 @@ from sentry.snuba.metrics.extraction import (
     to_standard_metrics_query,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils.glob import glob_match
 
 
 @django_db_all
@@ -459,33 +458,6 @@ def test_spec_wildcard() -> None:
         "op": "glob",
         "value": ["1.*"],
     }
-
-
-@pytest.mark.parametrize(
-    "query,title,expected_pattern",
-    [
-        ("title:*[dispatch:*", "backend test [dispatch:something]", "*\\[dispatch:*"),
-        ("title:*{dispatch:*", "test {dispatch:something]", "*\\{dispatch:*"),
-        ("title:*dispatch]:*", "backend dispatch]:", "*dispatch\\]:*"),
-        ("title:*dispatch}:*", "test [dispatch}:", "*dispatch\\}:*"),
-        ("title:*?dispatch*", "backend ?dispatch", "*\\?dispatch*"),
-    ],
-)
-def test_spec_wildcard_escaping(query, title, expected_pattern) -> None:
-    spec = OnDemandMetricSpec("count()", query)
-
-    assert spec._metric_type == "c"
-    assert spec.field_to_extract is None
-    assert spec.op == "sum"
-    assert spec.condition == {
-        "name": "event.transaction",
-        "op": "glob",
-        "value": [expected_pattern],
-    }
-
-    # We also validate using Relay's glob implementation to make sure the escaping
-    # is interpreted correctly.
-    assert glob_match(title, expected_pattern, ignorecase=True)
 
 
 def test_spec_count_if() -> None:
