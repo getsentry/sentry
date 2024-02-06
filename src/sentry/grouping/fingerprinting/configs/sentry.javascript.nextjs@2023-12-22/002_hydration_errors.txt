@@ -1,5 +1,0 @@
-sdk:sentry.javascript.nextjs tags.transaction:"*" message:"Hydration failed because the initial UI does not match what was rendered on the server." -> hydrationerror, {{tags.transaction}}
-sdk:sentry.javascript.nextjs tags.transaction:"*" message:"The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering." -> hydrationerror, {{tags.transaction}}
-sdk:sentry.javascript.nextjs tags.transaction:"*" message:"There was an error while hydrating this Suspense boundary. Switched to client rendering." -> hydrationerror, {{tags.transaction}}
-sdk:sentry.javascript.nextjs tags.transaction:"*" message:"There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering." -> hydrationerror, {{tags.transaction}}
-sdk:sentry.javascript.nextjs tags.transaction:"*" message:"Text content does not match server-rendered HTML." -> hydrationerror, {{tags.transaction}}
