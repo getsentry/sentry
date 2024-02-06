@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';

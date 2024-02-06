@@ -73,11 +73,7 @@ function List({
         <LegendSmall>0 = Not Similar, 1 = Similar</LegendSmall>
       )}
       <Panel>
-        <Toolbar
-          onMerge={onMerge}
-          parentGroupId={Number(groupId)}
-          project={project}
-        />
+        <Toolbar onMerge={onMerge} parentGroupId={Number(groupId)} project={project} />
 
         <PanelBody>
           {itemsWithFiltered.map(item => (
