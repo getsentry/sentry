@@ -70,6 +70,7 @@ export function Trace(props: TraceProps) {
   return (
     <TraceStylingWrapper
       style={{
+        padding: 24,
         backgroundColor: '#FFF',
         height: '100%',
         width: '100%',
@@ -128,14 +129,37 @@ function RenderRow(props: {
         // @TODO check if we can just mutate style
         style={{...props.style, paddingLeft: props.node.depth * 23}}
       >
-        {props.node.children.length > 0 ? (
-          <ChildrenCountButton
-            node={props.node}
-            onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
-          >
-            {props.node.children.length}{' '}
-          </ChildrenCountButton>
-        ) : null}
+        <div
+          className={`TraceChildrenCountWrapper ${
+            props.node.isOrphaned ? 'Orphaned' : ''
+          }`}
+        >
+          {props.node.connectors.map(c => {
+            return (
+              <div
+                key={c}
+                style={{left: (Math.abs(c) - props.node.depth) * 23}}
+                className={`TraceVerticalConnector ${c - 1 < 0 ? 'Orphaned' : ''}`}
+              />
+            );
+          })}
+          {props.node.expanded || props.node.zoomedIn ? (
+            <div className="TraceExpandedVerticalConnector" />
+          ) : null}
+          {props.node.isLastChild ? (
+            <div className="TraceVerticalLastChildConnector" />
+          ) : (
+            <div className="TraceVerticalConnector" />
+          )}
+          {props.node.children.length > 0 ? (
+            <ChildrenCountButton
+              node={props.node}
+              onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+            >
+              {props.node.children.length}{' '}
+            </ChildrenCountButton>
+          ) : null}
+        </div>
         <ProjectBadge project={props.projects[transaction.project_slug]} />
         <span className="TraceOperation">{transaction['transaction.op']}</span>
         <strong> — </strong>
@@ -157,14 +181,35 @@ function RenderRow(props: {
       // @TODO check if we can just mutate style
       style={{...props.style, paddingLeft: props.node.depth * 23}}
     >
-      {props.node.children.length > 0 ? (
-        <ChildrenCountButton
-          node={props.node}
-          onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
-        >
-          {props.node.children.length}{' '}
-        </ChildrenCountButton>
-      ) : null}
+      <div
+        className={`TraceChildrenCountWrapper ${props.node.isOrphaned ? 'Orphaned' : ''}`}
+      >
+        {props.node.connectors.map(c => {
+          return (
+            <div
+              key={c}
+              style={{left: (Math.abs(c) - props.node.depth) * 23}}
+              className={`TraceVerticalConnector ${c < 0 ? 'Orphaned' : ''}`}
+            />
+          );
+        })}
+        {props.node.expanded || props.node.zoomedIn ? (
+          <div className="TraceExpandedVerticalConnector" />
+        ) : null}
+        {props.node.isLastChild ? (
+          <div className="TraceVerticalLastChildConnector" />
+        ) : (
+          <div className="TraceVerticalConnector" />
+        )}
+        {props.node.children.length > 0 ? (
+          <ChildrenCountButton
+            node={props.node}
+            onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+          >
+            {props.node.children.length}{' '}
+          </ChildrenCountButton>
+        ) : null}
+      </div>
       <span className="TraceOperation">{span.description}</span>
       {props.node.canFetchData ? (
         <button onClick={() => props.onFetchChildren(props.node, !props.node.zoomedIn)}>
@@ -185,16 +230,14 @@ function ChildrenCountButton(props: {
   onClick: () => void;
 }) {
   return (
-    <div className="TraceChildrenCountWrapper">
-      <button className="TraceChildrenCount" onClick={props.onClick}>
-        {props.children}
-        <IconChevron
-          size="xs"
-          direction={props.node.expanded ? 'up' : 'down'}
-          style={{marginLeft: 2}}
-        />
-      </button>
-    </div>
+    <button className="TraceChildrenCount" onClick={props.onClick}>
+      {props.children}
+      <IconChevron
+        size="xs"
+        direction={props.node.expanded ? 'up' : 'down'}
+        style={{marginLeft: 2}}
+      />
+    </button>
   );
 }
 
@@ -231,10 +274,84 @@ const TraceStylingWrapper = styled('div')`
   .TraceChildrenCountWrapper {
     display: flex;
     justify-content: flex-end;
-    min-width: 40px;
+    align-items: center;
+    min-width: 46px;
+    height: 100%;
+    position: relative;
+
+    &.Orphaned {
+      .TraceVerticalConnector,
+      .TraceVerticalLastChildConnector,
+      .TraceExpandedVerticalConnector {
+        border-left: 2px dashed ${p => p.theme.border};
+      }
+
+      &::before {
+        border-bottom: 2px dashed ${p => p.theme.border};
+      }
+    }
+
+    &::before {
+      content: '';
+      display: block;
+      width: 60%;
+      height: 2px;
+      border-bottom: 2px solid ${p => p.theme.border};
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    &::after {
+      content: "";
+      background-color: rgb(224, 220, 229);
+      border-radius: 50%;
+      height: 6px;
+      width: 6px;
+      position: absolute;
+      left: 60%;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+  }
+
+  .TraceVerticalConnector {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    width: 2px;
+    border-left: 2px solid ${p => p.theme.border};
+
+    &.Orphaned {
+      border-left: 2px dashed ${p => p.theme.border};
+    }
+  }
+
+  .TraceVerticalLastChildConnector {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    height: 50%;
+    width: 2px;
+    border-left: 2px solid ${p => p.theme.border};
+    border-bottom-left-radius: 4px;
+  }
+
+  .TraceExpandedVerticalConnector {
+    position: absolute;
+    bottom: 0;
+    height: 50%;
+    left: 50%;
+    width: 2px;
+    border-left: 2px solid ${p => p.theme.border};
   }
 
   .TraceOperation {
+    margin-left: ${space(0.5)};
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: bold;

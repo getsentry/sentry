@@ -328,7 +328,7 @@ export class TraceTreeNode<TreeNodeValue> {
         continue;
       }
 
-      this._connectors.push(node.depth);
+      this._connectors.push(node.depth * (node.isOrphaned ? -1 : 1));
       node = node.parent;
     }
 
