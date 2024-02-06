@@ -2,7 +2,7 @@ import functools
 import threading
 import time
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from django.db import connections, transaction
