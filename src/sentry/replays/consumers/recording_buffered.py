@@ -35,6 +35,7 @@ consumer throughput is high an error will force the reprocessing of a larger num
 than if throughput is low. The number of messages being operated on in parallel is material only
 insofar as it impacts the throughput of the consumer.
 """
+
 from __future__ import annotations
 
 import logging
@@ -238,6 +239,23 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             decoded_message["retention_days"],
             parsed_recording_data,
         )
+
+        if replay_actions is not None:
+            buffer.replay_action_events.append(replay_actions)
+
+        # Useful for computing the average cost of a replay.
+        metrics.distribution(
+            "replays.usecases.ingest.size_compressed",
+            len(recording_data),
+            unit="byte",
+        )
+
+        # Useful for computing the compression ratio.
+        metrics.distribution(
+            "replays.usecases.ingest.size_uncompressed",
+            len(decompressed_segment),
+            unit="byte",
+        )
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
@@ -246,23 +264,6 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             decoded_message["replay_id"],
             headers["segment_id"],
         )
-
-    if replay_actions is not None:
-        buffer.replay_action_events.append(replay_actions)
-
-    # Useful for computing the average cost of a replay.
-    metrics.distribution(
-        "replays.usecases.ingest.size_compressed",
-        len(recording_data),
-        unit="byte",
-    )
-
-    # Useful for computing the compression ratio.
-    metrics.distribution(
-        "replays.usecases.ingest.size_uncompressed",
-        len(decompressed_segment),
-        unit="byte",
-    )
 
 
 # Commit.
