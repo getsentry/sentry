@@ -36,7 +36,7 @@ class OAuth2Provider(Provider):
 
     oauth_access_token_url = "https://provider.example.com/oauth2/access_token"
     oauth_authorize_url = "https://provider.example.com/oauth2/authorize"
-    refresh_token_url = ""
+    refresh_token_url = "https://provider.example.com/oauth2/refresh_token"
 
     oauth_scopes: tuple[str, ...] = ()
 
