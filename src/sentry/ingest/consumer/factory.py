@@ -103,8 +103,8 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         final_step = CommitOffsets(commit)
 
         if not self.is_attachment_topic:
-            function = partial(process_simple_event_message, consumer_type=self.consumer_type)
-            next_step = maybe_multiprocess_step(mp, function, final_step, self._pool)
+            event_function = partial(process_simple_event_message, consumer_type=self.consumer_type)
+            next_step = maybe_multiprocess_step(mp, event_function, final_step, self._pool)
             return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
 
         # The `attachments` topic is a bit different, as it allows multiple event types:
@@ -129,9 +129,9 @@ class IngestStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         # As the steps are defined (and types inferred) in reverse order, we would get a type error here,
         # as `step_1` outputs an `| None`, but the `filter_step` does not mention that in its type,
         # as it is inferred from the `step_2` input type which does not mention `| None`.
-        function = partial(decode_and_process_chunks, consumer_type=self.consumer_type)
+        attachment_function = partial(decode_and_process_chunks, consumer_type=self.consumer_type)
         step_1 = maybe_multiprocess_step(
-            mp, function, filter_step, self._pool  # type:ignore
+            mp, attachment_function, filter_step, self._pool  # type:ignore
         )
 
         return create_backpressure_step(health_checker=self.health_checker, next_step=step_1)
