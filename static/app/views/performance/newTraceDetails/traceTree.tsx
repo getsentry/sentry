@@ -391,7 +391,7 @@ export class TraceTreeNode<TreeNodeValue> {
 
       if (next.expanded) {
         for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]);
+          queue.unshift(next.children[i]);
         }
       }
 

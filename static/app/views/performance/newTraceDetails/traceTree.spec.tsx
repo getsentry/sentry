@@ -189,18 +189,26 @@ describe('TraceTree', () => {
     });
 
     it('preserves children expanded state', () => {
+      const lastChildExpandedTxn = makeTransaction({start_timestamp: 1000});
+      const lastTransaction = makeTransaction({start_timestamp: 5});
       const tree = TraceTree.FromTrace([
-        makeTransaction({children: [makeTransaction({children: [makeTransaction()]})]}),
+        makeTransaction({
+          children: [
+            makeTransaction({children: [lastChildExpandedTxn]}),
+            lastTransaction,
+          ],
+        }),
       ]);
 
       expect(tree.expand(tree.list[0], true)).toBe(true);
       expect(tree.expand(tree.list[1], true)).toBe(true);
       // Assert that the list has been updated
-      expect(tree.list).toHaveLength(3);
+      expect(tree.list).toHaveLength(4);
 
       expect(tree.expand(tree.list[0], false)).toBe(true);
+      expect(tree.list.length).toBe(1);
       expect(tree.expand(tree.list[0], true)).toBe(true);
-      expect(tree.list).toHaveLength(3);
+      expect(tree.list[tree.list.length - 1].value).toBe(lastTransaction);
     });
   });
 
