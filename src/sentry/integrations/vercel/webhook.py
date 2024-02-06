@@ -186,47 +186,42 @@ class VercelWebhookEndpoint(Endpoint):
             except KeyError:
                 return self.respond({"detail": "Missing event type."}, status=400)
 
-            # Try the new Vercel request. If it fails, try the old Vercel request
             try:
-                payload = request.data["payload"]
                 external_id = self.parse_new_external_id(request)
-                scope.set_tag("vercel_webhook.type", "new")
                 new_webhook = True
-
-                if event_type == "integration-configuration.removed":
-                    configuration_id = payload["configuration"]["id"]
-                    return self._delete(external_id, configuration_id, request, new_webhook)
-                if event_type == "deployment.created":
-                    return self._deployment_created(external_id, request, new_webhook)
-            except Exception:
+                tag_type_string = "new"
+            except KeyError:
                 external_id = self.parse_old_external_id(request)
-                scope.set_tag("vercel_webhook.type", "old")
                 new_webhook = False
+                tag_type_string = "old"
 
-                if event_type == "integration-configuration-removed":
-                    configuration_id = request.data["payload"]["configuration"]["id"]
-                    return self._delete(external_id, configuration_id, request, new_webhook)
+            scope.set_tag("vercel_webhook.type", tag_type_string)
 
-                if event_type == "deployment":
-                    return self._deployment_created(external_id, request, new_webhook)
-
+            if (
+                event_type == "integration-configuration.removed"
+                or event_type == "integration-configuration-removed"
+            ):
+                configuration_id = request.data["payload"]["configuration"]["id"]
+                return self._delete(external_id, configuration_id, request, new_webhook)
+            if event_type == "deployment.created" or event_type == "deployment":
+                return self._deployment_created(external_id, request, new_webhook)
         return None
 
     def delete(self, request: Request):
         with configure_scope() as scope:
             # Try the new Vercel request. If it fails, try the old Vercel request
             try:
-                payload = request.data["payload"]
                 external_id = self.parse_new_external_id(request)
-                scope.set_tag("vercel_webhook.type", "new")
-                configuration_id = payload["configuration"]["id"]
+                configuration_id = request.data["payload"]["configuration"]["id"]
                 new_webhook = True
-            except Exception:
+                tag_type_string = "new"
+            except KeyError:
                 external_id = self.parse_old_external_id(request)
-                scope.set_tag("vercel_webhook.type", "old")
                 configuration_id = request.data.get("configurationId")
                 new_webhook = False
+                tag_type_string = "old"
 
+        scope.set_tag("vercel_webhook.type", tag_type_string)
         return self._delete(external_id, configuration_id, request, new_webhook)
 
     def _delete(self, external_id, configuration_id, request, new_webhook):
