@@ -1,9 +1,9 @@
 import logging
 import random
-from datetime import timedelta
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
