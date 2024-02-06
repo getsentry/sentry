@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 
 from sentry.api.bases.user import (
     RegionSiloUserEndpoint,
@@ -13,6 +14,7 @@ from sentry.api.bases.user import (
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.staff import is_active_staff
 from sentry.testutils.cases import DRFPermissionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import all_silo_test, control_silo_test, region_silo_test
 
 
@@ -32,12 +34,45 @@ class UserPermissionTest(DRFPermissionTestCase):
             self.make_request(self.normal_user), None, self.normal_user
         )
 
+    @override_settings(SUPERUSER_ORG_ID=1000)
     def test_allows_active_superuser(self):
         # The user passed in and the user on the request must be different to
         # check superuser.
+        self.create_organization(owner=self.superuser_user, id=1000)
         assert self.user_permission.has_object_permission(
             self.superuser_request, None, self.normal_user
         )
+
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            assert self.user_permission.has_object_permission(
+                self.superuser_request, None, self.normal_user
+            )
+
+    @override_settings(SENTRY_SELF_HOSTED=False, SUPERUSER_ORG_ID=1000)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_active_superuser_read(self):
+        # superuser read can hit GET
+        request = self.make_request(user=self.superuser_user, is_superuser=True, method="GET")
+        self.create_organization(owner=self.superuser_user, id=1000)
+        assert self.user_permission.has_object_permission(request, None, self.normal_user)
+
+        # superuser read cannot hit POST
+        request.method = "POST"
+        assert not self.user_permission.has_object_permission(request, None, self.normal_user)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, SUPERUSER_ORG_ID=1000)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_active_superuser_write(self):
+        # superuser write can hit GET
+        self.add_user_permission(self.superuser_user, "superuser.write")
+        self.create_organization(owner=self.superuser_user, id=1000)
+
+        request = self.make_request(user=self.superuser_user, is_superuser=True, method="GET")
+        assert self.user_permission.has_object_permission(request, None, self.normal_user)
+
+        # superuser write can hit POST
+        request.method = "POST"
+        assert self.user_permission.has_object_permission(request, None, self.normal_user)
 
     def test_rejects_active_staff(self):
         # The user passed in and the user on the request must be different to
