@@ -30,7 +30,7 @@ class BackfillGroupPriority(TestMigrations):
     def setup_initial_state(self):
         self._create_groups_to_backfill(self.project)
         redis_cluster = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        redis_cluster.set("priority_backfill.last_processed_id", 3)
+        redis_cluster.set("priority_backfill.last_processed_id", self.cache_group_id)
 
     def test(self):
         for groups, expected_priority in (
@@ -50,6 +50,7 @@ class BackfillGroupPriority(TestMigrations):
                     assert group.data.get("metadata")["initial_priority"] == expected_priority
 
     def _create_groups_to_backfill(self, project: Project) -> None:
+        skipped_group_count = 3
         data = [
             # three groups to skip to test the redis cache
             (
@@ -226,6 +227,12 @@ class BackfillGroupPriority(TestMigrations):
 
         for desc, group_data, expected_priority in data:
             group = self.create_group(project, **group_data)  # type: ignore
+
+            if desc == "skip me":
+                skipped_group_count -= 1
+                if skipped_group_count == 0:
+                    self.cache_group_id = group.id
+
             if expected_priority == PriorityLevel.LOW:
                 self.low_priority_groups.append((desc, group))
 
