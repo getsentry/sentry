@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 from django.db import router, transaction
 
 from sentry import deletions
@@ -16,10 +14,10 @@ class DatabaseBackedHookService(HookService):
         self,
         *,
         organization_id: int,
-        application_id: Optional[int],
-        webhook_url: Optional[str],
-        events: List[str],
-    ) -> List[RpcServiceHook]:
+        application_id: int | None,
+        webhook_url: str | None,
+        events: list[str],
+    ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             hooks = ServiceHook.objects.filter(application_id=application_id)
             if webhook_url:
@@ -35,17 +33,17 @@ class DatabaseBackedHookService(HookService):
     def create_service_hook(
         self,
         *,
-        application_id: Optional[int] = None,
+        application_id: int | None = None,
         actor_id: int = -1,
-        installation_id: Optional[int] = None,
+        installation_id: int | None = None,
         organization_id: int = -1,
-        project_ids: Optional[List[int]] = None,
-        events: Optional[List[str]] = None,
+        project_ids: list[int] | None = None,
+        events: list[str] | None = None,
         url: str = "",
     ) -> RpcServiceHook:
         # nullable for sentry apps
         with transaction.atomic(router.db_for_write(ServiceHook)):
-            project_id: Optional[int] = project_ids[0] if project_ids else None
+            project_id: int | None = project_ids[0] if project_ids else None
 
             hook = ServiceHook.objects.create(
                 application_id=application_id,

@@ -1,20 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, cast
 
 import sentry_sdk
 from rest_framework import serializers
@@ -81,8 +69,8 @@ if TYPE_CHECKING:
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
 # Enabling feature-flagging frontend components without an extra API call/endpoint to verify
 # the OrganizationOption.
-OptionFeature = Tuple[str, Callable[[OrganizationOption], bool]]
-ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
+OptionFeature = tuple[str, Callable[[OrganizationOption], bool]]
+ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
     "sentry:project-rate-limit": [
         ("legacy-rate-limits", lambda opt: True),
     ],
@@ -359,14 +347,14 @@ class OrganizationSerializer(Serializer):
 
 
 class _OnboardingTasksAttrs(TypedDict):
-    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+    user: UserSerializerResponse | UserSerializerResponseSelf | None
 
 
 class OnboardingTasksSerializerResponse(TypedDict):
 
     task: str  # TODO: literal/enum
     status: str  # TODO: literal/enum
-    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+    user: UserSerializerResponse | UserSerializerResponseSelf | None
     completionSeen: datetime
     dateCompleted: datetime
     data: Any  # JSON object
@@ -411,8 +399,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     isDefault: bool
     defaultRole: bool
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
-    orgRoleList: List[OrganizationRoleSerializerResponse]
-    teamRoleList: List[TeamRoleSerializerResponse]
+    orgRoleList: list[OrganizationRoleSerializerResponse]
+    teamRoleList: list[TeamRoleSerializerResponse]
     openMembership: bool
     allowSharedIssues: bool
     enhancedPrivacy: bool
@@ -428,7 +416,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     scrubIPAddresses: bool
     scrapeJavaScript: bool
     allowJoinRequests: bool
-    relayPiiConfig: Optional[str]
+    relayPiiConfig: str | None
     trustedRelays: Any  # TODO
     access: frozenset[str]
     pendingAccessRequests: int
@@ -575,7 +563,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
             context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
-        desired_sample_rate: Optional[float] = get_sliding_window_org_sample_rate(obj.id)
+        desired_sample_rate: float | None = get_sliding_window_org_sample_rate(obj.id)
         if desired_sample_rate is not None:
             context["desiredSampleRate"] = desired_sample_rate
 
@@ -638,7 +626,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
 
-        collapse_projects: Set[str] = set()
+        collapse_projects: set[str] = set()
         if killswitch_matches_context(
             "api.organization.disable-last-deploys",
             {

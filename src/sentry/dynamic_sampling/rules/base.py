@@ -1,6 +1,6 @@
 import logging
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
-from typing import List, OrderedDict, Set
 
 import sentry_sdk
 
@@ -96,9 +96,9 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
 def _get_rules_of_enabled_biases(
     project: Project,
     base_sample_rate: float,
-    enabled_biases: Set[str],
+    enabled_biases: set[str],
     combined_biases: OrderedDict[RuleType, Bias],
-) -> List[PolymorphicRule]:
+) -> list[PolymorphicRule]:
     rules = []
 
     for rule_type, bias in combined_biases.items():
@@ -119,7 +119,7 @@ def _get_rules_of_enabled_biases(
     return rules
 
 
-def generate_rules(project: Project) -> List[PolymorphicRule]:
+def generate_rules(project: Project) -> list[PolymorphicRule]:
     organization = project.organization
 
     try:

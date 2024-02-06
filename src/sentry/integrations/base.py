@@ -4,20 +4,10 @@ import abc
 import logging
 import sys
 from collections import namedtuple
+from collections.abc import Mapping, MutableMapping, Sequence
 from enum import Enum
 from functools import cached_property
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    FrozenSet,
-    Mapping,
-    MutableMapping,
-    NoReturn,
-    Optional,
-    Sequence,
-    Type,
-)
+from typing import TYPE_CHECKING, Any, NoReturn
 from urllib.request import Request
 
 from rest_framework.exceptions import NotFound
@@ -82,7 +72,7 @@ IntegrationMetadata = namedtuple(
 
 class IntegrationMetadata(IntegrationMetadata):  # type: ignore
     @staticmethod
-    def feature_flag_name(f: Optional[str]) -> Optional[str]:
+    def feature_flag_name(f: str | None) -> str | None:
         """
         FeatureDescriptions are set using the IntegrationFeatures constants,
         however we expose them here as mappings to organization feature flags, thus
@@ -92,7 +82,7 @@ class IntegrationMetadata(IntegrationMetadata):  # type: ignore
             return f"integrations-{f}"
         return None
 
-    def _asdict(self) -> Dict[str, Sequence[Any]]:
+    def _asdict(self) -> dict[str, Sequence[Any]]:
         metadata = super()._asdict()
         metadata["features"] = [
             {
@@ -148,7 +138,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     it provides (such as extensions provided).
     """
 
-    _integration_key: Optional[str] = None
+    _integration_key: str | None = None
     """
     a unique identifier to use when creating the ``Integration`` object.
     Only needed when you want to create the above object with something other
@@ -161,13 +151,13 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     Integrations page.
     """
 
-    metadata: Optional[IntegrationMetadata] = None
+    metadata: IntegrationMetadata | None = None
     """
     an IntegrationMetadata object, used to provide extra details in the
     configuration interface of the integration.
     """
 
-    integration_cls: Optional[Type[IntegrationInstallation]] = None
+    integration_cls: type[IntegrationInstallation] | None = None
     """an Integration class that will manage the functionality once installed"""
 
     setup_dialog_config = {"width": 600, "height": 600}
@@ -195,7 +185,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     time. It will raise an error if any organization from another region attempts to install it.
     """
 
-    features: FrozenSet[IntegrationFeatures] = frozenset()
+    features: frozenset[IntegrationFeatures] = frozenset()
     """can be any number of IntegrationFeatures"""
 
     requires_feature_flag = False
@@ -212,7 +202,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         return cls.integration_cls(model, organization_id, **kwargs)
 
     @property
-    def integration_key(self) -> Optional[str]:
+    def integration_key(self) -> str | None:
         return self._integration_key or self.key
 
     def get_logger(self) -> logging.Logger:
@@ -232,7 +222,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         organization: RpcOrganizationSummary,
         request: Request,
         action: str,
-        extra: Optional[Any] = None,
+        extra: Any | None = None,
     ) -> None:
         """
         Creates an audit log entry for the newly installed integration.
@@ -369,7 +359,7 @@ class IntegrationInstallation:
             return {}
         return self.org_integration.config
 
-    def get_dynamic_display_information(self) -> Optional[Mapping[str, Any]]:
+    def get_dynamic_display_information(self) -> Mapping[str, Any] | None:
         return None
 
     def get_client(self) -> Any:
@@ -408,7 +398,7 @@ class IntegrationInstallation:
     def error_message_from_json(self, data: Mapping[str, Any]) -> Any:
         return data.get("message", "unknown error")
 
-    def error_fields_from_json(self, data: Mapping[str, Any]) -> Optional[Any]:
+    def error_fields_from_json(self, data: Mapping[str, Any]) -> Any | None:
         """
         If we can determine error fields from the response JSON this should
         format and return them, allowing an IntegrationFormError to be raised.
@@ -434,7 +424,7 @@ class IntegrationInstallation:
         else:
             return ERR_INTERNAL
 
-    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> NoReturn:
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]
@@ -465,7 +455,6 @@ class IntegrationInstallation:
         that are not covered by the deletion task for OrganizationIntegration
         task.
         """
-        pass
 
     # NotifyBasicMixin noops
 

@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
 
 import sentry_sdk
 
@@ -38,7 +38,7 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -106,17 +106,17 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: dict[str, str],
     rollup: int,
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     zerofill_results: bool = True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.

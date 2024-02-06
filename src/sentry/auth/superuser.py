@@ -14,13 +14,15 @@ from __future__ import annotations
 import ipaddress
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Tuple
+from typing import Any
 
 from django.conf import settings
 from django.core.signing import BadSignature
+from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework import serializers, status
+from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.exceptions import SentryAPIException
@@ -85,7 +87,43 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any):
     return superuser_scopes
 
 
-def is_active_superuser(request):
+def superuser_has_permission(
+    request: HttpRequest | Request, permissions: frozenset[str] | None = None
+) -> bool:
+    """
+    This is used in place of is_active_superuser() in APIs / permission classes.
+    Checks if superuser has permission for the request.
+    Superuser read-only is restricted to GET and OPTIONS requests.
+    These checks do not affect self-hosted.
+
+    The `permissions` arg is passed in and used when request.access is not populated,
+    e.g. in UserPermission
+    """
+    if not is_active_superuser(request):
+        return False
+
+    if is_self_hosted():
+        return True
+
+    # if we aren't enforcing superuser read-write, then superuser always has access
+    if not features.has("auth:enterprise-superuser-read-write", actor=request.user):
+        return True
+
+    # either request.access or permissions must exist
+    assert getattr(request, "access", None) or permissions is not None
+
+    # superuser write can access all requests
+    if getattr(request, "access", None) and request.access.has_permission("superuser.write"):
+        return True
+
+    elif permissions is not None and "superuser.write" in permissions:
+        return True
+
+    # superuser read-only can only hit GET and OPTIONS (pre-flight) requests
+    return request.method == "GET" or request.method == "OPTIONS"
+
+
+def is_active_superuser(request: HttpRequest | Request) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     su = getattr(request, "superuser", None) or Superuser(request)
@@ -162,7 +200,7 @@ class Superuser(ElevatedMode):
             return False
         return self._is_active
 
-    def is_privileged_request(self) -> Tuple[bool, InactiveReason]:
+    def is_privileged_request(self) -> tuple[bool, InactiveReason]:
         """
         Returns ``(bool is_privileged, RequestStatus reason)``
         """

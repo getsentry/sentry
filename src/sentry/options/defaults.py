@@ -384,6 +384,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# User Feedback Options
+register(
+    "feedback.organizations.slug-denylist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -864,6 +872,13 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 # Note: To fully enable the cardinality limiter the feature `organizations:relay-cardinality-limiter`
 # needs to be rolled out as well.
 register("relay.cardinality-limiter.mode", default="enabled", flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Sample rate for Cardinality Limiter Sentry errors.
+#
+# Rate needs to be between `0.0` and `1.0`.
+# If set to `1.0` all cardinality limiter rejections will be logged as a Sentry error.
+register(
+    "relay.cardinality-limiter.error-sample-rate", default=0.01, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1687,6 +1702,12 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Overrides modified date and always updates the row. Can be removed if not needed later.
+register(
+    "on_demand.update_on_demand_modified",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "delightful_metrics.minimetrics_sample_rate",
@@ -1990,4 +2011,28 @@ register(
     "groups.enable-post-update-signal",
     default=False,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sampling rates for testing Rust-based grouping enhancers
+
+# Rate at which to parse enhancers in Rust in addition to Python
+register(
+    "grouping.rust_enhancers.parse_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate at which to run the Rust implementation of `apply_modifications_to_frames`
+# and compare the results
+register(
+    "grouping.rust_enhancers.modify_frames_rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate at which to prefer the `apply_modifications_to_frames` result of the Rust implementation.
+register(
+    "grouping.rust_enhancers.prefer_rust_result",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

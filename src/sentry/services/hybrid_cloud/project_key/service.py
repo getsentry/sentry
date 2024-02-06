@@ -4,7 +4,6 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional
 
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, RpcProjectKey
 from sentry.services.hybrid_cloud.region import ByOrganizationId, ByRegionName
@@ -26,21 +25,21 @@ class ProjectKeyService(RpcService):
     @abstractmethod
     def get_project_key(
         self, *, organization_id: int, project_id: str, role: ProjectKeyRole
-    ) -> Optional[RpcProjectKey]:
+    ) -> RpcProjectKey | None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_default_project_key(
         self, *, organization_id: int, project_id: str
-    ) -> Optional[RpcProjectKey]:
+    ) -> RpcProjectKey | None:
         pass
 
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
     def get_project_key_by_region(
         self, *, region_name: str, project_id: str, role: ProjectKeyRole
-    ) -> Optional[RpcProjectKey]:
+    ) -> RpcProjectKey | None:
         pass
 
     @regional_rpc_method(resolve=ByRegionName())
@@ -49,9 +48,9 @@ class ProjectKeyService(RpcService):
         self,
         *,
         region_name: str,
-        project_ids: List[str],
+        project_ids: list[str],
         role: ProjectKeyRole,
-    ) -> List[RpcProjectKey]:
+    ) -> list[RpcProjectKey]:
         pass
 
 

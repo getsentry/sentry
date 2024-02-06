@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Literal, TypedDict, Union
+from typing import Literal, NotRequired, TypedDict, Union
 
 from django.utils.functional import cached_property
 from django.utils.text import slugify
-from typing_extensions import NotRequired
 
 from sentry.monitors.constants import MAX_SLUG_LENGTH
 
@@ -35,7 +34,7 @@ class CheckinPayload(TypedDict):
     status: str
     environment: NotRequired[str]
     duration: NotRequired[int]
-    monitor_config: NotRequired[Dict]
+    monitor_config: NotRequired[dict]
     contexts: NotRequired[CheckinContexts]
 
 

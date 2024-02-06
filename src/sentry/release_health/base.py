@@ -1,22 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeVar, Union
 
 # from sentry.models.organization import Organization
 from sentry.utils.services import Service
@@ -85,28 +73,28 @@ class SessionsQuery(TypedDict):
     rollup: int  # seconds
 
 
-SessionsQueryValue = Union[None, float, int]
+SessionsQueryValue = Union[None, float]
 
-ProjectWithCount = Tuple[ProjectId, int]
+ProjectWithCount = tuple[ProjectId, int]
 
 
 class SessionsQueryGroup(TypedDict):
-    by: Mapping[GroupByFieldName, Union[str, int]]
-    series: Mapping[SessionsQueryFunction, Sequence[SessionsQueryValue]]
-    totals: Mapping[SessionsQueryFunction, SessionsQueryValue]
+    by: dict[str, str | int]
+    series: dict[str, list[SessionsQueryValue]]
+    totals: dict[str, SessionsQueryValue]
 
 
 class SessionsQueryResult(TypedDict):
     start: DateString
     end: DateString
-    intervals: Sequence[DateString]
-    groups: Sequence[SessionsQueryGroup]
+    intervals: list[DateString]
+    groups: list[SessionsQueryGroup]
     query: str
 
 
 FormattedIsoTime = str
 
-ProjectRelease = Tuple[ProjectId, ReleaseName]
+ProjectRelease = tuple[ProjectId, ReleaseName]
 ProjectOrRelease = TypeVar("ProjectOrRelease", ProjectId, ProjectRelease)
 
 # taken from sentry.snuba.sessions.STATS_PERIODS
@@ -126,8 +114,8 @@ OverviewStat = Literal["users", "sessions"]
 
 
 class CurrentAndPreviousCrashFreeRate(TypedDict):
-    currentCrashFreeRate: Optional[float]
-    previousCrashFreeRate: Optional[float]
+    currentCrashFreeRate: float | None
+    previousCrashFreeRate: float | None
 
 
 CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]
@@ -151,52 +139,52 @@ ReleaseHealthStats = Sequence[Sequence[int]]
 
 class ReleaseAdoption(TypedDict):
     #: Adoption rate (based on usercount) for a project's release from 0..100
-    adoption: Optional[float]
+    adoption: float | None
     #: Adoption rate (based on sessioncount) for a project's release from 0..100
-    sessions_adoption: Optional[float]
+    sessions_adoption: float | None
     #: User count for a project's release (past 24h)
-    users_24h: Optional[int]
+    users_24h: int | None
     #: Sessions count for a project's release (past 24h)
-    sessions_24h: Optional[int]
+    sessions_24h: int | None
     #: Sessions count for the entire project (past 24h)
-    project_users_24h: Optional[int]
+    project_users_24h: int | None
     #: Sessions count for the entire project (past 24h)
-    project_sessions_24h: Optional[int]
+    project_sessions_24h: int | None
 
 
-ReleasesAdoption = Mapping[Tuple[ProjectId, ReleaseName], ReleaseAdoption]
+ReleasesAdoption = Mapping[tuple[ProjectId, ReleaseName], ReleaseAdoption]
 
 
 class ReleaseHealthOverview(TypedDict, total=False):
-    adoption: Optional[float]
-    sessions_adoption: Optional[float]
-    total_users_24h: Optional[int]
-    total_project_users_24h: Optional[int]
-    total_sessions_24h: Optional[int]
-    total_project_sessions_24h: Optional[int]
-    total_sessions: Optional[int]
-    total_users: Optional[int]
+    adoption: float | None
+    sessions_adoption: float | None
+    total_users_24h: int | None
+    total_project_users_24h: int | None
+    total_sessions_24h: int | None
+    total_project_sessions_24h: int | None
+    total_sessions: int | None
+    total_users: int | None
     has_health_data: bool
     sessions_crashed: int
-    crash_free_users: Optional[float]
-    crash_free_sessions: Optional[float]
+    crash_free_users: float | None
+    crash_free_sessions: float | None
     sessions_errored: int
-    duration_p50: Optional[float]
-    duration_p90: Optional[float]
+    duration_p50: float | None
+    duration_p90: float | None
     stats: Mapping[StatsPeriod, ReleaseHealthStats]
 
 
 class CrashFreeBreakdown(TypedDict):
     date: datetime
     total_users: int
-    crash_free_users: Optional[float]
+    crash_free_users: float | None
     total_sessions: int
-    crash_free_sessions: Optional[float]
+    crash_free_sessions: float | None
 
 
 class DurationPercentiles(TypedDict):
-    duration_p50: Optional[float]
-    duration_p90: Optional[float]
+    duration_p50: float | None
+    duration_p90: float | None
 
 
 class UserCounts(TypedDict):
@@ -225,9 +213,9 @@ class SessionCountsAndPercentiles(DurationPercentiles, SessionCounts):
 
 # NOTE: Tuple is the wrong type, it's a fixed-length list. Unfortunately mypy
 # is too opinionated to support fixed-length lists.
-ProjectReleaseUserStats = Tuple[Sequence[Tuple[int, UserCountsAndPercentiles]], UserCounts]
-ProjectReleaseSessionStats = Tuple[
-    Sequence[Tuple[int, SessionCountsAndPercentiles]],
+ProjectReleaseUserStats = tuple[Sequence[tuple[int, UserCountsAndPercentiles]], UserCounts]
+ProjectReleaseSessionStats = tuple[
+    Sequence[tuple[int, SessionCountsAndPercentiles]],
     SessionCounts,
 ]
 
@@ -266,7 +254,7 @@ class ReleaseHealthBackend(Service):
         previous_start: datetime,
         previous_end: datetime,
         rollup: int,
-        org_id: Optional[OrganizationId] = None,
+        org_id: OrganizationId | None = None,
     ) -> CurrentAndPreviousCrashFreeRates:
         """
         Function that returns `currentCrashFreeRate` and the `previousCrashFreeRate` of projects
@@ -300,9 +288,9 @@ class ReleaseHealthBackend(Service):
     def get_release_adoption(
         self,
         project_releases: Sequence[ProjectRelease],
-        environments: Optional[Sequence[EnvironmentName]] = None,
-        now: Optional[datetime] = None,
-        org_id: Optional[OrganizationId] = None,
+        environments: Sequence[EnvironmentName] | None = None,
+        now: datetime | None = None,
+        org_id: OrganizationId | None = None,
     ) -> ReleasesAdoption:
         """
         Get the adoption of the last 24 hours (or a difference reference timestamp).
@@ -342,7 +330,7 @@ class ReleaseHealthBackend(Service):
         project_id: ProjectId,
         release: ReleaseName,
         org_id: OrganizationId,
-        environments: Optional[Sequence[EnvironmentName]] = None,
+        environments: Sequence[EnvironmentName] | None = None,
     ) -> ReleaseSessionsTimeBounds:
         """
         Get the sessions time bounds in terms of when the first session started and
@@ -362,8 +350,8 @@ class ReleaseHealthBackend(Service):
     def check_has_health_data(
         self,
         projects_list: Collection[ProjectOrRelease],
-        now: Optional[datetime] = None,
-    ) -> Set[ProjectOrRelease]:
+        now: datetime | None = None,
+    ) -> set[ProjectOrRelease]:
         """
         Function that returns a set of all project_ids or (project, release) if they have health data
         within the last 90 days based on a list of projects or a list of project, release combinations
@@ -381,7 +369,7 @@ class ReleaseHealthBackend(Service):
         release_versions: Sequence[ReleaseName],
         start: datetime,
         end: datetime,
-    ) -> Set[ReleaseName]:
+    ) -> set[ReleaseName]:
         """
         Returns a set of all release versions that have health data within a given period of time.
         """
@@ -391,11 +379,11 @@ class ReleaseHealthBackend(Service):
     def get_release_health_data_overview(
         self,
         project_releases: Sequence[ProjectRelease],
-        environments: Optional[Sequence[EnvironmentName]] = None,
-        summary_stats_period: Optional[StatsPeriod] = None,
-        health_stats_period: Optional[StatsPeriod] = None,
-        stat: Optional[Literal["users", "sessions"]] = None,
-        now: Optional[datetime] = None,
+        environments: Sequence[EnvironmentName] | None = None,
+        summary_stats_period: StatsPeriod | None = None,
+        health_stats_period: StatsPeriod | None = None,
+        stat: Literal["users", "sessions"] | None = None,
+        now: datetime | None = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         """Checks quickly for which of the given project releases we have
         health data available.  The argument is a tuple of `(project_id, release_name)`
@@ -410,8 +398,8 @@ class ReleaseHealthBackend(Service):
         project_id: ProjectId,
         release: ReleaseName,
         start: datetime,
-        environments: Optional[Sequence[EnvironmentName]] = None,
-        now: Optional[datetime] = None,
+        environments: Sequence[EnvironmentName] | None = None,
+        now: datetime | None = None,
     ) -> Sequence[CrashFreeBreakdown]:
         """Get stats about crash free sessions and stats for the last 1, 2, 7, 14 and 30 days"""
         raise NotImplementedError
@@ -419,7 +407,7 @@ class ReleaseHealthBackend(Service):
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
-        now: Optional[datetime] = None,
+        now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
         """
         Returns a sequence of tuples (ProjectId, ReleaseName) with the
@@ -430,7 +418,7 @@ class ReleaseHealthBackend(Service):
     def get_oldest_health_data_for_releases(
         self,
         project_releases: Sequence[ProjectRelease],
-        now: Optional[datetime] = None,
+        now: datetime | None = None,
     ) -> Mapping[ProjectRelease, str]:
         """Returns the oldest health data we have observed in a release
         in 90 days.  This is used for backfilling.
@@ -442,8 +430,8 @@ class ReleaseHealthBackend(Service):
         organization_id: OrganizationId,
         project_ids: Sequence[ProjectId],
         scope: str,
-        stats_period: Optional[str] = None,
-        environments: Optional[Sequence[EnvironmentName]] = None,
+        stats_period: str | None = None,
+        environments: Sequence[EnvironmentName] | None = None,
     ) -> int:
         """
         Fetches the total count of releases/project combinations
@@ -458,8 +446,8 @@ class ReleaseHealthBackend(Service):
         rollup: int,
         start: datetime,
         end: datetime,
-        environments: Optional[Sequence[EnvironmentName]] = None,
-    ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
+        environments: Sequence[EnvironmentName] | None = None,
+    ) -> ProjectReleaseUserStats | ProjectReleaseSessionStats:
         raise NotImplementedError()
 
     def get_project_sessions_count(
@@ -468,7 +456,7 @@ class ReleaseHealthBackend(Service):
         rollup: int,  # rollup in seconds
         start: datetime,
         end: datetime,
-        environment_id: Optional[int] = None,
+        environment_id: int | None = None,
     ) -> int:
         """
         Returns the number of sessions in the specified period (optionally
@@ -481,8 +469,8 @@ class ReleaseHealthBackend(Service):
         project_ids: Sequence[ProjectId],
         start: datetime,
         end: datetime,
-        environment_ids: Optional[Sequence[int]] = None,
-        rollup: Optional[int] = None,  # rollup in seconds
+        environment_ids: Sequence[int] | None = None,
+        rollup: int | None = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:
         """
         Returns the number of sessions for each project specified.
@@ -493,12 +481,12 @@ class ReleaseHealthBackend(Service):
     def get_project_releases_by_stability(
         self,
         project_ids: Sequence[ProjectId],
-        offset: Optional[int],
-        limit: Optional[int],
+        offset: int | None,
+        limit: int | None,
         scope: str,
-        stats_period: Optional[str] = None,
-        environments: Optional[Sequence[str]] = None,
-        now: Optional[datetime] = None,
+        stats_period: str | None = None,
+        environments: Sequence[str] | None = None,
+        now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
         """Given some project IDs returns adoption rates that should be updated
         on the postgres tables.

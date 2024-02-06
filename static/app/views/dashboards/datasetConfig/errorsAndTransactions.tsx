@@ -636,7 +636,7 @@ async function doOnDemandMetricsRequest(
       generatePathname: isEditing ? fetchEstimatedStats : undefined,
     });
 
-    response[0] = {...response[0], isMetricsData: true, isExtrapolatedData: isEditing};
+    response[0] = {...response[0]};
 
     return [response[0], response[1], response[2]];
   } catch (err) {

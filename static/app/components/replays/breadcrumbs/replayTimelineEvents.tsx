@@ -19,7 +19,6 @@ const NODE_SIZES = [8, 12, 16];
 interface Props {
   durationMs: number;
   frames: ReplayFrame[];
-  startTimeOffsetMs: number;
   startTimestampMs: number;
   width: number;
   className?: string;
@@ -30,18 +29,12 @@ function ReplayTimelineEvents({
   durationMs,
   frames,
   startTimestampMs,
-  startTimeOffsetMs,
   width,
 }: Props) {
   const markerWidth = frames.length < 200 ? 4 : frames.length < 500 ? 6 : 10;
 
   const totalColumns = Math.floor(width / markerWidth);
-  const framesByCol = getFramesByColumn(
-    durationMs,
-    frames,
-    totalColumns,
-    startTimeOffsetMs
-  );
+  const framesByCol = getFramesByColumn(durationMs, frames, totalColumns);
 
   return (
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
@@ -139,7 +132,12 @@ function Event({
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
-      <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
+      <Tooltip
+        title={title}
+        overlayStyle={overlayStyle}
+        containerDisplayMode="grid"
+        isHoverable
+      >
         <IconNode
           colors={sortedUniqueColors}
           frameCount={frameCount}
@@ -149,16 +147,10 @@ function Event({
             }
           }}
         />
-      </IconNodeTooltip>
+      </Tooltip>
     </IconPosition>
   );
 }
-
-const IconNodeTooltip = styled(Tooltip)`
-  display: grid;
-  justify-items: center;
-  align-items: center;
-`;
 
 const IconPosition = styled('div')`
   position: absolute;

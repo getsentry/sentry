@@ -1,3 +1,4 @@
+import {duration} from 'moment';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
@@ -22,7 +23,8 @@ const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
 const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
 
-const mockEventTimestampMs = new Date('2022-09-22T16:59:41Z').getTime();
+const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
+const mockEventTimestampMs = mockEventTimestamp.getTime();
 
 const mockButtonHref = `/organizations/${mockOrgSlug}/replays/761104e184c64d439ee1014b72b4d83b/?referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&t=57&t_main=errors`;
 
@@ -33,11 +35,18 @@ const mockReplay = ReplayReader.factory({
       name: 'Chrome',
       version: '110.0.0',
     },
+    started_at: new Date('Sep 22, 2022 4:58:39 PM UTC'),
+    finished_at: new Date(mockEventTimestampMs + 5_000),
+    duration: duration(10, 'seconds'),
   }),
   errors: [],
   attachments: RRWebInitFrameEventsFixture({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
+  clipWindow: {
+    startTimestampMs: mockEventTimestampMs - 5_000,
+    endTimestampMs: mockEventTimestampMs + 5_000,
+  },
 });
 
 mockUseReplayReader.mockImplementation(() => {
@@ -102,7 +111,19 @@ jest.mock('screenfull', () => ({
 describe('ReplayClipPreview', () => {
   beforeEach(() => {
     mockIsFullscreen.mockReturnValue(false);
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/sentry-emerging-tech/projects/',
+      body: [],
+    });
   });
+
+  const defaultProps = {
+    analyticsContext: '',
+    orgSlug: mockOrgSlug,
+    replaySlug: mockReplaySlug,
+    eventTimestampMs: mockEventTimestampMs,
+  };
 
   it('Should render a placeholder when is fetching the replay data', () => {
     // Change the mocked hook to return a loading state
@@ -120,13 +141,7 @@ describe('ReplayClipPreview', () => {
       };
     });
 
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-loading-placeholder')).toBeInTheDocument();
   });
@@ -147,45 +162,25 @@ describe('ReplayClipPreview', () => {
       };
     });
 
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByTestId('replay-error')).toBeVisible();
   });
 
   it('Should have the correct time range', () => {
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     // Should be two sliders, one for the scrubber and one for timeline
     const sliders = screen.getAllByRole('slider', {name: 'Seek slider'});
 
-    // Replay should start at 57000ms because event happened at 62000ms
-    expect(sliders[0]).toHaveValue('57000');
-    expect(sliders[0]).toHaveAttribute('min', '57000');
-
-    // End of range should be 5 seconds after at 67000ms
-    expect(sliders[0]).toHaveAttribute('max', '67000');
+    // Replay should be 10 seconds long and start at the beginning
+    expect(sliders[0]).toHaveValue('0');
+    expect(sliders[0]).toHaveAttribute('min', '0');
+    expect(sliders[0]).toHaveAttribute('max', '10000');
   });
 
   it('Should link to the full replay correctly', () => {
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     expect(screen.getByRole('button', {name: 'See Full Replay'})).toHaveAttribute(
       'href',
@@ -196,13 +191,7 @@ describe('ReplayClipPreview', () => {
   it('Display URL and breadcrumbs in fullscreen mode', async () => {
     mockIsFullscreen.mockReturnValue(true);
 
-    render(
-      <ReplayClipPreview
-        orgSlug={mockOrgSlug}
-        replaySlug={mockReplaySlug}
-        eventTimestampMs={mockEventTimestampMs}
-      />
-    );
+    render(<ReplayClipPreview {...defaultProps} />);
 
     // Should have URL bar
     expect(screen.getByRole('textbox', {name: 'Current URL'})).toHaveValue(
@@ -211,9 +200,6 @@ describe('ReplayClipPreview', () => {
 
     // Breadcrumbs sidebar should be open
     expect(screen.getByTestId('replay-details-breadcrumbs-tab')).toBeInTheDocument();
-
-    // Should filter out breadcrumbs that aren't part of the clip
-    expect(screen.getByText('No breadcrumbs recorded')).toBeInTheDocument();
 
     // Can close the breadcrumbs sidebar
     await userEvent.click(screen.getByRole('button', {name: 'Collapse Sidebar'}));

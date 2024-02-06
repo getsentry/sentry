@@ -14,7 +14,7 @@ from sentry.models.grouptombstone import GroupTombstone
 class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
 
     def delete(self, request: Request, project, tombstone_id) -> Response:

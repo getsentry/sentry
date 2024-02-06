@@ -3,11 +3,7 @@ import {Fragment, Profiler, useEffect, useRef} from 'react';
 import type {IdleTransaction} from '@sentry/core';
 import {captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import {
-  type MeasurementUnit,
-  type Transaction,
-  type TransactionEvent,
-} from '@sentry/types';
+import type {MeasurementUnit, Transaction, TransactionEvent} from '@sentry/types';
 import {
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
@@ -608,7 +604,9 @@ function getNearestElementName(node: HTMLElement | undefined | null): string | u
   let current: HTMLElement | null = node;
   while (current && current !== document.body) {
     const elementName =
-      current.dataset?.testId ?? current.dataset?.component ?? current.dataset?.element;
+      current.dataset?.testId ??
+      current.dataset?.sentryComponent ??
+      current.dataset?.element;
 
     if (elementName) {
       return elementName;

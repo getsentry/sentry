@@ -36,7 +36,6 @@ Status checks:
     See :class:`AppStoreConnectCredentialsValidateEndpoint`.
 """
 import logging
-from typing import Dict, Optional, Union
 from uuid import uuid4
 
 import requests
@@ -142,10 +141,10 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        cfg_id: Optional[str] = data.get("id")
-        apc_key: Optional[str] = data.get("appconnectKey")
-        apc_private_key: Optional[str] = data.get("appconnectPrivateKey")
-        apc_issuer: Optional[str] = data.get("appconnectIssuer")
+        cfg_id: str | None = data.get("id")
+        apc_key: str | None = data.get("appconnectKey")
+        apc_private_key: str | None = data.get("appconnectPrivateKey")
+        apc_issuer: str | None = data.get("appconnectIssuer")
         if cfg_id:
             try:
                 current_config = appconnect.AppStoreConnectConfig.from_project_config(
@@ -275,8 +274,8 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
     bundleId = serializers.CharField(min_length=1, required=False)
 
     def validate_appconnectPrivateKey(
-        self, private_key_json: Optional[Union[str, Dict[str, bool]]]
-    ) -> Optional[json.JSONData]:
+        self, private_key_json: str | dict[str, bool] | None
+    ) -> json.JSONData | None:
         return validate_secret(private_key_json)
 
 

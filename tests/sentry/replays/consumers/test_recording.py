@@ -3,8 +3,8 @@ from __future__ import annotations
 import time
 import uuid
 import zlib
+from collections.abc import Mapping
 from datetime import datetime
-from typing import List, Mapping
 from unittest.mock import ANY, patch
 
 import msgpack
@@ -107,7 +107,7 @@ class RecordingTestCase(TransactionTestCase):
         message: bytes = b'[{"hello":"world"}]',
         segment_id: int = 0,
         compressed: bool = False,
-    ) -> List[ReplayRecording]:
+    ) -> list[ReplayRecording]:
         message = zlib.compress(message) if compressed else message
         return [
             {

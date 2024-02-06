@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, List, Literal, Mapping, Optional, TypedDict, Union
+from collections.abc import Mapping
+from typing import Any, Literal, TypedDict
 
 import pytest
 from drf_spectacular.openapi import AutoSchema
@@ -26,11 +27,11 @@ class BasicSerializerOptional(TypedDict, total=False):
 class BasicSerializerResponse(BasicSerializerOptional):
     b: str
     c: bool
-    d: List[int]
+    d: list[int]
     e: NestedDict
     f: Literal[3]
-    g: Union[str, bool]
-    h: Optional[str]
+    g: str | bool
+    h: str | None
     excluded: str
 
 
@@ -67,7 +68,7 @@ def test_sentry_response_serializer_extension():
 
 def test_sentry_inline_response_serializer_extension():
     inline_serializer = inline_sentry_response_serializer(
-        "BasicStuff", List[BasicSerializerResponse]
+        "BasicStuff", list[BasicSerializerResponse]
     )
     seralizer_extension = SentryInlineResponseSerializerExtension(inline_serializer)
     schema = seralizer_extension.map_serializer(AutoSchema(), "response")

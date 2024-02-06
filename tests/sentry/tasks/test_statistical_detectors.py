@@ -1,7 +1,6 @@
 import itertools
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import List
 from unittest import mock
 
 import pytest
@@ -598,7 +597,7 @@ def test_get_regression_versions(
             for version, active, transaction in regression_groups
         )
 
-    breakpoints: List[BreakpointData] = [
+    breakpoints: list[BreakpointData] = [
         {
             "absolute_percentage_change": 5.0,
             "aggregate_range_1": 100000000.0,
@@ -720,7 +719,7 @@ def test_get_regression_versions_active(
     group.substatus = substatus
     group.save()
 
-    breakpoints: List[BreakpointData] = [
+    breakpoints: list[BreakpointData] = [
         {
             "absolute_percentage_change": 5.0,
             "aggregate_range_1": 100000000.0,
@@ -1404,7 +1403,7 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
         mock_value.data = b'{"occurrences":5}'
         mock_get_from_profiling_service.return_value = mock_value
 
-        regressions: List[BreakpointData] = [
+        regressions: list[BreakpointData] = [
             {
                 "project": str(project.id),
                 "transaction": str(

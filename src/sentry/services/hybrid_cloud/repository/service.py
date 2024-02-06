@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, List, Optional
+from typing import Any
 
 from sentry.services.hybrid_cloud.region import ByOrganizationId
 from sentry.services.hybrid_cloud.repository import RpcRepository
@@ -31,13 +31,12 @@ class RepositoryService(RpcService):
         *,
         organization_id: int,
         id: int,
-        as_user: Optional[RpcUser] = None,
-    ) -> Optional[Any]:
+        as_user: RpcUser | None = None,
+    ) -> Any | None:
         """
         Attempts to serialize a given repository.  Note that this can be None if the repository is already deleted
         in the corresponding region silo.
         """
-        pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -45,25 +44,25 @@ class RepositoryService(RpcService):
         self,
         *,
         organization_id: int,
-        integration_id: Optional[int] = None,
-        external_id: Optional[int] = None,
-        providers: Optional[List[str]] = None,
-        has_integration: Optional[bool] = None,
-        has_provider: Optional[bool] = None,
-        status: Optional[int] = None,
-    ) -> List[RpcRepository]:
+        integration_id: int | None = None,
+        external_id: int | None = None,
+        providers: list[str] | None = None,
+        has_integration: bool | None = None,
+        has_provider: bool | None = None,
+        status: int | None = None,
+    ) -> list[RpcRepository]:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_repository(self, *, organization_id: int, id: int) -> Optional[RpcRepository]:
+    def get_repository(self, *, organization_id: int, id: int) -> RpcRepository | None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def create_repository(
         self, *, organization_id: int, create: RpcCreateRepository
-    ) -> Optional[RpcRepository]:
+    ) -> RpcRepository | None:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
@@ -79,7 +78,6 @@ class RepositoryService(RpcService):
         """
         Reinstalls all repositories associated with the given integration by marking them as active.
         """
-        pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -90,7 +88,6 @@ class RepositoryService(RpcService):
         Disables all repositories associated with the given integration by marking them as disabled.
         Code owners and code mappings will not be changed.
         """
-        pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -105,7 +102,6 @@ class RepositoryService(RpcService):
         Disassociates all repositories for an organization integration.
         This will also delete code owners, and code mapping associated with matching repositories.
         """
-        pass
 
 
 repository_service = RepositoryService.create_delegation()

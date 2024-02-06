@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Sequence, Set
+from collections.abc import Sequence
+from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
+from django.utils import timezone
 
 from sentry import options
 from sentry.api.utils import get_date_range_from_params
@@ -24,6 +26,7 @@ from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -114,9 +117,9 @@ def schedule_on_demand_check() -> None:
     dashboard_widget_count = 0
 
     for (widget_query_id,) in RangeQuerySetWrapper(
-        DashboardWidgetQuery.objects.filter(widget__widget_type=DashboardWidgetTypes.DISCOVER)
-        .exclude(conditions__contains="event.type:error")
-        .values_list("id"),
+        DashboardWidgetQuery.objects.filter(
+            widget__widget_type=DashboardWidgetTypes.DISCOVER
+        ).values_list("id"),
         result_value_getter=lambda item: item[0],
     ):
         dashboard_widget_pre_rollout_count += 1
@@ -252,36 +255,58 @@ def _get_widget_on_demand_specs(
 
     widget_specs = convert_widget_query_to_metric(project_for_query, widget_query, True)
 
-    unique_specs = []
-    hashes = set()
-    for hashed_metric_spec in widget_specs:
-        if hashed_metric_spec[0] not in hashes:
-            unique_specs.append(hashed_metric_spec)
-            hashes.add(hashed_metric_spec[0])
+    specs_per_version: dict[int, dict[str, HashedMetricSpec]] = {}
+    for hash, spec, spec_version in widget_specs:
+        specs_per_version.setdefault(spec_version.version, {})
+        specs_per_version[spec_version.version][hash] = (hash, spec, spec_version)
 
-    return unique_specs
+    specs: list[HashedMetricSpec] = []
+    for _, _specs_for_version in specs_per_version.items():
+        specs += _specs_for_version.values()
+
+    return specs
 
 
 def _set_widget_on_demand_state(
     widget_query: DashboardWidgetQuery,
     specs: Sequence[HashedMetricSpec],
     is_low_cardinality: bool | None,
-    enabled_features: Set[str],
+    enabled_features: set[str],
 ):
-    extraction_state = _determine_extraction_state(specs, is_low_cardinality, enabled_features)
-    spec_hashes = [hashed_spec[0] for hashed_spec in specs]
+    specs_per_version: dict[int, list[HashedMetricSpec]] = {}
+    for hash, spec, spec_version in specs:
+        specs_per_version.setdefault(spec_version.version, [])
+        specs_per_version[spec_version.version].append((hash, spec, spec_version))
 
-    DashboardWidgetQueryOnDemand.objects.update_or_create(
-        dashboard_widget_query=widget_query,
-        defaults={
-            "spec_hashes": spec_hashes,
-            "extraction_state": extraction_state,
-        },
-    )
+    for spec_version in OnDemandMetricSpecVersioning.get_spec_versions():
+        version = spec_version.version
+        specs_for_version = specs_per_version.get(version, [])
+        extraction_state = _determine_extraction_state(specs, is_low_cardinality, enabled_features)
+        spec_hashes = [hashed_spec[0] for hashed_spec in specs_for_version]
+
+        (on_demand, _) = DashboardWidgetQueryOnDemand.objects.get_or_create(
+            dashboard_widget_query=widget_query,
+            spec_version=version,
+            defaults={
+                "spec_hashes": spec_hashes,
+                "extraction_state": extraction_state,
+            },
+        )
+
+        if on_demand.can_extraction_be_auto_overridden():
+            on_demand.extraction_state = extraction_state
+
+        if options.get("on_demand.update_on_demand_modified"):
+            # Only temporarily required to check we've updated data on rows the task has passed
+            # Or updated to pass the check against widget query date_modified.
+            on_demand.date_modified = timezone.now()
+
+        on_demand.spec_hashes = spec_hashes
+        on_demand.save()
 
 
 def _determine_extraction_state(
-    specs: Sequence[HashedMetricSpec], is_low_cardinality: bool | None, enabled_features: Set[str]
+    specs: Sequence[HashedMetricSpec], is_low_cardinality: bool | None, enabled_features: set[str]
 ) -> OnDemandExtractionState:
     if not specs:
         return OnDemandExtractionState.DISABLED_NOT_APPLICABLE
@@ -297,7 +322,7 @@ def _determine_extraction_state(
 
 def _get_widget_query_low_cardinality(
     widget_query: DashboardWidgetQuery, organization: Organization
-) -> Optional[bool]:
+) -> bool | None:
     """
     Checks cardinality of existing widget queries before allowing the metric spec, so that
     group-by clauses with high cardinality tags are not added to the on_demand metric.
