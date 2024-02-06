@@ -184,19 +184,23 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                 )}
                 {!hasMultiEnv ? null : <div>{checkIn.environment}</div>}
                 <div>
-                  <Tooltip
-                    disabled={!customTimezone}
-                    title={
-                      <DateTime
-                        date={checkIn.expectedTime}
-                        forcedTimezone={monitor.config.timezone ?? 'UTC'}
-                        timeZone
-                        seconds
-                      />
-                    }
-                  >
-                    <Timestamp date={checkIn.expectedTime} timeZone seconds />
-                  </Tooltip>
+                  {checkIn.expectedTime ? (
+                    <Tooltip
+                      disabled={!customTimezone}
+                      title={
+                        <DateTime
+                          date={checkIn.expectedTime}
+                          forcedTimezone={monitor.config.timezone ?? 'UTC'}
+                          timeZone
+                          seconds
+                        />
+                      }
+                    >
+                      <Timestamp date={checkIn.expectedTime} timeZone seconds />
+                    </Tooltip>
+                  ) : (
+                    emptyCell
+                  )}
                 </div>
               </Fragment>
             ))}
