@@ -56,11 +56,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   dimensions: Dimensions;
 
   /**
-   * Total duration of the replay, in milliseconds
-   */
-  durationMs: number;
-
-  /**
    * The calculated speed of the player when fast-forwarding through idle moments in the video
    * The value is set to `0` when the video is not fast-forwarding
    * The speed is automatically determined by the length of each idle period
@@ -137,11 +132,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   speed: number;
 
   /**
-   * The time, in milliseconds, where the video should start
-   */
-  startTimeOffsetMs: number;
-
-  /**
    * Scale of the timeline width, starts from 1x and increases by 1x
    */
   timelineScale: number;
@@ -166,7 +156,6 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   currentHoverTime: undefined,
   currentTime: 0,
   dimensions: {height: 0, width: 0},
-  durationMs: 0,
   fastForwardSpeed: 0,
   addHighlight: () => {},
   initRoot: () => {},
@@ -183,7 +172,6 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   setSpeed: () => {},
   setTimelineScale: () => {},
   speed: 1,
-  startTimeOffsetMs: 0,
   timelineScale: 1,
   togglePlayPause: () => {},
   toggleSkipInactive: () => {},
@@ -206,14 +194,6 @@ type Props = {
   replay: ReplayReader | null;
 
   /**
-   * If provided, the replay will be clipped to this window.
-   */
-  clipWindow?: {
-    durationMs: number;
-    startTimeOffsetMs: number;
-  };
-
-  /**
    * Time, in seconds, when the video should start
    */
   initialTimeOffsetMs?: ReturnType<typeof useInitialOffsetMs>;
@@ -234,54 +214,9 @@ function updateSavedReplayConfig(config: ReplayConfig) {
   localStorage.setItem(ReplayLocalstorageKeys.REPLAY_CONFIG, JSON.stringify(config));
 }
 
-/**
- * When a clip window is provided, this hook will automatically pause and end
- * the replay when the provided window time has passed.
- */
-function useClipWindow({
-  clipWindow,
-  replayer,
-  onFinished,
-  isPlaying,
-}: {
-  clipWindow: Props['clipWindow'];
-  isPlaying: boolean;
-  onFinished: () => void;
-  replayer: Replayer | null;
-}) {
-  useEffect(() => {
-    if (!replayer || !clipWindow || !isPlaying) {
-      return () => {};
-    }
-
-    let timer: number | undefined;
-
-    const checkForEndOfClip = () => {
-      const currentTime = replayer.getCurrentTime();
-      const endTimeOffsetMs = clipWindow.startTimeOffsetMs + clipWindow.durationMs;
-
-      if (currentTime >= endTimeOffsetMs) {
-        replayer.pause(endTimeOffsetMs);
-        onFinished();
-      }
-
-      timer = requestAnimationFrame(checkForEndOfClip);
-    };
-
-    timer = requestAnimationFrame(checkForEndOfClip);
-
-    return () => {
-      if (timer) {
-        cancelAnimationFrame(timer);
-      }
-    };
-  }, [clipWindow, isPlaying, onFinished, replayer]);
-}
-
 export function Provider({
   analyticsContext,
   children,
-  clipWindow,
   initialTimeOffsetMs,
   isFetching,
   replay,
@@ -313,15 +248,8 @@ export function Provider({
   const didApplyInitialOffset = useRef(false);
   const [timelineScale, setTimelineScale] = useState(1);
 
-  const fullReplayDurationMs = replay?.getDurationMs() ?? 0;
-  const startTimeOffsetMs = clipWindow?.startTimeOffsetMs
-    ? clamp(clipWindow.startTimeOffsetMs, 0, fullReplayDurationMs)
-    : 0;
-  const durationMs = clipWindow?.durationMs
-    ? Math.min(clipWindow.durationMs, fullReplayDurationMs - startTimeOffsetMs)
-    : fullReplayDurationMs;
-
-  const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
+  const durationMs = replay?.getDurationMs() ?? 0;
+  const startTimeOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
@@ -337,22 +265,16 @@ export function Provider({
     replayerRef,
   });
 
-  const setReplayFinished = useCallback(() => {
-    setFinishedAtMS(replayerRef.current?.getCurrentTime() ?? -1);
-    setIsPlaying(false);
-  }, []);
-
-  const getCurrentTime = useCallback(
+  const getCurrentPlayerTime = useCallback(
     () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
     []
   );
 
-  useClipWindow({
-    clipWindow,
-    replayer: replayerRef.current,
-    isPlaying,
-    onFinished: setReplayFinished,
-  });
+  const isFinished = getCurrentPlayerTime() === finishedAtMS;
+  const setReplayFinished = useCallback(() => {
+    setFinishedAtMS(getCurrentPlayerTime());
+    setIsPlaying(false);
+  }, [getCurrentPlayerTime]);
 
   const privateSetCurrentTime = useCallback(
     (requestedTimeMs: number) => {
@@ -368,15 +290,11 @@ export function Provider({
         replayer.setConfig({skipInactive: false});
       }
 
-      const time = clamp(
-        requestedTimeMs,
-        startTimeOffsetMs,
-        startTimeOffsetMs + durationMs
-      );
+      const time = clamp(requestedTimeMs, 0, startTimeOffsetMs + durationMs);
 
       // Sometimes rrweb doesn't get to the exact target time, as long as it has
       // changed away from the previous time then we can hide then buffering message.
-      setBufferTime({target: time, previous: getCurrentTime()});
+      setBufferTime({target: time, previous: getCurrentPlayerTime()});
 
       // Clear previous timers. Without this (but with the setTimeout) multiple
       // requests to set the currentTime could finish out of order and cause jumping.
@@ -394,25 +312,27 @@ export function Provider({
         setIsPlaying(false);
       }
     },
-    [startTimeOffsetMs, durationMs, getCurrentTime, isPlaying]
+    [startTimeOffsetMs, durationMs, getCurrentPlayerTime, isPlaying]
   );
 
   const setCurrentTime = useCallback(
     (requestedTimeMs: number) => {
-      privateSetCurrentTime(requestedTimeMs);
+      privateSetCurrentTime(requestedTimeMs + startTimeOffsetMs);
       clearAllHighlights();
     },
-    [privateSetCurrentTime, clearAllHighlights]
+    [privateSetCurrentTime, startTimeOffsetMs, clearAllHighlights]
   );
 
   const applyInitialOffset = useCallback(() => {
+    const offsetMs = (initialTimeOffsetMs?.offsetMs ?? 0) + startTimeOffsetMs;
+
     if (
       !didApplyInitialOffset.current &&
-      initialTimeOffsetMs &&
+      (initialTimeOffsetMs || offsetMs) &&
       events &&
       replayerRef.current
     ) {
-      const {highlight: highlightArgs, offsetMs} = initialTimeOffsetMs;
+      const highlightArgs = initialTimeOffsetMs?.highlight;
       if (offsetMs > 0) {
         privateSetCurrentTime(offsetMs);
       }
@@ -431,6 +351,7 @@ export function Provider({
     addHighlight,
     initialTimeOffsetMs,
     privateSetCurrentTime,
+    startTimeOffsetMs,
   ]);
 
   useEffect(clearAllHighlights, [clearAllHighlights, isPlaying]);
@@ -517,14 +438,14 @@ export function Provider({
       if (isPlaying) {
         replayer.pause();
         replayer.setConfig({speed: newSpeed});
-        replayer.play(getCurrentTime());
+        replayer.play(getCurrentPlayerTime());
       } else {
         replayer.setConfig({speed: newSpeed});
       }
 
       setSpeedState(newSpeed);
     },
-    [getCurrentTime, isPlaying]
+    [getCurrentPlayerTime, isPlaying]
   );
 
   const togglePlayPause = useCallback(
@@ -535,9 +456,9 @@ export function Provider({
       }
 
       if (play) {
-        replayer.play(getCurrentTime());
+        replayer.play(getCurrentPlayerTime());
       } else {
-        replayer.pause(getCurrentTime());
+        replayer.pause(getCurrentPlayerTime());
       }
       setIsPlaying(play);
 
@@ -548,7 +469,7 @@ export function Provider({
         context: analyticsContext,
       });
     },
-    [organization, user.email, analyticsContext, getCurrentTime]
+    [organization, user.email, analyticsContext, getCurrentPlayerTime]
   );
 
   useEffect(() => {
@@ -594,14 +515,16 @@ export function Provider({
     setIsSkippingInactive(skip);
   }, []);
 
-  const currentPlayerTime = useCurrentTime(getCurrentTime);
+  const currentPlayerTime = useCurrentTime(getCurrentPlayerTime);
 
-  const [isBuffering, currentTime] =
+  const [isBuffering, currentBufferedPlayerTime] =
     buffer.target !== -1 &&
     buffer.previous === currentPlayerTime &&
     buffer.target !== buffer.previous
       ? [true, buffer.target]
       : [false, currentPlayerTime];
+
+  const currentTime = currentBufferedPlayerTime - startTimeOffsetMs;
 
   useEffect(() => {
     if (!isBuffering && events && events.length >= 2 && replayerRef.current) {
@@ -623,7 +546,6 @@ export function Provider({
         currentHoverTime,
         currentTime,
         dimensions,
-        durationMs,
         fastForwardSpeed,
         addHighlight,
         initRoot,
@@ -640,7 +562,6 @@ export function Provider({
         setSpeed,
         setTimelineScale,
         speed,
-        startTimeOffsetMs,
         timelineScale,
         togglePlayPause,
         toggleSkipInactive,

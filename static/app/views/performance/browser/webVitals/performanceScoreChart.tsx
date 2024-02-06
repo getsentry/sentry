@@ -63,12 +63,12 @@ export function PerformanceScoreChart({
   // Gets weights to dynamically size the performance score ring segments
   const weights = projectScore
     ? {
-        cls: projectScore.clsWeight,
-        fcp: projectScore.fcpWeight,
-        fid: projectScore.fidWeight,
         lcp: projectScore.lcpWeight,
+        fcp: projectScore.fcpWeight,
+        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
+        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
+        cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
-        inp: projectScore.inpWeight,
       }
     : undefined;
 

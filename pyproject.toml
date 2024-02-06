@@ -268,7 +268,6 @@ module = [
     "sentry.db.models.query",
     "sentry.db.models.utils",
     "sentry.db.postgres.base",
-    "sentry.db.postgres.creation",
     "sentry.db.router",
     "sentry.digests.notifications",
     "sentry.discover.endpoints.discover_key_transactions",
@@ -512,7 +511,6 @@ module = [
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
     "sentry.tsdb.redis",
-    "sentry.tsdb.snuba",
     "sentry.types.integrations",
     "sentry.utils.audit",
     "sentry.utils.auth",
@@ -644,8 +642,10 @@ disable_error_code = [
 # beginning: stronger typing
 [[tool.mypy.overrides]]
 module = [
+    "src.sentry.tasks.on_demand_metrics",
     "src.sentry.relay.config.metric_extraction",
     "src.sentry.snuba.metrics.extraction",
+    "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.relay.config.test_metric_extraction",
 ]
 disallow_untyped_defs = true

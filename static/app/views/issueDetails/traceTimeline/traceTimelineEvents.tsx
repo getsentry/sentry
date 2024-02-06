@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import color from 'color';
 
 import DateTime from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -49,7 +50,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
   return (
     <Fragment>
       {/* Add padding to the total columns, 1 column of padding on each side */}
-      <TimelineColumns totalColumns={totalColumns + 2}>
+      <TimelineColumns style={{gridTemplateColumns: `repeat(${totalColumns + 2}, 1fr)`}}>
         {Array.from(eventsByColumn.entries()).map(([column, colEvents]) => {
           // Calculate the timestamp range that this column represents
           const timeRange = getChunkTimeRange(
@@ -69,6 +70,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
                 columnSize={columnSize}
                 timeRange={timeRange}
                 currentEventId={event.id}
+                currentColumn={column}
               />
             </EventColumn>
           );
@@ -103,7 +105,7 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
  *   <Col>...</Col>
  * </Columns>
  */
-const TimelineColumns = styled('ul')<{totalColumns: number}>`
+const TimelineColumns = styled('div')`
   /* Reset defaults for <ul> */
   list-style: none;
   margin: 0;
@@ -111,8 +113,8 @@ const TimelineColumns = styled('ul')<{totalColumns: number}>`
 
   /* Layout of the lines */
   display: grid;
-  grid-template-columns: repeat(${p => p.totalColumns}, 1fr);
   margin-top: -1px;
+  height: 0;
 `;
 
 const TimestampColumns = styled('div')`
@@ -136,9 +138,11 @@ function NodeGroup({
   colEvents,
   columnSize,
   currentEventId,
+  currentColumn,
 }: {
   colEvents: TimelineEvent[];
   columnSize: number;
+  currentColumn: number;
   currentEventId: string;
   event: Event;
   timeRange: [number, number];
@@ -152,46 +156,59 @@ function NodeGroup({
     timeRange[0]
   );
 
+  const columns = Array.from(eventsByColumn.keys());
+  const minColumn = Math.min(...columns);
+  const maxColumn = Math.max(...columns);
+
   return (
-    <Tooltip
-      title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
-      overlayStyle={{
-        padding: `0 !important`,
-      }}
-      offset={10}
-      position="bottom"
-      isHoverable
-      skipWrapper
-    >
-      <TimelineColumns totalColumns={totalSubColumns}>
-        {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => (
-          <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
-            {groupEvents.map(groupEvent => (
-              // TODO: use sentry colors and add the other styles
-              <IconNode
-                key={groupEvent.id}
-                aria-label={
-                  groupEvent.id === currentEventId ? t('Current Event') : undefined
-                }
-                style={
-                  groupEvent.id === currentEventId
-                    ? {
-                        backgroundColor: 'rgb(181, 19, 7, 1)',
-                        outline: '1px solid rgb(181, 19, 7, 0.5)',
-                        outlineOffset: '3px',
-                      }
-                    : undefined
-                }
-              />
-            ))}
-          </EventColumn>
-        ))}
+    <Fragment>
+      <TimelineColumns style={{gridTemplateColumns: `repeat(${totalSubColumns}, 1fr)`}}>
+        {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => {
+          const isCurrentNode = groupEvents.some(e => e.id === currentEventId);
+          return (
+            <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
+              {isCurrentNode && (
+                <CurrentNodeContainer aria-label={t('Current Event')}>
+                  <CurrentNodeRing />
+                  <CurrentIconNode />
+                </CurrentNodeContainer>
+              )}
+              {!isCurrentNode &&
+                groupEvents.map(groupEvent =>
+                  'event.type' in groupEvent ? (
+                    <IconNode key={groupEvent.id} />
+                  ) : (
+                    <PerformanceIconNode key={groupEvent.id} />
+                  )
+                )}
+            </EventColumn>
+          );
+        })}
       </TimelineColumns>
-    </Tooltip>
+      <TimelineColumns style={{gridTemplateColumns: `repeat(${totalSubColumns}, 1fr)`}}>
+        <Tooltip
+          title={<TraceTimelineTooltip event={event} timelineEvents={colEvents} />}
+          overlayStyle={{
+            padding: `0 !important`,
+          }}
+          position="bottom"
+          isHoverable
+          skipWrapper
+        >
+          <TooltipHelper
+            style={{
+              gridColumn: columns.length > 1 ? `${minColumn} / ${maxColumn}` : columns[0],
+              width: 8 * columns.length,
+            }}
+            data-test-id={`trace-timeline-tooltip-${currentColumn}`}
+          />
+        </Tooltip>
+      </TimelineColumns>
+    </Fragment>
   );
 }
 
-const EventColumn = styled('li')`
+const EventColumn = styled('div')`
   place-items: stretch;
   display: grid;
   align-items: center;
@@ -212,5 +229,57 @@ const IconNode = styled('div')`
   color: ${p => p.theme.white};
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
-  background-color: rgb(181, 19, 7, 0.2);
+  background-color: ${p => color(p.theme.red200).alpha(0.3).string()};
+  margin-left: -8px;
+`;
+
+const PerformanceIconNode = styled(IconNode)`
+  background-color: unset;
+  border: 1px solid ${p => color(p.theme.red300).alpha(0.3).string()};
+`;
+
+const CurrentNodeContainer = styled('div')`
+  position: absolute;
+  grid-column: 1;
+  grid-row: 1;
+  width: 8px;
+  height: 8px;
+`;
+
+const CurrentNodeRing = styled('div')`
+  border: 1px solid ${p => p.theme.red300};
+  height: 16px;
+  width: 16px;
+  border-radius: 100%;
+  position: absolute;
+  top: -4px;
+  left: -12px;
+  animation: pulse 1s ease-out infinite;
+
+  @keyframes pulse {
+    0% {
+      transform: scale(0.1, 0.1);
+      opacity: 0.0;
+    }
+    50% {
+      opacity: 1.0;
+    }
+    100% {
+      transform: scale(1.2, 1.2);
+      opacity: 0.0;
+    }
+  }
+`;
+
+const CurrentIconNode = styled(IconNode)`
+  background-color: ${p => p.theme.red300};
+  border-radius: 50%;
+  position: absolute;
+`;
+
+const TooltipHelper = styled('span')`
+  height: 12px;
+  margin-left: -8px;
+  margin-top: -6px;
+  z-index: 1;
 `;
