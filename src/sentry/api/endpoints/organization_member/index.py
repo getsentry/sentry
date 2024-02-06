@@ -248,11 +248,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
 
         allowed_roles = get_allowed_org_roles(request, organization)
+        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
 
         # We allow requests from integration tokens to invite new members as the member role only
         if not allowed_roles and request.access.is_integration_token:
             # Error if the assigned role is not a member
-            if request.data.get("role") != "member" and request.data.get("orgRole") != "member":
+            if assigned_org_role != "member":
                 raise serializers.ValidationError(
                     "Integration tokens are restricted to inviting new members with the member role only."
                 )
@@ -285,6 +286,17 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 sample_rate=1.0,
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
+
+        if (
+            ("teamRoles" in result and result["teamRoles"])
+            or ("teams" in result and result["teams"])
+        ) and not organization_roles.get(assigned_org_role).is_team_roles_allowed:
+            return Response(
+                {
+                    "email": f"The user with a '{assigned_org_role}' role cannot have team-level permissions."
+                },
+                status=400,
+            )
 
         with transaction.atomic(router.db_for_write(OrganizationMember)):
             # remove any invitation requests for this email before inviting
