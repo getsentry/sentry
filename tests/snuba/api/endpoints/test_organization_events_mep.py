@@ -3232,7 +3232,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             {
                 # "environment": "production",
                 # XXX: try to add "transaction" back
-                "field": ["user_misery(300)", "transaction", "count()", "p75(measurements.lcp)"],
+                "field": ["user_misery(300)", "count()", "p75(measurements.lcp)"],
                 "query": "event.type:transaction transaction.op:pageload app_recommended_owner:#onboarding-experience",
                 "yAxis": "user_misery(300)",
             },
