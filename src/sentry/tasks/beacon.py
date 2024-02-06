@@ -4,7 +4,6 @@ from datetime import timedelta
 from hashlib import sha1
 from uuid import uuid4
 
-import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
@@ -90,11 +89,9 @@ def get_category_event_count_24h() -> int:
             outcome=["accepted"],
         )
         tenant_ids = {"organization_id": organization_id}
-        with sentry_sdk.start_span(op="outcomes.endpoint", description="run_outcomes_query"):
-            result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
-            result_timeseries = run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
-        with sentry_sdk.start_span(op="outcomes.endpoint", description="massage_outcomes_result"):
-            result = massage_outcomes_result(query, result_totals, result_timeseries)
+        result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
+        result_timeseries = run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
+        result = massage_outcomes_result(query, result_totals, result_timeseries)
         for group in result["groups"]:
             if group["by"]["category"] in event_categories_count.keys():
                 event_categories_count[group["by"]["category"]] += group["totals"]["sum(quantity)"]
