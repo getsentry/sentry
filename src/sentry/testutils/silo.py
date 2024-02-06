@@ -111,10 +111,6 @@ def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
     return silo_limit
 
 
-class AncestorAlreadySiloDecoratedException(Exception):
-    pass
-
-
 class SubclassNotSiloDecoratedException(Exception):
     pass
 
@@ -304,32 +300,6 @@ class _SiloModeTestModification:
             return self._add_siloed_test_classes_to_module(decorated_obj)
 
         return self._mark_parameterized_by_silo_mode(decorated_obj)
-
-    def _validate_that_no_ancestor_is_silo_decorated(self, object_to_validate: Any):
-        # Deprecated? Silo decorators at multiple places in the inheritance tree may
-        # be necessary if a base class needs to be run in a non-default mode,
-        # especially when the default is no longer region mode. The previous
-        # rationale may have been limited to problems around swapping the local
-        # region, which may now be resolved.
-        #
-        # TODO(RyanSkonnord): Delete this after ascertaining that it's safe to have
-        #  silo decorators on test case class ancestors
-
-        class_queue = [object_to_validate]
-
-        # Do a breadth-first traversal of all base classes to ensure that the
-        #  object does not inherit from a class which has already been decorated,
-        #  even in multi-inheritance scenarios.
-        while len(class_queue) > 0:
-            current_class = class_queue.pop(0)
-            if getattr(current_class, "_silo_modes", None):
-                raise AncestorAlreadySiloDecoratedException(
-                    f"Cannot decorate class '{object_to_validate.__name__}', "
-                    f"which inherits from a silo decorated class ({current_class.__name__})"
-                )
-            class_queue.extend(current_class.__bases__)
-
-        object_to_validate._silo_modes = self.silo_modes
 
 
 all_silo_test = SiloModeTestDecorator(*SiloMode)
