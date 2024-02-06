@@ -19,8 +19,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 type Props = {};
 
 function ReplayTimeline({}: Props) {
-  const {replay, currentTime, timelineScale, startTimeOffsetMs, durationMs} =
-    useReplayContext();
+  const {replay, currentTime, timelineScale} = useReplayContext();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
@@ -35,12 +34,13 @@ function ReplayTimeline({}: Props) {
     return <Placeholder height="20px" />;
   }
 
-  const startTimestampMs = replay.getReplay().started_at.getTime() + startTimeOffsetMs;
+  const durationMs = replay.getDurationMs();
+  const startTimestampMs = replay.getStartTimestampMs();
   const chapterFrames = replay.getChapterFrames();
 
   // timeline is in the middle
   const initialTranslate = 0.5 / timelineScale;
-  const percentComplete = divide(currentTime - startTimeOffsetMs, durationMs);
+  const percentComplete = divide(currentTime, durationMs);
 
   const starting = percentComplete < initialTranslate;
   const ending = percentComplete + initialTranslate > 1;
@@ -52,10 +52,7 @@ function ReplayTimeline({}: Props) {
     if (ending) {
       return initialTranslate - (1 - initialTranslate);
     }
-    return (
-      initialTranslate -
-      (currentTime - startTimeOffsetMs > durationMs ? 1 : percentComplete)
-    );
+    return initialTranslate - (currentTime > durationMs ? 1 : percentComplete);
   };
 
   return (
@@ -76,7 +73,6 @@ function ReplayTimeline({}: Props) {
             frames={chapterFrames}
             startTimestampMs={startTimestampMs}
             width={width}
-            startTimeOffsetMs={startTimeOffsetMs}
           />
         </TimelineEventsContainer>
       </Stacked>

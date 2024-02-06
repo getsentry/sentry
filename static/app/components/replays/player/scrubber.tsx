@@ -17,17 +17,12 @@ type Props = {
 };
 
 function Scrubber({className, showZoomIndicators = false}: Props) {
-  const {
-    currentHoverTime,
-    currentTime,
-    setCurrentTime,
-    timelineScale,
-    startTimeOffsetMs,
-    durationMs,
-  } = useReplayContext();
+  const {replay, currentHoverTime, currentTime, setCurrentTime, timelineScale} =
+    useReplayContext();
 
-  const percentComplete = divide(currentTime - startTimeOffsetMs, durationMs);
-  const hoverPlace = divide(currentHoverTime || 0 - startTimeOffsetMs, durationMs);
+  const durationMs = replay?.getDurationMs() ?? 0;
+  const percentComplete = divide(currentTime, durationMs);
+  const hoverPlace = divide(currentHoverTime || 0, durationMs);
 
   const initialTranslate = 0.5 / timelineScale;
 
@@ -80,8 +75,8 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
       <RangeWrapper>
         <Range
           name="replay-timeline"
-          min={startTimeOffsetMs}
-          max={startTimeOffsetMs + durationMs}
+          min={0}
+          max={durationMs}
           value={Math.round(currentTime)}
           onChange={value => setCurrentTime(value || 0)}
           showLabel={false}

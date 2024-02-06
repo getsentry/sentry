@@ -18,7 +18,8 @@ type TimeAndScrubberGridProps = {
 };
 
 function TimelineSizeBar() {
-  const {timelineScale, setTimelineScale, durationMs} = useReplayContext();
+  const {replay, timelineScale, setTimelineScale} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
   const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
 
   return (
@@ -53,15 +54,14 @@ function TimeAndScrubberGrid({
   isCompact = false,
   showZoom = false,
 }: TimeAndScrubberGridProps) {
-  const {currentTime, startTimeOffsetMs, durationMs} = useReplayContext();
+  const {currentTime, replay} = useReplayContext();
+  const durationMs = replay?.getDurationMs();
   const elem = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem});
 
   return (
     <Grid id="replay-timeline-player" isCompact={isCompact}>
-      <Time style={{gridArea: 'currentTime'}}>
-        {formatTime(currentTime - startTimeOffsetMs)}
-      </Time>
+      <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
       <div style={{gridArea: 'timeline'}}>
         <ReplayTimeline />
       </div>

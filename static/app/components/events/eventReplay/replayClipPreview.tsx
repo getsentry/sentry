@@ -83,7 +83,7 @@ function ReplayPreviewPlayer({
   const routes = useRoutes();
   const organization = useOrganization();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const {currentTime} = useReplayContext();
+  const {replay, currentTime} = useReplayContext();
 
   const fullscreenRef = useRef(null);
   const {toggle: toggleFullscreen} = useFullscreen({
@@ -91,12 +91,13 @@ function ReplayPreviewPlayer({
   });
   const isFullscreen = useIsFullscreen();
 
+  const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
   const fullReplayUrl = {
     pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: TabKey.ERRORS,
-      t: currentTime / 1000,
+      t: (currentTime + startOffsetMs) / 1000,
     },
   };
 
@@ -147,39 +148,23 @@ function ReplayClipPreview({
   replaySlug,
   fullReplayButtonProps,
 }: Props) {
+  const clipWindow = useMemo(
+    () => ({
+      startTimestampMs: eventTimestampMs - CLIP_DURATION_BEFORE_EVENT,
+      endTimestampMs: eventTimestampMs + CLIP_DURATION_AFTER_EVENT,
+    }),
+    [eventTimestampMs]
+  );
+
   const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
+    clipWindow,
   });
-
-  const startTimestampMs = replayRecord?.started_at?.getTime() ?? 0;
-  const endTimestampMs = replayRecord?.finished_at?.getTime() ?? 0;
-  const eventTimeOffsetMs = Math.abs(eventTimestampMs - startTimestampMs);
-  const endTimeOffsetMs = Math.abs(endTimestampMs - startTimestampMs);
 
   useRouteAnalyticsParams({
     event_replay_status: getReplayAnalyticsStatus({fetchError, replayRecord}),
   });
-
-  const clipStartTimeOffsetMs = Math.max(
-    eventTimeOffsetMs - CLIP_DURATION_BEFORE_EVENT,
-    0
-  );
-  const clipDurationMs =
-    Math.min(eventTimeOffsetMs + CLIP_DURATION_AFTER_EVENT, endTimeOffsetMs) -
-    clipStartTimeOffsetMs;
-
-  const clipWindow = useMemo(
-    () => ({
-      startTimeOffsetMs: clipStartTimeOffsetMs,
-      durationMs: clipDurationMs,
-    }),
-    [clipDurationMs, clipStartTimeOffsetMs]
-  );
-  const offset = useMemo(
-    () => ({offsetMs: clipWindow.startTimeOffsetMs}),
-    [clipWindow.startTimeOffsetMs]
-  );
 
   if (replayRecord?.is_archived) {
     return (
@@ -210,8 +195,6 @@ function ReplayClipPreview({
     <ReplayContextProvider
       isFetching={fetching}
       replay={replay}
-      initialTimeOffsetMs={offset}
-      clipWindow={clipWindow}
       analyticsContext={analyticsContext}
     >
       <PlayerContainer data-test-id="player-container">
