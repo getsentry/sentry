@@ -32,6 +32,7 @@ class UserUserRolesTest(APITestCase):
         assert resp.status_code == 403
 
 
+@control_silo_test
 class UserUserRolesDetailsTest(UserUserRolesTest):
     def test_lookup_self(self):
         role = UserRole.objects.create(name="support", permissions=["broadcasts.admin"])
@@ -43,6 +44,7 @@ class UserUserRolesDetailsTest(UserUserRolesTest):
         assert resp.data["name"] == "support"
 
 
+@control_silo_test
 class UserUserRolesCreateTest(UserUserRolesTest):
     method = "POST"
 
@@ -66,6 +68,7 @@ class UserUserRolesCreateTest(UserUserRolesTest):
         assert resp.status_code == 410
 
 
+@control_silo_test
 class UserUserRolesDeleteTest(UserUserRolesTest):
     method = "DELETE"
 
