@@ -189,6 +189,7 @@ def safe_for_comment(
         if file["status"] == "added" or filename.split(".")[-1] not in PATCH_PARSERS:
             continue
 
+        if "patch" not in file: continue
         changed_file_count += 1
         changed_lines_count += file["changes"]
         filtered_pr_files.append(file)
