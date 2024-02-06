@@ -71,7 +71,7 @@ const INTERACTION_SAMPLES_COLUMN_ORDER: GridColumnOrder<
   {key: 'totalScore', width: COL_WIDTH_UNDEFINED, name: 'Score'},
 ];
 
-const INP_SEARCH_FILTER = 'has:measurements.fid';
+const INP_SEARCH_FILTER = 'has:measurements.fid (has:profile.id OR has:replayId)';
 
 enum Dataset {
   PAGELOADS = 'pageloads',
