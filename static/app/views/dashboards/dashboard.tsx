@@ -116,7 +116,6 @@ class Dashboard extends Component<Props, State> {
       },
       windowWidth: window.innerWidth,
     };
-    connectDashboardCharts(DASHBOARD_CHART_GROUP);
   }
 
   static getDerivedStateFromProps(props, state) {
@@ -160,6 +159,8 @@ class Dashboard extends Component<Props, State> {
 
     // Get member list data for issue widgets
     this.fetchMemberList();
+
+    connectDashboardCharts(DASHBOARD_CHART_GROUP);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -539,6 +540,9 @@ class Dashboard extends Component<Props, State> {
     widgets = widgets.filter(({widgetType}) => {
       if (widgetType === WidgetType.RELEASE) {
         return organization.features.includes('dashboards-rh-widget');
+      }
+      if (widgetType === WidgetType.METRICS) {
+        return hasDDMFeature(organization);
       }
       return true;
     });

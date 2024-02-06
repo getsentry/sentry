@@ -33,11 +33,11 @@ import type {
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 import {formatMRI} from '../../../../utils/metrics/mri';
+import {useMetricsDashboardContext} from '../metricsContext';
 
 type InlineEditorProps = {
   displayType: MetricDisplayType;
@@ -72,7 +72,7 @@ export const InlineEditor = memo(function InlineEditor({
   size = 'sm',
 }: InlineEditorProps) {
   const [editingName, setEditingName] = useState(false);
-  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
+  const {metricsMeta: meta, isLoading: isMetaLoading} = useMetricsDashboardContext();
 
   const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
 
