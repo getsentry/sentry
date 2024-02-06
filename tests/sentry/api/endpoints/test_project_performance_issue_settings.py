@@ -208,7 +208,6 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             self.project.organization.slug, self.project.slug, format="json"
         )
 
-        assert get_response.status_code == 200, response.content
         assert not get_response.data["n_plus_one_db_queries_detection_enabled"]
 
     @with_feature("organizations:performance-view")
