@@ -3,13 +3,14 @@
 import logging
 from enum import Enum
 
+from django.conf import settings
 from django.db import connection, migrations
 from psycopg2.extras import execute_values
 
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import json, redis
-from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 # copied to ensure migraitons work if the enums change #
 
@@ -65,20 +66,6 @@ UPDATE_QUERY = """
 REDIS_KEY = "priority_backfill.last_processed_id"
 
 
-def _set_processing_state(row_id: int) -> None:
-    with redis.clusters.get("default").get_local_client_for_key(
-        "backfill_group_priority"
-    ) as client:
-        client.set(REDIS_KEY, row_id)
-
-
-def _get_last_processed_id() -> int | None:
-    with redis.clusters.get("default").get_local_client_for_key(
-        "backfill_group_priority"
-    ) as client:
-        return client.get(REDIS_KEY)
-
-
 def _get_priority_level(group_id, level, type_id, substatus):
     group_type = get_group_type_by_type_id(type_id)
 
@@ -124,12 +111,20 @@ def _get_priority_level(group_id, level, type_id, substatus):
 def update_group_priority(apps, schema_editor):
     Group = apps.get_model("sentry", "Group")
 
+    redis_client = redis.clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     cursor = connection.cursor()
     batch = []
 
-    last_processed_id = _get_last_processed_id() or 0
+    last_processed_id = int(redis_client.get(REDIS_KEY) or 0)
     logger.info("Starting group priority backfill from id %s", last_processed_id)
-    for group_id, data, level, group_type, substatus, priority in RangeQuerySetWrapper(
+    for (
+        group_id,
+        data,
+        level,
+        group_type,
+        substatus,
+        priority,
+    ) in RangeQuerySetWrapperWithProgressBarApprox(
         Group.objects.filter(id__gt=last_processed_id).values_list(
             "id", "data", "level", "type", "substatus", "priority"
         ),
@@ -150,7 +145,7 @@ def update_group_priority(apps, schema_editor):
                 extra={"group_id": group_id},
             )
             execute_values(cursor, UPDATE_QUERY, batch, page_size=BATCH_SIZE)
-            _set_processing_state(group_id)
+            redis_client.set(REDIS_KEY, group_id, ex=60 * 60 * 24 * 7)
             batch = []
 
     if batch:
