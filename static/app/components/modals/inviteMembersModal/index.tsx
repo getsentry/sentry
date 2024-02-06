@@ -48,25 +48,17 @@ function InviteMembersModal({
     source,
   });
 
-  let member = memberResult.data;
-
   if (memberResult.isLoading) {
     return <LoadingIndicator />;
   }
 
-  if (memberResult.isError) {
-    if (!isActiveSuperuser()) {
-      return (
-        <LoadingError
-          message={t('Failed to load members')}
-          onRetry={memberResult.refetch}
-        />
-      );
-    }
-    // superuser may not be a member of the organization
-    // setting member to undefined allows superuser to
-    // invite all roles in InviteMembersModalView
-    member = undefined;
+  if (memberResult.isError && !isActiveSuperuser()) {
+    return (
+      <LoadingError
+        message={t('Failed to load members')}
+        onRetry={memberResult.refetch}
+      />
+    );
   }
 
   return (
@@ -93,7 +85,7 @@ function InviteMembersModal({
               headerInfo={headerInfo}
               invites={invites}
               inviteStatus={inviteStatus}
-              member={member}
+              member={memberResult.data}
               pendingInvites={pendingInvites}
               removeInviteRow={removeInviteRow}
               reset={reset}
