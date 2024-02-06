@@ -83,6 +83,17 @@ export type IssueEventParameters = {
   'issue_details.issue_status_docs_clicked': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
+  'issue_details.similar_issues.diff_clicked': {
+    error_message: string;
+    group_id: string;
+    parent_error_message: string;
+    parent_group_id: string;
+    parent_stacktrace: string;
+    parent_transaction: string;
+    project_id: string;
+    stacktrace: string;
+    transaction: string;
+  };
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
@@ -320,6 +331,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'device.classification.unclassified.ios.device':
     'Event from iOS device missing device.class',
   'device.classification.high.end.android.device': 'Event from high end Android device',
+  'issue_details.similar_issues.diff_clicked':
+    'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.sourcemap_wizard_dismiss': 'Issue Details: Sourcemap Wizard Dismiss',
   'issue_details.sourcemap_wizard_copy': 'Issue Details: Sourcemap Wizard Copy',
   'issue_details.sourcemap_wizard_learn_more':
