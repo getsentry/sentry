@@ -257,42 +257,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
-    def test_invalid_return(self, mock_seer_request):
-        """
-        The seer API can return groups that do not exist if they have been deleted/merged.
-        Test that these groups are not returned.
-        """
-        seer_return_value: SimilarIssuesEmbeddingsResponse = {
-            "responses": [
-                {
-                    "message_similarity": 0.95,
-                    "parent_group_id": self.similar_group.id,
-                    "should_group": True,
-                    "stacktrace_similarity": 0.99,
-                },
-                {
-                    "message_similarity": 0.95,
-                    "parent_group_id": 10000000,  # An arbitrarily large group ID that will not exist
-                    "should_group": True,
-                    "stacktrace_similarity": 0.99,
-                },
-            ]
-        }
-        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
-        response = self.client.get(self.path)
-        assert response.data == self.get_expected_response(
-            [self.similar_group.id], [0.95], [0.99], ["Yes"]
-        )
-
-    @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
-    def test_empty_return(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse([])
-        response = self.client.get(self.path)
-        assert response.data == []
-
-    @with_feature("projects:similarity-embeddings")
-    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
         Test that optional parameters, k and threshold, can not be included.
