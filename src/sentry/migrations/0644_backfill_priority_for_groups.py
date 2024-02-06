@@ -111,7 +111,7 @@ def _get_priority_level(group_id, level, type_id, substatus):
 def update_group_priority(apps, schema_editor):
     Group = apps.get_model("sentry", "Group")
 
-    redis_client = redis.clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
     cursor = connection.cursor()
     batch = []
 

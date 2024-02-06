@@ -27,10 +27,8 @@ class BackfillGroupPriority(TestMigrations):
 
     def setup_initial_state(self):
         self._create_groups_to_backfill(self.project)
-        with redis.clusters.get("default").get_local_client_for_key(
-            "backfill_group_priority"
-        ) as client:
-            client.set("priority_backfill.last_processed_id", 3)
+        redis_cluster = redis.redis_clusters.get("default")
+        redis_cluster.set("priority_backfill.last_processed_id", 3)
 
     def test(self):
         for groups, expected_priority in (
@@ -225,7 +223,7 @@ class BackfillGroupPriority(TestMigrations):
         self.high_priority_groups = []
 
         for desc, group_data, expected_priority in data:
-            group = self.create_group(project=project, **group_data)
+            group = self.create_group(project, **group_data)  # type: ignore
             if expected_priority == PriorityLevel.LOW:
                 self.low_priority_groups.append((desc, group))
 
