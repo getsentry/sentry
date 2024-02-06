@@ -62,7 +62,6 @@ class ReplayExamples:
     GET_SELECTORS = [
         OpenApiExample(
             "Retrieve a collection of selectors for an organization.",
-            description="Returns a list of objects with selector attributes.",
             value=[
                 {
                     "count_dead_clicks": 2,
