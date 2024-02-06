@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from datetime import timezone
 from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
+from django.utils import timezone
 
 from sentry import options
 from sentry.api.utils import get_date_range_from_params
