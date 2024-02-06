@@ -11793,11 +11793,6 @@ webpack-dev-server@^4.15.1:
     webpack-dev-middleware "^5.3.1"
     ws "^8.13.0"
 
-webpack-hook-plugin@^1.0.7:
-  version "1.0.7"
-  resolved "https://registry.yarnpkg.com/webpack-hook-plugin/-/webpack-hook-plugin-1.0.7.tgz#689c2a24e16df247be91d8649e9da048774308ec"
-  integrity sha512-8GJ+LiR+0rrShCSeeFMaKONX7xMMW3H9Hszmy5IsCereZUJ5AoLhJgn5BhySQChA4Q5lZ7/9KtidDypYHQDDmA==
-
 webpack-merge@^5.7.3:
   version "5.7.3"
   resolved "https://registry.yarnpkg.com/webpack-merge/-/webpack-merge-5.7.3.tgz#2a0754e1877a25a8bbab3d2475ca70a052708213"
