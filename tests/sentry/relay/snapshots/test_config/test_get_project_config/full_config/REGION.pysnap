@@ -1,6 +1,4 @@
 ---
-created: '2024-01-24T14:07:55.778589Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -121,8 +119,6 @@ config:
         - '@ip'
         - '@mac'
         type: multiple
-  spanAttributes:
-  - exclusive-time
   trustedRelays: []
 disabled: false
 slug: bar

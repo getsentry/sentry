@@ -5,7 +5,6 @@ from uuid import uuid4
 import pytest
 
 from sentry.models.eventattachment import EventAttachment
-from sentry.spans.grouping.utils import hash_values
 from sentry.tasks.relay import invalidate_project_config
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
@@ -222,21 +221,6 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         event = self.post_and_retrieve_event(event_data)
         raw_event = event.get_raw_data()
 
-        exclusive_times = [
-            pytest.approx(50, abs=2),
-            pytest.approx(0, abs=2),
-            pytest.approx(200, abs=2),
-            pytest.approx(0, abs=2),
-            pytest.approx(200, abs=2),
-        ]
-        for actual, expected, exclusive_time in zip(
-            raw_event["spans"], event_data["spans"], exclusive_times
-        ):
-            assert actual == dict(
-                expected,
-                exclusive_time=exclusive_time,
-                hash=hash_values([expected["description"]]),
-            )
         assert raw_event["breakdowns"] == {
             "span_ops": {
                 "ops.browser": {"unit": "millisecond", "value": pytest.approx(200, abs=2)},
