@@ -77,17 +77,23 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
         })}
       </TimelineColumns>
       <TimestampColumns>
-        <TimestampItem style={{textAlign: 'left'}}>
+        <TimestampItem>
           <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
         </TimestampItem>
-        <TimestampItem style={{textAlign: 'center'}}>
+        <TimestampItem>
+          <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
+        </TimestampItem>
+        <TimestampItem>
           <DateTime
             date={paddedStartTime + Math.floor(durationMs / 2)}
             seconds={showTimelineSeconds}
             timeOnly
           />
         </TimestampItem>
-        <TimestampItem style={{textAlign: 'right'}}>
+        <TimestampItem>
+          <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
+        </TimestampItem>
+        <TimestampItem>
           <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
         </TimestampItem>
       </TimestampColumns>
@@ -119,7 +125,7 @@ const TimelineColumns = styled('div')`
 
 const TimestampColumns = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   margin-top: ${space(1)};
 `;
 
@@ -127,6 +133,7 @@ const TimestampItem = styled('div')`
   place-items: stretch;
   display: grid;
   align-items: center;
+  text-align: center;
   position: relative;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};

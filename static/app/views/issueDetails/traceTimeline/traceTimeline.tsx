@@ -33,7 +33,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     !isLoading && data.length > 0 && data.every(item => item.id === event.id);
   if (isError || noEvents || onlySelfEvent) {
     // display empty placeholder to reduce layout shift
-    return <div style={{height: 34}} data-test-id="trace-timeline-empty" />;
+    return <div style={{height: 38}} data-test-id="trace-timeline-empty" />;
   }
 
   return (
@@ -62,7 +62,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 const TimelineOutline = styled('div')`
   position: absolute;
   left: 0;
-  top: 3px;
+  top: 3.5px;
   width: 100%;
   height: 10px;
   border: 1px solid ${p => p.theme.innerBorder};
