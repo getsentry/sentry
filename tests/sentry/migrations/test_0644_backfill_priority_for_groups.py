@@ -22,8 +22,8 @@ class PriorityLevel:
 
 
 class BackfillGroupPriority(TestMigrations):
-    migrate_from = "0638_add_date_added_to_dashboard_widget_on_demand"
-    migrate_to = "0639_backfill_priority_for_groups"
+    migrate_from = "0643_add_date_modified_col_dashboard_widget_query"
+    migrate_to = "0644_backfill_priority_for_groups"
 
     def setup_initial_state(self):
         self._create_groups_to_backfill(self.project)
