@@ -511,7 +511,6 @@ def manage_issue_states(
                 )
             add_group_to_inbox(group, GroupInboxReason.ESCALATING, snooze_details)
             record_group_history(group, GroupHistoryStatus.ESCALATING)
-            auto_update_priority(group, PriorityChangeReason.ESCALATING)
 
             has_forecast = (
                 True if data and activity_data and "forecast" in activity_data.keys() else False
@@ -539,6 +538,7 @@ def manage_issue_states(
             Activity.objects.create_group_activity(
                 group=group, type=ActivityType.SET_ESCALATING, data=data
             )
+            auto_update_priority(group, PriorityChangeReason.ESCALATING)
 
     elif group_inbox_reason == GroupInboxReason.ONGOING:
         updated = Group.objects.filter(
