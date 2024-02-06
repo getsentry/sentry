@@ -12,6 +12,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
 import type {Event, Group} from 'sentry/types';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {TraceTimeline} from 'sentry/views/issueDetails/traceTimeline/traceTimeline';
 
 interface Props {
   eventData: Event | undefined;
@@ -29,6 +30,7 @@ const fixIssueLinkSpacing = css`
 export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
   return (
     <VerticalSpacing>
+      {eventData ? <TraceTimeline event={eventData} /> : null}
       <Flex wrap="wrap" flex="1 1 auto" gap={space(1)} justify="space-between">
         <FeedbackItemUsername feedbackIssue={feedbackItem} detailDisplay />
 
