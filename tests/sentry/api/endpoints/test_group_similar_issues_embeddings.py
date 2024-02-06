@@ -211,7 +211,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         # Include no optional parameters
         response = self.client.get(self.path)
-
         assert response.data == self.get_expected_response(
             [self.similar_group.id], [0.95], [0.99], ["Yes"]
         )
