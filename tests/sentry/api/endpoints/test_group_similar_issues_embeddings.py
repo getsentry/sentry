@@ -138,6 +138,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.data == self.get_expected_response(
             [self.similar_group.id], [0.95], [0.99], ["Yes"]
         )
+
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
@@ -205,6 +206,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 }
             ]
         }
+
         mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
 
         # Include no optional parameters
@@ -213,6 +215,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.data == self.get_expected_response(
             [self.similar_group.id], [0.95], [0.99], ["Yes"]
         )
+
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
@@ -234,6 +237,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.data == self.get_expected_response(
             [self.similar_group.id], [0.95], [0.99], ["Yes"]
         )
+
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",
@@ -256,6 +260,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.data == self.get_expected_response(
             [self.similar_group.id], [0.95], [0.99], ["Yes"]
         )
+
         mock_seer_request.assert_called_with(
             "POST",
             "/v0/issues/similar-issues",

@@ -58,7 +58,7 @@ def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> st
     return "\n".join(output)
 
 
-class FormattedSimilarIssuesEmbeddingsData(TypedDict, total=False):
+class FormattedSimilarIssuesEmbeddingsData(TypedDict):
     exception: float
     message: float
     shouldBeGrouped: str

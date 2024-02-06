@@ -78,7 +78,7 @@ def is_in_test_case_body() -> bool:
 
     def seek(module_path: str, function_name: str) -> bool:
         """Check whether the named function has been called in the current stack."""
-        pattern = re.compile(rf"/{module_path}\b.*\b{function_name}>$")
+        pattern = re.compile(rf"/{re.escape(module_path)}\b.*\b{re.escape(function_name)}>$")
         return any(pattern.search(frame) for frame in frames)
 
     return seek("_pytest/runner.py", "pytest_runtest_call") and not (

@@ -121,6 +121,11 @@ export default function getConfiguration({
               organization?.features?.includes('ddm-ui')
             ),
         },
+        {
+          path: `${pathPrefix}/replays/`,
+          title: t('Replays'),
+          show: () => !!organization?.features?.includes('session-replay-ui'),
+        },
       ],
     },
     {

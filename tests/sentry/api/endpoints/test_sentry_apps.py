@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.response import Response
 
@@ -171,6 +172,17 @@ class SuperUserGetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app.uuid in response_uuids
         assert self.unowned_unpublished_app.uuid in response_uuids
 
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            self.get_success_response()
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_write_sees_all_apps(self):
+        self.get_success_response()
+
+        self.add_user_permission(self.superuser, "superuser.write")
+        self.get_success_response()
+
     def test_superusers_filter_on_internal_apps(self):
         self.set_up_internal_app()
         new_org = self.create_organization()
@@ -314,6 +326,20 @@ class SuperUserPostSentryAppsTest(SentryAppsTest):
     def test_superuser_can_create_with_popularity(self):
         response = self.get_success_response(**self.get_data(popularity=POPULARITY))
         assert {"popularity": POPULARITY}.items() <= json.loads(response.content).items()
+
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            self.get_success_response(**self.get_data(popularity=25, name="myApp 2"))
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_cannot_create(self):
+        self.get_error_response(**self.get_data(name="POPULARITY"))
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_can_create(self):
+        self.add_user_permission(self.superuser, "superuser.write")
+        self.get_success_response(**self.get_data(popularity=POPULARITY))
 
 
 @control_silo_test

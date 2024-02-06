@@ -40,6 +40,7 @@ from sentry.sentry_metrics.querying.visitors import (
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import (
     ParsedMRI,
+    SpanMRI,
     TransactionMRI,
     is_measurement,
     is_mri,
@@ -371,13 +372,17 @@ class MetricsSummariesCorrelationsSource(CorrelationsSource):
         )
 
         # Third, we fetch the segments details together with aggregates
-        segments = _get_segments(
-            where=[Condition(Column("transaction_id"), Op.IN, list(segments_spans.keys()))],
-            start=start,
-            end=end,
-            organization=self.organization,
-            projects=self.projects,
-        )
+        if segments_spans:
+            segments = _get_segments(
+                where=[Condition(Column("transaction_id"), Op.IN, list(segments_spans.keys()))],
+                start=start,
+                end=end,
+                organization=self.organization,
+                projects=self.projects,
+            )
+        else:
+            # If there are no segment spans, we can safely skip fetching segment details
+            segments = []
 
         # Fourth, we merge span details with the fetched segments.
         extended_segments = []
@@ -492,6 +497,127 @@ class MeasurementsCorrelationsSource(CorrelationsSource):
             organization=self.organization,
             projects=self.projects,
         )
+
+
+class SpansDurationCorrelationsSource(CorrelationsSource):
+    @classmethod
+    def supports(cls, metric_mri: str) -> bool:
+        return cls.get_span_column(metric_mri) is not None
+
+    @classmethod
+    def get_span_column(cls, metric_mri: str) -> Column | None:
+        if metric_mri == SpanMRI.SELF_TIME.value:
+            return Column("exclusive_time")
+
+        if metric_mri == SpanMRI.DURATION.value:
+            return Column("duration")
+
+        return None
+
+    def _get_segments(
+        self,
+        metric_mri: str,
+        conditions: QueryConditions,
+        start: datetime,
+        end: datetime,
+        min_value: float | None,
+        max_value: float | None,
+    ) -> Sequence[Segment]:
+        segments_spans = self._get_segments_spans(
+            metric_mri, conditions, start, end, min_value, max_value
+        )
+
+        if segments_spans:
+            segments = _get_segments(
+                where=[Condition(Column("transaction_id"), Op.IN, list(segments_spans.keys()))],
+                start=start,
+                end=end,
+                organization=self.organization,
+                projects=self.projects,
+            )
+        else:
+            segments = []
+
+        extended_segments = []
+        for segment in segments:
+            metric_summaries = []
+            spans_details = []
+            for span_id, duration, timestamp in segments_spans.get(segment.segment_id, []):
+                # the span duration and self time metric happens once per span, so we can
+                # hard code what the metric summary object here
+                metric_summaries.append(
+                    MetricSummary(
+                        span_id=span_id,
+                        min=duration,
+                        max=duration,
+                        sum=duration,
+                        count=1,
+                    )
+                )
+
+                spans_details.append(
+                    SpanDetail(span_id=span_id, span_duration=duration, span_timestamp=timestamp)
+                )
+
+            extended_segments.append(
+                segment.add_metric_summaries(metric_summaries).add_spans_details(spans_details)
+            )
+
+        return extended_segments
+
+    def _get_segments_spans(
+        self,
+        metric_mri,
+        conditions: QueryConditions,
+        start: datetime,
+        end: datetime,
+        min_value: float | None,
+        max_value: float | None,
+    ) -> Mapping[str, Sequence[tuple[str, int, datetime]]]:
+        column = self.get_span_column(metric_mri)
+        assert column is not None
+
+        where: list[QueryCondition] = [
+            Condition(Column("project_id"), Op.IN, [project.id for project in self.projects]),
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+        ]
+
+        where.extend(conditions.get())
+
+        if min_value:
+            where += [Condition(column, Op.GTE, min_value)]
+        if max_value:
+            where += [Condition(column, Op.LTE, max_value)]
+
+        query = Query(
+            match=Entity(EntityKey.Spans.value),
+            select=[
+                Column("transaction_id"),
+                Column("span_id"),
+                column,
+                Column("timestamp"),
+            ],
+            where=where,
+            limit=Limit(SNUBA_QUERY_LIMIT),
+        )
+
+        request = Request(
+            dataset=Dataset.SpansIndexed.value,
+            app_id="metrics",
+            query=query,
+            tenant_ids={"organization_id": self.organization.id},
+        )
+
+        data = raw_snql_query(request, Referrer.API_DDM_FETCH_SPANS.value, use_cache=True)["data"]
+
+        segments_spans: dict[str, list[tuple[str, int, datetime]]] = {}
+        for value in data:
+            segments_spans.setdefault(value["transaction_id"], []).append(
+                (value["span_id"], value[column.name], value["timestamp"])
+            )
+
+        return segments_spans
 
 
 def _get_segments_aggregates_query(
@@ -653,6 +779,7 @@ def _get_segments(
 CORRELATIONS_SOURCES = [
     MeasurementsCorrelationsSource,
     TransactionDurationCorrelationsSource,
+    SpansDurationCorrelationsSource,
     MetricsSummariesCorrelationsSource,
 ]
 
