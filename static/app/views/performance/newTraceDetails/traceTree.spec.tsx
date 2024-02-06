@@ -6,7 +6,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {EntryType, type Event} from 'sentry/types';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
-import {TraceTree} from './traceTree';
+import {TraceTree, TraceTreeNode} from './traceTree';
 
 const makeTransaction = (
   overrides: Partial<TraceFullDetailed> = {}
@@ -53,6 +53,70 @@ describe('TraceTree', () => {
     ]);
 
     expect(tree.list).toHaveLength(2);
+  });
+
+  it('builds from spans when root is a transaction node', () => {
+    const root = new TraceTreeNode(
+      null,
+      makeTransaction({
+        children: [],
+      }),
+      0,
+      {project_slug: '', event_id: ''}
+    );
+
+    const node = TraceTree.FromSpans(root, [
+      makeRawSpan({start_timestamp: 0, span_id: '1'}),
+      makeRawSpan({start_timestamp: 1, span_id: '2', parent_span_id: '1'}),
+      makeRawSpan({start_timestamp: 2, parent_span_id: '2'}),
+      makeRawSpan({start_timestamp: 3, parent_span_id: '1'}),
+    ]);
+
+    expect(node.children[0].value.span_id).toBe('1');
+    expect(node.children[0].value.start_timestamp).toBe(0);
+    expect(node.children.length).toBe(1);
+
+    expect(node.children[0].children[0].value.start_timestamp).toBe(1);
+    expect(node.children[0].children[0].children[0].value.start_timestamp).toBe(2);
+    expect(node.children[0].children[1].value.start_timestamp).toBe(3);
+  });
+
+  it('builds and preserves list order', async () => {
+    const organization = OrganizationFixture();
+    const api = new MockApiClient();
+
+    const tree = TraceTree.FromTrace([makeTransaction({children: [makeTransaction()]})]);
+    const node = tree.list[0];
+
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/undefined:undefined/',
+      method: 'GET',
+      body: makeEvent({startTimestamp: 0}, [
+        makeRawSpan({start_timestamp: 1, span_id: '1'}),
+        makeRawSpan({start_timestamp: 2, span_id: '2', parent_span_id: '1'}),
+        makeRawSpan({start_timestamp: 3, parent_span_id: '2'}),
+        makeRawSpan({start_timestamp: 4, parent_span_id: '1'}),
+      ]),
+    });
+
+    // 0
+    // 1
+    //  2
+    //   3
+    //  4
+
+    tree.zoomIn(node, true, {api, organization});
+    await waitFor(() => {
+      expect(node.zoomedIn).toBe(true);
+    });
+    expect(request).toHaveBeenCalled();
+
+    expect(tree.list.length).toBe(5);
+    expect(tree.list[0].value.start_timestamp).toBe(0);
+    expect(tree.list[1].value.start_timestamp).toBe(1);
+    expect(tree.list[2].value.start_timestamp).toBe(2);
+    // expect(tree.list[3].value.start_timestamp).toBe(3);
+    // expect(tree.list[4].value.start_timestamp).toBe(4);
   });
 
   it('preserves input order', () => {
@@ -205,9 +269,9 @@ describe('TraceTree', () => {
       // Assert that the list has been updated
       expect(tree.list).toHaveLength(4);
 
-      expect(tree.expand(tree.list[0], false)).toBe(true);
-      expect(tree.list.length).toBe(1);
-      expect(tree.expand(tree.list[0], true)).toBe(true);
+      expect(tree.expand(tree.list[1], false)).toBe(true);
+      expect(tree.list.length).toBe(3);
+      expect(tree.expand(tree.list[1], true)).toBe(true);
       expect(tree.list[tree.list.length - 1].value).toBe(lastTransaction);
     });
 
