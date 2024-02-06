@@ -72,13 +72,15 @@ class IssueDiff extends Component<Props, State> {
     // Fetch component and event data
     const asyncFetch = async () => {
       try {
+        const splitdiffPromise = import('../splitDiff');
+        const {default: SplitDiffAsync} = await splitdiffPromise;
+
         const [baseEventData, targetEventData] = await Promise.all([
           this.fetchEvent(baseIssueId, baseEventId ?? 'latest'),
           this.fetchEvent(targetIssueId, targetEventId ?? 'latest'),
         ]);
 
-        const [{default: SplitDiffAsync}, baseEvent, targetEvent] = await Promise.all([
-          import('../splitDiff'),
+        const [baseEvent, targetEvent] = await Promise.all([
           getStacktraceBody(baseEventData),
           getStacktraceBody(targetEventData),
         ]);
@@ -136,12 +138,7 @@ class IssueDiff extends Component<Props, State> {
   };
 
   getTransaction = (tags: any[]) => {
-    for (let i = 0; i < tags.length; i++) {
-      if (tags[i].key === 'transaction') {
-        return tags[i].value;
-      }
-    }
-    return undefined;
+    return tags.find(tag => tag.key === 'transaction');
   };
 
   render() {
