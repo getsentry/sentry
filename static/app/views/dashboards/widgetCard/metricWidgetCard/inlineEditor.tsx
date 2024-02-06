@@ -72,9 +72,9 @@ export const InlineEditor = memo(function InlineEditor({
   size = 'sm',
 }: InlineEditorProps) {
   const [editingName, setEditingName] = useState(false);
-  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta(projects);
+  const {data: meta, isLoading: isMetaLoading} = useMetricsMeta({projects});
 
-  const {data: tags = []} = useMetricsTags(metricsQuery.mri, projects);
+  const {data: tags = []} = useMetricsTags(metricsQuery.mri, {projects});
 
   const displayedMetrics = useMemo(() => {
     const isSelected = (metric: MetricMeta) => metric.mri === metricsQuery.mri;
@@ -239,7 +239,6 @@ export const InlineEditor = memo(function InlineEditor({
         <MetricSearchBarWrapper>
           {!editingName && (
             <MetricSearchBar
-              projectIds={projects.map(id => id.toString())}
               mri={metricsQuery.mri}
               disabled={!metricsQuery.mri}
               onChange={query => {

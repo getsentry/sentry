@@ -7,7 +7,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export function useMetricsTags(
   mri: MRI | undefined,
-  projects: PageFilters['projects'],
+  pageFilters: Partial<PageFilters>,
   filterBlockedTags = true
 ) {
   const {slug} = useOrganization();
@@ -16,7 +16,14 @@ export function useMetricsTags(
   const tagsQuery = useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/`,
-      {query: {metric: mri, useCase, project: projects}},
+      {
+        query: {
+          metric: mri,
+          useCase,
+          projects: pageFilters.projects,
+          ...pageFilters.datetime,
+        },
+      },
     ],
     {
       enabled: !!mri,
@@ -24,7 +31,7 @@ export function useMetricsTags(
     }
   );
 
-  const metricMeta = useMetricsMeta(projects, [useCase], false);
+  const metricMeta = useMetricsMeta(pageFilters, [useCase], false);
   const blockedTags =
     metricMeta.data
       ?.find(meta => meta.mri === mri)
