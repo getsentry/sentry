@@ -61,6 +61,7 @@ export type IssueEventParameters = {
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
+  'issue-details.replay-cta-dismiss': {type: string};
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
@@ -196,6 +197,11 @@ export type IssueEventParameters = {
     sort: string;
     tab?: string;
   };
+  'project_modal.created': {
+    issue_alert: 'Default' | 'Custom' | 'No Rule';
+    project_id: string;
+    rule_id: string;
+  };
   'quick_trace.connected_services': {
     projects: number;
   };
@@ -271,6 +277,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
+  'project_modal.created': 'Project Modal: Created',
   'quick_trace.missing_service.dismiss': 'Quick Trace: Missing Service Dismissed',
   'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
   'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',
@@ -304,6 +311,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.external_issue_loaded': 'Issue Details: External Issue Loaded',
   'issue_details.external_issue_modal_opened':
