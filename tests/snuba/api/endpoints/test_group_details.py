@@ -4,7 +4,6 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry import tsdb
 from sentry.issues.forecasts import generate_and_save_forecasts
-from sentry.issues.priority import PriorityLevel
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import GroupStatus
@@ -16,6 +15,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 
 
 @region_silo_test
