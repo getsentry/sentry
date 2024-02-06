@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from datetime import timezone
 from typing import Any
 
 import sentry_sdk
@@ -294,6 +295,11 @@ def _set_widget_on_demand_state(
 
         if on_demand.can_extraction_be_auto_overridden():
             on_demand.extraction_state = extraction_state
+
+        if options.get("on_demand.update_on_demand_modified"):
+            # Only temporarily required to check we've updated data on rows the task has passed
+            # Or updated to pass the check against widget query date_modified.
+            on_demand.date_modified = timezone.now()
 
         on_demand.spec_hashes = spec_hashes
         on_demand.save()
