@@ -13,7 +13,7 @@ from sentry.models.userreport import UserReport
 @region_silo_endpoint
 class GroupUserReportsEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.UNKNOWN,
     }
 
     def get(self, request: Request, group) -> Response:
