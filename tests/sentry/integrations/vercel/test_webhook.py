@@ -18,6 +18,7 @@ from sentry.models.integrations.sentry_app_installation_token import SentryAppIn
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -131,6 +132,7 @@ class VercelReleasesTest(APITestCase):
             assert release_request.headers["User-Agent"] == f"sentry_vercel/{VERSION}"
 
     @responses.activate
+    @with_feature("organizations:vercel-integration-webhooks")
     def test_create_release_new(self):
         responses.add(
             responses.POST,
