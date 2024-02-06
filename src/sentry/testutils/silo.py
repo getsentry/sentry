@@ -115,6 +115,10 @@ class AncestorAlreadySiloDecoratedException(Exception):
     pass
 
 
+class SubclassNotSiloDecoratedException(Exception):
+    pass
+
+
 def _get_test_name_suffix(silo_mode: SiloMode) -> str:
     name = silo_mode.name[0].upper() + silo_mode.name[1:].lower()
     return f"__In{name}Mode"
@@ -192,20 +196,47 @@ class _SiloModeTestModification:
     def _create_overriding_test_class(
         self, test_class: type[TestCase], silo_mode: SiloMode, name_suffix: str = ""
     ) -> type[TestCase]:
-        def override_method(method_name: str) -> Callable[..., Any]:
-            context = self.test_config(silo_mode)
-            method: Callable[..., Any] = getattr(test_class, method_name)
-            return context(method)
+        silo_mode_attr = "__silo_mode_override"
+
+        @contextmanager
+        def create_context(obj: TestCase) -> Generator[None, None, None]:
+            tagged_class, tagged_mode = getattr(obj, silo_mode_attr)
+
+            if type(obj) is not tagged_class:
+                # Indicates that we are inheriting the silo mode attribute. Although
+                # we could just test in that mode, we would silently skip other modes
+                # if the superclass is tested in more than one (such as by
+                # `include_monolith_run=True`). So, enforce a general rule that test
+                # case subclasses must have decorators of their own.
+                sup = tagged_class.__name__
+                sub = type(obj).__name__
+                raise SubclassNotSiloDecoratedException(
+                    f"A test class ({sub}) extends a silo-decorated test class ({sup}) "
+                    f"without a silo decorator of its own. Add a decorator to {sub}. "
+                    f"(You probably want to copy and paste the decorator that is on "
+                    f"{sup}. Or, if you intend to run {sub} only in monolith mode, add "
+                    f"`@no_silo_test`.)"
+                )
+
+            with self.test_config(tagged_mode):
+                yield
 
         # Unfortunately, due to the way DjangoTestCase setup and app manipulation works, `override_settings` in a
         # run method produces unusual, broken results.  We're forced to wrap the hidden methods that invoke setup
         # test method in order to use override_settings correctly in django test cases.
-        new_methods = {
-            method_name: override_method(method_name)
-            for method_name in ("_callSetUp", "_callTestMethod")
-        }
+
+        def _callSetUp(obj: TestCase) -> Any:
+            with create_context(obj):
+                return TestCase._callSetUp(obj)  # type: ignore[attr-defined]
+
+        def _callTestMethod(obj: TestCase, method: Any) -> Any:
+            with create_context(obj):
+                return TestCase._callTestMethod(obj, method)  # type: ignore[attr-defined]
+
+        new_methods = {"_callSetUp": _callSetUp, "_callTestMethod": _callTestMethod}
         name = test_class.__name__ + name_suffix
         new_class = type(name, (test_class,), new_methods)
+        setattr(new_class, silo_mode_attr, (new_class, silo_mode))
         return cast(type[TestCase], new_class)
 
     def _arrange_silo_modes(self) -> tuple[SiloMode, Collection[SiloMode]]:
