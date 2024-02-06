@@ -31,6 +31,7 @@ export function StartTypeSelector() {
             [SpanMetricsField.APP_START_TYPE]: newValue.value,
             [MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE]: undefined,
             [MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE]: undefined,
+            [MobileCursors.SPANS_TABLE]: undefined,
           },
         });
       }}

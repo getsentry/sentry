@@ -8,10 +8,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 
 interface Props {
+  clearSpansTableCursor?: boolean;
   size?: ComponentProps<typeof CompactSelect>['size'];
 }
 
-export function DeviceClassSelector({size = 'xs'}: Props) {
+export function DeviceClassSelector({size = 'xs', clearSpansTableCursor}: Props) {
   const location = useLocation();
 
   const value = decodeScalar(location.query['device.class']) ?? '';
@@ -38,6 +39,7 @@ export function DeviceClassSelector({size = 'xs'}: Props) {
             ['device.class']: newValue.value,
             [MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE]: undefined,
             [MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE]: undefined,
+            ...(clearSpansTableCursor ? {[MobileCursors.SPANS_TABLE]: undefined} : {}),
           },
         });
       }}

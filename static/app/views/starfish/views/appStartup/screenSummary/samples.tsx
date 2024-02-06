@@ -80,7 +80,7 @@ export function SamplesTables({transactionName}) {
             />
           )}
           <StartTypeSelector />
-          <DeviceClassSelector size="md" />
+          <DeviceClassSelector size="md" clearSpansTableCursor />
         </FiltersContainer>
         <SegmentedControl onChange={value => setSampleType(value)} defaultValue={SPANS}>
           <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>
