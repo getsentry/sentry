@@ -551,6 +551,47 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=self.member_on_team
         ).exists()
 
+    def test_superuser_can_remove_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        self.get_success_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, status_code=200
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member_on_team
+        ).exists()
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_cannot_remove_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        self.get_error_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, status_code=400
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member_on_team
+        ).exists()
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_write_can_remove_member(self):
+        superuser = self.create_user(is_superuser=True)
+        self.add_user_permission(superuser, "superuser.write")
+        self.login_as(superuser, superuser=True)
+
+        self.get_success_response(
+            self.org.slug, self.member_on_team.id, self.team.slug, status_code=200
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member_on_team
+        ).exists()
+
     def test_manager_can_remove_members(self):
         self.login_as(self.manager_on_team)
 

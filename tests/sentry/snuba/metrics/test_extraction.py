@@ -16,6 +16,8 @@ from sentry.snuba.metrics.extraction import (
     to_standard_metrics_query,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils import json
+from sentry.utils.glob import glob_match
 
 
 @django_db_all
@@ -458,6 +460,40 @@ def test_spec_wildcard() -> None:
         "op": "glob",
         "value": ["1.*"],
     }
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "query,title,expected_pattern",
+    [
+        ("title:*[dispatch:*", "backend test [dispatch:something]", r"*\[dispatch:*"),
+        ("title:*{dispatch:*", "test {dispatch:something]", r"*\{dispatch:*"),
+        ("title:*dispatch]:*", "backend dispatch]:", r"*dispatch\]:*"),
+        ("title:*dispatch}:*", "test [dispatch}:", r"*dispatch\}:*"),
+        ("title:*?dispatch*", "backend ?dispatch", r"*\?dispatch*"),
+    ],
+)
+def test_spec_wildcard_escaping(
+    default_project, insta_snapshot, query, title, expected_pattern
+) -> None:
+    spec = OnDemandMetricSpec("count()", query)
+
+    assert spec._metric_type == "c"
+    assert spec.field_to_extract is None
+    assert spec.op == "sum"
+    assert spec.condition == {
+        "name": "event.transaction",
+        "op": "glob",
+        "value": [expected_pattern],
+    }
+
+    # We also validate using Relay's glob implementation to make sure the escaping
+    # is interpreted correctly.
+    assert glob_match(title, expected_pattern, ignorecase=True)
+
+    # We want to validate the json output, to make sure that characters are correctly escaped.
+    metric_spec = spec.to_metric_spec(default_project)
+    insta_snapshot(json.dumps(metric_spec))
 
 
 def test_spec_count_if() -> None:
