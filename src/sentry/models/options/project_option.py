@@ -56,7 +56,6 @@ OPTION_KEYS = frozenset(
         "sentry:dynamic_sampling",
         "sentry:dynamic_sampling_biases",
         "sentry:breakdowns",
-        "sentry:span_attributes",
         "sentry:transaction_name_cluster_rules",
         "sentry:span_description_cluster_rules",
         "quotas:spike-protection-disabled",
