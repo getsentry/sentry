@@ -197,13 +197,13 @@ class VercelWebhookEndpoint(Endpoint):
 
             scope.set_tag("vercel_webhook.type", tag_type_string)
 
-            if (
-                event_type == "integration-configuration.removed"
-                or event_type == "integration-configuration-removed"
+            if event_type in (
+                "integration-configuration.removed",
+                "integration-configuration-removed",
             ):
                 configuration_id = request.data["payload"]["configuration"]["id"]
                 return self._delete(external_id, configuration_id, request, new_webhook)
-            if event_type == "deployment.created" or event_type == "deployment":
+            if event_type in ("deployment.created", "deployment"):
                 return self._deployment_created(external_id, request, new_webhook)
         return None
 
