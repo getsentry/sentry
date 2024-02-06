@@ -105,7 +105,12 @@ class SearchingForMNPlusOne(MNPlusOneState):
                 and not description.endswith("...")
             )
             found_different_span = found_different_span or not self._equivalent(pattern[0], span)
-            if found_db_op and found_different_span:
+
+            # Adding additional checks to ensure pattern diversity
+            # Avoids triggering BadRequestError due to too repetitive spans
+            pattern_variety_threshold = 2 # Minimum number of unique operations in the pattern
+            unique_ops = len(set(span.get("op") for span in pattern))
+            if found_db_op and found_different_span and unique_ops >= pattern_variety_threshold:
                 return True
 
         return False
