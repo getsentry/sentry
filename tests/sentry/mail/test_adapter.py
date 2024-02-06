@@ -619,7 +619,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         """
         from django.template.defaultfilters import date
 
-        timestamp = datetime.now(tz=timezone.utc)
+        timestamp = datetime.now(tz=timezone)
         local_timestamp_s = django_timezone.localtime(timestamp, zoneinfo.ZoneInfo("Europe/Vienna"))
         local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
 
@@ -656,7 +656,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         recipient_context = notification.get_recipient_context(
             RpcActor.from_orm_user(self.user), {}
         )
-        assert recipient_context["timezone"] == timezone.utc
+        assert recipient_context["timezone"] == timezone
 
     def test_context_invalid_timezone_empty_string(self):
         self._test_invalid_timezone("")
@@ -1287,7 +1287,7 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
             get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
                 Counter({mock.sentinel.group: 3}),
-                datetime(2016, 9, 19, 1, 2, 3, tzinfo=timezone.utc),
+                datetime(2016, 9, 19, 1, 2, 3, tzinfo=timezone),
             )
             == "BAR-1 - 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC"
         )
