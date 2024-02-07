@@ -37,13 +37,13 @@ export default function PageloadModule() {
   }, [projects, selection.projects]);
 
   return (
-    <SentryDocumentTitle title={t('Screen Load')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Screen Loads')} orgSlug={organization.slug}>
       <Layout.Page>
         <PageAlertProvider>
           <Layout.Header>
             <Layout.HeaderContent>
               <HeaderWrapper>
-                <Layout.Title>{t('Screen Load')}</Layout.Title>
+                <Layout.Title>{t('Screen Loads')}</Layout.Title>
                 {organization.features.includes(
                   'performance-screens-platform-selector'
                 ) &&

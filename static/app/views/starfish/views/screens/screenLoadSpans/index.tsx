@@ -76,7 +76,7 @@ function ScreenLoadSpans() {
   const crumbs: Crumb[] = [
     {
       to: screenLoadModule,
-      label: t('Screen Load'),
+      label: t('Screen Loads'),
       preservePageFilters: true,
     },
     {
