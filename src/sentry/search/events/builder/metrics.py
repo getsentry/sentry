@@ -376,7 +376,7 @@ class MetricsQueryBuilder(QueryBuilder):
             # aliases back to their original functions.
             for column in selected_columns:
                 try:
-                    self.columns = self.resolve_select([column], [])
+                    self.resolve_select([column], [])
                 except (IncompatibleMetricsQuery, InvalidSearchQuery):
                     # This may fail for some columns like apdex but it will still enter into the field_alias_map
                     pass
