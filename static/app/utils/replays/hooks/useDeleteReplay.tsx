@@ -1,25 +1,28 @@
+import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
-import Confirm from 'sentry/components/confirm';
-import {IconDelete} from 'sentry/icons';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface DeleteButtonProps {
-  projectSlug: string;
-  replayId: string;
+  projectSlug: string | null;
+  replayId: string | undefined;
 }
 
-function DeleteButton({projectSlug, replayId}: DeleteButtonProps) {
+export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
   const api = useApi();
   const navigate = useNavigate();
   const organization = useOrganization();
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
+    if (!projectSlug || !replayId) {
+      return;
+    }
+
     try {
       await api.requestPromise(
         `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/`,
@@ -32,18 +35,18 @@ function DeleteButton({projectSlug, replayId}: DeleteButtonProps) {
       addErrorMessage(t('Failed to delete replay'));
       Sentry.captureException(err);
     }
-  };
+  }, [api, navigate, organization, projectSlug, replayId]);
 
-  return (
-    <Confirm
-      message={t('Are you sure you want to delete this replay?')}
-      onConfirm={handleDelete}
-    >
-      <Button size="sm" icon={<IconDelete size="sm" />}>
-        {t('Delete')}
-      </Button>
-    </Confirm>
-  );
+  const confirmDelte = useCallback(() => {
+    if (!projectSlug || !replayId) {
+      return;
+    }
+
+    openConfirmModal({
+      message: t('Are you sure you want to delete this replay?'),
+      onConfirm: handleDelete,
+    });
+  }, [handleDelete, projectSlug, replayId]);
+
+  return confirmDelte;
 }
-
-export default DeleteButton;
