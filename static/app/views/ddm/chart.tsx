@@ -159,6 +159,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             if (!isChartHovered(chartRef?.current)) {
               return '';
             }
+
+            // Hovering a single correlated sample datapoint
             if (params.seriesType === 'scatter') {
               return getFormatter(samples.formatters)(params, asyncTicket);
             }

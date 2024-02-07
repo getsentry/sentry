@@ -256,13 +256,9 @@ export function useClearQuery() {
   }, [routerRef]);
 }
 
-// TODO(ddm): there has to be a nicer way to do this
-export function getSeriesName(
-  group: MetricsGroup,
-  isOnlyGroup = false,
-  groupBy: MetricsQuery['groupBy']
-) {
-  if (isOnlyGroup && !groupBy?.length) {
+export function getMetricsSeriesName(group: MetricsGroup) {
+  const groupByEntries = Object.entries(group.by ?? {});
+  if (!groupByEntries.length) {
     const field = Object.keys(group.series)?.[0];
     const {mri} = parseField(field) ?? {mri: field};
     const name = formatMRI(mri as MRI);
@@ -270,8 +266,8 @@ export function getSeriesName(
     return name ?? '(none)';
   }
 
-  return Object.entries(group.by)
-    .map(([key, value]) => `${key}:${String(value).length ? value : t('none')}`)
+  return groupByEntries
+    .map(([_key, value]) => `${String(value).length ? value : t('none')}`)
     .join(', ');
 }
 
