@@ -54,11 +54,11 @@
 
 ## Security
 /src/sentry/net/                                         @getsentry/security
-/src/sentry/auth/                                        @getsentry/security @getsentry/enterprise
-/src/sentry/api/permissions.py                           @getsentry/security @getsentry/enterprise
-/src/sentry/api/authentication.py                        @getsentry/security @getsentry/enterprise
-/src/sentry/api/endpoints/auth*                          @getsentry/security @getsentry/enterprise
-/src/sentry/api/endpoints/user_permission*               @getsentry/security @getsentry/enterprise
+/src/sentry/auth/                                        @getsentry/security @getsentry/core-product-foundations
+/src/sentry/api/permissions.py                           @getsentry/security @getsentry/core-product-foundations
+/src/sentry/api/authentication.py                        @getsentry/security @getsentry/core-product-foundations
+/src/sentry/api/endpoints/auth*                          @getsentry/security @getsentry/core-product-foundations
+/src/sentry/api/endpoints/user_permission*               @getsentry/security @getsentry/core-product-foundations
 /src/sentry/web/frontend/auth_close.py                   @getsentry/security
 /src/sentry/web/frontend/auth_login.py                   @getsentry/security
 /src/sentry/web/frontend/auth_logout.py                  @getsentry/security
@@ -398,36 +398,34 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## End of Data
 
 
-## Enterprise
-/src/sentry/api/endpoints/oauth_userinfo.py                             @getsentry/enterprise
-/src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/enterprise
-/src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/enterprise
-/src/sentry/api/endpoints/organization_stats*.py                        @getsentry/enterprise
-/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/enterprise
-/src/sentry/api/endpoints/user_social_identity*                         @getsentry/enterprise
-/src/sentry/auth/staff.py                                               @getsentry/enterprise
-/src/sentry/auth/superuser.py                                           @getsentry/enterprise
-/src/sentry/middleware/staff.py                                         @getsentry/enterprise
-/src/sentry/middleware/superuser.py                                     @getsentry/enterprise
-/src/sentry/models/release_threshold                                    @getsentry/enterprise
-/src/sentry/scim/                                                       @getsentry/enterprise
-/src/sentry/tasks/integrations/github/                                  @getsentry/enterprise
-/src/sentry/web/frontend/auth_login.py                                  @getsentry/enterprise
-/static/app/components/superuserStaffAccessForm.tsx                     @getsentry/enterprise
-/static/app/constants/superuserAccessErrors.tsx                         @getsentry/enterprise
-/static/app/views/organizationStats                                     @getsentry/enterprise
-/static/app/views/releases/thresholdsList/                              @getsentry/enterprise
-/static/app/views/settings/organizationAuth/                            @getsentry/enterprise
-/static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
-/tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
-/tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/enterprise
-/tests/sentry/api/test_data_secrecy.py                                  @getsentry/enterprise
-/tests/sentry/api/test_scim*.py                                         @getsentry/enterprise
-/tests/sentry/auth/test_staff.py                                        @getsentry/enterprise
-/tests/sentry/auth/test_superuser.py                                    @getsentry/enterprise
-/tests/sentry/middleware/test_staff.py                                  @getsentry/enterprise
-/tests/sentry/tasks/integrations/github/                                @getsentry/enterprise
-## End of Enterprise
+## Core Product Foundations
+/src/sentry/api/endpoints/oauth_userinfo.py                             @getsentry/core-product-foundations
+/src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/core-product-foundations
+/src/sentry/api/endpoints/organization_projects_experiment.py           @getsentry/core-product-foundations
+/src/sentry/api/endpoints/organization_stats*.py                        @getsentry/core-product-foundations
+/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/core-product-foundations
+/src/sentry/api/endpoints/user_social_identity*                         @getsentry/core-product-foundations
+/src/sentry/auth/staff.py                                               @getsentry/core-product-foundations
+/src/sentry/auth/superuser.py                                           @getsentry/core-product-foundations
+/src/sentry/middleware/staff.py                                         @getsentry/core-product-foundations
+/src/sentry/middleware/superuser.py                                     @getsentry/core-product-foundations
+/src/sentry/models/release_threshold                                    @getsentry/core-product-foundations
+/src/sentry/scim/                                                       @getsentry/core-product-foundations
+/src/sentry/web/frontend/auth_login.py                                  @getsentry/core-product-foundations
+/static/app/components/superuserStaffAccessForm.tsx                     @getsentry/core-product-foundations
+/static/app/constants/superuserAccessErrors.tsx                         @getsentry/core-product-foundations
+/static/app/views/organizationStats                                     @getsentry/core-product-foundations
+/static/app/views/releases/thresholdsList/                              @getsentry/core-product-foundations
+/static/app/views/settings/organizationAuth/                            @getsentry/core-product-foundations
+/static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/core-product-foundations
+/tests/sentry/api/endpoints/test_auth*.py                               @getsentry/core-product-foundations
+/tests/sentry/api/endpoints/test_organization_projects_experiment.py    @getsentry/core-product-foundations
+/tests/sentry/api/test_data_secrecy.py                                  @getsentry/core-product-foundations
+/tests/sentry/api/test_scim*.py                                         @getsentry/core-product-foundations
+/tests/sentry/auth/test_staff.py                                        @getsentry/core-product-foundations
+/tests/sentry/auth/test_superuser.py                                    @getsentry/core-product-foundations
+/tests/sentry/middleware/test_staff.py                                  @getsentry/core-product-foundations
+## End of Core Product Foundations
 
 
 ## Native
@@ -544,5 +542,5 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/organization_missing_org_members.py           @getsentry/ecosystem
 /src/sentry/tasks/invite_missing_org_members.py                         @getsentry/ecosystem
 /static/app/components/modals/inviteMissingMembersModal/                @getsentry/ecosystem
-/src/sentry/tasks/integrations/github/pr_comment.py                     @getsentry/ecosystem
+/tests/sentry/tasks/integrations/github/                                @getsentry/ecosystem
 ## End of Ecosystem
