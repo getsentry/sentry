@@ -71,6 +71,12 @@ class RedisQuotaTest(TestCase):
     def quota(self):
         return RedisQuota()
 
+    def test_redis_quota_serialize(self):
+        assert QuotaScope.ORGANIZATION.api_name() == "organization"
+        assert QuotaScope.PROJECT.api_name() == "project"
+        assert QuotaScope.KEY.api_name() == "key"
+        assert QuotaScope.GLOBAL.api_name() == "global"
+
     def test_abuse_quotas(self):
         # These legacy options need to be set, otherwise we'll run into
         # AssertionError: reject-all quotas cannot be tracked
