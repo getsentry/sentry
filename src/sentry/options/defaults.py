@@ -998,6 +998,14 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+
+register(
+    "global-abuse-quota.metric-bucket-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # END ABUSE QUOTAS
 
 # Send event messages for specific project IDs to random partitions in Kafka
