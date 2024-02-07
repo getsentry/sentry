@@ -53,7 +53,7 @@ function DashboardImportModal({Header, Body, Footer}: ModalRenderProps) {
 
   const {selection} = usePageFilters();
   // we want to get all custom metrics for organization
-  const {data: metricsMeta} = useMetricsMeta([-1], ['custom']);
+  const {data: metricsMeta} = useMetricsMeta({projects: [-1]}, ['custom']);
 
   const organization = useOrganization();
 

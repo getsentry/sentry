@@ -30,7 +30,7 @@ interface Props {
   headerInfo: ReactNode;
   inviteStatus: InviteStatus;
   invites: NormalizedInvite[];
-  member: Member;
+  member: Member | undefined;
   pendingInvites: InviteRow[];
   removeInviteRow: (index: number) => void;
   reset: () => void;

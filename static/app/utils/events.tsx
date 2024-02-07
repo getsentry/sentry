@@ -17,7 +17,7 @@ import {
   IssueCategory,
   IssueType,
 } from 'sentry/types';
-import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
+import type {Event, ExceptionValue, Frame, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
@@ -309,10 +309,8 @@ export function getFrameBreakdownOfSourcemaps(event?: Event | null) {
 function getExceptionFrames(event: Event, inAppOnly: boolean) {
   const exceptions = getExceptionEntries(event);
   const frames = exceptions
-    .map(exception => exception.data.values || [])
-    .flat()
-    .map(exceptionValue => exceptionValue?.stacktrace?.frames || [])
-    .flat();
+    .flatMap(exception => exception.data.values || [])
+    .flatMap(exceptionValue => exceptionValue?.stacktrace?.frames || []);
   return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
 }
 
@@ -327,18 +325,14 @@ function getExceptionEntries(event: Event) {
 /**
  * Returns all stack frames of type 'exception' or 'threads' of this event
  */
-function getAllFrames(event: Event, inAppOnly: boolean) {
-  const exceptions = getEntriesWithFrames(event);
-  const frames = exceptions
-    .map(
-      (withStacktrace: EntryException | EntryThreads) => withStacktrace.data.values || []
-    )
-    .flat()
-    .map(
+function getAllFrames(event: Event, inAppOnly: boolean): Frame[] {
+  const exceptions: EntryException[] | EntryThreads[] = getEntriesWithFrames(event);
+  const frames: Frame[] = exceptions
+    .flatMap(withStacktrace => withStacktrace.data.values ?? [])
+    .flatMap(
       (withStacktrace: ExceptionValue | Thread) =>
-        withStacktrace?.stacktrace?.frames || []
-    )
-    .flat();
+        withStacktrace?.stacktrace?.frames ?? []
+    );
   return inAppOnly ? frames.filter(frame => frame.inApp) : frames;
 }
 
@@ -487,6 +481,7 @@ export type CommonGroupAnalyticsData = {
   issue_level?: string;
   issue_status?: string;
   issue_substatus?: string | null;
+  priority?: string;
 };
 
 export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {
@@ -513,6 +508,7 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     num_participants: group?.participants?.length ?? 0,
     num_viewers: group?.seenBy?.filter(user => user.id !== activeUser?.id).length ?? 0,
     group_num_user_feedback: group?.userReportCount ?? 0,
+    priority: group?.priority,
   };
 }
 

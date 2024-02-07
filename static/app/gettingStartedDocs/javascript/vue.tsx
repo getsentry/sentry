@@ -47,10 +47,7 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     integrations: [${
       params.isPerformanceSelected
         ? `
-          new Sentry.BrowserTracing({
-            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-          }),`
+          Sentry.browserTracingIntergation(),`
         : ''
     }${
       params.isReplaySelected
@@ -62,7 +59,9 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     params.isPerformanceSelected
       ? `
         // Performance Monitoring
-        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+        tracesSampleRate: 1.0, //  Capture 100% of the transactions
+        // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+        tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
       : ''
   }${
     params.isReplaySelected
@@ -168,12 +167,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 export const nextSteps = [
-  {
-    id: 'source-maps',
-    name: t('Source Maps'),
-    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
-  },
   {
     id: 'vue-features',
     name: t('Vue Features'),

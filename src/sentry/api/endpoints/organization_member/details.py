@@ -260,6 +260,22 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
 
+        assigned_org_role = result.get("orgRole") or result.get("role")
+
+        if (
+            ("teamRoles" in result and result["teamRoles"])
+            or ("teams" in result and result["teams"])
+            or member.get_teams()
+        ):
+            new_role = assigned_org_role if assigned_org_role else member.role
+            if not organization_roles.get(new_role).is_team_roles_allowed:
+                return Response(
+                    {
+                        "detail": f"The user with a '{new_role}' role cannot have team-level permissions."
+                    },
+                    status=400,
+                )
+
         # Set the team-role before org-role. If the org-role has elevated permissions
         # on the teams, the team-roles can be overwritten later
         if "teamRoles" in result or "teams" in result:
@@ -277,7 +293,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             except InvalidTeam:
                 return Response({"teams": "Invalid team"}, status=400)
 
-        assigned_org_role = result.get("orgRole") or result.get("role")
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
         if is_update_org_role:
