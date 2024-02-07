@@ -727,9 +727,9 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
                     "release_id": release.id,
                     "user_id": None,
                     "refs": [{"repository": target_repo.name, "commit": release.version}],
-                    "prev_release_id": previous_release.id
-                    if previous_release is not None
-                    else None,
+                    "prev_release_id": (
+                        previous_release.id if previous_release is not None else None
+                    ),
                 }
             )
 
