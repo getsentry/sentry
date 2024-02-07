@@ -53,6 +53,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_apitoken"
+        indexes = (models.Index(fields=["token"]),)
 
     __repr__ = sane_repr("user_id", "token", "application_id")
 
