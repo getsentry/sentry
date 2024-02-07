@@ -1245,6 +1245,7 @@ export enum ReplayClickFieldKey {
   CLICK_TESTID = 'click.testid',
   CLICK_TEXT_CONTENT = 'click.textContent',
   CLICK_TITLE = 'click.title',
+  CLICK_COMPONENT_NAME = 'click.component_name',
 }
 
 /**
@@ -1368,6 +1369,7 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_TEXT_CONTENT,
   ReplayClickFieldKey.CLICK_TITLE,
   ReplayClickFieldKey.CLICK_TESTID,
+  ReplayClickFieldKey.CLICK_COMPONENT_NAME,
 ];
 
 // This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
@@ -1435,6 +1437,11 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
   [ReplayClickFieldKey.CLICK_TITLE]: {
     desc: t('`title` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_COMPONENT_NAME]: {
+    desc: t('the name of the frontend component that was clicked'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
