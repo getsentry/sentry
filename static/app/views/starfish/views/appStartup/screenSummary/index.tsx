@@ -68,7 +68,7 @@ function ScreenSummary() {
   const crumbs: Crumb[] = [
     {
       to: startupModule,
-      label: t('App Startup'),
+      label: t('App Starts'),
       preservePageFilters: true,
     },
     {
