@@ -11,11 +11,12 @@ from typing import ContextManager, TypeVar
 
 from django.utils import timezone
 from django.utils.encoding import force_bytes
+from redis.client import Script
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.compat import crc32
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.redis import SentryScript, check_cluster_versions, get_cluster_from_options
+from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ T = TypeVar("T")
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
-CountMinScript = SentryScript(
+CountMinScript = Script(
     None, importlib.resources.files("sentry").joinpath("scripts/tsdb/cmsketch.lua").read_bytes()
 )
 
