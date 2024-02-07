@@ -108,7 +108,7 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
         },
         examples=ReplayExamples.GET_SELECTORS,
     )
-    def get(self, request: Request, organization: Organization) -> ReplaySelectorResponse:
+    def get(self, request: Request, organization: Organization) -> Response:
         """Return a list of selectors for a given organization."""
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
