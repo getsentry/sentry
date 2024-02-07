@@ -81,7 +81,18 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
       </EventItemsWrapper>
       {filteredTimelineEvents.length > 3 && (
         <TraceItem>
-          <Link to={generateTraceTarget(event, organization)}>
+          <Link
+            to={generateTraceTarget(event, organization)}
+            onClick={() => {
+              trackAnalytics(
+                'issue_details.issue_tab.trace_timeline_more_events_clicked',
+                {
+                  organization,
+                  num_hidden: filteredTimelineEvents.length - 3,
+                }
+              );
+            }}
+          >
             {tn(
               'View %s more event',
               'View %s more events',
