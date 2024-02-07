@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, DefaultDict
 
 from django.db.models import F, Q
 from django.http import HttpResponse
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,6 +29,10 @@ from sentry.api.endpoints.release_thresholds.utils import (
     get_new_issue_counts,
 )
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
+from sentry.apidocs.examples.release_threshold_examples import ReleaseThresholdExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
@@ -83,14 +88,29 @@ class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Releases"])
 class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
     owner: ApiOwner = ApiOwner.ENTERPRISE
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
+    @extend_schema(
+        operation_id="Retrieve status of a release threshold (Alpha)",
+        parameters=[GlobalParams.ORG_SLUG],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ReleaseThresholdStatusResponse", dict[str, list[EnrichedThreshold]]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+        },
+        examples=ReleaseThresholdExamples.THRESHOLD_STATUS_RESPONSE,
+    )
     def get(self, request: Request, organization: Organization | RpcOrganization) -> HttpResponse:
         """
+        WARNING: This API is an experimental Alpha feature and is subject to change!
+
         List all derived statuses of releases that fall within the provided start/end datetimes
 
         Constructs a response key'd off release_version, project_slug, and lists thresholds with their status for *specified* projects
@@ -103,8 +123,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
                     project_slug,
                     environment,
                     ...,
-                    key: {release}-{proj},
-                    release_version: '',
+                    key: {proj}-{release},
+                    release: str,
                     is_healthy: True/False,
                     start: datetime,
                     end: datetime,
@@ -120,10 +140,11 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, Envi
 
         :param start: timestamp of the beginning of the specified date range
         :param end: timestamp of the end of the specified date range
-
-        TODO:
-        - should we limit/paginate results? (this could get really bulky)
+        :return: dict key'd off per project-release,
+            containing a list of enriched threshold objects with orginal threshold data
+            and healthy status, start/end datetimes, and metric values
         """
+        # TODO: We should limit/paginate results (this could get really bulky)
         # ========================================================================
         # STEP 1: Validate request data
         #
