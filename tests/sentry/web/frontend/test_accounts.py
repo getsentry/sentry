@@ -357,3 +357,20 @@ class TestAccounts(TestCase):
             messages[0].message
             == "There was an error confirming your email. Please try again or visit your Account Settings to resend the verification email."
         )
+
+    def test_confirm_email_unauthenticated(self):
+        useremail = UserEmail(user=self.user, email="new@example.com")
+        useremail.save()
+
+        assert not useremail.is_verified
+
+        url = reverse(
+            "sentry-account-confirm-email",
+            kwargs={"user_id": self.user.id, "hash": useremail.validation_hash},
+        )
+
+        resp = self.client.get(url)
+
+        assert resp.status_code == 302
+        assert resp.headers["location"] == "/auth/login/"
+        assert self.client.session["_next"] == url
