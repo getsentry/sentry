@@ -28,6 +28,9 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
             self.project.organization.slug,
             status_code=200,
             queries="",
+            formulas="",
             statsPeriod="1h",
             interval="1h",
+            projects=[self.project.id],
+            environments=[],
         )
