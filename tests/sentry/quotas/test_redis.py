@@ -71,6 +71,12 @@ class RedisQuotaTest(TestCase):
     def quota(self):
         return RedisQuota()
 
+    def test_redis_quota_serialize(self):
+        assert QuotaScope.ORGANIZATION.api_name() == "organization"
+        assert QuotaScope.PROJECT.api_name() == "project"
+        assert QuotaScope.KEY.api_name() == "key"
+        assert QuotaScope.GLOBAL.api_name() == "global"
+
     def test_abuse_quotas(self):
         # These legacy options need to be set, otherwise we'll run into
         # AssertionError: reject-all quotas cannot be tracked
@@ -113,6 +119,7 @@ class RedisQuotaTest(TestCase):
         self.organization.update_option("project-abuse-quota.attachment-limit", 601)
         self.organization.update_option("project-abuse-quota.session-limit", 602)
         self.organization.update_option("organization-abuse-quota.metric-bucket-limit", 603)
+        self.organization.update_option("global-abuse-quota.metric-bucket-limit", 604)
         with self.feature("organizations:transaction-metrics-extraction"):
             quotas = self.quota.get_quotas(self.project)
 
@@ -147,6 +154,14 @@ class RedisQuotaTest(TestCase):
         assert quotas[4].limit == 6030
         assert quotas[4].window == 10
         assert quotas[4].reason_code == "org_abuse_limit"
+
+        assert quotas[5].id == "gam"
+        assert quotas[5].scope == QuotaScope.GLOBAL
+        assert quotas[5].scope_id is None
+        assert quotas[5].categories == {DataCategory.METRIC_BUCKET}
+        assert quotas[5].limit == 6040
+        assert quotas[5].window == 10
+        assert quotas[5].reason_code == "global_abuse_limit"
 
         # Let's set the global option for error limits.
         # Since we already have an org override for it, it shouldn't change anything.

@@ -45,6 +45,7 @@ def _create_event_attachment(evt, type):
         file_id=file.id,
         type=file.type,
         name="foo",
+        size=file.size,
     )
 
 

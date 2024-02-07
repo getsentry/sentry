@@ -10,7 +10,10 @@ import {
 import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 
-const INP_FIELDS = ['measurements.inp', 'p75(measurements.inp)'];
+const INP_SORT_MAP = {
+  'measurements.inp': 'measurements.fid',
+  'p75(measurements.inp)': 'p75(measurements.fid)',
+};
 
 export function useWebVitalsSort({
   sortName = 'sort',
@@ -34,8 +37,8 @@ export function useWebVitalsSort({
     )[0] ?? defaultSort;
 
   // TODO: Remove this once we can query for INP.
-  if (shouldReplaceFidWithInp && INP_FIELDS.includes(sort.field)) {
-    sort.field = 'measurements.fid';
+  if (shouldReplaceFidWithInp && Object.keys(INP_SORT_MAP).includes(sort.field)) {
+    sort.field = INP_SORT_MAP[sort.field];
   }
 
   return sort;

@@ -154,7 +154,6 @@ export function CreateAlertModal({Header, Body, Footer, metricsQuery}: Props) {
       getChartTimeseries(data, {
         mri: metricsQuery.mri,
         focusedSeries: undefined,
-        groupBy: [],
         // We are limited to one series in this chart, so we can just use the first color
         getChartPalette: createChartPalette,
       }),

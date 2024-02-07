@@ -693,7 +693,7 @@ interface MetricTagQueryFieldProps
 const EMPTY_ARRAY = [];
 function MetricTagQueryField({mri, ...props}: MetricTagQueryFieldProps) {
   const {projects} = usePageFilters().selection;
-  const {data = EMPTY_ARRAY} = useMetricsTags(mri as MRI | undefined, projects);
+  const {data = EMPTY_ARRAY} = useMetricsTags(mri as MRI | undefined, {projects});
 
   const fieldOptions = useMemo(() => {
     return data.reduce(

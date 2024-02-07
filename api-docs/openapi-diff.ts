@@ -1,9 +1,8 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
 /* eslint import/no-unresolved:0 */
 
-import fs from 'fs';
-import https from 'https';
+import fs from 'node:fs';
+import https from 'node:https';
 
 import yaml from 'js-yaml';
 import jsonDiff from 'json-diff';

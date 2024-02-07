@@ -67,7 +67,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
   const {
     data: {blockingStatus},
   } = useProjectMetric(mri, projectId);
-  const {data: tagsData = []} = useMetricsTags(mri, projectIds, false);
+  const {data: tagsData = []} = useMetricsTags(mri, {projects: projectIds}, false);
 
   const isBlockedMetric = blockingStatus?.isBlocked ?? false;
   const blockMetricMutation = useBlockMetric(project);

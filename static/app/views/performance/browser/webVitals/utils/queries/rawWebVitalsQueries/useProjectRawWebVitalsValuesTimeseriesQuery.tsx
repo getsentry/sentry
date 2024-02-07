@@ -31,6 +31,9 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
         'count()',
+        // TODO: Remove this once we can query for INP.
+        // Currently using this to fake INP count data.
+        'count_web_vitals(measurements.fid,any)',
       ],
       name: 'Web Vitals',
       query: [
@@ -77,6 +80,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   const data: {
     cls: SeriesDataUnit[];
     count: SeriesDataUnit[];
+    countInp: SeriesDataUnit[];
     fcp: SeriesDataUnit[];
     fid: SeriesDataUnit[];
     inp: SeriesDataUnit[];
@@ -90,6 +94,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     fid: [],
     inp: [],
     count: [],
+    countInp: [],
   };
 
   result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
@@ -100,6 +105,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       {key: 'p75(measurements.ttfb)', series: data.ttfb},
       {key: 'p75(measurements.fid)', series: data.fid},
       {key: 'count()', series: data.count},
+      {key: 'count_web_vitals(measurements.fid,any)', series: data.countInp},
     ];
     map.forEach(({key, series}) => {
       if (result?.data?.[key].data[index][1][0].count !== null) {

@@ -210,7 +210,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
   const pageFilters = usePageFilters().selection;
-  const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters.projects);
+  const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters);
 
   const focusAreaSelection = useMemo<FocusAreaSelection | undefined>(
     () => router.location.query.focusArea && JSON.parse(router.location.query.focusArea),

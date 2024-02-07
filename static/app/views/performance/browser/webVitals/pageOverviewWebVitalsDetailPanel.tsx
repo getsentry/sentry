@@ -38,6 +38,7 @@ import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
@@ -69,6 +70,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const organization = useOrganization();
   const routes = useRoutes();
   const shouldUseStoredScores = useStoredScoresSetting();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   const replayLinkGenerator = generateReplayLink(routes);
 
@@ -94,6 +96,9 @@ export function PageOverviewWebVitalsDetailPanel({
     ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
+  // TODO: remove this when INP is queryable. Need to map inp back to fid for search filters.
+  const webVitalFilter = shouldReplaceFidWithInp && webVital === 'inp' ? 'fid' : webVital;
+
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
   // We can't query by performance score yet, so we're using LCP as a best estimate
   const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
@@ -101,12 +106,12 @@ export function PageOverviewWebVitalsDetailPanel({
       limit: 3,
       transaction: transaction ?? '',
       query: webVital
-        ? `measurements.${webVital}:<${PERFORMANCE_SCORE_P90S[webVital]}`
+        ? `measurements.${webVitalFilter}:<${PERFORMANCE_SCORE_P90S[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
       sortName: 'webVitalSort',
-      webVital: webVital ?? undefined,
+      webVital: webVitalFilter ?? undefined,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -114,12 +119,12 @@ export function PageOverviewWebVitalsDetailPanel({
       limit: 3,
       transaction: transaction ?? '',
       query: webVital
-        ? `measurements.${webVital}:<${PERFORMANCE_SCORE_MEDIANS[webVital]} measurements.${webVital}:>=${PERFORMANCE_SCORE_P90S[webVital]}`
+        ? `measurements.${webVitalFilter}:<${PERFORMANCE_SCORE_MEDIANS[webVital]} measurements.${webVitalFilter}:>=${PERFORMANCE_SCORE_P90S[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
       sortName: 'webVitalSort',
-      webVital: webVital ?? undefined,
+      webVital: webVitalFilter ?? undefined,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -127,12 +132,12 @@ export function PageOverviewWebVitalsDetailPanel({
       limit: 3,
       transaction: transaction ?? '',
       query: webVital
-        ? `measurements.${webVital}:>=${PERFORMANCE_SCORE_MEDIANS[webVital]}`
+        ? `measurements.${webVitalFilter}:>=${PERFORMANCE_SCORE_MEDIANS[webVital]}`
         : undefined,
       enabled: Boolean(webVital),
       withProfiles: true,
       sortName: 'webVitalSort',
-      webVital: webVital ?? undefined,
+      webVital: webVitalFilter ?? undefined,
     });
 
   const data = [...goodData, ...mehData, ...poorData];
