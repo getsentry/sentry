@@ -75,6 +75,13 @@ function ActivitySection(props: Props) {
           );
         }
 
+        if (
+          item.type === GroupActivityType.SET_PRIORITY &&
+          !organization.features.includes('issue-priority-ui')
+        ) {
+          return null;
+        }
+
         return (
           <ErrorBoundary mini key={`item-${item.id}`}>
             <ActivityItem

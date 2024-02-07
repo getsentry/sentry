@@ -737,6 +737,7 @@ describe('GroupActivity', function () {
             dateCreated,
           },
         ],
+        organization: OrganizationFixture({features: ['issue-priority-ui']}),
       });
       expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
         'Sentry updated the priority value of this issue to be high after it escalated'
@@ -756,6 +757,7 @@ describe('GroupActivity', function () {
             dateCreated,
           },
         ],
+        organization: OrganizationFixture({features: ['issue-priority-ui']}),
       });
       expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
         'Sentry updated the priority value of this issue to be low after it was marked as ongoing'

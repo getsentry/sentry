@@ -518,6 +518,16 @@ function GroupActivityItem({
         );
       }
       case GroupActivityType.FIRST_SEEN:
+        if (
+          organization.features.includes('issue-priority-ui') &&
+          activity.data.priority
+        ) {
+          return tct(
+            '[author] first saw this issue and marked it as [priority] priority',
+            {author, priority: activity.data.priority}
+          );
+        }
+
         return tct('[author] first saw this issue', {author});
       case GroupActivityType.ASSIGNED: {
         return (
