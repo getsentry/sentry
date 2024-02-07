@@ -3,10 +3,12 @@ import random
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
+from django.utils import timezone
 from sentry_relay.processing import validate_sampling_condition
 
 from sentry import features, options
@@ -246,9 +248,15 @@ def _get_widget_metric_specs(
                     if not extraction_enabled:
                         # Return no specs if any extraction is blocked for a widget that should have specs.
                         ignored_widget_ids[widget_query.widget.id] = True
+                    metrics.incr(
+                        "on_demand_metrics.widgets.can_use_stateful_extraction", sample_rate=1.0
+                    )
                 else:
                     # Stateful extraction cannot be used in some cases (eg. newly created or recently modified widgets).
                     # We skip cardinality checks for those cases, however, and assume extraction is allowed temporarily.
+                    metrics.incr(
+                        "on_demand_metrics.widgets.cannot_use_stateful_extraction", sample_rate=1.0
+                    )
                     continue
             else:
                 # TODO: Remove this cardinality check after above option is enabled permanently.
@@ -465,11 +473,18 @@ def _can_widget_query_use_stateful_extraction(
 
     if len(on_demand_entries) == 0:
         # 0 on-demand entries is expected, and happens when the on-demand task hasn't caught up yet for newly created widgets or widgets recently modified to have on-demand state.
-        metrics.incr(
-            "on_demand_metrics.on_demand_spec.skip_recently_modified",
-            amount=len(metrics_specs),
-            sample_rate=1.0,
-        )
+        if widget_query.date_modified > timezone.now() - timedelta(days=1):
+            metrics.incr(
+                "on_demand_metrics.on_demand_spec.skip_recently_modified",
+                amount=len(metrics_specs),
+                sample_rate=1.0,
+            )
+        else:
+            metrics.incr(
+                "on_demand_metrics.on_demand_spec.older_widget_query",
+                amount=len(metrics_specs),
+                sample_rate=1.0,
+            )
         return False
     elif len(on_demand_entries) > 1:
         # There should only be one on demand entry.
@@ -531,7 +546,8 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
             sentry_sdk.capture_exception(
                 Exception("Skipped extraction due to mismatched on_demand entries")
             )
-        return False
+        # We default to allowed extraction if something unexpected occurs otherwise customers lose data.
+        return True
 
     on_demand_entry = on_demand_entries[0]
 

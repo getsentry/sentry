@@ -50,7 +50,7 @@ pymemcache
 python-u2flib-server>=5.0.0
 fido2>=0.9.2
 python3-saml>=1.15.0
-PyYAML>=5.4
+PyYAML>=6.0.1
 rb>=1.9.0
 redis-py-cluster>=2.1.0
 redis>=3.4.1
@@ -82,13 +82,13 @@ pyuwsgi==2.0.23
 zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
 
-msgpack>=1.0.4
+msgpack>=1.0.7
 cryptography>=38.0.3
 
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
 # See https://github.com/grpc/grpc/issues/23796 and
 # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
-grpcio>=1.47.0
+grpcio>=1.59.0
 
 # not directly used, but provides a speedup for redis
 hiredis>=0.3.1

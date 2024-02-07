@@ -9,6 +9,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
+import {ORG_ROLES} from 'sentry/constants';
 import TeamStore from 'sentry/stores/teamStore';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -69,6 +70,30 @@ describe('InviteMembersModal', function () {
     // 'member' role.
     await userEvent.click(screen.getByRole('textbox', {name: 'Role'}));
     expect(screen.getAllByRole('menuitemradio')).toHaveLength(roles.length);
+    expect(screen.getByRole('menuitemradio', {name: 'Member'})).toBeChecked();
+  });
+
+  it('renders for superuser', async function () {
+    jest.mock('sentry/utils/isActiveSuperuser', () => ({
+      isActiveSuperuser: jest.fn(),
+    }));
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/me/`,
+      method: 'GET',
+      status: 404,
+    });
+
+    jest.mocked(useOrganization).mockReturnValue(org);
+    render(<InviteMembersModal {...modalProps} />);
+
+    await waitFor(() => {
+      // Starts with one invite row
+      expect(screen.getByRole('listitem')).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Role'}));
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(ORG_ROLES.length);
     expect(screen.getByRole('menuitemradio', {name: 'Member'})).toBeChecked();
   });
 

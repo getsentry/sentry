@@ -15,6 +15,7 @@ import {
   SORTABLE_INDEXED_FIELDS,
   SORTABLE_INDEXED_SCORE_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 
@@ -43,6 +44,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   const pageFilters = usePageFilters();
   const location = useLocation();
   const shouldUseStoredScores = useStoredScoresSetting();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   const filteredSortableFields = shouldUseStoredScores
     ? SORTABLE_INDEXED_FIELDS
@@ -104,6 +106,8 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     referrer: 'api.performance.browser.web-vitals.transaction',
   });
 
+  // TODO: Remove this once we can query for INP.
+  const webVitalKey = shouldReplaceFidWithInp && webVital === 'fid' ? 'inp' : webVital;
   const toNumber = (item: ReactText) => (item ? parseFloat(item.toString()) : undefined);
   const tableData: TransactionSampleRowWithScore[] =
     !isLoading && data?.data.length
@@ -128,12 +132,12 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
             ),
             ...(webVital
               ? {
-                  [`${webVital}Score`]: Math.round(
+                  [`${webVitalKey}Score`]: Math.round(
                     ((toNumber(row[`measurements.score.${webVital}`]) ?? 0) /
                       (toNumber(row[`measurements.score.weight.${webVital}`]) ?? 0)) *
                       100
                   ),
-                  [`${webVital}Weight`]: Math.round(
+                  [`${webVitalKey}Weight`]: Math.round(
                     (toNumber(row[`measurements.score.weight.${webVital}`]) ?? 0) * 100
                   ),
                 }

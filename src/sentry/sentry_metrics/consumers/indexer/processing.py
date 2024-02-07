@@ -22,7 +22,6 @@ from sentry.sentry_metrics.consumers.indexer.tags_validator import (
     ReleaseHealthTagsValidator,
 )
 from sentry.sentry_metrics.indexer.base import StringIndexer
-from sentry.sentry_metrics.indexer.hash import StaticSha1Indexer
 from sentry.sentry_metrics.indexer.limiters.cardinality import cardinality_limiter_factory
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PostgresIndexer
@@ -33,7 +32,6 @@ logger = logging.getLogger(__name__)
 STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.POSTGRES: PostgresIndexer,
     IndexerStorage.MOCK: MockIndexer,
-    IndexerStorage.EXPERIMENRAL: StaticSha1Indexer,
 }
 
 INGEST_CODEC: sentry_kafka_schemas.codecs.Codec[Any] = sentry_kafka_schemas.get_codec(
