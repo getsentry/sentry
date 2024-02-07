@@ -11,7 +11,6 @@ class ApiOwner(Enum):
     CRONS = "crons"
     DISCOVER_N_DASHBOARDS = "discover-n-dashboards"
     ECOSYSTEM = "ecosystem"
-    ENTERPRISE = "enterprise"
     CORE_PRODUCT_FOUNDATIONS = "core-product-foundations"
     FEEDBACK = "feedback-backend"
     HYBRID_CLOUD = "hybrid-cloud"
