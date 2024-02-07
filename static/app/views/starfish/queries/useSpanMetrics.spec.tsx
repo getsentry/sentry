@@ -1,6 +1,6 @@
-import {ReactNode} from 'react';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
+import type {ReactNode} from 'react';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {MetricsProperty} from 'sentry/views/starfish/types';
+import type {MetricsProperty} from 'sentry/views/starfish/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -23,7 +23,7 @@ function Wrapper({children}: {children?: ReactNode}) {
 }
 
 describe('useSpanMetrics', () => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -67,7 +67,7 @@ describe('useSpanMetrics', () => {
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(
       ({filters, fields, sorts, limit, cursor, referrer}) =>
-        useSpanMetrics(filters, fields, sorts, limit, cursor, referrer),
+        useSpanMetrics({filters, fields, sorts, limit, cursor, referrer}),
       {
         wrapper: Wrapper,
         initialProps: {

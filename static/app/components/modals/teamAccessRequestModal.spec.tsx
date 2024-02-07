@@ -1,22 +1,21 @@
 import styled from '@emotion/styled';
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
-import TeamAccessRequestModal, {
-  CreateTeamAccessRequestModalProps,
-} from 'sentry/components/modals/teamAccessRequestModal';
+import type {CreateTeamAccessRequestModalProps} from 'sentry/components/modals/teamAccessRequestModal';
+import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
 
 describe('TeamAccessRequestModal', function () {
   let createMock;
 
   const closeModal = jest.fn();
-  const orgId = Organization().slug;
+  const orgId = OrganizationFixture().slug;
   const memberId = MemberFixture().id;
-  const teamId = Team().slug;
+  const teamId = TeamFixture().slug;
 
   const styledWrapper = styled(c => c.children);
   const modalRenderProps: CreateTeamAccessRequestModalProps = {

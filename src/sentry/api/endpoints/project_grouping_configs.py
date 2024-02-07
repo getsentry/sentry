@@ -13,7 +13,7 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """Retrieve available grouping configs with project-specific information
 
@@ -22,7 +22,7 @@ class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project) -> Response:
         configs = [
-            config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: x.id)
+            config.as_dict() for config in sorted(CONFIGURATIONS.values(), key=lambda x: str(x.id))
         ]
 
         return Response(serialize(configs))

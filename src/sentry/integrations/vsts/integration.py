@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from time import time
-from typing import Any, Collection, Mapping, MutableMapping, Sequence
+from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from django import forms
@@ -518,7 +519,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "Please ensure third-party app access via OAuth is enabled \n"
                     "in the organization's security policy."
                 )
-            raise e
+            raise
 
         subscription_id = subscription["id"]
         return subscription_id, shared_secret

@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime
 import math
 from datetime import timezone
-from typing import List, Tuple
 from unittest import mock
 
 import pytest
@@ -28,6 +27,7 @@ from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, MetricSpecType, OnDe
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.helpers import Feature
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -39,7 +39,7 @@ def _user_misery_formula(miserable_users: int, unique_users: int) -> float:
 
 
 def _metric_percentile_definition(
-    org_id, quantile, field="transaction.duration", alias=None
+    org_id: int, quantile: str, field: str = "transaction.duration", alias: str | None = None
 ) -> Function:
     if alias is None:
         alias = f"p{quantile}_{field.replace('.', '_')}"
@@ -67,7 +67,7 @@ def _metric_percentile_definition(
     )
 
 
-def _metric_conditions(org_id, metrics) -> List[Condition]:
+def _metric_conditions(org_id: int, metrics: list[str]) -> list[Condition]:
     def _resolve_must_succeed(*a, **k):
         ret = indexer.resolve(*a, **k)
         assert ret is not None
@@ -2030,6 +2030,83 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    # Once we delete the current spec version this test will fail and we can delete it
+    def test_on_demand_builder_with_new_spec(self):
+        field = "count()"
+        query = "transaction.duration:>0"
+        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
+        # As expected, it does not include the environment tag
+        expected_str_hash = "None;{'name': 'event.duration', 'op': 'gt', 'value': 0.0}"
+        assert spec._query_str_for_hash == expected_str_hash
+
+        # Because we call the builder with the feature flag we will get the environment to be included
+        with Feature("organizations:on-demand-metrics-query-spec-version-two"):
+            query_builder = TimeseriesMetricQueryBuilder(
+                self.params,
+                dataset=Dataset.PerformanceMetrics,
+                interval=3600,
+                query=query,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
+                ),
+            )
+            spec_in_use: OnDemandMetricSpec | None = (
+                query_builder._on_demand_metric_spec_map[field]
+                if query_builder._on_demand_metric_spec_map
+                else None
+            )
+            assert spec_in_use
+            # It does include the environment tag
+            assert spec_in_use._query_str_for_hash == f"{expected_str_hash};['environment']"
+            # This proves that we're picking up the new spec version
+            assert spec_in_use.spec_version.flags == {"include_environment_tag"}
+
+    def test_on_demand_builder_with_not_event_type_error(self):
+        field = "count()"
+        query = "!event.type:error"
+        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
+        expected_str_hash = "None;{'inner': {'name': 'event.tags.event.type', 'op': 'eq', 'value': 'error'}, 'op': 'not'}"
+        assert spec._query_str_for_hash == expected_str_hash
+
+        query_builder = TimeseriesMetricQueryBuilder(
+            self.params,
+            dataset=Dataset.PerformanceMetrics,
+            interval=3600,
+            query=query,
+            selected_columns=[field],
+            config=QueryBuilderConfig(
+                on_demand_metrics_enabled=True,
+                on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
+            ),
+        )
+        spec_map = query_builder._on_demand_metric_spec_map
+        assert spec_map
+        assert spec_map.get(field) == spec
+        assert query_builder.dataset.name == "PerformanceMetrics"
+        assert query_builder.dataset.value == "generic_metrics"
+
+    def test_on_demand_builder_with_event_type_error(self):
+        field = "count()"
+        query = "event.type:error"
+        spec = OnDemandMetricSpec(field=field, query=query, spec_type=MetricSpecType.DYNAMIC_QUERY)
+        expected_str_hash = "None;{'name': 'event.tags.event.type', 'op': 'eq', 'value': 'error'}"
+        assert spec._query_str_for_hash == expected_str_hash
+
+        with pytest.raises(IncompatibleMetricsQuery):
+            TimeseriesMetricQueryBuilder(
+                self.params,
+                dataset=Dataset.PerformanceMetrics,
+                interval=3600,
+                query=query,
+                selected_columns=[field],
+                config=QueryBuilderConfig(
+                    on_demand_metrics_enabled=True,
+                    on_demand_metrics_type=MetricSpecType.DYNAMIC_QUERY,
+                ),
+            )
+
     def test_run_query_with_on_demand_distribution_and_environment(self):
         field = "p75(measurements.fp)"
         query_s = "transaction.duration:>0"
@@ -2780,7 +2857,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         ]
 
     def _test_user_misery(
-        self, user_to_frustration: list[Tuple[str, bool]], expected_user_misery: float
+        self, user_to_frustration: list[tuple[str, bool]], expected_user_misery: float
     ) -> None:
         threshold = 300
         field = f"user_misery({threshold})"
@@ -3051,6 +3128,14 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
                     skip_time_conditions=False,
                 ),
             )
+            assert query._on_demand_metric_spec_map == {
+                "count(measurements.fp)": OnDemandMetricSpec(
+                    field=field,
+                    query=query_s,
+                    environment=environment,
+                    spec_type=MetricSpecType.SIMPLE_QUERY,
+                )
+            }
 
             result = query.run_query("test_query")
 

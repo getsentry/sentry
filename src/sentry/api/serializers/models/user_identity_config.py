@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, MutableMapping, Optional, Union
+from typing import Any, Union
+
+from django.db.models.base import Model
 
 import sentry.integrations
 from sentry.api.serializers import Serializer, register, serialize
@@ -58,10 +61,10 @@ class UserIdentityConfig:
     name: str
     status: Status
     is_login: bool
-    organization_id: Optional[int] = None
-    date_added: Optional[datetime] = None
-    date_verified: Optional[datetime] = None
-    date_synced: Optional[datetime] = None
+    organization_id: int | None = None
+    date_added: datetime | None = None
+    date_verified: datetime | None = None
+    date_synced: datetime | None = None
 
     @classmethod
     def wrap(cls, identity: IdentityType, status: Status) -> UserIdentityConfig:
@@ -107,14 +110,14 @@ class UserIdentityConfig:
         else:
             raise TypeError
 
-    def get_model_type_for_category(self) -> type:
+    def get_model_type_for_category(self) -> type[Model]:
         return _IDENTITY_CATEGORIES_BY_KEY[self.category]
 
 
 @register(UserIdentityConfig)
 class UserIdentityConfigSerializer(Serializer):
     def get_attrs(
-        self, item_list: List[UserIdentityConfig], user: Any, **kwargs: Any
+        self, item_list: list[UserIdentityConfig], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
         result: MutableMapping[UserIdentityConfig, Any] = {}
         organizations = {

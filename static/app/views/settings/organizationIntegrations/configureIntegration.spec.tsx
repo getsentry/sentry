@@ -1,6 +1,7 @@
-import {OpsgenieIntegration} from 'sentry-fixture/opsgenieIntegration';
-import {OpsgenieIntegrationProvider} from 'sentry-fixture/opsgenieIntegrationProvider';
-import {Organization} from 'sentry-fixture/organization';
+import {OpsgenieIntegrationFixture} from 'sentry-fixture/opsgenieIntegration';
+import {OpsgenieIntegrationProviderFixture} from 'sentry-fixture/opsgenieIntegrationProvider';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {
   render,
@@ -12,7 +13,7 @@ import {
 import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
 
 describe('OpsgenieMigrationButton', function () {
-  const org = Organization({
+  const org = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
   });
   const integrationId = '1';
@@ -21,13 +22,13 @@ describe('OpsgenieMigrationButton', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/`,
       body: {
-        providers: [OpsgenieIntegrationProvider()],
+        providers: [OpsgenieIntegrationProviderFixture()],
       },
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/integrations/${integrationId}/`,
-      body: OpsgenieIntegration(),
+      body: OpsgenieIntegrationFixture(),
     });
 
     MockApiClient.addMockResponse({
@@ -58,7 +59,7 @@ describe('OpsgenieMigrationButton', function () {
 
     render(
       <ConfigureIntegration
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{integrationId, providerKey: 'opsgenie'}}
       />,
       {organization: org}

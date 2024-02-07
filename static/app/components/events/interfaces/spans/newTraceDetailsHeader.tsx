@@ -6,13 +6,11 @@ import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader'
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction, Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import toPercent from 'sentry/utils/number/toPercent';
 import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
-import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
-
-import ReplayPreview from '../../eventReplay/replayPreview';
+import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import * as DividerHandlerManager from './dividerHandlerManager';
 
@@ -114,23 +112,6 @@ function TraceViewHeader(props: PropType) {
                   height: `100px`,
                 }}
               />
-              <div
-                style={{
-                  overflow: 'hidden',
-                  position: 'relative',
-                  height: '100px',
-                  width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
-                  left: `calc(${toPercent(dividerPosition)} + 0.5px)`,
-                }}
-              >
-                {event.contexts.replay?.replay_id && (
-                  <ReplayPreview
-                    replaySlug={event.contexts.replay?.replay_id ?? ''}
-                    orgSlug={props.organization.slug}
-                    eventTimestampMs={props.traceInfo.startTimestamp}
-                  />
-                )}
-              </div>
             </Fragment>
           );
         }}

@@ -1,13 +1,22 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
-import {IconCopy, IconDashboard, IconDelete, IconEllipsis, IconSiren} from 'sentry/icons';
+import {navigateTo} from 'sentry/actionCreators/navigation';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {
+  IconClose,
+  IconCopy,
+  IconDashboard,
+  IconEllipsis,
+  IconSettings,
+  IconSiren,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {isCustomMeasurement, MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
   encodeWidgetQuery,
@@ -15,6 +24,7 @@ import {
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import type {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useDDMContext} from 'sentry/views/ddm/context';
@@ -27,19 +37,25 @@ type ContextMenuProps = {
   widgetIndex: number;
 };
 
-export function MetricWidgetContextMenu({
+export function MetricQueryContextMenu({
   metricsQuery,
   displayType,
   widgetIndex,
 }: ContextMenuProps) {
   const organization = useOrganization();
-  const {removeWidget, duplicateWidget} = useDDMContext();
-  const createAlert = useCreateAlert(organization, metricsQuery);
+  const router = useRouter();
+  const {removeWidget, duplicateWidget, widgets} = useDDMContext();
+  const createAlert = useMemo(
+    () => getCreateAlert(organization, metricsQuery),
+    [metricsQuery, organization]
+  );
   const createDashboardWidget = useCreateDashboardWidget(
     organization,
     metricsQuery,
     displayType
   );
+
+  const canDelete = widgets.length > 1;
 
   const items = useMemo<MenuItemProps[]>(
     () => [
@@ -47,30 +63,82 @@ export function MetricWidgetContextMenu({
         leadingItems: [<IconCopy key="icon" />],
         key: 'duplicate',
         label: t('Duplicate'),
-        onAction: () => duplicateWidget(widgetIndex),
+        onAction: () => {
+          trackAnalytics('ddm.widget.duplicate', {
+            organization,
+          });
+          Sentry.metrics.increment('ddm.widget.duplicate');
+          duplicateWidget(widgetIndex);
+        },
       },
       {
         leadingItems: [<IconSiren key="icon" />],
         key: 'add-alert',
         label: t('Create Alert'),
         disabled: !createAlert,
-        onAction: createAlert,
+        onAction: () => {
+          trackAnalytics('ddm.create-alert', {
+            organization,
+            source: 'widget',
+          });
+          Sentry.metrics.increment('ddm.widget.alert');
+          createAlert?.();
+        },
       },
       {
         leadingItems: [<IconDashboard key="icon" />],
         key: 'add-dashoard',
         label: t('Add to Dashboard'),
         disabled: !createDashboardWidget,
-        onAction: createDashboardWidget,
+        onAction: () => {
+          trackAnalytics('ddm.add-to-dashboard', {
+            organization,
+            source: 'widget',
+          });
+          Sentry.metrics.increment('ddm.widget.dashboard');
+          createDashboardWidget?.();
+        },
       },
       {
-        leadingItems: [<IconDelete key="icon" />],
+        leadingItems: [<IconSettings key="icon" />],
+        key: 'settings',
+        label: t('Metric Settings'),
+        disabled: !isCustomMetric({mri: metricsQuery.mri}),
+        onAction: () => {
+          trackAnalytics('ddm.widget.settings', {
+            organization,
+          });
+          Sentry.metrics.increment('ddm.widget.settings');
+          navigateTo(
+            `/settings/projects/:projectId/metrics/${encodeURIComponent(
+              metricsQuery.mri
+            )}`,
+            router
+          );
+        },
+      },
+      {
+        leadingItems: [<IconClose key="icon" />],
         key: 'delete',
-        label: t('Delete'),
-        onAction: () => removeWidget(widgetIndex),
+        label: t('Remove Query'),
+        disabled: !canDelete,
+        onAction: () => {
+          Sentry.metrics.increment('ddm.widget.delete');
+          removeWidget(widgetIndex);
+        },
       },
     ],
-    [createAlert, createDashboardWidget, duplicateWidget, removeWidget, widgetIndex]
+    [
+      createAlert,
+      createDashboardWidget,
+      metricsQuery.mri,
+      canDelete,
+      organization,
+      duplicateWidget,
+      widgetIndex,
+      router,
+      removeWidget,
+    ]
   );
 
   if (!hasDDMFeature(organization)) {
@@ -78,12 +146,11 @@ export function MetricWidgetContextMenu({
   }
 
   return (
-    <StyledDropdownMenuControl
+    <DropdownMenu
       items={items}
       triggerProps={{
         'aria-label': t('Widget actions'),
-        size: 'xs',
-        borderless: true,
+        size: 'md',
         showChevron: false,
         icon: <IconEllipsis direction="down" size="sm" />,
       }}
@@ -92,28 +159,22 @@ export function MetricWidgetContextMenu({
   );
 }
 
-const StyledDropdownMenuControl = styled(DropdownMenu)`
-  margin: ${space(1)};
-`;
-
-export function useCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
-  return useMemo(() => {
-    if (
-      !metricsQuery.mri ||
-      !metricsQuery.op ||
-      isCustomMeasurement(metricsQuery) ||
-      !organization.access.includes('alerts:write')
-    ) {
-      return undefined;
-    }
-    return function () {
-      return openModal(deps => (
-        <OrganizationContext.Provider value={organization}>
-          <CreateAlertModal metricsQuery={metricsQuery} {...deps} />
-        </OrganizationContext.Provider>
-      ));
-    };
-  }, [metricsQuery, organization]);
+export function getCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
+  if (
+    !metricsQuery.mri ||
+    !metricsQuery.op ||
+    isCustomMeasurement(metricsQuery) ||
+    !organization.access.includes('alerts:write')
+  ) {
+    return undefined;
+  }
+  return function () {
+    return openModal(deps => (
+      <OrganizationContext.Provider value={organization}>
+        <CreateAlertModal metricsQuery={metricsQuery} {...deps} />
+      </OrganizationContext.Provider>
+    ));
+  };
 }
 
 export function useCreateDashboardWidget(

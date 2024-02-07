@@ -1,29 +1,33 @@
-import {Location} from 'history';
-
+import type {PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {
+import usePageFilters from 'sentry/utils/usePageFilters';
+import type {
   MetricsProperty,
   MetricsResponse,
   SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
-export const useSpanMetrics = <T extends MetricsProperty[]>(
-  filters: SpanMetricsQueryFilters,
-  fields: T,
-  sorts?: Sort[],
-  limit?: number,
-  cursor?: string,
-  referrer: string = 'api.starfish.use-span-metrics'
+interface UseSpanMetricsOptions<Fields> {
+  cursor?: string;
+  fields?: Fields;
+  filters?: SpanMetricsQueryFilters;
+  limit?: number;
+  referrer?: string;
+  sorts?: Sort[];
+}
+
+export const useSpanMetrics = <Fields extends MetricsProperty[]>(
+  options: UseSpanMetricsOptions<Fields> = {}
 ) => {
-  const location = useLocation();
+  const {fields = [], filters = {}, sorts = [], limit, cursor, referrer} = options;
 
-  const eventView = getEventView(filters, fields, sorts, location);
+  const pageFilters = usePageFilters();
+
+  const eventView = getEventView(filters, fields, sorts, pageFilters.selection);
 
   const enabled = Object.values(filters).every(value => Boolean(value));
 
@@ -38,7 +42,7 @@ export const useSpanMetrics = <T extends MetricsProperty[]>(
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
   // eslint-disable-next-line @typescript-eslint/ban-types
-  const data = (result?.data ?? []) as Pick<MetricsResponse, T[number]>[] | [];
+  const data = (result?.data ?? []) as Pick<MetricsResponse, Fields[number]>[] | [];
 
   return {
     ...result,
@@ -48,29 +52,14 @@ export const useSpanMetrics = <T extends MetricsProperty[]>(
 };
 
 function getEventView(
-  filters: SpanMetricsQueryFilters,
+  filters: SpanMetricsQueryFilters = {},
   fields: string[] = [],
   sorts: Sort[] = [],
-  location: Location
+  pageFilters: PageFilters
 ) {
-  const query = new MutableSearch('');
+  const query = MutableSearch.fromQueryObject(filters);
 
-  Object.entries(filters).forEach(([key, value]) => {
-    if (!value) {
-      return;
-    }
-
-    if (value === EMPTY_OPTION_VALUE) {
-      query.addFilterValue('!has', key);
-    }
-
-    query.addFilterValue(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
-  });
-
-  // TODO: This condition should be enforced everywhere
-  // query.addFilterValue('has', 'span.description');
-
-  const eventView = EventView.fromNewQueryWithLocation(
+  const eventView = EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       query: query.formatString(),
@@ -78,7 +67,7 @@ function getEventView(
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },
-    location
+    pageFilters
   );
 
   if (sorts.length > 0) {
@@ -87,5 +76,3 @@ function getEventView(
 
   return eventView;
 }
-
-const ALLOWED_WILDCARD_FIELDS = ['span.description'];

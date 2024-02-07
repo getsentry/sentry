@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NamedTuple, overload
+from typing import TYPE_CHECKING, NamedTuple, TypeGuard, overload
 from urllib.parse import quote, urljoin, urlparse
 
 from django.conf import settings
 from django.http import HttpRequest
 from rest_framework.request import Request
-from typing_extensions import TypeGuard
 
 from sentry import options
 
@@ -31,7 +30,7 @@ def absolute_uri(url: str | None = None, url_prefix: str | None = None) -> str:
     return urljoin(url_prefix.rstrip("/") + "/", url.lstrip("/"))
 
 
-def query_string(request: Request) -> str:
+def query_string(request: HttpRequest) -> str:
     qs = request.META.get("QUERY_STRING") or ""
     if qs:
         qs = f"?{qs}"

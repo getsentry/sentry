@@ -7,7 +7,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
-import SidebarItem, {isItemActive, SidebarItemProps} from './sidebarItem';
+import type {SidebarItemProps} from './sidebarItem';
+import SidebarItem, {isItemActive} from './sidebarItem';
 
 type SidebarAccordionProps = SidebarItemProps & {
   children?: React.ReactNode;
@@ -24,7 +25,10 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const contentId = `sidebar-accordion-${id}-content`;
 
   const isActive = isItemActive(itemProps);
-  const hasActiveChildren = Children.toArray(children).some(child => {
+
+  const childSidebarItems = findChildElementsInTree(children, 'SidebarItem');
+
+  const hasActiveChildren = Children.toArray(childSidebarItems).some(child => {
     if (isValidElement(child)) {
       return isItemActive(child.props);
     }
@@ -77,6 +81,39 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 }
 
 export {SidebarAccordion};
+
+function findChildElementsInTree(
+  children: React.ReactNode,
+  componentName: string,
+  found: Array<React.ReactNode> = []
+): React.ReactNode {
+  Children.toArray(children).forEach(child => {
+    if (!isValidElement(child)) {
+      return;
+    }
+
+    const currentComponentName: string =
+      typeof child.type === 'string'
+        ? child.type
+        : 'displayName' in child.type
+          ? (child.type.displayName as string) // `.displayName` is added by `babel-plugin-add-react-displayname` in production builds
+          : child.type.name; // `.name` is available in development builds
+
+    if (currentComponentName === componentName) {
+      found.push(child);
+      return;
+    }
+
+    if (child?.props?.children) {
+      findChildElementsInTree(child.props.children, componentName, found);
+      return;
+    }
+
+    return;
+  });
+
+  return found;
+}
 
 const SidebarAccordionWrapper = styled('div')`
   display: flex;

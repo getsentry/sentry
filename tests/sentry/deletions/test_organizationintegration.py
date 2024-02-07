@@ -20,8 +20,9 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         org = self.create_organization()
-        integration = Integration.objects.create(provider="example", name="Example")
-        organization_integration = integration.add_organization(org, self.user)
+        integration, organization_integration = self.create_provider_integration_for(
+            org, self.user, provider="example", name="Example"
+        )
 
         with assume_test_silo_mode(SiloMode.REGION):
             external_issue = ExternalIssue.objects.create(
@@ -42,8 +43,9 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
     def test_skip_on_undelete(self):
         org = self.create_organization()
-        integration = Integration.objects.create(provider="example", name="Example")
+        integration = self.create_provider_integration(provider="example", name="Example")
         organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
 
         ScheduledDeletion.schedule(instance=organization_integration, days=0)
 
@@ -55,12 +57,13 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
     def test_repository_and_identity(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        integration = Integration.objects.create(provider="example", name="Example")
+        integration = self.create_provider_integration(provider="example", name="Example")
         provider = self.create_identity_provider(integration)
         identity = self.create_identity(
             user=self.user, identity_provider=provider, external_id="abc123"
         )
         organization_integration = integration.add_organization(org, self.user, identity.id)
+        assert organization_integration is not None
         repository = self.create_repo(
             project=project, name="testrepo", provider="gitlab", integration_id=integration.id
         )
@@ -89,11 +92,12 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
     def test_codeowner_links(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
-        integration = Integration.objects.create(provider="example", name="Example")
+        integration = self.create_provider_integration(provider="example", name="Example")
         repository = self.create_repo(
             project=project, name="testrepo", provider="gitlab", integration_id=integration.id
         )
         organization_integration = integration.add_organization(org, self.user)
+        assert organization_integration is not None
 
         code_mapping = self.create_code_mapping(
             project=project, repo=repository, organization_integration=organization_integration

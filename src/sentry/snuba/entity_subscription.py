@@ -2,21 +2,9 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    TypedDict,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, TypedDict, Union
 
 from snuba_sdk import Column, Condition, Join, Op, Request
 
@@ -78,7 +66,7 @@ ALERT_BLOCKED_FIELDS = {
 def apply_dataset_query_conditions(
     query_type: SnubaQuery.Type,
     query: str,
-    event_types: Optional[List[SnubaQueryEventType.EventType]],
+    event_types: list[SnubaQueryEventType.EventType] | None,
     discover: bool = False,
 ) -> str:
     """
@@ -113,7 +101,7 @@ def apply_dataset_query_conditions(
 
 class _EntitySpecificParams(TypedDict, total=False):
     org_id: int
-    event_types: Optional[List[SnubaQueryEventType.EventType]]
+    event_types: list[SnubaQueryEventType.EventType] | None
 
 
 @dataclass
@@ -131,7 +119,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
     """
 
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
+        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
     ):
         pass
 
@@ -141,8 +129,8 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
 
     @abstractmethod
     def aggregate_query_results(
-        self, data: List[Dict[str, Any]], alias: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, data: list[dict[str, Any]], alias: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         Method that serves the purpose of receiving query results and applying any necessary
         aggregations on them
@@ -153,8 +141,8 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         self,
         query: str,
         project_ids: Sequence[int],
-        environment: Optional[Environment],
-        params: Optional[MutableMapping[str, Any]] = None,
+        environment: Environment | None,
+        params: MutableMapping[str, Any] | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         raise NotImplementedError
@@ -162,7 +150,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
+        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -174,8 +162,8 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         self,
         query: str,
         project_ids: Sequence[int],
-        environment: Optional[Environment],
-        params: Optional[MutableMapping[str, Any]] = None,
+        environment: Environment | None,
+        params: MutableMapping[str, Any] | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         from sentry.search.events.builder import ErrorsQueryBuilder, QueryBuilder
@@ -219,8 +207,8 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         return {}
 
     def aggregate_query_results(
-        self, data: List[Dict[str, Any]], alias: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, data: list[dict[str, Any]], alias: str | None = None
+    ) -> list[dict[str, Any]]:
         return data
 
 
@@ -239,7 +227,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
     dataset = Dataset.Sessions
 
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
+        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -254,8 +242,8 @@ class SessionsEntitySubscription(BaseEntitySubscription):
         return {"organization": self.org_id}
 
     def aggregate_query_results(
-        self, data: List[Dict[str, Any]], alias: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, data: list[dict[str, Any]], alias: str | None = None
+    ) -> list[dict[str, Any]]:
         assert len(data) == 1
         col_name = alias if alias else CRASH_RATE_ALERT_AGGREGATE_ALIAS
         if data[0][col_name] is not None:
@@ -270,8 +258,8 @@ class SessionsEntitySubscription(BaseEntitySubscription):
         self,
         query: str,
         project_ids: Sequence[int],
-        environment: Optional[Environment],
-        params: Optional[MutableMapping[str, Any]] = None,
+        environment: Environment | None,
+        params: MutableMapping[str, Any] | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         from sentry.search.events.builder import SessionsQueryBuilder
@@ -315,7 +303,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
-        self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
+        self, aggregate: str, time_window: int, extra_fields: _EntitySpecificParams | None = None
     ):
         super().__init__(aggregate, time_window, extra_fields)
         self.aggregate = aggregate
@@ -336,11 +324,11 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         )
 
     @abstractmethod
-    def get_snql_aggregations(self) -> List[str]:
+    def get_snql_aggregations(self) -> list[str]:
         raise NotImplementedError
 
     @abstractmethod
-    def get_snql_extra_conditions(self) -> List[Condition]:
+    def get_snql_extra_conditions(self) -> list[Condition]:
         raise NotImplementedError
 
     @abstractmethod
@@ -365,13 +353,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 
         return resolve_tag_key(self._get_use_case_id(), self.org_id, string)
 
-    def resolve_tag_value_if_needed(self, string: str) -> Union[str, int]:
+    def resolve_tag_value_if_needed(self, string: str) -> str | int:
         if self.use_metrics_layer:
             return string
 
         return resolve_tag_value(self._get_use_case_id(), self.org_id, string)
 
-    def resolve_tag_values_if_needed(self, strings: Sequence[str]) -> Sequence[Union[str, int]]:
+    def resolve_tag_values_if_needed(self, strings: Sequence[str]) -> Sequence[str | int]:
         if self.use_metrics_layer:
             return strings
 
@@ -381,8 +369,8 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self,
         query: str,
         project_ids: Sequence[int],
-        environment: Optional[Environment],
-        params: Optional[MutableMapping[str, Any]] = None,
+        environment: Environment | None,
+        params: MutableMapping[str, Any] | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> QueryBuilder:
         from sentry.search.events.builder import AlertMetricsQueryBuilder
@@ -422,15 +410,15 @@ class PerformanceMetricsEntitySubscription(BaseMetricsEntitySubscription):
     query_type = SnubaQuery.Type.PERFORMANCE
     dataset = Dataset.PerformanceMetrics
 
-    def get_snql_aggregations(self) -> List[str]:
+    def get_snql_aggregations(self) -> list[str]:
         return [self.aggregate]
 
-    def get_snql_extra_conditions(self) -> List[Condition]:
+    def get_snql_extra_conditions(self) -> list[Condition]:
         return []
 
     def aggregate_query_results(
-        self, data: List[Dict[str, Any]], alias: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, data: list[dict[str, Any]], alias: str | None = None
+    ) -> list[dict[str, Any]]:
         return data
 
     def get_granularity(self) -> int:
@@ -469,11 +457,11 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
 
     @staticmethod
     def translate_sessions_tag_keys_and_values(
-        data: List[Dict[str, Any]], org_id: int, alias: Optional[str] = None
-    ) -> Tuple[int, int]:
+        data: list[dict[str, Any]], org_id: int, alias: str | None = None
+    ) -> tuple[int, int]:
         value_col_name = alias if alias else "value"
         try:
-            translated_data: Dict[str, Any] = {}
+            translated_data: dict[str, Any] = {}
             session_status = resolve_tag_key(UseCaseID.SESSIONS, org_id, "session.status")
             for row in data:
                 tag_value = reverse_resolve_tag_value(
@@ -491,15 +479,15 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         return total_session_count, crash_count
 
     @staticmethod
-    def is_crash_rate_format_v2(data: List[Dict[str, Any]]) -> bool:
+    def is_crash_rate_format_v2(data: list[dict[str, Any]]) -> bool:
         """Check if this is the new update format.
         This function can be removed once all subscriptions have been updated.
         """
         return bool(data) and "crashed" in data[0]
 
     def aggregate_query_results(
-        self, data: List[Dict[str, Any]], alias: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, data: list[dict[str, Any]], alias: str | None = None
+    ) -> list[dict[str, Any]]:
         """Handle both update formats. Once all subscriptions have been updated
         to v2, we can remove v1 and replace this function with current v2.
         """
@@ -518,9 +506,9 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         return result
 
     def _aggregate_query_results_v1(
-        self, data: List[Dict[str, Any]], alias: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        aggregated_results: List[Dict[str, Any]]
+        self, data: list[dict[str, Any]], alias: str | None = None
+    ) -> list[dict[str, Any]]:
+        aggregated_results: list[dict[str, Any]]
         total_session_count, crash_count = self.translate_sessions_tag_keys_and_values(
             org_id=self.org_id, data=data, alias=alias
         )
@@ -537,9 +525,9 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         return aggregated_results
 
     def _aggregate_query_results_v2(
-        self, data: List[Dict[str, Any]], alias: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        aggregated_results: List[Dict[str, Any]]
+        self, data: list[dict[str, Any]], alias: str | None = None
+    ) -> list[dict[str, Any]]:
+        aggregated_results: list[dict[str, Any]]
         if not data:
             total_count = 0
             crash_count = 0
@@ -562,7 +550,7 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
         aggregated_results = [{col_name: crash_free_rate}]
         return aggregated_results
 
-    def get_snql_extra_conditions(self) -> List[Condition]:
+    def get_snql_extra_conditions(self) -> list[Condition]:
         # If we don't use the metrics layer we need to filter by metric here. The metrics layer does this automatically.
         if not self.use_metrics_layer:
             return [
@@ -579,13 +567,13 @@ class BaseCrashRateMetricsEntitySubscription(BaseMetricsEntitySubscription):
 class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
     metric_key: SessionMRI = SessionMRI.RAW_SESSION
 
-    def get_snql_aggregations(self) -> List[str]:
+    def get_snql_aggregations(self) -> list[str]:
         return [
             "sumIf(session.status, init) as count",
             "sumIf(session.status, crashed) as crashed",
         ]
 
-    def get_snql_extra_conditions(self) -> List[Condition]:
+    def get_snql_extra_conditions(self) -> list[Condition]:
         extra_conditions = super().get_snql_extra_conditions()
 
         # We keep this condition for optimization reasons because the where clause is executed before the select, thus
@@ -604,7 +592,7 @@ class MetricsCountersEntitySubscription(BaseCrashRateMetricsEntitySubscription):
 class MetricsSetsEntitySubscription(BaseCrashRateMetricsEntitySubscription):
     metric_key: SessionMRI = SessionMRI.RAW_USER
 
-    def get_snql_aggregations(self) -> List[str]:
+    def get_snql_aggregations(self) -> list[str]:
         return [
             "uniq() as count",
             "uniqIf(session.status, crashed) as crashed",
@@ -626,14 +614,14 @@ def get_entity_subscription(
     dataset: Dataset,
     aggregate: str,
     time_window: int,
-    extra_fields: Optional[_EntitySpecificParams] = None,
+    extra_fields: _EntitySpecificParams | None = None,
 ) -> EntitySubscription:
     """
     Function that routes to the correct instance of `EntitySubscription` based on the query type and
     dataset, and additionally does validation on aggregate for the sessions and metrics datasets
     then returns the instance of `EntitySubscription`
     """
-    entity_subscription_cls: Optional[Type[EntitySubscription]] = None
+    entity_subscription_cls: type[EntitySubscription] | None = None
     if query_type == SnubaQuery.Type.ERROR:
         entity_subscription_cls = EventsEntitySubscription
     if query_type == SnubaQuery.Type.PERFORMANCE:

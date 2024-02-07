@@ -1,9 +1,10 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import EventsRequest, {EventsRequestProps} from 'sentry/components/charts/eventsRequest';
+import type {EventsRequestProps} from 'sentry/components/charts/eventsRequest';
+import EventsRequest from 'sentry/components/charts/eventsRequest';
 
 const COUNT_OBJ = {
   count: 123,
@@ -14,7 +15,7 @@ jest.mock('sentry/actionCreators/events', () => ({
 }));
 
 describe('EventsRequest', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const mock = jest.fn(() => null);
 
   const DEFAULTS: EventsRequestProps = {

@@ -9,10 +9,11 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {
+import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 
 import PerformanceScoreRingWithTooltips from './components/performanceScoreRingWithTooltips';
 
@@ -24,6 +25,7 @@ type Props = {
 };
 
 export const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
+export const ORDER_WITH_INP = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 
 export function PerformanceScoreChart({
   projectScore,
@@ -33,6 +35,8 @@ export function PerformanceScoreChart({
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
+  const order = shouldReplaceFidWithInp ? ORDER_WITH_INP : ORDER;
 
   const score = projectScore
     ? webVital
@@ -44,7 +48,7 @@ export function PerformanceScoreChart({
   let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   if (webVital) {
-    const index = ORDER.indexOf(webVital);
+    const index = order.indexOf(webVital);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
       return i === index ? color : theme.gray200;
     });
@@ -59,10 +63,11 @@ export function PerformanceScoreChart({
   // Gets weights to dynamically size the performance score ring segments
   const weights = projectScore
     ? {
-        cls: projectScore.clsWeight,
-        fcp: projectScore.fcpWeight,
-        fid: projectScore.fidWeight,
         lcp: projectScore.lcpWeight,
+        fcp: projectScore.fcpWeight,
+        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
+        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
+        cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
       }
     : undefined;
@@ -92,7 +97,7 @@ export function PerformanceScoreChart({
             projectScore={projectScore}
             text={score}
             width={220}
-            height={190}
+            height={200}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
             weights={weights}
@@ -116,6 +121,7 @@ const Flex = styled('div')`
   width: 100%;
   gap: ${space(1)};
   margin-top: ${space(1)};
+  flex-wrap: wrap;
 `;
 
 const PerformanceScoreLabelContainer = styled('div')`
@@ -126,6 +132,9 @@ const PerformanceScoreLabelContainer = styled('div')`
   display: flex;
   align-items: center;
   flex-direction: column;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-grow: 1;
+  }
 `;
 
 const PerformanceScoreLabel = styled('div')`

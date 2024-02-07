@@ -2,7 +2,8 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
@@ -16,8 +17,8 @@ import SplitDiff from 'sentry/components/splitDiff';
 import {TabList} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import type {Organization} from 'sentry/types';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps {
@@ -26,6 +27,8 @@ interface Props extends ModalRenderProps {
   replay: null | ReplayReader;
   rightTimestamp: number;
 }
+
+const MAX_CLAMP_TO_START = 2000;
 
 export default function ReplayComparisonModal({
   Body,
@@ -41,6 +44,12 @@ export default function ReplayComparisonModal({
 
   const [leftBody, setLeftBody] = useState(null);
   const [rightBody, setRightBody] = useState(null);
+  let startOffset = leftTimestamp - 1;
+  // If the error occurs close to the start of the replay, clamp the start offset to 1
+  // to help compare with the html provided by the server, This helps with some errors on localhost.
+  if (startOffset < MAX_CLAMP_TO_START) {
+    startOffset = 1;
+  }
 
   return (
     <OrganizationContext.Provider value={organization}>
@@ -70,6 +79,13 @@ export default function ReplayComparisonModal({
             }
           )}
         </StyledParagraph>
+        {leftBody && rightBody && leftBody === rightBody && (
+          <Alert type="warning" showIcon>
+            {t(
+              "Sentry wasn't able to identify the correct event to display a diff for this hydration error."
+            )}
+          </Alert>
+        )}
         <Flex gap={space(1)} column>
           <TabList
             selectedKey={activeTab}
@@ -87,19 +103,21 @@ export default function ReplayComparisonModal({
             }}
           >
             <ReplayContextProvider
+              analyticsContext="replay_comparison_modal_left"
               isFetching={fetching}
               replay={replay}
-              initialTimeOffsetMs={{offsetMs: leftTimestamp - 1}}
+              initialTimeOffsetMs={{offsetMs: startOffset}}
             >
               <ComparisonSideWrapper id="leftSide">
                 <ReplaySide
                   selector="#leftSide iframe"
-                  expectedTime={leftTimestamp - 1}
+                  expectedTime={startOffset}
                   onLoad={setLeftBody}
                 />
               </ComparisonSideWrapper>
             </ReplayContextProvider>
             <ReplayContextProvider
+              analyticsContext="replay_comparison_modal_right"
               isFetching={fetching}
               replay={replay}
               initialTimeOffsetMs={{offsetMs: rightTimestamp + 1}}

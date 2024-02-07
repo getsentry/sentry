@@ -1,16 +1,16 @@
-import {Location, LocationDescriptor} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {OrganizationSummary} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {OrganizationSummary} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
-import {
+import type {
   EventLite,
   QuickTraceEvent,
   TraceError,

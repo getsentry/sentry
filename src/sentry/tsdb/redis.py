@@ -1,15 +1,16 @@
+import importlib.resources
 import itertools
 import logging
 import random
 import uuid
 from collections import defaultdict, namedtuple
+from collections.abc import Callable
 from functools import reduce
 from hashlib import md5
-from typing import Callable, ContextManager, TypeVar
+from typing import ContextManager, TypeVar
 
 from django.utils import timezone
 from django.utils.encoding import force_bytes
-from pkg_resources import resource_string
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.compat import crc32
@@ -23,7 +24,9 @@ T = TypeVar("T")
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
-CountMinScript = SentryScript(None, resource_string("sentry", "scripts/tsdb/cmsketch.lua"))
+CountMinScript = SentryScript(
+    None, importlib.resources.files("sentry").joinpath("scripts/tsdb/cmsketch.lua").read_bytes()
+)
 
 
 class SuppressionWrapper:
@@ -230,9 +233,9 @@ class RedisTSDB(BaseTSDB):
 
             with manager as client:
                 # (hash_key, hash_field) -> count
-                key_operations = defaultdict(lambda: 0)
+                key_operations = defaultdict(int)
                 # (hash_key) -> "max expiration encountered"
-                key_expiries = defaultdict(lambda: 0.0)
+                key_expiries = defaultdict(float)
 
                 for rollup, max_values in self.rollups.items():
                     for item in items:

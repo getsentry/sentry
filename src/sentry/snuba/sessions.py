@@ -1,6 +1,6 @@
 import math
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Sequence, Set, Tuple
 
 from snuba_sdk import Request
 from snuba_sdk.column import Column
@@ -131,11 +131,11 @@ def _check_has_health_data(projects_list, now=None):
 
 def _check_releases_have_health_data(
     organization_id: int,
-    project_ids: List[int],
-    release_versions: List[str],
+    project_ids: list[int],
+    release_versions: list[str],
     start: datetime,
     end: datetime,
-) -> Set[str]:
+) -> set[str]:
     """
     Returns a set of all release versions that have health data within a given period of time.
     """
@@ -232,8 +232,8 @@ def _get_project_releases_count(
     organization_id: int,
     project_ids: Sequence[int],
     scope: str,
-    stats_period: Optional[str] = None,
-    environments: Optional[Sequence[str]] = None,
+    stats_period: str | None = None,
+    environments: Sequence[str] | None = None,
 ) -> int:
     """
     Fetches the total count of releases/project combinations
@@ -462,7 +462,7 @@ def _get_release_health_data_overview(
         # If we're already looking at a 90 day horizon we don't need to
         # fire another query, we can already assume there is no data.
         if summary_stats_period != "90d":
-            has_health_data = release_health.check_has_health_data(missing_releases)
+            has_health_data = release_health.backend.check_has_health_data(missing_releases)
         else:
             has_health_data = ()
         for key in missing_releases:
@@ -482,7 +482,7 @@ def _get_release_health_data_overview(
                     health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
                 }
 
-    release_adoption = release_health.get_release_adoption(project_releases, environments)
+    release_adoption = release_health.backend.get_release_adoption(project_releases, environments)
     for key in rv:
         adoption_info = release_adoption.get(key) or {}
         rv[key]["adoption"] = adoption_info.get("adoption")
@@ -847,7 +847,7 @@ def _get_project_sessions_count(
     rollup: int,  # rollup in seconds
     start: datetime,
     end: datetime,
-    environment_id: Optional[int] = None,
+    environment_id: int | None = None,
 ) -> int:
     filters = {"project_id": [project_id]}
     if environment_id:
@@ -870,9 +870,9 @@ def _get_num_sessions_per_project(
     project_ids: Sequence[int],
     start: datetime,
     end: datetime,
-    environment_ids: Optional[Sequence[int]] = None,
-    rollup: Optional[int] = None,  # rollup in seconds
-) -> Sequence[Tuple[int, int]]:
+    environment_ids: Sequence[int] | None = None,
+    rollup: int | None = None,  # rollup in seconds
+) -> Sequence[tuple[int, int]]:
 
     filters = {"project_id": list(project_ids)}
 

@@ -1,22 +1,17 @@
-import {Theme} from '@emotion/react';
-import {Location} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 import round from 'lodash/round';
 import moment from 'moment';
 
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import {
-  PlatformKey,
-  Release,
-  ReleaseStatus,
-  SemverVerison,
-  VersionInfo,
-} from 'sentry/types';
+import type {PlatformKey, Release, SemverVerison, VersionInfo} from 'sentry/types';
+import {ReleaseStatus} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';

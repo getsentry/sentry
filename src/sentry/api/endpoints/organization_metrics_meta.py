@@ -5,6 +5,7 @@ from sentry_sdk import set_tag
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.utils import handle_query_errors
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import metrics_performance
 
@@ -16,7 +17,7 @@ COUNT_NULL = "count_null_transactions()"
 @region_silo_endpoint
 class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """Metrics data can contain less than great data like null or unparameterized transactions
 
@@ -36,7 +37,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
             return Response(data)
         original_project_ids = params["project_id"].copy()
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             count_has_txn = "count_has_transaction_name()"
             count_null = "count_null_transactions()"
             compatible_results = metrics_performance.query(
@@ -66,7 +67,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
 @region_silo_endpoint
 class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """Return the total sum of metrics data, the null transactions and unparameterized transactions
 
@@ -88,7 +89,7 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(data)
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             sum_metrics = metrics_performance.query(
                 selected_columns=[COUNT_UNPARAM, COUNT_NULL, "count()"],
                 params=params,

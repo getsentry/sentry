@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django import forms
 from django.core.signing import BadSignature, SignatureExpired
@@ -20,7 +21,6 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration, integration
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils.signing import unsign
-from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -69,7 +69,6 @@ class SlackLinkTeamView(BaseView):
     Django view for linking team to slack channel. Creates an entry on ExternalActor table.
     """
 
-    @transaction_start("SlackLinkTeamView")
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponseBase:
         if request.method not in ALLOWED_METHODS:

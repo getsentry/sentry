@@ -1,4 +1,5 @@
-import {Team} from 'sentry-fixture/team';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -18,17 +19,17 @@ describe('ProjectTeams', function () {
   let project: Project;
   let routerContext: Record<string, any>;
 
-  const team1WithAdmin = Team({
+  const team1WithAdmin = TeamFixture({
     access: ['team:read', 'team:write', 'team:admin'],
   });
-  const team2WithAdmin = Team({
+  const team2WithAdmin = TeamFixture({
     id: '2',
     slug: 'team-slug-2',
     name: 'Team Name 2',
     hasAccess: true,
     access: ['team:read', 'team:write', 'team:admin'],
   });
-  const team3NoAdmin = Team({
+  const team3NoAdmin = TeamFixture({
     id: '3',
     slug: 'team-slug-3',
     name: 'Team Name 3',
@@ -71,7 +72,7 @@ describe('ProjectTeams', function () {
   it('renders', function () {
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -102,7 +103,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -159,7 +160,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -210,7 +211,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -258,7 +259,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         organization={org}
         project={project}
@@ -281,10 +282,6 @@ describe('ProjectTeams', function () {
 
   it('creates a new team adds it to current project using the "create team modal" in dropdown', async function () {
     MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: {},
     });
@@ -304,7 +301,7 @@ describe('ProjectTeams', function () {
 
     render(
       <ProjectTeams
-        {...TestStubs.routeComponentProps()}
+        {...RouteComponentPropsFixture()}
         params={{projectId: project.slug}}
         project={project}
         organization={org}

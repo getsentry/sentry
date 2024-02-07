@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple, TypedDict
+from typing import Any, TypedDict
 
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.dates import to_timestamp
 
 
 class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     @staticmethod
-    def get_image_block(
-        url: str, title: Optional[str] = None, alt: Optional[str] = None
-    ) -> SlackBlock:
+    def get_image_block(url: str, title: str | None = None, alt: str | None = None) -> SlackBlock:
         block: MutableMapping[str, Any] = {
             "type": "image",
             "image_url": url,
@@ -30,7 +30,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return block
 
     @staticmethod
-    def get_markdown_block(text: str, emoji: Optional[str] = None) -> SlackBlock:
+    def get_markdown_block(text: str, emoji: str | None = None) -> SlackBlock:
         if emoji:
             text = f"{emoji} {text}"
         return {
@@ -39,14 +39,29 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def get_rich_text_preformatted_block(text: str) -> SlackBlock:
+        return {
+            "type": "rich_text",
+            "elements": [
+                {
+                    "type": "rich_text_preformatted",
+                    "elements": [{"type": "text", "text": text}],
+                    "border": 0,
+                }
+            ],
+        }
+
+    @staticmethod
     def get_tags_block(tags) -> SlackBlock:
-        fields = []
+        text = ""
         for tag in tags:
             title = tag["title"]
             value = tag["value"]
-            fields.append({"type": "mrkdwn", "text": f"*{title}:*\n{value}"})
-
-        return {"type": "section", "fields": fields}
+            text += f"{title}: `{value}`  "
+        return {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": text},
+        }
 
     @staticmethod
     def get_divider() -> SlackBlock:
@@ -60,6 +75,18 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             "option_groups": [option for option in action.option_groups],
             "action_id": action.name,
         }
+
+    @staticmethod
+    def get_external_select_action(action, initial_option):
+        action = {
+            "type": "external_select",
+            "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
+            "action_id": action.name,
+        }
+        if initial_option:
+            action["initial_option"] = initial_option
+
+        return action
 
     @staticmethod
     def get_button_action(action):
@@ -76,11 +103,12 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
         if action.url:
             button["url"] = action.url
+            button["value"] = "link_clicked"
 
         return button
 
     @staticmethod
-    def get_link_button(action):
+    def get_link_button(action: MessageAction) -> SlackBlock:
         return {
             "type": "section",
             "text": {
@@ -97,10 +125,10 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
-    def get_action_block(actions: Sequence[Tuple[str, Optional[str], str]]) -> SlackBlock:
+    def get_action_block(actions: Sequence[tuple[str, str | None, str]]) -> SlackBlock:
         class SlackBlockType(TypedDict):
             type: str
-            elements: List[Dict[str, Any]]
+            elements: list[dict[str, Any]]
 
         action_block: SlackBlockType = {"type": "actions", "elements": []}
         for text, url, value in actions:
@@ -117,7 +145,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return action_block
 
     @staticmethod
-    def get_context_block(text: str, timestamp: Optional[datetime] = None) -> SlackBlock:
+    def get_context_block(text: str, timestamp: datetime | None = None) -> SlackBlock:
         if timestamp:
             time = "<!date^{:.0f}^{} at {} | Sentry Issue>".format(
                 to_timestamp(timestamp), "{date_pretty}", "{time}"
@@ -137,10 +165,10 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     @staticmethod
     def _build_blocks(
         *args: SlackBlock,
-        fallback_text: Optional[str] = None,
-        color: Optional[str] = None,
-        block_id: Optional[dict[str, int]] = None,
-        callback_id: Optional[str] = None,
+        fallback_text: str | None = None,
+        color: str | None = None,
+        block_id: dict[str, int] | None = None,
+        callback_id: str | None = None,
         skip_fallback: bool = False,
     ) -> SlackBlock:
         blocks: dict[str, Any] = {"blocks": list(args)}

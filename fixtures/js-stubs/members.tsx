@@ -1,11 +1,11 @@
-import {Member} from 'sentry-fixture/member';
-import {User} from 'sentry-fixture/user';
+import {MemberFixture} from 'sentry-fixture/member';
+import {UserFixture} from 'sentry-fixture/user';
 
-import type {Member as MemberType} from 'sentry/types';
+import type {Member} from 'sentry/types';
 
-export function Members(params: MemberType[] = []): MemberType[] {
+export function MembersFixture(params: Member[] = []): Member[] {
   return [
-    Member(),
+    MemberFixture(),
     {
       id: '2',
       name: 'Sentry 2 Name',
@@ -66,7 +66,7 @@ export function Members(params: MemberType[] = []): MemberType[] {
         'member-limit:restricted': false,
         'partnership:restricted': false,
       },
-      user: User(),
+      user: UserFixture(),
     },
     {
       id: '4',

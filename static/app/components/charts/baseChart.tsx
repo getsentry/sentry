@@ -1,10 +1,12 @@
 import 'echarts/lib/component/grid';
 import 'echarts/lib/component/graphic';
 import 'echarts/lib/component/toolbox';
+import 'echarts/lib/component/brush';
 import 'zrender/lib/svg/svg';
 
 import {forwardRef, useMemo} from 'react';
-import {css, Global, Theme, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {
   AxisPointerComponentOption,
@@ -27,7 +29,10 @@ import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {space} from 'sentry/styles/space';
-import {
+import type {
+  EChartBrushEndHandler,
+  EChartBrushSelectedHandler,
+  EChartBrushStartHandler,
   EChartChartReadyHandler,
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -45,7 +50,8 @@ import {defined} from 'sentry/utils';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
-import {computeChartTooltip, TooltipSubLabel} from './components/tooltip';
+import type {TooltipSubLabel} from './components/tooltip';
+import {CHART_TOOLTIP_VIEWPORT_OFFSET, computeChartTooltip} from './components/tooltip';
 import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
@@ -101,7 +107,10 @@ interface TooltipOption
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
   markerFormatter?: (marker: string, label?: string) => string;
-  nameFormatter?: (name: string) => string;
+  nameFormatter?: (
+    name: string,
+    seriesParams?: TooltipComponentFormatterCallback<any>
+  ) => string;
   /**
    * Array containing data that is used to display indented sublabels.
    */
@@ -127,6 +136,10 @@ export interface BaseChartProps {
    * Axis pointer options
    */
   axisPointer?: AxisPointerComponentOption;
+  /**
+   * ECharts Brush options
+   */
+  brush?: EChartsOption['brush'];
   /**
    * Bucket size to display time range in chart tooltip
    */
@@ -188,6 +201,9 @@ export interface BaseChartProps {
    * states whether or not to merge with previous `option`
    */
   notMerge?: boolean;
+  onBrushEnd?: EChartBrushEndHandler;
+  onBrushSelected?: EChartBrushSelectedHandler;
+  onBrushStart?: EChartBrushStartHandler;
   onChartReady?: EChartChartReadyHandler;
   onClick?: EChartClickHandler;
   onDataZoom?: EChartDataZoomHandler;
@@ -305,6 +321,7 @@ const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
 function BaseChartUnwrapped({
+  brush,
   colors,
   grid,
   tooltip,
@@ -339,6 +356,9 @@ function BaseChartUnwrapped({
   onRestore,
   onFinished,
   onRendered,
+  onBrushStart,
+  onBrushEnd,
+  onBrushSelected,
 
   options = DEFAULT_OPTIONS,
   series = DEFAULT_SERIES,
@@ -385,26 +405,26 @@ function BaseChartUnwrapped({
             itemStyle: {...(s.areaStyle ?? {})},
           }))
         : hasSinglePoints && transformSinglePointToLine
-        ? (series as LineSeriesOption[] | undefined)?.map(s => ({
-            ...s,
-            type: 'line',
-            itemStyle: {...(s.lineStyle ?? {})},
-            markLine:
-              s?.data?.[0]?.[1] !== undefined
-                ? MarkLine({
-                    silent: true,
-                    lineStyle: {
-                      type: 'solid',
-                      width: 1.5,
-                    },
-                    data: [{yAxis: s?.data?.[0]?.[1]}],
-                    label: {
-                      show: false,
-                    },
-                  })
-                : undefined,
-          }))
-        : series) ?? [];
+          ? (series as LineSeriesOption[] | undefined)?.map(s => ({
+              ...s,
+              type: 'line',
+              itemStyle: {...(s.lineStyle ?? {})},
+              markLine:
+                s?.data?.[0]?.[1] !== undefined
+                  ? MarkLine({
+                      silent: true,
+                      lineStyle: {
+                        type: 'solid',
+                        width: 1.5,
+                      },
+                      data: [{yAxis: s?.data?.[0]?.[1]}],
+                      label: {
+                        show: false,
+                      },
+                    })
+                  : undefined,
+            }))
+          : series) ?? [];
 
     const transformedPreviousPeriod =
       previousPeriod?.map((previous, seriesIndex) =>
@@ -486,8 +506,8 @@ function BaseChartUnwrapped({
         ? YAxis({theme, ...yAxis})
         : undefined
       : Array.isArray(yAxes)
-      ? yAxes.map(axis => YAxis({...axis, theme}))
-      : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
+        ? yAxes.map(axis => YAxis({...axis, theme}))
+        : [YAxis(defaultAxesProps), YAxis(defaultAxesProps)];
 
     const xAxisOrCustom = !xAxes
       ? xAxis !== null
@@ -504,20 +524,20 @@ function BaseChartUnwrapped({
           })
         : undefined
       : Array.isArray(xAxes)
-      ? xAxes.map(axis =>
-          XAxis({
-            ...axis,
-            theme,
-            useShortDate,
-            start,
-            end,
-            period,
-            isGroupedByDate,
-            addSecondsToTimeFormat,
-            utc,
-          })
-        )
-      : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
+        ? xAxes.map(axis =>
+            XAxis({
+              ...axis,
+              theme,
+              useShortDate,
+              start,
+              end,
+              period,
+              isGroupedByDate,
+              addSecondsToTimeFormat,
+              utc,
+            })
+          )
+        : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
     return {
       ...options,
@@ -534,6 +554,7 @@ function BaseChartUnwrapped({
       dataZoom,
       graphic,
       aria,
+      brush,
     };
   }, [
     color,
@@ -549,6 +570,7 @@ function BaseChartUnwrapped({
     grid,
     legend,
     toolBox,
+    brush,
     axisPointer,
     dataZoom,
     graphic,
@@ -585,6 +607,9 @@ function BaseChartUnwrapped({
         rendered: (props, instance) => onRendered?.(props, instance),
         legendselectchanged: (props, instance) =>
           onLegendSelectChanged?.(props, instance),
+        brush: (props, instance) => onBrushStart?.(props, instance),
+        brushend: (props, instance) => onBrushEnd?.(props, instance),
+        brushselected: (props, instance) => onBrushSelected?.(props, instance),
       }) as ReactEchartProps['onEvents'],
     [
       onClick,
@@ -596,6 +621,9 @@ function BaseChartUnwrapped({
       onRestore,
       onFinished,
       onRendered,
+      onBrushStart,
+      onBrushEnd,
+      onBrushSelected,
     ]
   );
 
@@ -648,12 +676,14 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
   }
   .tooltip-series {
     border-bottom: none;
+    max-width: calc(100vw - 2 * ${CHART_TOOLTIP_VIEWPORT_OFFSET}px);
   }
   .tooltip-series-solo {
     border-radius: ${p.theme.borderRadius};
   }
   .tooltip-label {
     margin-right: ${space(1)};
+    ${p.theme.overflowEllipsis};
   }
   .tooltip-label strong {
     font-weight: normal;

@@ -1,8 +1,9 @@
 import abc
 import logging
 import secrets
+from collections.abc import Mapping
 from time import time
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import parse_qsl, urlencode
 
 from django.http import HttpResponse

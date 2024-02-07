@@ -1,7 +1,6 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import capitalize from 'lodash/capitalize';
 import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
@@ -42,6 +41,7 @@ import {
   getCrashFreeRateSeries,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {shouldUseErrorsDiscoverDataset} from 'sentry/views/alerts/rules/utils';
@@ -50,14 +50,13 @@ import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMar
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
+import type {MetricRule, Trigger} from '../../types';
 import {
   AlertRuleComparisonType,
   Dataset,
-  MetricRule,
   SessionsAggregate,
   TimePeriod,
   TimeWindow,
-  Trigger,
 } from '../../types';
 import {getMetricDatasetQueryExtras} from '../../utils/getMetricDatasetQueryExtras';
 
@@ -335,8 +334,8 @@ class TriggersChart extends PureComponent<Props, State> {
     const totalCountLabel = isSessionAggregate(aggregate)
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
       : showExtrapolatedChartData
-      ? t('Estimated Transactions')
-      : t('Total');
+        ? t('Estimated Transactions')
+        : t('Total');
 
     return (
       <Fragment>
@@ -622,8 +621,8 @@ function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {
         {!isAllowIndexed && !isQueryValid
           ? t('Your filter conditions contain an unsupported field - please review.')
           : typeof errorMessage === 'string'
-          ? errorMessage
-          : t('An error occurred while fetching data')}
+            ? errorMessage
+            : t('An error occurred while fetching data')}
       </PanelAlert>
 
       <StyledErrorPanel>

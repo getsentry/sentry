@@ -9,6 +9,7 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
@@ -61,7 +62,20 @@ class ApiTokenTest(TestCase):
             assert ApiTokenReplica.objects.get(apitoken_id=token.id).organization_id is None
         assert token.organization_id is None
 
+    @override_options({"apitoken.auto-add-last-chars": True})
+    def test_last_chars_are_set(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+        assert token.token_last_characters == token.token[-4:]
 
+    @override_options({"apitoken.auto-add-last-chars": False})
+    def test_last_chars_are_not_set(self):
+        user = self.create_user()
+        token = ApiToken.objects.create(user_id=user.id)
+        assert token.token_last_characters is None
+
+
+@control_silo_test
 class ApiTokenInternalIntegrationTest(TestCase):
     def setUp(self):
         self.user = self.create_user()

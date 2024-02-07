@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Sequence
 from itertools import islice
-from typing import Any, Sequence
+from typing import Any
 
 import sentry_sdk
 
@@ -36,7 +37,7 @@ PROJECTS_PER_TASK = 100
 #: Estimated limit for a clusterer run per project, in seconds.
 #: NOTE: using this in a per-project basis may not be enough. Consider using
 #: this estimation for project batches instead.
-CLUSTERING_TIMEOUT_PER_PROJECT = 0.15
+CLUSTERING_TIMEOUT_PER_PROJECT = 0.3
 
 
 @instrumented_task(

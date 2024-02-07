@@ -1,5 +1,5 @@
-import {Broadcast} from 'sentry-fixture/broadcast';
-import {Project} from 'sentry-fixture/project';
+import {BroadcastFixture} from 'sentry-fixture/broadcast';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -22,20 +22,20 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       location: {query: {}, search: '', pathname: '/test/'},
     },
   });
-  const broadcast = Broadcast();
+  const broadcast = BroadcastFixture();
 
   const apiMocks: any = {};
 
-  const getElement = (props: React.ComponentProps<typeof SidebarContainer>) => {
+  const getElement = () => {
     return (
       <OnboardingContextProvider>
-        <SidebarContainer organization={props.organization} {...props} />
+        <SidebarContainer />
       </OnboardingContextProvider>
     );
   };
 
   const renderSidebar = props =>
-    render(getElement(props), {organization: props.organization, context: routerContext});
+    render(getElement(), {organization: props.organization, context: routerContext});
 
   beforeEach(function () {
     jest.resetAllMocks();
@@ -114,7 +114,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project with onboarding support', async function () {
     ProjectsStore.loadInitialData([
-      Project({platform: 'javascript-react', firstTransactionEvent: false}),
+      ProjectFixture({platform: 'javascript-react', firstTransactionEvent: false}),
     ]);
     renderSidebar({
       organization: {
@@ -146,7 +146,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project without onboarding support', async function () {
     ProjectsStore.loadInitialData([
-      Project({platform: 'javascript-angular', firstTransactionEvent: false}),
+      ProjectFixture({platform: 'javascript-angular', firstTransactionEvent: false}),
     ]);
     renderSidebar({
       organization: {
@@ -178,7 +178,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project without performance support', async function () {
     ProjectsStore.loadInitialData([
-      Project({platform: 'elixir', firstTransactionEvent: false}),
+      ProjectFixture({platform: 'elixir', firstTransactionEvent: false}),
     ]);
     renderSidebar({
       organization: {
@@ -207,7 +207,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('displays checklist', async function () {
-    const project = Project({
+    const project = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: false,
     });

@@ -4,18 +4,36 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.utils import timezone
+from rest_framework.exceptions import APIException
 from sentry_sdk import Scope
 from sentry_sdk.utils import exc_info_from_error
 
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
-    InvalidParams,
     customer_domain_path,
     get_date_range_from_params,
+    handle_query_errors,
     print_and_capture_handler_exception,
 )
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils.snuba import (
+    DatasetSelectionError,
+    QueryConnectionFailed,
+    QueryExecutionError,
+    QueryExecutionTimeMaximum,
+    QueryIllegalTypeOfArgument,
+    QueryMemoryLimitExceeded,
+    QueryMissingColumn,
+    QueryOutsideRetentionError,
+    QuerySizeExceeded,
+    QueryTooManySimultaneous,
+    RateLimitExceeded,
+    SchemaValidationError,
+    SnubaError,
+    UnqualifiedQueryError,
+)
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -50,8 +68,8 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
     def test_date_range(self):
         start, end = get_date_range_from_params({"start": "2018-11-01", "end": "2018-11-07"})
 
-        assert start == datetime.datetime(2018, 11, 1, tzinfo=timezone.utc)
-        assert end == datetime.datetime(2018, 11, 7, tzinfo=timezone.utc)
+        assert start == datetime.datetime(2018, 11, 1, tzinfo=datetime.UTC)
+        assert end == datetime.datetime(2018, 11, 7, tzinfo=datetime.UTC)
 
         with pytest.raises(InvalidParams):
             get_date_range_from_params(
@@ -74,13 +92,13 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
     def test_relative_date_range(self):
         start, end = get_date_range_from_params({"timeframeStart": "14d", "timeframeEnd": "7d"})
 
-        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=timezone.utc)
-        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=timezone.utc)
+        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=datetime.UTC)
+        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=datetime.UTC)
 
         start, end = get_date_range_from_params({"statsPeriodStart": "14d", "statsPeriodEnd": "7d"})
 
-        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=timezone.utc)
-        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=timezone.utc)
+        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=datetime.UTC)
+        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=datetime.UTC)
 
     @freeze_time("2018-12-11 03:21:34")
     def test_relative_date_range_incomplete(self):
@@ -200,3 +218,38 @@ def test_customer_domain_path():
     ]
     for input_path, expected in scenarios:
         assert expected == customer_domain_path(input_path)
+
+
+class FooBarError(Exception):
+    pass
+
+
+class HandleQueryErrorsTest:
+    @patch("sentry.api.utils.ParseError")
+    def test_handle_query_errors(self, mock_parse_error):
+        exceptions = [
+            DatasetSelectionError,
+            IncompatibleMetricsQuery,
+            InvalidParams,
+            InvalidSearchQuery,
+            QueryConnectionFailed,
+            QueryExecutionError,
+            QueryExecutionTimeMaximum,
+            QueryIllegalTypeOfArgument,
+            QueryMemoryLimitExceeded,
+            QueryMissingColumn,
+            QueryOutsideRetentionError,
+            QuerySizeExceeded,
+            QueryTooManySimultaneous,
+            RateLimitExceeded,
+            SchemaValidationError,
+            SnubaError,
+            UnqualifiedQueryError,
+        ]
+        mock_parse_error.return_value = FooBarError()
+        for ex in exceptions:
+            try:
+                with handle_query_errors():
+                    raise ex
+            except Exception as e:
+                assert isinstance(e, (FooBarError, APIException))

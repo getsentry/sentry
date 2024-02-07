@@ -1,6 +1,8 @@
-import LocationFixture from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -13,10 +15,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import DashboardList from 'sentry/views/dashboards/manage/dashboardList';
+import {DisplayType} from 'sentry/views/dashboards/types';
 
 describe('Dashboards - DashboardList', function () {
-  let dashboards, widgets, deleteMock, dashboardUpdateMock, createMock;
-  const organization = Organization({
+  let dashboards, deleteMock, dashboardUpdateMock, createMock;
+  const organization = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
     projects: [ProjectFixture()],
   });
@@ -30,59 +33,26 @@ describe('Dashboards - DashboardList', function () {
       url: '/organizations/org-slug/projects/',
       body: [],
     });
-    widgets = [
-      TestStubs.Widget(
-        [{name: '', conditions: 'event.type:error', fields: ['count()']}],
-        {
-          title: 'Errors',
-          interval: '1d',
-          id: '1',
-        }
-      ),
-      TestStubs.Widget(
-        [{name: '', conditions: 'event.type:transaction', fields: ['count()']}],
-        {
-          title: 'Transactions',
-          interval: '1d',
-          id: '2',
-        }
-      ),
-      TestStubs.Widget(
-        [
-          {
-            name: '',
-            conditions: 'event.type:transaction transaction:/api/cats',
-            fields: ['p50()'],
-          },
-        ],
-        {
-          title: 'p50 of /api/cats',
-          interval: '1d',
-          id: '3',
-        }
-      ),
-    ];
     dashboards = [
-      TestStubs.Dashboard([], {
+      DashboardListItemFixture({
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
-        createdBy: {id: '1'},
-        widgetPreview: [],
+        createdBy: UserFixture({id: '1'}),
       }),
-      TestStubs.Dashboard(widgets, {
+      DashboardListItemFixture({
         id: '2',
         title: 'Dashboard 2',
         dateCreated: '2021-04-19T13:13:23.962105Z',
-        createdBy: {id: '1'},
+        createdBy: UserFixture({id: '1'}),
         widgetPreview: [
           {
-            displayType: 'line',
-            layout: {},
+            displayType: DisplayType.LINE,
+            layout: null,
           },
           {
-            displayType: 'table',
-            layout: {},
+            displayType: DisplayType.TABLE,
+            layout: null,
           },
         ],
       }),
@@ -228,11 +198,11 @@ describe('Dashboards - DashboardList', function () {
 
   it('cannot delete last dashboard', async function () {
     const singleDashboard = [
-      TestStubs.Dashboard([], {
+      DashboardListItemFixture({
         id: '1',
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
-        createdBy: {id: '1'},
+        createdBy: UserFixture({id: '1'}),
         widgetPreview: [],
       }),
     ];

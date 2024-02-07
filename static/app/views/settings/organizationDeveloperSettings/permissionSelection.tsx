@@ -1,12 +1,10 @@
 import {Component, Fragment} from 'react';
-import find from 'lodash/find';
-import flatMap from 'lodash/flatMap';
 
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormContext from 'sentry/components/forms/formContext';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {PermissionResource, Permissions, PermissionValue} from 'sentry/types/index';
+import type {PermissionResource, Permissions, PermissionValue} from 'sentry/types';
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning
@@ -89,7 +87,7 @@ type State = {
 };
 
 function findResource(r: PermissionResource) {
-  return find(SENTRY_APP_PERMISSIONS, ['resource', r]);
+  return SENTRY_APP_PERMISSIONS.find(permissions => permissions.resource === r);
 }
 
 /**
@@ -100,8 +98,7 @@ function findResource(r: PermissionResource) {
  *
  */
 function permissionStateToList(permissions: Permissions) {
-  return flatMap(
-    Object.entries(permissions),
+  return Object.entries(permissions).flatMap(
     ([r, p]) => findResource(r as PermissionResource)?.choices?.[p]?.scopes
   );
 }

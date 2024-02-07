@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import timezone
-from typing import Any, Mapping, Sequence
+from typing import Any
 from urllib.parse import urlparse
 
 from django import forms
@@ -194,15 +195,12 @@ class GitHubEnterpriseIntegration(
         lineno = event_frame.get("lineno", 0)
         if not lineno:
             return None
-        try:
-            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
-                repo, filepath, ref, lineno
-            )
+        blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+            repo, filepath, ref, lineno
+        )
 
-            if blame_range is None:
-                return None
-        except ApiError as e:
-            raise e
+        if blame_range is None:
+            return None
 
         try:
             commit: Mapping[str, Any] = max(

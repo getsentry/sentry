@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -34,21 +34,21 @@ function ResourceSummaryCharts(props: {groupId: string}) {
   // });
 
   const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
-    useSpanMetricsSeries(
-      {
+    useSpanMetricsSeries({
+      filters: {
         'span.group': props.groupId,
         ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
           ? {[RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS]}
           : {}),
       },
-      [
+      yAxis: [
         `spm()`,
         `avg(${SPAN_SELF_TIME})`,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
         `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
-      ]
-    );
+      ],
+    });
 
   if (spanMetricsSeriesData) {
     spanMetricsSeriesData[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`].lineStyle = {

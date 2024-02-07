@@ -1,4 +1,4 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {FieldValueType} from 'sentry/utils/fields';
-import {EventsResults} from 'sentry/utils/profiling/hooks/types';
+import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 
 function customEncodeURIComponent(str) {
   return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {

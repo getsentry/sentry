@@ -1,14 +1,15 @@
 import {useState} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type Props = {
@@ -52,6 +53,7 @@ function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
             },
             pathname: `/organizations/${organization.slug}/release-thresholds/`,
           }),
+          badge: <FeatureBadge type="alpha" />,
         },
       ]
     : [];
@@ -76,7 +78,7 @@ function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
       {hasV2ReleaseUIEnabled && (
         <StyledTabs value={selected} onChange={onTabSelect}>
           <TabList hideBorder>
-            {tabs.map(({label, description, path, to}) => {
+            {tabs.map(({label, description, path, to, badge}) => {
               return (
                 <TabList.Item key={path} to={to} textValue={label}>
                   <Tooltip
@@ -86,6 +88,7 @@ function Header({router, hasV2ReleaseUIEnabled = false, organization}: Props) {
                     delay={SLOW_TOOLTIP_DELAY}
                   >
                     {label}
+                    {badge}
                   </Tooltip>
                 </TabList.Item>
               );

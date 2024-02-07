@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, TypedDict
+from typing import TypedDict
 
 from sentry_sdk.crons.decorator import monitor
 
@@ -16,11 +16,11 @@ from sentry.utils.query import RangeQuerySetWrapper
 
 
 class GroupCount(TypedDict):
-    intervals: List[str]
-    data: List[int]
+    intervals: list[str]
+    data: list[int]
 
 
-ParsedGroupsCount = Dict[int, GroupCount]
+ParsedGroupsCount = dict[int, GroupCount]
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ def run_escalating_forecast() -> None:
     silo_mode=SiloMode.REGION,
 )
 @retry
-def generate_forecasts_for_projects(project_ids: List[int]) -> None:
+def generate_forecasts_for_projects(project_ids: list[int]) -> None:
     query_until_escalating_groups = (
         group
         for group in RangeQuerySetWrapper(

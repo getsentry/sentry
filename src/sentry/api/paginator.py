@@ -2,8 +2,9 @@ import bisect
 import functools
 import logging
 import math
+from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional, Sequence
+from typing import Any
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
@@ -30,7 +31,7 @@ def count_hits(queryset, max_hits):
     # clear out any select fields (include select_related) and pull just the id
     hits_query.clear_select_clause()
     hits_query.add_fields(["id"])
-    hits_query.clear_ordering(force_empty=True)
+    hits_query.clear_ordering(force=True, clear_default=True)
     try:
         h_sql, h_params = hits_query.sql_with_params()
     except EmptyResultSet:
@@ -756,7 +757,7 @@ class CallbackPaginator:
     def __init__(
         self,
         callback: Callable[[int, int], Sequence[Any]],
-        on_results: Optional[Callable[[Sequence[Any]], Any]] = None,
+        on_results: Callable[[Sequence[Any]], Any] | None = None,
     ):
         self.offset = 0
         self.callback = callback

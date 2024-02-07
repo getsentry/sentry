@@ -1,8 +1,10 @@
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import {EntryType, Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
+import {EntryType} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {
@@ -50,13 +52,16 @@ function renderParams(params: Props['data']['params'], meta: any) {
 export function Message({data, event}: Props) {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.MESSAGE);
   const meta = event?._meta?.entries?.[entryIndex] ?? {};
+  const messageData = data.formatted
+    ? renderLinksInText({exceptionText: data.formatted})
+    : null;
 
   return (
     <EventDataSection type="message" title={t('Message')}>
       {meta?.data?.formatted?.[''] ? (
-        <AnnotatedText value={data.formatted} meta={meta?.data?.formatted?.['']} />
+        <AnnotatedText value={messageData} meta={meta?.data?.formatted?.['']} />
       ) : (
-        <pre className="plain">{data.formatted}</pre>
+        <pre className="plain">{messageData}</pre>
       )}
       {renderParams(data.params, meta)}
     </EventDataSection>

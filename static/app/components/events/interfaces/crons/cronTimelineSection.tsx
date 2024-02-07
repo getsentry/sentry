@@ -10,7 +10,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import {Event, Organization} from 'sentry/types';
+import type {Event, Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
 import {TimelinePlaceholder} from 'sentry/views/monitors/components/overviewTimeline/timelinePlaceholder';
-import {
+import type {
   MonitorBucketData,
   TimeWindow,
 } from 'sentry/views/monitors/components/overviewTimeline/types';
@@ -41,7 +41,7 @@ export function CronTimelineSection({event, organization}: Props) {
   const monitorSlug = event.tags.find(({key}) => key === 'monitor.slug')?.value;
   const environment = event.tags.find(({key}) => key === 'environment')?.value;
 
-  const nowRef = useRef<Date>(new Date());
+  const nowRef = useRef(new Date());
   const {start, end} = getTimeRangeFromEvent(event, nowRef.current, timeWindow);
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});

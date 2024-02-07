@@ -15,12 +15,10 @@ import type {Series} from 'sentry/types/echarts';
 import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
-import {
-  AlertRuleTriggerType,
-  Dataset,
-  MetricRule,
-} from 'sentry/views/alerts/rules/metric/types';
-import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
+import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
+import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {Incident} from 'sentry/views/alerts/types';
+import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -164,12 +162,20 @@ export function getMetricAlertChartOption({
   handleIncidentClick,
   showWaitingForData,
 }: MetricChartData): MetricChartOption {
-  const criticalTrigger = rule.triggers.find(
-    ({label}) => label === AlertRuleTriggerType.CRITICAL
-  );
-  const warningTrigger = rule.triggers.find(
-    ({label}) => label === AlertRuleTriggerType.WARNING
-  );
+  let criticalTrigger: Trigger | undefined;
+  let warningTrigger: Trigger | undefined;
+
+  for (const trigger of rule.triggers) {
+    if (trigger.label === AlertRuleTriggerType.CRITICAL) {
+      criticalTrigger ??= trigger;
+    }
+    if (trigger.label === AlertRuleTriggerType.WARNING) {
+      warningTrigger ??= trigger;
+    }
+    if (criticalTrigger && warningTrigger) {
+      break;
+    }
+  }
 
   const series: AreaChartSeries[] = timeseriesData.map(s => ({
     ...s,
@@ -181,16 +187,24 @@ export function getMetricAlertChartOption({
   series[0].color = CHART_PALETTE[0][0];
 
   const dataArr = timeseriesData[0].data;
-  const maxSeriesValue = dataArr.reduce(
-    (currMax, coord) => Math.max(currMax, coord.value),
-    0
-  );
+
+  let maxSeriesValue = Number.NEGATIVE_INFINITY;
+  let minSeriesValue = Number.POSITIVE_INFINITY;
+
+  for (const coord of dataArr) {
+    if (coord.value > maxSeriesValue) {
+      maxSeriesValue = coord.value;
+    }
+    if (coord.value < minSeriesValue) {
+      minSeriesValue = coord.value;
+    }
+  }
   // find the lowest value between chart data points, warning threshold,
   // critical threshold and then apply some breathing space
   const minChartValue = shouldScaleAlertChart(rule.aggregate)
     ? Math.floor(
         Math.min(
-          dataArr.reduce((currMax, coord) => Math.min(currMax, coord.value), Infinity),
+          minSeriesValue,
           typeof warningTrigger?.alertThreshold === 'number'
             ? warningTrigger.alertThreshold
             : Infinity,
@@ -372,8 +386,8 @@ export function getMetricAlertChartOption({
     max: isCrashFreeAlert(rule.dataset)
       ? 100
       : maxThresholdValue > maxSeriesValue
-      ? maxThresholdValue
-      : undefined,
+        ? maxThresholdValue
+        : undefined,
     min: minChartValue || undefined,
   };
 

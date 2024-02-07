@@ -2,21 +2,9 @@ from __future__ import annotations
 
 import re
 from abc import ABC
+from collections.abc import Collection, Generator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import (
-    Collection,
-    Dict,
-    Generator,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-    Union,
-    overload,
-)
+from typing import Literal, TypedDict, overload
 
 from sentry.snuba.dataset import EntityKey
 
@@ -282,13 +270,20 @@ class TagValue(TypedDict):
     value: str
 
 
+class BlockedMetric(TypedDict):
+    isBlocked: bool
+    blockedTags: Sequence[str]
+    projectId: int
+
+
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
     operations: Collection[MetricOperationType]
-    unit: Optional[MetricUnit]
+    unit: MetricUnit | None
     mri: str
-    project_ids: Sequence[int]
+    projectIds: Sequence[int]
+    blockingStatus: Sequence[BlockedMetric] | None
 
 
 class MetricMetaWithTagKeys(MetricMeta):
@@ -329,7 +324,7 @@ OPERATIONS = (
     + DERIVED_OPERATIONS
 )
 
-DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
+DEFAULT_AGGREGATES: dict[MetricOperationType, int | list[tuple[float]] | None] = {
     "avg": None,
     "count_unique": 0,
     "count": 0,
@@ -420,7 +415,7 @@ def to_intervals(
 
 
 def to_intervals(
-    start: Optional[datetime], end: Optional[datetime], interval_seconds: int
+    start: datetime | None, end: datetime | None, interval_seconds: int
 ) -> tuple[datetime, datetime, int] | tuple[None, None, int]:
     """
     Given a `start` date, `end` date and an alignment interval in seconds returns the aligned start, end and
@@ -458,10 +453,10 @@ def to_intervals(
 
 
 def get_num_intervals(
-    start: Optional[datetime],
-    end: Optional[datetime],
+    start: datetime | None,
+    end: datetime | None,
     granularity: int,
-    interval: Optional[int] = None,
+    interval: int | None = None,
 ) -> int:
     """
     Calculates the number of intervals from start to end.
@@ -483,7 +478,7 @@ def get_num_intervals(
 
 
 def get_intervals(
-    start: datetime, end: datetime, granularity: int, interval: Optional[int] = None
+    start: datetime, end: datetime, granularity: int, interval: int | None = None
 ) -> Generator[datetime, None, None]:
     if interval is None:
         interval = granularity

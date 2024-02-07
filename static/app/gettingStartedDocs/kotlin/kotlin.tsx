@@ -2,37 +2,27 @@ import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import type {
+  BasePlatformOptions,
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 export enum PackageManager {
   GRADLE = 'gradle',
   MAVEN = 'maven',
 }
 
-type PlaformOptionKey = 'packageManager';
-
-interface StepsParams {
-  dsn: string;
-  hasPerformance: boolean;
-  packageManager: PackageManager;
-  organizationSlug?: string;
-  projectSlug?: string;
-  sourcePackageRegistries?: ModuleProps['sourcePackageRegistries'];
-}
-
-// Configuration Start
 const packageManagerName: Record<PackageManager, string> = {
   [PackageManager.GRADLE]: 'Gradle',
   [PackageManager.MAVEN]: 'Maven',
 };
 
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+const platformOptions = {
   packageManager: {
     label: t('Package Manager'),
     items: [
@@ -46,70 +36,12 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
       },
     ],
   },
-};
-const introduction = (
-  <p>
-    {tct(
-      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong2:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
-      {
-        gettingStartedWithAndroidLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/android/" />
-        ),
-        gettingStartedWithJavaLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/java/" />
-        ),
-        strong: <strong />,
-        strong2: <strong />,
-      }
-    )}
-  </p>
-);
+} satisfies BasePlatformOptions;
 
-export const steps = ({
-  dsn,
-  sourcePackageRegistries,
-  hasPerformance,
-  packageManager,
-  projectSlug,
-  organizationSlug,
-}: StepsParams): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: t(`Install the SDK via %s:`, packageManagerName[packageManager]),
-    configurations: [
-      {
-        description: (
-          <p>
-            {tct(
-              'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
-              {
-                link: <Link to="/settings/auth-tokens/" />,
-              }
-            )}
-          </p>
-        ),
-        language: 'bash',
-        code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
-      },
-      ...(packageManager === PackageManager.GRADLE
-        ? [
-            {
-              language: 'groovy',
-              partialLoading: sourcePackageRegistries?.isLoading,
-              description: (
-                <p>
-                  {tct(
-                    'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
-                    {
-                      code: <code />,
-                      link: (
-                        <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
-                      ),
-                    }
-                  )}
-                </p>
-              ),
-              code: `
+type PlatformOptions = typeof platformOptions;
+type Params = DocsParams<PlatformOptions>;
+
+const getGradleInstallSnippet = (params: Params) => `
 buildscript {
   repositories {
     mavenCentral()
@@ -117,12 +49,11 @@ buildscript {
 }
 
 plugins {
-  id "io.sentry.jvm.gradle" version "${
-    sourcePackageRegistries?.isLoading
-      ? t('\u2026loading')
-      : sourcePackageRegistries?.data?.['sentry.java.android.gradle-plugin']?.version ??
-        '3.12.0'
-  }"
+  id "io.sentry.jvm.gradle" version "${getPackageVersion(
+    params,
+    'sentry.java.android.gradle-plugin',
+    '3.12.0'
+  )}"
 }
 
 sentry {
@@ -131,51 +62,26 @@ sentry {
   // code as part of your stack traces in Sentry.
   includeSourceContext = true
 
-  org = "${organizationSlug}"
-  projectName = "${projectSlug}"
+  org = "${params.organization.slug}"
+  projectName = "${params.projectSlug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
-}
-        `,
-            },
-          ]
-        : []),
-      ...(packageManager === PackageManager.MAVEN
-        ? [
-            {
-              language: 'xml',
-              partialLoading: sourcePackageRegistries?.isLoading,
-              description: (
-                <p>
-                  {tct(
-                    'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
-                    {
-                      code: <code />,
-                      link: (
-                        <ExternalLink href="https://github.com/getsentry/sentry-maven-plugin" />
-                      ),
-                    }
-                  )}
-                </p>
-              ),
-              code: `<build>
+}`;
+
+const getMavenInstallSnippet = (params: Params) => `
+<build>
   <plugins>
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>${
-        sourcePackageRegistries?.isLoading
-          ? t('\u2026loading')
-          : sourcePackageRegistries?.data?.['sentry.java.maven-plugin']?.version ??
-            '0.0.4'
-      }</version>
+      <version>${getPackageVersion(params, 'sentry.java.maven-plugin', '0.0.4')}</version>
       <extensions>true</extensions>
       <configuration>
         <!-- for showing output of sentry-cli -->
         <debugSentryCli>true</debugSentryCli>
 
-        <org>${organizationSlug}</org>
+        <org>${params.organization.slug}</org>
 
-        <project>${projectSlug}</project>
+        <project>${params.projectSlug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -198,38 +104,14 @@ sentry {
     </plugin>
   </plugins>
   ...
-</build>`,
-            },
-          ]
-        : []),
-    ],
-    additionalInfo: (
-      <p>
-        {tct(
-          'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
-            ),
-          }
-        )}
-      </p>
-    ),
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: t(
-      "Configure Sentry as soon as possible in your application's lifecycle:"
-    ),
-    configurations: [
-      {
-        language: 'kotlin',
-        code: `
+</build>`;
+
+const getConfigureSnippet = (params: Params) => `
 import io.sentry.Sentry
 
 Sentry.init { options ->
-  options.dsn = "${dsn}"${
-    hasPerformance
+  options.dsn = "${params.dsn}"${
+    params.isPerformanceSelected
       ? `
   // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
   // We recommend adjusting this value in production.
@@ -238,25 +120,9 @@ Sentry.init { options ->
   }
   // When first trying Sentry it's good to see what the SDK is doing:
   options.isDebug = true
-}
-        `,
-      },
-    ],
-  },
-  {
-    type: StepType.VERIFY,
-    description: (
-      <p>
-        {tct(
-          'Trigger your first event from your development environment by intentionally creating an error with the [code:Sentry#captureException] method, to test that everything is working:',
-          {code: <code />}
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'kotlin',
-        code: `
+}`;
+
+const getVerifySnippet = () => `
 import java.lang.Exception
 import io.sentry.Sentry
 
@@ -264,74 +130,150 @@ try {
   throw Exception("This is a test.")
 } catch (e: Exception) {
   Sentry.captureException(e)
-}`,
-        additionalInfo: (
-          <Fragment>
-            {t(
-              "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-            )}
-            <p>
-              {t(
-                "If you're an existing user and have disabled alerts, you won't receive this email."
-              )}
-            </p>
-          </Fragment>
+}`;
+
+const onboarding: OnboardingConfig<PlatformOptions> = {
+  introduction: () =>
+    tct(
+      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong2:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
+      {
+        gettingStartedWithAndroidLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/android/" />
         ),
-      },
-    ],
-  },
-];
-
-export const nextSteps = [
-  {
-    id: 'examples',
-    name: t('Examples'),
-    description: t('Check out our sample applications.'),
-    link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
-  },
-  {
-    id: 'performance-monitoring',
-    name: t('Performance Monitoring'),
-    description: t(
-      'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
+        gettingStartedWithJavaLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/java/" />
+        ),
+        strong: <strong />,
+        strong2: <strong />,
+      }
     ),
-    link: 'https://docs.sentry.io/platforms/java/performance/',
-  },
-];
-// Configuration End
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: t(
+        `Install the SDK via %s:`,
+        packageManagerName[params.platformOptions.packageManager]
+      ),
+      configurations: [
+        {
+          description: tct(
+            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+            {
+              link: <Link to="/settings/auth-tokens/" />,
+            }
+          ),
+          language: 'bash',
+          code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
+        },
+        ...(params.platformOptions.packageManager === PackageManager.GRADLE
+          ? [
+              {
+                language: 'groovy',
+                partialLoading: params.sourcePackageRegistries.isLoading,
+                description: tct(
+                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                    ),
+                  }
+                ),
+                code: getGradleInstallSnippet(params),
+              },
+            ]
+          : []),
+        ...(params.platformOptions.packageManager === PackageManager.MAVEN
+          ? [
+              {
+                language: 'xml',
+                partialLoading: params.sourcePackageRegistries.isLoading,
+                description: tct(
+                  'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-maven-plugin" />
+                    ),
+                  }
+                ),
+                code: getMavenInstallSnippet(params),
+              },
+            ]
+          : []),
+      ],
+      additionalInfo: tct(
+        'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
+          ),
+        }
+      ),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Configure Sentry as soon as possible in your application's lifecycle:"
+      ),
+      configurations: [
+        {
+          language: 'kotlin',
+          code: getConfigureSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        'Trigger your first event from your development environment by intentionally creating an error with the [code:Sentry#captureException] method, to test that everything is working:',
+        {code: <code />}
+      ),
+      configurations: [
+        {
+          language: 'kotlin',
+          code: getVerifySnippet(),
+          additionalInfo: (
+            <Fragment>
+              {t(
+                "If you're new to Sentry, use the email alert to access your account and complete a product tour."
+              )}
+              <p>
+                {t(
+                  "If you're an existing user and have disabled alerts, you won't receive this email."
+                )}
+              </p>
+            </Fragment>
+          ),
+        },
+      ],
+    },
+  ],
+  nextSteps: () => [
+    {
+      id: 'examples',
+      name: t('Examples'),
+      description: t('Check out our sample applications.'),
+      link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
+    },
+    {
+      id: 'performance-monitoring',
+      name: t('Performance Monitoring'),
+      description: t(
+        'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
+      ),
+      link: 'https://docs.sentry.io/platforms/java/performance/',
+    },
+  ],
+};
 
-export function GettingStartedWithKotlin({
-  dsn,
-  sourcePackageRegistries,
-  projectSlug,
-  organization,
-  activeProductSelection = [],
-  ...props
-}: ModuleProps) {
-  const optionValues = useUrlPlatformOptions(platformOptions);
-  const hasPerformance = activeProductSelection.includes(
-    ProductSolution.PERFORMANCE_MONITORING
-  );
+const docs: Docs<PlatformOptions> = {
+  platformOptions,
+  onboarding,
+};
 
-  const nextStepDocs = [...nextSteps];
-
-  return (
-    <Layout
-      steps={steps({
-        dsn,
-        sourcePackageRegistries,
-        projectSlug: projectSlug ?? '___PROJECT_SLUG___',
-        organizationSlug: organization?.slug ?? '___ORG_SLUG___',
-        packageManager: optionValues.packageManager as PackageManager,
-        hasPerformance,
-      })}
-      introduction={introduction}
-      platformOptions={platformOptions}
-      nextSteps={nextStepDocs}
-      projectSlug={projectSlug}
-      {...props}
-    />
-  );
-}
-
-export default GettingStartedWithKotlin;
+export default docs;

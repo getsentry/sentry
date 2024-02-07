@@ -8,12 +8,14 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
-import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/types';
+import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {customMetricPlatforms} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project, SelectValue} from 'sentry/types';
+import type {Project, SelectValue} from 'sentry/types';
+import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useCurrentProjectState} from './useCurrentProjectState';
@@ -40,13 +42,12 @@ function MetricsOnboardingSidebar(props: CommonSidebarProps) {
   const projectSelectOptions = useMemo(() => {
     const supportedProjectItems: SelectValue<string>[] = supportedProjects
       .sort((aProject, bProject) => {
-        // TODO(aknaus): Enable once we have thw hasCustomMetrics flag
         // if we're comparing two projects w/ or w/o custom metrics alphabetical sort
-        // if (aProject.hasCustomMetrics === bProject.hasCustomMetrics) {
-        return aProject.slug.localeCompare(bProject.slug);
-        // }
+        if (aProject.hasCustomMetrics === bProject.hasCustomMetrics) {
+          return aProject.slug.localeCompare(bProject.slug);
+        }
         // otherwise sort by whether or not they have custom metrics
-        // return aProject.hasCustomMetrics ? 1 : -1;
+        return aProject.hasCustomMetrics ? 1 : -1;
       })
       .map(project => {
         return {
@@ -160,11 +161,7 @@ function OnboardingContent({
           })}
         </div>
         <div>
-          <LinkButton
-            size="sm"
-            href="https://develop.sentry.dev/delightful-developer-metrics/"
-            external
-          >
+          <LinkButton size="sm" href={METRICS_DOCS_URL} external>
             {t('Go to Sentry Documentation')}
           </LinkButton>
         </div>
@@ -182,11 +179,7 @@ function OnboardingContent({
           )}
         </div>
         <div>
-          <LinkButton
-            size="sm"
-            href="https://develop.sentry.dev/delightful-developer-metrics/"
-            external
-          >
+          <LinkButton size="sm" href={METRICS_DOCS_URL} external>
             {t('Read Docs')}
           </LinkButton>
         </div>

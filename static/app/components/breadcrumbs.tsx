@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import Link, {LinkProps} from 'sentry/components/links/link';
+import type {LinkProps} from 'sentry/components/links/link';
+import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import BreadcrumbDropdown, {
-  BreadcrumbDropdownProps,
-} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import type {BreadcrumbDropdownProps} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
+import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 const BreadcrumbList = styled('nav')`
   display: flex;
@@ -80,7 +81,7 @@ function isCrumbDropdown(crumb: Crumb | CrumbDropdown): crumb is CrumbDropdown {
 /**
  * Page breadcrumbs used for navigation, not to be confused with sentry's event breadcrumbs
  */
-function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
+export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
   if (crumbs.length === 0) {
     return null;
   }
@@ -179,4 +180,7 @@ const BreadcrumbDividerIcon = styled(IconChevron)`
   flex-shrink: 0;
 `;
 
-export default Breadcrumbs;
+// TODO(epurkhiser): Remove once removed from getsentry
+const DO_NOT_USE = Breadcrumbs;
+
+export default DO_NOT_USE;

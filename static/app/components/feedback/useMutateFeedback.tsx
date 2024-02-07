@@ -1,10 +1,10 @@
 import {useCallback} from 'react';
-import first from 'lodash/first';
 
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import type {Actor, GroupStatus, Organization} from 'sentry/types';
-import {fetchMutation, MutateOptions, useMutation} from 'sentry/utils/queryClient';
+import type {MutateOptions} from 'sentry/utils/queryClient';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type TFeedbackIds = 'all' | string[];
@@ -23,7 +23,7 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
   const api = useApi({
     persistInFlight: false,
   });
-  const {getListQueryKey} = useFeedbackQueryKeys();
+  const {listQueryKey} = useFeedbackQueryKeys();
   const {updateCached, invalidateCached} = useFeedbackCache();
 
   const mutation = useMutation<TData, TError, TVariables, TContext>({
@@ -33,7 +33,7 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
     mutationFn: ([ids, payload]) => {
       const isSingleId = ids !== 'all' && ids.length === 1;
       const url = isSingleId
-        ? `/organizations/${organization.slug}/issues/${first(ids)}/`
+        ? `/organizations/${organization.slug}/issues/${ids[0]}/`
         : `/organizations/${organization.slug}/issues/`;
 
       // TODO: it would be excellent if `PUT /issues/` could return the same data
@@ -42,8 +42,8 @@ export default function useMutateFeedback({feedbackIds, organization}: Props) {
       const options = isSingleId
         ? {}
         : ids === 'all'
-        ? getListQueryKey()[1]!
-        : {query: {id: ids}};
+          ? listQueryKey[1]!
+          : {query: {id: ids}};
       return fetchMutation(api)(['PUT', url, options, payload]);
     },
     onSettled: (_resp, _error, [ids, _payload]) => {

@@ -11,6 +11,7 @@ import {
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum SiblingOption {
@@ -21,9 +22,9 @@ export enum SiblingOption {
   VUE2 = 'vue2',
 }
 
-type PlaformOptionKey = 'siblingOption';
+type PlatformOptionKey = 'siblingOption';
 
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   siblingOption: {
     label: t('Sibling Package'),
     items: [
@@ -32,7 +33,7 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
         value: SiblingOption.ANGULARV12,
       },
       {
-        label: t('Angular 10 and 11'),
+        label: t('Angular 10 & 11'),
         value: SiblingOption.ANGULARV10,
       },
       {
@@ -59,8 +60,8 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     siblingOption === SiblingOption.VUE2
       ? `Vue,`
       : siblingOption === SiblingOption.VUE3
-      ? 'app,'
-      : ''
+        ? 'app,'
+        : ''
   }dsn: "${params.dsn}",
   integrations: [${
     params.isPerformanceSelected
@@ -75,10 +76,9 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   }${
     params.isReplaySelected
       ? `
-          new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions({
-            mask: params.mask,
-            block: params.block,
-          })}),`
+          new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions(
+            params.replayOptions
+          )}),`
       : ''
   }
   ],${
@@ -133,8 +133,8 @@ function getPerformanceIntegration(siblingOption: string): string {
     isVue(siblingOption)
       ? `routingInstrumentation: SentryVue.vueRouterInstrumentation(router),`
       : isAngular(siblingOption)
-      ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
-      : ''
+        ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
+        : ''
   }`;
 }
 
@@ -301,22 +301,26 @@ function getVueConstSetup(siblingOption: string): string {
 function getSetupConfiguration({
   params,
   showExtraStep,
+  showDescription,
 }: {
   params: Params;
   showExtraStep: boolean;
+  showDescription?: boolean;
 }) {
   const siblingOption = params.platformOptions.siblingOption;
   const sentryInitLayout = getSentryInitLayout(params, siblingOption);
 
   const configuration = [
     {
-      description: tct(
-        `You should init the Sentry capacitor SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Sentry [siblingName:]:`,
-        {
-          siblingName: getSiblingName(siblingOption),
-          code: <code />,
-        }
-      ),
+      description: showDescription
+        ? tct(
+            `You should init the Sentry capacitor SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Sentry [siblingName:]:`,
+            {
+              siblingName: getSiblingName(siblingOption),
+              code: <code />,
+            }
+          )
+        : null,
       language: 'javascript',
       code: `${getSiblingImportsSetupConfiguration(siblingOption)}
           import * as Sentry from '@sentry/capacitor';
@@ -408,18 +412,15 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      isReplayConfigStep: true,
-      configurations: [
-        {
-          description: getReplayConfigureDescription({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
-          }),
-          configurations: getSetupConfiguration({
-            params: {...params, isReplaySelected: true},
-            showExtraStep: false,
-          }),
-        },
-      ],
+      description: getReplayConfigureDescription({
+        link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
+      }),
+      configurations: getSetupConfiguration({
+        params,
+        showExtraStep: false,
+        showDescription: false,
+      }),
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],

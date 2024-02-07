@@ -1,11 +1,11 @@
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {GPUEventContext} from 'sentry/components/events/contexts/gpu';
-import {GPUData} from 'sentry/components/events/contexts/gpu/types';
+import type {GPUData} from 'sentry/components/events/contexts/gpu/types';
 
 export const gpuMockData: GPUData = {
   name: '',
@@ -48,7 +48,7 @@ describe.skip('gpu event context', function () {
   it('display redacted data', async function () {
     render(<GPUEventContext event={event} data={gpuMockData} />, {
       organization: {
-        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+        relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
     });
 

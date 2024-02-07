@@ -17,7 +17,7 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 from sentry.utils import json
 
 
@@ -310,11 +310,28 @@ def assert_proxy_request(request, is_proxy=True):
         assert request.headers[PROXY_OI_HEADER] is not None
 
 
-@override_settings(
-    SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
-    SENTRY_CONTROL_ADDRESS="http://controlserver",
-)
+@region_silo_test
 class VstsProxyApiClientTest(VstsIntegrationTestCase):
+    def setUp(self):
+        super().setUp()
+        self.integration, _, _, _ = self.create_identity_integration(
+            user=self.user,
+            organization=self.organization,
+            integration_params={
+                "provider": "vsts",
+                "external_id": "vsts:1",
+                "name": "fabrikam-fiber-inc",
+                "metadata": {
+                    "domain_name": "https://fabrikam-fiber-inc.visualstudio.com/",
+                    "default_project": "0987654321",
+                },
+            },
+            identity_params={
+                "external_id": "vsts",
+                "data": {"access_token": self.access_token, "expires": time() + 1234567},
+            },
+        )
+
     @responses.activate
     def test_integration_proxy_is_active(self):
         responses.add(
@@ -352,32 +369,32 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
                 ),
             ],
         )
+
         self.assert_installation()
 
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
-        )
+        installation = self.integration.get_installation(self.organization.id)
         repo = Repository.objects.create(
             provider="visualstudio",
             name="example",
             organization_id=self.organization.id,
             config={"instance": self.vsts_base_url, "project": "project-name", "name": "example"},
-            integration_id=integration.id,
+            integration_id=self.integration.id,
             external_id="albertos-apples",
         )
 
         class VstsProxyApiTestClient(VstsApiClient):
             _use_proxy_url_for_tests = True
 
+        client_kwargs = {
+            "base_url": self.vsts_base_url,
+            "oauth_redirect_url": VstsIntegrationProvider.oauth_redirect_url,
+            "org_integration_id": installation.org_integration.id,
+            "identity_id": installation.org_integration.default_auth_id,
+        }
+
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
-            client = VstsProxyApiTestClient(
-                base_url=self.vsts_base_url,
-                oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
-                org_integration_id=installation.org_integration.id,
-                identity_id=installation.org_integration.default_auth_id,
-            )
+            client = VstsProxyApiTestClient(**client_kwargs)
             client.get_commits(repo_id=repo.external_id, commit="b", limit=10)
 
             assert len(responses.calls) == 1
@@ -391,12 +408,7 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            client = VstsProxyApiTestClient(
-                base_url=self.vsts_base_url,
-                oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
-                org_integration_id=installation.org_integration.id,
-                identity_id=installation.org_integration.default_auth_id,
-            )
+            client = VstsProxyApiTestClient(**client_kwargs)
             client.get_commits(repo_id=repo.external_id, commit="b", limit=10)
 
             assert len(responses.calls) == 1
@@ -410,12 +422,7 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.REGION):
-            client = VstsProxyApiTestClient(
-                base_url=self.vsts_base_url,
-                oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
-                org_integration_id=installation.org_integration.id,
-                identity_id=installation.org_integration.default_auth_id,
-            )
+            client = VstsProxyApiTestClient(**client_kwargs)
             client.get_commits(repo_id=repo.external_id, commit="b", limit=10)
 
             assert len(responses.calls) == 1

@@ -1,5 +1,6 @@
-import {ReactElement, useEffect} from 'react';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import type {ReactElement} from 'react';
+import {useEffect} from 'react';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

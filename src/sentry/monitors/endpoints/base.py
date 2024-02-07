@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
@@ -16,10 +17,11 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.constants import ObjectStatus
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -50,13 +52,14 @@ class MonitorEndpoint(Endpoint):
           MonitorIngestEndpoint for that.
     """
 
-    permission_classes = (ProjectMonitorPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
 
     def convert_args(
         self,
         request: Request,
         organization_slug: str,
         monitor_slug: str,
+        environment: str | None = None,
         checkin_id: str | None = None,
         *args,
         **kwargs,
@@ -74,6 +77,18 @@ class MonitorEndpoint(Endpoint):
         project = Project.objects.get_from_cache(id=monitor.project_id)
         if project.status != ObjectStatus.ACTIVE:
             raise ResourceDoesNotExist
+
+        if environment:
+            try:
+                environment_object = Environment.objects.get(
+                    organization_id=organization.id, name=environment
+                )
+                monitor_environment = MonitorEnvironment.objects.get(
+                    monitor_id=monitor.id, environment_id=environment_object.id
+                )
+                kwargs["monitor_environment"] = monitor_environment
+            except (Environment.DoesNotExist, MonitorEnvironment.DoesNotExist):
+                raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
 

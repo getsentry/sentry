@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional, Union
+from collections.abc import Callable, Mapping
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -106,13 +106,13 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
-        self.total_count: Optional[int] = None
-        self.total_sum_transaction_duration: Optional[float] = None
+        self.total_count: int | None = None
+        self.total_sum_transaction_duration: float | None = None
 
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             "environment": self.builder._environment_filter_converter,
             "message": self._message_filter_converter,
@@ -1188,7 +1188,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS,
         )
 
-        def _project_threshold_config(alias: Optional[str] = None) -> SelectType:
+        def _project_threshold_config(alias: str | None = None) -> SelectType:
             if project_threshold_config_keys and project_threshold_config_values:
                 return Function(
                     "if",
@@ -1602,9 +1602,9 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _resolve_percentile(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
-        fixed_percentile: Optional[float] = None,
+        fixed_percentile: float | None = None,
     ) -> SelectType:
         return (
             Function(
@@ -1774,25 +1774,25 @@ class DiscoverDatasetConfig(DatasetConfig):
         )
 
     # Query Filters
-    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
-    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _release_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
 
-    def _release_stage_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _release_stage_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.release_stage_filter_converter(self.builder, search_filter)
 
-    def _semver_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _semver_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.semver_filter_converter(self.builder, search_filter)
 
-    def _semver_package_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _semver_package_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.semver_package_filter_converter(self.builder, search_filter)
 
-    def _semver_build_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _semver_build_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.semver_build_filter_converter(self.builder, search_filter)
 
-    def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _issue_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         if self.builder.builder_config.skip_field_validation_for_entity_subscription_deletion:
             return None
 
@@ -1828,7 +1828,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
         return None
 
-    def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         value = search_filter.value.value
         if search_filter.value.is_wildcard():
             # XXX: We don't want the '^$' values at the beginning and end of
@@ -1860,7 +1860,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 0,
             )
 
-    def _trace_parent_span_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _trace_parent_span_converter(self, search_filter: SearchFilter) -> WhereType | None:
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             return Condition(
                 Function("has", [Column("contexts.key"), TRACE_PARENT_SPAN_CONTEXT]),
@@ -1870,9 +1870,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         else:
             return self.builder.default_filter_converter(search_filter)
 
-    def _transaction_status_filter_converter(
-        self, search_filter: SearchFilter
-    ) -> Optional[WhereType]:
+    def _transaction_status_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         # Handle "has" queries
         if search_filter.value.raw_value == "":
             return Condition(
@@ -1892,7 +1890,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _performance_issue_ids_filter_converter(
         self, search_filter: SearchFilter
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         name = search_filter.key.name
         operator = search_filter.operator
         value = to_list(search_filter.value.value)
@@ -1929,7 +1927,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 1,
             )
 
-    def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _issue_id_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         name = search_filter.key.name
         value = search_filter.value.value
 
@@ -1954,7 +1952,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     def _error_unhandled_filter_converter(
         self,
         search_filter: SearchFilter,
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         value = search_filter.value.value
         # Treat has filter as equivalent to handled
         if search_filter.value.raw_value == "":
@@ -1971,7 +1969,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     def _error_handled_filter_converter(
         self,
         search_filter: SearchFilter,
-    ) -> Optional[WhereType]:
+    ) -> WhereType | None:
         value = search_filter.value.value
         # Treat has filter as equivalent to handled
         if search_filter.value.raw_value == "":
@@ -1985,5 +1983,5 @@ class DiscoverDatasetConfig(DatasetConfig):
             "Invalid value for error.handled condition. Accepted values are 1, 0"
         )
 
-    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.team_key_transaction_filter(self.builder, search_filter)

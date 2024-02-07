@@ -12,9 +12,7 @@ import pytest
 from click.testing import CliRunner
 from google_crc32c import value as crc32c
 
-from sentry.backup.dependencies import get_model_name
-from sentry.backup.findings import InstanceID
-from sentry.backup.helpers import (
+from sentry.backup.crypto import (
     DecryptionError,
     EncryptionError,
     LocalFileDecryptor,
@@ -22,6 +20,8 @@ from sentry.backup.helpers import (
     create_encrypted_export_tarball,
     unwrap_encrypted_export_tarball,
 )
+from sentry.backup.dependencies import get_model_name
+from sentry.backup.findings import InstanceID
 from sentry.backup.imports import ImportingError
 from sentry.models.email import Email
 from sentry.runner.commands.backup import backup, export, import_
@@ -205,7 +205,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
                     assert len(findings) == 0
 
     @patch(
-        "sentry.backup.helpers.KeyManagementServiceClient",
+        "sentry.backup.crypto.KeyManagementServiceClient",
         new_callable=lambda: FakeKeyManagementServiceClient,
     )
     def test_compare_decrypt_with_gcp_kms(self, fake_kms_client: FakeKeyManagementServiceClient):
@@ -307,7 +307,7 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
                 assert source_json == target_json
 
     @patch(
-        "sentry.backup.helpers.KeyManagementServiceClient",
+        "sentry.backup.crypto.KeyManagementServiceClient",
         new_callable=lambda: FakeKeyManagementServiceClient,
     )
     def test_use_gcp_kms(self, fake_kms_client: FakeKeyManagementServiceClient):
@@ -562,7 +562,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
         self.cli_encrypted_import_then_export_use_local("users")
 
     @patch(
-        "sentry.backup.helpers.KeyManagementServiceClient",
+        "sentry.backup.crypto.KeyManagementServiceClient",
         new_callable=lambda: FakeKeyManagementServiceClient,
     )
     def test_encryption_with_gcp_kms_decryption(

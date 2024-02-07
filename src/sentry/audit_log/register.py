@@ -271,6 +271,14 @@ default_manager.add(
         template="Monitor environment removed",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=124,
+        name="MONITOR_ENVIRONMENT_EDIT",
+        api_name="monitor.environment.edit",
+        template="Monitor environment edited",
+    )
+)
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
 default_manager.add(events.InternalIntegrationDisabledAuditLogEvent())
 default_manager.add(
@@ -416,5 +424,37 @@ default_manager.add(
         name="PROJECT_TEAM_ADD",
         api_name="project-team.add",
         template="added team {team_slug} to project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=182,
+        name="METRIC_BLOCK",
+        api_name="metric.block",
+        template="blocked metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=183,
+        name="METRIC_TAGS_BLOCK",
+        api_name="metric.tags.block",
+        template="blocked {tags} tags of metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=184,
+        name="METRIC_UNBLOCK",
+        api_name="metric.unblock",
+        template="unblocked metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=185,
+        name="METRIC_TAGS_UNBLOCK",
+        api_name="metric.tags.unblock",
+        template="unblocked {tags} tags of metric {metric_mri} for project {project_slug}",
     )
 )

@@ -1,16 +1,16 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import {Team} from 'sentry-fixture/team';
-import {TeamIssuesBreakdown} from 'sentry-fixture/teamIssuesBreakdown';
-import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {TeamFixture} from 'sentry-fixture/team';
+import {TeamIssuesBreakdownFixture} from 'sentry-fixture/teamIssuesBreakdown';
+import {TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Project, Team as TeamType} from 'sentry/types';
+import type {Project, Team as TeamType} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
@@ -35,21 +35,21 @@ describe('TeamStatsIssues', () => {
     slug: 'py',
     environments: [env1, env2],
   });
-  const team1 = Team({
+  const team1 = TeamFixture({
     id: '2',
     slug: 'frontend',
     name: 'frontend',
     projects: [project1],
     isMember: true,
   });
-  const team2 = Team({
+  const team2 = TeamFixture({
     id: '3',
     slug: 'backend',
     name: 'backend',
     projects: [project2],
     isMember: true,
   });
-  const team3 = Team({
+  const team3 = TeamFixture({
     id: '4',
     slug: 'internal',
     name: 'internal',
@@ -66,11 +66,11 @@ describe('TeamStatsIssues', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
-      body: TeamResolutionTime(),
+      body: TeamResolutionTimeFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/issue-breakdown/`,
-      body: TeamIssuesBreakdown(),
+      body: TeamIssuesBreakdownFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
@@ -78,11 +78,11 @@ describe('TeamStatsIssues', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
-      body: TeamResolutionTime(),
+      body: TeamResolutionTimeFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/issue-breakdown/`,
-      body: TeamIssuesBreakdown(),
+      body: TeamIssuesBreakdownFixture(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -135,14 +135,20 @@ describe('TeamStatsIssues', () => {
   function createWrapper({
     projects,
     teams,
-  }: {projects?: Project[]; teams?: TeamType[]} = {}) {
+    isOrgOwner,
+  }: {isOrgOwner?: boolean; projects?: Project[]; teams?: TeamType[]} = {}) {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = Organization({
+    const organization = OrganizationFixture({
       teams,
       projects,
     });
+
+    if (isOrgOwner !== undefined && !isOrgOwner) {
+      organization.access = organization.access.filter(scope => scope !== 'org:admin');
+    }
+
     const context = RouterContextFixture([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
@@ -159,8 +165,8 @@ describe('TeamStatsIssues', () => {
     expect(screen.getByText('All Unresolved Issues')).toBeInTheDocument();
   });
 
-  it('allows team switching', async () => {
-    createWrapper();
+  it('allows team switching as non-owner', async () => {
+    createWrapper({isOrgOwner: false});
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
@@ -174,6 +180,24 @@ describe('TeamStatsIssues', () => {
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
       team1.id
+    );
+  });
+
+  it('allows team switching as owner', async () => {
+    createWrapper();
+
+    expect(screen.getByText('#backend')).toBeInTheDocument();
+    await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
+    expect(screen.getByText('#frontend')).toBeInTheDocument();
+    // Org owners can see all teams including ones they are not members of
+    expect(screen.queryByText('#internal')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('#internal'));
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({query: {team: team3.id}})
+    );
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'teamInsightsSelectedTeamId:org-slug',
+      team3.id
     );
   });
 

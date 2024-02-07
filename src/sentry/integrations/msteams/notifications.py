@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 import sentry_sdk
 
-from sentry.integrations.msteams.card_builder import AdaptiveCard
+from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
 from sentry.models.team import Team

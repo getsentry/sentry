@@ -1,4 +1,5 @@
-import {Fragment, ReactNode, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
@@ -11,33 +12,36 @@ import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfac
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {
+import type {
   Entry,
   EntryRequest,
-  EntryType,
   Event,
   EventTransaction,
+  KeyValueListData,
+  KeyValueListDataItem,
+} from 'sentry/types';
+import {
+  EntryType,
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
   IssueType,
   isTransactionBased,
-  KeyValueListData,
-  KeyValueListDataItem,
 } from 'sentry/types';
 import {formatBytesBase2} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 import KeyValueList from '../keyValueList';
-import {ProcessedSpanType, RawSpanType} from '../spans/types';
+import type {ProcessedSpanType, RawSpanType} from '../spans/types';
 import {getSpanSubTimings, SpanSubTimingName} from '../spans/utils';
 
-import {TraceContextSpanProxy} from './spanEvidence';
+import type {TraceContextSpanProxy} from './spanEvidence';
 
 const formatter = new SQLishFormatter();
 
@@ -651,33 +655,22 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[
  * and instead it should use the data provided by the backend
  */
 export const extractSpanURLString = (span: Span, baseURL?: string): URL | null => {
-  let URLString;
+  let url = span?.data?.url;
+  if (url) {
+    const query = span.data['http.query'];
+    if (query) {
+      url += `?${query}`;
+    }
 
-  URLString = span?.data?.url;
-  if (URLString) {
-    try {
-      let url = span?.data?.url ?? '';
-      const query = span?.data?.['http.query'];
-      if (query) {
-        url += `?${query}`;
-      }
-
-      return new URL(url, baseURL);
-    } catch (e) {
-      // Ignore error
+    const parsedURL = safeURL(url, baseURL);
+    if (parsedURL) {
+      return parsedURL;
     }
   }
 
   const [_method, _url] = (span?.description ?? '').split(' ', 2);
-  URLString = _url;
 
-  try {
-    return new URL(_url, baseURL);
-  } catch (e) {
-    // Ignore error
-  }
-
-  return null;
+  return safeURL(_url, baseURL) ?? null;
 };
 
 export function extractQueryParameters(URLs: URL[]): ParameterLookup {

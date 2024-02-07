@@ -1,17 +1,18 @@
 import {createContext, useCallback, useContext, useEffect, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
-import {AriaGridListOptions} from '@react-aria/gridlist';
-import {AriaListBoxOptions} from '@react-aria/listbox';
-import {ListProps, useListState} from '@react-stately/list';
+import type {AriaGridListOptions} from '@react-aria/gridlist';
+import type {AriaListBoxOptions} from '@react-aria/listbox';
+import type {ListProps} from '@react-stately/list';
+import {useListState} from '@react-stately/list';
 
 import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from './control';
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
-import {SelectOption, SelectOptionOrSectionWithKey, SelectSection} from './types';
+import type {SelectOption, SelectOptionOrSectionWithKey, SelectSection} from './types';
 import {
   getDisabledOptions,
   getEscapedKey,
@@ -283,7 +284,7 @@ function List<Value extends React.Key>({
         e.key === 'ArrowDown' &&
         listState.selectionManager.focusedKey === lastFocusableKey
       ) {
-        focusManager.focusNext({
+        focusManager?.focusNext({
           wrap: true,
           accept: element =>
             (element.getAttribute('role') === 'option' ||
@@ -300,7 +301,7 @@ function List<Value extends React.Key>({
         e.key === 'ArrowUp' &&
         listState.selectionManager.focusedKey === firstFocusableKey
       ) {
-        focusManager.focusPrevious({
+        focusManager?.focusPrevious({
           wrap: true,
           accept: element =>
             (element.getAttribute('role') === 'option' ||

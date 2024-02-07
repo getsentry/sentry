@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -7,11 +7,14 @@ import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
 import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
 import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
+import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewBanner';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
 import OldFeedbackButton from 'sentry/components/feedback/oldFeedbackButton';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
+import useHaveSelectedProjectsSetupFeedback, {
+  useHaveSelectedProjectsSetupNewFeedback,
+} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
-import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useHaveSelectedProjectsSetupFeedback';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -27,6 +30,9 @@ interface Props extends RouteComponentProps<{}, {}, {}> {}
 export default function FeedbackListPage({}: Props) {
   const organization = useOrganization();
   const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
+  const {hasSetupNewFeedback} = useHaveSelectedProjectsSetupNewFeedback();
+
+  const showWhatsNewBanner = hasSetupOneFeedback && !hasSetupNewFeedback;
 
   const feedbackSlug = useCurrentFeedbackId();
   const hasSlug = Boolean(feedbackSlug);
@@ -53,7 +59,10 @@ export default function FeedbackListPage({}: Props) {
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
-              <LayoutGrid>
+              <LayoutGrid data-banner={showWhatsNewBanner}>
+                {showWhatsNewBanner ? (
+                  <FeedbackWhatsNewBanner style={{gridArea: 'banner'}} />
+                ) : null}
                 <FeedbackFilters style={{gridArea: 'filters'}} />
                 {hasSetupOneFeedback || hasSlug ? (
                   <Fragment>
@@ -94,6 +103,14 @@ const LayoutGrid = styled('div')`
     'filters search'
     'list details';
 
+  &[data-banner='true'] {
+    grid-template-rows: max-content max-content 1fr;
+    grid-template-areas:
+      'banner banner'
+      'filters search'
+      'list details';
+  }
+
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(2)};
     grid-template-columns: 1fr;
@@ -102,6 +119,15 @@ const LayoutGrid = styled('div')`
       'search'
       'list'
       'details';
+
+    &[data-banner='true'] {
+      grid-template-areas:
+        'banner'
+        'filters'
+        'search'
+        'list'
+        'details';
+    }
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {

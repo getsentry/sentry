@@ -1,5 +1,6 @@
 import {Fragment, useEffect} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -9,19 +10,18 @@ import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import MutedBox from 'sentry/components/mutedBox';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ResolutionBox from 'sentry/components/resolutionBox';
 import useSentryAppComponentsData from 'sentry/stores/useSentryAppComponentsData';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Group,
   GroupActivityReprocess,
   GroupReprocessing,
   Organization,
   Project,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
@@ -120,19 +120,14 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
   ]);
 
   const renderGroupStatusBanner = () => {
-    const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
     if (group.status === 'ignored') {
       return (
         <GroupStatusBannerWrapper>
-          {hasEscalatingIssuesUi ? (
-            <ArchivedBox
-              substatus={group.substatus}
-              statusDetails={group.statusDetails}
-              organization={organization}
-            />
-          ) : (
-            <MutedBox statusDetails={group.statusDetails} />
-          )}
+          <ArchivedBox
+            substatus={group.substatus}
+            statusDetails={group.statusDetails}
+            organization={organization}
+          />
         </GroupStatusBannerWrapper>
       );
     }

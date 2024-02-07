@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Optional, Sequence
 
 import pytest
 from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.receivers import create_default_projects
 from sentry.snuba.metrics import (
     OPERATIONS,
@@ -34,18 +34,18 @@ class MetricsQueryBuilder:
         self.org_id: int = 1
         self.project_ids: Sequence[int] = [1, 2]
         self.select: Sequence[MetricField] = [self.AVG_DURATION_METRIC]
-        self.start: Optional[datetime] = now - timedelta(hours=1)
-        self.end: Optional[datetime] = now
+        self.start: datetime | None = now - timedelta(hours=1)
+        self.end: datetime | None = now
         self.granularity: Granularity = Granularity(3600)
-        self.orderby: Optional[ConditionGroup] = None
-        self.where: Optional[Sequence[Groupable]] = None
-        self.having: Optional[ConditionGroup] = None
-        self.groupby: Optional[Sequence[MetricGroupByField]] = None
-        self.limit: Optional[Limit] = None
-        self.offset: Optional[Offset] = None
+        self.orderby: ConditionGroup | None = None
+        self.where: Sequence[Groupable] | None = None
+        self.having: ConditionGroup | None = None
+        self.groupby: Sequence[MetricGroupByField] | None = None
+        self.limit: Limit | None = None
+        self.offset: Offset | None = None
         self.include_series: bool = True
         self.include_totals: bool = True
-        self.interval: Optional[int] = None
+        self.interval: int | None = None
         self.is_alerts_query: bool = False
 
     def with_select(self, select: Sequence[MetricField]) -> MetricsQueryBuilder:

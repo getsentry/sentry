@@ -1,6 +1,6 @@
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -14,12 +14,16 @@ import {
   getPageFilterStorage,
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/persistence';
-import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
+import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
-import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
+import {
+  ALL_ACCESS_PROJECTS,
+  DATE_TIME_KEYS,
+  URL_PARAM,
+} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {
+import type {
   DateString,
   Environment,
   MinimalProject,
@@ -212,10 +216,14 @@ export function initializeUrlState({
    * IDs (project was deleted/moved to another org) can still exist in local storage or
    * shared links.
    */
-  function validateProjectId(projectId: number) {
+  function validateProjectId(projectId: number): boolean {
+    if (projectId === ALL_ACCESS_PROJECTS) {
+      return !shouldEnforceSingleProject;
+    }
+
     return (
-      !!memberProjects?.find(mp => String(mp.id) === String(projectId)) ||
-      !!nonMemberProjects?.find(nmp => String(nmp.id) === String(projectId))
+      !!memberProjects?.some(mp => String(mp.id) === String(projectId)) ||
+      !!nonMemberProjects?.some(nmp => String(nmp.id) === String(projectId))
     );
   }
 
@@ -223,10 +231,10 @@ export function initializeUrlState({
    * Check to make sure that the environment exists. Invalid environments (due to being
    * hidden) can still exist in local storage or shared links.
    */
-  function validateEnvironment(env: string) {
+  function validateEnvironment(env: string): boolean {
     return (
-      !!memberProjects?.find(mp => mp.environments.includes(env)) ||
-      !!nonMemberProjects?.find(nmp => nmp.environments.includes(env))
+      !!memberProjects?.some(mp => mp.environments.includes(env)) ||
+      !!nonMemberProjects?.some(nmp => nmp.environments.includes(env))
     );
   }
 

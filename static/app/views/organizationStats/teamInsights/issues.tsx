@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -7,8 +7,8 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t, tct} from 'sentry/locale';
-import {TeamWithProjects} from 'sentry/types';
+import {t} from 'sentry/locale';
+import type {TeamWithProjects} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,7 +48,6 @@ function TeamStatsIssues({location, router}: Props) {
   const environment = query.environment;
 
   const {period, start, end, utc} = dataDatetime(query);
-  const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
   if (teams.length === 0) {
     return (
@@ -79,11 +78,8 @@ function TeamStatsIssues({location, router}: Props) {
           <Layout.Main fullWidth>
             <DescriptionCard
               title={t('All Unresolved Issues')}
-              description={tct(
-                'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or [status] in the past.',
-                {
-                  status: hasEscalatingIssues ? 'archived' : 'ignored',
-                }
+              description={t(
+                'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or archived in the past.'
               )}
             >
               <TeamUnresolvedIssues
@@ -100,11 +96,8 @@ function TeamStatsIssues({location, router}: Props) {
 
             <DescriptionCard
               title={t('New and Returning Issues')}
-              description={tct(
-                'The new, regressed, and [status] issues that were assigned to your team.',
-                {
-                  status: hasEscalatingIssues ? 'escalating' : 'unignored',
-                }
+              description={t(
+                'The new, regressed, and escalating issues that were assigned to your team.'
               )}
             >
               <TeamIssuesBreakdown
@@ -115,7 +108,7 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                statuses={['new', 'regressed', 'unignored']}
+                statuses={['new', 'regressed', 'escalating']}
               />
             </DescriptionCard>
 
@@ -133,7 +126,13 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                statuses={['resolved', 'ignored', 'deleted']}
+                statuses={[
+                  'resolved',
+                  'deleted',
+                  'archived_until_escalating',
+                  'archived_forever',
+                  'archived_until_condition_met',
+                ]}
               />
             </DescriptionCard>
 

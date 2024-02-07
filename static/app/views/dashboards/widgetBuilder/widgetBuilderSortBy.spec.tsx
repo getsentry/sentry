@@ -1,21 +1,18 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
-import {MetricsField} from 'sentry-fixture/metrics';
-import {SessionsField} from 'sentry-fixture/sessions';
-import {Tags} from 'sentry-fixture/tags';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  DisplayType,
-  Widget,
-} from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -191,19 +188,19 @@ describe('WidgetBuilder', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: SessionsField(`sum(session)`),
+      body: SessionsFieldFixture(`sum(session)`),
     });
 
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsField('session.all'),
+      body: MetricsFieldFixture('session.all'),
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: Tags(),
+      body: TagsFixture(),
     });
 
     MockApiClient.addMockResponse({

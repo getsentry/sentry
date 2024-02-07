@@ -1,17 +1,32 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {EventEntryStacktrace} from 'sentry-fixture/eventEntryStacktrace';
-import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
+import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
-const eventEntryStacktrace = EventEntryStacktrace();
+const organization = OrganizationFixture();
+const project = ProjectFixture({});
+
+const integration = GitHubIntegrationFixture();
+const repo = RepositoryFixture({integrationId: integration.id});
+
+const config = RepositoryProjectPathConfigFixture({project, repo, integration});
+
+const eventEntryStacktrace = EventEntryStacktraceFixture();
 const event = EventFixture({
+  projectID: project.id,
   entries: [eventEntryStacktrace],
   type: EventOrGroupType.ERROR,
 });
@@ -35,14 +50,20 @@ function renderedComponent(
 }
 describe('Native StackTrace', function () {
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     const promptResponse = {
       dismissed_ts: undefined,
       snoozed_ts: undefined,
     };
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    ProjectsStore.loadInitialData([project]);
   });
   it('does not render non in app tags', function () {
     const dataFrames = [...data.frames];
@@ -123,15 +144,15 @@ describe('Native StackTrace', function () {
     const newData = {
       ...data,
       frames: [
-        EventStacktraceFrame({
+        EventStacktraceFrameFixture({
           symbolicatorStatus: SymbolicatorStatus.MISSING,
           function: 'missing()',
         }),
-        EventStacktraceFrame({
+        EventStacktraceFrameFixture({
           symbolicatorStatus: SymbolicatorStatus.UNKNOWN_IMAGE,
           function: 'unknown_image()',
         }),
-        EventStacktraceFrame({
+        EventStacktraceFrameFixture({
           symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
           function: 'symbolicated()',
         }),

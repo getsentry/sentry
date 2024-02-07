@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from django.http import HttpResponse
 
@@ -11,6 +12,7 @@ from sentry.integrations.github.webhook import (
 )
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -54,8 +56,15 @@ class GithubRequestParser(BaseRequestParser):
         if event.get("installation") and event.get("action") in {"created", "deleted"}:
             return self.get_response_from_control_silo()
 
-        regions = self.get_regions_from_organizations()
-        if len(regions) == 0:
-            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
-            return self.get_response_from_control_silo()
-        return self.get_response_from_outbox_creation(regions=regions)
+        try:
+            integration = self.get_integration_from_request()
+            if not integration:
+                return self.get_default_missing_integration_response()
+
+            regions = self.get_regions_from_organizations()
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+            return self.get_default_missing_integration_response()
+
+        return self.get_response_from_outbox_creation_for_integration(
+            regions=regions, integration=integration
+        )

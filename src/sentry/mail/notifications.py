@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
+from collections.abc import Iterable, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from django.utils.encoding import force_str
@@ -27,7 +28,7 @@ if TYPE_CHECKING:
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
     headers = {"X-SMTPAPI": json.dumps({"category": notification.metrics_key})}
-    if isinstance(notification, ProjectNotification):
+    if isinstance(notification, ProjectNotification) and notification.project.slug:
         headers["X-Sentry-Project"] = notification.project.slug
 
     group = getattr(notification, "group", None)

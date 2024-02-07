@@ -1,6 +1,5 @@
 import hashlib
 import hmac
-from typing import Optional
 
 import responses
 from rest_framework.response import Response
@@ -15,16 +14,11 @@ from fixtures.vercel import (
     SIGNATURE_NEW,
 )
 from sentry import VERSION
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.integrations.sentry_app_installation_for_provider import (
-    SentryAppInstallationForProvider,
-)
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -50,6 +44,7 @@ class SignatureVercelTest(APITestCase):
             assert response.status_code == 401
 
 
+@control_silo_test
 class VercelReleasesTest(APITestCase):
     webhook_url = "/extensions/vercel/webhook/"
 
@@ -61,7 +56,7 @@ class VercelReleasesTest(APITestCase):
             digestmod=hashlib.sha1,
         ).hexdigest()
 
-    def _get_response(self, message: str, signature: Optional[str] = None) -> Response:
+    def _get_response(self, message: str, signature: str | None = None) -> Response:
         signature = signature or self.get_signature(message)
         return self.client.post(
             path=self.webhook_url,
@@ -73,13 +68,13 @@ class VercelReleasesTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project(organization=self.organization)
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="vercel",
             external_id="cstd1xKmLGVMed0z0f3SHlD2",
             metadata={"access_token": "my_token"},
         )
 
-        self.org_integration = OrganizationIntegration.objects.create(
+        self.org_integration = self.create_organization_integration(
             organization_id=self.organization.id,
             integration=self.integration,
             config={
@@ -94,11 +89,10 @@ class VercelReleasesTest(APITestCase):
             name="Vercel Internal Integration",
             organization=self.organization,
         )
-        sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=self.sentry_app)
-        self.installation_for_provider = SentryAppInstallationForProvider.objects.create(
+        self.installation_for_provider = self.create_sentry_app_installation_for_provider(
+            sentry_app_id=self.sentry_app.id,
             organization_id=self.organization.id,
             provider="vercel",
-            sentry_app_installation=sentry_app_installation,
         )
 
     def tearDown(self):
@@ -138,6 +132,7 @@ class VercelReleasesTest(APITestCase):
             assert release_request.headers["User-Agent"] == f"sentry_vercel/{VERSION}"
 
     @responses.activate
+    @with_feature("organizations:vercel-integration-webhooks")
     def test_create_release_new(self):
         responses.add(
             responses.POST,
@@ -309,7 +304,6 @@ class VercelReleasesTest(APITestCase):
         assert "Could not determine repository" == response.data["detail"]
 
 
-@control_silo_test
 class VercelReleasesNewTest(VercelReleasesTest):
     webhook_url = "/extensions/vercel/delete/"
 

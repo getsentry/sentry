@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import sys
@@ -8,10 +7,6 @@ import sentry_sdk
 
 import sentry
 from sentry.utils.imports import import_string
-
-# We need to run this here because of a concurrency bug in Python's locale
-# with the lazy initialization.
-datetime.datetime.strptime("", "")
 
 # Parse out a pretty version for use with --version
 version_string = sentry.__semantic_version__
@@ -190,6 +185,6 @@ def main():
                     sentry_sdk.set_user({"username": os.environ.get("USER")})
                 sentry_sdk.capture_exception(e)
                 logger.info("We have reported the error below to Sentry")
-            raise e
+            raise
     else:
         func(**kwargs)

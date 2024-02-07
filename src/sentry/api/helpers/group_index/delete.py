@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import List, Sequence
+from collections.abc import Sequence
 from uuid import uuid4
 
 import rest_framework
@@ -27,7 +27,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 def delete_group_list(
     request: Request,
     project: "Project",
-    group_list: List["Group"],
+    group_list: list["Group"],
     delete_type: str,
 ) -> None:
     if not group_list:
@@ -126,9 +126,7 @@ def delete_groups(
         return Response(status=204)
 
     if any(group.issue_category != GroupCategory.ERROR for group in group_list):
-        raise rest_framework.exceptions.ValidationError(
-            detail="Only error issues can be deleted.", code=400
-        )
+        raise rest_framework.exceptions.ValidationError(detail="Only error issues can be deleted.")
 
     groups_by_project_id = defaultdict(list)
     for group in group_list:

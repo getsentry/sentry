@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
-import {ApiResult} from 'sentry/api';
-import {Organization} from 'sentry/types';
+import type {ApiResult} from 'sentry/api';
+import type {Organization} from 'sentry/types';
 import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
-import {ApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
   bufferLimit: number;
@@ -17,7 +17,9 @@ type CountValue = undefined | number;
 type CountState = Record<string, CountValue>;
 
 function filterKeysInList<V>(obj: Record<string, V>, list: readonly string[]) {
-  return Object.fromEntries(Object.entries(obj).filter(([key, _value]) => key in list));
+  return Object.fromEntries(
+    Object.entries(obj).filter(([key, _value]) => list.includes(key))
+  );
 }
 
 function boolIfDefined(val: undefined | unknown) {
@@ -66,7 +68,14 @@ export default function useReplayCount({
       [dataSource, fieldName, organization, statsPeriod]
     ),
     responseReducer: useCallback(
-      (data: undefined | CountState, response: ApiResult) => ({...data, ...response[0]}),
+      (
+        prevState: undefined | CountState,
+        response: ApiResult,
+        aggregates: readonly string[]
+      ) => {
+        const defaults = Object.fromEntries(aggregates.map(id => [id, 0]));
+        return {...defaults, ...prevState, ...response[0]};
+      },
       []
     ),
   });
@@ -82,6 +91,7 @@ export default function useReplayCount({
   const getOne = useCallback(
     (id: string) => {
       cache.buffer([id]);
+
       return cache.data?.[id];
     },
     [cache]

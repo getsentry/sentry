@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import type {FieldDefinition} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
 export enum StarfishType {
   BACKEND = 'backend',
@@ -33,6 +34,7 @@ export enum SpanMetricsField {
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
   FILE_EXTENSION = 'file_extension',
+  OS_NAME = 'os.name',
 }
 
 export type SpanNumberFields =
@@ -51,7 +53,8 @@ export type SpanStringFields =
   | 'span.group'
   | 'transaction'
   | 'transaction.method'
-  | 'release';
+  | 'release'
+  | 'os.name';
 
 export type SpanMetricsQueryFilters = {
   [Field in SpanStringFields]?: string;
@@ -61,7 +64,7 @@ export type SpanMetricsQueryFilters = {
 
 export type SpanStringArrayFields = 'span.domain';
 
-export const COUNTER_AGGREGATES = ['avg', 'min', 'max', 'p100'] as const;
+export const COUNTER_AGGREGATES = ['sum', 'avg', 'min', 'max', 'p100'] as const;
 export const DISTRIBUTION_AGGREGATES = ['p50', 'p75', 'p95', 'p99'] as const;
 
 export const AGGREGATES = [...COUNTER_AGGREGATES, ...DISTRIBUTION_AGGREGATES] as const;
@@ -79,9 +82,7 @@ export const SPAN_FUNCTIONS = [
 export type SpanFunctions = (typeof SPAN_FUNCTIONS)[number];
 
 export type MetricsResponse = {
-  [Property in SpanNumberFields as `avg(${Property})`]: number;
-} & {
-  [Property in SpanNumberFields as `sum(${Property})`]: number;
+  [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
   [Property in SpanFunctions as `${Property}()`]: number;
 } & {
@@ -113,6 +114,7 @@ export enum SpanIndexedField {
   TRANSACTION_OP = 'transaction.op',
   SPAN_DOMAIN = 'span.domain',
   TIMESTAMP = 'timestamp',
+  RAW_DOMAIN = 'raw_domain',
   PROJECT = 'project',
   PROJECT_ID = 'project_id',
   PROFILE_ID = 'profile_id',

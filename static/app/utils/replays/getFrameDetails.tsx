@@ -1,9 +1,11 @@
-import {Fragment, ReactNode} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment} from 'react';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
+  IconChat,
   IconCursorArrow,
   IconFire,
   IconFix,
@@ -35,7 +37,7 @@ import {
   isRageClick,
 } from 'sentry/utils/replays/types';
 import type {Color} from 'sentry/utils/theme';
-import stripOrigin from 'sentry/utils/url/stripOrigin';
+import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 
 interface Details {
   color: Color;
@@ -48,14 +50,14 @@ interface Details {
 const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
     color: 'gray300',
-    description: stripOrigin(frame.message ?? ''),
+    description: stripURLOrigin(frame.message ?? ''),
     tabKey: TabKey.CONSOLE,
     title: 'Replay Start',
     icon: <IconTerminal size="xs" />,
   }),
   navigation: (frame: NavFrame) => ({
     color: 'green300',
-    description: stripOrigin((frame as NavFrame).data.to),
+    description: stripURLOrigin((frame as NavFrame).data.to),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
@@ -209,28 +211,28 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
   'navigation.navigate': frame => ({
     color: 'green300',
-    description: stripOrigin(frame.description),
+    description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Page Load',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.reload': frame => ({
     color: 'green300',
-    description: stripOrigin(frame.description),
+    description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Reload',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.back_forward': frame => ({
     color: 'green300',
-    description: stripOrigin(frame.description),
+    description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Navigate Back/Forward',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.push': frame => ({
     color: 'green300',
-    description: stripOrigin(frame.description),
+    description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
@@ -266,6 +268,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     tabKey: TabKey.NETWORK,
     title: 'Paint',
     icon: <IconInfo size="xs" />,
+  }),
+  'sentry.feedback': () => ({
+    color: 'blue300',
+    description: '',
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Feedback Submitted',
+    icon: <IconChat size="xs" />,
   }),
   'resource.css': frame => ({
     color: 'gray300',

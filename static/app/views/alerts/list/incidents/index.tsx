@@ -1,5 +1,5 @@
 import {Fragment, useEffect} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
@@ -16,12 +16,12 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import Projects from 'sentry/utils/projects';
 
 import FilterBar from '../../filterBar';
-import {Incident} from '../../types';
+import type {Incident} from '../../types';
 import {getQueryStatus, getTeamParams} from '../../utils';
 import AlertHeader from '../header';
 import Onboarding from '../onboarding';
@@ -110,7 +110,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
 
     // Check if they have already seen the prompt for the alert stream
     const prompt = await promptsCheck(this.api, {
-      organizationId: organization.id,
+      organization,
       feature: 'alert_stream',
     });
 
@@ -120,8 +120,8 @@ class IncidentsList extends DeprecatedAsyncComponent<
       // Prompt has not been seen, mark the prompt as seen immediately so they
       // don't see it again
       promptsUpdate(this.api, {
+        organization,
         feature: 'alert_stream',
-        organizationId: organization.id,
         status: 'dismissed',
       });
     }
@@ -132,7 +132,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
   get projectsFromIncidents() {
     const {incidentList} = this.state;
 
-    return [...new Set(incidentList?.map(({projects}) => projects).flat())];
+    return [...new Set(incidentList?.flatMap(({projects}) => projects))];
   }
 
   handleChangeSearch = (title: string) => {

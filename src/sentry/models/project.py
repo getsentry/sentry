@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Collection, Iterable, Mapping
 from itertools import chain
-from typing import TYPE_CHECKING, ClassVar, Collection, Iterable, Mapping
+from typing import TYPE_CHECKING, ClassVar
 from uuid import uuid1
 
 import sentry_sdk
@@ -30,6 +31,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
@@ -215,7 +217,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = models.SlugField(null=True)
+    slug = SentrySlugField(null=True)
     # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
@@ -237,6 +239,11 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     first_event = models.DateTimeField(null=True)
 
     class flags(TypedClassBitField):
+        # WARNING: Only add flags to the bottom of this list
+        # bitfield flags are dependent on their order and inserting/removing
+        # flags from the middle of the list will cause bits to shift corrupting
+        # existing data.
+
         # This Project has sent release data
         has_releases: bool
         # This Project has issue alerts targeting
@@ -294,7 +301,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         db_table = "sentry_project"
         unique_together = (("organization", "slug"),)
 
-    __repr__ = sane_repr("team_id", "name", "slug")
+    __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 
     _rename_fields_on_pending_delete = frozenset(["slug"])
 
@@ -461,7 +468,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
             )
 
         # Manually move over organization id's for Monitors
-        monitors = Monitor.objects.filter(organization_id=old_org_id)
+        monitors = Monitor.objects.filter(organization_id=old_org_id, project_id=self.id)
         new_monitors = set(
             Monitor.objects.filter(organization_id=organization.id).values_list("slug", flat=True)
         )

@@ -1,11 +1,12 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 export type StepProps = Pick<
   RouteComponentProps<{}, {}>,
   'router' | 'route' | 'location'
 > & {
   active: boolean;
-  onComplete: () => void;
+  existingRelocationUUID: string;
+  onComplete: (uuid?: string) => void;
   publicKey: string;
   stepIndex: number;
 };

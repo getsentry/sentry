@@ -1,10 +1,12 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {StepProps, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {getInstallConfig as getNodeInstallConfig} from 'sentry/utils/gettingStartedDocs/node';
 
 const getJSConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
@@ -94,7 +96,99 @@ export const getJSMetricsOnboarding = ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-javascript/discussions/9938" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+});
+
+const getJSServerConfigureSnippet = (params: DocsParams) => `
+Sentry.init({
+  dsn: "${params.dsn}",
+  _experiments: {
+    metricsAggregator: true,
+  },
+});`;
+
+export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
+  install: params => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version [codeVersion:7.91.0] of [codeNode:@sentry/node], [codeDeno:@sentry/deno] or [codeBun:@sentry/bun].',
+        {
+          codeVersion: <code />,
+          codeNode: <code />,
+          codeDeno: <code />,
+          codeBun: <code />,
+        }
+      ),
+      configurations: getNodeInstallConfig(params),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'To enable capturing metrics, you first need to add the [codeIntegration:metricsAggregator] experiment to your [codeNamespace:Sentry.init] call in your main process.',
+        {
+          codeIntegration: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getJSServerConfigureSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getJSVerifySnippet(),
+            },
+          ],
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/node/metrics/" />
               ),
             }
           ),
@@ -110,9 +204,9 @@ import sentry_sdk
 sentry_sdk.init(
     ...
     _experiments={
-        # Turns on the metrics module (required)
+        # Turns on the metrics module
         "enable_metrics": True,
-        # Enables sending of code locations for metrics (recommended)
+        # Enables sending of code locations for metrics
         "metric_code_locations": True,
     },
 )`;
@@ -154,9 +248,9 @@ export const getPythonMetricsOnboarding = ({
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
+              label: 'Python',
+              value: 'python',
+              language: 'python',
               code: getPythonConfigureSnippet(),
             },
           ],
@@ -181,9 +275,9 @@ export const getPythonMetricsOnboarding = ({
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
+              label: 'Python',
+              value: 'python',
+              language: 'python',
               code: getPythonVerifySnippet(),
             },
           ],
@@ -198,7 +292,96 @@ export const getPythonMetricsOnboarding = ({
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://develop.sentry.dev/delightful-developer-metrics/sending-metrics-sdk/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/python/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+});
+
+const getDotnetConfigureSnippet = (params: DocsParams) => `
+SentrySdk.Init(options =>
+  {
+    options.Dsn = "${params.dsn}";
+    options.ExperimentalMetrics = new ExperimentalMetricsOptions
+    {
+      EnableCodeLocations = true
+    };
+  });`;
+
+const getDotnetVerifySnippet = () => `
+SentrySdk.Metrics.Increment(
+  "drank-drinks",
+  tags:new Dictionary<string, string> {{"kind", "coffee"}}
+);`;
+
+export const getDotnetMetricsOnboarding = ({
+  packageName,
+}: {
+  packageName: string;
+}): OnboardingConfig => ({
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version [codeVersion:4.0.0-beta.8] of the .NET SDK installed',
+        {
+          codeVersion: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'powershell',
+          code: `dotnet add package ${packageName} -v 4.0.0-beta.8`,
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        'Once the SDK is installed or updated, you can enable the experimental metrics feature and code locations being emitted in your SDK init.'
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getDotnetConfigureSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'csharp',
+          code: getDotnetVerifySnippet(),
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/dotnet/metrics/" />
               ),
             }
           ),

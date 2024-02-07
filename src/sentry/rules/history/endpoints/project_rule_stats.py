@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Mapping, TypedDict
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -13,7 +14,6 @@ from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -40,11 +40,11 @@ class TimeSeriesValueSerializer(Serializer):
 @region_silo_endpoint
 class ProjectRuleStatsIndexEndpoint(RuleEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     @extend_schema(
-        operation_id="Retrieve firing starts for an issue alert rule for a given time range. Results are returned in hourly buckets.",
+        operation_id="Retrieve Firing Starts for an Issue Alert Rule for a Given Time Range.",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
@@ -56,9 +56,11 @@ class ProjectRuleStatsIndexEndpoint(RuleEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=IssueAlertExamples.GENERIC_SUCCESS_RESPONSE,
     )
     def get(self, request: Request, project: Project, rule: Rule) -> Response:
+        """
+        Note that results are returned in hourly buckets.
+        """
         start, end = get_date_range_from_params(request.GET)
         results = fetch_rule_hourly_stats(rule, start, end)
         return Response(serialize(results, request.user, TimeSeriesValueSerializer()))

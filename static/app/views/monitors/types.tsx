@@ -1,4 +1,4 @@
-import {ObjectStatus, Project} from 'sentry/types';
+import type {ObjectStatus, Project} from 'sentry/types';
 
 export enum MonitorType {
   UNKNOWN = 'unknown',
@@ -73,9 +73,11 @@ export type MonitorConfig = CrontabConfig | IntervalConfig;
 
 export interface MonitorEnvironment {
   dateCreated: string;
+  isMuted: boolean;
   lastCheckIn: string | null;
   name: string;
   nextCheckIn: string | null;
+  nextCheckInLatest: string | null;
   status: MonitorStatus;
 }
 

@@ -1,23 +1,23 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-} from 'sentry/components/gridEditable';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {RATE_UNIT_TITLE, RateUnits} from 'sentry/utils/discover/fields';
+import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
-import {MetricsResponse, ModuleName} from 'sentry/views/starfish/types';
+import type {MetricsResponse} from 'sentry/views/starfish/types';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
@@ -44,7 +44,7 @@ const COLUMN_ORDER: Column[] = [
   },
   {
     key: 'spm()',
-    name: `${t('Queries')} ${RATE_UNIT_TITLE[RateUnits.PER_MINUTE]}`,
+    name: `${t('Queries')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
   {

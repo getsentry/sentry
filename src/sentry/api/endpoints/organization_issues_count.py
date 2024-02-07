@@ -4,12 +4,15 @@ from rest_framework.response import Response
 from sentry_sdk import start_span
 
 from sentry import features, search
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventsEndpointBase
-from sentry.api.helpers.group_index import ValidationError, validate_search_filter_permissions
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.helpers.group_index import validate_search_filter_permissions
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import convert_query_values, parse_search_query
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidParams
 from sentry.snuba import discover
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -20,10 +23,11 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 
 @region_silo_endpoint
-class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
+class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
+    owner = ApiOwner.ISSUES
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

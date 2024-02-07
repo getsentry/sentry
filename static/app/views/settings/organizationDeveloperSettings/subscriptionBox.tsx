@@ -5,12 +5,10 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import {
-  EVENT_CHOICES,
-  PERMISSIONS_MAP,
-} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import type {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {PERMISSIONS_MAP} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 
 type Resource = (typeof EVENT_CHOICES)[number];
 
@@ -54,9 +52,7 @@ function SubscriptionBox({
 
   const DESCRIPTIONS: Record<(typeof EVENT_CHOICES)[number], string> = {
     // Swap ignored for archived if the feature is enabled
-    issue: `created, resolved, assigned, ${
-      features.includes('escalating-issues') ? 'archived' : 'ignored'
-    }`,
+    issue: `created, resolved, assigned, archived`,
     error: 'created',
     comment: 'created, edited, deleted',
   };

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import replace
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from datetime import datetime, timedelta, timezone
+from typing import Any
 from uuid import uuid4
 
 from django.db import router, transaction
 from django.db.models.signals import post_save
 from django.forms import ValidationError
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
@@ -182,7 +183,7 @@ def update_incident_status(
         prev_status = incident.status
         kwargs = {"status": status.value, "status_method": status_method.value}
         if status == IncidentStatus.CLOSED:
-            kwargs["date_closed"] = date_closed if date_closed else timezone.now()
+            kwargs["date_closed"] = date_closed if date_closed else django_timezone.now()
         elif status == IncidentStatus.OPEN:
             # If we're moving back out of closed status then unset the closed
             # date
@@ -230,7 +231,7 @@ def set_incident_seen(incident, user=None):
             incident_seen, created = IncidentSeen.objects.create_or_update(
                 incident=incident,
                 user_id=user.id if user else None,
-                values={"last_seen": timezone.now()},
+                values={"last_seen": django_timezone.now()},
             )
             return incident_seen
 
@@ -317,8 +318,8 @@ def delete_comment(activity):
 def build_incident_query_builder(
     incident: Incident,
     entity_subscription: EntitySubscription,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     windowed_stats: bool = False,
 ) -> QueryBuilder:
     snuba_query = incident.alert_rule.snuba_query
@@ -360,7 +361,7 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
     start = incident.date_started - time_window_delta if start is None else start
     end = incident.current_end_date + time_window_delta if end is None else end
     if windowed_stats:
-        now = timezone.now()
+        now = django_timezone.now()
         end = start + timedelta(seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         start = start - timedelta(seconds=time_window * (WINDOWED_STATS_DATA_POINTS / 2))
         if end > now:
@@ -390,10 +391,10 @@ def calculate_incident_time_range(incident, start=None, end=None, windowed_stats
 
 def get_incident_aggregates(
     incident: Incident,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
     windowed_stats: bool = False,
-) -> Dict[str, Union[float, int]]:
+) -> dict[str, float | int]:
     """
     Calculates aggregate stats across the life of an incident, or the provided range.
     """
@@ -474,7 +475,7 @@ def create_alert_rule(
     dataset=Dataset.Events,
     user=None,
     event_types=None,
-    comparison_delta: Optional[int] = None,
+    comparison_delta: int | None = None,
     **kwargs,
 ):
     """
@@ -673,7 +674,7 @@ def update_alert_rule(
     comparison period. In minutes.
     :return: The updated `AlertRule`
     """
-    updated_fields = {"date_modified": timezone.now()}
+    updated_fields = {"date_modified": django_timezone.now()}
     updated_query_fields = {}
     if name:
         updated_fields["name"] = name
@@ -1123,8 +1124,8 @@ def create_alert_rule_trigger_action(
     use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
-    installations: List[RpcSentryAppInstallation] | None = None,
-    integrations: List[RpcIntegration] | None = None,
+    installations: list[RpcSentryAppInstallation] | None = None,
+    integrations: list[RpcIntegration] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
@@ -1177,14 +1178,14 @@ def update_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction,
     type: ActionService | None = None,
     target_type: ActionTarget | None = None,
-    target_identifier: Optional[str] = None,
+    target_identifier: str | None = None,
     integration_id: int | None = None,
     sentry_app_id: int | None = None,
     use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
-    installations: List[RpcSentryAppInstallation] | None = None,
-    integrations: List[RpcIntegration] | None = None,
+    installations: list[RpcSentryAppInstallation] | None = None,
+    integrations: list[RpcIntegration] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
@@ -1392,7 +1393,7 @@ def get_alert_rule_trigger_action_pagerduty_service(
 
 
 def get_alert_rule_trigger_action_opsgenie_team(
-    target_value: Optional[str],
+    target_value: str | None,
     organization: RpcOrganizationIntegration,
     integration_id: int,
     use_async_lookup=False,
@@ -1454,7 +1455,7 @@ def get_actions_for_trigger(trigger):
     return AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
 
 
-def get_available_action_integrations_for_org(organization) -> List[RpcIntegration]:
+def get_available_action_integrations_for_org(organization) -> list[RpcIntegration]:
     """
     Returns a list of integrations that the organization has installed. Integrations are
     filtered by the list of registered providers.
@@ -1474,7 +1475,7 @@ def get_available_action_integrations_for_org(organization) -> List[RpcIntegrati
     )
 
 
-def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, str]]:
+def get_pagerduty_services(organization_id, integration_id) -> list[tuple[int, str]]:
     from sentry.integrations.pagerduty.utils import get_services
 
     org_int = integration_service.get_organization_integration(
@@ -1484,7 +1485,7 @@ def get_pagerduty_services(organization_id, integration_id) -> List[Tuple[int, s
     return [(s["id"], s["service_name"]) for s in services]
 
 
-def get_opsgenie_teams(organization_id, integration_id) -> list[Tuple[str, str]]:
+def get_opsgenie_teams(organization_id, integration_id) -> list[tuple[str, str]]:
     org_int = integration_service.get_organization_integration(
         organization_id=organization_id, integration_id=integration_id
     )

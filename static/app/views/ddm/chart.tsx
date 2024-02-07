@@ -1,210 +1,336 @@
-import {useEffect, useRef} from 'react';
-import {Theme} from '@emotion/react';
+import {forwardRef, useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {useHover} from '@react-aria/interactions';
+import * as Sentry from '@sentry/react';
+import Color from 'color';
+import * as echarts from 'echarts/core';
+import {CanvasRenderer} from 'echarts/renderers';
 
-import {AreaChart} from 'sentry/components/charts/areaChart';
-import {BarChart} from 'sentry/components/charts/barChart';
-import ChartZoom from 'sentry/components/charts/chartZoom';
-import Legend from 'sentry/components/charts/components/legend';
-import {LineChart} from 'sentry/components/charts/lineChart';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
-import {t} from 'sentry/locale';
-import {DateString, PageFilters} from 'sentry/types';
-import {ReactEchartsRef} from 'sentry/types/echarts';
-import {formatMetricsUsingUnitAndOp, MetricDisplayType} from 'sentry/utils/metrics';
-import theme from 'sentry/utils/theme';
+import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
+import {transformToBarSeries} from 'sentry/components/charts/barChart';
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import BaseChart from 'sentry/components/charts/baseChart';
+import {transformToLineSeries} from 'sentry/components/charts/lineChart';
+import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
+import mergeRefs from 'sentry/utils/mergeRefs';
+import {isCumulativeOp} from 'sentry/utils/metrics';
+import {formatMetricsUsingUnitAndOp} from 'sentry/utils/metrics/formatters';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import useRouter from 'sentry/utils/useRouter';
-import {DDM_CHART_GROUP} from 'sentry/views/ddm/constants';
+import type {FocusAreaProps} from 'sentry/views/ddm/context';
+import {useFocusArea} from 'sentry/views/ddm/focusArea';
 
 import {getFormatter} from '../../components/charts/components/tooltip';
+import {isChartHovered} from '../../components/charts/utils';
 
-import {Series} from './widget';
+import {useChartSamples} from './useChartSamples';
+import type {SamplesProps, ScatterSeries as ScatterSeriesType, Series} from './widget';
 
 type ChartProps = {
   displayType: MetricDisplayType;
-  environments: PageFilters['environments'];
-  projects: PageFilters['projects'];
   series: Series[];
-  end?: string;
-  onZoom?: (start: DateString, end: DateString) => void;
+  widgetIndex: number;
+  focusArea?: FocusAreaProps;
+  group?: string;
+  height?: number;
   operation?: string;
-  period?: string;
-  start?: string;
-  utc?: boolean;
+  scatter?: SamplesProps;
 };
 
-export function MetricChart({
+// We need to enable canvas renderer for echarts before we use it here.
+// Once we use it in more places, this should probably move to a more global place
+// But for now we keep it here to not invluence the bundle size of the main chunks.
+echarts.use(CanvasRenderer);
+
+export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
+  (
+    {series, displayType, operation, widgetIndex, focusArea, height, scatter, group},
+    forwardedRef
+  ) => {
+    const router = useRouter();
+    const chartRef = useRef<ReactEchartsRef>(null);
+
+    const handleZoom = useCallback(
+      (range: DateTimeObject) => {
+        Sentry.metrics.increment('ddm.enhance.zoom');
+        updateDateTime(range, router, {save: true});
+      },
+      [router]
+    );
+
+    const focusAreaBrush = useFocusArea({
+      ...focusArea,
+      chartRef,
+      opts: {
+        widgetIndex,
+        isDisabled: !focusArea?.onAdd || !handleZoom,
+        useFullYAxis: isCumulativeOp(operation),
+      },
+      onZoom: handleZoom,
+    });
+
+    useEffect(() => {
+      if (!group) {
+        return;
+      }
+      const echartsInstance = chartRef?.current?.getEchartsInstance();
+      if (echartsInstance && !echartsInstance.group) {
+        echartsInstance.group = group;
+      }
+    });
+
+    // TODO(ddm): This assumes that all series have the same bucket size
+    const bucketSize = series[0]?.data[1]?.name - series[0]?.data[0]?.name;
+    const isSubMinuteBucket = bucketSize < 60_000;
+
+    const unit = series[0]?.unit;
+    const fogOfWarBuckets = getWidthFactor(bucketSize);
+
+    const seriesToShow = useMemo(
+      () =>
+        series
+          .filter(s => !s.hidden)
+          // Split series in two parts, one for the main chart and one for the fog of war
+          // The order is important as the tooltip will show the first series first (for overlaps)
+          .flatMap(s => [
+            {
+              ...s,
+              silent: true,
+              data: s.data.slice(0, -fogOfWarBuckets),
+            },
+            displayType === MetricDisplayType.BAR
+              ? createFogOfWarBarSeries(s, fogOfWarBuckets)
+              : displayType === MetricDisplayType.LINE
+                ? createFogOfWarLineSeries(s, fogOfWarBuckets)
+                : createFogOfWarAreaSeries(s, fogOfWarBuckets),
+          ]),
+      [series, fogOfWarBuckets, displayType]
+    );
+
+    const valueFormatter = useCallback(
+      (value: number) => {
+        return formatMetricsUsingUnitAndOp(value, unit, operation);
+      },
+      [unit, operation]
+    );
+
+    const samples = useChartSamples({
+      chartRef,
+      correlations: scatter?.data,
+      onClick: scatter?.onClick,
+      highlightedSampleId: scatter?.higlightedId,
+      operation,
+      timeseries: series,
+      valueFormatter,
+    });
+
+    const chartProps = useMemo(() => {
+      const timeseriesFormatters = {
+        valueFormatter,
+        isGroupedByDate: true,
+        bucketSize,
+        showTimeInTooltip: true,
+        addSecondsToTimeFormat: isSubMinuteBucket,
+        limit: 10,
+        filter: (_, seriesParam) => {
+          return seriesParam?.axisId === 'xAxis';
+        },
+      };
+
+      const heightOptions = height ? {height} : {autoHeightResize: true};
+
+      return {
+        ...heightOptions,
+        ...focusAreaBrush.options,
+        forwardedRef: mergeRefs([forwardedRef, chartRef]),
+        series: seriesToShow,
+        devicePixelRatio: 2,
+        renderer: 'canvas' as const,
+        isGroupedByDate: true,
+        colors: seriesToShow.map(s => s.color),
+        grid: {top: 5, bottom: 0, left: 0, right: 0},
+        onClick: samples.handleClick,
+        tooltip: {
+          formatter: (params, asyncTicket) => {
+            if (focusAreaBrush.isDrawingRef.current) {
+              return '';
+            }
+            if (!isChartHovered(chartRef?.current)) {
+              return '';
+            }
+            if (params.seriesType === 'scatter') {
+              return getFormatter(samples.formatters)(params, asyncTicket);
+            }
+
+            // The mechanism by which we add the fog of war series to the chart, duplicates the series in the chart data
+            // so we need to deduplicate the series before showing the tooltip
+            // this assumes that the first series is the main series and the second is the fog of war series
+            if (Array.isArray(params)) {
+              const uniqueSeries = new Set<string>();
+              const deDupedParams = params.filter(param => {
+                if (uniqueSeries.has(param.seriesName)) {
+                  return false;
+                }
+                uniqueSeries.add(param.seriesName);
+                return true;
+              });
+              return getFormatter(timeseriesFormatters)(deDupedParams, asyncTicket);
+            }
+            return getFormatter(timeseriesFormatters)(params, asyncTicket);
+          },
+        },
+        yAxes: [
+          {
+            // used to find and convert datapoint to pixel position
+            id: 'yAxis',
+            axisLabel: {
+              formatter: (value: number) => {
+                return valueFormatter(value);
+              },
+            },
+          },
+          samples.yAxis,
+        ],
+        xAxes: [
+          {
+            // used to find and convert datapoint to pixel position
+            id: 'xAxis',
+            axisPointer: {
+              snap: true,
+            },
+          },
+          samples.xAxis,
+        ],
+      };
+    }, [
+      bucketSize,
+      focusAreaBrush.options,
+      focusAreaBrush.isDrawingRef,
+      forwardedRef,
+      isSubMinuteBucket,
+      seriesToShow,
+      height,
+      samples.handleClick,
+      samples.xAxis,
+      samples.yAxis,
+      samples.formatters,
+      valueFormatter,
+    ]);
+
+    return (
+      <ChartWrapper>
+        {focusAreaBrush.overlay}
+        <CombinedChart
+          {...chartProps}
+          displayType={displayType}
+          scatterSeries={samples.series}
+        />
+      </ChartWrapper>
+    );
+  }
+);
+
+interface CombinedChartProps extends BaseChartProps {
+  displayType: MetricDisplayType;
+  series: Series[];
+  scatterSeries?: ScatterSeriesType[];
+}
+
+function CombinedChart({
+  displayType,
+  series,
+  scatterSeries = [],
+  ...chartProps
+}: CombinedChartProps) {
+  const combinedSeries = useMemo(() => {
+    if (displayType === MetricDisplayType.LINE) {
+      return [
+        ...transformToLineSeries({series}),
+        ...transformToScatterSeries({series: scatterSeries, displayType}),
+      ];
+    }
+
+    if (displayType === MetricDisplayType.BAR) {
+      return [
+        ...transformToBarSeries({series, stacked: true, animation: false}),
+        ...transformToScatterSeries({series: scatterSeries, displayType}),
+      ];
+    }
+
+    if (displayType === MetricDisplayType.AREA) {
+      return [
+        ...transformToAreaSeries({series, stacked: true, colors: chartProps.colors}),
+        ...transformToScatterSeries({series: scatterSeries, displayType}),
+      ];
+    }
+
+    return [];
+  }, [displayType, scatterSeries, series, chartProps.colors]);
+
+  return <BaseChart {...chartProps} series={combinedSeries} />;
+}
+
+function transformToScatterSeries({
   series,
   displayType,
-  start,
-  end,
-  period,
-  utc,
-  operation,
-  projects,
-  environments,
-  onZoom,
-}: ChartProps) {
-  const chartRef = useRef<ReactEchartsRef>(null);
-  const router = useRouter();
-
-  const {hoverProps, isHovered} = useHover({
-    isDisabled: false,
-  });
-
-  // TODO(ddm): Try to do this in a more elegant way
-  useEffect(() => {
-    const echartsInstance = chartRef?.current?.getEchartsInstance();
-    if (echartsInstance && !echartsInstance.group) {
-      echartsInstance.group = DDM_CHART_GROUP;
-    }
-  });
-
-  const unit = series[0]?.unit;
-  const seriesToShow = series.filter(s => !s.hidden);
-
-  // TODO(ddm): This assumes that all series have the same bucket size
-  const bucketSize = seriesToShow[0]?.data[1]?.name - seriesToShow[0]?.data[0]?.name;
-  const isSubMinuteBucket = bucketSize < 60_000;
-  const seriesLength = seriesToShow[0]?.data.length;
-
-  const formatters = {
-    valueFormatter: (value: number) =>
-      formatMetricsUsingUnitAndOp(value, unit, operation),
-    isGroupedByDate: true,
-    bucketSize,
-    showTimeInTooltip: true,
-    addSecondsToTimeFormat: isSubMinuteBucket,
-  };
-  const displayFogOfWar = operation && ['sum', 'count'].includes(operation);
-
-  const chartProps = {
-    forwardedRef: chartRef,
-    isGroupedByDate: true,
-    height: 300,
-    colors: seriesToShow.map(s => s.color),
-    grid: {top: 20, bottom: 20, left: 15, right: 25},
-    tooltip: {
-      formatter: (params, asyncTicket) => {
-        const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
-          element => {
-            return element.classList.contains('echarts-for-react');
-          }
-        );
-
-        if (hoveredEchartElement === chartRef?.current?.ele) {
-          return getFormatter(formatters)(params, asyncTicket);
-        }
-        return '';
-      },
-    },
-
-    yAxis: {
-      axisLabel: {
-        formatter: (value: number) => {
-          return formatMetricsUsingUnitAndOp(value, unit, operation);
-        },
-      },
-    },
-  };
-
-  return (
-    <ChartWrapper {...hoverProps}>
-      <ChartZoom
-        router={router}
-        period={period}
-        start={start}
-        end={end}
-        utc={utc}
-        onZoom={zoomPeriod => {
-          onZoom?.(zoomPeriod.start, zoomPeriod.end);
-        }}
-      >
-        {zoomRenderProps => (
-          <ReleaseSeries
-            utc={utc}
-            period={period}
-            start={zoomRenderProps.start!}
-            end={zoomRenderProps.end!}
-            projects={projects}
-            environments={environments}
-            preserveQueryParams
-          >
-            {({releaseSeries}) => {
-              const releaseSeriesData = releaseSeries?.[0]?.markLine?.data ?? [];
-
-              const selected =
-                releaseSeriesData?.length >= RELEASE_LINES_THRESHOLD
-                  ? {[t('Releases')]: false}
-                  : {};
-
-              const legend = releaseSeriesData?.length
-                ? Legend({
-                    itemGap: 20,
-                    top: 0,
-                    right: 20,
-                    data: releaseSeries.map(s => s.seriesName),
-                    theme: theme as Theme,
-                    selected,
-                  })
-                : undefined;
-
-              // Zoom render props are slowing down the chart rendering,
-              // so we only pass them when the chart is hovered over
-              const zoomProps = isHovered ? zoomRenderProps : {};
-
-              const allProps = {
-                ...chartProps,
-                ...zoomProps,
-                series: [...seriesToShow, ...releaseSeries],
-                legend,
-              };
-
-              return displayType === MetricDisplayType.LINE ? (
-                <LineChart {...allProps} />
-              ) : displayType === MetricDisplayType.AREA ? (
-                <AreaChart {...allProps} />
-              ) : (
-                <BarChart stacked animation={false} {...allProps} />
-              );
-            }}
-          </ReleaseSeries>
-        )}
-      </ChartZoom>
-      {displayFogOfWar && (
-        <FogOfWar bucketSize={bucketSize} seriesLength={seriesLength} />
-      )}
-    </ChartWrapper>
-  );
-}
-
-function FogOfWar({
-  bucketSize,
-  seriesLength,
 }: {
-  bucketSize?: number;
-  seriesLength?: number;
+  displayType: MetricDisplayType;
+  series: Series[];
 }) {
-  if (!bucketSize || !seriesLength) {
-    return null;
-  }
+  return series.map(({seriesName, data: seriesData, ...options}) => {
+    if (displayType === MetricDisplayType.BAR) {
+      return ScatterSeries({
+        ...options,
+        name: seriesName,
+        data: seriesData?.map(({value, name}) => ({value: [name, value]})),
+      });
+    }
 
-  const widthFactor = getWidthFactor(bucketSize);
-  const fogOfWarWidth = widthFactor * bucketSize + 30_000;
-
-  const seriesWidth = bucketSize * seriesLength;
-
-  // If either of these are undefiend, NaN or 0 the result will be invalid
-  if (!fogOfWarWidth || !seriesWidth) {
-    return null;
-  }
-
-  const width = (fogOfWarWidth / seriesWidth) * 100;
-
-  return <FogOfWarOverlay width={width ?? 0} />;
+    return ScatterSeries({
+      ...options,
+      name: seriesName,
+      data: seriesData?.map(({value, name}) => [name, value]),
+      animation: false,
+    });
+  });
 }
+
+const createFogOfWarBarSeries = (series: Series, fogBucketCnt = 0) => ({
+  ...series,
+  silent: true,
+  data: series.data.map((data, index) => ({
+    ...data,
+    // W need to set a value for the non-fog of war buckets so that the stacking still works in echarts
+    value: index < series.data.length - fogBucketCnt ? 0 : data.value,
+  })),
+  itemStyle: {
+    opacity: 0.5,
+  },
+});
+
+const createFogOfWarLineSeries = (series: Series, fogBucketCnt = 0) => ({
+  ...series,
+  silent: true,
+  // We include the last non-fog of war bucket so that the line is connected
+  data: series.data.slice(-fogBucketCnt - 1),
+  lineStyle: {
+    type: 'dotted',
+  },
+});
+
+const createFogOfWarAreaSeries = (series: Series, fogBucketCnt = 0) => ({
+  ...series,
+  silent: true,
+  stack: 'fogOfWar',
+  // We include the last non-fog of war bucket so that the line is connected
+  data: series.data.slice(-fogBucketCnt - 1),
+  lineStyle: {
+    type: 'dotted',
+    color: Color(series.color).lighten(0.3).string(),
+  },
+});
 
 function getWidthFactor(bucketSize: number) {
   // In general, fog of war should cover the last bucket
@@ -224,20 +350,5 @@ function getWidthFactor(bucketSize: number) {
 
 const ChartWrapper = styled('div')`
   position: relative;
-  height: 300px;
-`;
-
-const FogOfWarOverlay = styled('div')<{width?: number}>`
-  height: 244px;
-  width: ${p => p.width}%;
-  position: absolute;
-  right: 21px;
-  top: 18px;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    ${p => p.theme.background}00 0%,
-    ${p => p.theme.background}FF 70%,
-    ${p => p.theme.background}FF 100%
-  );
+  height: 100%;
 `;

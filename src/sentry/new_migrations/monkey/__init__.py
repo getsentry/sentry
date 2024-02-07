@@ -4,17 +4,20 @@ from django.db import models
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.monkey.fields import deconstruct
 
-LAST_VERIFIED_DJANGO_VERSION = (3, 2)
+LAST_VERIFIED_DJANGO_VERSION = (5, 0)
 CHECK_MESSAGE = """Looks like you're trying to upgrade Django! Since we monkeypatch
-the Django migration library in several places, please verify that we have the latest
-code, and that the monkeypatching still works as expected. Currently the main things
-to check are:
+Django in several places, please verify that we have the latest code, and that the
+monkeypatching still works as expected. Currently the main things to check are:
  - `django.db.migrations.executor.MigrationExecutor`. The `is_dangerous` flag should
    continue to work here when we set `MIGRATION_SKIP_DANGEROUS=1` as an environment
    variable. Confirm that the structure of the class hasn't drastically changed.
-- `django.db.migrations.writer.MIGRATION_TEMPLATE`. Verify that the template hasn't
+ - `django.db.migrations.writer.MIGRATION_TEMPLATE`. Verify that the template hasn't
   significantly changed. Details on what we've changed are in a comment on
   `sentry.migrations.monkey.writer.SENTRY_MIGRATION_TEMPLATE`
+ - `sentry.db.models.manager.base_query_set.BaseQuerySet.update_with_returning`. This
+    is copied and modified from `Queryset.update()` to add `RETURNING <fields>` to
+    the update query. Verify that the `update` code hasn't significantly changed,
+    and if it has update as needed.
 
 When you're happy that these changes are good to go, update
 `LAST_VERIFIED_DJANGO_VERSION` to the version of Django you're upgrading to. If the

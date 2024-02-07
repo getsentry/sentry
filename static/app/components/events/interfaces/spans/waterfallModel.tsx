@@ -3,13 +3,15 @@ import pick from 'lodash/pick';
 import {action, computed, makeObservable, observable} from 'mobx';
 
 import {Client} from 'sentry/api';
-import {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
-import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
+import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
-import {ActiveOperationFilter, noFilter, toggleAllFilters, toggleFilter} from './filter';
+import type {ActiveOperationFilter} from './filter';
+import {noFilter, toggleAllFilters, toggleFilter} from './filter';
 import SpanTreeModel from './spanTreeModel';
-import {
+import type {
   EnhancedProcessedSpanType,
   FilterSpans,
   IndexedFusedSpan,
@@ -37,21 +39,25 @@ class WaterfallModel {
   hiddenSpanSubTrees: Set<string>;
   traceBounds: Array<TraceBound>;
   focusedSpanIds: Set<string> | undefined = undefined;
+  traceInfo: TraceInfo | undefined = undefined;
 
   constructor(
     event: Readonly<EventTransaction | AggregateEventTransaction>,
     affectedSpanIds?: string[],
     focusedSpanIds?: string[],
-    hiddenSpanSubTrees?: Set<string>
+    hiddenSpanSubTrees?: Set<string>,
+    traceInfo?: TraceInfo
   ) {
     this.event = event;
+    this.traceInfo = traceInfo;
     this.parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(this.parsedTrace);
     this.rootSpan = new SpanTreeModel(
       rootSpan,
       this.parsedTrace.childSpans,
       this.api,
-      true
+      true,
+      traceInfo
     );
 
     // Track the trace bounds of the current transaction and the trace bounds of
@@ -286,17 +292,15 @@ class WaterfallModel {
   generateBounds = ({
     viewStart,
     viewEnd,
-    traceInfo,
   }: {
     // in [0, 1]
     viewEnd: number;
     viewStart: number; // in [0, 1]
-    traceInfo?: TraceInfo;
   }) => {
-    const bounds = traceInfo
+    const bounds = this.traceInfo
       ? {
-          traceEndTimestamp: traceInfo.endTimestamp,
-          traceStartTimestamp: traceInfo.startTimestamp,
+          traceEndTimestamp: this.traceInfo.endTimestamp,
+          traceStartTimestamp: this.traceInfo.startTimestamp,
         }
       : this.getTraceBounds();
 
@@ -310,17 +314,14 @@ class WaterfallModel {
   getWaterfall = ({
     viewStart,
     viewEnd,
-    traceInfo,
   }: {
     // in [0, 1]
     viewEnd: number;
     viewStart: number; // in [0, 1]
-    traceInfo?: TraceInfo;
   }) => {
     const generateBounds = this.generateBounds({
       viewStart,
       viewEnd,
-      traceInfo,
     });
 
     return this.rootSpan.getSpansList({

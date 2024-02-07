@@ -1,4 +1,4 @@
-import {ReactChild} from 'react';
+import type {ReactChild} from 'react';
 
 import {EvidencePreview} from 'sentry/components/groupPreviewTooltip/evidencePreview';
 import {IssueCategory} from 'sentry/types';

@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Literal, TypedDict, Union
+from typing import Literal, NotRequired, TypedDict, Union
 
 from django.utils.functional import cached_property
 from django.utils.text import slugify
-from typing_extensions import NotRequired
 
 from sentry.monitors.constants import MAX_SLUG_LENGTH
 
@@ -35,7 +34,7 @@ class CheckinPayload(TypedDict):
     status: str
     environment: NotRequired[str]
     duration: NotRequired[int]
-    monitor_config: NotRequired[Dict]
+    monitor_config: NotRequired[dict]
     contexts: NotRequired[CheckinContexts]
 
 
@@ -70,6 +69,17 @@ class CheckinItem:
     @cached_property
     def valid_monitor_slug(self):
         return slugify(self.payload["monitor_slug"])[:MAX_SLUG_LENGTH].strip("-")
+
+    @property
+    def processing_key(self):
+        """
+        This key is used to uniquely identify the check-in group this check-in
+        belongs to. Check-ins grouped together will never be processed in
+        parallel with other check-ins belonging to the same group
+        """
+        project_id = self.message["project_id"]
+        env = self.payload.get("environment")
+        return f"{project_id}:{self.valid_monitor_slug}:{env}"
 
 
 IntervalUnit = Literal["year", "month", "week", "day", "hour", "minute"]

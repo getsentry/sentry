@@ -9,11 +9,12 @@ import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useOrganization from 'sentry/utils/useOrganization';
-import withOrganizations from 'sentry/utils/withOrganizations';
 
 import Divider from './divider.styled';
 
@@ -73,13 +74,14 @@ function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boo
 
 type Props = {
   canCreateOrganization: boolean;
-  organizations: OrganizationSummary[];
 };
 
 /**
  * Switch Organization Menu Label + Sub Menu
  */
-function SwitchOrganization({organizations, canCreateOrganization}: Props) {
+function SwitchOrganization({canCreateOrganization}: Props) {
+  const {organizations} = useLegacyStore(OrganizationsStore);
+
   return (
     <DeprecatedDropdownMenu isNestedDropdown>
       {({isOpen, getMenuProps, getActorProps}) => (
@@ -131,10 +133,7 @@ function SwitchOrganization({organizations, canCreateOrganization}: Props) {
   );
 }
 
-const SwitchOrganizationContainer = withOrganizations(SwitchOrganization);
-
-export {SwitchOrganization};
-export default SwitchOrganizationContainer;
+export default SwitchOrganization;
 
 const StyledIconAdd = styled(IconAdd)`
   margin-right: ${space(1)};

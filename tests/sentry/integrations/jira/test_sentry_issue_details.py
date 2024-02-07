@@ -9,9 +9,10 @@ from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.utils import AtlassianConnectValidationError
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
+from sentry.models.integrations import Integration
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
 
@@ -22,6 +23,7 @@ REFRESH_REQUIRED = b"This page has expired, please refresh to view the Sentry is
 CLICK_TO_FINISH = b"Click to Finish Installation"
 
 
+@region_silo_test
 class JiraIssueHookTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -45,7 +47,7 @@ class JiraIssueHookTest(APITestCase):
         self.issue_key = "APP-123"
         self.path = absolute_uri(f"extensions/jira/issue/{self.issue_key}/") + "?xdm_e=base_url"
 
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="jira",
             name="Example Jira",
             metadata={
@@ -53,7 +55,8 @@ class JiraIssueHookTest(APITestCase):
                 "shared_secret": "a-super-secret-key-from-atlassian",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
+        with assume_test_silo_mode_of(Integration):
+            self.integration.add_organization(self.organization, self.user)
 
         self.external_issue = ExternalIssue.objects.create(
             organization_id=group.organization.id,

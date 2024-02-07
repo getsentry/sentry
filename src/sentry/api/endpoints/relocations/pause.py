@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class RelocationPauseEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
@@ -103,7 +103,6 @@ class RelocationPauseEndpoint(Endpoint):
                     {"detail": ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP.substitute(step=step.name)},
                     status=400,
                 )
-            pass
         else:
             try:
                 updated = Relocation.objects.filter(

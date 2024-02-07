@@ -1,16 +1,16 @@
 import selectEvent from 'react-select-event';
-import {NotificationDefaults} from 'sentry-fixture/notificationDefaults';
-import {Organization} from 'sentry-fixture/organization';
+import {NotificationDefaultsFixture} from 'sentry-fixture/notificationDefaults';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization as TOrganization} from 'sentry/types';
-import {OrganizationIntegration} from 'sentry/types/integrations';
+import type {Organization as TOrganization} from 'sentry/types';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 
-import {NotificationOptionsObject, NotificationProvidersObject} from './constants';
+import type {NotificationOptionsObject, NotificationProvidersObject} from './constants';
 import NotificationSettingsByType from './notificationSettingsByType';
-import {Identity} from './types';
+import type {Identity} from './types';
 
 function renderMockRequests({
   notificationOptions = [],
@@ -75,7 +75,7 @@ function renderComponent({
   organizationIntegrations?: OrganizationIntegration[];
   organizations?: TOrganization[];
 }) {
-  const org = Organization();
+  const org = OrganizationFixture();
   renderMockRequests({
     notificationOptions,
     notificationProviders,
@@ -101,7 +101,7 @@ describe('NotificationSettingsByType', function () {
     MockApiClient.addMockResponse({
       url: '/notification-defaults/',
       method: 'GET',
-      body: NotificationDefaults(),
+      body: NotificationDefaultsFixture(),
     });
   });
 
@@ -124,8 +124,8 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('should default to the subdomain org', async function () {
-    const organization = Organization();
-    const otherOrganization = Organization({
+    const organization = OrganizationFixture();
+    const otherOrganization = OrganizationFixture({
       id: '2',
       slug: 'other-org',
       name: 'other org',

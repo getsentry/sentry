@@ -1,34 +1,36 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import * as qs from 'query-string';
 
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {
-  TableData,
-  TableDataRow,
-  useDiscoverQuery,
-} from 'sentry/utils/discover/discoverQuery';
-import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
+import type {Project} from 'sentry/types';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
-import {TableColumn} from 'sentry/views/discover/table/types';
+import type {TableColumn} from 'sentry/views/discover/table/types';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {TOP_SCREENS} from 'sentry/views/starfish/views/screens';
-
-const MAX_TABLE_RELEASE_CHARS = 15;
 
 type Props = {
   data: TableData | undefined;
@@ -36,49 +38,39 @@ type Props = {
   isLoading: boolean;
   pageLinks: string | undefined;
   onCursor?: CursorHandler;
+  project?: Project | null;
 };
 
-export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: Props) {
+export function ScreensTable({
+  data,
+  eventView,
+  isLoading,
+  pageLinks,
+  onCursor,
+  project,
+}: Props) {
   const location = useLocation();
-  const {selection} = usePageFilters();
-  const {projects} = useProjects();
   const organization = useOrganization();
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
-  const truncatedPrimary = formatVersionAndCenterTruncate(
-    primaryRelease ?? '',
-    MAX_TABLE_RELEASE_CHARS
-  );
-  const truncatedSecondary = formatVersionAndCenterTruncate(
-    secondaryRelease ?? '',
-    MAX_TABLE_RELEASE_CHARS
-  );
-
-  const project = useMemo(() => {
-    if (selection.projects.length !== 1) {
-      return null;
-    }
-    return projects.find(p => p.id === String(selection.projects));
-  }, [projects, selection.projects]);
-
   const eventViewColumns = eventView.getColumns();
 
   const columnNameMap = {
     transaction: t('Screen'),
     [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
       'TTID (%s)',
-      truncatedPrimary
+      PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
       'TTID (%s)',
-      truncatedSecondary
+      SECONDARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
       'TTFD (%s)',
-      truncatedPrimary
+      PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
       'TTFD (%s)',
-      truncatedSecondary
+      SECONDARY_RELEASE_ALIAS
     ),
     'count()': t('Total Count'),
   };

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import MutableMapping
 from datetime import timezone
-from typing import Any, ClassVar, MutableMapping
+from typing import Any, ClassVar
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status
@@ -189,9 +190,9 @@ class IntegrationRepositoryProvider:
 
         try:
             result, repo = self.create_repository(repo_config=config, organization=organization)
-        except RepoExistsError as e:
+        except RepoExistsError:
             metrics.incr("sentry.integration_repo_provider.repo_exists")
-            raise (e)
+            raise
         except Exception as e:
             return self.handle_api_error(e)
 

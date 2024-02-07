@@ -1,18 +1,32 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import cronstrue from 'cronstrue';
-import {Location} from 'history';
 
 import {t, tn} from 'sentry/locale';
-import {Organization, SelectValue} from 'sentry/types';
+import type {Organization, SelectValue} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
-import {CheckInStatus, MonitorConfig, ScheduleType} from 'sentry/views/monitors/types';
+import type {MonitorConfig} from 'sentry/views/monitors/types';
+import {CheckInStatus, ScheduleType} from 'sentry/views/monitors/types';
 
-export function makeMonitorListQueryKey(organization: Organization, location: Location) {
-  const {query, project, environment, cursor} = location.query;
+export function makeMonitorListQueryKey(
+  organization: Organization,
+  params: Record<string, any>
+) {
+  const {query, project, environment, cursor} = params;
 
   return [
     `/organizations/${organization.slug}/monitors/`,
     {query: {cursor, query, project, environment, includeNew: true, per_page: 20}},
+  ] as const;
+}
+
+export function makeMonitorDetailsQueryKey(
+  organization: Organization,
+  monitorSlug: string,
+  query?: Record<string, any>
+) {
+  return [
+    `/organizations/${organization.slug}/monitors/${monitorSlug}/`,
+    {query},
   ] as const;
 }
 
@@ -40,27 +54,33 @@ export function scheduleAsText(config: MonitorConfig) {
     return parsedSchedule ?? t('Unknown schedule');
   }
 
-  // Interval format is simpler
-  const [value, timeUnit] = config.schedule;
+  if (config.schedule_type === ScheduleType.INTERVAL) {
+    // Interval format is simpler
+    const [value, timeUnit] = config.schedule;
 
-  if (timeUnit === 'minute') {
-    return tn('Every minute', 'Every %s minutes', value);
-  }
+    if (timeUnit === 'minute') {
+      return tn('Every minute', 'Every %s minutes', value);
+    }
 
-  if (timeUnit === 'hour') {
-    return tn('Every hour', 'Every %s hours', value);
-  }
+    if (timeUnit === 'hour') {
+      return tn('Every hour', 'Every %s hours', value);
+    }
 
-  if (timeUnit === 'day') {
-    return tn('Every day', 'Every %s days', value);
-  }
+    if (timeUnit === 'day') {
+      return tn('Every day', 'Every %s days', value);
+    }
 
-  if (timeUnit === 'week') {
-    return tn('Every week', 'Every %s weeks', value);
-  }
+    if (timeUnit === 'week') {
+      return tn('Every week', 'Every %s weeks', value);
+    }
 
-  if (timeUnit === 'month') {
-    return tn('Every month', 'Every %s months', value);
+    if (timeUnit === 'month') {
+      return tn('Every month', 'Every %s months', value);
+    }
+
+    if (timeUnit === 'year') {
+      return tn('Every year', 'Every %s years', value);
+    }
   }
 
   return t('Unknown schedule');

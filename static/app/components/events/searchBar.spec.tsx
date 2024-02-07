@@ -1,12 +1,12 @@
-import {Organization} from 'sentry-fixture/organization';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SearchBar from 'sentry/components/events/searchBar';
 import TagStore from 'sentry/stores/tagStore';
-import {Organization as TOrganization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types';
 
 const selectNthAutocompleteItem = async index => {
   await userEvent.click(screen.getByTestId('smart-search-input'), {delay: null});
@@ -35,7 +35,7 @@ describe('Events > SearchBar', function () {
   let props: React.ComponentProps<typeof SearchBar>;
 
   beforeEach(function () {
-    organization = Organization();
+    organization = OrganizationFixture();
     props = {
       organization,
       projectIds: [1, 2],

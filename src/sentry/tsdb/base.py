@@ -1,5 +1,4 @@
-from collections.abc import Callable
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 
 from django.conf import settings
@@ -184,7 +183,7 @@ class BaseTSDB(Service):
     def get_rollups(self):
         return self.rollups
 
-    def normalize_to_epoch(self, timestamp, seconds):
+    def normalize_to_epoch(self, timestamp: datetime, seconds: int) -> int:
         """
         Given a ``timestamp`` (datetime object) normalize to an epoch timestamp.
 
@@ -213,7 +212,7 @@ class BaseTSDB(Service):
         """
         return int(epoch / seconds)
 
-    def get_optimal_rollup(self, start_timestamp, end_timestamp):
+    def get_optimal_rollup(self, start_timestamp, end_timestamp) -> int:
         """
         Identify the lowest granularity rollup available within the given time
         range.
@@ -238,7 +237,9 @@ class BaseTSDB(Service):
         # lowest resolution interval.
         return list(self.rollups)[-1]
 
-    def get_optimal_rollup_series(self, start, end=None, rollup=None):
+    def get_optimal_rollup_series(
+        self, start, end: datetime | None = None, rollup: int | None = None
+    ) -> tuple[int, list[int]]:
         if end is None:
             end = timezone.now()
 
@@ -261,9 +262,11 @@ class BaseTSDB(Service):
         rollups = {}
         for rollup, samples in self.rollups.items():
             _, series = self.get_optimal_rollup_series(
-                start
-                if start is not None
-                else to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp)),
+                (
+                    start
+                    if start is not None
+                    else to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp))
+                ),
                 end,
                 rollup=rollup,
             )
@@ -271,7 +274,7 @@ class BaseTSDB(Service):
         return rollups
 
     def make_series(self, default, start, end=None, rollup=None):
-        f = default if isinstance(default, Callable) else lambda timestamp: default
+        f = default if callable(default) else lambda timestamp: default
         return [
             (timestamp, f(timestamp))
             for timestamp in self.get_optimal_rollup_series(start, end, rollup)[1]
@@ -415,11 +418,11 @@ class BaseTSDB(Service):
         using the ``rollup`` time (in seconds).
         """
         normalize_ts_to_epoch = self.normalize_ts_to_epoch
-        result = {}
+        result: dict[int, list[list[float]]] = {}
         for key, points in values.items():
             result[key] = []
             last_new_ts = None
-            for (ts, count) in points:
+            for ts, count in points:
                 new_ts = normalize_ts_to_epoch(ts, rollup)
                 if new_ts == last_new_ts:
                     result[key][-1][1] += count

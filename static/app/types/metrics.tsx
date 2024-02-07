@@ -1,4 +1,4 @@
-import {DateString} from 'sentry/types/core';
+import type {DateString} from 'sentry/types/core';
 
 export type MetricsOperation =
   | 'sum'
@@ -26,8 +26,9 @@ export type ParsedMRI = {
 
 export type MetricsApiRequestMetric = {
   field: string;
-  query: string;
   groupBy?: string[];
+  orderBy?: string;
+  query?: string;
 };
 
 export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
@@ -36,16 +37,14 @@ export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
   environment?: string[];
   includeSeries?: number;
   includeTotals?: number;
-  orderBy?: string;
-  per_page?: number;
+  limit?: number;
   project?: number[];
   start?: DateString;
   statsPeriod?: string;
 };
 
-export type MetricsApiRequestQueryOptions = MetricsApiRequestQuery & {
+export type MetricsApiRequestQueryOptions = Partial<MetricsApiRequestQuery> & {
   fidelity?: 'high' | 'low';
-  useNewMetricsLayer?: boolean;
 };
 
 export type MetricsApiResponse = {
@@ -75,12 +74,19 @@ export type MetricsTagValue = {
 };
 
 export type MetricMeta = {
+  blockingStatus: BlockingStatus[];
   mri: MRI;
   // name is returned by the API but should not be used, use parseMRI(mri).name instead
   // name: string;
   operations: MetricsOperation[];
   type: MetricType;
   unit: string;
+};
+
+export type BlockingStatus = {
+  blockedTags: string[];
+  isBlocked: boolean;
+  projectId: number;
 };
 
 export type MetricsMetaCollection = Record<string, MetricMeta>;

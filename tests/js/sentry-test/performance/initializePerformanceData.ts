@@ -1,13 +1,14 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, EventTransaction, Project} from 'sentry/types';
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {EventTransaction, Project} from 'sentry/types';
+import {EntryType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import {
+import type {
   ExampleSpan,
   ExampleTransaction,
   SuspectSpan,
@@ -32,7 +33,7 @@ export function initializeData(settings?: InitializeDataSettings) {
   };
   const {query, features, projects, selectedProject: project} = _settings;
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects,
   });

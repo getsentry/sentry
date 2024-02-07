@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
 import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {Organization, Project} from 'sentry/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 
 import {isIssueAlert} from '../../../utils';

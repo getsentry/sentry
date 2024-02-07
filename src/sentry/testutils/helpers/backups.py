@@ -3,10 +3,9 @@ from __future__ import annotations
 import io
 import tempfile
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import cached_property, cmp_to_key
 from pathlib import Path
-from typing import Tuple
 from unittest.mock import MagicMock
 from uuid import uuid4
 
@@ -15,9 +14,15 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from sentry_relay.auth import generate_key_pair
 
+from sentry.backup.crypto import (
+    KeyManagementServiceClient,
+    LocalFileDecryptor,
+    LocalFileEncryptor,
+    decrypt_encrypted_tarball,
+)
 from sentry.backup.dependencies import (
     NormalizedModelName,
     get_model,
@@ -31,13 +36,7 @@ from sentry.backup.exports import (
     export_in_user_scope,
 )
 from sentry.backup.findings import ComparatorFindings
-from sentry.backup.helpers import (
-    KeyManagementServiceClient,
-    LocalFileDecryptor,
-    LocalFileEncryptor,
-    Printer,
-    decrypt_encrypted_tarball,
-)
+from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
@@ -76,6 +75,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
@@ -154,7 +154,7 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
     return output
 
 
-def generate_rsa_key_pair() -> Tuple[bytes, bytes]:
+def generate_rsa_key_pair() -> tuple[bytes, bytes]:
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
@@ -361,14 +361,28 @@ class BackupTestCase(TransactionTestCase):
 
     @assume_test_silo_mode(SiloMode.REGION)
     def create_exhaustive_organization(
-        self, slug: str, owner: User, invitee: User, other: list[User] | None = None
+        self,
+        slug: str,
+        owner: User,
+        member: User,
+        other_members: list[User] | None = None,
+        invites: dict[User, str] | None = None,
     ) -> Organization:
         org = self.create_organization(name=slug, owner=owner)
         owner_id: BoundedBigAutoField = owner.id
-        invited = self.create_member(organization=org, user=invitee, role="member")
-        if other:
-            for o in other:
-                self.create_member(organization=org, user=o, role="member")
+        invited = self.create_member(organization=org, user=member, role="member")
+        if other_members:
+            for user in other_members:
+                self.create_member(organization=org, user=user, role="member")
+        if invites:
+            for inviter, email in invites.items():
+                OrganizationMember.objects.create(
+                    organization_id=org.id,
+                    role="member",
+                    email=email,
+                    inviter_id=inviter.id,
+                    invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                )
 
         OrganizationOption.objects.create(
             organization=org, key="sentry:account-rate-limit", value=0
@@ -414,8 +428,8 @@ class BackupTestCase(TransactionTestCase):
         )
         CustomDynamicSamplingRule.update_or_create(
             condition={"op": "equals", "name": "environment", "value": "prod"},
-            start=timezone.now(),
-            end=timezone.now() + timedelta(hours=1),
+            start=django_timezone.now(),
+            end=django_timezone.now() + timedelta(hours=1),
             project_ids=[project.id],
             organization_id=org.id,
             num_samples=100,
@@ -626,8 +640,8 @@ class BackupTestCase(TransactionTestCase):
         owner = self.create_exhaustive_user(
             "owner", is_admin=is_superadmin, is_superuser=is_superadmin, is_staff=is_superadmin
         )
-        invitee = self.create_exhaustive_user("invitee")
-        org = self.create_exhaustive_organization("test-org", owner, invitee)
+        member = self.create_exhaustive_user("member")
+        org = self.create_exhaustive_organization("test-org", owner, member)
         self.create_exhaustive_sentry_app("test app", owner, org)
         self.create_exhaustive_global_configs(owner)
 

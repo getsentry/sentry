@@ -1,7 +1,8 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
-import {IntegrationType} from 'sentry/types';
+import type {FieldValue} from 'sentry/components/forms/model';
+import type {IntegrationType} from 'sentry/types';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
-import {CommonGroupAnalyticsData} from 'sentry/utils/events';
+import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
 type IssueStream = {
   group_id: string;
@@ -60,6 +61,7 @@ export type IssueEventParameters = {
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
+  'issue-details.replay-cta-dismiss': {type: string};
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
@@ -171,6 +173,11 @@ export type IssueEventParameters = {
     did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
+  'issues_stream.merged': {
+    items_merged: number | 'all_in_query' | undefined;
+    platform: string | undefined;
+    project_id: string | undefined;
+  };
   'issues_stream.paginate': {
     direction: string;
   };
@@ -189,6 +196,11 @@ export type IssueEventParameters = {
     query: string;
     sort: string;
     tab?: string;
+  };
+  'project_modal.created': {
+    issue_alert: 'Default' | 'Custom' | 'No Rule';
+    project_id: string;
+    rule_id: string;
   };
   'quick_trace.connected_services': {
     projects: number;
@@ -212,6 +224,11 @@ export type IssueEventParameters = {
     source: string;
   };
   resolve_issue: {release: string};
+  'settings.inbound_filter_updated': {
+    filter: string;
+    new_state: FieldValue;
+    project_id: number;
+  };
   'source_map_debug.docs_link_clicked': SourceMapDebugParam;
   'source_map_debug.expand_clicked': SourceMapDebugParam;
   'span_view.embedded_child.hide': {};
@@ -252,6 +269,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
+  'issues_stream.merged': 'Merged Issues from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
@@ -259,6 +277,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',
   'tag.clicked': 'Tag: Clicked',
+  'project_modal.created': 'Project Modal: Created',
   'quick_trace.missing_service.dismiss': 'Quick Trace: Missing Service Dismissed',
   'quick_trace.missing_service.docs': 'Quick Trace: Missing Service Clicked',
   'quick_trace.dropdown.clicked': 'Quick Trace: Dropdown clicked',
@@ -266,6 +285,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'quick_trace.node.clicked': 'Quick Trace: Node clicked',
   'quick_trace.connected_services': 'Quick Trace: Connected Services',
   'quick_trace.trace_id.clicked': 'Quick Trace: Trace ID clicked',
+  'settings.inbound_filter_updated': 'Settings: Inbound Filter Updated',
   'span_view.embedded_child.hide': 'Span View: Hide Embedded Transaction',
   'span_view.embedded_child.show': 'Span View: Show Embedded Transaction',
   'issue_group_details.tab.clicked': 'Issue Group Details: Header Tab Clicked',
@@ -291,6 +311,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.external_issue_loaded': 'Issue Details: External Issue Loaded',
   'issue_details.external_issue_modal_opened':

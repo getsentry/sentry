@@ -1,6 +1,5 @@
 import {Fragment, useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
-import isNil from 'lodash/isNil';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
@@ -13,7 +12,8 @@ import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Organization, StackView} from 'sentry/types';
+import type {Event, Organization} from 'sentry/types';
+import {StackView} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
@@ -36,7 +36,7 @@ export function AnrRootCause({event, organization}: Props) {
   const anrCulprit = analyzeFramesForRootCause(event);
 
   useEffect(() => {
-    if (isNil(anrCulprit?.culprit)) {
+    if (!anrCulprit || anrCulprit.culprit === null || anrCulprit.culprit === undefined) {
       return;
     }
 
@@ -45,7 +45,7 @@ export function AnrRootCause({event, organization}: Props) {
       group: event?.groupID,
       culprit: typeof anrCulprit?.culprit === 'string' ? anrCulprit?.culprit : 'lock',
     });
-  }, [anrCulprit?.culprit, organization, event?.groupID]);
+  }, [anrCulprit, organization, event?.groupID]);
 
   const noPerfIssueOnTrace =
     !quickTrace ||
@@ -64,7 +64,7 @@ export function AnrRootCause({event, organization}: Props) {
   );
 
   const helpText =
-    isNil(potentialAnrRootCause) || potentialAnrRootCause.length === 0
+    !potentialAnrRootCause || potentialAnrRootCause.length === 0
       ? t(
           'Suspect Root Cause identifies common patterns that may be contributing to this ANR'
         )

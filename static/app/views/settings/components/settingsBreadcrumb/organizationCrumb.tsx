@@ -1,10 +1,11 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import IdBadge from 'sentry/components/idBadge';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,7 +18,7 @@ import {CrumbLink} from '.';
 type Props = RouteComponentProps<{projectId?: string}, {}>;
 
 function OrganizationCrumb({params, routes, route, ...props}: Props) {
-  const organizations = useLegacyStore(OrganizationsStore);
+  const {organizations} = useLegacyStore(OrganizationsStore);
   const organization = useOrganization();
 
   const handleSelect = (item: {value: Organization}) => {

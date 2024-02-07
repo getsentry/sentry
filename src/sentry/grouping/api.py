@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
-from typing import TypedDict
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, TypedDict
 
-from sentry import options
+from sentry import features, options
+from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -18,6 +20,7 @@ from sentry.grouping.utils import (
 from sentry.grouping.variants import (
     HIERARCHICAL_VARIANTS,
     BaseVariant,
+    BuiltInFingerprintVariant,
     ChecksumVariant,
     ComponentVariant,
     CustomFingerprintVariant,
@@ -25,6 +28,12 @@ from sentry.grouping.variants import (
     SaltedComponentVariant,
 )
 from sentry.utils.safe import get_path
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.strategies.base import StrategyConfiguration
+    from sentry.models.project import Project
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
 
@@ -54,7 +63,7 @@ class GroupingConfigNotFound(LookupError):
 
 class GroupingConfig(TypedDict):
     id: str
-    enhancements: Enhancements
+    enhancements: str
 
 
 class GroupingConfigLoader:
@@ -62,13 +71,13 @@ class GroupingConfigLoader:
 
     cache_prefix: str  # Set in subclasses
 
-    def get_config_dict(self, project) -> GroupingConfig:
+    def get_config_dict(self, project: Project) -> GroupingConfig:
         return {
             "id": self._get_config_id(project),
             "enhancements": self._get_enhancements(project),
         }
 
-    def _get_enhancements(self, project):
+    def _get_enhancements(self, project) -> str:
         enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
@@ -98,7 +107,6 @@ class GroupingConfigLoader:
 
 
 class ProjectGroupingConfigLoader(GroupingConfigLoader):
-
     option_name: str  # Set in subclasses
 
     def _get_config_id(self, project):
@@ -131,7 +139,7 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
         return options.get("store.background-grouping-config-id")
 
 
-def get_grouping_config_dict_for_project(project, silent=True):
+def get_grouping_config_dict_for_project(project, silent=True) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -143,19 +151,36 @@ def get_grouping_config_dict_for_project(project, silent=True):
     return loader.get_config_dict(project)
 
 
-def get_grouping_config_dict_for_event_data(data, project):
+def get_grouping_config_dict_for_event_data(data, project) -> GroupingConfig:
     """Returns the grouping config for an event dictionary."""
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def get_default_enhancements(config_id=None):
+def get_default_enhancements(config_id=None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
     return Enhancements(rules=[], bases=[base]).dumps()
 
 
-def get_default_grouping_config_dict(id=None):
+def get_projects_default_fingerprinting_bases(
+    project: Project, config_id: str | None = None
+) -> Sequence[str] | None:
+    """Returns the default built-in fingerprinting bases (i.e. sets of rules) for a project."""
+    from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+
+    config_id = (
+        config_id
+        # TODO: add fingerprinting config to GroupingConfigLoader and use that here
+        or PrimaryGroupingConfigLoader()._get_config_id(project)
+        or DEFAULT_GROUPING_CONFIG
+    )
+
+    bases = CONFIGURATIONS[config_id].fingerprinting_bases
+    return bases
+
+
+def get_default_grouping_config_dict(id=None) -> GroupingConfig:
     """Returns the default grouping config."""
     if id is None:
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
@@ -164,7 +189,7 @@ def get_default_grouping_config_dict(id=None):
     return {"id": id, "enhancements": get_default_enhancements(id)}
 
 
-def load_grouping_config(config_dict=None):
+def load_grouping_config(config_dict=None) -> StrategyConfiguration:
     """Loads the given grouping config."""
     if config_dict is None:
         config_dict = get_default_grouping_config_dict()
@@ -177,16 +202,27 @@ def load_grouping_config(config_dict=None):
     return CONFIGURATIONS[config_id](**config_dict)
 
 
-def load_default_grouping_config():
+def load_default_grouping_config() -> StrategyConfiguration:
     return load_grouping_config(config_dict=None)
 
 
-def get_fingerprinting_config_for_project(project):
+def get_fingerprinting_config_for_project(
+    project: Project, config_id: str | None = None
+) -> FingerprintingRules:
+    """
+    Returns the fingerprinting rules for a project.
+    Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
+    """
+
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
+    if features.has("organizations:grouping-built-in-fingerprint-rules", project.organization):
+        bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
+    else:
+        bases = []
     rules = project.get_option("sentry:fingerprinting_rules")
     if not rules:
-        return FingerprintingRules([])
+        return FingerprintingRules([], bases=bases)
 
     from sentry.utils.cache import cache
     from sentry.utils.hashlib import md5_text
@@ -194,12 +230,12 @@ def get_fingerprinting_config_for_project(project):
     cache_key = "fingerprinting-rules:" + md5_text(rules).hexdigest()
     rv = cache.get(cache_key)
     if rv is not None:
-        return FingerprintingRules.from_json(rv)
+        return FingerprintingRules.from_json(rv, bases=bases)
 
     try:
-        rv = FingerprintingRules.from_config_string(rules)
+        rv = FingerprintingRules.from_config_string(rules, bases=bases)
     except InvalidFingerprintingConfig:
-        rv = FingerprintingRules([])
+        rv = FingerprintingRules([], bases=bases)
     cache.set(cache_key, rv.to_json())
     return rv
 
@@ -223,6 +259,9 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
             "matched_rule": rule.to_json(),
         }
 
+        if rule.is_builtin:
+            event["_fingerprint_info"]["is_builtin"] = True
+
 
 def _get_calculated_grouping_variants_for_event(event, context):
     winning_strategy: str | None = None
@@ -232,7 +271,7 @@ def _get_calculated_grouping_variants_for_event(event, context):
     for strategy in context.config.iter_strategies():
         # Defined in src/sentry/grouping/strategies/base.py
         rv = strategy.get_grouping_component_variants(event, context=context)
-        for (variant, component) in rv.items():
+        for variant, component in rv.items():
             per_variant_components.setdefault(variant, []).append(component)
 
             if winning_strategy is None:
@@ -249,7 +288,7 @@ def _get_calculated_grouping_variants_for_event(event, context):
                 component.update(contributes=False, hint=precedence_hint)
 
     rv = {}
-    for (variant, components) in per_variant_components.items():
+    for variant, components in per_variant_components.items():
         component = GroupingComponent(id=variant, values=components)
         if not component.contributes and precedence_hint:
             component.update(hint=precedence_hint)
@@ -258,7 +297,9 @@ def _get_calculated_grouping_variants_for_event(event, context):
     return rv
 
 
-def get_grouping_variants_for_event(event, config=None) -> dict[str, BaseVariant]:
+def get_grouping_variants_for_event(
+    event: Event, config: StrategyConfiguration | None = None
+) -> dict[str, BaseVariant]:
     """Returns a dict of all grouping variants for this event."""
     # If a checksum is set the only variant that comes back from this
     # event is the checksum variant.
@@ -298,7 +339,7 @@ def get_grouping_variants_for_event(event, config=None) -> dict[str, BaseVariant
     # fingerprint and mark all other variants as non-contributing
     if defaults_referenced == 0:
         rv = {}
-        for (key, component) in components.items():
+        for key, component in components.items():
             component.update(
                 contributes=False,
                 hint="custom fingerprint takes precedence",
@@ -306,19 +347,22 @@ def get_grouping_variants_for_event(event, config=None) -> dict[str, BaseVariant
             rv[key] = ComponentVariant(component, context.config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
+        if fingerprint_info and fingerprint_info.get("is_builtin", False):
+            rv["built-in-fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
+        else:
+            rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
 
     # If the fingerprints are unsalted, we can return them right away.
     elif defaults_referenced == 1 and len(fingerprint) == 1:
         rv = {}
-        for (key, component) in components.items():
+        for key, component in components.items():
             rv[key] = ComponentVariant(component, context.config)
 
     # Otherwise we need to salt each of the components.
     else:
         rv = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        for (key, component) in components.items():
+        for key, component in components.items():
             rv[key] = SaltedComponentVariant(
                 fingerprint, component, context.config, fingerprint_info
             )
@@ -337,7 +381,6 @@ def sort_grouping_variants(variants):
     hierarchical_variants = []
 
     for name, variant in variants.items():
-
         if name in HIERARCHICAL_VARIANTS:
             hierarchical_variants.append((name, variant))
         else:
@@ -355,14 +398,13 @@ def sort_grouping_variants(variants):
     return flat_variants, hierarchical_variants
 
 
-def detect_synthetic_exception(event_data, grouping_config):
+def detect_synthetic_exception(event_data: NodeData, loaded_grouping_config: StrategyConfiguration):
     """Detect synthetic exception and write marker to event data
 
     This only runs if detect_synthetic_exception_types is True, so
     it is effectively only enabled for grouping strategy mobile:2021-04-02.
 
     """
-    loaded_grouping_config = load_grouping_config(grouping_config)
     should_detect = loaded_grouping_config.initial_context["detect_synthetic_exception_types"]
     if not should_detect:
         return

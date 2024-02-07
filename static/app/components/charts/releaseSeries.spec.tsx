@@ -1,13 +1,15 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ReleaseSeries, {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
+import type {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {lightTheme} from 'sentry/utils/theme';
 
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
-  const organization = Organization();
+  const organization = OrganizationFixture();
   let releases;
   let releasesMock;
 
@@ -25,10 +27,10 @@ describe('ReleaseSeries', function () {
     });
   });
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const baseSeriesProps: ReleaseSeriesProps = {
     api: new MockApiClient(),
-    organization: Organization(),
+    organization: OrganizationFixture(),
     period: '14d',
     start: null,
     end: null,

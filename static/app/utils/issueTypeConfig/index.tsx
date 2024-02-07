@@ -1,12 +1,14 @@
 import {t} from 'sentry/locale';
-import {IssueCategory, IssueType, Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
+import {IssueCategory, IssueType} from 'sentry/types';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
 import {
   errorConfig,
   getErrorHelpResource,
 } from 'sentry/utils/issueTypeConfig/errorConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
-import {
+import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
+import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
@@ -36,6 +38,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   mergedIssues: {enabled: false},
   regression: {enabled: false},
   replays: {enabled: false},
+  showFeedbackWidget: false,
   stats: {enabled: true},
   similarIssues: {enabled: false},
   tags: {enabled: true},
@@ -51,6 +54,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.PERFORMANCE]: performanceConfig,
   [IssueCategory.PROFILE]: performanceConfig,
   [IssueCategory.CRON]: cronConfig,
+  [IssueCategory.REPLAY]: replayConfig,
 };
 
 /**

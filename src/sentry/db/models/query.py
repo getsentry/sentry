@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 from functools import reduce
-from typing import Any, Tuple, Type
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model, Q
@@ -24,7 +24,7 @@ def _handle_value(instance: Model, value: Any) -> Any:
     return value
 
 
-def _handle_key(model: Type[Model], key: str, value: Any) -> str:
+def _handle_key(model: type[Model], key: str, value: Any) -> str:
     # XXX(dcramer): we want to support column shortcut on create so we can do
     #  create_or_update(..., {'project': 1})
     if not isinstance(value, Model):
@@ -45,11 +45,22 @@ def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
         if getattr(field, "auto_now", False) and field.name not in kwargs:
             kwargs[field.name] = field.pre_save(instance, False)
 
-    affected = instance.__class__._base_manager.using(using).filter(pk=instance.pk).update(**kwargs)
+    affected = (
+        instance.__class__.objects.using(using)
+        .filter(pk=instance.pk)
+        # Disable the post update query signal since we're going to send a more specific `post_save` signal here.
+        .with_post_update_signal(False)
+        .update(**kwargs)
+    )
     for k, v in kwargs.items():
         setattr(instance, k, _handle_value(instance, v))
     if affected == 1:
-        post_save.send(sender=instance.__class__, instance=instance, created=False)
+        post_save.send(
+            sender=instance.__class__,
+            instance=instance,
+            created=False,
+            update_fields=list(kwargs.keys()),
+        )
         return affected
     elif affected == 0:
         return affected
@@ -65,7 +76,7 @@ update.alters_data = True  # type: ignore
 
 
 def update_or_create(
-    model: Type[Model],
+    model: type[Model],
     using: str | None = None,
     **kwargs: Any,
 ) -> tuple[Model, bool]:
@@ -110,8 +121,8 @@ def update_or_create(
 
 
 def create_or_update(
-    model: Type[Model], using: str | None = None, **kwargs: Any
-) -> Tuple[int, bool]:
+    model: type[Model], using: str | None = None, **kwargs: Any
+) -> tuple[int, bool]:
     """
     Similar to get_or_create, either updates a row or creates it.
 

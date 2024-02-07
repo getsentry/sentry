@@ -102,9 +102,6 @@ register(key="filters:filtered-transaction", default="1")
 # extracted performance metrics.
 register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 
-# Default span attributes config
-register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
-
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "uncompressed_assets_detection_enabled": True,
     "consecutive_http_spans_detection_enabled": True,
@@ -120,11 +117,26 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "transaction_duration_regression_detection_enabled": True,
 }
 
+DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
+    "enable_images": False,
+}
+
 # A dict containing all the specific detection thresholds and rates.
 register(
     key="sentry:performance_issue_settings",
     default=DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS,
 )
+
+register(
+    key="sentry:performance_general_settings",
+    default=DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS,
+)
+
+register(
+    key="sentry:replay_rage_click_issues",
+    default=True,
+)
+
 
 # Replacement rules for transaction names discovered by the transaction clusterer.
 # Contains a mapping from rule to last seen timestamp,

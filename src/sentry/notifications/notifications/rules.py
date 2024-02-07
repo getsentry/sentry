@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import logging
+import zoneinfo
+from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import timezone
-from typing import Any, Iterable, Mapping, MutableMapping
+from typing import Any
 from urllib.parse import urlencode
-
-import pytz
 
 from sentry import analytics, features
 from sentry.db.models import Model
@@ -127,8 +127,8 @@ class AlertRuleNotification(ProjectNotification):
             )
             user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
             try:
-                tz = pytz.timezone(user_tz)
-            except pytz.UnknownTimeZoneError:
+                tz = zoneinfo.ZoneInfo(user_tz)
+            except (ValueError, zoneinfo.ZoneInfoNotFoundError):
                 pass
         return {
             **super().get_recipient_context(recipient, extra_context),
@@ -180,7 +180,6 @@ class AlertRuleNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
-            "has_issue_states": features.has("organizations:escalating-issues", self.organization),
         }
 
         # if the organization has enabled enhanced privacy controls we don't send

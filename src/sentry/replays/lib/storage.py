@@ -9,7 +9,6 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from io import BytesIO
-from typing import List, Optional, Union
 
 from django.conf import settings
 from django.db.utils import IntegrityError
@@ -29,10 +28,10 @@ class RecordingSegmentStorageMeta:
     project_id: int
     replay_id: str
     segment_id: int
-    retention_days: Optional[int]
-    date_added: Optional[datetime] = None
-    file_id: Optional[int] = None
-    file: Optional[File] = None
+    retention_days: int | None
+    date_added: datetime | None = None
+    file_id: int | None = None
+    file: File | None = None
 
 
 class Blob(ABC):
@@ -42,7 +41,7 @@ class Blob(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get(self, segment: RecordingSegmentStorageMeta) -> Optional[bytes]:
+    def get(self, segment: RecordingSegmentStorageMeta) -> bytes | None:
         """Return blob from remote storage."""
         raise NotImplementedError
 
@@ -129,7 +128,7 @@ class StorageBlob(Blob):
         storage.delete(self.make_key(segment))
 
     @metrics.wraps("replays.lib.storage.StorageBlob.get")
-    def get(self, segment: RecordingSegmentStorageMeta) -> Optional[bytes]:
+    def get(self, segment: RecordingSegmentStorageMeta) -> bytes | None:
         try:
             storage = get_storage(self._make_storage_options())
             blob = storage.open(self.make_key(segment))
@@ -149,12 +148,11 @@ class StorageBlob(Blob):
         except TooManyRequests:
             # if we 429 because of a dupe segment problem, ignore it
             metrics.incr("replays.lib.storage.TooManyRequests")
-            pass
 
     def make_key(self, segment: RecordingSegmentStorageMeta) -> str:
         return make_filename(segment)
 
-    def _make_storage_options(self) -> Optional[dict]:
+    def _make_storage_options(self) -> dict | None:
         backend = options.get("replay.storage.backend")
         if backend:
             return {"backend": backend, "options": options.get("replay.storage.options")}
@@ -180,28 +178,6 @@ def make_filename(segment: RecordingSegmentStorageMeta) -> str:
         segment.replay_id,
         segment.segment_id,
     )
-
-
-def make_storage_driver(organization_id: int) -> Union[FilestoreBlob, StorageBlob]:
-    """Return a storage driver instance."""
-    return _make_storage_driver(
-        organization_id,
-        options.get("replay.storage.direct-storage-sample-rate"),
-        settings.SENTRY_REPLAYS_STORAGE_ALLOWLIST,
-    )
-
-
-def _make_storage_driver(
-    organization_id: int,
-    sample_rate: int,
-    allow_list: List[int],
-) -> Union[FilestoreBlob, StorageBlob]:
-    if organization_id in allow_list:
-        return storage
-    elif organization_id % 100 < sample_rate:
-        return storage
-    else:
-        return filestore
 
 
 storage = StorageBlob()

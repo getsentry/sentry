@@ -4,7 +4,7 @@ import beautify from 'js-beautify';
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -12,6 +12,7 @@ import {
   getReplayConfigureDescription,
   getReplayJsLoaderSdkSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -54,7 +55,6 @@ const replayOnboardingJsLoader: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      isReplayConfigStep: true,
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
       }),
@@ -65,6 +65,7 @@ const replayOnboardingJsLoader: OnboardingConfig = {
         },
       ],
       isOptional: true,
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],

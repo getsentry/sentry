@@ -1,14 +1,14 @@
 import * as Sentry from '@sentry/react';
-import isString from 'lodash/isString';
 import partition from 'lodash/partition';
 import * as qs from 'query-string';
 
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import {Frame, PlatformKey, StacktraceType} from 'sentry/types';
-import {Image} from 'sentry/types/debugImage';
-import {EntryRequest, EntryThreads, EntryType, Event, Thread} from 'sentry/types/event';
+import type {Frame, PlatformKey, StacktraceType} from 'sentry/types';
+import type {Image} from 'sentry/types/debugImage';
+import type {EntryRequest, EntryThreads, Event, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -157,7 +157,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
         break;
 
       default:
-        if (isString(data.data)) {
+        if (typeof data.data === 'string') {
           result += ' \\\n --data "' + escapeBashString(data.data) + '"';
         } else if (Object.keys(data.data).length === 0) {
           // Do nothing with empty object data.
@@ -175,7 +175,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
 }
 
 export function stringifyQueryList(query: string | [key: string, value: string][]) {
-  if (isString(query)) {
+  if (typeof query === 'string') {
     return query;
   }
 
@@ -399,8 +399,9 @@ export function getStacktracePlatform(
   event: Event,
   stacktrace?: StacktraceType | null
 ): PlatformKey {
-  const overridePlatform = stacktrace?.frames?.find(frame => defined(frame.platform))
-    ?.platform;
+  const overridePlatform = stacktrace?.frames?.find(frame =>
+    defined(frame.platform)
+  )?.platform;
 
   return overridePlatform ?? event.platform ?? 'other';
 }

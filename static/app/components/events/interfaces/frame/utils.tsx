@@ -1,6 +1,7 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Event, EventOrGroupType, Frame, PlatformKey} from 'sentry/types';
+import type {Event, Frame, Organization, PlatformKey} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
 import {SymbolicatorStatus} from '../types';
@@ -137,4 +138,20 @@ function isAnrEvent(event: Event) {
     mechanismTag === 'AppHang' ||
     mechanismTag === 'mx_hang_diagnostic';
   return isANR;
+}
+
+export function hasFileExtension(filepath: string) {
+  // Regular expression to match a file extension
+  const fileExtensionPattern = /\.[0-9a-z]+$/i;
+
+  // Check if the filepath matches the pattern
+  return fileExtensionPattern.test(filepath);
+}
+
+export function hasStacktraceLinkInFrameFeature(
+  organization?: Organization | null
+): boolean {
+  return (
+    organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false
+  );
 }

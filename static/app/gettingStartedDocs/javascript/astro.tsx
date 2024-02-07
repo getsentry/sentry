@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -12,6 +12,7 @@ import {
   getReplaySDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -200,7 +201,6 @@ const replayOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      isReplayConfigStep: true,
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/guides/astro/session-replay/',
       }),
@@ -214,13 +214,14 @@ const replayOnboarding: OnboardingConfig = {
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/astro";`,
                 dsn: params.dsn,
-                mask: params.mask,
-                block: params.block,
+                mask: params.replayOptions?.mask,
+                block: params.replayOptions?.block,
               }),
             },
           ],
         },
       ],
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],

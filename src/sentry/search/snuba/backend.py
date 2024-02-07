@@ -5,9 +5,10 @@ import functools
 import logging
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
+from typing import Any
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -71,7 +72,7 @@ def assigned_to_filter(
 
     if "User" in types_to_actors:
         users = types_to_actors["User"]
-        user_ids: List[int] = [u.id for u in users if u is not None]
+        user_ids: list[int] = [u.id for u in users if u is not None]
         query |= Q(
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
@@ -206,7 +207,7 @@ def assigned_or_suggested_filter(
 
     if "User" in types_to_owners:
         users = types_to_owners["User"]
-        user_ids: List[int] = [u.id for u in users if u is not None]
+        user_ids: list[int] = [u.id for u in users if u is not None]
         query_ids = Q(user_id__in=user_ids)
         owned_by_me = Q(
             **{
@@ -262,41 +263,41 @@ def _group_attributes_side_query(
     events_only_search_results: CursorResult[Group],
     builder: Callable[[], BaseQuerySet],
     projects: Sequence[Project],
-    retention_window_start: Optional[datetime],
+    retention_window_start: datetime | None,
     group_queryset: BaseQuerySet,
-    environments: Optional[Sequence[Environment]] = None,
+    environments: Sequence[Environment] | None = None,
     sort_by: str = "date",
     limit: int = 100,
-    cursor: Optional[Cursor] = None,
+    cursor: Cursor | None = None,
     count_hits: bool = False,
-    paginator_options: Optional[Mapping[str, Any]] = None,
-    search_filters: Optional[Sequence[SearchFilter]] = None,
-    date_from: Optional[datetime] = None,
-    date_to: Optional[datetime] = None,
-    max_hits: Optional[int] = None,
-    referrer: Optional[str] = None,
-    actor: Optional[Any] = None,
-    aggregate_kwargs: Optional[PrioritySortWeights] = None,
+    paginator_options: Mapping[str, Any] | None = None,
+    search_filters: Sequence[SearchFilter] | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    max_hits: int | None = None,
+    referrer: str | None = None,
+    actor: Any | None = None,
+    aggregate_kwargs: PrioritySortWeights | None = None,
 ) -> None:
     def __run_joined_query_and_log_metric(
         events_only_search_results: CursorResult[Group],
         builder: Callable[[], BaseQuerySet],
         projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
+        retention_window_start: datetime | None,
         group_queryset: BaseQuerySet,
-        environments: Optional[Sequence[Environment]] = None,
+        environments: Sequence[Environment] | None = None,
         sort_by: str = "date",
         limit: int = 100,
-        cursor: Optional[Cursor] = None,
+        cursor: Cursor | None = None,
         count_hits: bool = False,
-        paginator_options: Optional[Mapping[str, Any]] = None,
-        search_filters: Optional[Sequence[SearchFilter]] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
-        max_hits: Optional[int] = None,
-        referrer: Optional[str] = None,
-        actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        paginator_options: Mapping[str, Any] | None = None,
+        search_filters: Sequence[SearchFilter] | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        max_hits: int | None = None,
+        referrer: str | None = None,
+        actor: Any | None = None,
+        aggregate_kwargs: PrioritySortWeights | None = None,
     ):
         from sentry.utils import metrics
 
@@ -428,7 +429,7 @@ class ScalarCondition(Condition):
     instances
     """
 
-    def __init__(self, field: str, extra: Optional[dict[str, Sequence[int]]] = None):
+    def __init__(self, field: str, extra: dict[str, Sequence[int]] | None = None):
         self.field = field
         self.extra = extra
 
@@ -466,19 +467,19 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def query(
         self,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]] = None,
+        environments: Sequence[Environment] | None = None,
         sort_by: str = "date",
         limit: int = 100,
-        cursor: Optional[Cursor] = None,
+        cursor: Cursor | None = None,
         count_hits: bool = False,
-        paginator_options: Optional[Mapping[str, Any]] = None,
-        search_filters: Optional[Sequence[SearchFilter]] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
-        max_hits: Optional[int] = None,
-        referrer: Optional[str] = None,
-        actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        paginator_options: Mapping[str, Any] | None = None,
+        search_filters: Sequence[SearchFilter] | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        max_hits: int | None = None,
+        referrer: str | None = None,
+        actor: Any | None = None,
+        aggregate_kwargs: PrioritySortWeights | None = None,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
@@ -585,9 +586,9 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def _build_group_queryset(
         self,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
-        retention_window_start: Optional[datetime],
+        retention_window_start: datetime | None,
         *args: Any,
         **kwargs: Any,
     ) -> QuerySet:
@@ -609,8 +610,8 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def _initialize_group_queryset(
         self,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
-        retention_window_start: Optional[datetime],
+        environments: Sequence[Environment] | None,
+        retention_window_start: datetime | None,
         search_filters: Sequence[SearchFilter],
     ) -> QuerySet:
         group_queryset = Group.objects.filter(project__in=projects).exclude(
@@ -637,7 +638,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def _get_queryset_conditions(
         self,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
     ) -> Mapping[str, Condition]:
         """This method should return a dict of query set fields and a "Condition" to apply on that field."""
@@ -648,10 +649,10 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         self,
         group_queryset: QuerySet,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
+        date_from: datetime | None,
+        date_to: datetime | None,
     ) -> AbstractQueryExecutor:
         """This method should return an implementation of the AbstractQueryExecutor
         We will end up calling .query() on the class returned by this method"""
@@ -665,10 +666,10 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _get_queryset_conditions(
         self,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
     ) -> Mapping[str, Condition]:
-        queryset_conditions: Dict[str, Condition] = {
+        queryset_conditions: dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
             "substatus": QCallbackCondition(lambda substatuses: Q(substatus__in=substatuses)),
             "bookmarked_by": QCallbackCondition(

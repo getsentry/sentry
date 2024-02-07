@@ -1,4 +1,4 @@
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {
   DAY, // ms in day
   formatAbbreviatedNumber,
@@ -7,6 +7,7 @@ import {
   formatPercentage,
   formatRate,
   formatSecondsToClock,
+  formatSpanOperation,
   getDuration,
   getExactDuration,
   MONTH, // ms in month
@@ -230,8 +231,8 @@ describe('formatRate()', function () {
   });
 
   it('Accepts a unit', () => {
-    expect(formatRate(0.3142, RateUnits.PER_MINUTE)).toBe('0.314/min');
-    expect(formatRate(0.3142, RateUnits.PER_HOUR)).toBe('0.314/hr');
+    expect(formatRate(0.3142, RateUnit.PER_MINUTE)).toBe('0.314/min');
+    expect(formatRate(0.3142, RateUnit.PER_HOUR)).toBe('0.314/hr');
   });
 
   it('Formats to 3 significant digits for numbers > minimum', () => {
@@ -422,5 +423,43 @@ describe('formatNumberWithDynamicDecimals', () => {
     expect(formatNumberWithDynamicDecimalPoints(NaN)).toEqual('NaN');
     expect(formatNumberWithDynamicDecimalPoints(Infinity)).toEqual('∞');
     expect(formatNumberWithDynamicDecimalPoints(-Infinity)).toEqual('-∞');
+  });
+
+  it('handles negative numbers', () => {
+    expect(formatNumberWithDynamicDecimalPoints(-1)).toEqual('-1');
+    expect(formatNumberWithDynamicDecimalPoints(-1.0)).toEqual('-1');
+    expect(formatNumberWithDynamicDecimalPoints(-1.5)).toEqual('-1.5');
+    expect(formatNumberWithDynamicDecimalPoints(-1.05)).toEqual('-1.05');
+    expect(formatNumberWithDynamicDecimalPoints(-1.004)).toEqual('-1');
+    expect(formatNumberWithDynamicDecimalPoints(-1.005)).toEqual('-1.01');
+    expect(formatNumberWithDynamicDecimalPoints(-1.1009)).toEqual('-1.1');
+    expect(formatNumberWithDynamicDecimalPoints(-2.236)).toEqual('-2.24');
+  });
+});
+
+describe('formatSpanOperation', () => {
+  it('falls back to "span"', () => {
+    expect(formatSpanOperation()).toEqual('span');
+  });
+
+  it.each([
+    ['db', 'query'],
+    ['db.redis', 'query'],
+    ['task.run', 'task'],
+    ['http.get', 'request'],
+    ['resource.js', 'resource'],
+  ])('formats short description for %s span operation', (operation, description) => {
+    expect(formatSpanOperation(operation)).toEqual(description);
+  });
+
+  it.each([
+    ['db', 'database query'],
+    ['db.redis', 'cache query'],
+    ['task.run', 'application task'],
+    ['http.get', 'URL request'],
+    ['resource.script', 'JavaScript file'],
+    ['resource.img', 'image'],
+  ])('formats long description for %s span operation', (operation, description) => {
+    expect(formatSpanOperation(operation, 'long')).toEqual(description);
   });
 });

@@ -1,5 +1,5 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -11,8 +11,8 @@ import {
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
-import type {PlatformKey} from 'sentry/types';
-import {OnboardingProjectStatus, Project} from 'sentry/types';
+import type {PlatformKey, Project} from 'sentry/types';
+import {OnboardingProjectStatus} from 'sentry/types';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {
@@ -111,7 +111,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${nextJsProject.slug}/keys/`,
       method: 'GET',
-      body: [ProjectKeys()[0]],
+      body: [ProjectKeysFixture()[0]],
     });
 
     jest
@@ -191,7 +191,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${reactProject.slug}/keys/`,
       method: 'GET',
-      body: [ProjectKeys()[0]],
+      body: [ProjectKeysFixture()[0]],
     });
 
     MockApiClient.addMockResponse({
@@ -286,7 +286,7 @@ describe('Onboarding', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${reactProject.slug}/keys/`,
       method: 'GET',
-      body: [ProjectKeys()[0]],
+      body: [ProjectKeysFixture()[0]],
     });
 
     MockApiClient.addMockResponse({

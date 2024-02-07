@@ -1,14 +1,23 @@
 import * as Sentry from '@sentry/react';
-import isNil from 'lodash/isNil';
 
-import {Tag} from 'sentry/actionCreators/events';
-import {Client, RequestCallbacks, RequestOptions} from 'sentry/api';
+import type {Tag} from 'sentry/actionCreators/events';
+import type {RequestCallbacks, RequestOptions} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import GroupStore from 'sentry/stores/groupStore';
-import {Actor, Group, Member, Note, Tag as GroupTag, TagValue, User} from 'sentry/types';
+import type {
+  Actor,
+  Group,
+  Member,
+  Note,
+  Tag as GroupTag,
+  TagValue,
+  User,
+} from 'sentry/types';
 import {buildTeamId, buildUserId, defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
-import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 type AssignToUserParams = {
@@ -238,11 +247,11 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
   const p: QueryArgs = params.itemIds
     ? {id: params.itemIds} // items matching array of itemids
     : params.query
-    ? {query: params.query} // items matching search query
-    : {}; // all items
+      ? {query: params.query} // items matching search query
+      : {}; // all items
 
   // only include environment if it is not null/undefined
-  if (params.query && !isNil(params.environment)) {
+  if (params.query && params.environment !== null && params.environment !== undefined) {
     p.environment = params.environment;
   }
 
@@ -254,7 +263,7 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
   // only include date filters if they are not null/undefined
   if (params.query) {
     ['start', 'end', 'period', 'utc'].forEach(prop => {
-      if (!isNil(params[prop])) {
+      if (params[prop] !== null && params[prop] !== undefined) {
         p[prop === 'period' ? 'statsPeriod' : prop] = params[prop];
       }
     });

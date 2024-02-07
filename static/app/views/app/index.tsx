@@ -1,5 +1,5 @@
 import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -12,6 +12,7 @@ import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalModal from 'sentry/components/globalModal';
+import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
@@ -24,7 +25,9 @@ import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useUser} from 'sentry/utils/useUser';
 import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
+import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 
 import SystemAlerts from './systemAlerts';
 
@@ -44,6 +47,7 @@ function App({children, params}: Props) {
   useColorscheme();
 
   const api = useApi();
+  const user = useUser();
   const config = useLegacyStore(ConfigStore);
 
   // Command palette global-shortcut
@@ -87,6 +91,10 @@ function App({children, params}: Props) {
    * Creates Alerts for any internal health problems
    */
   const checkInternalHealth = useCallback(async () => {
+    // For saas deployments we have more robust ways of checking application health.
+    if (!config.isSelfHosted) {
+      return;
+    }
     let data: any = null;
 
     try {
@@ -101,7 +109,7 @@ function App({children, params}: Props) {
 
       AlertStore.addAlert({id, message, type, url, opaque: true});
     });
-  }, [api]);
+  }, [api, config.isSelfHosted]);
 
   const {sentryUrl} = ConfigStore.get('links');
   const {orgId} = params;
@@ -138,8 +146,8 @@ function App({children, params}: Props) {
     }
 
     // Set the user for analytics
-    if (config.user) {
-      HookStore.get('analytics:init-user').map(cb => cb(config.user));
+    if (user) {
+      HookStore.get('analytics:init-user').map(cb => cb(user));
     }
 
     initApiClientErrorHandling();
@@ -147,25 +155,41 @@ function App({children, params}: Props) {
 
     // When the app is unloaded clear the organizationst list
     return () => OrganizationsStore.load([]);
-  }, [loadOrganizations, checkInternalHealth, config.messages, config.user]);
+  }, [loadOrganizations, checkInternalHealth, config.messages, user]);
 
   function clearUpgrade() {
     ConfigStore.set('needsUpgrade', false);
   }
 
   function clearNewsletterConsent() {
-    const flags = {...config.user.flags, newsletter_consent_prompt: false};
-    ConfigStore.set('user', {...config.user, flags});
+    const flags = {...user.flags, newsletter_consent_prompt: false};
+    ConfigStore.set('user', {...user, flags});
   }
 
-  const needsUpgrade = config.user?.isSuperuser && config.needsUpgrade;
-  const newsletterConsentPrompt = config.user?.flags?.newsletter_consent_prompt;
+  const displayInstallWizard =
+    user?.isSuperuser && config.needsUpgrade && config.isSelfHosted;
+  const newsletterConsentPrompt = user?.flags?.newsletter_consent_prompt;
+  const partnershipAgreementPrompt = config.partnershipAgreementPrompt;
 
   function renderBody() {
-    if (needsUpgrade) {
+    if (displayInstallWizard) {
       return (
         <Suspense fallback={null}>
           <InstallWizard onConfigured={clearUpgrade} />;
+        </Suspense>
+      );
+    }
+
+    if (partnershipAgreementPrompt) {
+      return (
+        <Suspense fallback={null}>
+          <Hook
+            name="component:partnership-agreement"
+            partnerDisplayName={partnershipAgreementPrompt.partnerDisplayName}
+            agreements={partnershipAgreementPrompt.agreements}
+            onSubmitSuccess={() => ConfigStore.set('partnershipAgreementPrompt', null)}
+            organizationSlug={config.customerDomain?.subdomain}
+          />
         </Suspense>
       );
     }
@@ -191,12 +215,14 @@ function App({children, params}: Props) {
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
-      <MainContainer tabIndex={-1} ref={mainContainerRef}>
-        <GlobalModal onClose={handleModalClose} />
-        <SystemAlerts className="messages-container" />
-        <Indicators className="indicators-container" />
-        <ErrorBoundary>{renderBody()}</ErrorBoundary>
-      </MainContainer>
+      <OrganizationContextProvider>
+        <MainContainer tabIndex={-1} ref={mainContainerRef}>
+          <GlobalModal onClose={handleModalClose} />
+          <SystemAlerts className="messages-container" />
+          <Indicators className="indicators-container" />
+          <ErrorBoundary>{renderBody()}</ErrorBoundary>
+        </MainContainer>
+      </OrganizationContextProvider>
     </Profiler>
   );
 }

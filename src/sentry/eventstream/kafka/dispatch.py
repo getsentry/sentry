@@ -1,7 +1,8 @@
 import logging
 import random
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
-from typing import Any, Generator, Mapping, Optional
+from typing import Any
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.types import Message
@@ -35,15 +36,15 @@ def _sampled_eventstream_timer(instance: str) -> Generator[None, None, None]:
 def dispatch_post_process_group_task(
     event_id: str,
     project_id: int,
-    group_id: Optional[int],
+    group_id: int | None,
     is_new: bool,
-    is_regression: Optional[bool],
+    is_regression: bool | None,
     is_new_group_environment: bool,
-    primary_hash: Optional[str],
+    primary_hash: str | None,
     queue: str,
     skip_consume: bool = False,
-    group_states: Optional[GroupStates] = None,
-    occurrence_id: Optional[str] = None,
+    group_states: GroupStates | None = None,
+    occurrence_id: str | None = None,
 ) -> None:
     if skip_consume:
         logger.info("post_process.skip.raw_event", extra={"event_id": event_id})
@@ -66,7 +67,7 @@ def dispatch_post_process_group_task(
         )
 
 
-def _get_task_kwargs(message: Message[KafkaPayload]) -> Optional[Mapping[str, Any]]:
+def _get_task_kwargs(message: Message[KafkaPayload]) -> Mapping[str, Any] | None:
     use_kafka_headers = options.get("post-process-forwarder:kafka-headers")
 
     if use_kafka_headers:

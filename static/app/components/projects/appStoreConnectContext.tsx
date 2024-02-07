@@ -1,7 +1,7 @@
 import {createContext, useEffect, useMemo, useState} from 'react';
 
-import {Organization, Project} from 'sentry/types';
-import {
+import type {Organization, Project} from 'sentry/types';
+import type {
   AppStoreConnectCredentialsStatus,
   AppStoreConnectStatusData,
 } from 'sentry/types/debugFiles';
@@ -66,6 +66,7 @@ function Provider({children, project, organization}: ProviderProps) {
     return () => {
       unmounted = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project, organization, api]);
 
   useEffect(() => {

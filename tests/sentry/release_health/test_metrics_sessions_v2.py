@@ -1,16 +1,15 @@
 from datetime import timedelta
-from typing import List
 
 import pytest
 from django.urls import reverse
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Function, Op
 
+from sentry.exceptions import InvalidParams
 from sentry.release_health.metrics_sessions_v2 import (
     SessionStatus,
     _extract_status_filter_from_conditions,
 )
-from sentry.snuba.sessions_v2 import InvalidParams
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -49,7 +48,7 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         )
         return self.client.get(url, query, format="json")
 
-    def get_sessions_data(self, groupby: List[str], interval):
+    def get_sessions_data(self, groupby: list[str], interval):
         response = self.do_request(
             {
                 "organization_slug": [self.organization1],

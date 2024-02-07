@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional, Sequence
+from typing import TYPE_CHECKING, Any
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
@@ -18,9 +19,9 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_direct_hit_response, get_query_builder_for_group
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import get_date_range_from_params
 from sentry.eventstore.models import Event
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.search.utils import InvalidQuery, parse_query
 
 if TYPE_CHECKING:
@@ -81,9 +82,9 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         request: Request,
         group: Group,
         environments: Sequence[Environment],
-        query: Optional[str],
-        start: Optional[datetime],
-        end: Optional[datetime],
+        query: str | None,
+        start: datetime | None,
+        end: datetime | None,
     ) -> Response:
         default_end = timezone.now()
         default_start = default_end - timedelta(days=90)
@@ -128,7 +129,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
                 for evt in results["data"]
             ]
             if full:
-                eventstore.bind_nodes(results)
+                eventstore.backend.bind_nodes(results)
 
             return results
 
@@ -141,7 +142,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     def _get_search_query(
         self, request: Request, group: Group, environments: Sequence[Environment]
-    ) -> Optional[str]:
+    ) -> str | None:
         raw_query = request.GET.get("query")
 
         if raw_query:

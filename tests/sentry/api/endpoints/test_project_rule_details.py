@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping
+from typing import Any
 from unittest.mock import patch
 
 import responses
@@ -11,7 +12,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment
-from sentry.models.integrations.integration import Integration
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo import SiloMode
@@ -80,11 +80,11 @@ class ProjectRuleDetailsBaseTestCase(APITestCase):
         self.environment = self.create_environment(self.project, name="production")
         self.slack_integration = install_slack(organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.jira_integration = Integration.objects.create(
+            self.jira_integration = self.create_provider_integration(
                 provider="jira", name="Jira", external_id="jira:1"
             )
             self.jira_integration.add_organization(self.organization, self.user)
-            self.jira_server_integration = Integration.objects.create(
+            self.jira_server_integration = self.create_provider_integration(
                 provider="jira_server", name="Jira Server", external_id="jira_server:1"
             )
             self.jira_server_integration.add_organization(self.organization, self.user)

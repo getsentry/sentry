@@ -11,17 +11,22 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import useOrganization from 'sentry/utils/useOrganization';
+import {AddWidgetButton} from 'sentry/views/dashboards/addWidget';
+import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import exportDashboard from './exportDashboard';
-import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
+import type {DashboardListItem} from './types';
+import {DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
-  onAddWidget: () => void;
+  onAddWidget: (dataset: DataSet) => void;
   onCancel: () => void;
   onCommit: () => void;
   onDelete: () => void;
@@ -32,7 +37,6 @@ type Props = {
 };
 
 function Controls({
-  organization,
   dashboardState,
   dashboards,
   hasUnsavedFilters,
@@ -57,6 +61,8 @@ function Controls({
       </Button>
     );
   }
+
+  const organization = useOrganization();
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
@@ -165,21 +171,30 @@ function Controls({
                 })}
                 disabled={!widgetLimitReached}
               >
-                <Button
-                  data-test-id="add-widget-library"
-                  priority="primary"
-                  size="sm"
-                  disabled={widgetLimitReached}
-                  icon={<IconAdd isCircled />}
-                  onClick={() => {
-                    trackAnalytics('dashboards_views.widget_library.opened', {
-                      organization,
-                    });
-                    onAddWidget();
-                  }}
-                >
-                  {t('Add Widget')}
-                </Button>
+                {hasDDMFeature(organization) ? (
+                  <AddWidgetButton
+                    onAddWidget={onAddWidget}
+                    aria-label="Add Widget"
+                    priority="primary"
+                    data-test-id="add-widget-library"
+                  />
+                ) : (
+                  <Button
+                    data-test-id="add-widget-library"
+                    priority="primary"
+                    size="sm"
+                    disabled={widgetLimitReached}
+                    icon={<IconAdd isCircled />}
+                    onClick={() => {
+                      trackAnalytics('dashboards_views.widget_library.opened', {
+                        organization,
+                      });
+                      onAddWidget(DataSet.EVENTS);
+                    }}
+                  >
+                    {t('Add Widget')}
+                  </Button>
+                )}
               </Tooltip>
             ) : null}
           </Fragment>

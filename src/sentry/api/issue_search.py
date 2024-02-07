@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
-from typing import Callable, Iterable, List, Mapping, Optional, Sequence, Set, Union
+from typing import Optional, Union
 
-from sentry import features
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
@@ -83,7 +83,7 @@ ValueConverter = Callable[
         User,
         Optional[Sequence[Environment]],
     ],
-    Union[str, List[str], List[Optional[Union[User, Team]]], List[User], List[int]],
+    Union[str, list[str], list[Optional[Union[User, Team]]], list[User], list[int]],
 ]
 
 
@@ -91,8 +91,8 @@ def convert_actor_or_none_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[Optional[Union[User, Team]]]:
+    environments: Sequence[Environment] | None,
+) -> list[User | Team | None]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of actors here, but we can look into batching it if needed.
     actors_or_none = []
@@ -108,8 +108,8 @@ def convert_user_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[User]:
+    environments: Sequence[Environment] | None,
+) -> list[User]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of usernames here, but we can look into batching it if needed.
     return [parse_user_value(username, user) for username in value]
@@ -119,11 +119,11 @@ def convert_release_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> Union[str, List[str]]:
+    environments: Sequence[Environment] | None,
+) -> str | list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    releases: Set[str] = set()
+    releases: set[str] = set()
     for version in value:
         releases.update(parse_release(version, projects, environments))
     results = list(releases)
@@ -136,11 +136,11 @@ def convert_first_release_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[str]:
+    environments: Sequence[Environment] | None,
+) -> list[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    releases: Set[str] = set()
+    releases: set[str] = set()
     for version in value:
         releases.update(parse_release(version, projects, environments))
     return list(releases)
@@ -162,11 +162,11 @@ def convert_substatus_value(
 
 
 def convert_status_value(
-    value: Iterable[Union[str, int]],
+    value: Iterable[str | int],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[int]:
+    environments: Sequence[Environment] | None,
+) -> list[int]:
     parsed = []
     for status in value:
         try:
@@ -180,10 +180,10 @@ def convert_category_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[int]:
+    environments: Sequence[Environment] | None,
+) -> list[int]:
     """Convert a value like 'error' or 'performance' to the GroupType value for issue lookup"""
-    results: List[int] = []
+    results: list[int] = []
     for category in value:
         group_category = getattr(GroupCategory, category.upper(), None)
         if not group_category:
@@ -196,8 +196,8 @@ def convert_type_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[int]:
+    environments: Sequence[Environment] | None,
+) -> list[int]:
     """Convert a value like 'error' or 'performance_n_plus_one_db_queries' to the GroupType value for issue lookup"""
     results = []
     for type in value:
@@ -212,8 +212,8 @@ def convert_device_class_value(
     value: Iterable[str],
     projects: Sequence[Project],
     user: User,
-    environments: Optional[Sequence[Environment]],
-) -> List[str]:
+    environments: Sequence[Environment] | None,
+) -> list[str]:
     """Convert high, medium, and low to the underlying device class values"""
     results = set()
     for device_class in value:
@@ -243,10 +243,10 @@ value_converters: Mapping[str, ValueConverter] = {
 def convert_query_values(
     search_filters: ParsedTerms,
     projects: Sequence[Project],
-    user: Optional[User | RpcUser],
-    environments: Optional[Sequence[Environment]],
+    user: User | RpcUser | None,
+    environments: Sequence[Environment] | None,
     value_converters=value_converters,
-) -> List[SearchFilter]:
+) -> list[SearchFilter]:
     """
     Accepts a collection of SearchFilter objects and converts their values into
     a specific format, based on converters specified in `value_converters`.
@@ -303,11 +303,6 @@ def convert_query_values(
             if isinstance(search_filter, (ParenExpression, str)):
                 continue
             if search_filter.key.name == "substatus":
-                if not features.has("organizations:escalating-issues", org):
-                    raise InvalidSearchQuery(
-                        "The substatus filter is not supported for this organization"
-                    )
-
                 converted = convert_search_filter(search_filter, org)
                 new_value = converted.value.raw_value
                 status = GROUP_SUBSTATUS_TO_STATUS_MAP.get(

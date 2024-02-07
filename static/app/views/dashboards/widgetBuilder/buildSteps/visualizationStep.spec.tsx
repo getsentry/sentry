@@ -1,11 +1,11 @@
-import {Tags} from 'sentry-fixture/tags';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
@@ -25,7 +25,7 @@ function mockRequests(orgSlug: Organization['slug']) {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/tags/',
     method: 'GET',
-    body: Tags(),
+    body: TagsFixture(),
   });
 
   MockApiClient.addMockResponse({

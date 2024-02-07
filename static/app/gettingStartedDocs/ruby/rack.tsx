@@ -1,49 +1,18 @@
-import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
-import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Docs,
+  DocsParams,
+  OnboardingConfig,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {tct} from 'sentry/locale';
 
-// Configuration Start
-export const steps = ({
-  dsn,
-}: Partial<Pick<ModuleProps, 'dsn'>> = {}): LayoutProps['steps'] => [
-  {
-    type: StepType.INSTALL,
-    description: (
-      <p>
-        {tct('Install the SDK via Rubygems by adding it to your [code:Gemfile]:', {
-          code: <code />,
-        })}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'ruby',
-        code: `gem "sentry-ruby"`,
-      },
-    ],
-  },
-  {
-    type: StepType.CONFIGURE,
-    description: (
-      <p>
-        {tct(
-          'Add use [sentryRackCode:Sentry::Rack::CaptureExceptions] to your [sentryConfigCode:config.ru] or other rackup file (this is automatically inserted in Rails):',
-          {
-            sentryRackCode: <code />,
-            sentryConfigCode: <code />,
-          }
-        )}
-      </p>
-    ),
-    configurations: [
-      {
-        language: 'ruby',
-        code: `
+type Params = DocsParams;
+
+const getConfigureSnippet = (params: Params) => `
 require 'sentry-ruby'
 
 Sentry.init do |config|
-  config.dsn = '${dsn}'
+  config.dsn = '${params.dsn}'
 
   # Set traces_sample_rate to 1.0 to capture 100%
   # of transactions for performance monitoring.
@@ -55,16 +24,49 @@ Sentry.init do |config|
   end
 end
 
-use Sentry::Rack::CaptureExceptions
-        `,
-      },
-    ],
-  },
-];
-// Configuration End
+use Sentry::Rack::CaptureExceptions`;
 
-export function GettingStartedWithRubyRack({dsn, ...props}: ModuleProps) {
-  return <Layout steps={steps({dsn})} {...props} />;
-}
+const onboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'Install the SDK via Rubygems by adding it to your [code:Gemfile]:',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'ruby',
+          code: `gem "sentry-ruby"`,
+        },
+      ],
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Add use [sentryRackCode:Sentry::Rack::CaptureExceptions] to your [sentryConfigCode:config.ru] or other rackup file (this is automatically inserted in Rails):',
+        {
+          sentryRackCode: <code />,
+          sentryConfigCode: <code />,
+        }
+      ),
+      configurations: [
+        {
+          language: 'ruby',
+          code: getConfigureSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+};
 
-export default GettingStartedWithRubyRack;
+const docs: Docs = {
+  onboarding,
+};
+
+export default docs;

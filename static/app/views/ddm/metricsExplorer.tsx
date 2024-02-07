@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
-import {MRI} from 'sentry/types';
-import {MetricDisplayType, MetricWidgetQueryParams} from 'sentry/utils/metrics';
+import type {MRI} from 'sentry/types';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {MetricWidget} from 'sentry/views/ddm/widget';
 
 // TODO(ddm): move this to admin
@@ -15,6 +16,7 @@ export default function MetricsExplorer() {
     powerUserMode: true,
     showSummaryTable: true,
     sort: {name: 'name', order: 'asc'},
+    title: undefined,
   });
 
   return (
@@ -36,6 +38,7 @@ export default function MetricsExplorer() {
       }}
       projects={[]}
       environments={[]}
+      hasSiblings={false}
     />
   );
 }

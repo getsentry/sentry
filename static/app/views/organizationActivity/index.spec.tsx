@@ -1,4 +1,4 @@
-import {ActivityFeed} from 'sentry-fixture/activityFeed';
+import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -14,8 +14,8 @@ describe('OrganizationActivity', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/activity/',
       body: [
-        ActivityFeed(),
-        ActivityFeed({
+        ActivityFeedFixture(),
+        ActivityFeedFixture({
           id: '49',
           data: {},
           type: GroupActivityType.SET_PUBLIC,

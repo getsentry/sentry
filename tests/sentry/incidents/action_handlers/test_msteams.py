@@ -5,7 +5,6 @@ import responses
 
 from sentry.incidents.action_handlers import MsTeamsActionHandler
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus
-from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -20,7 +19,7 @@ class MsTeamsActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_provider_integration(
                 provider="msteams",
                 name="Galactic Empire",
                 external_id="D4r7h_Pl4gu315_th3_w153",
@@ -51,7 +50,9 @@ class MsTeamsActionHandlerTest(FireTest):
 
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.msteams.card_builder import build_incident_attachment
+        from sentry.integrations.msteams.card_builder.incident_attachment import (
+            build_incident_attachment,
+        )
 
         responses.add(
             method=responses.POST,

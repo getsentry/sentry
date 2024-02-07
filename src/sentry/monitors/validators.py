@@ -1,4 +1,5 @@
-import pytz
+from typing import Literal
+
 import sentry_sdk
 from croniter import CroniterBadDateError, croniter
 from django.core.exceptions import ValidationError
@@ -9,29 +10,28 @@ from rest_framework import serializers
 
 from sentry import quotas
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import MAX_SLUG_LENGTH, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
     "disabled": ObjectStatus.DISABLED,
-    # TODO(epurkhiser): Remove once we no longer accept muted as a status. We
-    # use ACTIVE here since we do not want to actually change the status during
-    # muting. The validator will set is_muted to true when this status is set.
-    "muted": ObjectStatus.ACTIVE,
 }
 
 SCHEDULE_TYPES = {
     "crontab": ScheduleType.CRONTAB,
     "interval": ScheduleType.INTERVAL,
 }
+
+IntervalNames = Literal["year", "month", "week", "day", "hour", "minute"]
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")
 
@@ -126,7 +126,7 @@ class ConfigValidator(serializers.Serializer):
     )
 
     timezone = serializers.ChoiceField(
-        choices=pytz.all_timezones,
+        choices=sorted(AVAILABLE_TIMEZONES),
         required=False,
         allow_blank=True,
         help_text="tz database style timezone string",
@@ -239,7 +239,7 @@ class MonitorValidator(CamelSnakeSerializer):
         max_length=128,
         help_text="Name of the monitor. Used for notifications.",
     )
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         max_length=MAX_SLUG_LENGTH,
         required=False,
         help_text="Uniquely identifies your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.",
@@ -247,7 +247,7 @@ class MonitorValidator(CamelSnakeSerializer):
     status = serializers.ChoiceField(
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
         default="active",
-        help_text="Status of the monitor. Disabled monitors will not accept events and will not count towards the monitor quota.\n\n`muted` is deprecated. Prefer the `is_muted` field.",
+        help_text="Status of the monitor. Disabled monitors will not accept events and will not count towards the monitor quota.",
     )
     is_muted = serializers.BooleanField(
         required=False,
@@ -256,26 +256,6 @@ class MonitorValidator(CamelSnakeSerializer):
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ConfigValidator()
     alert_rule = MonitorAlertRuleValidator(required=False)
-
-    def validate(self, attrs):
-        status = attrs.get("status")
-
-        # TODO(epurkhiser): This translation of muted / active status ->
-        # isMuted will be removed in the future.
-        #
-        # When the status is set to muted we will set is_muted true, the status
-        # will not change. When the status is set to 'active' we will set
-        # is_muted to false and the status will be set to active
-        if status == "active":
-            attrs["is_muted"] = False
-
-        if status == "muted":
-            del attrs["status"]
-            attrs["is_muted"] = True
-        elif status:
-            attrs["status"] = MONITOR_STATUSES.get(status)
-
-        return attrs
 
     def validate_status(self, value):
         status = MONITOR_STATUSES.get(value, value)
@@ -292,9 +272,7 @@ class MonitorValidator(CamelSnakeSerializer):
             if not result.assignable:
                 raise ValidationError(result.reason)
 
-        # TODO(epurkhiser): This will need to translate back to the
-        # ObjectStatus value once we remove the is_muted compatability code
-        return value
+        return status
 
     def validate_type(self, value):
         return MONITOR_TYPES.get(value, value)
@@ -405,3 +383,19 @@ class MonitorCheckInValidator(serializers.Serializer):
             del attrs["monitor_config"]
 
         return attrs
+
+
+class MonitorBulkEditValidator(MonitorValidator):
+    slugs = serializers.ListField(
+        child=SentrySerializerSlugField(
+            max_length=MAX_SLUG_LENGTH,
+        ),
+        required=True,
+    )
+
+    def validate_slugs(self, value):
+        if Monitor.objects.filter(
+            slug__in=value, organization_id=self.context["organization"].id
+        ).count() != len(value):
+            raise ValidationError("Not all slugs are valid for this organization.")
+        return value

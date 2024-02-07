@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
@@ -69,12 +69,7 @@ const getMavenInstallSnippet = (params: Params) => `
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>${
-        params.sourcePackageRegistries?.isLoading
-          ? t('\u2026loading')
-          : params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']?.version ??
-            '0.0.4'
-      }</version>
+      <version>${getPackageVersion(params, 'sentry.java.maven-plugin', '0.0.4')}</version>
       <extensions>true</extensions>
       <configuration>
         <!-- for showing output of sentry-cli -->

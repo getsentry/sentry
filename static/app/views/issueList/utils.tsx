@@ -1,7 +1,7 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
@@ -45,12 +45,11 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
       {
-        name: hasEscalatingIssuesUi ? t('Unresolved') : t('All Unresolved'),
+        name: t('Unresolved'),
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
@@ -63,13 +62,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: true,
-        tooltipTitle: hasEscalatingIssuesUi
-          ? t(
-              'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
-            )
-          : t(`Issues are marked for review when they are created, unresolved, or unignored.
-          Mark an issue reviewed to move it out of this list.
-          Issues are automatically marked reviewed in 7 days.`),
+        tooltipTitle: t(
+          'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
+        ),
       },
     ],
     [
@@ -78,7 +73,7 @@ export function getTabs(organization: Organization) {
         name: t('Regressed'),
         analyticsName: 'regressed',
         count: true,
-        enabled: hasEscalatingIssuesUi,
+        enabled: true,
       },
     ],
     [
@@ -87,7 +82,7 @@ export function getTabs(organization: Organization) {
         name: t('Escalating'),
         analyticsName: 'escalating',
         count: true,
-        enabled: hasEscalatingIssuesUi,
+        enabled: true,
       },
     ],
     [
@@ -96,7 +91,7 @@ export function getTabs(organization: Organization) {
         name: t('Archived'),
         analyticsName: 'archived',
         count: true,
-        enabled: hasEscalatingIssuesUi,
+        enabled: true,
       },
     ],
     [
@@ -105,7 +100,7 @@ export function getTabs(organization: Organization) {
         name: t('Ignored'),
         analyticsName: 'ignored',
         count: true,
-        enabled: !hasEscalatingIssuesUi,
+        enabled: false,
         tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
         conditions are met they become Unresolved and are flagged for review.`),
       },

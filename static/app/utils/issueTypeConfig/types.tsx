@@ -70,6 +70,10 @@ export type IssueTypeConfig = {
     linksByPlatform: Partial<Record<PlatformKey, ResourceLink[]>>;
   } | null;
   /**
+   * Should the page show the feedback widget
+   */
+  showFeedbackWidget: boolean;
+  /**
    * Is the Similar Issues tab shown for this issue
    */
   similarIssues: DisabledWithReasonConfig;
@@ -104,11 +108,10 @@ export const enum ErrorHelpType {
   CHUNK_LOAD_ERROR = 'chunk_load_error',
   DOCUMENT_OR_WINDOW_OBJECT_ERROR = 'document_or_window_object_error',
   HANDLE_HARD_NAVIGATE_ERROR = 'handle_hard_navigate_error',
+  MODULE_NOT_FOUND = 'module_not_found',
   DYNAMIC_SERVER_USAGE = 'dynamic_server_usage',
-}
-
-export interface ErrorInfo {
-  errorHelpType: ErrorHelpType;
-  errorTitle: string;
-  projectCheck: boolean;
+  HYDRATION_ERROR = 'hydration_error',
+  LOAD_FAILED = 'load_failed',
+  SOCKET_HANG_UP = 'socket_hang_up',
+  FAILED_TO_FETCH = 'failed_to_fetch',
 }

@@ -2,12 +2,11 @@ import hmac
 import secrets
 from functools import cached_property
 from hashlib import sha256
-from typing import ClassVar
+from typing import ClassVar, Self
 from uuid import uuid4
 
 from django.db import models
 from django.utils import timezone
-from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus

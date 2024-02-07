@@ -1,16 +1,17 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
-import {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
+import type {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
 describe('OpenInContextLine', function () {
   const filename = '/sentry/app.py';
   const group = GroupFixture();
-  const install = SentryAppInstallation();
+  const install = SentryAppInstallationFixture();
   const components: SentryAppComponent<SentryAppSchemaStacktraceLink>[] = [
     {
       uuid: 'ed517da4-a324-44c0-aeea-1894cd9923fb',
@@ -66,6 +67,19 @@ describe('OpenInContextLine', function () {
         'href',
         'http://localhost:4000/something?filename=%2Fsentry%2Fapp.py&installationId=25d10adb-7b89-45ac-99b5-edaa714341ba&lineNo=233&projectSlug=internal'
       );
+    });
+
+    it('renders only app icons with issue-details-stacktrace-link-in-frame feature', function () {
+      const organization = OrganizationFixture({
+        features: ['issue-details-stacktrace-link-in-frame'],
+      });
+      render(
+        <OpenInContextLine filename={filename} lineNo={lineNo} components={components} />,
+        {organization}
+      );
+
+      expect(screen.getByRole('link', {name: 'Foo'})).toHaveTextContent('');
+      expect(screen.getByRole('link', {name: 'Tesla'})).toHaveTextContent('');
     });
   });
 });

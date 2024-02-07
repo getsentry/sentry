@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
-import isNil from 'lodash/isNil';
 
-import {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
+import type {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,7 +18,7 @@ type ThreadInfo = {
 };
 
 function getThreadLabel(details: ThreadInfo, name?: string | null) {
-  if (!isNil(name) && name) {
+  if (name?.length) {
     return name;
   }
   return details?.label || `<${t('unknown')}>`;

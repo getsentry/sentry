@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from datetime import datetime
 from typing import Any
 from unittest.mock import Mock, patch
@@ -14,8 +15,10 @@ from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMe
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
     build_actions,
+    format_release_tag,
     get_option_groups,
     get_option_groups_block_kit,
+    time_since,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.issues.grouptype import (
@@ -24,14 +27,23 @@ from sentry.issues.grouptype import (
     ProfileFileIOGroupType,
 )
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.notifications.utils import get_commits
 from sentry.notifications.utils.actions import MessageAction
+from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -43,10 +55,14 @@ pytestmark = [requires_snuba]
 def build_test_message_blocks(
     teams: set[Team],
     users: set[User],
-    timestamp: datetime,
     group: Group,
     event: Event | None = None,
     link_to_event: bool = False,
+    tags: dict[str, str] | None = None,
+    suggested_assignees: str | None = None,
+    initial_assignee: Team | User | None = None,
+    notes: str | None = None,
+    suspect_commit_text: str | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -60,71 +76,113 @@ def build_test_message_blocks(
         if link_to_event:
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
-    ts = group.last_seen
-    timestamp = max(ts, event.datetime) if event else ts
-    event_date = "<!date^{:.0f}^{} at {} | Sentry Issue>".format(
-        to_timestamp(timestamp), "{date_pretty}", "{time}"
-    )
-    return {
-        "blocks": [
+    title_text = f":exclamation: <{title_link}|*{formatted_title}*>"
+
+    blocks: list[dict[str, Any]] = [
+        {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": title_text},
+            "block_id": f'{{"issue":{group.id}}}',
+        },
+    ]
+
+    tags_text = ""
+    if not tags:
+        tags = {"level": "error"}
+    for k, v in tags.items():
+        if k == "release":
+            v = format_release_tag(v, group)
+        tags_text += f"{k}: `{v}`  "
+
+    tags_section = {"type": "section", "text": {"type": "mrkdwn", "text": tags_text}}
+    blocks.append(tags_section)
+
+    # add event and user count, state, first seen
+    counts_section = {
+        "type": "context",
+        "elements": [
             {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": f"<{title_link}|*{formatted_title}*>  \n"},
-                "block_id": f'{{"issue":{group.id}}}',
+                "type": "mrkdwn",
+                "text": f"Events: *1*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*",
+            }
+        ],
+    }
+
+    blocks.append(counts_section)
+
+    actions: dict[str, Any] = {
+        "type": "actions",
+        "elements": [
+            {
+                "type": "button",
+                "action_id": "resolve_dialog",
+                "text": {"type": "plain_text", "text": "Resolve"},
+                "value": "resolve_dialog",
             },
             {
-                "type": "context",
-                "elements": [{"type": "mrkdwn", "text": f"BAR-{group.short_id} | {event_date}"}],
+                "type": "button",
+                "action_id": "archive_dialog",
+                "text": {"type": "plain_text", "text": "Archive"},
+                "value": "archive_dialog",
             },
             {
-                "type": "actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "action_id": "resolve_dialog",
-                        "text": {"type": "plain_text", "text": "Resolve"},
-                        "value": "resolve_dialog",
-                    },
-                    {
-                        "type": "button",
-                        "action_id": "ignored:forever",
-                        "text": {"type": "plain_text", "text": "Ignore"},
-                        "value": "ignored:forever",
-                    },
-                    {
-                        "type": "static_select",
-                        "placeholder": {
-                            "type": "plain_text",
-                            "text": "Select Assignee...",
-                            "emoji": True,
-                        },
-                        "option_groups": [
-                            {
-                                "label": {"type": "plain_text", "text": "Teams"},
-                                "options": [
-                                    {
-                                        "text": {"type": "plain_text", "text": f"#{team.slug}"},
-                                        "value": f"team:{team.id}",
-                                    }
-                                    for team in teams
-                                ],
-                            },
-                            {
-                                "label": {"type": "plain_text", "text": "People"},
-                                "options": [
-                                    {
-                                        "text": {"type": "plain_text", "text": f"{user.email}"},
-                                        "value": f"user:{user.id}",
-                                    }
-                                    for user in users
-                                ],
-                            },
-                        ],
-                        "action_id": "assign",
-                    },
-                ],
+                "type": "external_select",
+                "placeholder": {
+                    "type": "plain_text",
+                    "text": "Select Assignee...",
+                    "emoji": True,
+                },
+                "action_id": "assign",
             },
         ],
+    }
+    if initial_assignee:
+        if isinstance(initial_assignee, User):
+            actions["elements"][2]["initial_option"] = {
+                "text": {"type": "plain_text", "text": f"{initial_assignee.email}"},
+                "value": f"user:{initial_assignee.id}",
+            }
+        else:
+            actions["elements"][2]["initial_option"] = {
+                "text": {"type": "plain_text", "text": f"#{initial_assignee.slug}"},
+                "value": f"team:{initial_assignee.id}",
+            }
+    blocks.append(actions)
+
+    if suggested_assignees:
+        suggested_assignees_text = f"Suggested Assignees: {suggested_assignees}"
+        suggested_assignees_section = {
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": suggested_assignees_text}],
+        }
+        blocks.append(suggested_assignees_section)
+
+    if suspect_commit_text and event:
+        suspect_commit_section = {
+            "type": "context",
+            "elements": [{"type": "mrkdwn", "text": suspect_commit_text}],
+        }
+        blocks.append(suspect_commit_section)
+
+    if notes:
+        notes_text = f"notes: {notes}"
+        notes_section = {
+            "type": "section",
+            "text": {"type": "mrkdwn", "text": notes_text},
+        }
+        blocks.append(notes_section)
+
+    context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}    Short ID: {group.qualified_short_id}"
+    context = {
+        "type": "context",
+        "elements": [{"type": "mrkdwn", "text": context_text}],
+    }
+    blocks.append(context)
+
+    blocks.append({"type": "divider"})
+
+    return {
+        "blocks": blocks,
         "text": f"[{project.slug}] {title}",
     }
 
@@ -152,7 +210,12 @@ def build_test_message(
         "color": "#E03E2F",  # red for error level
         "actions": [
             {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored:forever"},
+            {
+                "name": "status",
+                "text": "Archive",
+                "type": "button",
+                "value": "ignored:until_escalating",
+            },
             {
                 "option_groups": [
                     {
@@ -194,7 +257,6 @@ def build_test_message(
 class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
-
         assert SlackIssuesMessageBuilder(group).build() == build_test_message(
             teams={self.team},
             users={self.user},
@@ -225,45 +287,97 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             link_to_event=True,
         )
 
-        with self.feature("organizations:escalating-issues"):
-            test_message = build_test_message(
-                teams={self.team},
-                users={self.user},
-                timestamp=group.last_seen,
-                group=group,
-            )
-            test_message["actions"] = [
-                action
-                if action["text"] != "Ignore"
-                else {
-                    "name": "status",
-                    "text": "Archive",
-                    "type": "button",
-                    "value": "ignored:until_escalating",
-                }
-                for action in test_message["actions"]
-            ]
-            assert SlackIssuesMessageBuilder(group).build() == test_message
-
-    @with_feature("organizations:slack-block-kit")
-    def test_build_group_block(self):
-        group = self.create_group(project=self.project)
-        assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
+        test_message = build_test_message(
             teams={self.team},
             users={self.user},
             timestamp=group.last_seen,
             group=group,
         )
+        test_message["actions"] = [
+            action
+            if action["text"] != "Ignore"
+            else {
+                "name": "status",
+                "text": "Archive",
+                "type": "button",
+                "value": "ignored:until_escalating",
+            }
+            for action in test_message["actions"]
+        ]
+        assert SlackIssuesMessageBuilder(group).build() == test_message
 
-        event = self.store_event(data={}, project_id=self.project.id)
+    @with_feature("organizations:slack-block-kit")
+    def test_build_group_block(self):
+
+        release = self.create_release(project=self.project)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"foo": "bar"},
+                "timestamp": iso_format(before_now(minutes=1)),
+                "logentry": {"formatted": "bar"},
+                "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
+                "release": release.version,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        group = event.group
+        assert group
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        base_tags = {"level": "error", "release": release.version}
+        more_tags = {"foo": "bar", **base_tags}
+        notes = "hey @colleen fix it"
+
+        assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=base_tags,
+        )
+        # add extra tag to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), tags={"foo"}
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=more_tags,
+            event=event,
+        )
+
+        # add notes to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), notes=notes
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            notes=notes,
+            event=event,
+            tags=base_tags,
+        )
+        # add extra tag and notes to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), tags={"foo"}, notes=notes
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=more_tags,
+            notes=notes,
+            event=event,
+        )
+
         assert SlackIssuesMessageBuilder(
             group, event.for_group(group)
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
-            timestamp=event.datetime,
             group=group,
             event=event,
+            tags=base_tags,
         )
 
         assert SlackIssuesMessageBuilder(
@@ -271,29 +385,20 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
-            timestamp=event.datetime,
             group=group,
             event=event,
             link_to_event=True,
+            tags=base_tags,
         )
 
-        with self.feature("organizations:escalating-issues"):
-            test_message = build_test_message_blocks(
-                teams={self.team},
-                users={self.user},
-                timestamp=group.last_seen,
-                group=group,
-            )
+        test_message = build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=base_tags,
+        )
 
-            for section in test_message["blocks"]:
-                if section["type"] == "actions":
-                    for element in section["elements"]:
-                        if "ignore" in element["action_id"]:
-                            element["action_id"] = "ignored:until_escalating"
-                            element["value"] = "ignored:until_escalating"
-                            element["text"]["text"] = "Archive"
-
-            assert SlackIssuesMessageBuilder(group).build() == test_message
+        assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @patch(
         "sentry.integrations.slack.message_builder.issues.get_option_groups",
@@ -346,6 +451,261 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         for section in ret["blocks"]:
             assert section["type"] != "actions"
 
+    @patch(
+        "sentry.api.serializers.models.pullrequest.PullRequestSerializer._external_url",
+        return_value="https://github.com/meowmeow/cats/pull/1",
+    )
+    @with_feature("organizations:slack-block-kit")
+    def test_issue_alert_with_suspect_commits(self, mock_external_url):
+        self.login_as(user=self.user)
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="example",
+            integration_id=self.integration.id,
+            url="http://www.github.com/meowmeow/cats",
+            provider="github",
+        )
+        commit_author = self.create_commit_author(project=self.project, user=self.user)
+        self.commit = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=commit_author,
+            key="asdfwreqr",
+            message="placeholder commit message",
+        )
+        pull_request = PullRequest.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="9",
+            author=commit_author,
+            message="waddap",
+            title="cool pr",
+            merge_commit_sha=self.commit.key,
+        )
+        event = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "timestamp": iso_format(before_now(minutes=1)),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "logentry": {"formatted": "bar"},
+                "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        assert event.group
+        group = event.group
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": self.commit.id},
+        )
+
+        suspect_commit_text = f"Suspect Commit: <{self.repo.url}/commit/{self.commit.key}|{self.commit.key[:6]}> by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{mock_external_url.return_value}|View Pull Request>"
+        commits = get_commits(self.project, event)
+
+        assert SlackIssuesMessageBuilder(
+            group,
+            event.for_group(group),
+            commits=commits,
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            suspect_commit_text=suspect_commit_text,
+        )
+
+    @patch(
+        "sentry.api.serializers.models.pullrequest.PullRequestSerializer._external_url",
+        return_value="https://unknown.com/meowmeow/cats/pull/1",
+    )
+    @with_feature("organizations:slack-block-kit")
+    def test_issue_alert_with_suspect_commits_unknown_provider(self, mock_external_url):
+        self.login_as(user=self.user)
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="example",
+            integration_id=self.integration.id,
+            url="http://www.unknown.com/meowmeow/cats",
+            provider="dummy",
+        )
+        commit_author = self.create_commit_author(project=self.project, user=self.user)
+        self.commit = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=commit_author,
+            key="asdfwreqr",
+            message="placeholder commit message",
+        )
+        pull_request = PullRequest.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key="9",
+            author=commit_author,
+            message="waddap",
+            title="cool pr",
+            merge_commit_sha=self.commit.key,
+        )
+        event = self.store_event(
+            data={
+                "fingerprint": ["group1"],
+                "timestamp": iso_format(before_now(minutes=1)),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "logentry": {"formatted": "bar"},
+                "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        assert event.group
+        group = event.group
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": self.commit.id},
+        )
+
+        suspect_commit_text = f"Suspect Commit: {self.commit.key[:6]} by {commit_author.email} {time_since(pull_request.date_added)} \n'{pull_request.title} (#{pull_request.key})' <{mock_external_url.return_value}|View Pull Request>"
+        commits = get_commits(self.project, event)
+
+        assert SlackIssuesMessageBuilder(
+            group,
+            event.for_group(group),
+            commits=commits,
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            suspect_commit_text=suspect_commit_text,
+        )
+
+    @with_feature("organizations:slack-block-kit")
+    @with_feature("organizations:streamline-targeting-context")
+    def test_issue_alert_with_suggested_assignees(self):
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "level": "error",
+                "stacktrace": {"frames": [{"filename": "foo.py"}]},
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+
+        # create codeowner; user with no slack identity linked
+        self.code_mapping = self.create_code_mapping(project=self.project)
+        g_rule1 = Rule(Matcher("path", "*"), [Owner("team", self.team.slug)])
+        self.create_codeowners(self.project, self.code_mapping, schema=dump_schema([g_rule1]))
+        GroupOwner.objects.create(
+            group=group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.organization,
+            context={"rule": str(g_rule1)},
+        )
+
+        # create ownership rule
+        g_rule2 = Rule(Matcher("level", "error"), [Owner("user", self.user.email)])
+        GroupOwner.objects.create(
+            group=group,
+            type=GroupOwnerType.OWNERSHIP_RULE.value,
+            user_id=self.user.id,
+            team_id=None,
+            project=self.project,
+            organization=self.organization,
+            context={"rule": str(g_rule2)},
+        )
+
+        # create suspect commit
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="dogs",
+            integration_id=self.integration.id,
+            url="http://www.bitbucket.org/woofwoof/dogs",
+            provider="bitbucket",
+        )
+        user2 = self.create_user()
+        self.create_member(teams=[self.team], user=user2, organization=self.organization)
+
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+            author=self.create_commit_author(project=self.project, user=user2),
+            key="qwertyuiopiuytrewq",
+            message="This is a suspect commit!",
+        )
+        GroupOwner.objects.create(
+            group=group,
+            user_id=user2.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+
+        # auto assign group
+        ProjectOwnership.handle_auto_assignment(self.project.id, event)
+        suspect_commit_text = f"Suspect Commit: {commit.key[:6]} by {user2.email}"  # no commit link because there is no PR
+
+        commits = get_commits(self.project, event)
+        expected_blocks = build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            suggested_assignees=f"#{self.team.slug}, {user2.email}",  # auto-assignee is not included in suggested
+            initial_assignee=self.user,
+            suspect_commit_text=suspect_commit_text,
+        )
+
+        assert (
+            SlackIssuesMessageBuilder(
+                group, event.for_group(group), tags={"foo"}, commits=commits
+            ).build()
+            == expected_blocks
+        )
+
+        # suggested user/suspect commit for user with name
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user2.update(name="Scooby Doo")
+        commit.author.update(name=user2.name)
+        suspect_commit_text = f"Suspect Commit: {commit.key[:6]} by {user2.name}"
+        expected_blocks = build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            suggested_assignees=f"#{self.team.slug}, {user2.name}",
+            initial_assignee=self.user,
+            suspect_commit_text=suspect_commit_text,
+        )
+        commits = get_commits(self.project, event)
+        assert (
+            SlackIssuesMessageBuilder(
+                group, event.for_group(group), tags={"foo"}, commits=commits
+            ).build()
+            == expected_blocks
+        )
+
     def test_team_recipient(self):
         issue_alert_group = self.create_group(project=self.project)
         ret = SlackIssuesMessageBuilder(
@@ -368,6 +728,22 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                 break
 
         assert has_actions
+
+    @with_feature("organizations:slack-block-kit")
+    def test_team_recipient_block_kit_already_assigned(self):
+        issue_alert_group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            project=self.project, group=issue_alert_group, user_id=self.user.id
+        )
+        ret = SlackIssuesMessageBuilder(
+            issue_alert_group, recipient=RpcActor.from_object(self.team)
+        ).build()
+        assert isinstance(ret, dict)
+        assert (
+            ret["blocks"][2]["elements"][2]["initial_option"]["text"]["text"]
+            == self.user.get_display_name()
+        )
+        assert ret["blocks"][2]["elements"][2]["initial_option"]["value"] == f"user:{self.user.id}"
 
     # XXX(CEO): skipping replicating tests relating to color since there is no block kit equivalent
     def test_build_group_attachment_color_no_event_error_fallback(self):
@@ -435,7 +811,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         for section in blocks["blocks"]:
             if section["type"] == "text":
                 assert occurrence.issue_title in section["text"]["text"]
-        assert occurrence.evidence_display[0].value in blocks["blocks"][0]["text"]["text"]
+
+        assert (
+            occurrence.evidence_display[0].value
+            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
+        )
         assert blocks["text"] == f"[{self.project.slug}] {occurrence.issue_title}"
 
     def test_build_error_issue_fallback_text(self):
@@ -475,7 +855,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert "N+1 Query" in blocks["blocks"][0]["text"]["text"]
         assert (
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in blocks["blocks"][0]["text"]["text"]
+            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
@@ -507,9 +887,13 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         ret = SlackIssuesMessageBuilder(group, None).build()
         assert isinstance(ret, dict)
-        assert "&lt;https://example.com/|*Click Here*&gt;" in ret["blocks"][0]["text"]["text"]
+        assert (
+            "&lt;https://example.com/|*Click Here*&gt;"
+            in ret["blocks"][1]["elements"][0]["elements"][0]["text"]
+        )
 
 
+@region_silo_test
 class BuildGroupAttachmentReplaysTest(TestCase):
     @patch("sentry.models.group.Group.has_replays")
     def test_build_replay_issue(self, has_replays):
@@ -565,7 +949,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
         assert isinstance(blocks, dict)
         assert (
             f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
-            in blocks["blocks"][0]["text"]["text"]
+            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
         )
 
 
@@ -850,15 +1234,14 @@ class ActionsTest(TestCase):
     def test_identity_and_action(self):
         group = self.create_group(project=self.project)
         MOCKIDENTITY = Mock()
-
         assert build_actions(
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
-        ) == ([], "test txt\n", "_actioned_issue")
+        ) == ([], "", "_actioned_issue")
 
         with self.feature("organizations:slack-block-kit"):
             assert build_actions(
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], MOCKIDENTITY
-            ) == ([], "test txt\n", "_actioned_issue")
+            ) == ([], "", "_actioned_issue")
 
     def _assert_message_actions_list(self, actions, expected):
         actions_dict = [
@@ -875,7 +1258,7 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
         )
         expected = {
-            "label": "Stop Ignoring",
+            "label": "Mark as Ongoing",
             "name": "status",
             "type": "button",
             "value": "unresolved:ongoing",
@@ -899,10 +1282,9 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.IGNORED
         group.save()
 
-        with self.feature({"organizations:escalating-issues": True}):
-            res = build_actions(
-                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-            )
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
 
         expected = {
             "label": "Mark as Ongoing",
@@ -914,9 +1296,7 @@ class ActionsTest(TestCase):
             res[0],
             expected,
         )
-        with self.feature("organizations:escalating-issues"), self.feature(
-            "organizations:slack-block-kit"
-        ):
+        with self.feature("organizations:slack-block-kit"):
             res = build_actions(
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
             )
@@ -934,10 +1314,10 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
         )
         expected = {
-            "label": "Ignore",
+            "label": "Archive",
             "name": "status",
             "type": "button",
-            "value": "ignored:forever",
+            "value": "ignored:until_escalating",
         }
         self._assert_message_actions_list(
             res[0],
@@ -948,6 +1328,7 @@ class ActionsTest(TestCase):
             res = build_actions(
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
             )
+            expected.update({"name": "status", "value": "archive_dialog"})
             self._assert_message_actions_list(
                 res[0],
                 expected,
@@ -958,10 +1339,9 @@ class ActionsTest(TestCase):
         group.status = GroupStatus.UNRESOLVED
         group.save()
 
-        with self.feature({"organizations:escalating-issues": True}):
-            res = build_actions(
-                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
-            )
+        res = build_actions(
+            group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+        )
         expected = {
             "label": "Archive",
             "name": "status",
@@ -972,12 +1352,11 @@ class ActionsTest(TestCase):
             res[0],
             expected,
         )
-        with self.feature("organizations:slack-block-kit"), self.feature(
-            "organizations:escalating-issues"
-        ):
+        with self.feature("organizations:slack-block-kit"):
             res = build_actions(
                 group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
             )
+            expected.update({"name": "status", "value": "archive_dialog"})
             self._assert_message_actions_list(
                 res[0],
                 expected,
@@ -1016,6 +1395,20 @@ class ActionsTest(TestCase):
             res[0],
             expected,
         )
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+
+            self._assert_message_actions_list(
+                res[0],
+                {
+                    "label": "Unresolve",
+                    "name": "unresolved:ongoing",
+                    "type": "button",
+                    "value": "unresolved:ongoing",
+                },
+            )
 
     def test_resolve_unresolved_no_releases(self):
         group = self.create_group(project=self.project)
@@ -1037,6 +1430,19 @@ class ActionsTest(TestCase):
                 "value": "resolved",
             },
         )
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+            self._assert_message_actions_list(
+                res[0],
+                {
+                    "label": "Resolve",
+                    "name": "status",
+                    "type": "button",
+                    "value": "resolved",
+                },
+            )
 
     def test_resolve_unresolved_has_releases(self):
         group = self.create_group(project=self.project)
@@ -1058,6 +1464,20 @@ class ActionsTest(TestCase):
                 "value": "resolve_dialog",
             },
         )
+
+        with self.feature("organizations:slack-block-kit"):
+            res = build_actions(
+                group, self.project, "test txt", "red", [MessageAction(name="TEST")], None
+            )
+            self._assert_message_actions_list(
+                res[0],
+                {
+                    "label": "Resolve",
+                    "name": "status",
+                    "type": "button",
+                    "value": "resolve_dialog",
+                },
+            )
 
     def test_assign(self):
         group = self.create_group(project=self.project)

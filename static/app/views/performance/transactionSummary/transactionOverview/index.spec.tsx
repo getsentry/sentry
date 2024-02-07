@@ -1,6 +1,8 @@
-import {browserHistory, InjectedRouter} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import type {InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -15,7 +17,7 @@ import {
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
@@ -27,8 +29,8 @@ import TransactionSummary from 'sentry/views/performance/transactionSummary/tran
 import {RouteContext} from 'sentry/views/routeContext';
 
 const teams = [
-  Team({id: '1', slug: 'team1', name: 'Team 1'}),
-  Team({id: '2', slug: 'team2', name: 'Team 2'}),
+  TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
+  TeamFixture({id: '2', slug: 'team2', name: 'Team 2'}),
 ];
 
 function initializeData({
@@ -43,8 +45,8 @@ function initializeData({
   query?: Record<string, any>;
 } = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const project = prj ?? TestStubs.Project({teams});
-  const organization = Organization({
+  const project = prj ?? ProjectFixture({teams});
+  const organization = OrganizationFixture({
     features,
     projects: projects ? projects : [project],
   });
@@ -142,7 +144,7 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -541,7 +543,7 @@ describe('Performance > TransactionSummary', function () {
 
     it('renders Web Vitals widget', async function () {
       const {organization, router, routerContext} = initializeData({
-        project: TestStubs.Project({teams, platform: 'javascript'}),
+        project: ProjectFixture({teams, platform: 'javascript'}),
         query: {
           query:
             'transaction.duration:<15m transaction.op:pageload event.type:transaction transaction:/organizations/:orgId/issues/',
@@ -632,18 +634,18 @@ describe('Performance > TransactionSummary', function () {
       });
 
       const projects = [
-        TestStubs.Project({
+        ProjectFixture({
           slug: 'proj-slug-1',
           id: '1',
           name: 'Project Name 1',
         }),
-        TestStubs.Project({
+        ProjectFixture({
           slug: 'proj-slug-2',
           id: '2',
           name: 'Project Name 2',
         }),
       ];
-      OrganizationStore.onUpdate(Organization({slug: 'org-slug'}), {
+      OrganizationStore.onUpdate(OrganizationFixture({slug: 'org-slug'}), {
         replace: true,
       });
       const {organization, router, routerContext} = initializeData({projects});
@@ -658,11 +660,7 @@ describe('Performance > TransactionSummary', function () {
           router={router}
           location={router.location}
         />,
-        {
-          context: routerContext,
-          organization,
-          projects,
-        }
+        {context: routerContext, organization}
       );
 
       renderGlobalModal();

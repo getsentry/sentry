@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any, Optional
 from urllib.parse import urlencode
 
 import responses
@@ -9,7 +10,6 @@ from rest_framework import status
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.team import Team
@@ -52,7 +52,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
             content_type="application/json",
         )
 
-    def get_success_response(self, data: Optional[Mapping[str, Any]] = None) -> HttpResponseBase:
+    def get_success_response(self, data: Mapping[str, Any] | None = None) -> HttpResponseBase:
         """This isn't in APITestCase so this isn't really an override."""
         if data is not None:
             response = self.client.post(
@@ -65,7 +65,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
 
     def get_error_response(
         self,
-        data: Optional[Mapping[str, Any]] = None,
+        data: Mapping[str, Any] | None = None,
         status_code: int = status.HTTP_404_NOT_FOUND,
     ) -> HttpResponseBase:
         if data:
@@ -88,7 +88,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         )
 
     def get_linked_teams(
-        self, team_ids: Optional[Sequence[int]] = None, organization: Optional[Organization] = None
+        self, team_ids: Sequence[int] | None = None, organization: Organization | None = None
     ) -> QuerySet:
         team_ids = team_ids or [self.team.id]
         organization = organization or self.organization
@@ -219,7 +219,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=organization2.id, integration=self.integration
             )
 
@@ -375,7 +375,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            OrganizationIntegration.objects.create(
+            self.create_organization_integration(
                 organization_id=organization2.id, integration=self.integration
             )
         self.link_team(team2)

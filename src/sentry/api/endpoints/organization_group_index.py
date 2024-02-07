@@ -1,6 +1,7 @@
 import functools
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -12,10 +13,10 @@ from sentry import features, search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
+from sentry.api.bases import OrganizationEventPermission
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
-    ValidationError,
     build_query_params_from_request,
     calculate_stats_period,
     delete_groups,
@@ -23,12 +24,13 @@ from sentry.api.helpers.group_index import (
     track_slo_response,
     update_groups,
 )
+from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
-from sentry.api.utils import InvalidParams, get_date_range_from_stats_period
+from sentry.api.utils import get_date_range_from_stats_period
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -48,19 +50,19 @@ allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigne
 
 def inbox_search(
     projects: Sequence[Project],
-    environments: Optional[Sequence[Environment]] = None,
+    environments: Sequence[Environment] | None = None,
     limit: int = 100,
-    cursor: Optional[Cursor] = None,
+    cursor: Cursor | None = None,
     count_hits: bool = False,
-    search_filters: Optional[Sequence[SearchFilter]] = None,
-    date_from: Optional[datetime] = None,
-    date_to: Optional[datetime] = None,
-    max_hits: Optional[int] = None,
-    actor: Optional[Any] = None,
+    search_filters: Sequence[SearchFilter] | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    max_hits: int | None = None,
+    actor: Any | None = None,
 ) -> CursorResult:
     now: datetime = timezone.now()
-    end: Optional[datetime] = None
-    end_params: List[datetime] = [
+    end: datetime | None = None
+    end_params: list[datetime] = [
         _f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f
     ]
     if end_params:
@@ -106,7 +108,7 @@ def inbox_search(
     ).using_replica()
 
     if environments is not None:
-        environment_ids: List[int] = [environment.id for environment in environments]
+        environment_ids: list[int] = [environment.id for environment in environments]
         qs = qs.filter(
             group_id__in=GroupEnvironment.objects.filter(environment_id__in=environment_ids)
             .values_list("group_id", flat=True)
@@ -136,7 +138,7 @@ def inbox_search(
 
 
 @region_silo_endpoint
-class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,

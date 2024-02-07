@@ -1,6 +1,5 @@
 import logging
 from string import Template
-from typing import Optional
 
 from django.db import DatabaseError, router, transaction
 from rest_framework.request import Request
@@ -32,14 +31,14 @@ logger = logging.getLogger(__name__)
 
 @region_silo_endpoint
 class RelocationUnpauseEndpoint(Endpoint):
-    owner = ApiOwner.RELOCATION
+    owner = ApiOwner.OPEN_SOURCE
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (SuperuserPermission,)
 
-    def _unpause(self, request: Request, relocation: Relocation) -> Optional[Response]:
+    def _unpause(self, request: Request, relocation: Relocation) -> Response | None:
         """
         Helper function to do the actual unpausing in a transaction-safe manner. It will only return
         a `Response` if the relocation failed - otherwise, it will return `None` and let the calling

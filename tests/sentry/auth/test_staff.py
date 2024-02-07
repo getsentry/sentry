@@ -1,10 +1,10 @@
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 
 from sentry.auth import staff
 from sentry.auth.staff import (
@@ -14,8 +14,8 @@ from sentry.auth.staff import (
     COOKIE_PATH,
     COOKIE_SALT,
     COOKIE_SECURE,
-    IDLE_MAX_STAFF_SESSION_AGE,
-    MAX_STAFF_SESSION_AGE,
+    IDLE_MAX_AGE,
+    MAX_AGE,
     SESSION_KEY,
     Staff,
     is_active_staff,
@@ -47,12 +47,12 @@ def override_org_id(new_org_id: int):
     the module level, but we cannot override module level variables using
     Django's built-in override_settings, so we need this context manager.
     """
-    old_org_id = staff.ORG_ID
-    staff.ORG_ID = new_org_id
+    old_org_id = staff.STAFF_ORG_ID
+    staff.STAFF_ORG_ID = new_org_id
     try:
         yield
     finally:
-        staff.ORG_ID = old_org_id
+        staff.STAFF_ORG_ID = old_org_id
 
 
 @control_silo_test
@@ -60,7 +60,7 @@ def override_org_id(new_org_id: int):
 class StaffTestCase(TestCase):
     def setUp(self):
         super().setUp()
-        self.current_datetime = timezone.now()
+        self.current_datetime = django_timezone.now()
         self.default_token = "abcdefghijklmnog"
 
     def build_request(
@@ -182,8 +182,8 @@ class StaffTestCase(TestCase):
     def test_login_saves_session(self):
         user = self.create_user("foo@example.com")
         request = self.make_request()
-        staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
-        staff.set_logged_in(user, current_datetime=self.current_datetime)
+        staff = Staff(request, allowed_ips=())
+        staff.set_logged_in(user)
 
         # request.user wasn't set
         assert not staff.is_active
@@ -191,16 +191,17 @@ class StaffTestCase(TestCase):
         request.user = user
         assert staff.is_active
 
-        data = request.session.get(SESSION_KEY)
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        data = request.session.get(SESSION_KEY)  # type:ignore[unreachable]
         assert data
-        assert data["exp"] == (self.current_datetime + MAX_STAFF_SESSION_AGE).strftime("%s")
-        assert data["idl"] == (self.current_datetime + IDLE_MAX_STAFF_SESSION_AGE).strftime("%s")
+        assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
+        assert data["idl"] == (self.current_datetime + IDLE_MAX_AGE).strftime("%s")
         assert len(data["tok"]) == 12
         assert data["uid"] == str(user.id)
 
     def test_logout_clears_session(self):
         request = self.build_request()
-        staff = Staff(request, allowed_ips=(), current_datetime=self.current_datetime)
+        staff = Staff(request, allowed_ips=())
         staff.set_logged_out()
 
         assert not staff.is_active
@@ -268,7 +269,10 @@ class StaffTestCase(TestCase):
         assert not staff.is_active
 
         # a non-staff
-        request.user = self.create_user("baz@example.com", is_staff=False)
+        # See mypy issue: https://github.com/python/mypy/issues/9457
+        request.user = self.create_user(  # type:ignore[unreachable]
+            "baz@example.com", is_staff=False
+        )
         assert not staff.is_active
 
         # a staff

@@ -11,11 +11,12 @@ import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
-import {LargestContentfulPaintFrame} from 'sentry/utils/replays/types';
+import type {LargestContentfulPaintFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 
-import usePerfFilters, {FilterFields} from './usePerfFilters';
+import type {FilterFields} from './usePerfFilters';
+import usePerfFilters from './usePerfFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');

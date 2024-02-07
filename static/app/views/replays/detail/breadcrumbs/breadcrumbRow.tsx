@@ -1,13 +1,14 @@
-import {CSSProperties, MouseEvent, useCallback} from 'react';
+import type {CSSProperties, MouseEvent} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
+import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 
 interface Props {
   extraction: Extraction | undefined;
@@ -21,6 +22,7 @@ interface Props {
     expandedState: Record<string, boolean>,
     event: MouseEvent<HTMLDivElement>
   ) => void;
+  projectSlug: string | undefined;
   startTimestampMs: number;
   style: CSSProperties;
   traces: ReplayTraceRow | undefined;
@@ -28,14 +30,15 @@ interface Props {
   expandPaths?: string[];
 }
 
-function BreadcrumbRow({
+export default function BreadcrumbRow({
   expandPaths,
-  frame,
   extraction,
+  frame,
   index,
   onClick,
   onDimensionChange,
   onInspectorExpanded,
+  projectSlug,
   startTimestampMs,
   style,
   traces,
@@ -74,6 +77,7 @@ function BreadcrumbRow({
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        projectSlug={projectSlug}
         startTimestampMs={startTimestampMs}
         expandPaths={expandPaths}
         onDimensionChange={handleDimensionChange}
@@ -88,5 +92,3 @@ const StyledTimeBorder = styled('div')`
   border-top: 1px solid transparent;
   border-bottom: 1px solid transparent;
 `;
-
-export default BreadcrumbRow;

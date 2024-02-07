@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import ipaddress
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
 from django.core.signing import BadSignature
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
 from rest_framework.request import Request
 
-from sentry.auth.elevated_mode import ElevatedMode
+from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
 from sentry.utils.auth import has_completed_sso
 
@@ -31,15 +31,14 @@ COOKIE_PATH = getattr(settings, "STAFF_COOKIE_PATH", settings.SESSION_COOKIE_PAT
 COOKIE_HTTPONLY = getattr(settings, "STAFF_COOKIE_HTTPONLY", True)
 
 # the maximum time the session can stay alive
-MAX_STAFF_SESSION_AGE = timedelta(hours=4)
+MAX_AGE = timedelta(hours=4)
 
-IDLE_MAX_STAFF_SESSION_AGE = timedelta(minutes=15)
+# the maximum time the session can stay alive without making another request
+IDLE_MAX_AGE = timedelta(minutes=15)
 
 ALLOWED_IPS = frozenset(getattr(settings, "STAFF_ALLOWED_IPS", settings.INTERNAL_IPS) or ())
 
-ORG_ID = getattr(settings, "STAFF_ORG_ID", None)
-
-DISABLE_SSO_CHECK_FOR_LOCAL_DEV = getattr(settings, "DISABLE_SSO_CHECK_FOR_LOCAL_DEV", False)
+STAFF_ORG_ID = getattr(settings, "STAFF_ORG_ID", None)
 
 UNSET = object()
 
@@ -54,17 +53,17 @@ def is_active_staff(request: Request) -> bool:
 class Staff(ElevatedMode):
     allowed_ips = frozenset(ipaddress.ip_network(str(v), strict=False) for v in ALLOWED_IPS)
 
-    def __init__(self, request, allowed_ips=UNSET, current_datetime=None):
+    def __init__(self, request, allowed_ips=UNSET) -> None:
         self.uid: str | None = None
         self.request = request
         if allowed_ips is not UNSET:
             self.allowed_ips = frozenset(
                 ipaddress.ip_network(str(v), strict=False) for v in allowed_ips or ()
             )
-        self._populate(current_datetime=current_datetime)
+        self._populate()
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         # We have a wsgi request with no user.
         if not hasattr(self.request, "user"):
             return False
@@ -79,39 +78,37 @@ class Staff(ElevatedMode):
             return False
         return self._is_active
 
-    def is_privileged_request(self):
+    def is_privileged_request(self) -> tuple[bool, InactiveReason]:
         """
-        Returns ``(bool is_privileged, str reason)``
+        Returns ``(bool is_privileged, RequestStatus reason)``
         """
         allowed_ips = self.allowed_ips
 
         # _admin should have always completed SSO to gain status.
         # We expect ORG_ID to always be set in production.
-        if ORG_ID and not has_completed_sso(self.request, ORG_ID):
-            if not DISABLE_SSO_CHECK_FOR_LOCAL_DEV:
-                return False, "incomplete-sso"
+        if STAFF_ORG_ID and not has_completed_sso(self.request, STAFF_ORG_ID):
+            return False, InactiveReason.INCOMPLETE_SSO
 
         # if there's no IPs configured, we allow assume its the same as *
         if not allowed_ips:
-            return True, None
+            return True, InactiveReason.NONE
         ip = ipaddress.ip_address(str(self.request.META["REMOTE_ADDR"]))
         if not any(ip in addr for addr in allowed_ips):
-            return False, "invalid-ip"
-        return True, None
+            return False, InactiveReason.INVALID_IP
+        return True, InactiveReason.NONE
 
     def get_session_data(self, current_datetime=None):
         """
         Return the current session data, with native types coerced.
         """
         request = self.request
-        data = request.session.get(SESSION_KEY)
 
         try:
             cookie_token = request.get_signed_cookie(
                 key=COOKIE_NAME,
                 default=None,
                 salt=COOKIE_SALT,
-                max_age=MAX_STAFF_SESSION_AGE.total_seconds(),
+                max_age=MAX_AGE.total_seconds(),
             )
         except BadSignature:
             logger.exception(
@@ -120,6 +117,7 @@ class Staff(ElevatedMode):
             )
             return
 
+        data = request.session.get(SESSION_KEY)
         if not cookie_token:
             if data:
                 logger.warning(
@@ -161,7 +159,7 @@ class Staff(ElevatedMode):
             return
 
         if current_datetime is None:
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
 
         try:
             data["idl"] = datetime.utcfromtimestamp(float(data["idl"])).replace(tzinfo=timezone.utc)
@@ -199,9 +197,8 @@ class Staff(ElevatedMode):
 
         return data
 
-    def _populate(self, current_datetime=None):
-        if current_datetime is None:
-            current_datetime = timezone.now()
+    def _populate(self) -> None:
+        current_datetime = django_timezone.now()
 
         request = self.request
         user = getattr(request, "user", None)
@@ -242,7 +239,7 @@ class Staff(ElevatedMode):
         # the staff check happens right here)
         assert user.is_staff
         if current_datetime is None:
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
         self.token = token
         self.uid = str(user.id)
         # the absolute maximum age of this session
@@ -253,31 +250,31 @@ class Staff(ElevatedMode):
         self._is_active, self._inactive_reason = self.is_privileged_request()
         self.request.session[SESSION_KEY] = {
             "exp": self.expires.strftime("%s"),
-            "idl": (current_datetime + IDLE_MAX_STAFF_SESSION_AGE).strftime("%s"),
+            "idl": (current_datetime + IDLE_MAX_AGE).strftime("%s"),
             "tok": self.token,
             # XXX(dcramer): do we really need the uid safety mechanism
             "uid": self.uid,
         }
 
-    def _set_logged_out(self):
+    def _set_logged_out(self) -> None:
         self.uid = None
         self.expires = None
         self.token = None
         self._is_active = False
-        self._inactive_reason = None
+        self._inactive_reason = InactiveReason.NONE
         self.is_valid = False
         self.request.session.pop(SESSION_KEY, None)
 
-    def set_logged_in(self, user, current_datetime=None):
+    def set_logged_in(self, user, current_datetime=None) -> None:
         """
         Mark a session as staff-enabled.
         """
         request = self.request
         if current_datetime is None:
-            current_datetime = timezone.now()
+            current_datetime = django_timezone.now()
 
         self._set_logged_in(
-            expires=current_datetime + MAX_STAFF_SESSION_AGE,
+            expires=current_datetime + MAX_AGE,
             token=get_random_string(12),
             user=user,
             current_datetime=current_datetime,
@@ -298,7 +295,7 @@ class Staff(ElevatedMode):
             extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
         )
 
-    def on_response(self, response):
+    def on_response(self, response) -> None:
         request = self.request
 
         # always re-bind the cookie to update the idle expiration window

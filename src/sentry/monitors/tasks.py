@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Mapping
 
 import msgpack
 import sentry_sdk
@@ -244,7 +244,10 @@ def check_missing(current_datetime: datetime):
             ],
         )
         .exclude(
-            monitor__is_muted=True,  # Temporary test until we can move out of celery or reduce load
+            monitor__is_muted=True,  # Temporary fix until we can move out of celery or reduce load
+        )
+        .exclude(
+            is_muted=True,  # Temporary fix until we can move out of celery or reduce load
         )[:MONITOR_LIMIT]
     )
 

@@ -12,7 +12,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
@@ -27,12 +26,13 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization} from 'sentry/types';
+import type {Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import Teams from 'sentry/utils/teams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
+import type {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForMember from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
@@ -292,6 +292,8 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
     const canResend = !expired;
     const showAuth = !pending;
 
+    const showResendButton = (member.pending || member.expired) && canResend;
+
     return (
       <Fragment>
         <SettingsPageHeader
@@ -304,7 +306,22 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
         />
 
         <Panel>
-          <PanelHeader>{t('Basics')}</PanelHeader>
+          <PanelHeader hasButtons={showResendButton}>
+            {t('Basics')}
+
+            {showResendButton && (
+              <Button
+                data-test-id="resend-invite"
+                size="xs"
+                priority="primary"
+                icon={<IconRefresh />}
+                title={t('Generate a new invite link and send a new email.')}
+                onClick={() => this.handleInvite(true)}
+              >
+                {t('Resend Invite')}
+              </Button>
+            )}
+          </PanelHeader>
 
           <PanelBody>
             <PanelItem>
@@ -328,24 +345,6 @@ class OrganizationMemberDetail extends DeprecatedAsyncView<Props, State> {
                   </div>
                 </div>
               </Details>
-            </PanelItem>
-            <PanelItem>
-              {(member.pending || member.expired) && (
-                <InviteSection>
-                  <ButtonBar gap={1}>
-                    {canResend && (
-                      <Button
-                        data-test-id="resend-invite"
-                        icon={<IconRefresh />}
-                        title={t('Generate a new invite link and send a new email.')}
-                        onClick={() => this.handleInvite(true)}
-                      >
-                        {t('Resend Invite')}
-                      </Button>
-                    )}
-                  </ButtonBar>
-                </InviteSection>
-              )}
             </PanelItem>
           </PanelBody>
         </Panel>
@@ -453,12 +452,6 @@ const DetailLabel = styled('div')`
   font-weight: bold;
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
-`;
-
-const InviteSection = styled('div')`
-  flex-grow: 1;
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const Footer = styled('div')`

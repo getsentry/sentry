@@ -1,6 +1,7 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -12,7 +13,7 @@ const alertText =
 
 describe('EventDetails', () => {
   const project = ProjectFixture();
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['performance-view'],
     projects: [project],
   });
@@ -54,12 +55,10 @@ describe('EventDetails', () => {
     });
 
     render(
-      <EventDetails
-        {...TestStubs.routeComponentProps({params: {eventSlug: 'latest'}})}
-      />,
+      <EventDetails {...RouteComponentPropsFixture({params: {eventSlug: 'latest'}})} />,
       {organization}
     );
-    expect(screen.getByText(alertText)).toBeInTheDocument();
+    expect(await screen.findByText(alertText)).toBeInTheDocument();
 
     // Expect stores to be updated
     await act(tick);
@@ -77,9 +76,7 @@ describe('EventDetails', () => {
     });
 
     render(
-      <EventDetails
-        {...TestStubs.routeComponentProps({params: {eventSlug: 'latest'}})}
-      />,
+      <EventDetails {...RouteComponentPropsFixture({params: {eventSlug: 'latest'}})} />,
       {organization}
     );
     expect(screen.queryByText(alertText)).not.toBeInTheDocument();

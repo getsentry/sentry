@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -10,7 +10,7 @@ import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Field, JsonFormObject} from 'sentry/components/forms/types';
+import type {Field, JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -21,8 +21,9 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {IssueTitle, IssueType, Organization, Project, Scope} from 'sentry/types';
-import {DynamicSamplingBiasType} from 'sentry/types/sampling';
+import type {Organization, Project, Scope} from 'sentry/types';
+import {IssueTitle, IssueType} from 'sentry/types';
+import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
@@ -135,12 +136,22 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
 
-    const performanceIssuesEndpoint = [
+    const performanceIssuesEndpoint: ReturnType<
+      DeprecatedAsyncView['getEndpoints']
+    >[number] = [
       'performance_issue_settings',
       `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
-    ] as [string, string];
+    ];
+
+    const generalSettingsEndpoint: ReturnType<
+      DeprecatedAsyncView['getEndpoints']
+    >[number] = [
+      'general',
+      `/projects/${organization.slug}/${projectId}/performance/configure/`,
+    ];
 
     endpoints.push(performanceIssuesEndpoint);
+    endpoints.push(generalSettingsEndpoint);
 
     return endpoints;
   }
@@ -828,6 +839,30 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
         <PermissionAlert project={project} />
+        <Access access={requiredScopes} project={project}>
+          {({hasAccess}) => (
+            <Feature features="organizations:starfish-browser-resource-module-image-view">
+              <Form
+                initialData={this.state.general}
+                saveOnBlur
+                apiEndpoint={`/projects/${organization.slug}/${project.slug}/performance/configure/`}
+              >
+                <JsonForm
+                  disabled={!hasAccess}
+                  fields={[
+                    {
+                      name: 'enable_images',
+                      type: 'boolean',
+                      label: t('Images'),
+                      help: t('Enables images from real data to be displayed'),
+                    },
+                  ]}
+                  title={t('General')}
+                />
+              </Form>
+            </Feature>
+          )}
+        </Access>
 
         <Form
           saveOnBlur
@@ -850,7 +885,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
           <Access access={requiredScopes} project={project}>
             {({hasAccess}) => (
               <JsonForm
-                title={t('General')}
+                title={t('Threshold Settings')}
                 fields={this.formFields}
                 disabled={!hasAccess}
                 renderFooter={() => (

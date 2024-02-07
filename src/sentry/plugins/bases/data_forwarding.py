@@ -1,5 +1,6 @@
 import logging
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from sentry import ratelimits, tsdb
 from sentry.api.serializers import serialize
@@ -45,7 +46,7 @@ class DataForwardingPlugin(Plugin):
         rl_key = self.get_rl_key(event)
         # limit segment to 50 requests/second
         limit, window = self.get_rate_limit()
-        if limit and window and ratelimits.is_limited(rl_key, limit=limit, window=window):
+        if limit and window and ratelimits.backend.is_limited(rl_key, limit=limit, window=window):
             logger.info(
                 "data_forwarding.skip_rate_limited",
                 extra={

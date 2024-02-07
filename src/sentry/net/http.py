@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import socket
+from collections.abc import Callable
 from functools import partial
 from socket import error as SocketError
 from socket import timeout as SocketTimeout
-from typing import Callable, Optional
+from typing import Optional
 
 from requests import Session as _Session
 from requests.adapters import DEFAULT_POOLBLOCK, HTTPAdapter
@@ -160,7 +161,6 @@ class BlacklistAdapter(HTTPAdapter):
             num_pools=connections,
             maxsize=maxsize,
             block=block,
-            strict=True,
             is_ipaddress_permitted=self.is_ipaddress_permitted,
             **pool_kwargs,
         )
@@ -223,7 +223,7 @@ class UnixHTTPConnection(HTTPConnection):
         # If provided, set socket level options before connecting.
         _set_socket_options(sock, self.socket_options)
 
-        if self.timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+        if self.timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # type: ignore[attr-defined]
             sock.settimeout(self.timeout)
         sock.connect(self.socket_path)
         return sock

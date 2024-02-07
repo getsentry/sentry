@@ -24,12 +24,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import {
-  CheckIn,
-  CheckInStatus,
-  Monitor,
-  MonitorEnvironment,
-} from 'sentry/views/monitors/types';
+import type {CheckIn, Monitor, MonitorEnvironment} from 'sentry/views/monitors/types';
+import {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText} from 'sentry/views/monitors/utils';
 
 type Props = {
@@ -133,7 +129,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                         />
                       }
                     >
-                      {<DateTime date={checkIn.dateCreated} timeZone seconds />}
+                      <DateTime date={checkIn.dateCreated} timeZone seconds />
                     </Tooltip>
                   </div>
                 ) : (
@@ -156,19 +152,17 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
                         organization={organization}
                         key={id}
                       >
-                        {
-                          <StyledShortId
-                            shortId={shortId}
-                            avatar={
-                              <ProjectBadge
-                                project={monitor.project}
-                                hideName
-                                avatarSize={12}
-                              />
-                            }
-                            to={`/issues/${id}`}
-                          />
-                        }
+                        <StyledShortId
+                          shortId={shortId}
+                          avatar={
+                            <ProjectBadge
+                              project={monitor.project}
+                              hideName
+                              avatarSize={12}
+                            />
+                          }
+                          to={`/issues/${id}`}
+                        />
                       </QuickContextHovercard>
                     ))}
                   </IssuesContainer>

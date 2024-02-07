@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import toUpper from 'lodash/toUpper';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -9,17 +8,18 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/performance/browser/webVitals/utils/scoreToStatus';
-import {
+import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
@@ -52,6 +52,17 @@ const WEB_VITALS_METERS_CONFIG = {
   },
 };
 
+const WEB_VITALS_METERS_CONFIG_WITH_INP = {
+  lcp: WEB_VITALS_METERS_CONFIG.lcp,
+  fcp: WEB_VITALS_METERS_CONFIG.fcp,
+  inp: {
+    name: t('Interaction to Next Paint'),
+    formatter: (value: number) => getFormattedDuration(value / 1000),
+  },
+  cls: WEB_VITALS_METERS_CONFIG.cls,
+  ttfb: WEB_VITALS_METERS_CONFIG.ttfb,
+};
+
 export default function WebVitalMeters({
   onClick,
   projectData,
@@ -59,12 +70,17 @@ export default function WebVitalMeters({
   showTooltip = true,
 }: Props) {
   const theme = useTheme();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   if (!projectScore) {
     return null;
   }
 
-  const webVitals = Object.keys(WEB_VITALS_METERS_CONFIG) as WebVitals[];
+  const webVitalsConfig = shouldReplaceFidWithInp
+    ? WEB_VITALS_METERS_CONFIG_WITH_INP
+    : WEB_VITALS_METERS_CONFIG;
+
+  const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
   const colors = theme.charts.getColorPalette(3);
 
   return (
@@ -73,13 +89,13 @@ export default function WebVitalMeters({
         {webVitals.map((webVital, index) => {
           const webVitalExists = projectScore[`${webVital}Score`] !== undefined;
           const formattedMeterValueText = webVitalExists ? (
-            WEB_VITALS_METERS_CONFIG[webVital].formatter(
+            webVitalsConfig[webVital].formatter(
               projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
             )
           ) : (
             <NoValue />
           );
-          const headerText = WEB_VITALS_METERS_CONFIG[webVital].name;
+          const headerText = webVitalsConfig[webVital].name;
           const meterBody = (
             <Fragment>
               <MeterBarBody>
@@ -93,7 +109,7 @@ export default function WebVitalMeters({
                           `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
                           Scores and values may share some (but not perfect) correlation.`,
                           {
-                            webVital: toUpper(webVital),
+                            webVital: webVital.toUpperCase(),
                           }
                         )}
                         <br />
@@ -124,7 +140,7 @@ export default function WebVitalMeters({
               {!webVitalExists && (
                 <StyledTooltip
                   title={tct('No [webVital] data found in this project.', {
-                    webVital: toUpper(webVital),
+                    webVital: webVital.toUpperCase(),
                   })}
                 >
                   {meterBody}
@@ -215,7 +231,7 @@ const MeterBarFooterContainer = styled('div')<{status: string}>`
 
 const NoValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.headerFontSize};
 `;
 
 function NoValue() {
@@ -224,6 +240,7 @@ function NoValue() {
 
 const StyledTooltip = styled(Tooltip)`
   display: block;
+  width: 100%;
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`

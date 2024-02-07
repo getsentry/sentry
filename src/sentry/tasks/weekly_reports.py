@@ -5,7 +5,6 @@ import logging
 import uuid
 from datetime import timedelta
 from functools import partial, reduce
-from typing import Tuple
 
 import sentry_sdk
 from django.db.models import Count, F
@@ -23,7 +22,6 @@ from snuba_sdk.query import Limit, Query
 from sentry import analytics, features
 from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
-from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
@@ -32,7 +30,6 @@ from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task, retry
-from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
@@ -74,12 +71,6 @@ class ProjectContext:
     accepted_replay_count = 0
     dropped_replay_count = 0
 
-    # Removed after organizations:escalating-issues GA
-    all_issue_count = 0
-    existing_issue_count = 0
-    reopened_issue_count = 0
-    new_issue_count = 0
-    # delete when organizations:escalating-issues GA
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
@@ -192,7 +183,6 @@ def prepare_organization_report(
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
-    has_issue_states = features.has("organizations:escalating-issues", organization)
 
     # Run organization passes
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
@@ -200,14 +190,7 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.project_event_counts_for_organization"):
         project_event_counts_for_organization(ctx)
 
-    if has_issue_states:
-        with sentry_sdk.start_span(
-            op="weekly_reports.organization_project_issue_substatus_summaries"
-        ):
-            organization_project_issue_substatus_summaries(ctx)
-    else:
-        with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
-            organization_project_issue_summaries(ctx)
+    organization_project_issue_substatus_summaries(ctx)
 
     with sentry_sdk.start_span(op="weekly_reports.project_passes"):
         # Run project passes
@@ -315,72 +298,6 @@ def project_event_counts_for_organization(ctx):
                 )
 
 
-def organization_project_issue_summaries(ctx):
-    all_issues = Group.objects.exclude(status=GroupStatus.IGNORED)
-    new_issue_counts = (
-        all_issues.filter(
-            project__organization_id=ctx.organization.id,
-            first_seen__gte=ctx.start,
-            first_seen__lt=ctx.end,
-        )
-        .values("project_id")
-        .annotate(total=Count("*"))
-    )
-    new_issue_counts = {item["project_id"]: item["total"] for item in new_issue_counts}
-
-    # Fetch all regressions. This is a little weird, since there's no way to
-    # tell *when* a group regressed using the Group model. Instead, we query
-    # all groups that have been seen in the last week and have ever regressed
-    # and query the Activity model to find out if they regressed within the
-    # past week. (In theory, the activity table *could* be used to answer this
-    # query without the subselect, but there's no suitable indexes to make it's
-    # performance predictable.)
-    reopened_issue_counts = (
-        Activity.objects.filter(
-            project__organization_id=ctx.organization.id,
-            group__in=all_issues.filter(
-                last_seen__gte=ctx.start,
-                last_seen__lt=ctx.end,
-                resolved_at__isnull=False,  # signals this has *ever* been resolved
-            ),
-            type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_UNRESOLVED.value),
-            datetime__gte=ctx.start,
-            datetime__lt=ctx.end,
-        )
-        .values("group__project_id")
-        .annotate(total=Count("group_id", distinct=True))
-    )
-    reopened_issue_counts = {
-        item["group__project_id"]: item["total"] for item in reopened_issue_counts
-    }
-
-    # Issues seen at least once over the past week
-    active_issue_counts = (
-        all_issues.filter(
-            project__organization_id=ctx.organization.id,
-            last_seen__gte=ctx.start,
-            last_seen__lt=ctx.end,
-        )
-        .values("project_id")
-        .annotate(total=Count("*"))
-    )
-    active_issue_counts = {item["project_id"]: item["total"] for item in active_issue_counts}
-
-    for project_ctx in ctx.projects.values():
-        project_id = project_ctx.project.id
-        active_issue_count = active_issue_counts.get(project_id, 0)
-        project_ctx.reopened_issue_count = reopened_issue_counts.get(project_id, 0)
-        project_ctx.new_issue_count = new_issue_counts.get(project_id, 0)
-        project_ctx.existing_issue_count = max(
-            active_issue_count - project_ctx.reopened_issue_count - project_ctx.new_issue_count, 0
-        )
-        project_ctx.all_issue_count = (
-            project_ctx.reopened_issue_count
-            + project_ctx.new_issue_count
-            + project_ctx.existing_issue_count
-        )
-
-
 def organization_project_issue_substatus_summaries(ctx: OrganizationReportContext):
     substatus_counts = (
         Group.objects.filter(
@@ -448,18 +365,6 @@ def fetch_key_error_groups(ctx):
     for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
         group_id_to_group[group.id] = group
 
-    group_id_to_group_history = {}
-    if not features.has("organizations:escalating-issues", ctx.organization):
-        group_history = (
-            GroupHistory.objects.filter(
-                group_id__in=all_key_error_group_ids, organization_id=ctx.organization.id
-            )
-            .order_by("group_id", "-date_added")
-            .distinct("group_id")
-            .all()
-        )
-        group_id_to_group_history = {g.group_id: g for g in group_history}
-
     for project_ctx in ctx.projects.values():
         # note Snuba might have groups that have since been deleted
         # we should just ignore those
@@ -469,7 +374,7 @@ def fetch_key_error_groups(ctx):
                 [
                     (
                         group_id_to_group.get(group_id),
-                        group_id_to_group_history.get(group_id, None),
+                        None,
                         count,
                     )
                     for group_id, count in project_ctx.key_errors
@@ -702,10 +607,13 @@ group_status_to_color = {
     GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "#FAD473",
     GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
     GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET: "#FAD473",
+    GroupHistoryStatus.PRIORITY_LOW: "#FAD473",
+    GroupHistoryStatus.PRIORITY_MEDIUM: "#FAD473",
+    GroupHistoryStatus.PRIORITY_HIGH: "#FAD473",
 }
 
 
-def get_group_status_badge(group: Group) -> Tuple[str, str, str]:
+def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     """
     Returns a tuple of (text, background_color, border_color)
     Should be similar to GroupStatusBadge.tsx in the frontend
@@ -739,7 +647,6 @@ def render_template_context(ctx, user_id):
         # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
         user_projects = ctx.projects.values()
 
-    has_issue_states = features.has("organizations:escalating-issues", ctx.organization)
     has_replay_graph = features.has("organizations:session-replay", ctx.organization)
     has_replay_section = features.has(
         "organizations:session-replay", ctx.organization
@@ -938,9 +845,11 @@ def render_template_context(ctx, user_id):
                             },
                         )
 
-                    (substatus, substatus_color, substatus_border_color,) = (
-                        get_group_status_badge(group) if has_issue_states else (None, None, None)
-                    )
+                    (
+                        substatus,
+                        substatus_color,
+                        substatus_border_color,
+                    ) = get_group_status_badge(group)
 
                     yield {
                         "count": count,
@@ -999,30 +908,18 @@ def render_template_context(ctx, user_id):
         return []
 
     def issue_summary():
-        all_issue_count = 0
-        existing_issue_count = 0
-        reopened_issue_count = 0
-        new_issue_count = 0
         new_substatus_count = 0
         escalating_substatus_count = 0
         ongoing_substatus_count = 0
         regression_substatus_count = 0
         total_substatus_count = 0
         for project_ctx in user_projects:
-            all_issue_count += project_ctx.all_issue_count
-            existing_issue_count += project_ctx.existing_issue_count
-            reopened_issue_count += project_ctx.reopened_issue_count
-            new_issue_count += project_ctx.new_issue_count
             new_substatus_count += project_ctx.new_substatus_count
             escalating_substatus_count += project_ctx.escalating_substatus_count
             ongoing_substatus_count += project_ctx.ongoing_substatus_count
             regression_substatus_count += project_ctx.regression_substatus_count
             total_substatus_count += project_ctx.total_substatus_count
         return {
-            "all_issue_count": all_issue_count,
-            "existing_issue_count": existing_issue_count,
-            "reopened_issue_count": reopened_issue_count,
-            "new_issue_count": new_issue_count,
             "new_substatus_count": new_substatus_count,
             "escalating_substatus_count": escalating_substatus_count,
             "ongoing_substatus_count": ongoing_substatus_count,

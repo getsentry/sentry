@@ -1,8 +1,8 @@
 import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
-import {MetricsField} from 'sentry-fixture/metrics';
-import {SessionsField} from 'sentry-fixture/sessions';
-import {Tags} from 'sentry-fixture/tags';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -15,14 +15,15 @@ import {
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
   // Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -31,19 +32,6 @@ const defaultOrgFeatures = [
   'dashboards-mep',
   'dashboards-rh-widget',
 ];
-
-// function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
-//   return {
-//     id: '1',
-//     title: 'Dashboard',
-//     createdBy: undefined,
-//     dateCreated: '2020-01-01T00:00:00.000Z',
-//     widgets: [],
-//     projects: [],
-//     filters: {},
-//     ...dashboard,
-//   };
-// }
 
 function renderTestComponent({
   dashboard,
@@ -211,19 +199,19 @@ describe('WidgetBuilder', function () {
     sessionsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: SessionsField(`sum(session)`),
+      body: SessionsFieldFixture(`sum(session)`),
     });
 
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsField('session.all'),
+      body: MetricsFieldFixture('session.all'),
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: Tags(),
+      body: TagsFixture(),
     });
 
     measurementsMetaMock = MockApiClient.addMockResponse({

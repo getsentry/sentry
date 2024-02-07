@@ -1,11 +1,11 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {Group, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -31,7 +31,7 @@ function GroupReplays({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
 
-  const {eventView, fetchError, pageLinks} = useReplaysFromIssue({
+  const {eventView, fetchError, isFetching, pageLinks} = useReplaysFromIssue({
     group,
     location,
     organization,
@@ -52,7 +52,7 @@ function GroupReplays({group}: Props) {
       <StyledLayoutPage withPadding>
         <ReplayTable
           fetchError={fetchError}
-          isFetching
+          isFetching={isFetching}
           replays={[]}
           sort={undefined}
           visibleColumns={VISIBLE_COLUMNS}

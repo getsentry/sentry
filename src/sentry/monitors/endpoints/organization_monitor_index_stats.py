@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections import OrderedDict, defaultdict
+from collections.abc import MutableMapping
 from datetime import datetime, timedelta
-from typing import List, MutableMapping
 
 from django.db.models import Count, DateTimeField, Func
 from django.db.models.functions import Extract
@@ -47,7 +47,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         start = normalize_to_epoch(args["start"], args["rollup"])
         end = normalize_to_epoch(args["end"], args["rollup"])
 
-        monitor_slugs: List[str] = request.GET.getlist("monitor")
+        monitor_slugs: list[str] = request.GET.getlist("monitor")
 
         tracked_statuses = [
             CheckInStatus.IN_PROGRESS,

@@ -1,20 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import Enum
-from typing import Any, Sequence, Tuple, cast
+from typing import Literal, NotRequired, TypeAlias, TypedDict
 
-from sentry.integrations.msteams.card_builder import (
-    Action,
-    ActionSet,
-    Block,
-    ColumnBlock,
-    ColumnSetBlock,
-    ContainerBlock,
-    ImageBlock,
-    InputChoiceSetBlock,
-    ItemBlock,
-    TextBlock,
-)
+from typing_extensions import Unpack
+
 from sentry.integrations.msteams.card_builder.utils import escape_markdown_special_chars
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -42,7 +33,7 @@ class ImageSize(str, Enum):
     MEDIUM = "Medium"
     LARGE = "Large"
     AUTO = "Auto"
-    STRECH = "Strech"
+    STRETCH = "Stretch"
 
 
 class ActionType(str, Enum):
@@ -52,39 +43,142 @@ class ActionType(str, Enum):
 
 
 class ColumnWidth(str, Enum):
-    STRECH = "strech"
+    STRETCH = "stretch"
     AUTO = "auto"
 
 
-class VerticalContentAlignment(str, Enum):
+class ContentAlignment(str, Enum):
     CENTER = "Center"
 
 
-REQUIRED_ACTION_PARAM = {
-    ActionType.OPEN_URL: "url",
-    ActionType.SUBMIT: "data",
-    ActionType.SHOW_CARD: "card",
-}
+class OpenUrlAction(TypedDict):
+    type: Literal[ActionType.OPEN_URL]
+    title: str
+    url: str
 
 
-def create_text_block(text: str | None, **kwargs: str | bool) -> TextBlock:
+class SubmitAction(TypedDict):
+    type: Literal[ActionType.SUBMIT]
+    title: str
+    data: object
+
+
+class ShowCardAction(TypedDict):
+    type: Literal[ActionType.SHOW_CARD]
+    title: str
+    card: AdaptiveCard
+
+
+Action: TypeAlias = OpenUrlAction | SubmitAction | ShowCardAction
+
+
+class ActionSet(TypedDict):
+    type: Literal["ActionSet"]
+    actions: list[Action]
+
+
+class _TextBlockNotRequired(TypedDict, total=False):
+    size: TextSize
+    weight: TextWeight
+    horizontalAlignment: ContentAlignment
+    spacing: Literal["None"]
+    isSubtle: bool
+    height: Literal["stretch"]
+    wrap: bool
+    fontType: Literal["Default"]
+
+
+class TextBlock(_TextBlockNotRequired):
+    type: Literal["TextBlock"]
+    text: str
+
+
+class _ImageBlockNotRequired(TypedDict, total=False):
+    size: ImageSize
+    height: str
+    width: str
+
+
+class ImageBlock(_ImageBlockNotRequired):
+    type: Literal["Image"]
+    url: str
+
+
+class _ColumnBlockNotRequired(TypedDict, total=False):
+    style: Literal["good", "warning", "attention"]
+    isSubtle: bool
+    spacing: str
+    verticalContentAlignment: ContentAlignment
+
+
+class ColumnBlock(_ColumnBlockNotRequired):
+    type: Literal["Column"]
+    items: list[Block]
+    width: ColumnWidth | str
+
+
+class ColumnSetBlock(TypedDict):
+    type: Literal["ColumnSet"]
+    columns: list[ColumnBlock]
+
+
+class ContainerBlock(TypedDict):
+    type: Literal["Container"]
+    items: list[Block]
+
+
+class InputChoice(TypedDict):
+    title: str
+    value: object
+
+
+class _InputChoiceSetBlockNotRequired(TypedDict, total=False):
+    value: object
+
+
+class InputChoiceSetBlock(_InputChoiceSetBlockNotRequired):
+    type: Literal["Input.ChoiceSet"]
+    id: str
+    choices: list[InputChoice]
+
+
+ItemBlock: TypeAlias = str | TextBlock | ImageBlock
+Block: TypeAlias = (
+    ActionSet | TextBlock | ImageBlock | ColumnSetBlock | ContainerBlock | InputChoiceSetBlock
+)
+
+
+AdaptiveCard = TypedDict(
+    "AdaptiveCard",
+    {
+        "body": list[Block],
+        "type": str,
+        "$schema": str,
+        "version": str,
+        "actions": NotRequired[list[Action]],
+        "msteams": NotRequired[dict[str, str]],
+    },
+)
+
+
+def create_text_block(text: str | None, **kwargs: Unpack[_TextBlockNotRequired]) -> TextBlock:
+    kwargs.setdefault("wrap", True)
     return {
         "type": "TextBlock",
         "text": escape_markdown_special_chars(text) if text else "",
-        "wrap": True,
         **kwargs,
     }
 
 
-def create_logo_block(**kwargs: str) -> ImageBlock:
+def create_logo_block(**kwargs: Unpack[_ImageBlockNotRequired]) -> ImageBlock:
     # Default size if no size is given
-    if "height" not in kwargs and "size" not in kwargs:
-        kwargs["size"] = ImageSize.MEDIUM
+    if not kwargs.get("height"):
+        kwargs.setdefault("size", ImageSize.MEDIUM)
 
     return create_image_block(get_asset_url("sentry", SENTRY_ICON_URL), **kwargs)
 
 
-def create_image_block(url: str, **kwargs: str) -> ImageBlock:
+def create_image_block(url: str, **kwargs: Unpack[_ImageBlockNotRequired]) -> ImageBlock:
     return {
         "type": "Image",
         "url": absolute_uri(url),
@@ -92,40 +186,27 @@ def create_image_block(url: str, **kwargs: str) -> ImageBlock:
     }
 
 
-def create_column_block(item: ItemBlock, **kwargs: Any) -> ColumnBlock:
-    kwargs["width"] = kwargs.get("width", ColumnWidth.AUTO)
-
+def create_column_block(
+    item: ItemBlock,
+    *,
+    width: ColumnWidth = ColumnWidth.AUTO,
+    **kwargs: Unpack[_ColumnBlockNotRequired],
+) -> ColumnBlock:
     if isinstance(item, str):
         item = create_text_block(item)
 
     return {
         "type": "Column",
         "items": [item],
+        "width": width,
         **kwargs,
     }
 
 
-def ensure_column_block(item: ItemBlock | ColumnBlock) -> ColumnBlock:
-    if isinstance(item, dict) and "Column" == item.get("type", ""):
-        return item
-
-    return create_column_block(cast(ItemBlock, item))
-
-
-def create_column_set_block(*columns: ItemBlock | ColumnBlock) -> ColumnSetBlock:
+def create_column_set_block(*columns: ColumnBlock) -> ColumnSetBlock:
     return {
         "type": "ColumnSet",
-        "columns": [ensure_column_block(column) for column in columns],
-    }
-
-
-def create_action_block(action_type: ActionType, title: str, **kwargs: Any) -> Action:
-    param = REQUIRED_ACTION_PARAM[action_type]
-
-    return {
-        "type": action_type,
-        "title": title,
-        param: kwargs[param],
+        "columns": list(columns),
     }
 
 
@@ -138,10 +219,10 @@ def create_container_block(*items: Block) -> ContainerBlock:
 
 
 def create_input_choice_set_block(
-    id: str, choices: Sequence[Tuple[str, Any]], default_choice: Any
+    id: str, choices: Sequence[tuple[str, object]], default_choice: object
 ) -> InputChoiceSetBlock:
+    default_choice_arg: _InputChoiceSetBlockNotRequired
     default_choice_arg = {"value": default_choice} if default_choice else {}
-
     return {
         "type": "Input.ChoiceSet",
         "id": id,
@@ -171,5 +252,5 @@ def create_footer_column_block(footer_text_block: TextBlock) -> ColumnBlock:
         footer_text_block,
         isSubtle=True,
         spacing="none",
-        verticalContentAlignment=VerticalContentAlignment.CENTER,
+        verticalContentAlignment=ContentAlignment.CENTER,
     )

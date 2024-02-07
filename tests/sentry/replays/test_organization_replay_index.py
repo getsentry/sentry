@@ -605,11 +605,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 # Or expression.
                 f"id:{replay1_id} OR id:{uuid.uuid4().hex} OR id:{uuid.uuid4().hex}",
                 # Paren wrapped expression.
-                f"((id:{replay1_id} OR duration:0) AND (duration:>15 OR platform:nothing))",
+                f"((id:{replay1_id} OR id:b) AND (duration:>15 OR id:d))",
                 # Implicit paren wrapped expression.
-                f"(id:{replay1_id} OR duration:0) AND (duration:>15 OR platform:nothing)",
+                f"(id:{replay1_id} OR id:b) AND (duration:>15 OR id:d)",
                 # Implicit And.
-                f"(id:{replay1_id} OR duration:0) OR (duration:>15 platform:javascript)",
+                f"(id:{replay1_id} OR id:b) OR (duration:>15 platform:javascript)",
                 # Tag filters.
                 "tags[a]:m",
                 "a:m",
@@ -641,24 +641,22 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             response_data = response.json()
             assert len(response_data["data"]) == 1, "all queries"
 
-            missing_uuid = "f8a783a4261a4b559f108c3721fc05cc"
-
             # Assert returns empty result sets.
             null_queries = [
                 "!replay_type:session",
                 "!error_ids:a3a62ef6ac86415b83c2416fc2f76db1",
-                f"error_ids:{missing_uuid}",
+                "error_ids:123",
                 "!error_id:a3a62ef6ac86415b83c2416fc2f76db1",
-                f"error_id:{missing_uuid}",
+                "error_id:123",
                 "!trace_ids:4491657243ba4dbebd2f6bd62b733080",
                 "!trace_id:4491657243ba4dbebd2f6bd62b733080",
                 "!trace:4491657243ba4dbebd2f6bd62b733080",
                 "count_urls:0",
                 "count_dead_clicks:>0",
                 "count_rage_clicks:>0",
-                f"id:{replay1_id} AND id:{missing_uuid}",
+                f"id:{replay1_id} AND id:b",
                 f"id:{replay1_id} AND duration:>1000",
-                f"id:{missing_uuid} OR duration:>1000",
+                "id:b OR duration:>1000",
                 "a:o",
                 "a:[o,p]",
                 "releases:a",
@@ -1988,3 +1986,43 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             response_data = response.json()
             assert response_data["data"][0]["count_warnings"] == 1
+
+    def test_non_empty_string_scalar(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay1_id, segment_id=0, dist="")
+        )
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay1_id, segment_id=0, dist="1")
+        )
+
+        # "dist" is used as a placeholder to test the "NonEmptyStringScalar" class. Empty
+        # strings should be ignored when performing negation queries.
+        with self.feature(REPLAYS_FEATURES):
+            # dist should be findable if any of its filled values match the query.
+            queries = [
+                "dist:1",
+                "dist:[1]",
+                "dist:*1*",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 1, query
+
+            # If we explicitly negate dist's filled value we should also ignore empty
+            # values.
+            queries = [
+                "!dist:1",
+                "!dist:[1]",
+                "!dist:*1*",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 200, query
+                response_data = response.json()
+                assert len(response_data["data"]) == 0, query

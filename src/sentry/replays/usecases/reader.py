@@ -3,11 +3,12 @@ from __future__ import annotations
 import functools
 import uuid
 import zlib
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Iterator, List, Optional
 
 import sentry_sdk
+from django.conf import settings
 from django.db.models import Prefetch
 from sentry_sdk.tracing import Span
 from snuba_sdk import (
@@ -38,18 +39,15 @@ def fetch_segments_metadata(
     replay_id: str,
     offset: int,
     limit: int,
-) -> List[RecordingSegmentStorageMeta]:
+) -> list[RecordingSegmentStorageMeta]:
     """Return a list of recording segment storage metadata."""
-    # NOTE: This method can miss segments that were split during the deploy.  E.g. half were on
-    # filestore the other half were on direct-storage.
+    if settings.SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP:
+        segments = fetch_filestore_segments_meta(project_id, replay_id, offset, limit)
+        if segments:
+            return segments
 
-    # TODO: Filestore is privileged until the direct storage is released to all projects.  Once
-    # direct-storage is the default driver we need to invert this.  90 days after deployment we
-    # need to remove filestore querying.
-    segments = fetch_filestore_segments_meta(project_id, replay_id, offset, limit)
-    if segments:
-        return segments
-
+    # If the setting wasn't enabled or no segments were found attempt to lookup using
+    # the default storage method.
     return fetch_direct_storage_segments_meta(project_id, replay_id, offset, limit)
 
 
@@ -59,13 +57,13 @@ def fetch_segment_metadata(
     segment_id: int,
 ) -> RecordingSegmentStorageMeta | None:
     """Return a recording segment storage metadata instance."""
-    # TODO: Filestore is privileged until the direct storage is released to all projects.  Once
-    # direct-storage is the default driver we need to invert this.  90 days after deployment we
-    # need to remove filestore querying.
-    segment = fetch_filestore_segment_meta(project_id, replay_id, segment_id)
-    if segment:
-        return segment
+    if settings.SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP:
+        segment = fetch_filestore_segment_meta(project_id, replay_id, segment_id)
+        if segment:
+            return segment
 
+    # If the setting wasn't enabled or no segments were found attempt to lookup using
+    # the default storage method.
     return fetch_direct_storage_segment_meta(project_id, replay_id, segment_id)
 
 
@@ -74,9 +72,9 @@ def fetch_filestore_segments_meta(
     replay_id: str,
     offset: int,
     limit: int,
-) -> List[RecordingSegmentStorageMeta]:
+) -> list[RecordingSegmentStorageMeta]:
     """Return filestore metadata derived from our Postgres table."""
-    segments: List[ReplayRecordingSegment] = (
+    segments: list[ReplayRecordingSegment] = (
         ReplayRecordingSegment.objects.filter(project_id=project_id, replay_id=replay_id)
         .order_by("segment_id")
         .all()[offset : limit + offset]
@@ -136,7 +134,7 @@ def fetch_direct_storage_segments_meta(
     replay_id: str,
     offset: int,
     limit: int,
-) -> List[RecordingSegmentStorageMeta]:
+) -> list[RecordingSegmentStorageMeta]:
     """Return direct-storage metadata derived from our Clickhouse table."""
     if not has_archived_segment(project_id, replay_id):
         return _fetch_segments_from_snuba(project_id, replay_id, offset, limit)
@@ -195,7 +193,7 @@ def _fetch_segments_from_snuba(
     offset: int,
     limit: int,
     segment_id: int | None = None,
-) -> List[RecordingSegmentStorageMeta]:
+) -> list[RecordingSegmentStorageMeta]:
     conditions = []
     if segment_id:
         conditions.append(Condition(Column("segment_id"), Op.EQ, segment_id))
@@ -247,7 +245,7 @@ def segment_row_to_storage_meta(
 # BLOB DOWNLOAD BEHAVIOR.
 
 
-def download_segments(segments: List[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
+def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
     """Download segment data from remote storage."""
 
     # start a sentry transaction to pass to the thread pool workers
@@ -282,7 +280,7 @@ def download_segment(
     segment: RecordingSegmentStorageMeta,
     transaction: Span,
     current_hub: sentry_sdk.Hub,
-) -> Optional[bytes]:
+) -> bytes | None:
     """Return the segment blob data."""
     with sentry_sdk.Hub(current_hub):
         with transaction.start_child(

@@ -3,7 +3,7 @@ from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.query import (
     RangeQuerySetWrapper,
     RangeQuerySetWrapperWithProgressBar,
@@ -23,6 +23,7 @@ class InIexactQueryTest(TestCase):
         assert Organization.objects.filter(in_iexact("slug", [])).count() == 0
 
 
+@no_silo_test
 class RangeQuerySetWrapperTest(TestCase):
     range_wrapper = RangeQuerySetWrapper
 
@@ -54,12 +55,12 @@ class RangeQuerySetWrapperTest(TestCase):
         assert len(list(self.range_wrapper(qs, step=2))) == 0
 
 
-@control_silo_test
+@no_silo_test
 class RangeQuerySetWrapperWithProgressBarTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBar
 
 
-@control_silo_test
+@no_silo_test
 class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBarApprox
 

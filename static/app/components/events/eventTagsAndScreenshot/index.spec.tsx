@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -12,7 +12,7 @@ import {
 
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
-import {EventAttachment} from 'sentry/types';
+import type {EventAttachment} from 'sentry/types';
 
 import {deviceNameMapper} from '../../../../../static/app/components/deviceName';
 

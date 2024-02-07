@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -12,7 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Organization, Plugin, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withPlugins from 'sentry/utils/withPlugins';
@@ -185,7 +185,7 @@ class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, project} = this.props;
+    const {project} = this.props;
     const {pluginDetails} = this.state;
     if (!pluginDetails) {
       return null;
@@ -197,9 +197,8 @@ class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
         <div className="row">
           <div className="col-md-7">
             <PluginConfig
-              organization={organization}
               project={project}
-              data={pluginDetails}
+              plugin={pluginDetails}
               enabled={this.getEnabled()}
               onDisablePlugin={this.handleDisable}
             />

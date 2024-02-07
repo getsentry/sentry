@@ -5,7 +5,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {Event, Group, Project} from 'sentry/types';
+import type {Event, Group, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
@@ -135,7 +135,7 @@ function EventAffectedTransactionsInner({
     others: false,
     referrer: 'api.profiling.functions.regression.transaction-stats',
     topEvents: TRANSACTIONS_LIMIT,
-    yAxes: ['worst()'],
+    yAxes: ['examples()'],
   });
 
   const examplesByTransaction = useMemo(() => {
@@ -153,7 +153,7 @@ function EventAffectedTransactionsInner({
     transactionsDeltaQuery.data?.data?.forEach(row => {
       const transaction = row.transaction as string;
       const data = functionStats.data.data.find(
-        ({axis, label}) => axis === 'worst()' && label === transaction
+        ({axis, label}) => axis === 'examples()' && label === transaction
       );
       if (!defined(data)) {
         return;
@@ -309,15 +309,15 @@ function EventAffectedTransactionsInner({
  * @param window the window around the breakpoint to deprioritize
  */
 function findExamplePair(
-  examples: string[],
+  examples: string[][],
   breakpointIndex,
   window = 3
 ): [string | null, string | null] {
   let before: string | null = null;
 
   for (let i = breakpointIndex - window; i < examples.length && i >= 0; i--) {
-    if (examples[i]) {
-      before = examples[i];
+    if (Array.isArray(examples[i]) && examples[i].length > 0) {
+      before = examples[i][0];
       break;
     }
   }
@@ -328,8 +328,8 @@ function findExamplePair(
       i < examples.length && i > breakpointIndex - window;
       i--
     ) {
-      if (examples[i]) {
-        before = examples[i];
+      if (Array.isArray(examples[i]) && examples[i].length > 0) {
+        before = examples[i][0];
         break;
       }
     }
@@ -338,16 +338,16 @@ function findExamplePair(
   let after: string | null = null;
 
   for (let i = breakpointIndex + window; i < examples.length; i++) {
-    if (examples[i]) {
-      after = examples[i];
+    if (Array.isArray(examples[i]) && examples[i].length > 0) {
+      after = examples[i][0];
       break;
     }
   }
 
   if (!defined(before)) {
     for (let i = breakpointIndex; i < breakpointIndex + window; i++) {
-      if (examples[i]) {
-        after = examples[i];
+      if (Array.isArray(examples[i]) && examples[i].length > 0) {
+        after = examples[i][0];
         break;
       }
     }

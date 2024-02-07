@@ -1,23 +1,14 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-import path from 'path';
-import {TextDecoder, TextEncoder} from 'util';
-
-import {ReactElement} from 'react';
+import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
-import LocationFixture from 'sentry-fixture/locationFixture';
-import RouteComponentPropsFixture from 'sentry-fixture/routeComponentPropsFixture';
-import RouterContextFixture from 'sentry-fixture/routerContextFixture';
-import RouterFixture from 'sentry-fixture/routerFixture';
-import RouterPropsFixture from 'sentry-fixture/routerPropsFixture';
+import {TextDecoder, TextEncoder} from 'node:util';
+import {ConfigFixture} from 'sentry-fixture/config';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
-
-import {makeLazyFixtures} from './sentry-test/loadFixtures';
 
 /**
  * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
@@ -57,7 +48,6 @@ jest.mock('lodash/debounce', () =>
 );
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
-jest.mock('sentry/utils/withOrganization');
 jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
@@ -117,6 +107,7 @@ jest.mock('@sentry/react', function sentryReact() {
     startSpan: jest.spyOn(SentryReact, 'startSpan'),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
+    getClient: jest.spyOn(SentryReact, 'getClient'),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Hub: SentryReact.Hub,
@@ -125,6 +116,7 @@ jest.mock('@sentry/react', function sentryReact() {
     withProfiler: SentryReact.withProfiler,
     metrics: {
       MetricsAggregator: jest.fn().mockReturnValue({}),
+      metricsAggregatorIntegration: jest.fn(),
       increment: jest.fn(),
       gauge: jest.fn(),
       set: jest.fn(),
@@ -148,31 +140,12 @@ jest.mock('@sentry/react', function sentryReact() {
   };
 });
 
-const routerFixtures = {
-  router: RouterFixture,
-  location: LocationFixture,
-  routerProps: RouterPropsFixture,
-  routeComponentProps: RouteComponentPropsFixture,
-  routerContext: RouterContextFixture,
-};
-
-const jsFixturesDirectory = path.resolve(__dirname, '../../fixtures/js-stubs/');
-const fixtures = makeLazyFixtures(jsFixturesDirectory, routerFixtures);
-
-ConfigStore.loadInitialData(fixtures.Config());
+ConfigStore.loadInitialData(ConfigFixture());
 
 /**
  * Test Globals
  */
 declare global {
-  /**
-   * Test stubs are automatically loaded from the fixtures/js-stubs
-   * directory. Use these for setting up test data.
-   *
-   * @deprecated Please import test stubs directly and do not use this global.
-   */
-  // eslint-disable-next-line no-var
-  var TestStubs: typeof fixtures;
   /**
    * Generates a promise that resolves on the next macro-task
    */
@@ -188,8 +161,6 @@ declare global {
 // needed by cbor-web for webauthn
 window.TextEncoder = TextEncoder;
 window.TextDecoder = TextDecoder as typeof window.TextDecoder;
-
-window.TestStubs = fixtures;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
 window.tick = () => new Promise(resolve => setTimeout(resolve));

@@ -1,5 +1,3 @@
-from typing import List
-
 from django.db.models import F
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -42,7 +40,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "ListClientKeysResponse", List[ProjectKeySerializerResponse]
+                "ListClientKeysResponse", list[ProjectKeySerializerResponse]
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
@@ -83,7 +81,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=ProjectExamples.BASE_KEY,
+        examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
     def post(self, request: Request, project) -> Response:
         """

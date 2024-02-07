@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Field} from 'sentry/components/forms/types';
+import type {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
@@ -181,6 +181,20 @@ export const QUOTA_FIELDS = [
       'Receive notifications about your attachment quota. [learnMore:Learn more]',
       {
         learnMore: <ExternalLink href={getDocsLinkForEventType('attachment')} />,
+      }
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
+    name: 'quotaMonitorSeats',
+    label: t('Cron Monitors'),
+    help: tct(
+      'Receive notifications about your cron monitors quotas. [learnMore:Learn more]',
+      {
+        learnMore: <ExternalLink href={getDocsLinkForEventType('monitorSeat')} />,
       }
     ),
     choices: [

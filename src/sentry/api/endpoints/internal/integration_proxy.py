@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict
+from collections import defaultdict
 from urllib.parse import urljoin
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from requests import Request, Response
 
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -28,9 +30,12 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class InternalIntegrationProxyEndpoint(Endpoint):
+    publish_status = defaultdict(lambda: ApiPublishStatus.PRIVATE)
+    owner = ApiOwner.HYBRID_CLOUD
     authentication_classes = ()
     permission_classes = ()
-    log_extra: Dict[str, str | int] = {}
+    log_extra: dict[str, str | int] = {}
+    enforce_rate_limit = False
     """
     This endpoint is used to proxy requests from region silos to the third-party
     integration on behalf of credentials stored in the control silo.
@@ -76,10 +81,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
         # Get the organization integration
-        org_integration_id = request.headers.get(PROXY_OI_HEADER)
-        if org_integration_id is None:
+        org_id_header = request.headers.get(PROXY_OI_HEADER)
+        if org_id_header is None or not org_id_header.isnumeric():
             logger.info("integration_proxy.missing_org_integration", extra=self.log_extra)
             return False
+        org_integration_id = int(org_id_header)
         self.log_extra["org_integration_id"] = org_integration_id
 
         self.org_integration = (

@@ -1,14 +1,9 @@
-import logging
-from typing import Any, Mapping
-from unittest.mock import patch
+from collections.abc import Mapping
+from typing import Any
+from unittest.mock import PropertyMock, patch
 
-import pytest
-import responses
-
-from sentry import options
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -83,9 +78,9 @@ class BaseProjectStacktraceLink(APITestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(provider="example", name="Example")
-            self.integration.add_organization(self.organization, self.user)
-            self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+            self.integration, self.oi = self.create_provider_integration_for(
+                self.organization, self.user, provider="example", name="Example"
+            )
 
         self.repo = self.create_repo(
             project=self.project,
@@ -160,6 +155,7 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             "config": None,
             "sourceUrl": None,
             "integrations": [serialized_integration(self.integration)],
+            "error": "no_code_mappings_for_project",
         }
 
     def test_file_not_found_error(self):
@@ -198,56 +194,6 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
 
-    @patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
-    @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_file_not_found_and_munge_frame_fallback_not_found(self, mock_integration, mock_munger):
-        mock_integration.return_value = None
-        mock_munger.return_value = None
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "abs_path",
-                "module": "module",
-                "package": "package",
-            },
-        )
-
-        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
-        assert not response.data["sourceUrl"]
-        assert response.data["error"] == "file_not_found"
-        assert response.data["integrations"] == [serialized_integration(self.integration)]
-        assert (
-            response.data["attemptedUrl"]
-            == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
-        )
-
-    @patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
-    @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_file_not_found_munge_frame_fallback_success(self, mock_integration, mock_munger):
-        mock_integration.side_effect = [None, "https://github.com/repo/path/to/munged/file.py"]
-        mock_munger.return_value = (
-            "munged_filename",
-            [{"munged_filename": "usr/src/getsentry/file.py"}],
-        )
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "any",
-                "module": "any",
-                "package": "any",
-            },
-        )
-        assert mock_integration.call_count == 2
-        assert response.data["config"] == self.expected_configurations(self.code_mapping1)
-        assert response.data["sourceUrl"] == "https://github.com/repo/path/to/munged/file.py"
-        assert response.data["integrations"] == [serialized_integration(self.integration)]
-
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_file_no_stack_root_match(self, mock_integration):
         # Pretend that the file was not found in the repository
@@ -264,6 +210,46 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
         assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
 
+    @patch("sentry.analytics.record")
+    @patch("sentry.integrations.utils.stacktrace_link.Timer")
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_timer_duration_for_analytics(self, mock_integration, mock_timer, mock_record):
+        mock_integration.return_value = "https://github.com/"
+        mock_duration = PropertyMock(return_value=5)
+        type(mock_timer.return_value.__enter__.return_value).duration = mock_duration
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "groupId": 1,
+                "absPath": self.filepath,
+                "platform": "python",
+            },
+        )
+
+        mock_record.assert_any_call(
+            "function_timer.timed",
+            function_name="get_stacktrace_link",
+            duration=5,
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            group_id="1",
+            frame_abs_path=self.filepath,
+        )
+        mock_record.assert_any_call(
+            "integration.stacktrace.linked",
+            provider="example",
+            config_id=str(self.code_mapping1.id),
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            filepath=self.filepath,
+            status="success",
+            link_fetch_iterations=1,
+            platform="python",
+        )
+
 
 @region_silo_test
 class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
@@ -276,19 +262,26 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
             stack_root="usr/src/getsentry/",
             source_root="src/getsentry/",
         )
-        self.cocoa_code_mapping = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
-            stack_root="SampleProject/",
-            source_root="",
-        )
         self.flutter_code_mapping = self.create_code_mapping(
             organization_integration=self.oi,
             project=self.project,
             repo=self.repo,
             stack_root="a/b/",
             source_root="",
+        )
+        self.cocoa_code_mapping_filename = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="AppDelegate",
+            source_root="src/AppDelegate",
+        )
+        self.cocoa_code_mapping_abs_path = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="/Users/user/code/SwiftySampleProject/",
+            source_root="src/",
         )
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
@@ -308,21 +301,95 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
-    def test_munge_cocoa_worked(self, mock_integration):
-        file_path = "SampleProject/Classes/App Delegate/AppDelegate.swift"
+    def test_munge_android_failed_stack_root_mismatch(self, mock_integration):
+        """
+        Returns a stack_root_mismatch if module doesn't match stack root
+        """
+        file_path = "src/getsentry/file.java"
         mock_integration.side_effect = [f"{example_base_url}/{file_path}"]
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             qs_params={
+                "file": "file.java",
+                "module": "foo.src.getsentry.file",  # Should not match code mapping
+                "platform": "java",
+            },
+        )
+
+        assert not response.data["config"]
+        assert not response.data["sourceUrl"]
+        assert response.data["error"] == "stack_root_mismatch"
+        assert response.data["integrations"] == [serialized_integration(self.integration)]
+
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_cocoa_abs_path_success(self, mock_integration):
+        """
+        Cocoa events with code mappings referencing the abs_path should apply correctly.
+        """
+        filename = "AppDelegate.swift"
+        mock_integration.side_effect = [f"{example_base_url}/src/{filename}"]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
                 "file": "AppDelegate.swift",
-                "absPath": f"/Users/user/code/SwiftySampleProject/{file_path}",
+                "absPath": f"/Users/user/code/SwiftySampleProject/{filename}",
                 "package": "SampleProject",
                 "platform": "cocoa",
             },
         )
-        assert response.data["config"] == self.expected_configurations(self.cocoa_code_mapping)
-        assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
+        mock_integration.assert_called_with(self.repo, f"src/{filename}", "master", None)
+        assert response.data["config"] == self.expected_configurations(
+            self.cocoa_code_mapping_abs_path
+        )
+        assert response.data["sourceUrl"] == f"{example_base_url}/src/{filename}"
+
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_cocoa_filename_success(self, mock_integration):
+        """
+        Cocoa events with code mappings that match the file should apply correctly.
+        """
+        filename = "AppDelegate.swift"
+        mock_integration.side_effect = [f"{example_base_url}/src/{filename}"]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": "AppDelegate.swift",
+                "absPath": f"/Foo/user/code/SwiftySampleProject/{filename}",
+                "package": "SampleProject",
+                "platform": "cocoa",
+            },
+        )
+        mock_integration.assert_called_with(self.repo, f"src/{filename}", "master", None)
+        assert response.data["config"] == self.expected_configurations(
+            self.cocoa_code_mapping_filename
+        )
+        assert response.data["sourceUrl"] == f"{example_base_url}/src/{filename}"
+
+    @patch.object(ExampleIntegration, "get_stacktrace_link")
+    def test_cocoa_failed_stack_root_mismatch(self, mock_integration):
+        """
+        Should return stack_root_mismatch if stack root doesn't match file or abs_path
+        """
+        filename = "OtherFile.swift"
+        mock_integration.side_effect = [f"{example_base_url}/src/{filename}"]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": filename,
+                "absPath": f"/Foo/user/code/SwiftySampleProject/{filename}",
+                "package": "SampleProject",
+                "platform": "cocoa",
+            },
+        )
+
+        assert not response.data["config"]
+        assert not response.data["sourceUrl"]
+        assert response.data["error"] == "stack_root_mismatch"
+        assert response.data["integrations"] == [serialized_integration(self.integration)]
 
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_munge_flutter_worked(self, mock_integration):
@@ -341,132 +408,6 @@ class ProjectStacktraceLinkTestMobile(BaseProjectStacktraceLink):
         )
         assert response.data["config"] == self.expected_configurations(self.flutter_code_mapping)
         assert response.data["sourceUrl"] == f"{example_base_url}/{file_path}"
-
-
-class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
-    def setUp(self):
-        BaseProjectStacktraceLink.setUp(self)
-        options.set("codecov.client-secret", "supersecrettoken")
-        self.code_mapping1 = self.create_code_mapping(
-            organization_integration=self.oi,
-            project=self.project,
-            repo=self.repo,
-            stack_root="",
-            source_root="",
-        )
-        self.filepath = "src/path/to/file.py"
-        self.organization.flags.codecov_access = True
-
-        self.expected_codecov_url = (
-            "https://app.codecov.io/gh/getsentry/sentry/commit/master/blob/src/path/to/file.py"
-        )
-        self.expected_line_coverage = [[1, 0], [3, 1], [4, 0]]
-        self.organization.save()
-
-    @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
-        self._caplog = caplog
-
-    @patch.object(
-        ExampleIntegration,
-        "get_stacktrace_link",
-        return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
-    )
-    @responses.activate
-    def test_codecov_line_coverage_success(self, mock_integration):
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
-            status=200,
-            json={
-                "line_coverage": self.expected_line_coverage,
-                "commit_file_url": self.expected_codecov_url,
-                "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
-            },
-            content_type="application/json",
-        )
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "abs_path",
-                "module": "module",
-                "package": "package",
-                "commitId": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
-            },
-        )
-
-        assert response.data["codecov"]["lineCoverage"] == self.expected_line_coverage
-        assert response.data["codecov"]["status"] == 200
-
-    @patch.object(
-        ExampleIntegration,
-        "get_stacktrace_link",
-        return_value="https://github.com/repo/blob/master/src/path/to/file.py",
-    )
-    @responses.activate
-    def test_codecov_line_coverage_with_branch_success(self, mock_integration):
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
-            status=200,
-            json={
-                "line_coverage": self.expected_line_coverage,
-                "commit_file_url": self.expected_codecov_url,
-                "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
-            },
-            content_type="application/json",
-        )
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "abs_path",
-                "module": "module",
-                "package": "package",
-            },
-        )
-        assert response.data["codecov"]["lineCoverage"] == self.expected_line_coverage
-        assert response.data["codecov"]["status"] == 200
-
-    @patch.object(
-        ExampleIntegration,
-        "get_stacktrace_link",
-        return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
-    )
-    @responses.activate
-    def test_codecov_line_coverage_exception(self, mock_integration):
-        self._caplog.set_level(logging.ERROR, logger="sentry")
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
-            status=500,
-            content_type="application/json",
-        )
-
-        self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "abs_path",
-                "module": "module",
-                "package": "package",
-                "commitId": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
-            },
-        )
-
-        assert self._caplog.record_tuples == [
-            (
-                "sentry.integrations.utils.codecov",
-                logging.ERROR,
-                "Codecov HTTP error: 500. Continuing execution.",
-            )
-        ]
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):

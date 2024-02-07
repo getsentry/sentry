@@ -5,6 +5,7 @@ from typing import Any
 
 from django.http import Http404
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
@@ -13,7 +14,7 @@ from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.integration import PARANOID_GET
 from sentry.api.permissions import SentryPermission
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
 from sentry.models.integrations.sentry_app import SentryApp
@@ -86,7 +87,7 @@ class SentryAppsPermission(SentryPermission):
 
         self.determine_access(request, context)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         # User must be a part of the Org they're trying to create the app in.
@@ -103,7 +104,7 @@ class IntegrationPlatformEndpoint(Endpoint):
 
 
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
-    permission_classes = (SentryAppsPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (SentryAppsPermission,)
 
     def _get_organization_slug(self, request: Request):
         organization_slug = request.json_body.get("organization")
@@ -177,15 +178,15 @@ class SentryAppPermission(SentryPermission):
     unpublished_scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
         "PUT": ("org:write", "org:admin"),
-        "POST": ("org:write", "org:admin"),  # used for publishing an app
-        "DELETE": ("org:write", "org:admin"),
+        "POST": ("org:admin",),  # used for publishing an app
+        "DELETE": ("org:admin",),
     }
 
     published_scope_map = {
         "GET": PARANOID_GET,
         "PUT": ("org:write", "org:admin"),
-        "POST": ("org:write", "org:admin"),
-        "DELETE": ("org:admin"),
+        "POST": ("org:admin",),
+        "DELETE": ("org:admin",),
     }
 
     @property
@@ -201,7 +202,7 @@ class SentryAppPermission(SentryPermission):
         )
         self.determine_access(request, owner_app)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         organizations = (
@@ -232,7 +233,7 @@ class SentryAppPermission(SentryPermission):
 
 
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
-    permission_classes = (SentryAppPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (SentryAppPermission,)
 
     def convert_args(self, request: Request, sentry_app_slug: str, *args: Any, **kwargs: Any):
         try:
@@ -276,7 +277,7 @@ class SentryAppInstallationsPermission(SentryPermission):
 
         self.determine_access(request, organization)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         organizations = (
@@ -340,7 +341,7 @@ class SentryAppInstallationPermission(SentryPermission):
 
         self.determine_access(request, installation.organization_id)
 
-        if is_active_superuser(request):
+        if superuser_has_permission(request):
             return True
 
         # if user is an app, make sure it's for that same app
@@ -361,7 +362,7 @@ class SentryAppInstallationPermission(SentryPermission):
 
 
 class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
-    permission_classes = (SentryAppInstallationPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (SentryAppInstallationPermission,)
 
     def convert_args(self, request: Request, uuid, *args, **kwargs):
         installations = app_service.get_many(filter=dict(uuids=[uuid]))

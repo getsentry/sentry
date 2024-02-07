@@ -1,11 +1,12 @@
-import {createRef, Fragment, useEffect} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {createRef, Fragment, memo, useEffect, useState} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import MeasurementsPanel from 'sentry/components/events/interfaces/spans/measurementsPanel';
 import TraceViewHeader from 'sentry/components/events/interfaces/spans/newTraceDetailsHeader';
+import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import {
   boundsGenerator,
@@ -21,11 +22,11 @@ import {
 } from 'sentry/components/performance/waterfall/miniHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {tct} from 'sentry/locale';
-import {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import toPercent from 'sentry/utils/number/toPercent';
-import {
+import type {
   TraceError,
   TraceFullDetailed,
   TraceMeta,
@@ -36,7 +37,7 @@ import {
   TraceViewHeaderContainer,
 } from 'sentry/views/performance/traceDetails/styles';
 import TransactionGroup from 'sentry/views/performance/traceDetails/transactionGroup';
-import {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
+import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
 import {
   getTraceInfo,
   hasTraceData,
@@ -44,7 +45,7 @@ import {
 } from 'sentry/views/performance/traceDetails/utils';
 
 import LimitExceededMessage from './limitExceededMessage';
-import {TraceType} from './newTraceDetailsContent';
+import type {EventDetail, TraceType} from './newTraceDetailsContent';
 import TraceNotFound from './traceNotFound';
 
 type AccType = {
@@ -55,6 +56,7 @@ type AccType = {
 
 type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   meta: TraceMeta | null;
+  onRowClick: (detailKey: EventDetail | SpanDetailProps | undefined) => void;
   organization: Organization;
   rootEvent: EventTransaction | undefined;
   traceEventView: EventView;
@@ -90,23 +92,23 @@ function TraceHiddenMessage({
     numberOfHiddenTransactionsAbove < 1
       ? ''
       : numberOfHiddenTransactionsAbove === 1
-      ? tct('[numOfTransaction] hidden transaction', {
-          numOfTransaction,
-        })
-      : tct('[numOfTransaction] hidden transactions', {
-          numOfTransaction,
-        });
+        ? tct('[numOfTransaction] hidden transaction', {
+            numOfTransaction,
+          })
+        : tct('[numOfTransaction] hidden transactions', {
+            numOfTransaction,
+          });
 
   const hiddenErrorsMessage =
     numberOfHiddenErrorsAbove < 1
       ? ''
       : numberOfHiddenErrorsAbove === 1
-      ? tct('[numOfErrors] hidden error', {
-          numOfErrors,
-        })
-      : tct('[numOfErrors] hidden errors', {
-          numOfErrors,
-        });
+        ? tct('[numOfErrors] hidden error', {
+            numOfErrors,
+          })
+        : tct('[numOfErrors] hidden errors', {
+            numOfErrors,
+          });
 
   return (
     <MessageRow>
@@ -135,7 +137,7 @@ function generateBounds(traceInfo: TraceInfo) {
   });
 }
 
-export default function NewTraceView({
+function NewTraceView({
   location,
   meta,
   organization,
@@ -146,8 +148,10 @@ export default function NewTraceView({
   orphanErrors,
   traceType,
   handleLimitChange,
+  onRowClick,
   ...props
 }: Props) {
+  const [isTransactionBarScrolledTo, setIsTransactionBarScrolledTo] = useState(false);
   const sentryTransaction = Sentry.getCurrentHub().getScope()?.getTransaction();
   const sentrySpan = sentryTransaction?.startChild({
     op: 'trace.render',
@@ -155,7 +159,6 @@ export default function NewTraceView({
   });
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
   const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
-
   useEffect(() => {
     trackAnalytics('performance_views.trace_view.view', {
       organization,
@@ -230,6 +233,9 @@ export default function NewTraceView({
             numberOfHiddenErrorsAbove={0}
           />
           <TransactionGroup
+            isBarScrolledTo={isTransactionBarScrolledTo}
+            onBarScrolledTo={() => setIsTransactionBarScrolledTo(true)}
+            onRowClick={onRowClick}
             location={location}
             traceViewRef={traceViewRef}
             organization={organization}
@@ -344,6 +350,9 @@ export default function NewTraceView({
             numberOfHiddenErrorsAbove={index > 0 ? currentHiddenCount : 0}
           />
           <TransactionGroup
+            isBarScrolledTo={isTransactionBarScrolledTo}
+            onBarScrolledTo={() => setIsTransactionBarScrolledTo(true)}
+            onRowClick={onRowClick}
             location={location}
             organization={organization}
             traceViewRef={traceViewRef}
@@ -436,6 +445,9 @@ export default function NewTraceView({
                 </TraceViewHeaderContainer>
                 <TraceViewContainer ref={traceViewRef}>
                   <TransactionGroup
+                    isBarScrolledTo={isTransactionBarScrolledTo}
+                    onBarScrolledTo={() => setIsTransactionBarScrolledTo(true)}
+                    onRowClick={onRowClick}
                     location={location}
                     organization={organization}
                     traceInfo={traceInfo}
@@ -487,6 +499,7 @@ export default function NewTraceView({
 
   return traceView;
 }
+export default memo(NewTraceView);
 
 export const StyledTracePanel = styled(Panel)`
   height: 100%;

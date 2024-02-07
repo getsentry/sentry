@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {BarChart, BarChartSeries} from 'sentry/components/charts/barChart';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {BarChartSeries} from 'sentry/components/charts/barChart';
+import {BarChart} from 'sentry/components/charts/barChart';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -20,8 +21,11 @@ import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './ut
 
 interface StatusCounts {
   total: number;
-  archived?: number;
+  archived_forever?: number;
+  archived_until_condition_met?: number;
+  archived_until_escalating?: number;
   deleted?: number;
+  escalating?: number;
   ignored?: number;
   new?: number;
   regressed?: number;
@@ -42,7 +46,19 @@ interface TeamIssuesBreakdownProps extends DateTimeObject {
   environment?: string;
 }
 
-const keys = ['deleted', 'ignored', 'resolved', 'unignored', 'regressed', 'new', 'total'];
+const keys = [
+  'deleted',
+  'ignored',
+  'resolved',
+  'unignored',
+  'regressed',
+  'new',
+  'total',
+  'escalating',
+  'archived_until_escalating',
+  'archived_forever',
+  'archived_until_condition_met',
+];
 
 function TeamIssuesBreakdown({
   organization,
@@ -74,8 +90,6 @@ function TeamIssuesBreakdown({
     {staleTime: 5000}
   );
 
-  const hasEscalatingIssues = organization.features.includes('escalating-issues');
-
   const allReviewedByDay: Record<string, Record<string, number>> = {};
   // Total statuses & total reviewed keyed by project ID
   const projectTotals: Record<string, StatusCounts> = {};
@@ -87,10 +101,14 @@ function TeamIssuesBreakdown({
       if (!projectTotals[projectId]) {
         projectTotals[projectId] = {
           deleted: 0,
+          escalating: 0,
           ignored: 0,
           resolved: 0,
           unignored: 0,
           regressed: 0,
+          archived_until_escalating: 0,
+          archived_forever: 0,
+          archived_until_condition_met: 0,
           new: 0,
           total: 0,
         };
@@ -156,9 +174,7 @@ function TeamIssuesBreakdown({
               headers={[
                 t('Project'),
                 ...statuses
-                  .map(action =>
-                    hasEscalatingIssues ? action.replace('ignore', 'archive') : action
-                  )
+                  .map(action => action.replace('ignore', 'archive'))
                   .map(action => <AlignRight key={action}>{action}</AlignRight>),
                 <AlignRight key="total">
                   {t('total')} <IconArrow direction="down" size="xs" color="gray300" />

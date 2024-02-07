@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 from django import forms
 
@@ -42,7 +43,7 @@ class TaggedEventCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def _passes(self, raw_tags: Sequence[Tuple[str, Any]]) -> bool:
+    def _passes(self, raw_tags: Sequence[tuple[str, Any]]) -> bool:
         key = self.get_option("key")
         match = self.get_option("match")
         value = self.get_option("value")
@@ -56,7 +57,7 @@ class TaggedEventCondition(EventCondition):
             k
             for gen in (
                 (k.lower() for k, v in raw_tags),
-                (tagstore.get_standardized_key(k) for k, v in raw_tags),
+                (tagstore.backend.get_standardized_key(k) for k, v in raw_tags),
             )
             for k in gen
         )
@@ -75,7 +76,7 @@ class TaggedEventCondition(EventCondition):
         values = (
             v.lower()
             for k, v in raw_tags
-            if k.lower() == key or tagstore.get_standardized_key(k) == key
+            if k.lower() == key or tagstore.backend.get_standardized_key(k) == key
         )
 
         if match == MatchType.EQUAL:
@@ -132,7 +133,7 @@ class TaggedEventCondition(EventCondition):
         return self._passes(event.tags)
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             tags = event_map[condition_activity.data["event_id"]]["tags"]
@@ -148,8 +149,8 @@ class TaggedEventCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
-        columns: Dict[Dataset, Sequence[str]] = get_dataset_columns(
+    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
+        columns: dict[Dataset, Sequence[str]] = get_dataset_columns(
             [Columns.TAGS_KEY, Columns.TAGS_VALUE]
         )
         return columns

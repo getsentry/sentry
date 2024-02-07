@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, List, Optional
+from typing import Any
 from unittest import mock
 from unittest.mock import patch
 from uuid import uuid4
@@ -38,7 +38,7 @@ TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 class BaseGroupCounts(BaseMetricsTestCase, TestCase):
     def _create_events_for_group(
         self,
-        project_id: Optional[int] = None,
+        project_id: int | None = None,
         count: int = 1,
         hours_ago: int = 0,
         min_ago: int = 0,
@@ -259,7 +259,7 @@ def test_datetime_number_of_days() -> None:
 
 class DailyGroupCountsEscalating(BaseGroupCounts):
     def save_mock_escalating_group_forecast(
-        self, group: Group, forecast_values=List[int], date_added=datetime
+        self, group: Group, forecast_values=list[int], date_added=datetime
     ) -> None:
         """Save mock data for escalating group forecast in nodestore"""
         escalating_forecast = EscalatingGroupForecast(
@@ -278,49 +278,44 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
     @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
-        with self.feature("organizations:escalating-issues"):
-            # The group had 6 events in the last hour
-            event = self._create_events_for_group(count=6)
-            assert event.group is not None
-            archived_group = event.group
-            self.archive_until_escalating(archived_group)
+        # The group had 6 events in the last hour
+        event = self._create_events_for_group(count=6)
+        assert event.group is not None
+        archived_group = event.group
+        self.archive_until_escalating(archived_group)
 
-            # The escalating forecast for today is 5, thus, it should escalate
-            forecast_values = [5] + [6] * 13
-            self.save_mock_escalating_group_forecast(
-                group=archived_group, forecast_values=forecast_values, date_added=datetime.now()
-            )
-            assert is_escalating(archived_group) == (True, 5)
+        # The escalating forecast for today is 5, thus, it should escalate
+        forecast_values = [5] + [6] * 13
+        self.save_mock_escalating_group_forecast(
+            group=archived_group, forecast_values=forecast_values, date_added=datetime.now()
+        )
+        assert is_escalating(archived_group) == (True, 5)
 
-            # Test cache
-            assert (
-                cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}")
-                == 6
-            )
+        # Test cache
+        assert cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}") == 6
 
     @freeze_time(TIME_YESTERDAY)
     def test_not_escalating_issue(self) -> None:
         """Test when an archived until escalating issue is not escalating"""
-        with self.feature("organizations:escalating-issues"):
-            # Group 1 had 4 events yesterday
-            self._create_events_for_group(count=4, hours_ago=24)
-            # Group 2 had 5 events today
-            event = self._create_events_for_group(count=5, group="group-escalating")
-            assert event.group is not None
-            group = event.group
-            self.archive_until_escalating(group)
+        # Group 1 had 4 events yesterday
+        self._create_events_for_group(count=4, hours_ago=24)
+        # Group 2 had 5 events today
+        event = self._create_events_for_group(count=5, group="group-escalating")
+        assert event.group is not None
+        group = event.group
+        self.archive_until_escalating(group)
 
-            # The escalating forecast for today is 6 (since date_added was one day ago)
-            forecast_values = [5] + [6] * 13
-            self.save_mock_escalating_group_forecast(
-                group=group,
-                forecast_values=forecast_values,
-                date_added=datetime.now() - timedelta(days=1),
-            )
-            assert is_escalating(group) == (False, None)
-            assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
-            assert group.status == GroupStatus.IGNORED
-            assert not GroupInbox.objects.filter(group=group).exists()
+        # The escalating forecast for today is 6 (since date_added was one day ago)
+        forecast_values = [5] + [6] * 13
+        self.save_mock_escalating_group_forecast(
+            group=group,
+            forecast_values=forecast_values,
+            date_added=datetime.now() - timedelta(days=1),
+        )
+        assert is_escalating(group) == (False, None)
+        assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
+        assert group.status == GroupStatus.IGNORED
+        assert not GroupInbox.objects.filter(group=group).exists()
 
     @freeze_time(TIME_YESTERDAY.replace(minute=12, second=40, microsecond=0))
     def test_hourly_count_query(self) -> None:
@@ -338,9 +333,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         Test that when an archived until escalating issue does not have a forecast that is in range,
         the last forecast is used as a fallback and an error is reported
         """
-        with self.feature("organizations:escalating-issues") and patch(
-            "sentry.issues.escalating_group_forecast.logger"
-        ) as logger:
+        with patch("sentry.issues.escalating_group_forecast.logger") as logger:
             event = self._create_events_for_group(count=2)
             assert event.group is not None
             archived_group = event.group
@@ -362,24 +355,20 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         Test when an archived until escalating issue starts escalating after exactly 2 weeks.
         This can happen when the previous nodestore forecast hasn't expired yet.
         """
-        with self.feature("organizations:escalating-issues"):
-            # The group had 6 events in the last hour
-            event = self._create_events_for_group(count=6)
-            assert event.group is not None
-            archived_group = event.group
-            self.archive_until_escalating(archived_group)
+        # The group had 6 events in the last hour
+        event = self._create_events_for_group(count=6)
+        assert event.group is not None
+        archived_group = event.group
+        self.archive_until_escalating(archived_group)
 
-            # The escalating forecast for today is 5, thus, it should escalate
-            forecast_values = [5] * 14
-            self.save_mock_escalating_group_forecast(
-                group=archived_group,
-                forecast_values=forecast_values,
-                date_added=TIME_YESTERDAY - timedelta(days=14),
-            )
-            assert is_escalating(archived_group) == (True, 5)
+        # The escalating forecast for today is 5, thus, it should escalate
+        forecast_values = [5] * 14
+        self.save_mock_escalating_group_forecast(
+            group=archived_group,
+            forecast_values=forecast_values,
+            date_added=TIME_YESTERDAY - timedelta(days=14),
+        )
+        assert is_escalating(archived_group) == (True, 5)
 
-            # Test cache
-            assert (
-                cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}")
-                == 6
-            )
+        # Test cache
+        assert cache.get(f"hourly-group-count:{archived_group.project.id}:{archived_group.id}") == 6

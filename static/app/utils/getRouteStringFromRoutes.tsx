@@ -1,5 +1,4 @@
-import {PlainRoute} from 'react-router';
-import findLastIndex from 'lodash/findLastIndex';
+import type {PlainRoute} from 'react-router';
 
 type RouteWithPath = Omit<PlainRoute, 'path'> & Required<Pick<PlainRoute, 'path'>>;
 
@@ -19,7 +18,7 @@ export default function getRouteStringFromRoutes(routes?: PlainRoute[]): string 
 
   const routesWithPaths = routes.filter((route): route is RouteWithPath => !!route.path);
 
-  const lastAbsolutePathIndex = findLastIndex(routesWithPaths, ({path}) =>
+  const lastAbsolutePathIndex = routesWithPaths.findLastIndex(({path}) =>
     path.startsWith('/')
   );
 

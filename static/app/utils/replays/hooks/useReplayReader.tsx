@@ -2,20 +2,18 @@ import {useMemo} from 'react';
 
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   orgSlug: string;
   replaySlug: string;
+  clipWindow?: {
+    endTimestampMs: number;
+    startTimestampMs: number;
+  };
 };
 
-export default function useReplayReader({orgSlug, replaySlug}: Props) {
+export default function useReplayReader({orgSlug, replaySlug, clipWindow}: Props) {
   const replayId = parseReplayId(replaySlug);
-  const organization = useOrganization();
-
-  const showHydrationErrors = organization.features.includes(
-    'session-replay-show-hydration-errors'
-  );
 
   const {attachments, errors, replayRecord, ...replayData} = useReplayData({
     orgSlug,
@@ -23,9 +21,8 @@ export default function useReplayReader({orgSlug, replaySlug}: Props) {
   });
 
   const replay = useMemo(
-    () =>
-      ReplayReader.factory({attachments, errors, replayRecord}, {showHydrationErrors}),
-    [attachments, errors, replayRecord, showHydrationErrors]
+    () => ReplayReader.factory({attachments, errors, replayRecord, clipWindow}),
+    [attachments, clipWindow, errors, replayRecord]
   );
 
   return {

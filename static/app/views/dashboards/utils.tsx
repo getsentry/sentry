@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
-import {Location, Query} from 'history';
+import {connect} from 'echarts';
+import type {Location, Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
-import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
@@ -14,8 +14,8 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
+import type {Fidelity} from 'sentry/components/charts/utils';
 import {
-  Fidelity,
   getDiffInMinutes,
   getInterval,
   SIX_HOURS,
@@ -24,10 +24,10 @@ import {
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import {MRI, Organization, PageFilters} from 'sentry/types';
+import type {MRI, Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -37,34 +37,31 @@ import {
   isEquation,
   isMeasurement,
   RATE_UNIT_MULTIPLIERS,
-  RateUnits,
+  RateUnit,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, DisplayModes} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {
-  getDdmUrl,
-  getMetricDisplayType,
-  MetricWidgetQueryParams,
-} from 'sentry/utils/metrics';
+import {getDdmUrl, getMetricDisplayType} from 'sentry/utils/metrics';
 import {parseField} from 'sentry/utils/metrics/mri';
+import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
 import {decodeList} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
-import {
+import type {
   DashboardDetails,
-  DashboardFilterKeys,
   DashboardFilters,
-  DisplayType,
   Widget,
   WidgetQuery,
+} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
 import ThresholdsHoverWrapper from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
-import {
-  ThresholdMaxKeys,
-  ThresholdsConfig,
-} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import {ThresholdMaxKeys} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -120,7 +117,7 @@ export function getThresholdUnitSelectOptions(
   }
 
   if (dataType === 'rate') {
-    return Object.values(RateUnits).map(unit => ({
+    return Object.values(RateUnit).map(unit => ({
       label: `/${unit.split('/')[1]}`,
       value: unit,
     }));
@@ -138,8 +135,8 @@ function normalizeUnit(value: number, unit: string, dataType: string): number {
     dataType === 'rate'
       ? RATE_UNIT_MULTIPLIERS[unit]
       : dataType === 'duration'
-      ? DURATION_UNITS[unit]
-      : 1;
+        ? DURATION_UNITS[unit]
+        : 1;
   return value * multiplier;
 }
 
@@ -533,7 +530,8 @@ export function isWidgetUsingTransactionName(widget: Widget) {
 
 export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
-    isEmpty(dashboard.projects) &&
+    dashboard.projects &&
+    dashboard.projects.length === 0 &&
     dashboard.environment === undefined &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
@@ -628,8 +626,8 @@ export function getCurrentPageFilters(
       project === undefined || project === null
         ? []
         : typeof project === 'string'
-        ? [Number(project)]
-        : project.map(Number),
+          ? [Number(project)]
+          : project.map(Number),
     environment:
       typeof environment === 'string' ? [environment] : environment ?? undefined,
     period: statsPeriod as string | undefined,
@@ -646,7 +644,7 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
       dashboardFilters[key] = decodeList(location.query?.[key]);
     }
   });
-  return !isEmpty(dashboardFilters) ? dashboardFilters : null;
+  return Object.keys(dashboardFilters).length > 0 ? dashboardFilters : null;
 }
 
 export function dashboardFiltersToString(
@@ -665,4 +663,8 @@ export function dashboardFiltersToString(
     }
   }
   return dashboardFilterConditions;
+}
+
+export function connectDashboardCharts(groupName: string) {
+  connect?.(groupName);
 }

@@ -1,24 +1,24 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ExceptionValue} from 'sentry/types';
+import type {ExceptionValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {SourceMapDebug} from './sourceMapDebug';
+import type {SourceMapDebugError} from './useSourceMapDebug';
 import {
   getUniqueFilesFromException,
-  SourceMapDebugError,
   SourceMapProcessingIssueType,
 } from './useSourceMapDebug';
 
 jest.mock('sentry/utils/analytics');
 
 describe('SourceMapDebug', () => {
-  const organization = Organization({});
+  const organization = OrganizationFixture({});
   const project = ProjectFixture();
   const eventId = '1ec1bd65b0b1484b97162087a652421b';
   const exceptionValues: ExceptionValue[] = [

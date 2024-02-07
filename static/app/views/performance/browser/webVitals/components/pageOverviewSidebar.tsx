@@ -3,13 +3,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -17,7 +18,8 @@ import useRouter from 'sentry/utils/useRouter';
 import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 const CHART_HEIGHTS = 100;
@@ -51,6 +53,8 @@ export function PageOverviewSidebar({
     end: doubledPeriod.end ?? null,
     utc,
   };
+
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
@@ -117,10 +121,11 @@ export function PageOverviewSidebar({
   // Gets weights to dynamically size the performance score ring segments
   const weights = projectScore
     ? {
-        cls: projectScore.clsWeight,
-        fcp: projectScore.fcpWeight,
-        fid: projectScore.fidWeight,
         lcp: projectScore.lcpWeight,
+        fcp: projectScore.fcpWeight,
+        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
+        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
+        cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
       }
     : undefined;
@@ -149,7 +154,7 @@ export function PageOverviewSidebar({
             projectScore={projectScore}
             text={projectScore.totalScore}
             width={220}
-            height={180}
+            height={200}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
             weights={weights}

@@ -3,16 +3,21 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Callable, Dict, List, Type
 
 from dateutil import parser
 from django.db import models
 
-from sentry.backup.dependencies import PrimaryKeyMap, dependencies, get_model_name
+from sentry.backup.dependencies import (
+    PrimaryKeyMap,
+    dependencies,
+    get_exportable_sentry_models,
+    get_model_name,
+)
 from sentry.backup.findings import ComparatorFinding, ComparatorFindingKind, InstanceID
-from sentry.backup.helpers import Side, get_exportable_sentry_models
+from sentry.backup.helpers import Side
 from sentry.utils.json import JSONData
 
 UNIX_EPOCH = unix_zero_date = datetime.utcfromtimestamp(0).replace(tzinfo=timezone.utc).isoformat()
@@ -63,8 +68,6 @@ class JSONScrubbingComparator(ABC):
         """An abstract method signature, to be implemented by inheriting classes with their own
         comparison logic. Implementations of this method MUST take care not to mutate the method's
         inputs!"""
-
-        pass
 
     def existence(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
         """Ensure that all tracked fields on either both models or neither."""
@@ -249,7 +252,7 @@ class ForeignKeyComparator(JSONScrubbingComparator):
     left_pk_map: PrimaryKeyMap | None = None
     right_pk_map: PrimaryKeyMap | None = None
 
-    def __init__(self, foreign_fields: dict[str, Type[models.base.Model]]):
+    def __init__(self, foreign_fields: dict[str, type[models.base.Model]]):
         super().__init__(*(foreign_fields.keys()))
         self.foreign_fields = foreign_fields
 
@@ -349,8 +352,6 @@ class ObfuscatingComparator(JSONScrubbingComparator, ABC):
     def truncate(self, data: list[str]) -> list[str]:
         """An abstract method signature which implements a specific truncation algorithm to do the
         actual obfuscation."""
-
-        pass
 
 
 class EmailObfuscatingComparator(ObfuscatingComparator):
@@ -514,6 +515,58 @@ class RegexComparator(JSONScrubbingComparator, ABC):
                         left_pk=left["pk"],
                         right_pk=right["pk"],
                         reason=f"""the right value ("{rv}") of `{f}` was not matched by this regex: {self.regex.pattern}""",
+                    )
+                )
+        return findings
+
+
+class EqualOrRemovedComparator(JSONScrubbingComparator):
+    """
+    A normal equality comparison, except that it allows the right-side value to be `None` or
+    missing.
+    """
+
+    def compare(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        findings = []
+        fields = sorted(self.fields)
+        for f in fields:
+            if left["fields"].get(f) is None and right["fields"].get(f) is None:
+                continue
+            if right["fields"].get(f) is None:
+                continue
+
+            lv = left["fields"][f]
+            rv = right["fields"][f]
+            if lv != rv:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"""the left value ("{lv}") of `{f}` was not equal to the right value ("{rv}")""",
+                    )
+                )
+
+        return findings
+
+    def existence(self, on: InstanceID, left: JSONData, right: JSONData) -> list[ComparatorFinding]:
+        """Ensure that all tracked fields on either both models or neither."""
+
+        findings = []
+        for f in self.fields:
+            missing_on_left = f not in left["fields"] or left["fields"][f] is None
+            missing_on_right = f not in right["fields"] or right["fields"][f] is None
+            if missing_on_left and missing_on_right:
+                continue
+            if missing_on_left:
+                findings.append(
+                    ComparatorFinding(
+                        kind=self.get_kind_existence_check(),
+                        on=on,
+                        left_pk=left["pk"],
+                        right_pk=right["pk"],
+                        reason=f"the left `{f}` value was missing",
                     )
                 )
         return findings
@@ -688,8 +741,8 @@ def auto_assign_foreign_key_comparators(comps: ComparatorMap) -> None:
         )
 
 
-ComparatorList = List[JSONScrubbingComparator]
-ComparatorMap = Dict[str, ComparatorList]
+ComparatorList = list[JSONScrubbingComparator]
+ComparatorMap = dict[str, ComparatorList]
 
 
 # No arguments, so we lazily cache the result after the first calculation.
@@ -707,12 +760,19 @@ def get_default_comparators():
         list,
         {
             "sentry.apitoken": [
-                HashObfuscatingComparator("refresh_token", "token", "token_last_characters"),
+                HashObfuscatingComparator("refresh_token", "token"),
+                IgnoredComparator("token_last_characters"),
                 UnorderedListComparator("scope_list"),
             ],
             "sentry.apiapplication": [HashObfuscatingComparator("client_id", "client_secret")],
             "sentry.authidentity": [HashObfuscatingComparator("ident", "token")],
-            "sentry.alertrule": [DateUpdatedComparator("date_modified")],
+            "sentry.alertrule": [
+                DateUpdatedComparator("date_modified"),
+                # TODO(hybrid-cloud): actor refactor. Remove this check once we're sure we've
+                # migrated all remaining `owner_id`'s to also have `team_id` or `user_id`, which
+                # seems to not be the case today.
+                EqualOrRemovedComparator("owner", "team", "user_id"),
+            ],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.incidenttrigger": [DateUpdatedComparator("date_modified")],
@@ -721,9 +781,14 @@ def get_default_comparators():
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
+            "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
+            "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
-            "sentry.organizationmember": [HashObfuscatingComparator("token")],
+            "sentry.organizationmember": [
+                HashObfuscatingComparator("token"),
+                EqualOrRemovedComparator("inviter_id"),
+            ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
                 SecretHexComparator(16, "public_key", "secret_key"),

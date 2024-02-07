@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {NavigationSection} from 'sentry/views/settings/types';
+import type {Organization, Project} from 'sentry/types';
+import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
   debugFilesNeedsReview?: boolean;
@@ -111,6 +111,20 @@ export default function getConfiguration({
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
           show: () => !!organization?.features?.includes('performance-view'),
+        },
+        {
+          path: `${pathPrefix}/metrics/`,
+          title: t('Metrics'),
+          show: () =>
+            !!(
+              organization?.features?.includes('custom-metrics') &&
+              organization?.features?.includes('ddm-ui')
+            ),
+        },
+        {
+          path: `${pathPrefix}/replays/`,
+          title: t('Replays'),
+          show: () => !!organization?.features?.includes('session-replay-ui'),
         },
       ],
     },

@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, MutableMapping, Optional, cast
+from collections.abc import MutableMapping
+from typing import Any, cast
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
 from arroyo.types import Message, Value
 from django.conf import settings
 
-from sentry import features
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.models.project import Project
 from sentry.services.hybrid_cloud import ValueEqualityEnum
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer
@@ -22,6 +21,13 @@ logger = logging.getLogger(__name__)
 
 
 class PayloadType(ValueEqualityEnum):
+    """
+    Defines the type of payload that is being sent to Kafka.
+
+    Messages without PayloadTypes default to OCCURRENCE.
+    When adding new types, existing tests must pass without modifying the payload_type or the payload for backwards compatibility.
+    """
+
     OCCURRENCE = "occurrence"
     STATUS_CHANGE = "status_change"
 
@@ -40,12 +46,11 @@ _occurrence_producer = SingletonProducer(
 
 
 def produce_occurrence_to_kafka(
-    payload_type: PayloadType | None = PayloadType.OCCURRENCE,
+    payload_type: PayloadType = PayloadType.OCCURRENCE,
     occurrence: IssueOccurrence | None = None,
     status_change: StatusChangeMessage | None = None,
-    event_data: Optional[Dict[str, Any]] = None,
+    event_data: dict[str, Any] | None = None,
 ) -> None:
-    payload_data = None
     if payload_type == PayloadType.OCCURRENCE:
         payload_data = _prepare_occurrence_message(occurrence, event_data)
     elif payload_type == PayloadType.STATUS_CHANGE:
@@ -67,7 +72,7 @@ def produce_occurrence_to_kafka(
 
 
 def _prepare_occurrence_message(
-    occurrence: IssueOccurrence | None, event_data: Optional[Dict[str, Any]]
+    occurrence: IssueOccurrence | None, event_data: dict[str, Any] | None
 ) -> MutableMapping[str, Any] | None:
     if not occurrence:
         raise ValueError("occurrence must be provided")
@@ -87,10 +92,6 @@ def _prepare_status_change_message(
 ) -> MutableMapping[str, Any] | None:
     if not status_change:
         raise ValueError("status_change must be provided")
-
-    organization = Project.objects.get(id=status_change.project_id).organization
-    if not features.has("organizations:issue-platform-api-crons-sd", organization):
-        return None
 
     payload_data = cast(MutableMapping[str, Any], status_change.to_dict())
     payload_data["payload_type"] = PayloadType.STATUS_CHANGE.value

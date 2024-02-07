@@ -6,11 +6,11 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import {IconMute, IconStar} from 'sentry/icons';
+import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, GroupTombstoneHelper, Level, Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group, GroupTombstoneHelper, Level, Organization} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -55,17 +55,10 @@ function EventOrGroupHeader({
   const location = useLocation();
 
   function getTitleChildren() {
-    const {level, status, isBookmarked, hasSeen} = data as Group;
+    const {level, isBookmarked, hasSeen} = data as Group;
     return (
       <Fragment>
         {!hideLevel && level && <GroupLevel level={level} />}
-        {!hideIcons &&
-          status === 'ignored' &&
-          !organization.features.includes('escalating-issues') && (
-            <IconWrapper>
-              <IconMute color="red400" />
-            </IconWrapper>
-          )}
         {!hideIcons && isBookmarked && (
           <IconWrapper>
             <IconStar isSolid color="yellow400" />
@@ -89,14 +82,9 @@ function EventOrGroupHeader({
   function getTitle() {
     const {id, status} = data as Group;
     const {eventID: latestEventId, groupID} = data as Event;
-    const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
     const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
-      style:
-        status === 'resolved' && !hasEscalatingIssues
-          ? {textDecoration: 'line-through'}
-          : undefined,
     };
 
     if (isTombstone(data)) {

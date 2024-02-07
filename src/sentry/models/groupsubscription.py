@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, Iterable, List, Mapping, Optional, Sequence, Union
+from collections.abc import Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
@@ -72,9 +73,9 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
     def subscribe_actor(
         self,
         group: Group,
-        actor: Union[Team, User, RpcUser],
+        actor: Team | User | RpcUser,
         reason: int = GroupSubscriptionReason.unknown,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         from sentry import features
         from sentry.models.team import Team
         from sentry.models.user import User
@@ -154,9 +155,9 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                 with transaction.atomic(router.db_for_write(GroupSubscription)):
                     self.bulk_create(subscriptions)
                     return True
-            except IntegrityError as e:
+            except IntegrityError:
                 if i == 0:
-                    raise e
+                    raise
         return False
 
     def get_participants(self, group: Group) -> ParticipantMap:
@@ -228,14 +229,14 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                     result.add(provider, user, reason)
         return result
 
-    def get_possible_team_actors(self, group: Group) -> List[RpcActor]:
+    def get_possible_team_actors(self, group: Group) -> list[RpcActor]:
         from sentry.models.team import Team
 
         possible_teams_ids = Team.objects.filter(id__in=self.get_participating_team_ids(group))
         return RpcActor.many_from_object(possible_teams_ids)
 
     def get_subscriptions_by_team_id(
-        self, group: Group, possible_team_actors: List[RpcActor]
+        self, group: Group, possible_team_actors: list[RpcActor]
     ) -> Mapping[int, int]:
         active_and_disabled_team_subscriptions = self.filter(
             group=group, team_id__in=[t.id for t in possible_team_actors]

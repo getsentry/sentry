@@ -9,17 +9,18 @@ from sentry.integrations.utils.code_mapping import (
     Repo,
     RepoTree,
     UnsupportedFrameFilename,
+    convert_stacktrace_frame_path_to_source_path,
     filter_source_code_files,
     get_extension,
     get_sorted_code_mapping_configs,
     should_include,
     stacktrace_buckets,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.event_frames import EventFrame
 
 sentry_files = [
     "bin/__init__.py",
@@ -329,11 +330,81 @@ class TestDerivedCodeMappings(TestCase):
         assert source_path == ""
 
 
+class TestConvertStacktraceFramePathToSourcePath(TestCase):
+    def setUp(self):
+        super()
+        self.integration, self.oi = self.create_provider_integration_for(
+            self.organization, self.user, provider="example", name="Example"
+        )
+
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+        )
+
+        self.code_mapping_empty = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="",
+            source_root="src/",
+        )
+        self.code_mapping_abs_path = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="/Users/Foo/src/sentry/",
+            source_root="src/sentry/",
+        )
+        self.code_mapping_file = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="sentry/",
+            source_root="src/sentry/",
+        )
+
+    def test_convert_stacktrace_frame_path_to_source_path_empty(self):
+        assert (
+            convert_stacktrace_frame_path_to_source_path(
+                frame=EventFrame(filename="sentry/file.py"),
+                code_mapping=self.code_mapping_empty,
+                platform="python",
+                sdk_name="sentry.python",
+            )
+            == "src/sentry/file.py"
+        )
+
+    def test_convert_stacktrace_frame_path_to_source_path_abs_path(self):
+        assert (
+            convert_stacktrace_frame_path_to_source_path(
+                frame=EventFrame(
+                    filename="file.py", abs_path="/Users/Foo/src/sentry/folder/file.py"
+                ),
+                code_mapping=self.code_mapping_abs_path,
+                platform="python",
+                sdk_name="sentry.python",
+            )
+            == "src/sentry/folder/file.py"
+        )
+
+    def test_convert_stacktrace_frame_path_to_source_path_java(self):
+        assert (
+            convert_stacktrace_frame_path_to_source_path(
+                frame=EventFrame(filename="File.java", module="sentry.module.File"),
+                code_mapping=self.code_mapping_file,
+                platform="java",
+                sdk_name="sentry.java",
+            )
+            == "src/sentry/module/File.java"
+        )
+
+
 class TestGetSortedCodeMappingConfigs(TestCase):
     def setUp(self):
         super()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(provider="example", name="Example")
+            self.integration = self.create_provider_integration(provider="example", name="Example")
             self.integration.add_organization(self.organization, self.user)
             self.oi = OrganizationIntegration.objects.get(integration_id=self.integration.id)
 
@@ -391,9 +462,19 @@ class TestGetSortedCodeMappingConfigs(TestCase):
             source_root="",
             automatically_generated=True,
         )
+        # Created by user, well defined stack root that references abs_path
+        code_mapping6 = self.create_code_mapping(
+            organization_integration=self.oi,
+            project=self.project,
+            repo=self.repo,
+            stack_root="/Users/User/code/src/getsentry/src/sentry/",
+            source_root="",
+            automatically_generated=False,
+        )
 
         # Expected configs: stack_root, automatically_generated
         expected_config_order = [
+            code_mapping6,  # "/Users/User/code/src/getsentry/src/sentry/", False
             code_mapping3,  # "usr/src/getsentry/", False
             code_mapping4,  # "usr/src/", False
             code_mapping1,  # "", False

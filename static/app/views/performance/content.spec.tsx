@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -41,7 +41,7 @@ function WrappedComponent({organization, router}) {
 }
 
 function initializeData(projects, query, features = FEATURES) {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects,
   });
@@ -64,7 +64,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     ProjectFixture({id: '1', firstTransactionEvent: false}),
     ProjectFixture({id: '2', firstTransactionEvent: true}),
   ];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: FEATURES,
     projects,
   });
@@ -131,7 +131,7 @@ describe('Performance > Content', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({

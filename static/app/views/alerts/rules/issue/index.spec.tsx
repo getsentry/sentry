@@ -1,10 +1,12 @@
-import {browserHistory, PlainRoute} from 'react-router';
+import type {PlainRoute} from 'react-router';
+import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import moment from 'moment';
-import {Environments as EnvironmentsFixture} from 'sentry-fixture/environments';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ProjectAlertRule} from 'sentry-fixture/projectAlertRule';
-import {ProjectAlertRuleConfiguration} from 'sentry-fixture/projectAlertRuleConfiguration';
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
+import {ProjectAlertRuleConfigurationFixture} from 'sentry-fixture/projectAlertRuleConfiguration';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -13,6 +15,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -87,14 +90,14 @@ const createWrapper = (props = {}) => {
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
     <ProjectAlerts
-      {...TestStubs.routeComponentProps()}
+      {...RouteComponentPropsFixture()}
       organization={organization}
       project={project}
       params={params}
     >
       <IssueRuleEditor
-        route={TestStubs.routeComponentProps().route}
-        routeParams={TestStubs.routeComponentProps().routeParams}
+        route={RouteComponentPropsFixture().route}
+        routeParams={RouteComponentPropsFixture().routeParams}
         params={params}
         location={router.location}
         routes={projectAlertRuleDetailsRoutes}
@@ -105,7 +108,7 @@ const createWrapper = (props = {}) => {
         userTeamIds={[]}
       />
     </ProjectAlerts>,
-    {context: routerContext}
+    {context: routerContext, organization}
   );
 
   return {
@@ -119,14 +122,15 @@ const createWrapper = (props = {}) => {
 
 describe('IssueRuleEditor', function () {
   beforeEach(function () {
+    MockApiClient.clearMockResponses();
     browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
-      body: ProjectAlertRuleConfiguration(),
+      body: ProjectAlertRuleConfigurationFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/1/',
-      body: ProjectAlertRule(),
+      body: ProjectAlertRuleFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/environments/',
@@ -153,7 +157,6 @@ describe('IssueRuleEditor', function () {
   });
 
   afterEach(function () {
-    MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     ProjectsStore.reset();
   });
@@ -197,12 +200,12 @@ describe('IssueRuleEditor', function () {
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'PUT',
-        body: ProjectAlertRule(),
+        body: ProjectAlertRuleFixture(),
       });
     });
 
     it('gets correct rule name', async function () {
-      const rule = ProjectAlertRule();
+      const rule = ProjectAlertRuleFixture();
       mock = MockApiClient.addMockResponse({
         url: endpoint,
         method: 'GET',
@@ -346,7 +349,7 @@ describe('IssueRuleEditor', function () {
     it('opts out of the alert being disabled', async function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/1/',
-        body: ProjectAlertRule({
+        body: ProjectAlertRuleFixture({
           status: 'disabled',
           disableDate: moment().add(1, 'day').toISOString(),
         }),
@@ -363,6 +366,25 @@ describe('IssueRuleEditor', function () {
         )
       );
     });
+
+    it('renders environment selector in adopted release filter', async function () {
+      createWrapper({project: ProjectFixture({environments: ['production', 'staging']})});
+
+      // Add the adopted release filter
+      await selectEvent.select(
+        screen.getByText('Add optional filter...'),
+        /The {oldest_or_newest} release associated/
+      );
+
+      const filtersContainer = screen.getByTestId('rule-filters');
+
+      // Production environment is preselected because it's the first option.
+      // staging should also be selectable.
+      selectEvent.select(
+        within(filtersContainer).getAllByText('production')[0],
+        'staging'
+      );
+    });
   });
 
   describe('Edit Rule: Slack Channel Look Up', function () {
@@ -374,13 +396,12 @@ describe('IssueRuleEditor', function () {
 
     afterEach(function () {
       jest.clearAllTimers();
-      MockApiClient.clearMockResponses();
     });
 
     it('success status updates the rule', async function () {
       const mockSuccess = MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/rule-task/${uuid}/`,
-        body: {status: 'success', rule: ProjectAlertRule({name: 'Slack Rule'})},
+        body: {status: 'success', rule: ProjectAlertRuleFixture({name: 'Slack Rule'})},
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/1/',
@@ -449,7 +470,7 @@ describe('IssueRuleEditor', function () {
 
   describe('Duplicate Rule', function () {
     let mock;
-    const rule = ProjectAlertRule();
+    const rule = ProjectAlertRuleFixture();
     const endpoint = `/projects/org-slug/project-slug/rules/${rule.id}/`;
 
     beforeEach(function () {

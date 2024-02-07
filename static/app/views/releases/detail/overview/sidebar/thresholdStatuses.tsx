@@ -1,12 +1,12 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Release, ReleaseProject} from 'sentry/types';
+import type {Organization, Release, ReleaseProject} from 'sentry/types';
 import {getExactDuration} from 'sentry/utils/formatters';
 import useApi from 'sentry/utils/useApi';
 
@@ -15,7 +15,7 @@ import {
   ReleaseDetailsTableRow,
 } from '../../../components/releaseDetailsSideTable';
 import {fetchThresholdStatuses} from '../../../utils/fetchThresholdStatus';
-import {ThresholdStatus, ThresholdStatusesQuery} from '../../../utils/types';
+import type {ThresholdStatus, ThresholdStatusesQuery} from '../../../utils/types';
 
 type Props = {
   organization: Organization;
@@ -38,7 +38,7 @@ function ThresholdStatuses({project, release, organization, selectedEnvs}: Props
       start: start.toISOString(),
       end: end.toISOString(),
       release: [releaseVersion],
-      project: [project.slug],
+      projectSlug: [project.slug],
     };
     if (selectedEnvs.length) {
       query.environment = selectedEnvs;

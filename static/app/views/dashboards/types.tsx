@@ -1,8 +1,8 @@
-import {Layout} from 'react-grid-layout';
+import type {Layout} from 'react-grid-layout';
 
-import {User} from 'sentry/types';
+import type {User} from 'sentry/types';
 
-import {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
+import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the
@@ -109,6 +109,7 @@ export type DashboardDetails = {
 export enum DashboardState {
   VIEW = 'view',
   EDIT = 'edit',
+  INLINE_EDIT = 'inline_edit',
   CREATE = 'create',
   PENDING_DELETE = 'pending_delete',
   PREVIEW = 'preview',

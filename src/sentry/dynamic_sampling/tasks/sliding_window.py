@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import List, Mapping, Sequence, Tuple
 
 from snuba_sdk import (
     Column,
@@ -97,7 +97,7 @@ def sliding_window(context: TaskContext) -> None:
 
 def adjust_base_sample_rates_of_projects(
     org_id: int,
-    projects_with_total_root_count: Sequence[Tuple[ProjectId, int]],
+    projects_with_total_root_count: Sequence[tuple[ProjectId, int]],
     window_size: int,
     context: TaskContext,
 ) -> None:
@@ -175,8 +175,8 @@ def adjust_base_sample_rates_of_projects(
 
 
 def fetch_projects_with_total_root_transactions_count(
-    org_ids: List[int], window_size: int
-) -> Mapping[OrganizationId, Sequence[Tuple[ProjectId, int]]]:
+    org_ids: list[int], window_size: int
+) -> Mapping[OrganizationId, Sequence[tuple[ProjectId, int]]]:
     """
     Fetches for each organization and project the total root transactions count.
     """

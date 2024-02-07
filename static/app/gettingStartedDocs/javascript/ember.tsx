@@ -1,5 +1,5 @@
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -10,6 +10,7 @@ import {
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -35,10 +36,7 @@ Sentry.init({
   }${
     params.isReplaySelected
       ? `
-        new Sentry.Replay(${getReplayConfigOptions({
-          mask: params.mask,
-          block: params.block,
-        })}),`
+        Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
       : ''
   }
 ],${
@@ -170,7 +168,6 @@ const replayOnboarding: OnboardingConfig = {
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      isReplayConfigStep: true,
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/guides/ember/session-replay/',
       }),
@@ -181,11 +178,12 @@ const replayOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet({...params, isReplaySelected: true}),
+              code: getSdkSetupSnippet(params),
             },
           ],
         },
       ],
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],
