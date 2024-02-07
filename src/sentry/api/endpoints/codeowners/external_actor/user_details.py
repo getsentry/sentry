@@ -25,7 +25,7 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         "DELETE": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
 
     def convert_args(  # type: ignore[override]
         self,

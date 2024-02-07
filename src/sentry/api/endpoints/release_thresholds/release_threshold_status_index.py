@@ -84,7 +84,7 @@ class ReleaseThresholdStatusIndexSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
-    owner: ApiOwner = ApiOwner.ENTERPRISE
+    owner: ApiOwner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

@@ -27,7 +27,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
     permission_classes = (OrganizationUserPermission,)
 
     def _get_device_for_rename(self, authenticator, interface_device_id):

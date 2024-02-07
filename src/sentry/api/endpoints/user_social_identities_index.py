@@ -14,7 +14,7 @@ class UserSocialIdentitiesIndexEndpoint(UserEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
 
     def get(self, request: Request, user) -> Response:
         """

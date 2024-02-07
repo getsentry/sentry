@@ -82,7 +82,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (TeamProjectPermission,)
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
 
     @extend_schema(
         operation_id="List a Team's Projects",

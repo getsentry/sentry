@@ -19,7 +19,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
     # Disable authentication and permission requirements.
     permission_classes = ()
 

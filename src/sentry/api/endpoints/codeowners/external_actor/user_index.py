@@ -20,7 +20,7 @@ class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
 
     def post(self, request: Request, organization: Organization) -> Response:
         """

@@ -130,7 +130,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
     permission_classes = (MemberPermission,)
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
 
     def get(self, request: Request, organization) -> Response:
         queryset = OrganizationMember.objects.filter(
@@ -341,9 +341,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             target_object=om.id,
             data=om.get_audit_log_data(),
-            event=audit_log.get_event_id("MEMBER_INVITE")
-            if settings.SENTRY_ENABLE_INVITES
-            else audit_log.get_event_id("MEMBER_ADD"),
+            event=(
+                audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD")
+            ),
         )
 
         return Response(serialize(om), status=201)

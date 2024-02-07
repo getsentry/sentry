@@ -18,7 +18,7 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
 
     def delete(self, request: Request, user, identity_id) -> Response:
         """

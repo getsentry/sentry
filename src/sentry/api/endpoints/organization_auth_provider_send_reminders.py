@@ -20,7 +20,7 @@ class OrganizationAuthProviderSendRemindersEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
     permission_classes = (OrganizationAdminPermission,)
 
     def post(self, request: Request, organization) -> Response:

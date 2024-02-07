@@ -23,7 +23,7 @@ class OrgAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
     permission_classes = (OrgAuthTokenPermission,)
 
     def get(

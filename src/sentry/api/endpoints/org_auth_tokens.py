@@ -38,7 +38,7 @@ class OrgAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
     permission_classes = (OrgAuthTokenPermission,)
 
     @method_decorator(never_cache)

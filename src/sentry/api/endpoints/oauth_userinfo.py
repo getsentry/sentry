@@ -22,7 +22,7 @@ class OAuthUserInfoEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
     authentication_classes = ()
     permission_classes = ()
 

@@ -17,7 +17,7 @@ class TeamStatsEndpoint(TeamEndpoint, EnvironmentMixin, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
 
     def get(self, request: Request, team) -> Response:
         """

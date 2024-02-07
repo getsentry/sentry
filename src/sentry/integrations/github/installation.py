@@ -25,7 +25,7 @@ class GitHubIntegrationsInstallationEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.ECOSYSTEM
 
     permission_classes = (IsAuthenticated,)
 

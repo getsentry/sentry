@@ -21,7 +21,7 @@ class ApiAuthorizationsEndpoint(Endpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 

@@ -26,7 +26,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
     # Disable authentication and permission requirements.
     permission_classes = ()
 

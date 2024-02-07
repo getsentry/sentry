@@ -32,7 +32,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.CORE_PRODUCT_FOUNDATIONS
     permission_classes = (ProjectTeamsPermission,)
 
     @extend_schema(
