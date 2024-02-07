@@ -149,8 +149,6 @@ class RedisQuotaTest(TestCase):
         assert quotas[4].window == 10
         assert quotas[4].reason_code == "org_abuse_limit"
 
-        print("debugging")
-        print(quotas)
         assert quotas[5].id == "gam"
         assert quotas[5].scope == QuotaScope.GLOBAL
         assert quotas[5].scope_id is None
