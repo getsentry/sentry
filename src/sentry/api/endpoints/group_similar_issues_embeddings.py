@@ -40,20 +40,21 @@ def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> st
             choices = [event.platform, "default"] if event.platform else ["default"]
             templates = [f"sentry/partial/frames/{choice}.txt" for choice in choices]
             for frame in exc["stacktrace"]["frames"]:
-                output.append(
-                    render_to_string(
-                        templates,
-                        {
-                            "abs_path": frame.get("abs_path"),
-                            "filename": frame.get("filename"),
-                            "function": frame.get("function"),
-                            "module": frame.get("module"),
-                            "lineno": frame.get("lineno"),
-                            "colno": frame.get("colno"),
-                            "context_line": frame.get("context_line"),
-                        },
-                    ).strip("\n")
-                )
+                if frame["in_app"]:
+                    output.append(
+                        render_to_string(
+                            templates,
+                            {
+                                "abs_path": frame.get("abs_path"),
+                                "filename": frame.get("filename"),
+                                "function": frame.get("function"),
+                                "module": frame.get("module"),
+                                "lineno": frame.get("lineno"),
+                                "colno": frame.get("colno"),
+                                "context_line": frame.get("context_line"),
+                            },
+                        ).strip("\n")
+                    )
 
     return "\n".join(output)
 
