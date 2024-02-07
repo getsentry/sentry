@@ -92,17 +92,9 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
                 {"raw": f"Raw needs to be <= {max_length} characters in length"}
             )
 
-        if features.has(
-            "organizations:streamline-targeting-context",
-            self.context["ownership"].project.organization,
-        ):
-            schema = create_schema_from_issue_owners(
-                attrs["raw"], self.context["ownership"].project_id, add_owner_ids=True
-            )
-        else:
-            schema = create_schema_from_issue_owners(
-                attrs["raw"], self.context["ownership"].project_id
-            )
+        schema = create_schema_from_issue_owners(
+            attrs["raw"], self.context["ownership"].project_id, add_owner_ids=True
+        )
 
         self._validate_no_codeowners(schema["rules"])
 
@@ -240,17 +232,12 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         Returns details on a project's ownership configuration.
         """
         ownership = self.get_ownership(project)
-        should_return_schema = features.has(
-            "organizations:streamline-targeting-context", project.organization
-        )
 
-        if should_return_schema and ownership:
+        if ownership:
             self.add_owner_id_to_schema(ownership, project)
             self.rename_schema_identifier_for_parsing(ownership)
 
-        return Response(
-            serialize(ownership, request.user, should_return_schema=should_return_schema)
-        )
+        return Response(serialize(ownership, request.user))
 
     @extend_schema(
         operation_id="Update Ownership Configuration for a Project",
@@ -280,9 +267,6 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         if list(request.data) != ["raw"] and not has_project_write:
             raise PermissionDenied
 
-        should_return_schema = features.has(
-            "organizations:streamline-targeting-context", project.organization
-        )
         serializer = ProjectOwnershipRequestSerializer(
             data=request.data, partial=True, context={"ownership": self.get_ownership(project)}
         )
@@ -305,7 +289,5 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                 data={**change_data, **project.get_audit_log_data()},
             )
             ownership_rule_created.send_robust(project=project, sender=self.__class__)
-            return Response(
-                serialize(ownership, request.user, should_return_schema=should_return_schema)
-            )
+            return Response(serialize(ownership, request.user))
         return Response(serializer.errors, status=400)
