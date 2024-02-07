@@ -59,6 +59,32 @@ class ReplayExamples:
         ),
     ]
 
+    GET_SELECTORS = [
+        OpenApiExample(
+            "Retrieve a collection of selectors for an organization.",
+            value={
+                "data": [
+                    {
+                        "count_dead_clicks": 2,
+                        "count_rage_clicks": 1,
+                        "dom_element": "div#myid.class1.class2",
+                        "element": {
+                            "alt": "",
+                            "aria_label": "",
+                            "class": ["class1", "class2"],
+                            "id": "myid",
+                            "role": "",
+                            "tag": "div",
+                            "testid": "",
+                            "title": "",
+                        },
+                        "project_id": "1",
+                    }
+                ]
+            },
+        )
+    ]
+
     GET_REPLAY_COUNTS = [
         OpenApiExample(
             "Query replay count by issue or transaction id",
