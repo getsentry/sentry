@@ -5,6 +5,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
@@ -23,7 +24,19 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const hasFeature = hasTraceTimelineFeature(organization);
   const {isError, isLoading, data} = useTraceTimelineEvents({event}, hasFeature);
 
-  if (!hasFeature || !event.contexts?.trace?.trace_id) {
+  const hasTraceId = !!event.contexts?.trace?.trace_id;
+
+  let timelineStatus: string | undefined;
+  if (hasFeature) {
+    if (hasTraceId && !isLoading) {
+      timelineStatus = data.length > 1 ? 'shown' : 'empty';
+    } else if (!hasTraceId) {
+      timelineStatus = 'no_trace_id';
+    }
+  }
+  useRouteAnalyticsParams(timelineStatus ? {trace_timeline_status: timelineStatus} : {});
+
+  if (!hasFeature || !hasTraceId) {
     return null;
   }
 
