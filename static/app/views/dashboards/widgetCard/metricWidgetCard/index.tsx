@@ -242,10 +242,9 @@ export function MetricWidgetChartContainer({
       ? getChartTimeseries(timeseriesData, {
           getChartPalette: createChartPalette,
           mri,
-          groupBy,
         })
       : [];
-  }, [timeseriesData, mri, groupBy]);
+  }, [timeseriesData, mri]);
 
   if (isError) {
     const errorMessage =

@@ -5,7 +5,7 @@ import urllib.parse
 import uuid
 from typing import Any
 
-from sentry import features, http, options
+from sentry import features, http
 from sentry.datascrubbing import scrub_data
 from sentry.event_manager import EventManager
 from sentry.models.options.project_option import ProjectOption
@@ -138,10 +138,9 @@ def store_crash(crash, project: Project, url: str) -> None:
         )
         return
 
-    if options.get("processing.can-use-scrubbers"):
-        new_event = safe_execute(scrub_data, project=project, event=event, _with_transaction=False)
-        if new_event is not None:
-            event = new_event
+    new_event = safe_execute(scrub_data, project=project, event=event, _with_transaction=False)
+    if new_event is not None:
+        event = new_event
 
     event_manager = EventManager(event, project=project)
     event_manager.save(project_id=project.id)
