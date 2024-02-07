@@ -199,18 +199,18 @@ class _SiloModeTestModification:
             tagged_class, tagged_mode = getattr(obj, silo_mode_attr)
 
             if type(obj) is not tagged_class:
-                # Indicates that we are inheriting the silo mode attribute. Although
-                # we could just test in that mode, we would silently skip other modes
-                # if the superclass is tested in more than one (such as by
-                # `include_monolith_run=True`). So, enforce a general rule that test
-                # case subclasses must have decorators of their own.
+                # This condition indicates that the test case inherits the silo mode
+                # attribute from a superclass. Although we could just test in that
+                # mode, doing so would silently skip other modes if the superclass is
+                # supposed to be tested in more than one mode. So, enforce a general
+                # rule that test case subclasses must have decorators of their own.
                 sup = tagged_class.__name__
                 sub = type(obj).__name__
                 raise SubclassNotSiloDecoratedException(
                     f"A test class ({sub}) extends a silo-decorated test class ({sup}) "
                     f"without a silo decorator of its own. Add a decorator to {sub}. "
-                    f"(You probably want to copy and paste the decorator that is on "
-                    f"{sup}. Or, if you intend to run {sub} only in monolith mode, add "
+                    f"(You probably want to copy and paste the decorator from {sup}. "
+                    f"If you don't want to run {sub} in a silo mode at all, use "
                     f"`@no_silo_test`.)"
                 )
 
