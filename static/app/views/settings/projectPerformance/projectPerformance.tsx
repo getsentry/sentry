@@ -57,6 +57,11 @@ export const allowedSizeValues: number[] = [
   10000000,
 ]; // 50kb to 10MB in bytes
 
+export const allowedMainThreadDurations: number[] = [
+  10, 16, 20, 33, 40, 50, 60, 70, 80, 90, 100, 120, 140, 160, 180, 200, 220, 240, 260,
+  280, 300,
+];
+
 export const projectDetectorSettingsId = 'detector-threshold-settings';
 
 type ProjectPerformanceSettings = {[key: string]: number | boolean};
@@ -635,7 +640,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
             ),
-            formatLabel: formatFrameRate,
+            formatLabel: formatDuration,
             disabledReason,
           },
         ],
