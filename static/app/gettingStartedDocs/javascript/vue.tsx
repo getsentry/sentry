@@ -168,12 +168,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 
 export const nextSteps = [
   {
-    id: 'source-maps',
-    name: t('Source Maps'),
-    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
-  },
-  {
     id: 'vue-features',
     name: t('Vue Features'),
     description: t('Learn about our first class integration with the Vue framework.'),
