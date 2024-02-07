@@ -5,6 +5,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
@@ -23,7 +24,19 @@ export function TraceTimeline({event}: TraceTimelineProps) {
   const hasFeature = hasTraceTimelineFeature(organization);
   const {isError, isLoading, data} = useTraceTimelineEvents({event}, hasFeature);
 
-  if (!hasFeature || !event.contexts?.trace?.trace_id) {
+  const hasTraceId = !!event.contexts?.trace?.trace_id;
+
+  let timelineStatus: string | undefined;
+  if (hasFeature) {
+    if (hasTraceId && !isLoading) {
+      timelineStatus = data.length > 1 ? 'shown' : 'empty';
+    } else if (!hasTraceId) {
+      timelineStatus = 'no_trace_id';
+    }
+  }
+  useRouteAnalyticsParams(timelineStatus ? {trace_timeline_status: timelineStatus} : {});
+
+  if (!hasFeature || !hasTraceId) {
     return null;
   }
 
@@ -33,7 +46,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     !isLoading && data.length > 0 && data.every(item => item.id === event.id);
   if (isError || noEvents || onlySelfEvent) {
     // display empty placeholder to reduce layout shift
-    return <div style={{height: 34}} data-test-id="trace-timeline-empty" />;
+    return <div style={{height: 38}} data-test-id="trace-timeline-empty" />;
   }
 
   return (
@@ -62,7 +75,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 const TimelineOutline = styled('div')`
   position: absolute;
   left: 0;
-  top: 3px;
+  top: 3.5px;
   width: 100%;
   height: 10px;
   border: 1px solid ${p => p.theme.innerBorder};

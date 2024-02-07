@@ -1,6 +1,6 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import type {FieldValue} from 'sentry/components/forms/model';
-import type {IntegrationType} from 'sentry/types';
+import type {IntegrationType, PriorityLevel} from 'sentry/types';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -37,6 +37,11 @@ interface EventDropdownParams {
 interface ExternalIssueParams extends CommonGroupAnalyticsData {
   external_issue_provider: string;
   external_issue_type: IntegrationType;
+}
+
+interface SetPriorityParams extends CommonGroupAnalyticsData {
+  from_priority: PriorityLevel;
+  to_priority: PriorityLevel;
 }
 
 export type IssueEventParameters = {
@@ -83,6 +88,24 @@ export type IssueEventParameters = {
   'issue_details.issue_status_docs_clicked': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
+  'issue_details.set_priority': SetPriorityParams;
+  'issue_details.similar_issues.diff_clicked': {
+    error_message?: string;
+    group_id?: string;
+    parent_error_message?: string;
+    parent_group_id?: string;
+    parent_stacktrace?: string;
+    parent_transaction?: string;
+    project_id?: string;
+    stacktrace?: string;
+    transaction?: string;
+  };
+  'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
+    groupId: string;
+    parentGroupId: string;
+    value: string;
+    projectId?: string;
+  };
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
@@ -249,6 +272,10 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':
     'Issue Details: Escalating Issues Banner Feedback Received',
+  'issue_details.similar_issues.diff_clicked':
+    'Issue Details: Similar Issues: Diff Clicked',
+  'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
+    'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
@@ -324,4 +351,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.sourcemap_wizard_copy': 'Issue Details: Sourcemap Wizard Copy',
   'issue_details.sourcemap_wizard_learn_more':
     'Issue Details: Sourcemap Wizard Learn More',
+  'issue_details.set_priority': 'Issue Details: Set Priority',
 };

@@ -32,29 +32,29 @@ import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/te
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {SpanOpSelector} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
+import {APP_START_SPANS} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOpSelector';
+import {
+  COLD_START_TYPE,
+  WARM_START_TYPE,
+} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
-const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
-  SpanMetricsField;
+const {
+  SPAN_SELF_TIME,
+  SPAN_DESCRIPTION,
+  SPAN_GROUP,
+  SPAN_OP,
+  PROJECT_ID,
+  APP_START_TYPE,
+} = SpanMetricsField;
 
 type Props = {
   primaryRelease?: string;
   secondaryRelease?: string;
   transaction?: string;
 };
-
-const IOS_STARTUP_SPANS = ['app.start.cold', 'app.start.warm'];
-const ANDROID_STARTUP_SPANS = [
-  'app.start.cold',
-  'app.start.warm',
-  'contentprovider.load',
-  'application.load',
-  'activity.load',
-];
-export const STARTUP_SPANS = new Set([...IOS_STARTUP_SPANS, ...ANDROID_STARTUP_SPANS]);
 
 export function SpanOperationTable({
   transaction,
@@ -67,17 +67,25 @@ export function SpanOperationTable({
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
+  const startType = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
+  const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
 
   const searchQuery = new MutableSearch([
-    'transaction.op:ui.load',
-    `transaction:${transaction}`,
-    'has:span.description',
     // Exclude root level spans because they're comprised of nested operations
     '!span.description:"Cold Start"',
     '!span.description:"Warm Start"',
-    ...(spanOp
-      ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
-      : [`span.op:[${[...STARTUP_SPANS].join(',')}]`]),
+    // Exclude this span because we can get TTID contributing spans instead
+    '!span.description:"Initial Frame Render"',
+    'has:span.description',
+    'transaction.op:ui.load',
+    `transaction:${transaction}`,
+    `has:ttid`,
+    `${SpanMetricsField.APP_START_TYPE}:${
+      startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
+    }`,
+    `${SpanMetricsField.SPAN_OP}:${spanOp ? spanOp : `[${APP_START_SPANS.join(',')}]`}`,
+    ...(spanOp ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`] : []),
+    ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
@@ -89,7 +97,7 @@ export function SpanOperationTable({
     decodeScalar(location.query[QueryParameterNames.SPANS_SORT])
   )[0] ?? {
     kind: 'desc',
-    field: 'time_spent_percentage()',
+    field: `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
   };
 
   const newQuery: NewQuery = {
@@ -101,8 +109,8 @@ export function SpanOperationTable({
       SPAN_DESCRIPTION,
       `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
       `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-      'count()',
-      'time_spent_percentage()',
+      `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
+      SpanMetricsField.APP_START_TYPE,
       `sum(${SPAN_SELF_TIME})`,
     ],
     query: queryStringPrimary,
@@ -125,16 +133,17 @@ export function SpanOperationTable({
   const columnNameMap = {
     [SPAN_OP]: t('Operation'),
     [SPAN_DESCRIPTION]: t('Span Description'),
-    'count()': t('Total Count'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
-      'Duration (%s)',
+      'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
-      'Duration (%s)',
+      'Avg Duration (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
-    ['time_spent_percentage()']: t('Total Time Spent'),
+    [`avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`]:
+      t('Change'),
+    [APP_START_TYPE]: t('Start Type'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -231,21 +240,16 @@ export function SpanOperationTable({
 
   return (
     <Fragment>
-      <SpanOpSelector
-        primaryRelease={primaryRelease}
-        transaction={transaction}
-        secondaryRelease={secondaryRelease}
-      />
       <GridEditable
         isLoading={isLoading}
         data={data?.data as TableDataRow[]}
         columnOrder={[
+          APP_START_TYPE,
           String(SPAN_OP),
           String(SPAN_DESCRIPTION),
           `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
           `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-          'count()',
-          'time_spent_percentage()',
+          `avg_compare(${SPAN_SELF_TIME},release,${primaryRelease},${secondaryRelease})`,
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}
