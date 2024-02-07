@@ -42,6 +42,17 @@ function makeRawSpan(overrides: Partial<RawSpanType> = {}): RawSpanType {
   } as RawSpanType;
 }
 
+function makeTraceError(
+  overrides: Partial<TraceTree.TraceError> = {}
+): TraceTree.TraceError {
+  return {
+    title: 'MaybeEncodingError: Error sending result',
+    level: 'error',
+    data: {},
+    ...overrides,
+  } as TraceTree.TraceError;
+}
+
 function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): Event {
   return {
     entries: [{type: EntryType.SPANS, data: spans}],
@@ -68,6 +79,24 @@ describe('TraceTree', () => {
     );
 
     expect(tree.list).toHaveLength(3);
+  });
+
+  it('builds orphan errors as well', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            children: [],
+          }),
+          makeTransaction({
+            children: [],
+          }),
+        ],
+        orphan_errors: [makeTraceError()],
+      })
+    );
+
+    expect(tree.list).toHaveLength(4);
   });
 
   it('builds from spans when root is a transaction node', () => {
