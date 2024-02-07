@@ -96,6 +96,7 @@ export function PageOverviewWebVitalsDetailPanel({
     ? calculatePerformanceScoreFromStoredTableDataRow(projectScoresData?.data?.[0])
     : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
 
+  // TODO: remove this when INP is queryable. Need to map inp back to fid for search filters.
   const webVitalFilter = shouldReplaceFidWithInp && webVital === 'inp' ? 'fid' : webVital;
 
   // Do 3 queries filtering on LCP to get a spread of good, meh, and poor events
