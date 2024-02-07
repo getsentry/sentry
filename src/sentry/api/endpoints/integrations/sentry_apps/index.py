@@ -128,7 +128,8 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
                     overview=data["overview"],
                     allowed_origins=data["allowedOrigins"],
                     popularity=data["popularity"],
-                ).run(user=request.user, request=request)
+                ).run(user=request.user, request=request, skip_default_auth_token=True)
+                # We want to stop creating the default auth token for new apps and installations through the API
             except ValidationError as e:
                 # we generate and validate the slug here instead of the serializer since the slug never changes
                 return Response(e.detail, status=400)

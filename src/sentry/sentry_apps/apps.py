@@ -289,7 +289,13 @@ class SentryAppCreator:
                 not self.verify_install
             ), "Internal apps should not require installation verification"
 
-    def run(self, *, user: User | RpcUser, request: HttpRequest | None = None) -> SentryApp:
+    def run(
+        self,
+        *,
+        user: User | RpcUser,
+        request: HttpRequest | None = None,
+        skip_default_auth_token: bool = False,
+    ) -> SentryApp:
         with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
@@ -300,7 +306,8 @@ class SentryAppCreator:
 
             if self.is_internal:
                 install = self._install(slug=slug, user=user, request=request)
-                self._create_access_token(user=user, install=install, request=request)
+                if not skip_default_auth_token:
+                    self._create_access_token(user=user, install=install, request=request)
 
             self.audit(request=request, sentry_app=sentry_app)
         self.record_analytics(user=user, sentry_app=sentry_app)
