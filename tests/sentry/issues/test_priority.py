@@ -4,6 +4,7 @@ from sentry.issues.priority import (
     PRIORITY_LEVEL_TO_STR,
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
+    PriorityLevel,
     auto_update_priority,
 )
 from sentry.models.activity import Activity
@@ -13,7 +14,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.types.activity import ActivityType
-from sentry.types.group import PriorityLevel
 
 
 @apply_feature_flag_on_cls("projects:issue-priority")
