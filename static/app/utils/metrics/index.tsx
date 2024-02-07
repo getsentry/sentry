@@ -267,7 +267,7 @@ export function getMetricsSeriesName(group: MetricsGroup) {
   }
 
   return groupByEntries
-    .map(([_key, value]) => `${String(value).length ? value : t('none')}`)
+    .map(([_key, value]) => `${String(value).length ? value : t('(none)')}`)
     .join(', ');
 }
 

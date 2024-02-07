@@ -271,7 +271,7 @@ function FullSeriesName({
   return (
     <Fragment>
       {goupByEntries.map(([key, value], index) => {
-        const formattedValue = value || '(none)';
+        const formattedValue = value || t('(none)');
         return (
           <span key={key}>
             <strong>{`${key}:`}</strong>
