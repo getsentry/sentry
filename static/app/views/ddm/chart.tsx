@@ -146,7 +146,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         ...focusAreaBrush.options,
         forwardedRef: mergeRefs([forwardedRef, chartRef]),
         series: seriesToShow,
-        renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
+        devicePixelRatio: 2,
+        renderer: 'canvas' as const,
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 5, bottom: 0, left: 0, right: 0},
@@ -315,7 +316,7 @@ const createFogOfWarLineSeries = (series: Series, fogBucketCnt = 0) => ({
   // We include the last non-fog of war bucket so that the line is connected
   data: series.data.slice(-fogBucketCnt - 1),
   lineStyle: {
-    type: 'dashed',
+    type: 'dotted',
   },
 });
 
@@ -326,7 +327,7 @@ const createFogOfWarAreaSeries = (series: Series, fogBucketCnt = 0) => ({
   // We include the last non-fog of war bucket so that the line is connected
   data: series.data.slice(-fogBucketCnt - 1),
   lineStyle: {
-    type: 'dashed',
+    type: 'dotted',
     color: Color(series.color).lighten(0.3).string(),
   },
 });
