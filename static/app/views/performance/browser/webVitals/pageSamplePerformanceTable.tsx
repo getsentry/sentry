@@ -108,10 +108,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         field => !SORTABLE_INDEXED_SCORE_FIELDS.includes(field)
       );
 
-  const sort = useWebVitalsSort({
+  let sort = useWebVitalsSort({
     defaultSort: DEFAULT_INDEXED_SORT,
     sortableFields: sortableFields as unknown as string[],
   });
+  // Need to map fid back to inp for rendering
+  if (shouldReplaceFidWithInp && sort.field === 'measurements.fid') {
+    sort = {...sort, field: 'measurements.inp'};
+  }
   const replayLinkGenerator = generateReplayLink(routes);
 
   const project = useMemo(
@@ -368,7 +372,18 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     <span>
       <SearchBarContainer>
         {shouldReplaceFidWithInp && (
-          <SegmentedControl size="md" value={dataset} onChange={setDataset}>
+          <SegmentedControl
+            size="md"
+            value={dataset}
+            onChange={newDataSet => {
+              // Reset pagination and sort when switching datasets
+              router.replace({
+                ...location,
+                query: {...location.query, sort: undefined, cursor: undefined},
+              });
+              setDataset(newDataSet);
+            }}
+          >
             <SegmentedControl.Item key={Dataset.PAGELOADS}>
               {t('Pageloads')}
             </SegmentedControl.Item>
@@ -389,14 +404,14 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           }
         />
         <StyledPagination
-          pageLinks={pageLinks || interactionsPageLinks}
-          disabled={isLoading}
+          pageLinks={dataset === Dataset.INTERACTIONS ? interactionsPageLinks : pageLinks}
+          disabled={dataset === Dataset.INTERACTIONS ? isInteractionsLoading : isLoading}
           size="md"
         />
         {/* The Pagination component disappears if pageLinks is not defined,
         which happens any time the table data is loading. So we render a
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
-        {!pageLinks && (
+        {!(dataset === Dataset.INTERACTIONS ? interactionsPageLinks : pageLinks) && (
           <Wrapper>
             <ButtonBar merged>
               <Button
