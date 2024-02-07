@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {
@@ -19,6 +20,7 @@ import {isTransactionNode, TraceTree, type TraceTreeNode} from './traceTree';
 
 interface TraceProps {
   trace: TraceSplitResults<TraceFullDetailed> | null;
+  trace_id: string;
 }
 
 export function Trace(props: TraceProps) {
@@ -29,7 +31,7 @@ export function Trace(props: TraceProps) {
       return TraceTree.Empty();
     }
 
-    return TraceTree.FromTrace(props.trace.transactions);
+    return TraceTree.FromTrace(props.trace);
   }, [props.trace]);
 
   const [_rerender, setRender] = useState(0);
@@ -37,7 +39,7 @@ export function Trace(props: TraceProps) {
   treeRef.current = traceTree;
 
   const handleFetchChildren = useCallback(
-    (node: TraceTreeNode<TraceFullDetailed | RawSpanType>, value: boolean) => {
+    (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
       treeRef.current
         .zoomIn(node, value, {
           api,
@@ -51,7 +53,7 @@ export function Trace(props: TraceProps) {
   );
 
   const handleExpandNode = useCallback(
-    (node: TraceTreeNode<TraceFullDetailed | RawSpanType>, value: boolean) => {
+    (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => {
       treeRef.current.expand(node, value);
       setRender(a => (a + 1) % 2);
     },
@@ -83,10 +85,11 @@ export function Trace(props: TraceProps) {
             rowHeight={24}
             height={height}
             width={width}
-            overscanRowCount={5}
+            overscanRowCount={20}
             rowCount={treeRef.current.list.length ?? 0}
             rowRenderer={p => (
               <RenderRow
+                trace_id={props.trace_id}
                 index={p.index}
                 projects={projectLookup}
                 node={treeRef.current.list?.[p.index]}
@@ -104,17 +107,12 @@ export function Trace(props: TraceProps) {
 
 function RenderRow(props: {
   index: number;
-  node: TraceTreeNode<TraceFullDetailed | RawSpanType>;
-  onExpandNode: (
-    node: TraceTreeNode<TraceFullDetailed | RawSpanType>,
-    value: boolean
-  ) => void;
-  onFetchChildren: (
-    node: TraceTreeNode<TraceFullDetailed | RawSpanType>,
-    value: boolean
-  ) => void;
+  node: TraceTreeNode<TraceTree.NodeValue>;
+  onExpandNode: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
+  onFetchChildren: (node: TraceTreeNode<TraceTree.NodeValue>, value: boolean) => void;
   projects: Record<Project['slug'], Project>;
   style: React.CSSProperties;
+  trace_id: string;
 }) {
   if (!props.node.value) {
     return null;
@@ -126,8 +124,11 @@ function RenderRow(props: {
     return (
       <div
         className="TraceRow"
-        // @TODO check if we can just mutate style
-        style={{...props.style, paddingLeft: props.node.depth * 23}}
+        style={{
+          top: props.style.top,
+          height: props.style.height,
+          paddingLeft: props.node.depth * 23,
+        }}
       >
         <div
           className={`TraceChildrenCountWrapper ${
@@ -146,7 +147,7 @@ function RenderRow(props: {
         </div>
         <ProjectBadge project={props.projects[transaction.project_slug]} />
         <span className="TraceOperation">{transaction['transaction.op']}</span>
-        <strong> — </strong>
+        <strong className="TraceEmDash"> — </strong>
         <span>{transaction.transaction}</span>
         {props.node.canFetchData ? (
           <button onClick={() => props.onFetchChildren(props.node, !props.node.zoomedIn)}>
@@ -157,38 +158,79 @@ function RenderRow(props: {
     );
   }
 
-  const span = props.node.value as RawSpanType;
-
-  return (
-    <div
-      className="TraceRow"
-      // @TODO check if we can just mutate style
-      style={{...props.style, paddingLeft: props.node.depth * 23}}
-    >
+  if ('span_id' in props.node.value) {
+    const span = props.node.value as RawSpanType;
+    return (
       <div
-        className={`TraceChildrenCountWrapper ${props.node.isOrphaned ? 'Orphaned' : ''}`}
+        className="TraceRow"
+        // @TODO check if we can just mutate style
+        style={{
+          top: props.style.top,
+          height: props.style.height,
+          paddingLeft: props.node.depth * 23,
+        }}
       >
-        <Connectors node={props.node} />
-        {props.node.children.length > 0 ? (
-          <ChildrenCountButton
-            expanded={props.node.expanded || props.node.zoomedIn}
-            onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
-          >
-            {props.node.children.length}{' '}
-          </ChildrenCountButton>
+        <div
+          className={`TraceChildrenCountWrapper ${
+            props.node.isOrphaned ? 'Orphaned' : ''
+          }`}
+        >
+          <Connectors node={props.node} />
+          {props.node.children.length > 0 ? (
+            <ChildrenCountButton
+              expanded={props.node.expanded || props.node.zoomedIn}
+              onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+            >
+              {props.node.children.length}{' '}
+            </ChildrenCountButton>
+          ) : null}
+        </div>
+        <span className="TraceOperation">{span.op ?? '<unknown>'}</span>
+        <strong className="TraceEmDash"> — </strong>
+        <span className="TraceDescription">{span.description ?? '<unknown>'}</span>
+        {props.node.canFetchData ? (
+          <button onClick={() => props.onFetchChildren(props.node, !props.node.zoomedIn)}>
+            {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
+          </button>
         ) : null}
       </div>
-      <span className="TraceOperation">{span.description}</span>
-      {props.node.canFetchData ? (
-        <button onClick={() => props.onFetchChildren(props.node, !props.node.zoomedIn)}>
-          {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
-        </button>
-      ) : null}
-    </div>
-  );
+    );
+  }
+
+  if ('orphan_errors' in props.node.value) {
+    return (
+      <div
+        className="TraceRow"
+        // @TODO check if we can just mutate style
+        style={{
+          top: props.style.top,
+          height: props.style.height,
+          paddingLeft: props.node.depth * 23,
+        }}
+      >
+        <div className="TraceChildrenCountWrapper Root">
+          <Connectors node={props.node} />
+          {props.node.children.length > 0 ? (
+            <ChildrenCountButton
+              expanded={props.node.expanded || props.node.zoomedIn}
+              onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+            >
+              {props.node.children.length}{' '}
+            </ChildrenCountButton>
+          ) : null}
+        </div>
+
+        <span className="TraceOperation">{t('Trace')}</span>
+        <strong className="TraceEmDash"> — </strong>
+        <span className="TraceDescription">{props.trace_id}</span>
+      </div>
+    );
+  }
+
+  return null;
 }
 
-function Connectors(props: {node: TraceTreeNode<TraceFullDetailed | RawSpanType>}) {
+function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const showVerticalConnector =
     (props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0;
 
@@ -244,6 +286,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceRow {
     display: flex;
     align-items: center;
+    position: absolute;
     font-size: ${p => p.theme.fontSizeSmall}
   }
 
@@ -287,6 +330,13 @@ const TraceStylingWrapper = styled('div')`
 
       &::before {
         border-bottom: 2px dashed ${p => p.theme.border};
+      }
+    }
+
+    &.Root {
+      &:before,
+      .TraceVerticalLastChildConnector {
+        visibility: hidden;
       }
     }
 
@@ -354,5 +404,14 @@ const TraceStylingWrapper = styled('div')`
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: bold;
+  }
+
+  .TraceEmDash {
+    margin-left: ${space(0.5)};
+    margin-right: ${space(0.5)};
+  }
+
+  .TraceDescription {
+    white-space: nowrap;
   }
 `;
