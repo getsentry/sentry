@@ -62,6 +62,7 @@ class OrganizationMetricsPermissionTest(APITestCase):
         ("sentry-api-0-organization-metrics-tags",),
         ("sentry-api-0-organization-metrics-tag-details", "foo"),
         ("sentry-api-0-organization-metrics-data",),
+        ("sentry-api-0-organization-metrics-query",),
     )
 
     def send_get_request(self, token, endpoint, *args):

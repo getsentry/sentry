@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +13,8 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.data import run_metrics_query
+from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
+from sentry.sentry_metrics.querying.data_v2.api import FormulaOrder, MetricsQueriesPlan
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     LatestReleaseNotFoundError,
@@ -304,3 +308,125 @@ class MetricsDataSeriesPaginator(GenericOffsetPaginator):
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
         )
+
+
+@region_silo_endpoint
+class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "POST": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    """
+    Queries one or more metrics over a time range.
+    """
+
+    # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
+    default_rate_limit = RateLimit(200, 5)
+
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.IP: default_rate_limit,
+            RateLimitCategory.USER: default_rate_limit,
+            RateLimitCategory.ORGANIZATION: default_rate_limit,
+        },
+    }
+
+    # Number of groups returned by default for each query.
+    default_limit = 20
+
+    def _map_from_set_fields(self, request: Request, *keys):
+        """
+        Extracts a set of keys from the request payload if the key has a corresponding value to it.
+        """
+        keys_map = {}
+
+        for key in keys:
+            if value := request.data.get(key) is not None:
+                keys_map[key] = value
+
+        return keys_map
+
+    def _validate_order(self, order: str | None) -> FormulaOrder | None:
+        if order is None:
+            return None
+
+        formula_order = FormulaOrder.from_string(order)
+        if formula_order is None:
+            order_choices = [v.value for v in FormulaOrder]
+            raise InvalidMetricsQueryError(
+                f"The provided `order` is not a valid, only {order_choices} are supported"
+            )
+
+        return formula_order
+
+    def _validate_limit(self, limit: str | None) -> int:
+        if not limit:
+            return self.default_limit
+
+        try:
+            return int(limit)
+        except ValueError:
+            raise InvalidMetricsQueryError(
+                "The provided `limit` is not valid, an integer is required"
+            )
+
+    def _date_range_from_request(self, request: Request) -> tuple[datetime, datetime]:
+        """
+        Extracts the date range of the query from the request payload.
+        """
+        phantom_date_params = self._map_from_set_fields(request, "statsPeriod", "start", "end")
+        return get_date_range_from_params(phantom_date_params)
+
+    def _interval_from_request(self, request: Request) -> int:
+        """
+        Extracts the interval of the query from the request payload.
+        """
+        interval = parse_stats_period(request.data.get("interval", "1h"))
+        return int(3600 if interval is None else interval.total_seconds())
+
+    def _metrics_queries_plan_from_request(self, request: Request) -> MetricsQueriesPlan:
+        """
+        Extracts the metrics queries plan from the request payload.
+        """
+        metrics_queries_plan = MetricsQueriesPlan()
+
+        queries = request.data.get("queries") or []
+        for query in queries:
+            metrics_queries_plan.declare_query(name=query["name"], mql=query["mql"])
+
+        formulas = request.data.get("formulas") or []
+        for formula in formulas:
+            metrics_queries_plan.apply_formula(
+                mql=formula["mql"],
+                order=self._validate_order(formula.get("order")),
+                limit=self._validate_limit(formula.get("limit")),
+            )
+
+        return metrics_queries_plan
+
+    def post(self, request: Request, organization) -> Response:
+        try:
+            start, end = self._date_range_from_request(request)
+            interval = self._interval_from_request(request)
+            metrics_queries_plan = self._metrics_queries_plan_from_request(request)
+
+            results = run_metrics_queries_plan(
+                metrics_queries_plan=metrics_queries_plan,
+                start=start,
+                end=end,
+                interval=interval,
+                organization=organization,
+                # TODO: figure out how to make these methods work with HTTP body.
+                projects=self.get_projects(request, organization),
+                environments=self.get_environments(request, organization),
+                referrer=Referrer.API_DDM_METRICS_QUERY.value,
+            )
+        except InvalidMetricsQueryError as e:
+            return Response(status=400, data={"detail": str(e)})
+        except LatestReleaseNotFoundError as e:
+            return Response(status=404, data={"detail": str(e)})
+        except MetricsQueryExecutionError as e:
+            return Response(status=500, data={"detail": str(e)})
+
+        return Response(status=200, data=results)
