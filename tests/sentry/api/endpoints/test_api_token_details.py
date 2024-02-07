@@ -16,7 +16,7 @@ class ApiTokenDetailTest(APITestCase):
     def test_simple(self):
         self.login_as(self.user)
         response = self.client.get(self.url)
-        assert response.status_code == 400, response.content
+        assert response.status_code == 200, response.content
 
     def test_never_cache(self):
         self.login_as(self.user)
@@ -38,12 +38,17 @@ class ApiTokenDetailTest(APITestCase):
 
     def test_updating_name(self):
         self.login_as(self.user)
-        response = self.client.put(
+        response = self.client.patch(
             self.url,
             data={"name": "testname1"},
         )
 
-        assert response.status_code == 204
+        assert response.status_code == 204, response.content
 
         self.api_token.refresh_from_db()
         assert self.api_token.name == "testname1"
+
+    def test_updating_scopes_denied(self):
+        self.login_as(self.user)
+        response = self.client.patch(self.url, data={"scopes": ["event:read"]})
+        assert response.status_code == 400, response.content

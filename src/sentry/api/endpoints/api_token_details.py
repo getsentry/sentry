@@ -25,6 +25,21 @@ from sentry.security.utils import capture_security_activity
 class ApiTokenUpdateSerializer(serializers.Serializer):
     name = CharField(max_length=255, allow_blank=True, required=False)
 
+    def to_internal_value(self, data):
+        allowed_fields = set(self.fields.keys())
+        incoming_fields = set(data.keys())
+        extra_fields = incoming_fields - allowed_fields
+
+        # DRF silenty drops any extra fields that aren't declared in the serializer, but in this case
+        # we want to let the user know they've passed invalid field. For example, if a user tried to pass
+        # `scopes` to update them after creation.
+        if extra_fields:
+            raise serializers.ValidationError(
+                f"Invalid fields provided. Valid fields only include: {', '.join(allowed_fields)}"
+            )
+
+        return super().to_internal_value(data)
+
 
 @control_silo_endpoint
 class ApiTokenDetailsEndpoint(Endpoint):
@@ -32,7 +47,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "PATCH": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
@@ -47,7 +62,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
         return Response(serialize(token, request.user, include_token=False))
 
     @method_decorator(never_cache)
-    def put(self, request: Request, token_id: int) -> Response:
+    def patch(self, request: Request, token_id: int) -> Response:
         serializer = ApiTokenUpdateSerializer(data=request.data)
 
         if serializer.is_valid():
