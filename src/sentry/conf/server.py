@@ -1869,6 +1869,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:session-replay-weekly-email": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
+    # Enable the UI for updated terms of service
+    "organizations:settings-legal-tos-ui": False,
     # Enable the UI for the overage alert settings
     "organizations:slack-overage-notifications": False,
     # Enable source maps debugger
