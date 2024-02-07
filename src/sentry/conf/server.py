@@ -1974,8 +1974,10 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:first-event-severity-new-escalation": False,
     # Enable severity alerts for new issues based on severity and escalation
     "projects:high-priority-alerts": False,
-    # Enable setting priority for issues
+    # Enable priority for issues
     "projects:issue-priority": False,
+    # Enable setting priority for new groups on ingest
+    "projects:issue-priority-new-groups": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,

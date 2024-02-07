@@ -311,6 +311,7 @@ default_manager.add("projects:first-event-severity-calculation", ProjectFeature,
 default_manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:high-priority-alerts", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:issue-priority", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("projects:issue-priority-new-groups", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:minidump", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
