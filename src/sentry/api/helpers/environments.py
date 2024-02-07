@@ -21,9 +21,7 @@ environment_visibility_filter_options = {
 def get_environments(
     request: Request, organization: Organization | RpcOrganization
 ) -> list[Environment]:
-    get_environments = request.GET.getlist("environment")
-    data_environments = request.data.get("environments") or []
-    requested_environments = set(get_environments or data_environments)
+    requested_environments = set(request.GET.getlist("environment"))
 
     if not requested_environments:
         return []

@@ -58,4 +58,4 @@ def run_metrics_queries_plan(
     referrer: str,
 ):
     # TODO: implement new querying logic.
-    pass
+    return None

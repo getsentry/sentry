@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -335,18 +333,6 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     # Number of groups returned by default for each query.
     default_limit = 20
 
-    def _map_from_set_fields(self, request: Request, *keys):
-        """
-        Extracts a set of keys from the request payload if the key has a corresponding value to it.
-        """
-        keys_map = {}
-
-        for key in keys:
-            if value := request.data.get(key) is not None:
-                keys_map[key] = value
-
-        return keys_map
-
     def _validate_order(self, order: str | None) -> FormulaOrder | None:
         if order is None:
             return None
@@ -370,13 +356,6 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
             raise InvalidMetricsQueryError(
                 "The provided `limit` is not valid, an integer is required"
             )
-
-    def _date_range_from_request(self, request: Request) -> tuple[datetime, datetime]:
-        """
-        Extracts the date range of the query from the request payload.
-        """
-        phantom_date_params = self._map_from_set_fields(request, "statsPeriod", "start", "end")
-        return get_date_range_from_params(phantom_date_params)
 
     def _interval_from_request(self, request: Request) -> int:
         """
@@ -407,7 +386,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization) -> Response:
         try:
-            start, end = self._date_range_from_request(request)
+            start, end = get_date_range_from_params(request.GET)
             interval = self._interval_from_request(request)
             metrics_queries_plan = self._metrics_queries_plan_from_request(request)
 

@@ -29,8 +29,10 @@ class OrganizationMetricsQueryTest(MetricsAPIBaseTestCase):
             status_code=200,
             queries="",
             formulas="",
-            statsPeriod="1h",
-            interval="1h",
-            projects=[self.project.id],
-            environments=[],
+            qs_params={
+                "statsPeriod": "24h",
+                "interval": "1h",
+                "project": [self.project.id],
+                "environment": [],
+            },
         )
