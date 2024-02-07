@@ -773,6 +773,15 @@ register(
 )
 
 
+# Killswitch for issue priority
+register(
+    "issues.priority.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
