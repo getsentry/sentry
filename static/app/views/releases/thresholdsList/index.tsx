@@ -86,16 +86,22 @@ function ReleaseThresholdList({}: Props) {
       projects.flatMap(project => {
         /**
          * Include environments from:
+         * all projects I can access if -1 is the only selected project.
+         * all member projects if 'my projects' (empty list) is selected.
          * all projects if the user is a superuser
          * the requested projects
-         * all member projects if 'my projects' (empty list) is selected.
-         * all projects if -1 is the only selected project.
          */
+        const allProjectsSelectedICanAccess =
+          selectedProjectIds.length === 1 &&
+          selectedProjectIds[0] === String(ALL_ACCESS_PROJECTS) &&
+          project.hasAccess;
+        const myProjectsSelected = selectedProjectIds.length === 0 && project.isMember;
+        const allMemberProjectsIfSuperuser =
+          selectedProjectIds.length === 0 && user.isSuperuser;
         if (
-          (selectedProjectIds.length === 1 &&
-            selectedProjectIds[0] === String(ALL_ACCESS_PROJECTS) &&
-            project.hasAccess) ||
-          (selectedProjectIds.length === 0 && (project.isMember || user.isSuperuser)) ||
+          allProjectsSelectedICanAccess ||
+          myProjectsSelected ||
+          allMemberProjectsIfSuperuser ||
           selectedProjectIds.includes(project.id)
         ) {
           return project.environments;
@@ -120,15 +126,18 @@ function ReleaseThresholdList({}: Props) {
       projects.flatMap(project => {
         /**
          * Include environments from:
-         * the requested projects
-         * all member projects if 'my projects' (empty list) is selected.
          * all projects if -1 is the only selected project.
+         * all member projects if 'my projects' (empty list) is selected.
+         * the requested projects
          */
+        const allProjectsSelected =
+          selectedProjectIds.length === 1 &&
+          selectedProjectIds[0] === String(ALL_ACCESS_PROJECTS) &&
+          project.hasAccess;
+        const myProjectsSelected = selectedProjectIds.length === 0 && project.isMember;
         if (
-          (selectedProjectIds.length === 1 &&
-            selectedProjectIds[0] === String(ALL_ACCESS_PROJECTS) &&
-            project.hasAccess) ||
-          (selectedProjectIds.length === 0 && project.isMember) ||
+          allProjectsSelected ||
+          myProjectsSelected ||
           selectedProjectIds.includes(project.id)
         ) {
           return project.environments;
