@@ -119,7 +119,6 @@ function RenderRow(props: {
   }
 
   if ('autogrouped_by' in props.node.value) {
-    // console.log('Autogrouped', props.node.value.autogrouped_by, props.node);
     return (
       <div
         className="TraceRow"
@@ -137,7 +136,7 @@ function RenderRow(props: {
               expanded={props.node.expanded || props.node.zoomedIn}
               onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
             >
-              {props.node.children.length}{' '}
+              {props.node.groupCount}{' '}
             </ChildrenCountButton>
           ) : null}
         </div>
