@@ -981,6 +981,10 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_ondemand_orderby(self) -> Any:
         result = []
         raw_orderby = self.raw_orderby
+
+        if not raw_orderby:
+            return []
+
         if isinstance(self.raw_orderby, str):
             raw_orderby = [self.raw_orderby]
 
