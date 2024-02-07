@@ -84,15 +84,15 @@ export type IssueEventParameters = {
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.similar_issues.diff_clicked': {
-    error_message: string;
-    group_id: string;
-    parent_error_message: string;
-    parent_group_id: string;
-    parent_stacktrace: string;
-    parent_transaction: string;
-    project_id: string;
-    stacktrace: string;
-    transaction: string;
+    error_message?: string;
+    group_id?: string;
+    parent_error_message?: string;
+    parent_group_id?: string;
+    parent_stacktrace?: string;
+    parent_transaction?: string;
+    project_id?: string;
+    stacktrace?: string;
+    transaction?: string;
   };
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
