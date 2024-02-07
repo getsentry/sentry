@@ -123,7 +123,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         analytics.record(
             "group_similar_issues_embeddings.count",
-            org_id=group.organization.id,
+            organization_id=group.organization.id,
             project_id=group.project.id,
             group_id=group.id,
             count_over_threshold=len(

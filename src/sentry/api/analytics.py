@@ -38,7 +38,7 @@ class GroupSimilarIssuesEmbeddingsCountEvent(analytics.Event):
     type = "group_similar_issues_embeddings.count"
 
     attributes = (
-        analytics.Attribute("org_id"),
+        analytics.Attribute("organization_id"),
         analytics.Attribute("project_id"),
         analytics.Attribute("group_id"),
         analytics.Attribute("user_id"),

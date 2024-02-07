@@ -202,7 +202,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_record.assert_called_with(
             "group_similar_issues_embeddings.count",
-            org_id=self.org.id,
+            organization_id=self.org.id,
             project_id=self.project.id,
             group_id=self.group.id,
             count_over_threshold=2,
@@ -248,7 +248,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         mock_record.assert_called_with(
             "group_similar_issues_embeddings.count",
-            org_id=self.org.id,
+            organization_id=self.org.id,
             project_id=self.project.id,
             group_id=self.group.id,
             count_over_threshold=0,
