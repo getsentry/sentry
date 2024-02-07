@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -121,6 +121,23 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             similar_issues_params.update({"threshold": float(request.GET["threshold"])})
 
         results = get_similar_issues_embeddings(similar_issues_params)
+
+        analytics.record(
+            "group_similar_issues_embeddings.count",
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            group_id=group.id,
+            count_over_threshold=len(
+                [
+                    result["stacktrace_similarity"]  # type: ignore
+                    for result in results["responses"]
+                    if result["stacktrace_similarity"] > 0.99  # type: ignore
+                ]
+            )
+            if results["responses"]
+            else 0,
+            user_id=request.user.id,
+        )
 
         if not results["responses"]:
             return Response([])
