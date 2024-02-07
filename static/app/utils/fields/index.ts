@@ -1441,7 +1441,7 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
     valueType: FieldValueType.STRING,
   },
   [ReplayClickFieldKey.CLICK_COMPONENT_NAME]: {
-    desc: t('the name of the component that was clicked'),
+    desc: t('the name of the frontend component that was clicked'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
