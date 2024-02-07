@@ -109,7 +109,10 @@ def get_event_from_groups_in_digest(digest: Digest) -> Iterable[Event]:
 def build_custom_digest(
     original_digest: Digest, events: Iterable[Event], participant: RpcActor
 ) -> Digest:
-    """Given a digest and a set of events, filter the digest to only records that include the events."""
+    # If the original digest is None or empty, return an empty digest immediately.
+    if not original_digest:
+        return {}
+
     user_digest: Digest = {}
     rule_snoozes = RuleSnooze.objects.filter(
         Q(user_id=participant.id) | Q(user_id__isnull=True), rule__in=original_digest.keys()
