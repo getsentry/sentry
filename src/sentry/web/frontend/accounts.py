@@ -241,6 +241,7 @@ def start_confirm_email(request):
 
 
 @set_referrer_policy("strict-origin-when-cross-origin")
+@login_required
 @control_silo_function
 def confirm_email(request, user_id, hash):
     msg = _("Thanks for confirming your email")
@@ -261,7 +262,7 @@ def confirm_email(request, user_id, hash):
     else:
         email.is_verified = True
         email.validation_hash = ""
-        email.save()
+        email.save(update_fields=["is_verified", "validation_hash"])
         email_verified.send(email=email.email, sender=email)
         logger.info(
             "user.email.confirm",
