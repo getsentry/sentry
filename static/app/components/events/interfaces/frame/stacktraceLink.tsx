@@ -423,7 +423,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             event={event}
             hasInFrameFeature={hasInFrameFeature}
           />
-        ) : shouldShowCodecovPrompt(organization, match) ? (
+        ) : shouldShowCodecovPrompt(organization, match) && !hasInFrameFeature ? (
           <HookCodecovStacktraceLink organization={organization} />
         ) : null}
       </StacktraceLinkWrapper>
@@ -469,7 +469,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             event={event}
             hasInFrameFeature={hasInFrameFeature}
           />
-        ) : shouldShowCodecovPrompt(organization, match) ? (
+        ) : shouldShowCodecovPrompt(organization, match) && !hasInFrameFeature ? (
           <HookCodecovStacktraceLink organization={organization} />
         ) : null}
       </StacktraceLinkWrapper>

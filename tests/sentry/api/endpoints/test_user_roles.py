@@ -32,6 +32,7 @@ class UserUserRolesTest(APITestCase):
         assert resp.status_code == 403
 
 
+@control_silo_test
 class UserUserRolesGetTest(UserUserRolesTest):
     def test_lookup_self(self):
         role = UserRole.objects.create(name="support", permissions=["broadcasts.admin"])
