@@ -67,6 +67,34 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self.path = f"/api/0/issues/{self.group.id}/similar-issues-embeddings/"
         self.similar_group = self.create_group(project=self.project)
 
+    def create_exception_values(
+        self, num_values: int, num_frames_per_value: int
+    ) -> Sequence[dict[str, Any]]:
+        """
+        Return an exception value dictionary, where the line number corresponds to the total frame
+        number
+        """
+        exception_values = []
+        frame_count = 1
+        for _ in range(num_values):
+            value: dict[str, Any] = {"type": "Error", "value": "this is an error"}
+            frames = []
+            for _ in range(num_frames_per_value):
+                frame = {
+                    "function": "function",
+                    "module": "__main__",
+                    "filename": "python_onboarding.py",
+                    "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
+                    "lineno": frame_count,
+                    "context_line": "function()",
+                    "in_app": True,
+                }
+                frames.append(frame)
+                frame_count += 1
+            value.update({"stacktrace": {"frames": frames}})
+            exception_values.append(value)
+        return exception_values
+
     def get_expected_response(
         self,
         group_ids: Sequence[int],
@@ -98,6 +126,40 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     def test_get_stacktrace_string_no_values(self):
         stacktrace_string = get_stacktrace_string({"values": []}, self.event)
         assert stacktrace_string == ""
+
+    def test_get_stacktrace_string_50_frames(self):
+        """Test that when there are 50 frames, all frames are included"""
+
+        # Exception value where the line number corresponds to the total frame number
+        exception_values = self.create_exception_values(num_values=5, num_frames_per_value=10)
+        large_error_trace = {
+            "exception": {"values": exception_values},
+            "platform": "python",
+        }
+        event = self.store_event(data=large_error_trace, project_id=self.project)
+        stacktrace_string = get_stacktrace_string(large_error_trace["exception"], event)  # type: ignore
+
+        # Assert that we take all exception frames
+        for line_no in range(1, 50):
+            assert str(line_no) in stacktrace_string
+
+    def test_get_stacktrace_string_over_50_frames(self):
+        """Test that when there are 60 frames, frames 1-45, and frames 56-60 are included"""
+
+        # Exception value where the line number corresponds to the total frame number
+        exception_values = self.create_exception_values(num_values=4, num_frames_per_value=15)
+        large_error_trace = {
+            "exception": {"values": exception_values},
+            "platform": "python",
+        }
+        event = self.store_event(data=large_error_trace, project_id=self.project)
+        stacktrace_string = get_stacktrace_string(large_error_trace["exception"], event)  # type: ignore
+
+        # Assert that we take only the last 5 frames of the last exception
+        for line_no in range(46, 56):
+            assert str(line_no) not in stacktrace_string
+        for line_no in range(56, 61):
+            assert str(line_no) in stacktrace_string
 
     def test_get_formatted_results(self):
         new_group = self.create_group(project=self.project)
@@ -156,6 +218,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
                     "k": 1,
@@ -297,6 +360,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
                 },
@@ -319,6 +383,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
                     "k": 1,
@@ -342,6 +407,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             body=json.dumps(
                 {
                     "group_id": self.group.id,
+                    "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
                     "threshold": 0.98,
