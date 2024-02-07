@@ -62,7 +62,7 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 const TimelineOutline = styled('div')`
   position: absolute;
   left: 0;
-  top: 3px;
+  top: 3.5px;
   width: 100%;
   height: 10px;
   border: 1px solid ${p => p.theme.innerBorder};

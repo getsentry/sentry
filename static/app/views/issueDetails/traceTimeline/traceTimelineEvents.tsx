@@ -174,13 +174,15 @@ function NodeGroup({
                 </CurrentNodeContainer>
               )}
               {!isCurrentNode &&
-                groupEvents.map(groupEvent =>
-                  'event.type' in groupEvent ? (
-                    <IconNode key={groupEvent.id} />
-                  ) : (
-                    <PerformanceIconNode key={groupEvent.id} />
-                  )
-                )}
+                groupEvents
+                  .slice(0, 4)
+                  .map(groupEvent =>
+                    'event.type' in groupEvent ? (
+                      <IconNode key={groupEvent.id} />
+                    ) : (
+                      <PerformanceIconNode key={groupEvent.id} />
+                    )
+                  )}
             </EventColumn>
           );
         })}
@@ -230,42 +232,42 @@ const IconNode = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
   background-color: ${p => color(p.theme.red200).alpha(0.3).string()};
+  border: 1px solid ${p => p.theme.red300};
   margin-left: -8px;
 `;
 
 const PerformanceIconNode = styled(IconNode)`
   background-color: unset;
-  border: 1px solid ${p => color(p.theme.red300).alpha(0.3).string()};
 `;
 
 const CurrentNodeContainer = styled('div')`
   position: absolute;
   grid-column: 1;
   grid-row: 1;
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
 `;
 
 const CurrentNodeRing = styled('div')`
   border: 1px solid ${p => p.theme.red300};
-  height: 16px;
-  width: 16px;
+  height: 24px;
+  width: 24px;
   border-radius: 100%;
   position: absolute;
-  top: -4px;
-  left: -12px;
-  animation: pulse 4s ease-out infinite;
+  top: -6px;
+  left: -16px;
+  animation: pulse 2s ease-out infinite;
 
   @keyframes pulse {
     0% {
       transform: scale(0.1, 0.1);
       opacity: 0.0;
     }
-    80% {
+    50% {
       transform: scale(0.1, 0.1);
       opacity: 0.0;
     }
-    90% {
+    70% {
       opacity: 1.0;
     }
     100% {
@@ -277,8 +279,9 @@ const CurrentNodeRing = styled('div')`
 
 const CurrentIconNode = styled(IconNode)`
   background-color: ${p => p.theme.red300};
-  border-radius: 50%;
-  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin-left: -10px;
 `;
 
 const TooltipHelper = styled('span')`
