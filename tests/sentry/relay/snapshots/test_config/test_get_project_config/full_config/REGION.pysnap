@@ -1,9 +1,6 @@
 ---
-<<<<<<< HEAD
-=======
-created: '2024-02-06T15:14:32.264177Z'
+created: '2024-02-07T10:46:28.389774Z'
 creator: sentry
->>>>>>> 3d205ca4310 (update tests)
 source: tests/sentry/relay/test_config.py
 ---
 config:
