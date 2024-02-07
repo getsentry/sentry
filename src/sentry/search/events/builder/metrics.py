@@ -208,7 +208,7 @@ class MetricsQueryBuilder(QueryBuilder):
         }
         return map
 
-    def convert_spec_to_metric_field(self, spec: OnDemandMetricSpec) -> MetricField | None:
+    def convert_spec_to_metric_field(self, spec: OnDemandMetricSpec) -> MetricField:
         if isinstance(self, (TopMetricsQueryBuilder, TimeseriesMetricQueryBuilder)):
             alias = get_function_alias(spec.field) or "count"
         elif isinstance(self, AlertMetricsQueryBuilder):
@@ -979,6 +979,15 @@ class MetricsQueryBuilder(QueryBuilder):
         return use_case_ids.pop()
 
     def resolve_ondemand_orderby(self) -> Any:
+        """Ondemand needs to resolve their orderby separately than how any other QB system does it
+
+        - Functions are resolved in self._on_demand_metric_spec_map so we need to get those back and throw 'em into
+          the orderby.
+          - This is problematic though, because for historical reasons (ie. we used to do it and we've kept it
+            instead of introducing additional risk by removing it) orderbys in the QB and MetricLayer both verify
+            that the orderby is in the selected fields
+          - This is why we pass skip_orderby_validation to the MetricsQuery
+        """
         result = []
         raw_orderby = self.raw_orderby
 
@@ -987,6 +996,10 @@ class MetricsQueryBuilder(QueryBuilder):
 
         if isinstance(self.raw_orderby, str):
             raw_orderby = [self.raw_orderby]
+        # While technically feasible to order by multiple fields, we would need to know which table each orderby is
+        # going to. Leaving that out for now to keep this simple since we don't allow more than one in the UI anyways
+        if len(raw_orderby) > 1:
+            raise IncompatibleMetricsQuery("Can't orderby more than one field")
 
         for orderby in raw_orderby:
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
@@ -1000,11 +1013,9 @@ class MetricsQueryBuilder(QueryBuilder):
                     )
                 )
             else:
-                orderby = self.resolve_orderby(orderby, validate=False)
-                for order_field in orderby:
-                    result.append(
-                        MetricOrderByField(field=order_field.exp, direction=order_field.direction)
-                    )
+                raise IncompatibleMetricsQuery(
+                    f"Cannot orderby {bare_orderby}, likely because its a tag"
+                )
         return result
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:

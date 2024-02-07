@@ -919,8 +919,6 @@ def get_series(
 
         # This logic is in place because we don't want to put the project_id in the select, as it would require
         # a DerivedOp, therefore
-        # I have no idea what the comment above means, but we skip orderby validation for ondemand so this next block
-        # doesn't make sense in those cases
         if not metrics_query.skip_orderby_validation:
             orderby_fields = []
             for select_field in metrics_query.select:

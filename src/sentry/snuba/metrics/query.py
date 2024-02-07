@@ -166,7 +166,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
     # doesn't take into account time bounds as the alerts service uses subscriptable queries that react in real time
     # to dataset changes.
     is_alerts_query: bool = False
-    # Need to skip the orderby validation for ondemand queries
+    # Need to skip the orderby validation for ondemand queries, this is because ondemand fields are based on a spec
+    # instead of being direct fields
     skip_orderby_validation: bool = False
 
     @cached_property

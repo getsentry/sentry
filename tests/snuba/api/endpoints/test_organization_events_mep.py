@@ -3204,31 +3204,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
         }
 
-    def test_sorting(self) -> None:
-        resp = self._on_demand_query_check(
-            {
-                "field": ["user_misery(300)", "apdex(300)"],
-                "project": self.project.id,
-                "query": "",
-                "sort": "-user_misery(300)",
-                "per_page": "20",
-                "referrer": "api.dashboards.tablewidget",
-            },
-            groupbys=["transaction"],
-        )
-        assert resp.data == {
-            "data": [{"user_misery(300)": 0.0, "apdex(300)": 0.0}],
-            "meta": {
-                "fields": {"user_misery(300)": "number", "apdex(300)": "number"},
-                "units": {"user_misery(300)": None, "apdex(300)": None},
-                "isMetricsData": True,
-                "isMetricsExtractedData": True,
-                "tips": {},
-                "datasetReason": "unchanged",
-                "dataset": "metricsEnhanced",
-            },
-        }
-
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest

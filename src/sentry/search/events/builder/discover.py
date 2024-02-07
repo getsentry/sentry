@@ -812,9 +812,7 @@ class BaseQueryBuilder:
             rhs = Function("nullIf", [rhs, 0])
         return Function(equation.operator, [lhs, rhs], alias)
 
-    def resolve_orderby(
-        self, orderby: list[str] | str | None, validate: bool = True
-    ) -> list[OrderBy]:
+    def resolve_orderby(self, orderby: list[str] | str | None) -> list[OrderBy]:
         """Given a list of public aliases, optionally prefixed by a `-` to
         represent direction, construct a list of Snql Orderbys
         """
@@ -884,8 +882,6 @@ class BaseQueryBuilder:
                     validated.append(OrderBy(selected_column, direction))
                     break
 
-        if not validate:
-            return []
         if len(validated) == len(orderby_columns):
             return validated
 
