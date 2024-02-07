@@ -130,11 +130,7 @@ const TimestampColumns = styled('div')`
 `;
 
 const TimestampItem = styled('div')`
-  place-items: stretch;
-  display: grid;
-  align-items: center;
   text-align: center;
-  position: relative;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
