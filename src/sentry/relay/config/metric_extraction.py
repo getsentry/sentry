@@ -8,6 +8,7 @@ from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
+from django.utils import timezone
 from sentry_relay.processing import validate_sampling_condition
 
 from sentry import features, options
