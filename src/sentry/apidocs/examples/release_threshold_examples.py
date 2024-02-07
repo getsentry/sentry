@@ -8,10 +8,10 @@ class ReleaseThresholdExamples:
         OpenApiExample(
             "Client key with rate limiting",
             value={
-                f"{BASE_PROJECT.slug}-v1.0.0": [
+                f"{BASE_PROJECT['slug']}-v1.0.0": [
                     {
-                        "project_id": BASE_PROJECT.id,
-                        "project_slug": BASE_PROJECT.slug,
+                        "project_id": BASE_PROJECT["id"],
+                        "project_slug": BASE_PROJECT["slug"],
                         "environment": "production",
                         "project": BASE_PROJECT,
                         "threshold_type": 0,
@@ -19,7 +19,7 @@ class ReleaseThresholdExamples:
                         "value": 100,
                         "window_in_seconds": 600,
                         "key": "foobar-v1.0.0",
-                        "release": f"{BASE_PROJECT.slug}-v1.0.0",
+                        "release": f"{BASE_PROJECT['slug']}-v1.0.0",
                         "is_healthy": True,
                         "start": "2022-02-14T19:00:00Z",
                         "end": "2022-02-28T18:03:00Z",
