@@ -552,6 +552,9 @@ class Fixtures:
     def create_request_access(self, *args, **kwargs):
         return Factories.create_request_access(*args, **kwargs)
 
+    def create_webhook_payload(self, *args, **kwargs):
+        return Factories.create_webhook_payload(*args, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
         self.insta_snapshot = insta_snapshot

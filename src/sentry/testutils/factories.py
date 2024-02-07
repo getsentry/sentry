@@ -27,6 +27,7 @@ from django.utils.text import slugify
 from sentry.auth.access import RpcBackedAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
+from sentry.hybridcloud.models import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
     create_alert_rule_trigger,
@@ -1805,4 +1806,19 @@ class Factories:
             rpc_user_organization_context=org_context,
             auth_state=auth_state,
             scopes_upper_bound=scopes_upper_bound,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_webhook_payload(mailbox_name: str, region_name: str, **kwargs) -> WebhookPayload:
+        kwargs.update(
+            {
+                "request_method": "POST",
+                "request_path": "/extensions/github/webhook/",
+                "request_headers": '{"Content-Type": "application/json"}',
+                "request_body": "{}",
+            }
+        )
+        return WebhookPayload.objects.create(
+            mailbox_name=mailbox_name, region_name=region_name, **kwargs
         )
