@@ -11,12 +11,14 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues';
 
 const MockNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => MockNavigate,
 }));
+jest.mock('sentry/utils/analytics');
 
 describe('Issues Similar View', function () {
   let mock;
@@ -293,5 +295,33 @@ describe('Issues Similar Embeddings View', function () {
     // Correctly show "Merge (0)" when the item is un-clicked
     await selectNthSimilarItem(0);
     expect(screen.getByText('Merge (0)')).toBeInTheDocument();
+  });
+
+  it('sends issue similarity embeddings agree analytics', async function () {
+    render(
+      <GroupSimilarIssues
+        project={project}
+        params={{orgId: 'org-slug', groupId: 'group-id'}}
+        location={router.location}
+        router={router}
+        routeParams={router.params}
+        routes={router.routes}
+        route={{}}
+      />,
+      {context: routerContext}
+    );
+    renderGlobalModal();
+
+    await selectNthSimilarItem(0);
+    await userEvent.click(await screen.findByRole('button', {name: 'Agree (1)'}));
+    expect(trackAnalytics).toHaveBeenCalledTimes(1);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
+      expect.objectContaining({
+        projectId: project.id,
+        groupId: 'group-id',
+        value: 'Yes',
+      })
+    );
   });
 });
