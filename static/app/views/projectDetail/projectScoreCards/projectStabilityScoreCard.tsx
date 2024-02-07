@@ -72,6 +72,12 @@ const useCrashFreeRate = (props: Props) => {
     {staleTime: 0, enabled: isEnabled}
   );
 
+  const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
+    start: datetime.start,
+    end: datetime.end,
+    period: datetime.period,
+  });
+
   const previousQuery = useApiQuery<SessionApiResponse>(
     [
       `/organizations/${organization.slug}/sessions/`,
@@ -85,20 +91,15 @@ const useCrashFreeRate = (props: Props) => {
     ],
     {
       staleTime: 0,
-      enabled:
-        isEnabled &&
-        shouldFetchPreviousPeriod({
-          start: datetime.start,
-          end: datetime.end,
-          period: datetime.period,
-        }),
+      enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
 
   return {
     crashFreeRate: currentQuery.data,
     previousCrashFreeRate: previousQuery.data,
-    isLoading: currentQuery.isLoading || previousQuery.isLoading,
+    isLoading:
+      currentQuery.isLoading || (previousQuery.isLoading && isPreviousPeriodEnabled),
     error: currentQuery.error || previousQuery.error,
     refetch: () => {
       currentQuery.refetch();

@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -40,20 +40,21 @@ def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> st
             choices = [event.platform, "default"] if event.platform else ["default"]
             templates = [f"sentry/partial/frames/{choice}.txt" for choice in choices]
             for frame in exc["stacktrace"]["frames"]:
-                output.append(
-                    render_to_string(
-                        templates,
-                        {
-                            "abs_path": frame.get("abs_path"),
-                            "filename": frame.get("filename"),
-                            "function": frame.get("function"),
-                            "module": frame.get("module"),
-                            "lineno": frame.get("lineno"),
-                            "colno": frame.get("colno"),
-                            "context_line": frame.get("context_line"),
-                        },
-                    ).strip("\n")
-                )
+                if frame["in_app"]:
+                    output.append(
+                        render_to_string(
+                            templates,
+                            {
+                                "abs_path": frame.get("abs_path"),
+                                "filename": frame.get("filename"),
+                                "function": frame.get("function"),
+                                "module": frame.get("module"),
+                                "lineno": frame.get("lineno"),
+                                "colno": frame.get("colno"),
+                                "context_line": frame.get("context_line"),
+                            },
+                        ).strip("\n")
+                    )
 
     return "\n".join(output)
 
@@ -120,6 +121,23 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             similar_issues_params.update({"threshold": float(request.GET["threshold"])})
 
         results = get_similar_issues_embeddings(similar_issues_params)
+
+        analytics.record(
+            "group_similar_issues_embeddings.count",
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            group_id=group.id,
+            count_over_threshold=len(
+                [
+                    result["stacktrace_similarity"]  # type: ignore
+                    for result in results["responses"]
+                    if result["stacktrace_similarity"] > 0.99  # type: ignore
+                ]
+            )
+            if results["responses"]
+            else 0,
+            user_id=request.user.id,
+        )
 
         if not results["responses"]:
             return Response([])
