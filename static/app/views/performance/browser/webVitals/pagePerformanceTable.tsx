@@ -82,7 +82,11 @@ export function PagePerformanceTable() {
     [projects, location.query.project]
   );
 
-  const sort = useWebVitalsSort();
+  let sort = useWebVitalsSort();
+  // Need to map fid back to inp for rendering
+  if (shouldReplaceFidWithInp && sort.field === 'p75(measurements.fid)') {
+    sort = {...sort, field: 'p75(measurements.inp)'};
+  }
 
   const {data: projectData, isLoading: isProjectWebVitalsQueryLoading} =
     useProjectRawWebVitalsQuery({transaction: query});
