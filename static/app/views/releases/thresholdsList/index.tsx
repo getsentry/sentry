@@ -86,16 +86,58 @@ function ReleaseThresholdList({}: Props) {
       projects.flatMap(project => {
         /**
          * Include environments from:
+         * all projects I can access if -1 is the only selected project.
+         * all member projects if 'my projects' (empty list) is selected.
          * all projects if the user is a superuser
          * the requested projects
-         * all member projects if 'my projects' (empty list) is selected.
-         * all projects if -1 is the only selected project.
          */
+        const allProjectsSelectedICanAccess =
+          selectedProjectIds.length === 1 &&
+          selectedProjectIds[0] === String(ALL_ACCESS_PROJECTS) &&
+          project.hasAccess;
+        const myProjectsSelected = selectedProjectIds.length === 0 && project.isMember;
+        const allMemberProjectsIfSuperuser =
+          selectedProjectIds.length === 0 && user.isSuperuser;
         if (
-          (selectedProjectIds.length === 1 &&
-            selectedProjectIds[0] === String(ALL_ACCESS_PROJECTS) &&
-            project.hasAccess) ||
-          (selectedProjectIds.length === 0 && (project.isMember || user.isSuperuser)) ||
+          allProjectsSelectedICanAccess ||
+          myProjectsSelected ||
+          allMemberProjectsIfSuperuser ||
+          selectedProjectIds.includes(project.id)
+        ) {
+          return project.environments;
+        }
+
+        return [];
+      })
+    );
+    const envDiff = new Set([...allEnvSet].filter(x => !unSortedEnvs.has(x)));
+
+    // bubble the selected projects envs first, then concat the rest of the envs
+    return Array.from(unSortedEnvs)
+      .sort()
+      .concat([...envDiff].sort());
+  }, [projects, selection.projects]);
+
+  const getEnvironmentsAvailableToProject = useMemo((): string[] => {
+    const selectedProjectIds = selection.projects.map(id => String(id));
+    const allEnvSet = new Set(projects.flatMap(project => project.environments));
+    // NOTE: mostly taken from environmentSelector.tsx
+    const unSortedEnvs = new Set(
+      projects.flatMap(project => {
+        /**
+         * Include environments from:
+         * all projects if -1 is the only selected project.
+         * all member projects if 'my projects' (empty list) is selected.
+         * the requested projects
+         */
+        const allProjectsSelected =
+          selectedProjectIds.length === 1 &&
+          selectedProjectIds[0] === String(ALL_ACCESS_PROJECTS) &&
+          project.hasAccess;
+        const myProjectsSelected = selectedProjectIds.length === 0 && project.isMember;
+        if (
+          allProjectsSelected ||
+          myProjectsSelected ||
           selectedProjectIds.includes(project.id)
         ) {
           return project.environments;
@@ -178,7 +220,7 @@ function ReleaseThresholdList({}: Props) {
                   isError={isError}
                   refetch={refetch}
                   setTempError={setTempError}
-                  allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
+                  allEnvironmentNames={getEnvironmentsAvailableToProject}
                 />
               ))}
             {projectsWithoutThresholds.length > 0 && (
@@ -193,7 +235,7 @@ function ReleaseThresholdList({}: Props) {
                     <NoThresholdCard
                       key={proj.id}
                       project={proj}
-                      allEnvironmentNames={getAllEnvironmentNames} // TODO: determine whether to move down to threshold group table
+                      allEnvironmentNames={getAllEnvironmentNames}
                       refetch={refetch}
                       setTempError={setTempError}
                     />
