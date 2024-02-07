@@ -3,10 +3,12 @@ import random
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
+from django.utils import timezone
 from sentry_relay.processing import validate_sampling_condition
 
 from sentry import features, options
@@ -465,11 +467,18 @@ def _can_widget_query_use_stateful_extraction(
 
     if len(on_demand_entries) == 0:
         # 0 on-demand entries is expected, and happens when the on-demand task hasn't caught up yet for newly created widgets or widgets recently modified to have on-demand state.
-        metrics.incr(
-            "on_demand_metrics.on_demand_spec.skip_recently_modified",
-            amount=len(metrics_specs),
-            sample_rate=1.0,
-        )
+        if widget_query.date_modified > timezone.now() - timedelta(days=1):
+            metrics.incr(
+                "on_demand_metrics.on_demand_spec.skip_recently_modified",
+                amount=len(metrics_specs),
+                sample_rate=1.0,
+            )
+        else:
+            metrics.incr(
+                "on_demand_metrics.on_demand_spec.older_widget_query",
+                amount=len(metrics_specs),
+                sample_rate=1.0,
+            )
         return False
     elif len(on_demand_entries) > 1:
         # There should only be one on demand entry.
