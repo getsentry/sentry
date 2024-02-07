@@ -241,10 +241,7 @@ def start_confirm_email(request):
 
 
 @set_referrer_policy("strict-origin-when-cross-origin")
-@login_required(
-    message="Please login to complete confirmation of your email.",
-    level=messages.WARNING,
-)
+@login_required
 @control_silo_function
 def confirm_email(request, user_id, hash):
     msg = _("Thanks for confirming your email")
