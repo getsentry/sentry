@@ -255,7 +255,7 @@ const CurrentNodeRing = styled('div')`
   border-radius: 100%;
   position: absolute;
   top: -6px;
-  left: -14px;
+  left: -16px;
   animation: pulse 2s ease-out infinite;
 
   @keyframes pulse {
@@ -281,6 +281,7 @@ const CurrentIconNode = styled(IconNode)`
   background-color: ${p => p.theme.red300};
   width: 12px;
   height: 12px;
+  margin-left: -10px;
 `;
 
 const TooltipHelper = styled('span')`
