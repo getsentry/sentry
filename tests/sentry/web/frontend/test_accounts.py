@@ -374,3 +374,21 @@ class TestAccounts(TestCase):
         assert resp.status_code == 302
         assert resp.headers["location"] == "/auth/login/"
         assert self.client.session["_next"] == url
+
+    def test_confirm_email_unauthenticated_banner(self):
+        useremail = UserEmail(user=self.user, email="new@example.com")
+        useremail.save()
+
+        assert not useremail.is_verified
+
+        url = reverse(
+            "sentry-account-confirm-email",
+            kwargs={"user_id": self.user.id, "hash": useremail.validation_hash},
+        )
+
+        resp = self.client.get(url, follow=True)
+
+        assert resp.status_code == 200
+
+        # TODO(mdtro): Once we are on Django 5.0 we can use this to actually test the message string: https://docs.djangoproject.com/en/5.0/ref/contrib/messages/#testing
+        assert len(resp.context["messages"]) == 1
