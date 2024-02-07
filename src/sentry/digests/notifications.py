@@ -206,9 +206,11 @@ def check_group_state(record: Record) -> bool:
 
 def build_digest(
     project: Project,
-    records: Sequence[Record],
+    records: Sequence[Record] | None,
     state: Mapping[str, Any] | None = None,
 ) -> tuple[Digest | None, Sequence[str]]:
+    if records is None:
+        return None, []
     if not records:
         return None, []
 
