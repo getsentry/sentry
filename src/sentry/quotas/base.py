@@ -22,6 +22,7 @@ class QuotaScope(IntEnum):
     ORGANIZATION = 1
     PROJECT = 2
     KEY = 3
+    GLOBAL = 4
 
     def api_name(self):
         return self.name.lower()
@@ -36,7 +37,7 @@ class AbuseQuota:
     # Quota categories.
     categories: list[DataCategory]
     # Quota Scope.
-    scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT]
+    scope: Literal[QuotaScope.ORGANIZATION, QuotaScope.PROJECT, QuotaScope.GLOBAL]
     # Old org option name still used for compatibility reasons,
     # takes precedence over `option` and `compat_option_sentry`.
     compat_option_org: str | None = None
@@ -404,6 +405,12 @@ class Quota(Service):
                 categories=[DataCategory.METRIC_BUCKET],
                 scope=QuotaScope.ORGANIZATION,
             ),
+            AbuseQuota(
+                id="gam",
+                option="global-abuse-quota.metric-bucket-limit",
+                categories=[DataCategory.METRIC_BUCKET],
+                scope=QuotaScope.GLOBAL,
+            ),
         ]
 
         # XXX: These reason codes are hardcoded in getsentry:
@@ -412,6 +419,7 @@ class Quota(Service):
         reason_codes = {
             QuotaScope.ORGANIZATION: "org_abuse_limit",
             QuotaScope.PROJECT: "project_abuse_limit",
+            QuotaScope.GLOBAL: "global_abuse_limit",
         }
 
         for quota in abuse_quotas:
