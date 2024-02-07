@@ -130,6 +130,6 @@ describe('TraceTimeline', () => {
     });
     render(<TraceTimeline event={event} />, {organization});
     // Checking for the presence of seconds
-    expect(await screen.findAllByText(/\d{1,2}:\d{2}:\d{2} (AM|PM)/)).toHaveLength(3);
+    expect(await screen.findAllByText(/\d{1,2}:\d{2}:\d{2} (AM|PM)/)).toHaveLength(5);
   });
 });
