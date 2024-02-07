@@ -304,6 +304,7 @@ class VercelReleasesTest(APITestCase):
         assert "Could not determine repository" == response.data["detail"]
 
 
+@control_silo_test
 class VercelReleasesNewTest(VercelReleasesTest):
     webhook_url = "/extensions/vercel/delete/"
 
