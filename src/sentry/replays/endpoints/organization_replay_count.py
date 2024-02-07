@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.db.models import F
-from drf_spectacular.utils import OpenApiExample, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -13,6 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
@@ -29,21 +30,6 @@ MAX_VALS_PROVIDED = {
 }
 
 FILTER_HAS_A_REPLAY = "AND !replayId:''"
-
-RESPONSE_EXAMPLES = [
-    OpenApiExample(
-        "Query replay count by issue or transaction id",
-        value={
-            1: 9,
-            2: 0,
-            5: 0,
-            9: 1,
-            10: 29,
-        },
-        status_codes=["200"],
-        response_only=True,
-    )
-]
 
 
 class ReplayDataSourceValidator(serializers.Serializer):
@@ -86,7 +72,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             OrganizationParams.PROJECT,
             VisibilityParams.QUERY,
         ],
-        examples=RESPONSE_EXAMPLES,
+        examples=ReplayExamples.GET_REPLAY_COUNT,
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """Return a count of replays for the given issue or transaction id."""
