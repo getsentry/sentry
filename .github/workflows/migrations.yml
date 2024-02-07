@@ -68,13 +68,8 @@ jobs:
         id: file
         run: |
           echo 'added<<EOF' >> "$GITHUB_OUTPUT"
-          git diff --diff-filter=A --name-only origin/master HEAD -- 'src/sentry/*/migrations/' 'src/sentry/migrations/' >> "$GITHUB_OUTPUT"
+          git diff --diff-filter=A --name-only origin/master HEAD -- 'src/sentry/*/migrations/*' 'src/sentry/migrations/*' >> "$GITHUB_OUTPUT"
           echo 'EOF' >> "$GITHUB_OUTPUT"
-
-      - name: debug added files
-        id: debug
-        run: |
-          echo ${{ steps.file.outputs.added }}
 
       - name: Generate SQL for migration
         uses: getsentry/action-migrations@4d8ed0388dfc0774302bbfd5204e518f9ac4f066 # main
