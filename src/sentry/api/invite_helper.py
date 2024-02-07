@@ -86,6 +86,7 @@ class ApiInviteHelper:
             invite = organization_service.get_invite_by_id(
                 organization_id=organization_id, email=email, user_id=request.user.id
             )
+
         if invite is None:
             # Unable to locate the pending organization member. Cannot setup
             # the invite helper.
@@ -114,6 +115,7 @@ class ApiInviteHelper:
             organization_id=invite_details.invite_organization_id,
             user_id=request.user.id,
         )
+
         if invite_context is None:
             if logger:
                 logger.exception("Invalid pending invite cookie")
