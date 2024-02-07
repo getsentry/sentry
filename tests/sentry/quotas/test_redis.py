@@ -151,6 +151,13 @@ class RedisQuotaTest(TestCase):
 
         print("debugging")
         print(quotas)
+        assert quotas[5].id == "gam"
+        assert quotas[5].scope == QuotaScope.GLOBAL
+        assert quotas[5].scope_id is None
+        assert quotas[5].categories == {DataCategory.METRIC_BUCKET}
+        assert quotas[5].limit == 6040
+        assert quotas[5].window == 10
+        assert quotas[5].reason_code == "global_abuse_limit"
 
         # Let's set the global option for error limits.
         # Since we already have an org override for it, it shouldn't change anything.
