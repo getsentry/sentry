@@ -132,7 +132,7 @@ class IncidentsList extends DeprecatedAsyncComponent<
   get projectsFromIncidents() {
     const {incidentList} = this.state;
 
-    return [...new Set(incidentList?.map(({projects}) => projects).flat())];
+    return [...new Set(incidentList?.flatMap(({projects}) => projects))];
   }
 
   handleChangeSearch = (title: string) => {
