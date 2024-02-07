@@ -14,18 +14,23 @@ from sentry.utils.sdk import configure_scope
 
 
 class DocIntegrationsPermission(SentryPermission):
+    """ "
+    Allows all org members to access GET as long as they have the necessary
+    scopes. For item endpoints, the doc integration must be published.
+
+    # TODO(schew2381): Remove superuser language once staff feature flag is rolled out
+    Superusers can access unpublished doc integrations (GET) and also use PUT + DEL
+    which endpoints which are all accessible through _admin.
+    """
+
     scope_map = {"GET": PARANOID_GET}
 
     def has_permission(self, request: Request, view: object) -> bool:
-        """
-        We only want non-sentry employees to be able to access GET. PUT + DEL
-        should only be accessible through _admin.
-        """
         if not super().has_permission(request, view):
             return False
 
-        # TODO(schew2381): Remove superuser check once staff feature flag is rolled out
-        # We want to limit POST + DEL to staff only through the mixin
+        # TODO(schew2381): Remove superuser check once staff feature flag is rolled out.
+        # We want to allow staff through the StaffPermissionMixin instead of mixing logic here.
         if is_active_superuser(request) or request.method == "GET":
             return True
 
@@ -34,15 +39,11 @@ class DocIntegrationsPermission(SentryPermission):
     def has_object_permission(
         self, request: Request, view: object, doc_integration: DocIntegration
     ) -> bool:
-        """
-        We only want non-sentry employees to be able to access GET, and only for
-        published integrations. PUT + DEL should only be accessible through _admin.
-        """
         if not hasattr(request, "user") or not request.user:
             return False
 
-        # TODO(schew2381): Remove superuser check once staff feature flag is rolled out
-        # We want to limit POST + DEL to staff only through the mixin
+        # TODO(schew2381): Remove superuser check once staff feature flag is rolled out.
+        # We want to allow staff through the StaffPermissionMixin instead of mixing logic here.
         if is_active_superuser(request):
             return True
 
@@ -53,6 +54,8 @@ class DocIntegrationsPermission(SentryPermission):
 
 
 class DocIntegrationsAndStaffPermission(StaffPermissionMixin, DocIntegrationsPermission):
+    """Allows staff to to access all doc integration endpoints"""
+
     pass
 
 
