@@ -1,34 +1,29 @@
-import type {ComponentProps} from 'react';
 import {browserHistory} from 'react-router';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
 
-interface Props {
-  clearSpansTableCursor?: boolean;
-  size?: ComponentProps<typeof CompactSelect>['size'];
-}
+export const COLD_START_TYPE = 'cold';
+export const WARM_START_TYPE = 'warm';
 
-export function DeviceClassSelector({size = 'xs', clearSpansTableCursor}: Props) {
+export function StartTypeSelector() {
   const location = useLocation();
 
-  const value = decodeScalar(location.query['device.class']) ?? '';
+  const value = decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? '';
 
   const options = [
     {value: '', label: t('All')},
-    {value: 'high', label: t('High')},
-    {value: 'medium', label: t('Medium')},
-    {value: 'low', label: t('Low')},
-    {value: 'Unknown', label: t('Unknown')},
+    {value: COLD_START_TYPE, label: t('Cold')},
+    {value: WARM_START_TYPE, label: t('Warm')},
   ];
 
   return (
     <CompactSelect
-      size={size}
-      triggerProps={{prefix: t('Device Class')}}
+      triggerProps={{prefix: t('Start Type')}}
       value={value}
       options={options ?? []}
       onChange={newValue => {
@@ -36,10 +31,10 @@ export function DeviceClassSelector({size = 'xs', clearSpansTableCursor}: Props)
           ...location,
           query: {
             ...location.query,
-            ['device.class']: newValue.value,
+            [SpanMetricsField.APP_START_TYPE]: newValue.value,
             [MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE]: undefined,
             [MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE]: undefined,
-            ...(clearSpansTableCursor ? {[MobileCursors.SPANS_TABLE]: undefined} : {}),
+            [MobileCursors.SPANS_TABLE]: undefined,
           },
         });
       }}
