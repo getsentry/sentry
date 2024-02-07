@@ -1,13 +1,11 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Input from 'sentry/components/input';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatSecondsToClock, parseClockToSeconds} from 'sentry/utils/formatters';
@@ -73,24 +71,16 @@ function ShareModal({currentTimeSec, Header, Body}) {
   );
 }
 
-function ShareButton() {
-  // Cannot use this hook inside the modal because context will not be wired up
+export default function useShareReplayAtTimestamp() {
   const {currentTime} = useReplayContext();
 
-  // floor() to remove ms level precision. It's a cleaner url by default this way.
-  const currentTimeSec = Math.floor(currentTime / 1000);
+  const handleShare = useCallback(() => {
+    // floor() to remove ms level precision. It's a cleaner url by default this way.
+    const currentTimeSec = Math.floor(currentTime / 1000);
 
-  return (
-    <Button
-      size="sm"
-      icon={<IconUpload size="sm" />}
-      onClick={() =>
-        openModal(deps => <ShareModal currentTimeSec={currentTimeSec} {...deps} />)
-      }
-    >
-      {t('Share')}
-    </Button>
-  );
+    openModal(deps => <ShareModal currentTimeSec={currentTimeSec} {...deps} />);
+  }, [currentTime]);
+  return handleShare;
 }
 
 const StyledTextCopyInput = styled(TextCopyInput)`
@@ -119,5 +109,3 @@ const ShareAtRadioGroup = styled('div')`
   flex-direction: column;
   max-width: fit-content;
 `;
-
-export default ShareButton;
