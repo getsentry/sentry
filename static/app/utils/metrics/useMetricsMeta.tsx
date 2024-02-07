@@ -14,7 +14,7 @@ export function getMetricsMetaQueryKeys(
   useCases?: UseCase[]
 ): ApiQueryKey[] {
   return (
-    useCases?.map(useCase => getMetricsMetaQueryKey(orgSlug, projects, useCase)) ?? []
+    useCases?.map(useCase => getMetricsMetaQueryKey(orgSlug, {projects}, useCase)) ?? []
   );
 }
 
