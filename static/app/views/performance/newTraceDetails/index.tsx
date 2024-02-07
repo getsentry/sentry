@@ -68,7 +68,7 @@ export function TraceView() {
             end={dateSelection.end}
             statsPeriod={dateSelection.statsPeriod}
           >
-            {trace => <Trace trace={trace?.traces} />}
+            {trace => <Trace trace={trace?.traces} trace_id={traceSlug} />}
           </TraceFullDetailedQuery>
         </NoProjectMessage>
       </Layout.Page>

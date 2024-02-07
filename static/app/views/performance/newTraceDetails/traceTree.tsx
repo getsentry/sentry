@@ -2,7 +2,10 @@ import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction} from 'sentry/types/event';
-import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {
+  TraceFullDetailed,
+  TraceSplitResults,
+} from 'sentry/utils/performance/quickTrace/types';
 
 /**
  * Read this before proceeding:
@@ -32,9 +35,10 @@ import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types'
  * - the notion of expanded and zoomed is confusing, they stand for the same idea from a UI pov
  */
 
-declare namespace TraceTree {
+export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
   type Span = RawSpanType;
+  type Trace = TraceSplitResults<Transaction>;
   interface AutoGroup extends RawSpanType {
     autogroup: {
       description: string;
@@ -42,7 +46,7 @@ declare namespace TraceTree {
     };
   }
 
-  type NodeValue = Transaction | Span | AutoGroup;
+  type NodeValue = Trace | Transaction | Span | AutoGroup | null;
 
   type Metadata = {
     event_id: string | undefined;
@@ -77,7 +81,7 @@ export class TraceTree {
     return new TraceTree().build();
   }
 
-  static FromTrace(transactions: TraceTree.Transaction[]): TraceTree {
+  static FromTrace(trace: TraceTree.Trace): TraceTree {
     const tree = new TraceTree();
 
     function visit(
@@ -101,8 +105,18 @@ export class TraceTree {
       return node;
     }
 
-    for (const transaction of transactions) {
-      visit(tree.root, transaction, 0);
+    const traceNode = new TraceTreeNode(tree.root, trace, tree.root.depth + 1, {
+      event_id: undefined,
+      project_slug: undefined,
+    });
+
+    // Trace is always expanded by default
+    traceNode.expanded = true;
+
+    tree.root.children.push(traceNode);
+
+    for (const transaction of trace.transactions) {
+      visit(traceNode, transaction, traceNode.depth + 1);
     }
 
     return tree.build();
@@ -118,15 +132,21 @@ export class TraceTree {
     const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<TraceTree.Span>> = {};
 
     if (parentIsSpan) {
-      lookuptable[root.value.span_id] = root as TraceTreeNode<TraceTree.Span>;
+      if (root.value && 'span_id' in root.value) {
+        lookuptable[root.value.span_id] = root as TraceTreeNode<TraceTree.Span>;
+      }
     }
 
     const childrenLinks = new Map<string, TraceTree.Metadata>();
     for (const child of parent.children) {
-      if (typeof child.value.parent_span_id !== 'string') {
-        continue;
+      if (
+        child.value &&
+        'parent_span_id' in child.value &&
+        typeof child.value.parent_span_id === 'string'
+      ) {
+        childrenLinks.set(child.value.parent_span_id, child.metadata);
       }
-      childrenLinks.set(child.value.parent_span_id, child.metadata);
+      continue;
     }
 
     for (const span of spans) {
