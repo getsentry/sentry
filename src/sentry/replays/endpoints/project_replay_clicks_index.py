@@ -45,7 +45,7 @@ REFERRER = "replays.query.query_replay_clicks_dataset"
 class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
