@@ -208,7 +208,7 @@ def safe_for_comment(
 
     for file in pr_files:
         filename = file["filename"]
-        # don't count the file if it was anything but modified or is not in the list of supported file extensions
+        # we only count the file if it's modified and if the file extension is in the list of supported file extensions
         # we cannot look at deleted or newly added files because we cannot extract functions from the diffs
         if file["status"] != "modified" or filename.split(".")[-1] not in patch_parsers:
             continue
