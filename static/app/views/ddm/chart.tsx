@@ -299,6 +299,9 @@ function transformToScatterSeries({
   });
 }
 
+const EXTRAPOLATED_AREA_STRIPE_IMG =
+  'image://data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkCAYAAAC/zKGXAAAAMUlEQVR4Ae3KoREAIAwEsMKgrMeYj8BzyIpEZyTZda16mPVJFEVRFEVRFEVRFMWO8QB4uATKpuU51gAAAABJRU5ErkJggg==';
+
 const createFogOfWarBarSeries = (series: Series, fogBucketCnt = 0) => ({
   ...series,
   silent: true,
@@ -308,7 +311,13 @@ const createFogOfWarBarSeries = (series: Series, fogBucketCnt = 0) => ({
     value: index < series.data.length - fogBucketCnt ? 0 : data.value,
   })),
   itemStyle: {
-    opacity: 0.5,
+    opacity: 1,
+    decal: {
+      symbol: EXTRAPOLATED_AREA_STRIPE_IMG,
+      dashArrayX: [6, 0],
+      dashArrayY: [6, 0],
+      rotation: Math.PI / 4,
+    },
   },
 });
 
