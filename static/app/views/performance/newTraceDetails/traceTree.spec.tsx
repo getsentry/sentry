@@ -686,5 +686,63 @@ describe('TraceTree', () => {
 
       expect(root.children.length).toBe(1);
     });
+
+    it('autogroups children case', () => {
+      // span1 : db
+      // ---span2 : http
+      // ------ span2 : http
+
+      // to
+
+      // span1 : db
+      // ---autogrouped(span2) : http
+      // ------ span2 : http
+      // --------- span3 : http
+
+      const root = new TraceTreeNode(
+        null,
+        makeRawSpan({description: 'span1', op: 'db'}),
+        0,
+        {
+          project_slug: '',
+          event_id: '',
+        }
+      );
+
+      const child = new TraceTreeNode(
+        root,
+        makeRawSpan({description: 'span2', op: 'http'}),
+        0,
+        {
+          project_slug: '',
+          event_id: '',
+        }
+      );
+      root.children.push(child);
+
+      const grandChild = new TraceTreeNode(
+        child,
+        makeRawSpan({description: 'span3', op: 'http'}),
+        0,
+        {
+          project_slug: '',
+          event_id: '',
+        }
+      );
+      child.children.push(grandChild);
+
+      expect(root.children.length).toBe(1);
+      expect(root.children[0].children.length).toBe(1);
+
+      TraceTree.AutogroupChildrenSpanNodes(root);
+
+      expect(root.children.length).toBe(1);
+
+      const autoGroupedNode = root.children[0];
+      expect(autoGroupedNode.children.length).toBe(1);
+      expect((autoGroupedNode.children[0].value as RawSpanType).description).toBe(
+        'span2'
+      );
+    });
   });
 });

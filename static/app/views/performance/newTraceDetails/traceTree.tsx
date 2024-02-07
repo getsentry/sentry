@@ -197,7 +197,67 @@ export class TraceTree {
     return this._list;
   }
 
-  static AutogroupChildrenSpanNodes(_root: TraceTreeNode<TraceTree.NodeValue>): void {}
+  static AutogroupChildrenSpanNodes(root: TraceTreeNode<TraceTree.NodeValue>): void {
+    // Span chain grouping is when multiple spans with the same op are nested as direct and only children
+    const queue = [root];
+    let startNode: TraceTreeNode<TraceTree.Span> | null = null;
+    let lastMatchingNode: TraceTreeNode<TraceTree.Span> | null = null;
+    while (queue.length > 0) {
+      const node = queue.pop()!;
+
+      // End of chaining
+      if (node.children.length !== 1 || isTransactionNode(node)) {
+        if (lastMatchingNode && startNode && startNode.parent) {
+          // Autogroup chain
+          const autoGroupedNode = new TraceTreeNode<TraceTree.AutoGroup>(
+            startNode.parent as TraceTreeNode<TraceTree.AutoGroup>,
+            {
+              ...startNode.value,
+              autogroup: {
+                op: startNode.value.op ?? '',
+                description: startNode.value.description ?? '',
+              },
+            },
+            startNode.depth,
+            {
+              event_id: undefined,
+              project_slug: undefined,
+            }
+          );
+
+          // @ts-expect-error ignore readonly assignment
+          autoGroupedNode._children = [startNode];
+
+          // Replace first node in chain with autogroup node
+          startNode.parent.children.splice(0, 1, autoGroupedNode);
+        }
+
+        startNode = null;
+        lastMatchingNode = null;
+
+        // If there is no match, we still want to check the children
+        // of the node for possible chaining
+        for (const child of node.children) {
+          queue.push(child);
+        }
+        continue;
+      }
+
+      const parent = node as TraceTreeNode<TraceTree.Span>;
+      const child = node.children[0] as TraceTreeNode<TraceTree.Span>;
+
+      if (child.children.length <= 1 && parent.value.op === child.value.op) {
+        // Chain detected
+        if (!startNode) {
+          startNode = parent;
+        }
+        const grandChild = child.children[0] as TraceTreeNode<TraceTree.Span>;
+        lastMatchingNode = grandChild?.value.op === child.value.op ? grandChild : child;
+      }
+
+      queue.push(child);
+    }
+  }
 
   static AutogroupSiblingSpanNodes(root: TraceTreeNode<TraceTree.NodeValue>): void {
     // Span sibling grouping is when min 5 consecutive spans without children have matching op and description
@@ -465,7 +525,7 @@ export class TraceTreeNode<T> {
   get children(): TraceTreeNode<TraceTree.NodeValue>[] {
     // if node is not a autogrouped node, return children
     // @ts-expect-error ignore primitive type
-    if (this.value && 'autogrouped' in this.value) {
+    if (this.value && 'autogroup' in this.value) {
       return this._children;
     }
     // if node is not a transaction node, return span children
