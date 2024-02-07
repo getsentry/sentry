@@ -69,7 +69,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """
-        Return details on an individual replay.
+        Return details on an individual replay within a project.
         """
 
         if not features.has(
