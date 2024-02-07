@@ -40,7 +40,18 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                                     "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
                                     "lineno": 20,
                                     "context_line": " divide_by_zero_another()",
-                                }
+                                    "in_app": True,
+                                },
+                                # The non-in-app frame should not be included in the stacktrace
+                                {
+                                    "function": "another_function",
+                                    "module": "__main__",
+                                    "filename": "python_onboarding.py",
+                                    "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
+                                    "lineno": 40,
+                                    "context_line": " another_function()",
+                                    "in_app": False,
+                                },
                             ]
                         },
                         "type": "ZeroDivisionError",
