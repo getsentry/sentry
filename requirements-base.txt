@@ -82,7 +82,7 @@ pyuwsgi==2.0.23
 zstandard>=0.18.0
 sentry-usage-accountant==0.0.10
 
-msgpack>=1.0.4
+msgpack>=1.0.7
 cryptography>=38.0.3
 
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
