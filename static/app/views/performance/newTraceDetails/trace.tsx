@@ -129,7 +129,7 @@ function RenderRow(props: {
           paddingLeft: props.node.depth * 23,
         }}
       >
-        <div className="TraceChildrenCountWrapper Root">
+        <div className="TraceChildrenCountWrapper">
           <Connectors node={props.node} />
           {props.node.children.length > 0 ? (
             <ChildrenCountButton
@@ -291,7 +291,8 @@ function RenderRow(props: {
 
 function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const showVerticalConnector =
-    (props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0;
+    ((props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0) ||
+    (props.node.value && 'autogrouped_by' in props.node.value);
 
   return (
     <Fragment>
