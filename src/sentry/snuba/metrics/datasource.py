@@ -228,11 +228,16 @@ def _build_metric_meta(
     )
 
 
-def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Sequence[MetricMeta]:
+def get_metrics_meta(
+    projects: Sequence[Project],
+    use_case_id: UseCaseID,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> Sequence[MetricMeta]:
     if not projects:
         return []
 
-    stored_metrics = get_stored_metrics_of_projects(projects, use_case_id)
+    stored_metrics = get_stored_metrics_of_projects(projects, use_case_id, start, end)
     metrics_blocking_state = get_metrics_blocking_state_of_projects(projects, use_case_id)
 
     metrics_metas = []
@@ -276,7 +281,10 @@ def get_metrics_meta(projects: Sequence[Project], use_case_id: UseCaseID) -> Seq
 
 
 def get_stored_metrics_of_projects(
-    projects: Sequence[Project], use_case_id: UseCaseID
+    projects: Sequence[Project],
+    use_case_id: UseCaseID,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> Mapping[str, Sequence[int]]:
     org_id = projects[0].organization_id
     project_ids = [project.id for project in projects]
@@ -310,6 +318,8 @@ def get_stored_metrics_of_projects(
             project_ids=project_ids,
             org_id=org_id,
             use_case_id=use_case_id,
+            start=start,
+            end=end,
         )
 
     grouped_stored_metrics = {}
@@ -440,6 +450,8 @@ def _fetch_tags_or_values_for_metrics(
     referrer: str,
     column: str,
     use_case_id: UseCaseID,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> tuple[Sequence[Tag] | Sequence[TagValue], str | None]:
     metric_mris = []
 
@@ -452,7 +464,9 @@ def _fetch_tags_or_values_for_metrics(
         else:
             metric_mris.append(get_mri(metric_name))
 
-    return _fetch_tags_or_values_for_mri(projects, metric_mris, referrer, column, use_case_id)
+    return _fetch_tags_or_values_for_mri(
+        projects, metric_mris, referrer, column, use_case_id, start, end
+    )
 
 
 def _fetch_tags_or_values_for_mri(
@@ -461,6 +475,8 @@ def _fetch_tags_or_values_for_mri(
     referrer: str,
     column: str,
     use_case_id: UseCaseID,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> tuple[Sequence[Tag] | Sequence[TagValue], str | None]:
     """
     Function that takes as input projects, metric_mris, and a column, and based on the column
@@ -507,6 +523,8 @@ def _fetch_tags_or_values_for_mri(
             project_ids=[p.id for p in projects],
             org_id=org_id,
             use_case_id=use_case_id,
+            start=start,
+            end=end,
         )
 
         for row in rows:
@@ -587,10 +605,10 @@ def _fetch_tags_or_values_for_mri(
 
 
 def get_single_metric_info(
-    projects: Sequence[Project], metric_name: str, use_case_id: UseCaseID
+    projects: Sequence[Project],
+    metric_name: str,
+    use_case_id: UseCaseID,
 ) -> MetricMetaWithTagKeys:
-    assert projects
-
     tags, metric_type = _fetch_tags_or_values_for_metrics(
         projects=projects,
         metric_names=[metric_name],
@@ -623,7 +641,11 @@ def get_single_metric_info(
 
 
 def get_all_tags(
-    projects: Sequence[Project], metric_names: Sequence[str] | None, use_case_id: UseCaseID
+    projects: Sequence[Project],
+    metric_names: Sequence[str] | None,
+    use_case_id: UseCaseID,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> Sequence[Tag]:
     """Get all metric tags for the given projects and metric_names."""
     assert projects
@@ -635,6 +657,8 @@ def get_all_tags(
             column="tags.key",
             referrer="snuba.metrics.meta.get_tags",
             use_case_id=use_case_id,
+            start=start,
+            end=end,
         )
     except InvalidParams:
         return []
@@ -647,6 +671,8 @@ def get_tag_values(
     tag_name: str,
     metric_names: Sequence[str] | None,
     use_case_id: UseCaseID,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> Sequence[TagValue]:
     """Get all known values for a specific tag for the given projects and metric_names."""
     assert projects
@@ -667,6 +693,8 @@ def get_tag_values(
             metric_names=metric_names,
             referrer="snuba.metrics.meta.get_tag_values",
             use_case_id=use_case_id,
+            start=start,
+            end=end,
         )
     except InvalidParams:
         return []

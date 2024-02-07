@@ -8,7 +8,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
-from sentry.testutils.cases import OrganizationMetricsIntegrationTestCase
+from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.endpoints.test_organization_metrics import (
@@ -24,9 +24,13 @@ def _indexer_record(org_id: int, string: str) -> None:
 
 
 @region_silo_test
-class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricsIntegrationTestCase):
+class OrganizationMetricsTagDetailsTest(OrganizationMetricsIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tag-details"
+
+    @property
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_unknown_tag(self):
         _indexer_record(self.organization.id, "bar")
@@ -193,3 +197,33 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricsIntegratio
             "The following metrics {'crash_free_fake'} cannot be computed from single entities. "
             "Please revise the definition of these singular entity derived metrics"
         )
+
+    def test_metric_tag_details_with_date_range(self):
+        mri = "c:custom/clicks@none"
+        transactions = (
+            ("/hello", 0),
+            ("/world", 1),
+            ("/foo", 7),
+        )
+        for transaction, days in transactions:
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "counter",
+                mri,
+                {"transaction": transaction},
+                int((self.now - timedelta(days=days)).timestamp()),
+                10,
+                UseCaseID.CUSTOM,
+            )
+
+        for stats_period, expected_count in (("1d", 1), ("2d", 2), ("2w", 3)):
+            response = self.get_success_response(
+                self.organization.slug,
+                "transaction",
+                metric=[mri],
+                project=self.project.id,
+                useCase="custom",
+                statsPeriod=stats_period,
+            )
+            assert len(response.data) == expected_count
