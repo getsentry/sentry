@@ -532,7 +532,6 @@ class GitHubClientMixin(GithubProxyClient):
             page_number = 1
             logger.info("Page %s: %s?per_page=%s", page_number, path, self.page_size)
             resp = self.get(path, params={"per_page": self.page_size})
-            logger.info(resp)
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             next_link = get_next_link(resp)
 
@@ -552,7 +551,6 @@ class GitHubClientMixin(GithubProxyClient):
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while next_link and page_number < page_number_limit:
                 resp = self.get(next_link)
-                logger.info(resp)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
