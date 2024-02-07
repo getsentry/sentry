@@ -20,7 +20,6 @@ from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils import json
@@ -398,12 +397,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             },
         }
 
-        with override_options(
-            {
-                "symbolicator.sourcemaps-processing-sample-rate": 1.0,
-            }
-        ):
-            event = self.post_and_retrieve_event(data)
+        event = self.post_and_retrieve_event(data)
 
         exception = event.interfaces["exception"]
         frames = exception.values[0].stacktrace.frames

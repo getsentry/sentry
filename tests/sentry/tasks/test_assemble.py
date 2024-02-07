@@ -836,7 +836,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         with self.options(
             {
-                "processing.save-release-archives": True,
                 "processing.release-archive-min-files": 1,
             }
         ):
