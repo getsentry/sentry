@@ -125,7 +125,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             if payload.get("culprit"):
                 occurrence_data["culprit"] = payload["culprit"]
 
-            if payload.get("initial_issue_priority"):
+            if payload.get("initial_issue_priority") is None:
                 occurrence_data["initial_issue_priority"] = payload["initial_issue_priority"]
             else:
                 group_type = get_group_type_by_type_id(occurrence_data["type"])
