@@ -23,9 +23,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface MetricSearchBarProps extends Partial<SmartSearchBarProps> {
   onChange: (value: string) => void;
-  projectIds: string[];
   disabled?: boolean;
   mri?: MRI;
+  projectIds?: string[];
   query?: string;
 }
 
@@ -73,11 +73,14 @@ export function MetricSearchBar({
   const api = useApi();
   const {selection} = usePageFilters();
   const projectIdNumbers = useMemo(
-    () => projectIds.map(id => parseInt(id, 10)),
+    () => projectIds?.map(id => parseInt(id, 10)),
     [projectIds]
   );
 
-  const {data: tags = EMPTY_ARRAY, isLoading} = useMetricsTags(mri, projectIdNumbers);
+  const {data: tags = EMPTY_ARRAY, isLoading} = useMetricsTags(mri, {
+    ...selection,
+    projects: projectIdNumbers,
+  });
 
   const supportedTags: TagCollection = useMemo(
     () => tags.reduce((acc, tag) => ({...acc, [tag.key]: tag}), {}),

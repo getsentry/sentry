@@ -49,7 +49,7 @@ export const useBlockMetric = (project: Project) => {
       const useCase = getUseCaseFromMRI(data.metricMri);
       const metaQueryKey = getMetricsMetaQueryKey(
         slug,
-        [parseInt(project.id, 10)],
+        {projects: [parseInt(project.id, 10)]},
         useCase ?? 'custom'
       );
       queryClient.setQueryData(

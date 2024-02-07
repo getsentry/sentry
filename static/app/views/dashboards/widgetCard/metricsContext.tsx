@@ -19,7 +19,7 @@ export function useMetricsDashboardContext() {
 
 export function MetricsDashboardContextProvider({children}: {children: React.ReactNode}) {
   const pageFilters = usePageFilters().selection;
-  const metricsMetaQuery = useMetricsMeta(pageFilters.projects);
+  const metricsMetaQuery = useMetricsMeta(pageFilters);
 
   const contextValue = useMemo(() => {
     return {
