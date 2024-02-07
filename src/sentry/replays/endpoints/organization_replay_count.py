@@ -13,8 +13,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -62,6 +64,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
     }
 
     @extend_schema(
+        examples=ReplayExamples.GET_REPLAY_COUNTS,
         operation_id="Return a Count of Replays",
         parameters=[
             GlobalParams.END,
@@ -72,7 +75,11 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             OrganizationParams.PROJECT,
             VisibilityParams.QUERY,
         ],
-        examples=ReplayExamples.GET_REPLAY_COUNT,
+        responses={
+            200: inline_sentry_response_serializer("ReplayCounts", dict[str, int]),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """Return a count of replays for the given issue or transaction id."""

@@ -59,7 +59,7 @@ class ReplayExamples:
         ),
     ]
 
-    GET_REPLAY_COUNT = [
+    GET_REPLAY_COUNTS = [
         OpenApiExample(
             "Query replay count by issue or transaction id",
             value={
