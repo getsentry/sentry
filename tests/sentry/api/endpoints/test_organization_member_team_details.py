@@ -280,6 +280,7 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
         ).exists()
 
 
+@region_silo_test
 class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
     @cached_property
     def org(self):
