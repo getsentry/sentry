@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import type {SimilarItem} from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import Item from './item';
 import Toolbar from './toolbar';
@@ -57,6 +58,7 @@ function List({
   const hasSimilarityEmbeddingsFeature = project.features.includes(
     'similarity-embeddings'
   );
+  const organization = useOrganization();
 
   if (!hasResults) {
     return <Empty />;
@@ -69,8 +71,16 @@ function List({
           <SimilarSpectrum />
         </Header>
       )}
+      {hasSimilarityEmbeddingsFeature && (
+        <LegendSmall>0 = Not Similar, 1 = Similar</LegendSmall>
+      )}
       <Panel>
-        <Toolbar onMerge={onMerge} project={project} />
+        <Toolbar
+          onMerge={onMerge}
+          groupId={groupId}
+          project={project}
+          organization={organization}
+        />
 
         <PanelBody>
           {itemsWithFiltered.map(item => (
@@ -103,6 +113,13 @@ const Header = styled('div')`
   display: flex;
   justify-content: flex-end;
   margin-bottom: ${space(1)};
+`;
+
+const LegendSmall = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Footer = styled('div')`

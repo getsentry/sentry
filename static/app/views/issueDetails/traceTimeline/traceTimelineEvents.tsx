@@ -46,6 +46,9 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
 
   // If the duration is less than 2 minutes, show seconds
   const showTimelineSeconds = durationMs < 120 * 1000;
+  const middleTimestamp = paddedStartTime + Math.floor(durationMs / 2);
+  const leftMiddleTimestamp = paddedStartTime + Math.floor(durationMs / 4);
+  const rightMiddleTimestamp = paddedStartTime + Math.floor((durationMs / 4) * 3);
 
   return (
     <Fragment>
@@ -77,19 +80,11 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
         })}
       </TimelineColumns>
       <TimestampColumns>
-        <TimestampItem style={{textAlign: 'left'}}>
-          <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
-        <TimestampItem style={{textAlign: 'center'}}>
-          <DateTime
-            date={paddedStartTime + Math.floor(durationMs / 2)}
-            seconds={showTimelineSeconds}
-            timeOnly
-          />
-        </TimestampItem>
-        <TimestampItem style={{textAlign: 'right'}}>
-          <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
+        <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={leftMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={middleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={rightMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
       </TimestampColumns>
     </Fragment>
   );
@@ -118,16 +113,11 @@ const TimelineColumns = styled('div')`
 `;
 
 const TimestampColumns = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin-top: ${space(1)};
-`;
-
-const TimestampItem = styled('div')`
-  place-items: stretch;
-  display: grid;
+  display: flex;
   align-items: center;
-  position: relative;
+  justify-content: space-between;
+  margin-top: ${space(1)};
+  text-align: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
