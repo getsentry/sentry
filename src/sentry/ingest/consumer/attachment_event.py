@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def decode_and_process_chunks(
-    raw_message: Message[KafkaPayload],
+    raw_message: Message[KafkaPayload], consumer_type: str
 ) -> IngestMessage | None:
     """
     The first pass for the `attachments` topic:
@@ -31,6 +31,12 @@ def decode_and_process_chunks(
     - Process and save `attachment_chunk`s.
     """
     raw_payload = raw_message.payload.value
+    metrics.distribution(
+        "ingest_consumer.payload_size",
+        len(raw_payload),
+        tags={"consumer": consumer_type},
+        unit="byte",
+    )
     message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
     if message["type"] == "attachment_chunk":

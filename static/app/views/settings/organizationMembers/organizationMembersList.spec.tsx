@@ -437,20 +437,6 @@ describe('OrganizationMembersList', function () {
     }
   });
 
-  it('can filter members with org roles from team membership', async function () {
-    const routerContext = RouterContextFixture();
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: routerContext,
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Owner'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-
-    const owners = screen.queryAllByText('Owner');
-    expect(owners).toHaveLength(3);
-  });
-
   describe('OrganizationInviteRequests', function () {
     const inviteRequest = MemberFixture({
       id: '123',

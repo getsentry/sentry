@@ -46,6 +46,9 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
 
   // If the duration is less than 2 minutes, show seconds
   const showTimelineSeconds = durationMs < 120 * 1000;
+  const middleTimestamp = paddedStartTime + Math.floor(durationMs / 2);
+  const leftMiddleTimestamp = paddedStartTime + Math.floor(durationMs / 4);
+  const rightMiddleTimestamp = paddedStartTime + Math.floor((durationMs / 4) * 3);
 
   return (
     <Fragment>
@@ -77,19 +80,11 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
         })}
       </TimelineColumns>
       <TimestampColumns>
-        <TimestampItem style={{textAlign: 'left'}}>
-          <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
-        <TimestampItem style={{textAlign: 'center'}}>
-          <DateTime
-            date={paddedStartTime + Math.floor(durationMs / 2)}
-            seconds={showTimelineSeconds}
-            timeOnly
-          />
-        </TimestampItem>
-        <TimestampItem style={{textAlign: 'right'}}>
-          <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
+        <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={leftMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={middleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={rightMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
       </TimestampColumns>
     </Fragment>
   );
@@ -118,16 +113,11 @@ const TimelineColumns = styled('div')`
 `;
 
 const TimestampColumns = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin-top: ${space(1)};
-`;
-
-const TimestampItem = styled('div')`
-  place-items: stretch;
-  display: grid;
+  display: flex;
   align-items: center;
-  position: relative;
+  justify-content: space-between;
+  margin-top: ${space(1)};
+  text-align: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -174,13 +164,15 @@ function NodeGroup({
                 </CurrentNodeContainer>
               )}
               {!isCurrentNode &&
-                groupEvents.map(groupEvent =>
-                  'event.type' in groupEvent ? (
-                    <IconNode key={groupEvent.id} />
-                  ) : (
-                    <PerformanceIconNode key={groupEvent.id} />
-                  )
-                )}
+                groupEvents
+                  .slice(0, 4)
+                  .map(groupEvent =>
+                    'event.type' in groupEvent ? (
+                      <IconNode key={groupEvent.id} />
+                    ) : (
+                      <PerformanceIconNode key={groupEvent.id} />
+                    )
+                  )}
             </EventColumn>
           );
         })}
@@ -230,31 +222,31 @@ const IconNode = styled('div')`
   box-shadow: ${p => p.theme.dropShadowLight};
   user-select: none;
   background-color: ${p => color(p.theme.red200).alpha(0.3).string()};
+  border: 1px solid ${p => p.theme.red300};
   margin-left: -8px;
 `;
 
 const PerformanceIconNode = styled(IconNode)`
   background-color: unset;
-  border: 1px solid ${p => color(p.theme.red300).alpha(0.3).string()};
 `;
 
 const CurrentNodeContainer = styled('div')`
   position: absolute;
   grid-column: 1;
   grid-row: 1;
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
 `;
 
 const CurrentNodeRing = styled('div')`
   border: 1px solid ${p => p.theme.red300};
-  height: 16px;
-  width: 16px;
+  height: 24px;
+  width: 24px;
   border-radius: 100%;
   position: absolute;
-  top: -4px;
-  left: -12px;
-  animation: pulse 1s ease-out infinite;
+  top: -6px;
+  left: -16px;
+  animation: pulse 2s ease-out infinite;
 
   @keyframes pulse {
     0% {
@@ -262,6 +254,10 @@ const CurrentNodeRing = styled('div')`
       opacity: 0.0;
     }
     50% {
+      transform: scale(0.1, 0.1);
+      opacity: 0.0;
+    }
+    70% {
       opacity: 1.0;
     }
     100% {
@@ -273,8 +269,9 @@ const CurrentNodeRing = styled('div')`
 
 const CurrentIconNode = styled(IconNode)`
   background-color: ${p => p.theme.red300};
-  border-radius: 50%;
-  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin-left: -10px;
 `;
 
 const TooltipHelper = styled('span')`

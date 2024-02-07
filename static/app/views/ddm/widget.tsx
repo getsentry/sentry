@@ -19,7 +19,7 @@ import type {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getDefaultMetricDisplayType,
-  getSeriesName,
+  getMetricsSeriesName,
   stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
@@ -289,16 +289,9 @@ const MetricWidgetBody = memo(
             getChartPalette,
             mri,
             focusedSeries: focusedSeries?.seriesName,
-            groupBy: metricsQuery.groupBy,
           })
         : [];
-    }, [
-      timeseriesData,
-      getChartPalette,
-      mri,
-      focusedSeries?.seriesName,
-      metricsQuery.groupBy,
-    ]);
+    }, [timeseriesData, getChartPalette, mri, focusedSeries?.seriesName]);
 
     const handleSortChange = useCallback(
       newSort => {
@@ -367,12 +360,10 @@ export function getChartTimeseries(
     getChartPalette,
     mri,
     focusedSeries,
-    groupBy,
   }: {
     getChartPalette: (seriesNames: string[]) => Record<string, string>;
     mri: MRI;
     focusedSeries?: string;
-    groupBy?: string[];
   }
 ) {
   // this assumes that all series have the same unit
@@ -382,7 +373,7 @@ export function getChartTimeseries(
   const series = data.groups.map(g => {
     return {
       values: Object.values(g.series)[0],
-      name: getSeriesName(g, data.groups.length === 1, groupBy),
+      name: getMetricsSeriesName(g),
       groupBy: g.by,
       transaction: g.by.transaction,
       release: g.by.release,

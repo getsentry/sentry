@@ -116,7 +116,6 @@ export const SummaryTable = memo(function SummaryTable({
       return {
         ...s,
         ...getValues(s.data),
-        name: s.seriesName,
       };
     })
     .sort((a, b) => {
@@ -127,8 +126,8 @@ export const SummaryTable = memo(function SummaryTable({
 
       if (name === 'name') {
         return order === 'asc'
-          ? a.name.localeCompare(b.name)
-          : b.name.localeCompare(a.name);
+          ? a.seriesName.localeCompare(b.seriesName)
+          : b.seriesName.localeCompare(a.seriesName);
       }
       const aValue = a[name] ?? 0;
       const bValue = b[name] ?? 0;
@@ -168,7 +167,6 @@ export const SummaryTable = memo(function SummaryTable({
       >
         {rows.map(
           ({
-            name,
             seriesName,
             groupBy,
             color,
@@ -211,12 +209,11 @@ export const SummaryTable = memo(function SummaryTable({
                   </Cell>
                   <TextOverflowCell>
                     <Tooltip
-                      title={name}
-                      showOnlyOnOverflow
+                      title={<FullSeriesName seriesName={seriesName} groupBy={groupBy} />}
                       delay={500}
                       overlayStyle={{maxWidth: '80vw'}}
                     >
-                      <TextOverflow>{name}</TextOverflow>
+                      <TextOverflow>{seriesName}</TextOverflow>
                     </Tooltip>
                   </TextOverflowCell>
                   {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
@@ -258,6 +255,34 @@ export const SummaryTable = memo(function SummaryTable({
     </SummaryTableWrapper>
   );
 });
+
+function FullSeriesName({
+  seriesName,
+  groupBy,
+}: {
+  seriesName: string;
+  groupBy?: Record<string, string>;
+}) {
+  if (!groupBy || Object.keys(groupBy).length === 0) {
+    return <Fragment>{seriesName}</Fragment>;
+  }
+
+  const goupByEntries = Object.entries(groupBy);
+  return (
+    <Fragment>
+      {goupByEntries.map(([key, value], index) => {
+        const formattedValue = value || t('(none)');
+        return (
+          <span key={key}>
+            <strong>{`${key}:`}</strong>
+            &nbsp;
+            {index === goupByEntries.length - 1 ? formattedValue : `${formattedValue}, `}
+          </span>
+        );
+      })}
+    </Fragment>
+  );
+}
 
 function SortableHeaderCell({
   sortState,
