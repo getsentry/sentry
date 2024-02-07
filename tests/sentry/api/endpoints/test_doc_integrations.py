@@ -39,7 +39,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
     method = "GET"
 
     @with_feature("auth:enterprise-staff-cookie")
-    def test_read_docs_for_staff(self):
+    def test_staff_read_docs(self):
         """
         Tests that all DocIntegrations are returned for staff users,
         along with serialized versions of their avatars and IntegrationFeatures
@@ -61,7 +61,7 @@ class GetDocIntegrationsTest(DocIntegrationsTest):
             assert serialize(feature) in serialize(self.doc_3)["features"]
 
     # TODO(schew2381): Change test to check superuser can only fetch non-draft DocIntegrations
-    def test_read_docs_for_superuser(self):
+    def test_superuser_read_docs(self):
         """
         Tests that all DocIntegrations are returned for super users,
         along with serialized versions of their avatars and IntegrationFeatures
@@ -122,13 +122,11 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
         super().setUp()
         self.login_as(user=self.staff_user, staff=True)
 
-    # TODO(schew2381): Change test to check superuser can't access POST
-    def test_create_doc_for_superuser(self):
+    def test_staff_create_doc(self):
         """
         Tests that a draft DocIntegration is created for superuser requests along
         with all the appropriate IntegrationFeatures
         """
-        self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status_code=status.HTTP_201_CREATED, **self.payload)
         doc = DocIntegration.objects.get(name=self.payload["name"], author=self.payload["author"])
         assert serialize(doc) == response.data
@@ -144,11 +142,13 @@ class PostDocIntegrationsTest(DocIntegrationsTest):
             # Ensure they are also serialized in the response
             assert serialize(feature) in response.data["features"]
 
-    def test_create_doc_for_staff(self):
+    # TODO(schew2381): Change test to check superuser can't access POST
+    def test_superuser_create_doc(self):
         """
         Tests that a draft DocIntegration is created for superuser requests along
         with all the appropriate IntegrationFeatures
         """
+        self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status_code=status.HTTP_201_CREATED, **self.payload)
         doc = DocIntegration.objects.get(name=self.payload["name"], author=self.payload["author"])
         assert serialize(doc) == response.data
