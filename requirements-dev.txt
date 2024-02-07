@@ -34,7 +34,7 @@ pip-tools>=7.1.0
 packaging>=21.3
 
 # for type checking
-sentry-forked-django-stubs>=4.2.7.post2
+sentry-forked-django-stubs>=4.2.7.post3
 sentry-forked-djangorestframework-stubs>=3.14.5.post1
 lxml-stubs
 msgpack-types>=0.2.0
