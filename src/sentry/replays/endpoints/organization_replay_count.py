@@ -76,7 +76,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             VisibilityParams.QUERY,
         ],
         responses={
-            200: inline_sentry_response_serializer("ReplayCounts", dict[str, int]),
+            200: inline_sentry_response_serializer("ReplayCounts", dict[int, int]),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
