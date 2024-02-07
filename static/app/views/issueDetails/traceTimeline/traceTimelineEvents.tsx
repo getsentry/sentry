@@ -80,21 +80,11 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
         })}
       </TimelineColumns>
       <TimestampColumns>
-        <TimestampItem>
-          <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
-        <TimestampItem>
-          <DateTime date={leftMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
-        <TimestampItem>
-          <DateTime date={middleTimestamp} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
-        <TimestampItem>
-          <DateTime date={rightMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
-        <TimestampItem>
-          <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
-        </TimestampItem>
+        <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={leftMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={middleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={rightMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
+        <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
       </TimestampColumns>
     </Fragment>
   );
@@ -127,9 +117,6 @@ const TimestampColumns = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-top: ${space(1)};
-`;
-
-const TimestampItem = styled('div')`
   text-align: center;
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
