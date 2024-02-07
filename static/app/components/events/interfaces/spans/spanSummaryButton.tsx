@@ -1,7 +1,7 @@
 import {LinkButton} from 'sentry/components/button';
-import {SpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
-import {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction, Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   querySummaryRouteWithQuery,

@@ -216,7 +216,7 @@ _PREBUILT_DASHBOARDS: list[dict[str, Any]] = [
                         "fields": ["geo.country_code", "geo.region", "count()"],
                         "aggregates": ["count()"],
                         "columns": ["geo.country_code", "geo.region"],
-                        "orderby": "",
+                        "orderby": "-count()",
                     }
                 ],
             },
@@ -232,7 +232,7 @@ _PREBUILT_DASHBOARDS: list[dict[str, Any]] = [
                         "fields": ["browser.name", "count()"],
                         "aggregates": ["count()"],
                         "columns": ["browser.name"],
-                        "orderby": "-count",
+                        "orderby": "-count()",
                     }
                 ],
             },

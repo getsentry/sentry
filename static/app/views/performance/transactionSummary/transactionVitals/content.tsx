@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -15,10 +15,10 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {WebVital} from 'sentry/utils/fields';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {WebVital} from 'sentry/utils/fields';
 import Histogram from 'sentry/utils/performance/histogram';
 import {FILTER_OPTIONS} from 'sentry/utils/performance/histogram/constants';
 import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';

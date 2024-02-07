@@ -1,10 +1,10 @@
-import {Span} from '@sentry/types';
+import type {Span} from '@sentry/types';
 
 import {defined} from 'sentry/utils';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
-import {CallTreeNode} from '../callTreeNode';
+import type {CallTreeNode} from '../callTreeNode';
 
 type FrameIndex = Record<string | number, Frame>;
 

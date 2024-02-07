@@ -10,7 +10,7 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import AlertsContainer from 'sentry/views/alerts';
 import IncidentsList from 'sentry/views/alerts/list/incidents';
 
@@ -106,11 +106,11 @@ describe('IncidentsList', () => {
       body: [],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: null}},
     });
     const promptsUpdateMock = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       method: 'PUT',
     });
 
@@ -133,7 +133,7 @@ describe('IncidentsList', () => {
       body: [],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 
@@ -157,7 +157,7 @@ describe('IncidentsList', () => {
       body: [{id: 1}],
     });
     const promptsMock = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {data: {dismissed_ts: Math.floor(Date.now() / 1000)}},
     });
 

@@ -6,23 +6,23 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import {Integration, Repository} from 'sentry/types';
+import type {Integration, Repository} from 'sentry/types';
 
 const api = new Client();
 
 /**
  * Removes an integration from a project.
  *
- * @param {String} orgId Organization Slug
- * @param {String} projectId Project Slug
- * @param {Object} integration The organization integration to remove
+ * @param orgSlug Organization Slug
+ * @param projectId Project Slug
+ * @param integration The organization integration to remove
  */
 export function removeIntegrationFromProject(
-  orgId: string,
+  orgSlug: string,
   projectId: string,
   integration: Integration
 ) {
-  const endpoint = `/projects/${orgId}/${projectId}/integrations/${integration.id}/`;
+  const endpoint = `/projects/${orgSlug}/${projectId}/integrations/${integration.id}/`;
   addLoadingMessage();
 
   return api.requestPromise(endpoint, {method: 'DELETE'}).then(
@@ -38,16 +38,16 @@ export function removeIntegrationFromProject(
 /**
  * Add an integration to a project
  *
- * @param {String} orgId Organization Slug
- * @param {String} projectId Project Slug
- * @param {Object} integration The organization integration to add
+ * @param orgSlug Organization Slug
+ * @param projectId Project Slug
+ * @param integration The organization integration to add
  */
 export function addIntegrationToProject(
-  orgId: string,
+  orgSlug: string,
   projectId: string,
   integration: Integration
 ) {
-  const endpoint = `/projects/${orgId}/${projectId}/integrations/${integration.id}/`;
+  const endpoint = `/projects/${orgSlug}/${projectId}/integrations/${integration.id}/`;
   addLoadingMessage();
 
   return api.requestPromise(endpoint, {method: 'PUT'}).then(
@@ -63,14 +63,14 @@ export function addIntegrationToProject(
 /**
  * Delete a respository
  *
- * @param {Object} client ApiClient
- * @param {String} orgId Organization Slug
- * @param {String} repositoryId Repository ID
+ * @param client ApiClient
+ * @param orgSlug Organization Slug
+ * @param repositoryId Repository ID
  */
-export function deleteRepository(client: Client, orgId: string, repositoryId: string) {
+export function deleteRepository(client: Client, orgSlug: string, repositoryId: string) {
   addLoadingMessage();
   const promise = client.requestPromise(
-    `/organizations/${orgId}/repos/${repositoryId}/`,
+    `/organizations/${orgSlug}/repos/${repositoryId}/`,
     {
       method: 'DELETE',
     }
@@ -85,18 +85,18 @@ export function deleteRepository(client: Client, orgId: string, repositoryId: st
 /**
  * Cancel the deletion of a respository
  *
- * @param {Object} client ApiClient
- * @param {String} orgId Organization Slug
- * @param {String} repositoryId Repository ID
+ * @param client ApiClient
+ * @param orgSlug Organization Slug
+ * @param repositoryId Repository ID
  */
 export function cancelDeleteRepository(
   client: Client,
-  orgId: string,
+  orgSlug: string,
   repositoryId: string
 ) {
   addLoadingMessage();
   const promise = client.requestPromise(
-    `/organizations/${orgId}/repos/${repositoryId}/`,
+    `/organizations/${orgSlug}/repos/${repositoryId}/`,
     {
       method: 'PUT',
       data: {status: 'visible'},
@@ -113,13 +113,13 @@ export function cancelDeleteRepository(
  * Delete a repository by setting its status to hidden.
  *
  * @param client ApiClient
- * @param orgId Organization Slug
+ * @param orgSlug Organization Slug
  * @param repositoryId Repository ID
  */
-export function hideRepository(client: Client, orgId: string, repositoryId: string) {
+export function hideRepository(client: Client, orgSlug: string, repositoryId: string) {
   addLoadingMessage();
   const promise = client.requestPromise(
-    `/organizations/${orgId}/repos/${repositoryId}/`,
+    `/organizations/${orgSlug}/repos/${repositoryId}/`,
     {
       method: 'PUT',
       data: {status: 'hidden'},
@@ -153,21 +153,21 @@ function applyRepositoryAddComplete(promise: Promise<Repository>) {
 /**
  * Migrate a repository to a new integration.
  *
- * @param {Object} client ApiClient
- * @param {String} orgId Organization Slug
- * @param {String} repositoryId Repository ID
- * @param {Object} integration Integration provider data.
+ * @param client ApiClient
+ * @param orgSlug Organization Slug
+ * @param repositoryId Repository ID
+ * @param integration Integration provider data.
  */
 export function migrateRepository(
   client: Client,
-  orgId: string,
+  orgSlug: string,
   repositoryId: string,
   integration: Integration
-) {
+): Promise<Repository> {
   const data = {integrationId: integration.id};
   addLoadingMessage();
   const promise = client.requestPromise(
-    `/organizations/${orgId}/repos/${repositoryId}/`,
+    `/organizations/${orgSlug}/repos/${repositoryId}/`,
     {
       data,
       method: 'PUT',
@@ -179,24 +179,24 @@ export function migrateRepository(
 /**
  * Add a repository
  *
- * @param {Object} client ApiClient
- * @param {String} orgId Organization Slug
- * @param {String} name Repository identifier/name to add
- * @param {Object} integration Integration provider data.
+ * @param client ApiClient
+ * @param orgSlug Organization Slug
+ * @param name Repository identifier/name to add
+ * @param integration Integration provider data.
  */
 export function addRepository(
   client: Client,
-  orgId: string,
+  orgSlug: string,
   name: string,
   integration: Integration
-) {
+): Promise<Repository> {
   const data = {
     installation: integration.id,
     identifier: name,
     provider: `integrations:${integration.provider.key}`,
   };
   addLoadingMessage();
-  const promise = client.requestPromise(`/organizations/${orgId}/repos/`, {
+  const promise = client.requestPromise(`/organizations/${orgSlug}/repos/`, {
     method: 'POST',
     data,
   });

@@ -7,13 +7,16 @@ import {
   useRef,
   useState,
 } from 'react';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import _TextArea, {TextAreaProps} from 'sentry/components/forms/controls/textarea';
-import _Input, {InputProps} from 'sentry/components/input';
+import type {TextAreaProps} from 'sentry/components/forms/controls/textarea';
+import _TextArea from 'sentry/components/forms/controls/textarea';
+import type {InputProps} from 'sentry/components/input';
+import _Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 interface InputContext {
   /**
@@ -228,21 +231,25 @@ const getInputStyles = ({
   size,
   theme,
 }: InputStyleProps & {theme: Theme}) => css`
-  ${leadingWidth &&
-  `
+  ${
+    leadingWidth &&
+    `
     padding-left: calc(
       ${theme.formPadding[size ?? 'md'].paddingLeft}px * 1.5
       + ${leadingWidth}px
     );
-  `}
-
-  ${trailingWidth &&
   `
+  }
+
+  ${
+    trailingWidth &&
+    `
     padding-right: calc(
       ${theme.formPadding[size ?? 'md'].paddingRight}px * 1.5
       + ${trailingWidth}px
     );
-  `}
+  `
+  }
 `;
 
 const StyledInput = styled(_Input)<InputStyleProps>`

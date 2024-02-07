@@ -282,10 +282,6 @@ describe('ProjectTeams', function () {
 
   it('creates a new team adds it to current project using the "create team modal" in dropdown', async function () {
     MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: {},
     });

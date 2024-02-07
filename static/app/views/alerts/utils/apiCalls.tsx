@@ -1,5 +1,5 @@
 import {Client} from 'sentry/api';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import type {Incident} from '../types';
 

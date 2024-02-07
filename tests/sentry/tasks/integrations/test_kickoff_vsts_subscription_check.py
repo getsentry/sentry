@@ -1,9 +1,10 @@
+from collections.abc import Mapping
 from time import time
-from typing import Any, Mapping, Optional
+from typing import Any
 
 import responses
 
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
 from sentry.tasks.integrations import kickoff_vsts_subscription_check
 from sentry.testutils.cases import TestCase
@@ -26,7 +27,7 @@ def assert_no_subscription(external_id: str, subscription_id: str) -> None:
 
 
 def assert_subscription(
-    external_id: str, subscription_id: str, check_time: Optional[float] = None
+    external_id: str, subscription_id: str, check_time: float | None = None
 ) -> None:
     subscription_data = _get_subscription_data(external_id)
 
@@ -62,7 +63,7 @@ class VstsSubscriptionCheckTest(TestCase):
             json={"status": "enabled"},
         )
         self.identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="vsts", config={}),
+            idp=self.create_identity_provider(type="vsts"),
             user=self.user,
             external_id="user_identity",
             data={"access_token": "vsts-access-token", "expires": time() + 50000},
@@ -71,7 +72,7 @@ class VstsSubscriptionCheckTest(TestCase):
     @responses.activate
     def test_kickoff_subscription(self):
         integration3_check_time = time()
-        integration1 = Integration.objects.create(
+        integration1 = self.create_provider_integration(
             provider=PROVIDER,
             name="vsts1",
             external_id="vsts1",
@@ -80,10 +81,10 @@ class VstsSubscriptionCheckTest(TestCase):
                 "subscription": {"id": "subscription1"},
             },
         )
-        integration2 = Integration.objects.create(
+        integration2 = self.create_provider_integration(
             provider=PROVIDER, name="vsts2", external_id="vsts2", metadata={}
         )
-        integration3 = Integration.objects.create(
+        integration3 = self.create_provider_integration(
             provider=PROVIDER,
             name="vsts3",
             external_id="vsts3",
@@ -108,7 +109,7 @@ class VstsSubscriptionCheckTest(TestCase):
 
     @responses.activate
     def test_kickoff_subscription_no_default_identity(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=PROVIDER,
             name="vsts1",
             external_id="vsts1",

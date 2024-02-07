@@ -112,7 +112,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
 @region_silo_endpoint
 class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:

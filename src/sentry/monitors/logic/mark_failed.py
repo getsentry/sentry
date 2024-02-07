@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.db.models import Q
-from django.utils import timezone
 
 from sentry import features
 from sentry.grouping.utils import hash_from_values

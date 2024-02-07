@@ -1,4 +1,3 @@
-from typing import Type
 from unittest.mock import patch
 
 from django.apps import apps
@@ -103,7 +102,7 @@ def test_control_processing(task_runner):
         assert not AuthProviderReplica.objects.filter(auth_provider_id=ap.id).exists()
         assert not AuthIdentityReplica.objects.filter(auth_provider_id=ap.id).exists()
 
-    def run_for_model(model: Type[BaseModel]):
+    def run_for_model(model: type[BaseModel]):
         while True:
             if process_outbox_backfill_batch(model, 1, force_synchronous=True) is None:
                 break

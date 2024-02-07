@@ -1,9 +1,11 @@
-import {ComponentProps, Fragment} from 'react';
+import type {ComponentProps} from 'react';
+import {Fragment} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import Matrix, {PropMatrix} from 'sentry/components/stories/matrix';
+import type {PropMatrix} from 'sentry/components/stories/matrix';
+import Matrix from 'sentry/components/stories/matrix';
 import {IconLink} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';

@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -17,7 +17,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Authenticator, OrganizationSummary} from 'sentry/types';
+import type {Authenticator, OrganizationSummary} from 'sentry/types';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';

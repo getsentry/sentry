@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from typing import TYPE_CHECKING, Any
 
 from django.apps import apps
 

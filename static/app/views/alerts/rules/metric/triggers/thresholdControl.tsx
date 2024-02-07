@@ -8,10 +8,10 @@ import NumberDragControl from 'sentry/components/numberDragControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ThresholdControlValue} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
-  ThresholdControlValue,
 } from 'sentry/views/alerts/rules/metric/types';
 
 type Props = ThresholdControlValue & {
@@ -127,8 +127,8 @@ class ThresholdControl extends Component<Props, State> {
                         ? t('When below Critical or Warning')
                         : t('Below')
                       : hideControl
-                      ? t('When lower than Critical or Warning')
-                      : t('Lower than'),
+                        ? t('When lower than Critical or Warning')
+                        : t('Lower than'),
                 },
                 {
                   value: AlertRuleThresholdType.ABOVE,
@@ -138,8 +138,8 @@ class ThresholdControl extends Component<Props, State> {
                         ? t('When above Critical or Warning')
                         : t('Above')
                       : hideControl
-                      ? t('When higher than Critical or Warning')
-                      : t('Higher than'),
+                        ? t('When higher than Critical or Warning')
+                        : t('Higher than'),
                 },
               ]}
               components={disableThresholdType ? {DropdownIndicator: null} : undefined}

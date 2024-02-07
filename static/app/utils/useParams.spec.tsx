@@ -14,11 +14,11 @@ jest.mock('sentry/constants', () => {
   return {
     ...sentryConstant,
 
-    get usingCustomerDomain() {
+    get USING_CUSTOMER_DOMAIN() {
       return mockUsingCustomerDomain();
     },
 
-    get customerDomain() {
+    get CUSTOMER_DOMAIN() {
       return mockCustomerDomain();
     },
   };

@@ -7,17 +7,15 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import PluginError
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestComment
 from sentry.models.repository import Repository
-from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
@@ -80,11 +78,9 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
 
     def test_codeowners(self):
         org = self.create_organization(owner=self.user)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
-                provider="github", name="Example", external_id="abcd"
-            )
-            org_integration = self.integration.add_organization(org, self.user)
+        self.integration, org_integration = self.create_provider_integration_for(
+            org, self.user, provider="github", name="Example", external_id="abcd"
+        )
         project = self.create_project(organization=org)
         repo = Repository.objects.create(
             organization_id=org.id,

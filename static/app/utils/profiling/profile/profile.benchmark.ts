@@ -20,7 +20,6 @@ initializeLocale({} as any);
 // Note: You MUST import @sentry/tracing package before @sentry/profiling-node
 // eslint-disable-next-line simple-import-sort/imports
 import * as Sentry from '@sentry/node';
-import '@sentry/tracing';
 import {ProfilingIntegration} from '@sentry/profiling-node';
 
 if (process.env.PROFILE) {

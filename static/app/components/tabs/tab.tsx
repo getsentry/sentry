@@ -1,10 +1,11 @@
 import {forwardRef, useCallback} from 'react';
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AriaTabProps, useTab} from '@react-aria/tabs';
+import type {AriaTabProps} from '@react-aria/tabs';
+import {useTab} from '@react-aria/tabs';
 import {useObjectRef} from '@react-aria/utils';
-import {TabListState} from '@react-stately/tabs';
-import {Node, Orientation} from '@react-types/shared';
+import type {TabListState} from '@react-stately/tabs';
+import type {Node, Orientation} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
@@ -52,11 +53,7 @@ function BaseTab(
     rendered,
     props: {to, hidden},
   } = item;
-  const {tabProps, isSelected, isDisabled} = useTab(
-    {key, isDisabled: hidden},
-    state,
-    ref
-  );
+  const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, ref);
 
   const InnerWrap = useCallback(
     ({children}) =>
@@ -80,7 +77,6 @@ function BaseTab(
     <TabWrap
       {...tabProps}
       hidden={hidden}
-      disabled={isDisabled}
       selected={isSelected}
       overflowing={overflowing}
       ref={ref}
@@ -101,7 +97,6 @@ function BaseTab(
 export const Tab = forwardRef(BaseTab);
 
 const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
-  disabled: boolean;
   overflowing: boolean;
   selected: boolean;
 }>`
@@ -117,14 +112,12 @@ const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     outline: none;
   }
 
-  ${p =>
-    p.disabled &&
-    `
-      &, &:hover {
-        color: ${p.theme.subText};
-        pointer-events: none;
-      }
-    `}
+  &[aria-disabled],
+  &[aria-disabled]:hover {
+    color: ${p => p.theme.subText};
+    pointer-events: none;
+    cursor: default;
+  }
 
   ${p =>
     p.overflowing &&

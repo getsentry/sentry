@@ -12,7 +12,7 @@ import {IconCalendar} from 'sentry/icons';
 import useOverlay from 'sentry/utils/useOverlay';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps, OnEvent} from './inputField';
+import type {InputFieldProps, OnEvent} from './inputField';
 
 interface DatePickerFieldProps extends Omit<InputFieldProps, 'field'> {}
 

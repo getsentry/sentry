@@ -1,11 +1,12 @@
-import {Tag} from 'sentry/types';
+import type {Tag} from 'sentry/types';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 
 type Props = {
   dataset?: DiscoverDatasets;
@@ -25,6 +26,7 @@ export const useProjectWebVitalsScoresQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
 
   const projectEventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -48,7 +50,14 @@ export const useProjectWebVitalsScoresQuery = ({
         'count_scores(measurements.score.ttfb)',
         'count_scores(measurements.score.fid)',
         ...(weightWebVital !== 'total'
-          ? [`sum(measurements.score.weight.${weightWebVital})`]
+          ? [
+              // TODO: Remove this once we can query for INP.
+              `sum(measurements.score.weight.${
+                shouldReplaceFidWithInp && weightWebVital === 'inp'
+                  ? 'fid'
+                  : weightWebVital
+              })`,
+            ]
           : []),
       ],
       name: 'Web Vitals',
@@ -63,7 +72,7 @@ export const useProjectWebVitalsScoresQuery = ({
     pageFilters.selection
   );
 
-  return useDiscoverQuery({
+  const result = useDiscoverQuery({
     eventView: projectEventView,
     limit: 50,
     location,
@@ -76,4 +85,21 @@ export const useProjectWebVitalsScoresQuery = ({
     skipAbort: true,
     referrer: 'api.performance.browser.web-vitals.project-scores',
   });
+
+  if (
+    result.status === 'success' &&
+    result.data?.data?.[0]?.['avg(measurements.score.weight.fid)'] !== undefined &&
+    result.data?.data?.[0]?.['count_scores(measurements.score.fid)'] !== undefined &&
+    result.data?.data?.[0]?.['performance_score(measurements.score.fid)'] !== undefined
+  ) {
+    // Fake INP data with FID data
+    // TODO(edwardgou): Remove this once INP is queryable in discover
+    result.data.data[0]['avg(measurements.score.weight.inp)'] =
+      result.data.data[0]['avg(measurements.score.weight.fid)'];
+    result.data.data[0]['count_scores(measurements.score.inp)'] =
+      result.data.data[0]['count_scores(measurements.score.fid)'];
+    result.data.data[0]['performance_score(measurements.score.inp)'] =
+      result.data.data[0]['performance_score(measurements.score.fid)'];
+  }
+  return result;
 };

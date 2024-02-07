@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Tuple
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from sentry_sdk import set_tag, set_user
 
@@ -29,7 +30,7 @@ if TYPE_CHECKING:
     from sentry.integrations.base import IntegrationInstallation
 
 
-def process_error(error: ApiError, extra: Dict[str, str]) -> None:
+def process_error(error: ApiError, extra: dict[str, str]) -> None:
     """Log known issues and report unknown ones"""
     msg = error.text
     if error.json:
@@ -87,7 +88,7 @@ def derive_code_mappings(
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
-    extra: Dict[str, Any] = {
+    extra: dict[str, Any] = {
         "organization.slug": org.slug,
     }
 
@@ -98,7 +99,7 @@ def derive_code_mappings(
         logger.info("Event should not be processed.", extra=extra)
         return
 
-    stacktrace_paths: List[str] = identify_stacktrace_paths(data)
+    stacktrace_paths: list[str] = identify_stacktrace_paths(data)
     if not stacktrace_paths:
         return
 
@@ -135,7 +136,7 @@ def derive_code_mappings(
     set_project_codemappings(code_mappings, organization_integration, project)
 
 
-def identify_stacktrace_paths(data: NodeData) -> List[str]:
+def identify_stacktrace_paths(data: NodeData) -> list[str]:
     """
     Get the stacktrace_paths from the event data.
     """
@@ -155,7 +156,7 @@ def identify_stacktrace_paths(data: NodeData) -> List[str]:
     return list(stacktrace_paths)
 
 
-def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
+def get_stacktrace(data: NodeData) -> list[Mapping[str, Any]]:
     exceptions = get_path(data, "exception", "values", filter=True)
     if exceptions:
         return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
@@ -169,7 +170,7 @@ def get_stacktrace(data: NodeData) -> List[Mapping[str, Any]]:
 
 def get_installation(
     organization: Organization,
-) -> Tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
+) -> tuple[IntegrationInstallation | None, RpcOrganizationIntegration | None]:
     integrations = integration_service.get_integrations(
         organization_id=organization.id,
         providers=["github"],
@@ -192,7 +193,7 @@ def get_installation(
 
 
 def set_project_codemappings(
-    code_mappings: List[CodeMapping],
+    code_mappings: list[CodeMapping],
     organization_integration: RpcOrganizationIntegration,
     project: Project,
 ) -> None:

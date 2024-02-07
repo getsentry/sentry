@@ -1,15 +1,16 @@
-import {ComponentProps} from 'react';
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 

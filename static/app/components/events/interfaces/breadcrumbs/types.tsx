@@ -1,4 +1,4 @@
-import {Crumb} from 'sentry/types/breadcrumbs';
+import type {Crumb} from 'sentry/types/breadcrumbs';
 
 export type BreadcrumbMeta = Record<string, any>;
 

@@ -20,14 +20,14 @@ import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {TOP_N} from 'sentry/utils/discover/types';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',

@@ -1,52 +1,58 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {NewQuery} from 'sentry/types';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {
-  fromSorts,
-  isFieldSortable,
-  MetaType,
-} from 'sentry/utils/discover/eventView';
+import type {NewQuery, Project} from 'sentry/types';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {fieldAlignment, Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/starfish/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/starfish/views/screens/platformSelector';
 import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
 
 type Props = {
   primaryRelease?: string;
+  project?: Project | null;
   secondaryRelease?: string;
   transaction?: string;
 };
@@ -55,6 +61,7 @@ export function ScreenLoadSpansTable({
   transaction,
   primaryRelease,
   secondaryRelease,
+  project,
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
@@ -62,27 +69,44 @@ export function ScreenLoadSpansTable({
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
   const spanOp = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 15);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 15);
   const {hasTTFD, isLoading: hasTTFDLoading} = useTTFDConfigured([
     `transaction:"${transaction}"`,
   ]);
 
-  const searchQuery = new MutableSearch([
-    'transaction.op:ui.load',
-    `transaction:${transaction}`,
-    'has:span.description',
-    ...(spanOp
-      ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
-      : [
-          'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
-        ]),
-  ]);
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
+  const hasPlatformSelectFeature = organization.features.includes(
+    'performance-screens-platform-selector'
   );
+  const platform =
+    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+    DEFAULT_PLATFORM;
+
+  const queryStringPrimary = useMemo(() => {
+    const searchQuery = new MutableSearch([
+      'transaction.op:ui.load',
+      `transaction:${transaction}`,
+      'has:span.description',
+      ...(spanOp
+        ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
+        : [
+            'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
+          ]),
+    ]);
+
+    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+      searchQuery.addFilterValue('os.name', platform);
+    }
+
+    return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
+  }, [
+    hasPlatformSelectFeature,
+    platform,
+    primaryRelease,
+    project,
+    secondaryRelease,
+    spanOp,
+    transaction,
+  ]);
 
   const sort = fromSorts(
     decodeScalar(location.query[QueryParameterNames.SPANS_SORT])
@@ -131,11 +155,11 @@ export function ScreenLoadSpansTable({
     'time_spent_percentage()': t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
       'Duration (%s)',
-      truncatedPrimary
+      PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
       'Duration (%s)',
-      truncatedSecondary
+      SECONDARY_RELEASE_ALIAS
     ),
   };
 
@@ -176,7 +200,9 @@ export function ScreenLoadSpansTable({
         const tooltipValue = tct(
           'This span always ends before TTID and TTFD and may affect initial and final display. [link: Learn more.]',
           {
-            link: <ExternalLink href="https://docs.sentry.io" />,
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+            ),
           }
         );
         return (
@@ -188,10 +214,11 @@ export function ScreenLoadSpansTable({
 
       if (!isNaN(ttfd_contribution_rate) && ttfd_contribution_rate > 0.99) {
         const tooltipValue = tct(
-          'This span always ends before TTFD and may affect final display. [link: Learn more.] (TTID contribution rate: [ttid_contribution_rate])',
+          'This span always ends before TTFD and may affect final display. [link: Learn more.]',
           {
-            link: <ExternalLink href="https://docs.sentry.io" />,
-            ttid_contribution_rate: formatPercentage(ttid_contribution_rate),
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+            ),
           }
         );
         return (
@@ -201,15 +228,17 @@ export function ScreenLoadSpansTable({
         );
       }
 
+      const tooltipValue = tct(
+        'This span may not be contributing to TTID or TTFD. [link: Learn more.]',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+          ),
+        }
+      );
+
       return (
-        <Tooltip
-          isHoverable
-          title={t(
-            '(TTID contribution rate: %s and TTFD contribution rate: %s)',
-            formatPercentage(ttid_contribution_rate),
-            formatPercentage(ttfd_contribution_rate)
-          )}
-        >
+        <Tooltip isHoverable title={tooltipValue}>
           <Container>{'--'}</Container>
         </Tooltip>
       );
@@ -224,7 +253,9 @@ export function ScreenLoadSpansTable({
         const tooltipValue = tct(
           'This span always ends before TTID and may affect initial display. [link: Learn more.]',
           {
-            link: <ExternalLink href="https://docs.sentry.io" />,
+            link: (
+              <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+            ),
           }
         );
         return (
@@ -235,10 +266,11 @@ export function ScreenLoadSpansTable({
       }
 
       const tooltipValue = tct(
-        'This span may not affect initial display. [link: Learn more.] (TTID contribution rate: [ttid_contribution_rate])',
+        'This span may not affect initial display. [link: Learn more.]',
         {
-          link: <ExternalLink href="https://docs.sentry.io" />,
-          ttid_contribution_rate: formatPercentage(ttid_contribution_rate),
+          link: (
+            <ExternalLink href="https://docs.sentry.io/product/performance/mobile-vitals/#ttid-and-ttfd-affecting-spans" />
+          ),
         }
       );
 
@@ -319,8 +351,8 @@ export function ScreenLoadSpansTable({
               ? 'desc'
               : 'asc'
             : sort?.field === column.key
-            ? sort.kind
-            : undefined
+              ? sort.kind
+              : undefined
         }
         canSort={canSort}
         generateSortLink={generateSortLink}

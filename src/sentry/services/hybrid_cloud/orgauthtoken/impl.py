@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
@@ -16,8 +16,8 @@ class DatabaseBackedOrgAuthTokenService(OrgAuthTokenService):
         *,
         organization_id: int,
         org_auth_token_id: int,
-        date_last_used: Optional[datetime] = None,
-        project_last_used_id: Optional[int] = None,
+        date_last_used: datetime | None = None,
+        project_last_used_id: int | None = None,
     ) -> None:
         token = OrgAuthToken.objects.filter(id=org_auth_token_id).first()
 
@@ -33,8 +33,8 @@ class OutboxBackedOrgAuthTokenService(OrgAuthTokenService):
         *,
         organization_id: int,
         org_auth_token_id: int,
-        date_last_used: Optional[datetime] = None,
-        project_last_used_id: Optional[int] = None,
+        date_last_used: datetime | None = None,
+        project_last_used_id: int | None = None,
     ) -> None:
         RegionOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,

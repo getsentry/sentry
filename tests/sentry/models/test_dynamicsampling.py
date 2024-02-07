@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import List, Optional, Set
 
 import pytest
 from django.utils import timezone
@@ -17,7 +16,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 def _create_rule_for_env(
-    env_idx: int, projects: List[Project], organization: Organization
+    env_idx: int, projects: list[Project], organization: Organization
 ) -> CustomDynamicSamplingRule:
     condition = {"op": "equals", "name": "environment", "value": f"prod{env_idx}"}
     return CustomDynamicSamplingRule.update_or_create(
@@ -192,8 +191,8 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         idx = [1]
 
         def create_rule(
-            project_ids: List[int],
-            org_id: Optional[int] = None,
+            project_ids: list[int],
+            org_id: int | None = None,
             old: bool = False,
             new: bool = False,
         ) -> CustomDynamicSamplingRule:
@@ -290,7 +289,7 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         Tests that expired, and only expired, rules are deactivated
         """
 
-        def create_rule(env_idx: int, end: datetime, project_ids: List[int]):
+        def create_rule(env_idx: int, end: datetime, project_ids: list[int]):
             condition = {"op": "equals", "name": "environment", "value": f"prod{env_idx}"}
             return CustomDynamicSamplingRule.update_or_create(
                 condition=condition,
@@ -304,8 +303,8 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
             )
 
         env_idx = 1
-        expired_rules: Set[int] = set()
-        active_rules: Set[int] = set()
+        expired_rules: set[int] = set()
+        active_rules: set[int] = set()
 
         for projects in [
             [self.project],

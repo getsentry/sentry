@@ -3,7 +3,7 @@ import ContextData from 'sentry/components/contextData';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
-import {EntryRequest} from 'sentry/types/event';
+import type {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import getTransformedData from './getTransformedData';

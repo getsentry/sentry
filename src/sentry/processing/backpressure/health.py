@@ -1,5 +1,5 @@
 import logging
-from typing import Mapping
+from collections.abc import Mapping
 
 import sentry_sdk
 from django.conf import settings

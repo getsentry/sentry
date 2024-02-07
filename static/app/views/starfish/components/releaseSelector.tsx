@@ -3,7 +3,8 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons/iconReleases';
@@ -18,13 +19,17 @@ import {
 } from 'sentry/views/starfish/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 
+export const PRIMARY_RELEASE_ALIAS = 'R1';
+export const SECONDARY_RELEASE_ALIAS = 'R2';
+
 type Props = {
   selectorKey: string;
   selectorName?: string;
   selectorValue?: string;
+  triggerLabelPrefix?: string;
 };
 
-export function ReleaseSelector({selectorKey, selectorValue}: Props) {
+export function ReleaseSelector({selectorKey, selectorValue, triggerLabelPrefix}: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm);
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
@@ -65,15 +70,18 @@ export function ReleaseSelector({selectorKey, selectorValue}: Props) {
       options.push(option);
     });
 
+  const triggerLabelContent = selectorValue
+    ? formatVersionAndCenterTruncate(selectorValue, 16)
+    : selectorValue;
+
   return (
     <StyledCompactSelect
       triggerProps={{
         icon: <IconReleases />,
         title: selectorValue,
+        prefix: triggerLabelPrefix,
       }}
-      triggerLabel={
-        selectorValue ? formatVersionAndCenterTruncate(selectorValue, 16) : selectorValue
-      }
+      triggerLabel={triggerLabelContent}
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
@@ -135,12 +143,14 @@ export function ReleaseComparisonSelector() {
         selectorValue={primaryRelease}
         selectorName={t('Release 1')}
         key="primaryRelease"
+        triggerLabelPrefix={PRIMARY_RELEASE_ALIAS}
       />
       <ReleaseSelector
         selectorKey="secondaryRelease"
         selectorName={t('Release 2')}
         selectorValue={secondaryRelease}
         key="secondaryRelease"
+        triggerLabelPrefix={SECONDARY_RELEASE_ALIAS}
       />
     </StyledPageSelector>
   );

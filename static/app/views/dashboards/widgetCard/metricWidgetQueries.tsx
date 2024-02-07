@@ -2,21 +2,23 @@ import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
-import {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {MetricsApiResponse, Organization, PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {mapToMRIFields} from 'sentry/utils/metrics';
 
 import {MetricsConfig} from '../datasetConfig/metrics';
-import {DashboardFilters, DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
+import type {DashboardFilters, Widget} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 
-import GenericWidgetQueries, {
+import type {
   GenericWidgetQueriesChildrenProps,
   GenericWidgetQueriesProps,
 } from './genericWidgetQueries';
+import GenericWidgetQueries from './genericWidgetQueries';
 
 type Props = {
   api: Client;

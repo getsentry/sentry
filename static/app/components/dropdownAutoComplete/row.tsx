@@ -1,11 +1,11 @@
 import {memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AutoComplete from 'sentry/components/autoComplete';
+import type AutoComplete from 'sentry/components/autoComplete';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {space} from 'sentry/styles/space';
 
-import {Item} from './types';
+import type {Item} from './types';
 
 type ItemSize = 'zero' | 'small';
 type AutoCompleteChildrenArgs<T extends Item> = Parameters<

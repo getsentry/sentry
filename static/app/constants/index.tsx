@@ -1,13 +1,8 @@
 /* global process */
 
 import {t} from 'sentry/locale';
-import {
-  DataCategoryExact,
-  DataCategoryInfo,
-  OrgRole,
-  PermissionResource,
-  Scope,
-} from 'sentry/types';
+import type {DataCategoryInfo, OrgRole, PermissionResource, Scope} from 'sentry/types';
+import {DataCategoryExact} from 'sentry/types';
 
 /**
  * Common constants here
@@ -16,10 +11,10 @@ import {
 // This is the element id where we render our React application to
 export const ROOT_ELEMENT = 'blk_router';
 
-export const usingCustomerDomain =
+export const USING_CUSTOMER_DOMAIN =
   typeof window !== 'undefined' ? Boolean(window?.__initialData?.customerDomain) : false;
 
-export const customerDomain =
+export const CUSTOMER_DOMAIN =
   typeof window !== 'undefined'
     ? window?.__initialData?.customerDomain?.subdomain
     : undefined;
@@ -28,7 +23,7 @@ export const customerDomain =
 // to when the application does not have any further context
 //
 // e.g. loading app root or switching organization
-export const DEFAULT_APP_ROUTE = usingCustomerDomain
+export const DEFAULT_APP_ROUTE = USING_CUSTOMER_DOMAIN
   ? '/issues/'
   : '/organizations/:orgSlug/issues/';
 

@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DeviceEventContext} from 'sentry/components/events/contexts/device';
-import {DeviceContext} from 'sentry/types';
+import type {DeviceContext} from 'sentry/types';
 
 export const deviceMockData: DeviceContext = {
   screen_resolution: '1136x768',

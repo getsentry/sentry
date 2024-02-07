@@ -1,12 +1,12 @@
 import {Component, lazy, Suspense} from 'react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import NoIssuesMatched from 'sentry/views/issueList/noGroupsHandler/noIssuesMatched';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 

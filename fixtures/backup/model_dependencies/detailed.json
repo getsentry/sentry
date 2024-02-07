@@ -221,6 +221,18 @@
       ]
     ]
   },
+  "hybridcloud.webhookpayload": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "hybridcloud.webhookpayload",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "hybridcloud_webhookpayload",
+    "uniques": []
+  },
   "nodestore.node": {
     "dangling": false,
     "foreign_keys": {},
@@ -1572,7 +1584,13 @@
       "Region"
     ],
     "table_name": "sentry_discoversavedquery",
-    "uniques": []
+    "uniques": [
+      [
+        "created_by_id",
+        "is_homepage",
+        "organization"
+      ]
+    ]
   },
   "sentry.discoversavedqueryproject": {
     "dangling": false,
@@ -3146,7 +3164,11 @@
       "Region"
     ],
     "table_name": "sentry_metricskeyindexer",
-    "uniques": []
+    "uniques": [
+      [
+        "string"
+      ]
+    ]
   },
   "sentry.monitor": {
     "dangling": false,
@@ -3889,7 +3911,13 @@
       "Region"
     ],
     "table_name": "sentry_perfstringindexer",
-    "uniques": []
+    "uniques": [
+      [
+        "organization_id",
+        "string",
+        "use_case_id"
+      ]
+    ]
   },
   "sentry.platformexternalissue": {
     "dangling": false,
@@ -5315,8 +5343,14 @@
     "table_name": "sentry_rulesnooze",
     "uniques": [
       [
+        "alert_rule"
+      ],
+      [
         "alert_rule",
         "user_id"
+      ],
+      [
+        "rule"
       ],
       [
         "rule",
@@ -5345,7 +5379,17 @@
       "Region"
     ],
     "table_name": "sentry_savedsearch",
-    "uniques": []
+    "uniques": [
+      [
+        "is_global",
+        "name"
+      ],
+      [
+        "organization",
+        "owner_id",
+        "type"
+      ]
+    ]
   },
   "sentry.scheduleddeletion": {
     "dangling": false,
@@ -5722,7 +5766,12 @@
       "Region"
     ],
     "table_name": "sentry_stringindexer",
-    "uniques": []
+    "uniques": [
+      [
+        "organization_id",
+        "string"
+      ]
+    ]
   },
   "sentry.team": {
     "dangling": false,

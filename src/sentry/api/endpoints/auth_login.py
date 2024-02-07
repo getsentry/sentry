@@ -1,5 +1,3 @@
-from typing import Optional
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -19,7 +17,7 @@ from sentry.web.frontend.base import OrganizationMixin
 @control_silo_endpoint
 class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     # Disable authentication and permission requirements.
@@ -30,7 +28,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         return super().dispatch(request, *args, **kwargs)
 
     def post(
-        self, request: Request, organization: Optional[Organization] = None, *args, **kwargs
+        self, request: Request, organization: Organization | None = None, *args, **kwargs
     ) -> Response:
         """
         Process a login request via username/password. SSO login is handled

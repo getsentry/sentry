@@ -13,21 +13,23 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
+import type {Choices, IssueOwnership, Organization, Project} from 'sentry/types';
+import type {
+  IssueAlertConfiguration,
+  IssueAlertRuleAction,
+  IssueAlertRuleCondition,
+} from 'sentry/types/alerts';
 import {
   AssigneeTargetType,
   IssueAlertActionType,
   IssueAlertConditionType,
-  IssueAlertConfiguration,
   IssueAlertFilterType,
-  IssueAlertRuleAction,
-  IssueAlertRuleCondition,
   MailActionTargetType,
 } from 'sentry/types/alerts';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
-import {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 export function hasStreamlineTargeting(organization: Organization): boolean {
   return organization.features.includes('streamline-targeting-context');
@@ -327,10 +329,7 @@ function RuleNode({
       label = 'Send a notification to {targetType}';
     }
 
-    if (
-      data.id === IssueAlertConditionType.REAPPEARED_EVENT &&
-      organization.features.includes('escalating-issues')
-    ) {
+    if (data.id === IssueAlertConditionType.REAPPEARED_EVENT) {
       label = t('The issue changes state from archived to escalating');
     }
 
@@ -526,40 +525,40 @@ function RuleNode({
                 }
               )
             : ownership.fallthrough
-            ? tct(
-                'If there are no matching [issueOwners], all project members will receive this alert. To change this behavior, see [ownershipSettings].',
-                {
-                  issueOwners: (
-                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                      {t('issue owners')}
-                    </ExternalLink>
-                  ),
-                  ownershipSettings: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                    >
-                      {t('ownership settings')}
-                    </ExternalLink>
-                  ),
-                }
-              )
-            : tct(
-                'If there are no matching [issueOwners], this action will have no effect. To change this behavior, see [ownershipSettings].',
-                {
-                  issueOwners: (
-                    <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
-                      {t('issue owners')}
-                    </ExternalLink>
-                  ),
-                  ownershipSettings: (
-                    <ExternalLink
-                      href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-                    >
-                      {t('ownership settings')}
-                    </ExternalLink>
-                  ),
-                }
-              )}
+              ? tct(
+                  'If there are no matching [issueOwners], all project members will receive this alert. To change this behavior, see [ownershipSettings].',
+                  {
+                    issueOwners: (
+                      <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
+                        {t('issue owners')}
+                      </ExternalLink>
+                    ),
+                    ownershipSettings: (
+                      <ExternalLink
+                        href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                      >
+                        {t('ownership settings')}
+                      </ExternalLink>
+                    ),
+                  }
+                )
+              : tct(
+                  'If there are no matching [issueOwners], this action will have no effect. To change this behavior, see [ownershipSettings].',
+                  {
+                    issueOwners: (
+                      <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/">
+                        {t('issue owners')}
+                      </ExternalLink>
+                    ),
+                    ownershipSettings: (
+                      <ExternalLink
+                        href={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+                      >
+                        {t('ownership settings')}
+                      </ExternalLink>
+                    ),
+                  }
+                )}
         </MarginlessAlert>
       );
     }

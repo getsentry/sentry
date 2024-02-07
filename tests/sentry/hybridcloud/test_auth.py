@@ -1,15 +1,19 @@
+from sentry.adoption import manager as adoption_manager
 from sentry.models.apikey import ApiKey
 from sentry.models.authprovider import AuthProvider
+from sentry.models.featureadoption import FeatureAdoption
 from sentry.services.hybrid_cloud.auth import (
     RpcAuthProvider,
     RpcAuthProviderFlags,
     RpcOrganizationAuthConfig,
     auth_service,
 )
+from sentry.signals import receivers_raise_on_send
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
 
 
 @django_db_all(transaction=True)
@@ -57,6 +61,7 @@ def test_get_org_auth_config():
     ]
 
 
+@control_silo_test
 @django_db_all(transaction=True)
 def test_enable_sso():
     org = Factories.create_organization()
@@ -78,3 +83,30 @@ def test_enable_sso():
         organization_id=org.id, provider=provider_key, config=provider_config
     )
     assert auth_provider_query.count() == 1
+
+
+@control_silo_test
+@django_db_all(transaction=True)
+def test_enable_sso_user_triggers_signal():
+    org = Factories.create_organization()
+    user = Factories.create_user()
+
+    provider_key = "fly"
+    provider_config = {"id": "x123x"}
+    with receivers_raise_on_send():
+        auth_service.enable_partner_sso(
+            organization_id=org.id,
+            provider_key=provider_key,
+            provider_config=provider_config,
+            user_id=user.id,
+        )
+    auth_provider_query = AuthProvider.objects.filter(
+        organization_id=org.id, provider=provider_key, config=provider_config
+    )
+    assert auth_provider_query.count() == 1
+    with outbox_runner():
+        pass
+    with assume_test_silo_mode(SiloMode.REGION):
+        adopted = FeatureAdoption.objects.filter().first()
+        assert adopted
+        assert adopted.feature_id == adoption_manager.get_by_slug("sso").id

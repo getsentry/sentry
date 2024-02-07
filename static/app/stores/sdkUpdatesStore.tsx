@@ -1,8 +1,8 @@
 import {createStore} from 'reflux';
 
-import {ProjectSdkUpdates} from 'sentry/types';
+import type {ProjectSdkUpdates} from 'sentry/types';
 
-import {CommonStoreDefinition} from './types';
+import type {CommonStoreDefinition} from './types';
 
 /**
  * Org slug mapping to SDK updates

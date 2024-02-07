@@ -1,8 +1,9 @@
 from urllib.parse import urlencode
 
 import responses
+from django.conf import settings
 from django.test import override_settings
-from django.urls import reverse
+from django.urls import get_resolver, reverse
 from rest_framework.response import Response
 
 from sentry.silo import SiloMode
@@ -37,6 +38,18 @@ class ApiGatewayTest(ApiGatewayTestCase):
         else:
             resp_json = json.loads(close_streaming_response(resp))
             assert resp_json["proxy"] is True
+
+    @responses.activate
+    def test_region_pinned_urls_are_defined(self):
+        resolver = get_resolver()
+        # Ensure that all urls in REGION_PINNED_URL_NAMES exist in api/urls.py
+        for name in settings.REGION_PINNED_URL_NAMES:
+            if "api" not in name:
+                continue
+            route = resolver.reverse_dict.get(name)
+            assert (
+                route
+            ), f"REGION_PINNED_URL_NAMES contains {name}, but no route is registered with that name"
 
     @responses.activate
     def test_proxy_check_org_slug_url(self):
@@ -123,6 +136,38 @@ class ApiGatewayTest(ApiGatewayTestCase):
             resp_json = json.loads(close_streaming_response(resp))
             assert resp_json["proxy"] is True
             assert resp_json["details"] is True
+
+    @responses.activate
+    def test_proxy_check_region_pinned_issue_urls(self):
+        issue = self.create_group()
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/issues/{issue.id}/",
+            json={"proxy": True, "id": issue.id},
+        )
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/issues/{issue.id}/events/",
+            json={"proxy": True, "id": issue.id, "events": True},
+        )
+
+        # No /api/0 as we only include sentry.api.urls.urlpatterns
+        # and not sentry.web.urls which includes the version prefix
+        issue_details = f"/issues/{issue.id}/"
+        issue_events = f"/issues/{issue.id}/events/"
+
+        with override_settings(SILO_MODE=SiloMode.CONTROL, MIDDLEWARE=tuple(self.middleware)):
+            resp = self.client.get(issue_details)
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"] is True
+            assert resp_json["id"] == issue.id
+
+            resp = self.client.get(issue_events)
+            assert resp.status_code == 200
+            resp_json = json.loads(close_streaming_response(resp))
+            assert resp_json["proxy"] is True
+            assert resp_json["events"]
 
     @staticmethod
     def _check_response(resp: Response, expected_name: str) -> None:

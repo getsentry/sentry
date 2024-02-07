@@ -13,7 +13,6 @@ const FILE_EXTENSION_TO_PLATFORM = {
   rs: 'rust',
   rlib: 'rust',
   swift: 'swift',
-  h: 'apple',
   m: 'apple',
   mm: 'apple',
   M: 'apple',

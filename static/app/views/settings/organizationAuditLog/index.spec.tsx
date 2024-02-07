@@ -7,7 +7,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Config, User as UserType} from 'sentry/types';
+import type {Config, User as UserType} from 'sentry/types';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {

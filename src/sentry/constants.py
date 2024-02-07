@@ -6,8 +6,9 @@ web-server
 import logging
 import os.path
 from collections import namedtuple
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence, Tuple, cast
+from typing import cast
 
 import sentry_relay.consts
 import sentry_relay.processing
@@ -18,7 +19,7 @@ from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
 
 
-def get_all_languages() -> List[str]:
+def get_all_languages() -> list[str]:
     results = []
     for path in os.listdir(os.path.join(MODULE_ROOT, "locale")):
         if path.startswith("."):
@@ -322,7 +323,7 @@ WARN_SESSION_EXPIRED = _("Your session has expired.")
 MAX_SYM = 256
 
 # Known debug information file mimetypes
-KNOWN_DIF_FORMATS: Dict[str, str] = {
+KNOWN_DIF_FORMATS: dict[str, str] = {
     "text/x-breakpad": "breakpad",
     "application/x-mach-binary": "macho",
     "application/x-elf-binary": "elf",
@@ -353,7 +354,7 @@ MAX_ARTIFACT_BUNDLE_FILES_OFFSET = MAX_RELEASE_FILES_OFFSET
 #                           "link": "https://docs.sentry.io/clients/java/integrations/#logback",
 #                           "id": "java-logback",
 #                           "name": "Logback"}
-INTEGRATION_ID_TO_PLATFORM_DATA: Dict[str, Dict[str, str]] = {}
+INTEGRATION_ID_TO_PLATFORM_DATA: dict[str, dict[str, str]] = {}
 
 
 def _load_platform_data() -> None:
@@ -412,7 +413,7 @@ MARKETING_SLUG_TO_INTEGRATION_ID = {
 
 # to go from a marketing page slug like /for/android/ to the integration id
 # (in _platforms.json), for looking up documentation urls, etc.
-def get_integration_id_for_marketing_slug(slug: str) -> Optional[str]:
+def get_integration_id_for_marketing_slug(slug: str) -> str | None:
     if slug in MARKETING_SLUG_TO_INTEGRATION_ID:
         return MARKETING_SLUG_TO_INTEGRATION_ID[slug]
 
@@ -437,8 +438,8 @@ PLATFORM_INTEGRATION_TO_INTEGRATION_ID = {
 #  "sdk": {"name": "sentry-java",
 #          "integrations": ["java.util.logging"]}} -> java-logging
 def get_integration_id_for_event(
-    platform: str, sdk_name: str, integrations: List[str]
-) -> Optional[str]:
+    platform: str, sdk_name: str, integrations: list[str]
+) -> str | None:
     if integrations:
         for integration in integrations:
             # check special cases
@@ -474,7 +475,7 @@ class ObjectStatus:
     DISABLED = 1
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.ACTIVE, "active"),
             (cls.DISABLED, "disabled"),
@@ -496,7 +497,7 @@ class SentryAppStatus:
     DELETION_IN_PROGRESS_STR = "deletion_in_progress"
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.UNPUBLISHED, cls.UNPUBLISHED_STR),
             (cls.PUBLISHED, cls.PUBLISHED_STR),
@@ -543,7 +544,7 @@ class SentryAppInstallationStatus:
     INSTALLED_STR = "installed"
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.PENDING, cls.PENDING_STR),
             (cls.INSTALLED, cls.INSTALLED_STR),
@@ -566,11 +567,11 @@ class ExportQueryType:
     DISCOVER_STR = "Discover"
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return ((cls.ISSUES_BY_TAG, cls.ISSUES_BY_TAG_STR), (cls.DISCOVER, cls.DISCOVER_STR))
 
     @classmethod
-    def as_str_choices(cls) -> Sequence[Tuple[str, str]]:
+    def as_str_choices(cls) -> Sequence[tuple[str, str]]:
         return (
             (cls.ISSUES_BY_TAG_STR, cls.ISSUES_BY_TAG_STR),
             (cls.DISCOVER_STR, cls.DISCOVER_STR),
@@ -616,6 +617,7 @@ DEFAULT_STORE_NORMALIZER_ARGS = dict(
 INTERNAL_INTEGRATION_TOKEN_COUNT_MAX = 20
 
 ALL_ACCESS_PROJECTS = {-1}
+ALL_ACCESS_PROJECT_ID = -1
 ALL_ACCESS_PROJECTS_SLUG = "$all"
 
 # Most number of events for the top-n graph

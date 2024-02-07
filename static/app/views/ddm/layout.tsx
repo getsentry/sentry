@@ -5,10 +5,8 @@ import * as Sentry from '@sentry/react';
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
@@ -17,39 +15,38 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {METRICS_DOCS_URL} from 'sentry/utils/metrics';
-import {hasDDMExperimentalFeature} from 'sentry/utils/metrics/features';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useDDMContext} from 'sentry/views/ddm/context';
-import {useDashboardImport} from 'sentry/views/ddm/dashboardImportModal';
 import {useMetricsOnboardingSidebar} from 'sentry/views/ddm/ddmOnboarding/useMetricsOnboardingSidebar';
+import {PageHeaderActions} from 'sentry/views/ddm/pageHeaderActions';
+import {Queries} from 'sentry/views/ddm/queries';
 import {MetricScratchpad} from 'sentry/views/ddm/scratchpad';
-import {useScratchpads} from 'sentry/views/ddm/scratchpadContext';
-import {ScratchpadSelector} from 'sentry/views/ddm/scratchpadSelector';
-import ShareButton from 'sentry/views/ddm/shareButton';
 import {WidgetDetails} from 'sentry/views/ddm/widgetDetails';
 
 export const DDMLayout = memo(() => {
   const organization = useOrganization();
   const {metricsMeta, isLoading} = useDDMContext();
-  const {isLoading: isLoadingScratchpads} = useScratchpads();
   const hasMetrics = !isLoading && metricsMeta.length > 0;
   const {activateSidebar} = useMetricsOnboardingSidebar();
 
-  const importDashboard = useDashboardImport();
   const addCustomMetric = useCallback(
-    (referrer: string) => {
+    (referrer: 'header' | 'onboarding_panel') => {
       Sentry.metrics.increment('ddm.add_custom_metric', 1, {
         tags: {
           referrer,
         },
       });
+      trackAnalytics('ddm.open-onboarding', {
+        organization,
+        source: referrer,
+      });
       activateSidebar();
     },
-    [activateSidebar]
+    [activateSidebar, organization]
   );
 
   return (
@@ -60,38 +57,18 @@ export const DDMLayout = memo(() => {
             {t('Metrics')}
             <PageHeadingQuestionTooltip
               docsUrl={METRICS_DOCS_URL}
-              title={t('Delightful Developer Metrics.')}
+              title={t(
+                'Metrics help you track and visualize the data points you care about, making it easier to monitor your application health and identify issues.'
+              )}
             />
             <FeatureBadge type="alpha" />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            {hasMetrics && (
-              <Button
-                priority="primary"
-                onClick={() => addCustomMetric('header')}
-                size="sm"
-              >
-                {t('Add Custom Metric')}
-              </Button>
-            )}
-            <ShareButton />
-            <GithubFeedbackButton
-              href="https://github.com/getsentry/sentry/discussions/58584"
-              label={t('Discussion')}
-              title={null}
-            />
-            {hasDDMExperimentalFeature(organization) && (
-              <Button
-                size="sm"
-                icon={<IconDownload size="xs" />}
-                onClick={importDashboard}
-              >
-                {t('Import Dashboard')}
-              </Button>
-            )}
-          </ButtonBar>
+          <PageHeaderActions
+            showCustomMetricButton={hasMetrics}
+            addCustomMetric={() => addCustomMetric('header')}
+          />
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
@@ -103,12 +80,12 @@ export const DDMLayout = memo(() => {
               <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
-            <ScratchpadSelector />
           </PaddedContainer>
-          {isLoading || isLoadingScratchpads ? (
+          {isLoading ? (
             <LoadingIndicator />
           ) : hasMetrics ? (
             <Fragment>
+              <Queries />
               <MetricScratchpad />
               <WidgetDetails />
             </Fragment>

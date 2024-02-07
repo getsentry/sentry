@@ -5,10 +5,14 @@ import random
 import time
 import uuid
 from hashlib import md5
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 from django.conf import settings
 
+from sentry import features
+from sentry.models.project import Project
+from sentry.replays.usecases.ingest.events import SentryEvent
+from sentry.replays.usecases.ingest.issue_creation import report_rage_click_issue
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -16,14 +20,14 @@ logger = logging.getLogger("sentry.replays")
 
 EVENT_LIMIT = 20
 
-replay_publisher: Optional[KafkaPublisher] = None
+replay_publisher: KafkaPublisher | None = None
 
 ReplayActionsEventPayloadClick = TypedDict(
     "ReplayActionsEventPayloadClick",
     {
         "alt": str,
         "aria_label": str,
-        "class": List[str],
+        "class": list[str],
         "event_hash": str,
         "id": str,
         "node_id": int,
@@ -41,13 +45,13 @@ ReplayActionsEventPayloadClick = TypedDict(
 
 
 class ReplayActionsEventPayload(TypedDict):
-    clicks: List[ReplayActionsEventPayloadClick]
+    clicks: list[ReplayActionsEventPayloadClick]
     replay_id: str
     type: Literal["replay_actions"]
 
 
 class ReplayActionsEvent(TypedDict):
-    payload: List[int]
+    payload: list[int]
     project_id: int
     replay_id: str
     retention_days: int
@@ -59,7 +63,7 @@ def parse_and_emit_replay_actions(
     project_id: int,
     replay_id: str,
     retention_days: int,
-    segment_data: List[Dict[str, Any]],
+    segment_data: list[dict[str, Any]],
 ) -> None:
     with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
         message = parse_replay_actions(project_id, replay_id, retention_days, segment_data)
@@ -76,8 +80,8 @@ def parse_replay_actions(
     project_id: int,
     replay_id: str,
     retention_days: int,
-    segment_data: List[Dict[str, Any]],
-) -> Optional[ReplayActionsEvent]:
+    segment_data: list[dict[str, Any]],
+) -> ReplayActionsEvent | None:
     """Parse RRWeb payload to ReplayActionsEvent."""
     actions = get_user_actions(project_id, replay_id, segment_data)
     if len(actions) == 0:
@@ -105,7 +109,7 @@ def create_replay_actions_event(
 
 def create_replay_actions_payload(
     replay_id: str,
-    clicks: List[ReplayActionsEventPayloadClick],
+    clicks: list[ReplayActionsEventPayloadClick],
 ) -> ReplayActionsEventPayload:
     return {
         "type": "replay_actions",
@@ -114,11 +118,35 @@ def create_replay_actions_payload(
     }
 
 
+def log_canvas_size(
+    org_id: int,
+    project_id: int,
+    replay_id: str,
+    events: list[dict[str, Any]],
+) -> None:
+    for event in events:
+        if event.get("type") == 3 and event.get("data", {}).get("source") == 9:
+            logger.info(
+                # Logging to the sentry.replays.slow_click namespace because
+                # its the only one configured to use BigQuery at the moment.
+                #
+                # NOTE: Needs an ops request to create a new dataset.
+                "sentry.replays.slow_click",
+                extra={
+                    "event_type": "canvas_size",
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "replay_id": replay_id,
+                    "size": len(json.dumps(event)),
+                },
+            )
+
+
 def get_user_actions(
     project_id: int,
     replay_id: str,
-    events: List[Dict[str, Any]],
-) -> List[ReplayActionsEventPayloadClick]:
+    events: list[dict[str, Any]],
+) -> list[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types.
 
     The node object is a partially destructured HTML element with an additional RRWeb
@@ -138,7 +166,7 @@ def get_user_actions(
             "textContent": "Helloworld!"
         }
     """
-    result: List[ReplayActionsEventPayloadClick] = []
+    result: list[ReplayActionsEventPayloadClick] = []
     for event in events:
         if len(result) == 20:
             break
@@ -163,6 +191,13 @@ def get_user_actions(
                     click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
                     if click is not None:
                         result.append(click)
+
+                        if is_rage:
+                            metrics.incr("replay.rage_click_detected")
+                            if _should_report_rage_click_issue(project_id):
+                                report_rage_click_issue.delay(
+                                    project_id, replay_id, cast(SentryEvent, event)
+                                )
 
                 # Log the event for tracking.
                 log = event["data"].get("payload", {}).copy()
@@ -249,7 +284,7 @@ def get_user_actions(
     return result
 
 
-def _get_testid(container: Dict[str, str]) -> str:
+def _get_testid(container: dict[str, str]) -> str:
     return (
         container.get("testId")
         or container.get("data-testid")
@@ -275,11 +310,11 @@ def encode_as_uuid(message: str) -> str:
 
 
 def create_click_event(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     replay_id: str,
     is_dead: bool,
     is_rage: bool,
-) -> Optional[ReplayActionsEventPayloadClick]:
+) -> ReplayActionsEventPayloadClick | None:
     node = payload.get("data", {}).get("node")
     if node is None:
         return None
@@ -313,3 +348,26 @@ def create_click_event(
 
 def _parse_classes(classes: str) -> list[str]:
     return list(filter(lambda n: n != "", classes.split(" ")))[:10]
+
+
+def _should_report_rage_click_issue(project_id: int) -> bool:
+    project = Project.objects.get(id=project_id)
+
+    def _project_has_feature_enabled() -> bool:
+        """
+        Check if the project has the feature flag enabled,
+        This is controlled by Sentry admins for release of the feature
+        """
+        return features.has(
+            "organizations:session-replay-rage-click-issue-creation",
+            project.organization,
+        )
+
+    def _project_has_option_enabled() -> bool:
+        """
+        Check if the project has the option enabled,
+        This is controlled by the project owner, and is a permanent setting
+        """
+        return project.get_option("sentry:replay_rage_click_issues")
+
+    return all([_project_has_feature_enabled(), _project_has_option_enabled()])

@@ -6,9 +6,11 @@ from django.http.request import HttpRequest
 
 from sentry.models.authenticator import Authenticator
 from sentry.utils import json
+from sentry.web.frontend.base import control_silo_view
 from sudo.views import SudoView as BaseSudoView
 
 
+@control_silo_view
 class SudoView(BaseSudoView):
     template_name = "sentry/account/sudo.html"
 

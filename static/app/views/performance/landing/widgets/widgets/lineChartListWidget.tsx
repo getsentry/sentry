@@ -18,7 +18,7 @@ import {
   canUseMetricsData,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
@@ -50,7 +50,7 @@ import SelectableList, {
 } from '../components/selectableList';
 import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
@@ -87,7 +87,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle} = props;
-  const pageError = usePageError();
+  const {setPageError} = usePageAlert();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
@@ -354,7 +354,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               query={eventView.getQueryWithAdditionalConditions()}
               interval={interval}
               hideError
-              onError={pageError.setPageError}
+              onError={setPageError}
               queryExtras={extraQueryParams}
             />
           );

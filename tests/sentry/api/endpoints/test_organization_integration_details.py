@@ -1,4 +1,4 @@
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
@@ -15,11 +15,11 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         super().setUp()
 
         self.login_as(user=self.user)
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="gitlab", name="Gitlab", external_id="gitlab:1"
         )
         self.identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="gitlab", config={}, external_id="gitlab:1"),
+            idp=self.create_identity_provider(type="gitlab", config={}, external_id="gitlab:1"),
             user=self.user,
             external_id="base_id",
             data={},

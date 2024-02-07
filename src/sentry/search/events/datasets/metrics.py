@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional, Union
+from collections.abc import Callable, Mapping
 
 from django.utils.functional import cached_property
 from snuba_sdk import Column, Condition, Function, Op, OrderBy
@@ -19,12 +19,12 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def __init__(self, builder: builder.MetricsQueryBuilder):
         self.builder = builder
-        self.total_transaction_duration: Optional[float] = None
+        self.total_transaction_duration: float | None = None
 
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
@@ -946,7 +946,7 @@ class MetricsDatasetConfig(DatasetConfig):
         )
 
     # Query Filters
-    def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _event_type_converter(self, search_filter: SearchFilter) -> WhereType | None:
         """Not really a converter, check its transaction, error otherwise"""
         value = search_filter.value.value
         operator = search_filter.operator
@@ -955,13 +955,13 @@ class MetricsDatasetConfig(DatasetConfig):
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
 
-    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
-    def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _release_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
 
-    def _transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _transaction_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         operator = search_filter.operator
         value = search_filter.value.value
 
@@ -997,7 +997,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
         return Condition(self.builder.resolve_column("transaction"), Op(operator), value)
 
-    def _transaction_status_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _transaction_status_converter(self, search_filter: SearchFilter) -> WhereType | None:
         operator = search_filter.operator
         value = search_filter.value.value
 
@@ -1022,7 +1022,7 @@ class MetricsDatasetConfig(DatasetConfig):
         self,
         metric_condition: Function,
         condition: Function,
-        alias: Optional[str] = None,
+        alias: str | None = None,
     ) -> SelectType:
         return Function(
             "countIf",
@@ -1041,8 +1041,8 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_apdex_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
     ) -> SelectType:
         """Apdex is tag based in metrics, which means we can't base it on the satsifaction parameter"""
         if args["satisfaction"] is not None:
@@ -1091,8 +1091,8 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_histogram_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
     ) -> SelectType:
         """zoom_params is based on running metrics zoom_histogram function that adds conditions based on min, max,
         buckets"""
@@ -1113,8 +1113,8 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_count_miserable_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
     ) -> SelectType:
         if args["satisfaction"] is not None:
             raise IncompatibleMetricsQuery(
@@ -1159,8 +1159,8 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_user_misery_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
     ) -> SelectType:
         if args["satisfaction"] is not None:
             raise IncompatibleMetricsQuery(
@@ -1191,8 +1191,8 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_failure_count(
         self,
-        _: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
     ) -> SelectType:
         statuses = [
             self.builder.resolve_tag_value(status) for status in constants.NON_FAILURE_STATUS
@@ -1217,9 +1217,9 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_http_error_count(
         self,
-        _: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-        extra_condition: Optional[Function] = None,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+        extra_condition: Function | None = None,
     ) -> SelectType:
         statuses = [
             self.builder.resolve_tag_value(status) for status in constants.HTTP_SERVER_ERROR_STATUS
@@ -1256,20 +1256,20 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_percentile(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
-        fixed_percentile: Optional[float] = None,
+        fixed_percentile: float | None = None,
     ) -> SelectType:
         return function_aliases.resolve_metrics_percentile(
             args=args, alias=alias, fixed_percentile=fixed_percentile
         )
 
-    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
 
     def _resolve_count_starts_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         column = args["column"]
@@ -1292,7 +1292,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_web_vital_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         column = args["column"]
@@ -1351,7 +1351,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_web_vital_score_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         column = args["column"]
@@ -1430,7 +1430,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_weighted_web_vital_score_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         column = args["column"]
@@ -1538,7 +1538,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_web_vital_opportunity_score_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         column = args["column"]
@@ -1601,7 +1601,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_count_scores_function(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         column = args["column"]
@@ -1658,7 +1658,7 @@ class MetricsDatasetConfig(DatasetConfig):
         return Function("toFloat64", [self.total_transaction_duration], alias)
 
     def _resolve_time_spent_percentage(
-        self, args: Mapping[str, Union[str, Column, SelectType, int, float]], alias: str
+        self, args: Mapping[str, str | Column | SelectType | int | float], alias: str
     ) -> SelectType:
         total_time = self._resolve_total_transaction_duration(
             constants.TOTAL_TRANSACTION_DURATION_ALIAS, args["scope"]
@@ -1682,26 +1682,26 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_epm(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-        extra_condition: Optional[Function] = None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+        extra_condition: Function | None = None,
     ) -> SelectType:
         return self._resolve_rate(60, args, alias, extra_condition)
 
     def _resolve_eps(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-        extra_condition: Optional[Function] = None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+        extra_condition: Function | None = None,
     ) -> SelectType:
         return self._resolve_rate(None, args, alias, extra_condition)
 
     def _resolve_rate(
         self,
-        interval: Optional[int],
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
-        alias: Optional[str] = None,
-        extra_condition: Optional[Function] = None,
+        interval: int | None,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str | None = None,
+        extra_condition: Function | None = None,
     ) -> SelectType:
         base_condition = Function(
             "equals",

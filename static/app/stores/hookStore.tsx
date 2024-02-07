@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {HookName, Hooks} from 'sentry/types/hooks';
+import type {HookName, Hooks} from 'sentry/types/hooks';
 
 interface Internals {
   // XXX(epurkhiser): We could type this as {[H in HookName]?:

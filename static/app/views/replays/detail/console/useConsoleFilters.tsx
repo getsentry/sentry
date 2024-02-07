@@ -1,4 +1,5 @@
-import {RefObject, useCallback, useMemo, useRef} from 'react';
+import type {RefObject} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {defined} from 'sentry/utils';

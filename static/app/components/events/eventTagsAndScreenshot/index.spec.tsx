@@ -12,7 +12,7 @@ import {
 
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
-import {EventAttachment} from 'sentry/types';
+import type {EventAttachment} from 'sentry/types';
 
 import {deviceNameMapper} from '../../../../../static/app/components/deviceName';
 

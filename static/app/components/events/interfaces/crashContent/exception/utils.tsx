@@ -1,4 +1,5 @@
-import {Fragment, ReactElement} from 'react';
+import type {ReactElement} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -7,14 +8,15 @@ import {IconOpen} from 'sentry/icons';
 import type {Frame} from 'sentry/types';
 import {isUrl} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 const fileNameBlocklist = ['@webkit-masked-url'];
 export function isFrameFilenamePathlike(frame: Frame): boolean {
   let filename = frame.absPath ?? '';
-  try {
-    filename = new URL(filename).pathname.split('/').reverse()[0];
-  } catch {
-    // do nothing
+
+  const parsedURL = safeURL(filename);
+  if (parsedURL) {
+    filename = parsedURL.pathname.split('/').reverse()[0];
   }
 
   return (

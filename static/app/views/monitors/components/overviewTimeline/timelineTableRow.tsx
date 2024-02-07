@@ -12,16 +12,18 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import {ObjectStatus} from 'sentry/types';
+import type {ObjectStatus} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
-import {Monitor, MonitorStatus} from 'sentry/views/monitors/types';
+import type {Monitor} from 'sentry/views/monitors/types';
+import {MonitorStatus} from 'sentry/views/monitors/types';
 import {scheduleAsText} from 'sentry/views/monitors/utils';
 import {statusIconColorMap} from 'sentry/views/monitors/utils/constants';
 
-import {CheckInTimeline, CheckInTimelineProps} from './checkInTimeline';
+import type {CheckInTimelineProps} from './checkInTimeline';
+import {CheckInTimeline} from './checkInTimeline';
 import {TimelinePlaceholder} from './timelinePlaceholder';
-import {MonitorBucket} from './types';
+import type {MonitorBucket} from './types';
 
 interface Props extends Omit<CheckInTimelineProps, 'bucketedData' | 'environment'> {
   monitor: Monitor;

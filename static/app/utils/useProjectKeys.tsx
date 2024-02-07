@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Organization, Project, ProjectKey, RequestState} from 'sentry/types';
+import type {Organization, Project, ProjectKey, RequestState} from 'sentry/types';
 
 import useApi from './useApi';
 

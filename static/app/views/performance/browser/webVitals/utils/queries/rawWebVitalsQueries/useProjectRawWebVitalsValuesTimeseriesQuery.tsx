@@ -1,11 +1,10 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import {PageFilters} from 'sentry/types';
-import {SeriesDataUnit} from 'sentry/types/echarts';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {PageFilters} from 'sentry/types';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,6 +31,9 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
         'count()',
+        // TODO: Remove this once we can query for INP.
+        // Currently using this to fake INP count data.
+        'count_web_vitals(measurements.fid,any)',
       ],
       name: 'Web Vitals',
       query: [
@@ -78,8 +80,10 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   const data: {
     cls: SeriesDataUnit[];
     count: SeriesDataUnit[];
+    countInp: SeriesDataUnit[];
     fcp: SeriesDataUnit[];
     fid: SeriesDataUnit[];
+    inp: SeriesDataUnit[];
     lcp: SeriesDataUnit[];
     ttfb: SeriesDataUnit[];
   } = {
@@ -88,7 +92,9 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     cls: [],
     ttfb: [],
     fid: [],
+    inp: [],
     count: [],
+    countInp: [],
   };
 
   result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
@@ -99,6 +105,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       {key: 'p75(measurements.ttfb)', series: data.ttfb},
       {key: 'p75(measurements.fid)', series: data.fid},
       {key: 'count()', series: data.count},
+      {key: 'count_web_vitals(measurements.fid,any)', series: data.countInp},
     ];
     map.forEach(({key, series}) => {
       if (result?.data?.[key].data[index][1][0].count !== null) {
@@ -109,6 +116,10 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       }
     });
   });
+
+  // Fake INP data with FID data
+  // TODO(edwardgou): Remove this once INP is queryable in discover
+  data.inp = data.fid;
 
   return {data, isLoading: result.isLoading};
 };

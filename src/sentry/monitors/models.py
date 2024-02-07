@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 import logging
+import zoneinfo
+from collections.abc import Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 from uuid import uuid4
 
 import jsonschema
-import pytz
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
-from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
@@ -96,7 +97,7 @@ class MonitorStatus:
     TIMEOUT = 7
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             # TODO: It is unlikely a MonitorEnvironment should ever be in the
             # 'active' state, since for a monitor environment to be created
@@ -256,7 +257,7 @@ class Monitor(Model):
         return super().save(*args, **kwargs)
 
     @property
-    def schedule(self) -> Union[CrontabSchedule, IntervalSchedule]:
+    def schedule(self) -> CrontabSchedule | IntervalSchedule:
         schedule_type = self.config["schedule_type"]
         schedule = self.config["schedule"]
 
@@ -269,7 +270,7 @@ class Monitor(Model):
 
     @property
     def timezone(self):
-        return pytz.timezone(self.config.get("timezone") or "UTC")
+        return zoneinfo.ZoneInfo(self.config.get("timezone") or "UTC")
 
     def get_schedule_type_display(self):
         return ScheduleType.get_name(self.config["schedule_type"])
@@ -338,7 +339,7 @@ class Monitor(Model):
         alert_rule = self.get_alert_rule()
         if alert_rule:
             data = alert_rule.data
-            alert_rule_data: Dict[str, Optional[Any]] = dict()
+            alert_rule_data: dict[str, Any | None] = dict()
 
             # Build up alert target data
             targets = []
@@ -368,7 +369,7 @@ class Monitor(Model):
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None
@@ -466,11 +467,23 @@ class MonitorCheckIn(Model):
         indexes = [
             # used for endpoints for monitor stats + list check-ins
             models.Index(fields=["monitor", "date_added", "status"]),
-            # used for latest in monitor consumer
+            # used for latest on api endpoints
+            models.Index(
+                fields=["monitor", "-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="api_latest",
+            ),
+            # TODO(rjo100): to be removed when above is confirmed working
             models.Index(fields=["monitor", "status", "date_added"]),
             # used for has_newer_result + thresholds
             models.Index(fields=["monitor_environment", "date_added", "status"]),
-            # used for latest on api endpoints
+            # used for latest in monitor consumer
+            models.Index(
+                fields=["monitor_environment", "-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                name="consumer_latest",
+            ),
+            # TODO(rjo100): to be removed when above is confirmed working
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
@@ -527,6 +540,8 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
     def ensure_environment(
         self, project: Project, monitor: Monitor, environment_name: str | None
     ) -> MonitorEnvironment:
+        from sentry.monitors.rate_limit import update_monitor_quota
+
         if not environment_name:
             environment_name = "production"
 
@@ -536,9 +551,15 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         # TODO: assume these objects exist once backfill is completed
         environment = Environment.get_or_create(project=project, name=environment_name)
 
-        return MonitorEnvironment.objects.get_or_create(
+        monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor, environment=environment, defaults={"status": MonitorStatus.ACTIVE}
-        )[0]
+        )
+
+        # recompute per-project monitor check-in rate limit quota
+        if created:
+            update_monitor_quota(monitor_env)
+
+        return monitor_env
 
 
 @region_silo_only_model
@@ -678,3 +699,4 @@ class MonitorIncident(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorincident"
+        indexes = [models.Index(fields=["monitor_environment", "resolving_checkin"])]

@@ -12,7 +12,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test
 @patch(
-    "sentry.backup.helpers.KeyManagementServiceClient",
+    "sentry.backup.crypto.KeyManagementServiceClient",
     new_callable=lambda: FakeKeyManagementServiceClient,
 )
 class GetRelocationPublicKeyTest(APITestCase):

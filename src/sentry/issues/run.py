@@ -1,7 +1,6 @@
 import logging
-from typing import Mapping, Optional
+from collections.abc import Mapping
 
-import rapidjson
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
@@ -21,8 +20,8 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_batch_size: int,
         max_batch_time: int,
         num_processes: int,
-        input_block_size: Optional[int],
-        output_block_size: Optional[int],
+        input_block_size: int | None,
+        output_block_size: int | None,
     ):
         super().__init__()
         self.max_batch_size = max_batch_size
@@ -51,21 +50,12 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
-    from sentry.issues.occurrence_consumer import (
-        EventLookupError,
-        InvalidEventPayloadError,
-        _process_message,
-    )
+    from sentry.issues.occurrence_consumer import _process_message
     from sentry.utils import json, metrics
 
     try:
         with metrics.timer("occurrence_consumer.process_message"):
             payload = json.loads(message.payload.value, use_rapid_json=True)
             _process_message(payload)
-    except (
-        rapidjson.JSONDecodeError,
-        InvalidEventPayloadError,
-        EventLookupError,
-        Exception,
-    ):
+    except Exception:
         logger.exception("failed to process message payload")

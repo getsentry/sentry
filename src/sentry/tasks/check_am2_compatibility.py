@@ -1,7 +1,8 @@
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, Mapping, Optional, Set, Tuple
+from typing import Any
 
 import sentry_sdk
 from django.db.models import Q
@@ -329,7 +330,7 @@ class CheckAM2Compatibility:
         unsupported_alerts,
         outdated_sdks_per_project,
     ):
-        results: Dict[str, Any] = {}
+        results: dict[str, Any] = {}
 
         widgets = []
         for dashboard_id, unsupported_widgets in unsupported_widgets.items():
@@ -384,7 +385,7 @@ class CheckAM2Compatibility:
 
     @classmethod
     def extract_sdks_from_data(cls, data):
-        found_sdks_per_project: Mapping[str, Mapping[str, Set[str]]] = defaultdict(
+        found_sdks_per_project: Mapping[str, Mapping[str, set[str]]] = defaultdict(
             lambda: defaultdict(set)
         )
 
@@ -401,7 +402,7 @@ class CheckAM2Compatibility:
     @classmethod
     def get_outdated_sdks(cls, found_sdks_per_project):
         outdated_sdks_per_project: Mapping[
-            str, Mapping[str, Set[Tuple[str, Optional[str]]]]
+            str, Mapping[str, set[tuple[str, str | None]]]
         ] = defaultdict(lambda: defaultdict(set))
 
         for project, found_sdks in found_sdks_per_project.items():
@@ -411,7 +412,7 @@ class CheckAM2Compatibility:
                 if sdk_name not in SDKS_SUPPORTING_PERFORMANCE:
                     continue
 
-                sdk_versions_set: Set[Tuple[str, Optional[str]]] = set()
+                sdk_versions_set: set[tuple[str, str | None]] = set()
                 found_supported_version = False
                 min_sdk_version = SUPPORTED_SDK_VERSIONS.get(sdk_name)
 

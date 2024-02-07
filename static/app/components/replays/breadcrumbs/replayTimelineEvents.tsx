@@ -1,12 +1,13 @@
-import {css, Theme, useTheme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import uniq from 'lodash/uniq';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
+import {uniq} from 'sentry/utils/array/uniq';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -18,15 +19,17 @@ const NODE_SIZES = [8, 12, 16];
 interface Props {
   durationMs: number;
   frames: ReplayFrame[];
+  projectSlug: string | undefined;
   startTimestampMs: number;
   width: number;
   className?: string;
 }
 
-function ReplayTimelineEvents({
+export default function ReplayTimelineEvents({
   className,
   durationMs,
   frames,
+  projectSlug,
   startTimestampMs,
   width,
 }: Props) {
@@ -42,6 +45,7 @@ function ReplayTimelineEvents({
           <Event
             frames={colFrames}
             markerWidth={markerWidth}
+            projectSlug={projectSlug}
             startTimestampMs={startTimestampMs}
           />
         </EventColumn>
@@ -65,10 +69,12 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 function Event({
   frames,
   markerWidth,
+  projectSlug,
   startTimestampMs,
 }: {
   frames: ReplayFrame[];
   markerWidth: number;
+  projectSlug: string | undefined;
   startTimestampMs: number;
 }) {
   const theme = useTheme();
@@ -86,6 +92,7 @@ function Event({
       }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      projectSlug={projectSlug}
       startTimestampMs={startTimestampMs}
       traces={undefined}
       onDimensionChange={() => {}}
@@ -104,6 +111,8 @@ function Event({
       max-width: 220px !important;
     }
   `;
+
+  const firstFrame = frames.at(0);
 
   // We want to show the full variety of colors available.
   const uniqueColors = uniq(frames.map(frame => getFrameDetails(frame).color));
@@ -129,18 +138,25 @@ function Event({
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
-      <IconNodeTooltip title={title} overlayStyle={overlayStyle} isHoverable>
-        <IconNode colors={sortedUniqueColors} frameCount={frameCount} />
-      </IconNodeTooltip>
+      <Tooltip
+        title={title}
+        overlayStyle={overlayStyle}
+        containerDisplayMode="grid"
+        isHoverable
+      >
+        <IconNode
+          colors={sortedUniqueColors}
+          frameCount={frameCount}
+          onClick={() => {
+            if (firstFrame) {
+              onClickTimestamp(firstFrame);
+            }
+          }}
+        />
+      </Tooltip>
     </IconPosition>
   );
 }
-
-const IconNodeTooltip = styled(Tooltip)`
-  display: grid;
-  justify-items: center;
-  align-items: center;
-`;
 
 const IconPosition = styled('div')`
   position: absolute;
@@ -183,7 +199,9 @@ const getBackgroundGradient = ({
     );`;
 };
 
-const IconNode = styled('div')<{colors: Color[]; frameCount: number}>`
+const IconNode = styled('button')<{colors: Color[]; frameCount: number}>`
+  padding: 0;
+  border: none;
   grid-column: 1;
   grid-row: 1;
   width: ${p => NODE_SIZES[p.frameCount - 1]}px;
@@ -199,5 +217,3 @@ const TooltipWrapper = styled('div')`
   max-height: 80vh;
   overflow: auto;
 `;
-
-export default ReplayTimelineEvents;

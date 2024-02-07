@@ -4,7 +4,7 @@ import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {PullRequest, Repository} from 'sentry/types';
+import type {PullRequest, Repository} from 'sentry/types';
 
 function renderIcon(repo: Repository) {
   if (!repo.provider) {

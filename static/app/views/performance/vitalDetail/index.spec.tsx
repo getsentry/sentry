@@ -1,4 +1,5 @@
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';

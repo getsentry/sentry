@@ -1,13 +1,13 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
-import {TableColumn} from 'sentry/views/discover/table/types';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 
 const defaultData: TableDataRow = {
   transaction: 'best-transaction',

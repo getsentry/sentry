@@ -1,8 +1,8 @@
 import {useCallback, useMemo} from 'react';
-import {Index, IndexRange} from 'react-virtualized';
+import type {Index, IndexRange} from 'react-virtualized';
 
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
-import {FeedbackIssueList} from 'sentry/utils/feedback/types';
+import type {FeedbackIssueList} from 'sentry/utils/feedback/types';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 
 export const EMPTY_INFINITE_LIST_DATA: ReturnType<
@@ -35,8 +35,8 @@ function uniqueIssues(issues: FeedbackIssueList) {
 }
 
 export default function useFetchFeedbackInfiniteListData() {
-  const {getListQueryKey} = useFeedbackQueryKeys();
-  const queryKey = getListQueryKey();
+  const {listQueryKey} = useFeedbackQueryKeys();
+
   const {
     data,
     error,
@@ -48,7 +48,7 @@ export default function useFetchFeedbackInfiniteListData() {
     isFetchingPreviousPage,
     isLoading, // If anything is loaded yet
   } = useInfiniteApiQuery<FeedbackIssueList>({
-    queryKey,
+    queryKey: listQueryKey,
   });
 
   const issues = useMemo(

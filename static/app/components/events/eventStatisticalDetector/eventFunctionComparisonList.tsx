@@ -8,7 +8,7 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Group, Organization, Project} from 'sentry/types';
+import type {Event, Group, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';

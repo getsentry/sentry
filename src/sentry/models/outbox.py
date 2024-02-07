@@ -5,33 +5,19 @@ import contextlib
 import dataclasses
 import datetime
 import threading
+from collections.abc import Collection, Generator, Iterable, Mapping
 from enum import IntEnum
-from typing import (
-    Any,
-    Collection,
-    Dict,
-    Generator,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    TypeVar,
-    cast,
-)
+from typing import Any, Self, TypeVar, cast
 
 import sentry_sdk
 from django import db
 from django.db import OperationalError, connections, models, router, transaction
-from django.db.models import Max, Min
+from django.db.models import Count, Max, Min
 from django.db.transaction import Atomic
 from django.dispatch import Signal
 from django.http import HttpRequest
 from django.utils import timezone
 from sentry_sdk.tracing import Span
-from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -54,7 +40,7 @@ from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode, unguarded_write
 from sentry.utils import metrics
 
-THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 
 _T = TypeVar("_T")
 
@@ -69,8 +55,8 @@ class InvalidOutboxError(Exception):
     pass
 
 
-_outbox_categories_for_scope: Dict[int, Set[OutboxCategory]] = {}
-_used_categories: Set[OutboxCategory] = set()
+_outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
+_used_categories: set[OutboxCategory] = set()
 
 
 class OutboxCategory(IntEnum):
@@ -116,10 +102,10 @@ class OutboxCategory(IntEnum):
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
 
-    def connect_region_model_updates(self, model: Type[ReplicatedRegionModel]) -> None:
+    def connect_region_model_updates(self, model: type[ReplicatedRegionModel]) -> None:
         def receiver(
             object_identifier: int,
-            payload: Optional[Mapping[str, Any]],
+            payload: Mapping[str, Any] | None,
             shard_identifier: int,
             *args,
             **kwds,
@@ -138,10 +124,10 @@ class OutboxCategory(IntEnum):
 
         process_region_outbox.connect(receiver, weak=False, sender=self)
 
-    def connect_control_model_updates(self, model: Type[HasControlReplicationHandlers]) -> None:
+    def connect_control_model_updates(self, model: type[HasControlReplicationHandlers]) -> None:
         def receiver(
             object_identifier: int,
-            payload: Optional[Mapping[str, Any]],
+            payload: Mapping[str, Any] | None,
             shard_identifier: int,
             region_name: str,
             *args,
@@ -181,7 +167,7 @@ class OutboxCategory(IntEnum):
         payload: Any | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
-        outbox: Type[RegionOutboxBase] | None = None,
+        outbox: type[RegionOutboxBase] | None = None,
     ) -> RegionOutboxBase:
         scope = self.get_scope()
 
@@ -206,8 +192,8 @@ class OutboxCategory(IntEnum):
         payload: Any | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
-        outbox: Type[ControlOutboxBase] | None = None,
-    ) -> List[ControlOutboxBase]:
+        outbox: type[ControlOutboxBase] | None = None,
+    ) -> list[ControlOutboxBase]:
         scope = self.get_scope()
 
         shard_identifier, object_identifier = self.infer_identifiers(
@@ -231,11 +217,11 @@ class OutboxCategory(IntEnum):
     def infer_identifiers(
         self,
         scope: OutboxScope,
-        model: Optional[BaseModel],
+        model: BaseModel | None,
         *,
         object_identifier: int | None,
         shard_identifier: int | None,
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         from sentry.models.apiapplication import ApiApplication
         from sentry.models.integrations import Integration
         from sentry.models.organization import Organization
@@ -281,7 +267,7 @@ class OutboxCategory(IntEnum):
         return shard_identifier, object_identifier
 
 
-def scope_categories(enum_value: int, categories: Set[OutboxCategory]) -> int:
+def scope_categories(enum_value: int, categories: set[OutboxCategory]) -> int:
     _outbox_categories_for_scope[enum_value] = categories
     inter = _used_categories.intersection(categories)
     assert not inter, f"OutboxCategories {inter} were already registered to a different scope"
@@ -408,6 +394,7 @@ class WebhookProviderIdentifier(IntEnum):
     GETSENTRY = 11
     DISCORD = 12
     VERCEL = 13
+    GOOGLE = 14
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -421,7 +408,7 @@ class OutboxBase(Model):
     coalesced_columns: Iterable[str]
 
     @classmethod
-    def from_outbox_name(cls, name: str) -> Type[Self]:
+    def from_outbox_name(cls, name: str) -> type[Self]:
         from django.apps import apps
 
         app_name, model_name = name.split(".")
@@ -438,7 +425,7 @@ class OutboxBase(Model):
                 return cursor.fetchone()[0]
 
     @classmethod
-    def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> List[Mapping[str, Any]]:
+    def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> list[Mapping[str, Any]]:
         q = cls.objects.values(*cls.sharding_columns).filter(
             scheduled_for__lte=timezone.now(), id__gte=low
         )
@@ -582,7 +569,7 @@ class OutboxBase(Model):
             assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             metrics.timing(
                 "outbox.coalesced_net_queue_time",
-                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
@@ -592,20 +579,30 @@ class OutboxBase(Model):
         # If the context block didn't raise we mark messages as completed by deleting them.
         if coalesced is not None:
             assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
-            deleted_count, _ = (
-                self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
-            )
+            deleted_count = 0
+
+            # Use a fetch and delete loop as doing cleanup in a single query
+            # causes timeouts with large datasets. Fetch in batches of 100 and
+            # Apply the ID condition in python as filtering rows in postgres
+            # leads to timeouts.
+            while True:
+                batch = self.select_coalesced_messages().values_list("id", flat=True)[:100]
+                delete_ids = [item_id for item_id in batch if item_id <= coalesced.id]
+                if not len(delete_ids):
+                    break
+                self.objects.filter(id__in=delete_ids).delete()
+                deleted_count += len(delete_ids)
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
-                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
                 - first_coalesced.scheduled_from.timestamp(),
                 tags=tags,
             )
             metrics.timing(
                 "outbox.coalesced_net_processing_time",
-                datetime.datetime.now(tz=datetime.timezone.utc).timestamp()
+                datetime.datetime.now(tz=datetime.UTC).timestamp()
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
@@ -613,8 +610,8 @@ class OutboxBase(Model):
     def _set_span_data_for_coalesced_message(self, span: Span, message: OutboxBase):
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
         span.set_tag(tag_for_outbox, message.shard_identifier)
-        span.set_data("payload", message.payload)
         span.set_data("outbox_id", message.id)
+        span.set_data("outbox_shard_id", message.shard_identifier)
         span.set_tag("outbox_category", OutboxCategory(message.category).name)
         span.set_tag("outbox_scope", OutboxScope(message.shard_scope).name)
 
@@ -674,6 +671,41 @@ class OutboxBase(Model):
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
+    @classmethod
+    def get_shard_depths_descending(cls, limit: int | None = 10) -> list[dict[str, int | str]]:
+        """
+        Queries all outbox shards for their total depth, aggregated by their
+        sharding columns as specified by the outbox class implementation.
+
+        :param limit: Limits the query to the top N rows with the greatest shard
+        depth. If limit is None, the entire set of rows will be returned.
+        :return: A list of dictionaries, containing shard depths and shard
+        relevant column values.
+        """
+        if limit is not None:
+            assert limit > 0, "Limit must be a positive integer if specified"
+
+        base_depth_query = (
+            cls.objects.values(*cls.sharding_columns).annotate(depth=Count("*")).order_by("-depth")
+        )
+
+        if limit is not None:
+            base_depth_query = base_depth_query[0:limit]
+
+        aggregated_shard_information = list()
+        for shard_row in base_depth_query:
+            shard_information = {
+                shard_column: shard_row[shard_column] for shard_column in cls.sharding_columns
+            }
+            shard_information["depth"] = shard_row["depth"]
+            aggregated_shard_information.append(shard_information)
+
+        return aggregated_shard_information
+
+    @classmethod
+    def get_total_outbox_count(cls) -> int:
+        return cls.objects.count()
+
 
 # Outboxes bound from region silo -> control silo
 class RegionOutboxBase(OutboxBase):
@@ -700,19 +732,23 @@ class RegionOutbox(RegionOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
-        index_together = (
-            (
-                "shard_scope",
-                "shard_identifier",
-                "category",
-                "object_identifier",
+        indexes = (
+            models.Index(
+                fields=(
+                    "shard_scope",
+                    "shard_identifier",
+                    "category",
+                    "object_identifier",
+                )
             ),
-            (
-                "shard_scope",
-                "shard_identifier",
-                "scheduled_for",
+            models.Index(
+                fields=(
+                    "shard_scope",
+                    "shard_identifier",
+                    "scheduled_for",
+                )
             ),
-            ("shard_scope", "shard_identifier", "id"),
+            models.Index(fields=("shard_scope", "shard_identifier", "id")),
         )
 
 
@@ -737,6 +773,8 @@ class ControlOutboxBase(OutboxBase):
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
             shard_scope=self.shard_scope,
+            date_added=self.date_added,
+            scheduled_for=self.scheduled_for,
         )
 
     class Meta:
@@ -769,14 +807,14 @@ class ControlOutboxBase(OutboxBase):
     def for_webhook_update(
         cls,
         *,
-        webhook_identifier: WebhookProviderIdentifier,
-        region_names: List[str],
+        shard_identifier: int,
+        region_names: list[str],
         request: HttpRequest,
     ) -> Iterable[Self]:
         for region_name in region_names:
             result = cls()
             result.shard_scope = OutboxScope.WEBHOOK_SCOPE
-            result.shard_identifier = webhook_identifier.value
+            result.shard_identifier = shard_identifier
             result.object_identifier = cls.next_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
@@ -790,27 +828,31 @@ class ControlOutbox(ControlOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_controloutbox"
-        index_together = (
-            (
-                "region_name",
-                "shard_scope",
-                "shard_identifier",
-                "category",
-                "object_identifier",
+        indexes = (
+            models.Index(
+                fields=(
+                    "region_name",
+                    "shard_scope",
+                    "shard_identifier",
+                    "category",
+                    "object_identifier",
+                )
             ),
-            (
-                "region_name",
-                "shard_scope",
-                "shard_identifier",
-                "scheduled_for",
+            models.Index(
+                fields=(
+                    "region_name",
+                    "shard_scope",
+                    "shard_identifier",
+                    "scheduled_for",
+                )
             ),
-            ("region_name", "shard_scope", "shard_identifier", "id"),
+            models.Index(fields=("region_name", "shard_scope", "shard_identifier", "id")),
         )
 
 
-def outbox_silo_modes() -> List[SiloMode]:
+def outbox_silo_modes() -> list[SiloMode]:
     cur = SiloMode.get_current_mode()
-    result: List[SiloMode] = []
+    result: list[SiloMode] = []
     if cur != SiloMode.REGION:
         result.append(SiloMode.CONTROL)
     if cur != SiloMode.CONTROL:

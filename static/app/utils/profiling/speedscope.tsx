@@ -27,8 +27,9 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 
-import {ColorChannels, LCH} from './flamegraph/flamegraphTheme';
-import {ELLIPSIS, TrimTextCenter} from './gl/utils';
+import type {ColorChannels, LCH} from './flamegraph/flamegraphTheme';
+import type {TrimTextCenter} from './gl/utils';
+import {ELLIPSIS} from './gl/utils';
 
 export class Rect {
   origin: vec2;
@@ -132,11 +133,7 @@ export class Rect {
     // it's easier to display a matrix as a 3x3 array. WebGl matrices are row first and not column first
     // https://webglfundamentals.org/webgl/lessons/webgl-matrix-vs-math.html
     // prettier-ignore
-    return mat3.fromValues(
-      w, 0, 0,
-      0, h, 0,
-      x, y, 1
-    );
+    return mat3.fromValues(w, 0, 0, 0, h, 0, x, y, 1);
   }
 
   hasIntersectionWith(other: Rect): boolean {
@@ -332,14 +329,14 @@ export function fromLumaChromaHue(L: number, C: number, H: number): ColorChannel
     hPrime < 1
       ? [C, X, 0]
       : hPrime < 2
-      ? [X, C, 0]
-      : hPrime < 3
-      ? [0, C, X]
-      : hPrime < 4
-      ? [0, X, C]
-      : hPrime < 5
-      ? [X, 0, C]
-      : [C, 0, X];
+        ? [X, C, 0]
+        : hPrime < 3
+          ? [0, C, X]
+          : hPrime < 4
+            ? [0, X, C]
+            : hPrime < 5
+              ? [X, 0, C]
+              : [C, 0, X];
 
   const m = L - (0.35 * R1 + 0.35 * G1 + 0.35 * B1);
   return [clamp(R1 + m, 0, 1), clamp(G1 + m, 0, 1), clamp(B1 + m, 0, 1.0)];

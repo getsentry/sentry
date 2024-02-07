@@ -1,7 +1,8 @@
 import {Client} from 'sentry/api';
-import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 
-import {MetricMeta, MRI} from '../../types/metrics';
+import type {MetricMeta, MRI} from '../../types/metrics';
 
 // import types
 export type ImportDashboard = {
@@ -60,7 +61,9 @@ type MetricWidgetReport = {
 type ImportOutcome = 'success' | 'warning' | 'error';
 
 export type ParseResult = {
+  description: string;
   report: MetricWidgetReport;
+  title: string;
   widgets: MetricWidget[];
 };
 
@@ -86,6 +89,8 @@ export async function parseDashboard(
   );
 
   return {
+    title: dashboard.title,
+    description: dashboard.description,
     widgets: results.flatMap(r => r.widgets),
     report: results.flatMap(r => r.report),
   };
@@ -341,7 +346,9 @@ export class WidgetParser {
         this.errors.push(
           `widget.request.query.filter - unsupported value: ${value}, using ${stripped}`
         );
-        filters.push({key: key.trim(), value: stripped.trim()});
+        if (stripped) {
+          filters.push({key: key.trim(), value: stripped.trim()});
+        }
         continue;
       }
 

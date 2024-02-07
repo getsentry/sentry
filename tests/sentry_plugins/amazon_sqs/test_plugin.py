@@ -25,7 +25,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         self.plugin.set_option("secret_key", "secret-key", self.project)
         self.plugin.set_option("region", "us-east-1", self.project)
         self.plugin.set_option(
-            "queue_url", "https://sqs-us-east-1.amazonaws.com/12345678/myqueue", self.project
+            "queue_url", "https://sqs.us-east-1.amazonaws.com/12345678/myqueue", self.project
         )
 
         event = self.store_event(
@@ -52,7 +52,7 @@ class AmazonSQSPluginTest(PluginTestCase):
             aws_secret_access_key="secret-key",
         )
         mock_client.return_value.send_message.assert_called_once_with(
-            QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
             MessageBody=json.dumps(self.plugin.get_event_payload(event)),
         )
 
@@ -105,7 +105,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         event = self.run_test()
 
         mock_client.return_value.send_message.assert_called_once_with(
-            QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
             MessageBody=json.dumps(self.plugin.get_event_payload(event)),
             MessageGroupId="my_group",
             MessageDeduplicationId="abc123",
@@ -119,7 +119,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         key = f"{event.project.slug}/{date}/{event.event_id}"
 
         mock_client.return_value.send_message.assert_called_once_with(
-            QueueUrl="https://sqs-us-east-1.amazonaws.com/12345678/myqueue",
+            QueueUrl="https://sqs.us-east-1.amazonaws.com/12345678/myqueue",
             MessageBody=json.dumps(
                 {
                     "s3Url": f"https://my_bucket.s3-us-east-1.amazonaws.com/{key}",

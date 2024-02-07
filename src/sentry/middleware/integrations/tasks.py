@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict, List, MutableMapping, cast
+from collections.abc import MutableMapping
+from typing import Any, cast
 
 import requests
 import sentry_sdk
@@ -24,8 +25,8 @@ logger = logging.getLogger(__name__)
     default_retry_delay=5,
 )
 def convert_to_async_slack_response(
-    region_names: List[str],
-    payload: Dict[str, Any],
+    region_names: list[str],
+    payload: dict[str, Any],
     response_url: str,
 ):
     webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
@@ -60,11 +61,24 @@ def convert_to_async_slack_response(
     if not result["response"]:
         return
 
+    response_body = result["response"].content
+    if response_body == b"":
+        logger.info(
+            "slack.async_empty_body",
+            {
+                "path": webhook_payload.path,
+                "region": result["region"],
+                "response_status": result["response"].status_code,
+            },
+        )
+        return
+
     try:
-        payload = json.loads(result["response"].content.decode(encoding="utf-8"))
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-    integration_response = requests.post(response_url, json=payload)
+        response_payload = json.loads(response_body.decode(encoding="utf-8"))
+    except Exception as exc:
+        sentry_sdk.capture_exception(exc)
+
+    integration_response = requests.post(response_url, json=response_payload)
     logger.info(
         "slack.async_integration_response",
         extra={
@@ -84,8 +98,8 @@ def convert_to_async_slack_response(
     default_retry_delay=5,
 )
 def convert_to_async_discord_response(
-    region_names: List[str],
-    payload: Dict[str, Any],
+    region_names: list[str],
+    payload: dict[str, Any],
     response_url: str,
 ):
     """
@@ -140,7 +154,7 @@ def convert_to_async_discord_response(
         "discord.async_integration_response",
         extra={
             "path": webhook_payload.path,
-            "region": result["region"],
+            "region": result["region"].name,
             "region_status_code": result["response"].status_code,
             "integration_status_code": integration_response.status_code,
         },

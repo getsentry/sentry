@@ -3,9 +3,9 @@
 import logging
 import os
 import sys
+from collections.abc import MutableSequence
 from contextlib import contextmanager
 from datetime import datetime
-from typing import MutableSequence
 from urllib.parse import urlparse
 
 import pytest

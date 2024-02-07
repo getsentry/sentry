@@ -1,5 +1,5 @@
 import {Component, Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
@@ -8,7 +8,8 @@ import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import FormPanel, {FormPanelProps} from './formPanel';
+import type {FormPanelProps} from './formPanel';
+import FormPanel from './formPanel';
 import type {Field, FieldObject, JsonFormObject} from './types';
 
 interface JsonFormProps

@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import Optional
 
 from sentry.attachments import attachment_cache
 from sentry.stacktraces.processing import find_stacktraces_in_data
@@ -71,7 +70,7 @@ def image_name(pkg):
     return pkg.rsplit(split, 1)[-1]
 
 
-def get_os_from_event(event) -> Optional[str]:
+def get_os_from_event(event) -> str | None:
     """
     Gets the OS name from either the OS context, or the SDK Info, which represents
     the runtime SDK and *NOT* the Sentry SDK.
@@ -104,7 +103,7 @@ def get_event_attachment(data, attachment_type):
     return next((a for a in attachments if a.type == attachment_type), None)
 
 
-def convert_crashreport_count(value, allow_none=False) -> Optional[int]:
+def convert_crashreport_count(value, allow_none=False) -> int | None:
     """
     Shim to read both legacy and new `sentry:store_crash_reports` project and
     organization options.

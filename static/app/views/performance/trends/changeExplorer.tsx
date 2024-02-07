@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import moment from 'moment';
 
 import {Button} from 'sentry/components/button';
@@ -9,7 +9,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -21,13 +21,13 @@ import {FunctionsList} from 'sentry/views/performance/trends/changeExplorerUtils
 import {MetricsTable} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {SpansList} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {Chart} from 'sentry/views/performance/trends/chart';
-import {
+import type {
   NormalizedTrendsTransaction,
-  TrendChangeType,
   TrendParameter,
   TrendsStats,
   TrendView,
 } from 'sentry/views/performance/trends/types';
+import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 

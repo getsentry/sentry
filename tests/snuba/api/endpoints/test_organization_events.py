@@ -1,7 +1,9 @@
 import math
 import uuid
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
+from uuid import uuid4
 
 import pytest
 from django.test import override_settings
@@ -42,6 +44,14 @@ MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
+    # Some base data for create_span
+    base_span: dict[str, Any] = {
+        "is_segment": False,
+        "retention_days": 90,
+        "tags": {},
+        "sentry_tags": {},
+        "measurements": {},
+    }
 
     def setUp(self):
         super().setUp()
@@ -91,6 +101,46 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
             )
 
         return load_data(platform, timestamp=timestamp, start_timestamp=start_timestamp, **kwargs)
+
+    def create_span(
+        self, extra_data=None, organization=None, project=None, start_ts=None, duration=1000
+    ):
+        """Create span json, not required for store_span, but with no params passed should just work out of the box"""
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if start_ts is None:
+            start_ts = datetime.now() - timedelta(minutes=1)
+        if extra_data is None:
+            extra_data = {}
+        span = self.base_span.copy()
+        # Load some defaults
+        span.update(
+            {
+                "event_id": uuid4().hex,
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "trace_id": uuid4().hex,
+                "span_id": uuid4().hex[:16],
+                "parent_span_id": uuid4().hex[:16],
+                "segment_id": uuid4().hex[:16],
+                "group_raw": uuid4().hex[:16],
+                "profile_id": uuid4().hex,
+                # Multiply by 1000 cause it needs to be ms
+                "start_timestamp_ms": int(start_ts.timestamp() * 1000),
+                "timestamp": int(start_ts.timestamp() * 1000),
+                "received": start_ts.timestamp(),
+                "duration_ms": duration,
+                "exclusive_time_ms": duration,
+            }
+        )
+        # Load any specific custom data
+        span.update(extra_data)
+        # coerce to string
+        for tag, value in dict(span["tags"]).items():
+            span["tags"][tag] = str(value)
+        return span
 
 
 @region_silo_test

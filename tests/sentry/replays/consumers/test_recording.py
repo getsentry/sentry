@@ -3,8 +3,8 @@ from __future__ import annotations
 import time
 import uuid
 import zlib
+from collections.abc import Mapping
 from datetime import datetime
-from typing import List, Mapping
 from unittest.mock import ANY, patch
 
 import msgpack
@@ -12,14 +12,11 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
-from sentry import options
-from sentry.models.files.file import File
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.consumers.recording_buffered import RecordingBufferedStrategyFactory
-from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TransactionTestCase
 
 
@@ -46,15 +43,33 @@ def test_multiprocessing_strategy():
     factory.shutdown()
 
 
-class RecordingTestCaseMixin(TransactionTestCase):
-    __test__ = Abstract(__module__, __qualname__)
-
+class RecordingTestCase(TransactionTestCase):
     replay_id = uuid.uuid4().hex
     replay_recording_id = uuid.uuid4().hex
     force_synchronous = True
 
     def assert_replay_recording_segment(self, segment_id: int, compressed: bool) -> None:
-        raise NotImplementedError
+        # Assert no recording segment is written for direct-storage.  Direct-storage does not
+        # use a metadata database.
+        recording_segment = ReplayRecordingSegment.objects.first()
+        assert recording_segment is None
+
+        bytes = self.get_recording_data(segment_id)
+
+        # Assert (depending on compression) that the bytes are equal to our default mock value.
+        if compressed:
+            assert zlib.decompress(bytes) == b'[{"hello":"world"}]'
+        else:
+            assert bytes == b'[{"hello":"world"}]'
+
+    def get_recording_data(self, segment_id):
+        recording_segment = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=segment_id,
+            retention_days=30,
+        )
+        return StorageBlob().get(recording_segment)
 
     def processing_factory(self):
         return ProcessReplayRecordingStrategyFactory(
@@ -92,7 +107,7 @@ class RecordingTestCaseMixin(TransactionTestCase):
         message: bytes = b'[{"hello":"world"}]',
         segment_id: int = 0,
         compressed: bool = False,
-    ) -> List[ReplayRecording]:
+    ) -> list[ReplayRecording]:
         message = zlib.compress(message) if compressed else message
         return [
             {
@@ -158,96 +173,18 @@ class RecordingTestCaseMixin(TransactionTestCase):
         )
 
 
-# The "filestore" and "storage" drivers should behave identically barring some tweaks to how
-# metadata is tracked and where the data is stored.  The tests are abstracted into a mixin to
-# prevent accidental modification between the types.  The testsuite is run twice with different
-# configuration values.
-
-
-class FilestoreRecordingTestCase(RecordingTestCaseMixin):
-    def setUp(self):
-        options.set("replay.storage.direct-storage-sample-rate", 0)
-
-    def assert_replay_recording_segment(self, segment_id: int, compressed: bool) -> None:
-        # Assert a recording segment model was created for filestore driver types.
-        recording_segment = ReplayRecordingSegment.objects.first()
-        assert recording_segment.project_id == self.project.id
-        assert recording_segment.replay_id == self.replay_id
-        assert recording_segment.segment_id == segment_id
-        assert recording_segment.file_id is not None
-
-        bytes = self.get_recording_data(segment_id)
-
-        # The bytes stored are always the bytes received from Relay.  Therefore, the size the
-        # len of bytes regardless of compression.
-        assert len(bytes) == recording_segment.size
-
-        # Assert (depending on compression) that the bytes are equal to our default mock value.
-        if compressed:
-            assert zlib.decompress(bytes) == b'[{"hello":"world"}]'
-        else:
-            assert bytes == b'[{"hello":"world"}]'
-
-    def get_recording_data(self, segment_id):
-        file = File.objects.first()
-
-        recording_segment = RecordingSegmentStorageMeta(
-            project_id=self.project.id,
-            replay_id=self.replay_id,
-            segment_id=segment_id,
-            retention_days=30,
-            file_id=file.id,
-        )
-        return FilestoreBlob().get(recording_segment)
-
-
-class StorageRecordingTestCase(RecordingTestCaseMixin):
-    def setUp(self):
-        options.set("replay.storage.direct-storage-sample-rate", 100)
-
-    def assert_replay_recording_segment(self, segment_id: int, compressed: bool) -> None:
-        # Assert no recording segment is written for direct-storage.  Direct-storage does not
-        # use a metadata database.
-        recording_segment = ReplayRecordingSegment.objects.first()
-        assert recording_segment is None
-
-        bytes = self.get_recording_data(segment_id)
-
-        # Assert (depending on compression) that the bytes are equal to our default mock value.
-        if compressed:
-            assert zlib.decompress(bytes) == b'[{"hello":"world"}]'
-        else:
-            assert bytes == b'[{"hello":"world"}]'
-
-    def get_recording_data(self, segment_id):
-        recording_segment = RecordingSegmentStorageMeta(
-            project_id=self.project.id,
-            replay_id=self.replay_id,
-            segment_id=segment_id,
-            retention_days=30,
-        )
-        return StorageBlob().get(recording_segment)
-
-
-class ThreadedFilestoreRecordingTestCase(FilestoreRecordingTestCase):
-    force_synchronous = False
-
-
-class ThreadedStorageRecordingTestCase(StorageRecordingTestCase):
+class ThreadedRecordingTestCase(RecordingTestCase):
     force_synchronous = False
 
 
 # Experimental Buffered Recording Consumer
 
 
-class RecordingBufferedTestCase(StorageRecordingTestCase):
-    def setUp(self):
-        options.set("replay.storage.direct-storage-sample-rate", 100)
-
+class RecordingBufferedTestCase(RecordingTestCase):
     def processing_factory(self):
         # The options don't matter because we're calling join which commits regardless.
         return RecordingBufferedStrategyFactory(
-            max_buffer_row_count=1000,
+            max_buffer_message_count=1000,
             max_buffer_size_in_bytes=1000,
             max_buffer_time_in_seconds=1000,
         )

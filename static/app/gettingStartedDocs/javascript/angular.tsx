@@ -12,6 +12,7 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum AngularVersion {
@@ -19,9 +20,9 @@ export enum AngularVersion {
   V12 = 'v12',
 }
 
-type PlaformOptionKey = 'siblingOption';
+type PlatformOptionKey = 'siblingOption';
 
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   siblingOption: {
     label: t('Angular Version'),
     items: [
@@ -30,7 +31,7 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
         value: AngularVersion.V12,
       },
       {
-        label: t('Angular 10 and 11'),
+        label: t('Angular 10 & 11'),
         value: AngularVersion.V10,
       },
     ],
@@ -205,22 +206,21 @@ function getSdkSetupSnippet(params: Params) {
     integrations: [${
       params.isPerformanceSelected
         ? `
-          new Sentry.BrowserTracing({
-            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-          }),`
+          Sentry.browserTracingIntegration(),`
         : ''
     }${
       params.isReplaySelected
         ? `
-          new Sentry.Replay(${getReplayConfigOptions(params.replayOptions)}),`
+          Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
         : ''
     }
   ],${
     params.isPerformanceSelected
       ? `
         // Performance Monitoring
-        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+        tracesSampleRate: 1.0, //  Capture 100% of the transactions
+        // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+        tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
       : ''
   }${
     params.isReplaySelected
@@ -286,6 +286,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
           ],
         },
       ],
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],

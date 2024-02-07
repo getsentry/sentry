@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Mapping
+from collections.abc import Mapping
 
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
@@ -34,8 +34,8 @@ class RedisDetectorStore(DetectorStore):
         return self._client
 
     def bulk_read_states(
-        self, payloads: List[DetectorPayload]
-    ) -> List[Mapping[str | bytes, bytes | float | int | str]]:
+        self, payloads: list[DetectorPayload]
+    ) -> list[Mapping[str | bytes, bytes | float | int | str]]:
         with self.client.pipeline() as pipeline:
             for payload in payloads:
                 key = self.make_key(payload)
@@ -44,8 +44,8 @@ class RedisDetectorStore(DetectorStore):
 
     def bulk_write_states(
         self,
-        payloads: List[DetectorPayload],
-        states: List[Mapping[str | bytes, bytes | float | int | str] | None],
+        payloads: list[DetectorPayload],
+        states: list[Mapping[str | bytes, bytes | float | int | str] | None],
     ):
         # the number of new states must match the number of payloads
         assert len(states) == len(payloads)

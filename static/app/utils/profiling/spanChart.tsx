@@ -6,7 +6,7 @@ import {
   makeTimelineFormatter,
 } from 'sentry/utils/profiling/units/units';
 
-import {Profile} from './profile/profile';
+import type {Profile} from './profile/profile';
 
 export interface SpanChartNode {
   children: SpanChartNode[];

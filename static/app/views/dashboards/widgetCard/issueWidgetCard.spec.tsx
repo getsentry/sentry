@@ -4,7 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -85,7 +86,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -115,7 +116,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -144,7 +145,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
@@ -168,7 +169,7 @@ describe('Dashboards > IssueWidgetCard', function () {
         organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
@@ -200,7 +201,7 @@ describe('Dashboards > IssueWidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}

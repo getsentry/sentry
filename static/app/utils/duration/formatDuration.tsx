@@ -1,4 +1,4 @@
-import {Duration, Unit} from 'sentry/utils/duration/types';
+import type {Duration, Unit} from 'sentry/utils/duration/types';
 import {formatSecondsToClock} from 'sentry/utils/formatters';
 
 type Format =

@@ -1,4 +1,4 @@
-import {
+import type {
   JobTickData,
   MonitorBucketData,
 } from 'sentry/views/monitors/components/overviewTimeline/types';

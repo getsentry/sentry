@@ -1,4 +1,4 @@
-from typing import Optional, Protocol
+from typing import Protocol
 
 from snuba_sdk import Column
 
@@ -29,9 +29,9 @@ class ProfilesQueryBuilderMixin:
         resolved: str = self.config.resolve_column(col)
         return resolved
 
-    def get_field_type(self: ProfilesQueryBuilderProtocol, field: str) -> Optional[str]:
+    def get_field_type(self: ProfilesQueryBuilderProtocol, field: str) -> str | None:
         # giving resolved a type here convinces mypy that the type is str
-        resolved: Optional[str] = self.config.resolve_column_type(field)
+        resolved: str | None = self.config.resolve_column_type(field)
         return resolved
 
 

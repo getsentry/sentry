@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import QuickTrace from 'sentry/components/quickTrace';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
+import type {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';

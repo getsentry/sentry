@@ -1,18 +1,20 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import {JsonFormObject} from 'sentry/components/forms/types';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {User} from 'sentry/types';
+import type {User} from 'sentry/types';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const userEditForm: JsonFormObject = {

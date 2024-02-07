@@ -9,9 +9,10 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {generateFieldAsString, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {generateFieldOptions} from 'sentry/views/discover/utils';
+import type {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import {QueryField} from './queryField';
 import {SortableQueryField} from './sortableQueryField';

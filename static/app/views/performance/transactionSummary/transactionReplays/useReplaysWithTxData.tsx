@@ -1,5 +1,5 @@
-import {EventSpanData} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
-import {ReplayListRecord} from 'sentry/views/replays/types';
+import type {EventSpanData} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
+import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Opts = {
   events: EventSpanData[];

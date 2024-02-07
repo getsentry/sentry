@@ -18,8 +18,8 @@
     ["transaction", "/consecutive-db/"],
     ["url", "http://countries:8010/country_by_code/"]
   ],
-  "_meta": {"platform": {"": {"val": "transaction"}}},
-  "_metrics": {"bytes.stored.event": 4374},
+  "_meta": { "platform": { "": { "val": "transaction" } } },
+  "_metrics": { "bytes.stored.event": 4374 },
   "breadcrumbs": {
     "values": [
       {
@@ -33,15 +33,19 @@
   },
   "breakdowns": {
     "span_ops": {
-      "ops.browser": {"value": 633.474827},
-      "ops.db": {"value": 91.876},
-      "ops.http": {"value": 2039.16049},
-      "ops.resource": {"value": 2024.234772},
-      "total.time": {"value": 2875.570536}
+      "ops.browser": { "value": 633.474827 },
+      "ops.db": { "value": 91.876 },
+      "ops.http": { "value": 2039.16049 },
+      "ops.resource": { "value": 2024.234772 },
+      "total.time": { "value": 2875.570536 }
     }
   },
   "contexts": {
-    "browser": {"name": "Python Requests", "version": "2.22", "type": "browser"},
+    "browser": {
+      "name": "Python Requests",
+      "version": "2.22",
+      "type": "browser"
+    },
     "runtime": {
       "name": "CPython",
       "version": "3.7.3",
@@ -65,18 +69,18 @@
   "location": "/consecutive-db/",
   "logger": "",
   "measurements": {
-    "cls": {"value": 0.0382, "unit": "none"},
-    "fcp": {"value": 2258.060000000114, "unit": "millisecond"},
-    "fid": {"value": 3.4900000027846545, "unit": "millisecond"},
-    "fp": {"value": 2258.060000000114, "unit": "millisecond"},
-    "lcp": {"value": 2807.335, "unit": "millisecond"},
-    "mark.fcp": {"value": 1675379263.695, "unit": "none"},
-    "mark.fid": {"value": 1675379261.44, "unit": "none"},
-    "mark.fp": {"value": 1675379263.695, "unit": "none"},
-    "mark.lcp": {"value": 1675379264.244, "unit": "none"}
+    "cls": { "value": 0.0382, "unit": "none" },
+    "fcp": { "value": 2258.060000000114, "unit": "millisecond" },
+    "fid": { "value": 3.4900000027846545, "unit": "millisecond" },
+    "fp": { "value": 2258.060000000114, "unit": "millisecond" },
+    "lcp": { "value": 2807.335, "unit": "millisecond" },
+    "mark.fcp": { "value": 1675379263.695, "unit": "none" },
+    "mark.fid": { "value": 1675379261.44, "unit": "none" },
+    "mark.fp": { "value": 1675379263.695, "unit": "none" },
+    "mark.lcp": { "value": 1675379264.244, "unit": "none" }
   },
-  "metadata": {"location": "/consecutive-db/", "title": "/consecutive-db/"},
-  "modules": {"my.package": "1.0.0"},
+  "metadata": { "location": "/consecutive-db/", "title": "/consecutive-db/" },
+  "modules": { "my.package": "1.0.0" },
   "nodestore_insert": 1675379263.836825,
   "received": 1675379263.788509,
   "request": {
@@ -94,10 +98,10 @@
       ["Sentry-Trace", "a7d67cf796774551a95be6543cacd459-8988cec7cc0779c1-1"],
       ["User-Agent", "python-requests/2.22.0"]
     ],
-    "env": {"SERVER_NAME": "a90286977562", "SERVER_PORT": "8010"},
+    "env": { "SERVER_NAME": "a90286977562", "SERVER_PORT": "8010" },
     "inferred_content_type": "text/plain"
   },
-  "span_grouping_config": {"id": "default:2022-10-27"},
+  "span_grouping_config": { "id": "default:2022-10-27" },
   "spans": [
     {
       "timestamp": 1675379261.736703,
@@ -144,14 +148,14 @@
   "timestamp": 1675379261.736703,
   "title": "/consecutive-db/",
   "transaction": "/consecutive-db/",
-  "transaction_info": {"source": "unknown"},
+  "transaction_info": { "source": "unknown" },
   "type": "transaction",
   "user": {
     "email": "suser@example.com",
     "ip_address": "236.50.145.105",
     "username": "suser",
     "name": "sentry user",
-    "geo": {"country_code": "US", "city": "San Francisco", "region": "CA"}
+    "geo": { "country_code": "US", "city": "San Francisco", "region": "CA" }
   },
   "version": "5"
 }

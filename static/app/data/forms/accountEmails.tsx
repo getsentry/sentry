@@ -1,4 +1,4 @@
-import {JsonFormObject} from 'sentry/components/forms/types';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 
 // Export route to make these forms searchable by label/help

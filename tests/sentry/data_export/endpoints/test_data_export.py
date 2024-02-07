@@ -314,3 +314,28 @@ class DataExportTest(APITestCase):
         query_info = data_export.query_info
         assert query_info["field"] == ["count()"]
         assert query_info["equations"] == ["count() / 2"]
+
+    def test_valid_dataset(self):
+        """
+        Ensures that equations are handled
+        """
+        payload = self.make_payload(
+            "discover", {"field": ["title", "count()"], "dataset": "issuePlatform"}
+        )
+        with self.feature(["organizations:discover-query"]):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["title", "count()"]
+        assert query_info["dataset"] == "issuePlatform"
+
+    def test_invalid_dataset(self):
+        """
+        Ensures that equations are handled
+        """
+        payload = self.make_payload(
+            "discover", {"field": ["title", "count()"], "dataset": "somefakedataset"}
+        )
+        with self.feature(["organizations:discover-query"]):
+            response = self.get_response(self.org.slug, **payload)
+        assert response.status_code == 400

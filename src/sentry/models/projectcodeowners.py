@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence
+from collections.abc import Sequence
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save, pre_save

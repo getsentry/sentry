@@ -1,12 +1,12 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   AutoSampleState,
   MEPState,
-  MetricsEnhancedSettingContext,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 

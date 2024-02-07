@@ -1,11 +1,14 @@
 import {useCallback, useContext, useEffect, useRef, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
+import type {MotionProps} from 'framer-motion';
+import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import {Button, ButtonProps} from 'sentry/components/button';
-import Confirm, {openConfirmModal, OpenConfirmOptions} from 'sentry/components/confirm';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import type {OpenConfirmOptions} from 'sentry/components/confirm';
+import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -17,7 +20,7 @@ import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedSDK} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
@@ -31,7 +34,7 @@ import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import SetupDocs from './setupDocs';
-import {StepDescriptor} from './types';
+import type {StepDescriptor} from './types';
 import TargetedOnboardingWelcome from './welcome';
 
 type RouteParams = {

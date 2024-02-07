@@ -1,23 +1,24 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Entry,
-  EntryType,
   Event,
   Group,
   Organization,
   Project,
   SharedViewOrganization,
 } from 'sentry/types';
+import {EntryType, EventOrGroupType} from 'sentry/types';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {objectIsEmpty} from 'sentry/utils';
+import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
@@ -118,6 +119,12 @@ function EventEntries({
       {!isShare && <EventViewHierarchy event={event} project={project} />}
       {!isShare && <EventAttachments event={event} projectSlug={projectSlug} />}
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
+      {event.type === EventOrGroupType.TRANSACTION && event._metrics_summary && (
+        <CustomMetricsEventData
+          metricsSummary={event._metrics_summary}
+          startTimestamp={event.startTimestamp}
+        />
+      )}
       {!isShare && event.groupID && (
         <EventGroupingInfo
           projectSlug={projectSlug}

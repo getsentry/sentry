@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 from collections import defaultdict, namedtuple
-from typing import Any, Dict, Sequence
+from collections.abc import Sequence
+from typing import Any
 
+from django.db.models.signals import post_save
+
+from sentry import options
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
@@ -21,11 +25,11 @@ ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))
 def handle_status_update(
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    project_lookup: Dict[int, Project],
+    project_lookup: dict[int, Project],
     new_status: int,
     new_substatus: int | None,
     is_bulk: bool,
-    status_details: Dict[str, Any],
+    status_details: dict[str, Any],
     acting_user: User | None,
     activity_type: str | None,
     sender: Any,
@@ -115,6 +119,14 @@ def handle_status_update(
         if new_status == GroupStatus.UNRESOLVED:
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
+            )
+
+        if not options.get("groups.enable-post-update-signal"):
+            post_save.send(
+                sender=Group,
+                instance=group,
+                created=False,
+                update_fields=["status", "substatus"],
             )
 
     return ActivityInfo(activity_type, activity_data)

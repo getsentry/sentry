@@ -3,18 +3,19 @@ import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {TracePerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
+import type {Organization} from 'sentry/types';
+import type {TracePerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import DragManager, {DragManagerChildrenProps} from './dragManager';
+import type {DragManagerChildrenProps} from './dragManager';
+import DragManager from './dragManager';
 import TraceViewHeader from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import * as SpanContext from './spanContext';
 import SpanTree from './spanTree';
 import {getTraceContext} from './utils';
-import WaterfallModel from './waterfallModel';
+import type WaterfallModel from './waterfallModel';
 
 type Props = {
   organization: Organization;
@@ -85,11 +86,12 @@ function TraceView(props: Props) {
     (!waterfallModel.affectedSpanIds || !waterfallModel.affectedSpanIds.length) &&
     performanceIssues
   ) {
-    const suspectSpans = performanceIssues.map(issue => issue.suspect_spans).flat();
+    const suspectSpans = performanceIssues.flatMap(issue => issue.suspect_spans);
     if (suspectSpans.length) {
-      waterfallModel.affectedSpanIds = performanceIssues
-        .map(issue => [...issue.suspect_spans, ...issue.span])
-        .flat();
+      waterfallModel.affectedSpanIds = performanceIssues.flatMap(issue => [
+        ...issue.suspect_spans,
+        ...issue.span,
+      ]);
     }
   }
 

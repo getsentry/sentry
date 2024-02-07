@@ -1,17 +1,16 @@
-import {ComponentProps, Fragment, ReactNode, useEffect} from 'react';
-import {Location} from 'history';
+import type {ComponentProps, ReactNode} from 'react';
+import {Fragment, useEffect} from 'react';
+import type {Location} from 'history';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import MetricsCompatibilityQuery, {
-  MetricsCompatibilityData,
-} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
-import MetricsCompatibilitySumsQuery, {
-  MetricsCompatibilitySumData,
-} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
+import type {MetricsCompatibilityData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
+import MetricsCompatibilityQuery from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
+import type {MetricsCompatibilitySumData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
+import MetricsCompatibilitySumsQuery from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
 
 import {createDefinedContext} from './utils';
 

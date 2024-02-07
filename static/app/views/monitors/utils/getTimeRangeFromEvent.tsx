@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-import {Event} from 'sentry/types';
-import {TimeWindow} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {Event} from 'sentry/types';
+import type {TimeWindow} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {resolutionElapsedMinutes} from 'sentry/views/monitors/components/overviewTimeline/utils';
 
 /**

@@ -18,7 +18,7 @@ ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 @region_silo_endpoint
 class OrganizationAuthProviderSendRemindersEndpoint(OrganizationEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     permission_classes = (OrganizationAdminPermission,)

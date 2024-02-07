@@ -5,32 +5,24 @@ from django.test import override_settings
 from responses import matchers
 
 from sentry.integrations.slack.client import SlackClient
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
-control_address = "http://controlserver"
-secret = "hush-hush-im-invisible"
 
-
-@override_settings(
-    SENTRY_SUBNET_SECRET=secret,
-    SENTRY_CONTROL_ADDRESS=control_address,
-)
+@region_silo_test
 class SlackClientTest(TestCase):
     def setUp(self):
         self.user_access_token = "xoxp-user-access-token"
         self.access_token = "xoxb-access-token"
-        self.integration = self.create_integration(
+        self.integration, self.organization_integration = self.create_provider_integration_for(
             organization=self.organization,
+            user=self.user,
             external_id="slack:1",
             provider="slack",
             metadata={"access_token": self.access_token},
-        )
-        self.organization_integration = OrganizationIntegration.objects.get(
-            integration_id=self.integration.id
         )
         self.payload = {"channel": "#announcements", "message": "i'm ooo next week"}
         self.mock_user_access_token_response = {"ok": True, "auth": "user"}
@@ -130,20 +122,39 @@ class SlackClientTest(TestCase):
         assert response == self.mock_user_access_token_response
 
     @responses.activate
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_authorize_with_org_integration_id(self):
         client = SlackClient(org_integration_id=self.organization_integration.id)
         response = client.post("/chat.postMessage", data=self.payload)
         assert response == self.mock_access_token_response
 
     @responses.activate
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_authorize_with_integration_id(self):
         client = SlackClient(integration_id=self.integration.id)
         response = client.post("/chat.postMessage", data=self.payload)
         assert response == self.mock_access_token_response
 
     @responses.activate
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_authorize_user_access_token(self):
         self.integration.update(metadata={"user_access_token": self.user_access_token})
         client = SlackClient(org_integration_id=self.organization_integration.id)
         response = client.post("/chat.postMessage", data=self.payload)
         assert response == self.mock_user_access_token_response
+
+    @responses.activate
+    def test_no_authorization_in_region_mode(self):
+        client = SlackClient(org_integration_id=self.organization_integration.id)
+        response = client.post("/chat.postMessage", data=self.payload)
+        assert response == self.mock_not_authed_response
+
+        client = SlackClient(integration_id=self.integration.id)
+        response = client.post("/chat.postMessage", data=self.payload)
+        assert response == self.mock_not_authed_response
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(metadata={"user_access_token": self.user_access_token})
+        client = SlackClient(org_integration_id=self.organization_integration.id)
+        response = client.post("/chat.postMessage", data=self.payload)
+        assert response == self.mock_not_authed_response

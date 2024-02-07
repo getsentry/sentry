@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any
 
 import sentry_sdk
 from snuba_sdk import Column
@@ -47,8 +48,8 @@ def query(
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
-    granularity: Optional[int] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    granularity: int | None = None,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -88,20 +89,20 @@ def query(
 
 def bulk_timeseries_query(
     selected_columns: Sequence[str],
-    queries: List[str],
-    params: Dict[str, str],
+    queries: list[str],
+    params: dict[str, str],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
-    groupby: Optional[Column] = None,
-    apply_formatting: Optional[bool] = True,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
+    apply_formatting: bool | None = True,
 ) -> SnubaTSResult | EventsResponse:
     """
     High-level API for doing *bulk* arbitrary user timeseries queries against events.
@@ -190,18 +191,18 @@ def bulk_timeseries_query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, Any],
+    params: dict[str, Any],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
-    groupby: Optional[Column] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -210,7 +211,7 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
     metrics_compatible = not equations
 
-    def run_metrics_query(inner_params: Dict[str, Any]):
+    def run_metrics_query(inner_params: dict[str, Any]):
         with sentry_sdk.start_span(op="mep", description="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
                 inner_params,
@@ -343,7 +344,7 @@ def top_events_timeseries(
     include_other=False,
     functions_acl=None,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ) -> SnubaTSResult | dict[str, Any]:
     if top_events is None:
         top_events = query(

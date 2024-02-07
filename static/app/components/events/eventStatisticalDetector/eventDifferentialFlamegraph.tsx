@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useReducer, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -16,25 +16,23 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {Event, Project} from 'sentry/types';
+import type {Event, Project} from 'sentry/types';
 import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
-import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/utils/profiling/differentialFlamegraph';
+import type {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/utils/profiling/differentialFlamegraph';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Frame} from 'sentry/utils/profiling/frame';
-import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {Frame} from 'sentry/utils/profiling/frame';
+import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useDifferentialFlamegraphModel} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphModel';
-import {
-  DifferentialFlamegraphQueryResult,
-  useDifferentialFlamegraphQuery,
-} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
+import type {DifferentialFlamegraphQueryResult} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
+import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -174,8 +172,8 @@ function EventDifferentialFlamegraphView(props: EventDifferentialFlamegraphViewP
     frameFilterSetting === 'application'
       ? applicationFrameOnly
       : frameFilterSetting === 'system'
-      ? systemFrameOnly
-      : undefined;
+        ? systemFrameOnly
+        : undefined;
 
   const [negated, setNegated] = useState<boolean>(false);
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);

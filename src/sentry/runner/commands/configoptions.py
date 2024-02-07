@@ -1,5 +1,5 @@
 import sys
-from typing import Any, Optional, Set
+from typing import Any
 
 import click
 from yaml import safe_load
@@ -12,7 +12,7 @@ def _attempt_update(
     presenter_delegator: PresenterDelegator,
     key: str,
     value: Any,
-    drifted_options: Set[str],
+    drifted_options: set[str],
     dry_run: bool,
     hide_drift: bool,
 ) -> None:
@@ -80,7 +80,7 @@ def _attempt_update(
 @log_options()
 @click.pass_context
 @configuration
-def configoptions(ctx, dry_run: bool, file: Optional[str], hide_drift: bool) -> None:
+def configoptions(ctx, dry_run: bool, file: str | None, hide_drift: bool) -> None:
     """
     Makes changes to options in bulk starting from a yaml file.
     Contrarily to the `config` command, this is meant to perform

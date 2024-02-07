@@ -11,13 +11,10 @@ import {Flex} from 'sentry/components/profiling/flex';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useInitialTimeOffsetMs, {
-  TimeOffsetLocationQueryParams,
-} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
@@ -25,6 +22,7 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
@@ -37,7 +35,7 @@ type Props = RouteComponentProps<
 >;
 
 function ReplayDetails({params: {replaySlug}}: Props) {
-  const config = useLegacyStore(ConfigStore);
+  const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -46,7 +44,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   useRouteAnalyticsParams({
     organization,
     referrer: decodeScalar(location.query.referrer),
-    user_email: config.user.email,
+    user_email: user.email,
     tab: location.query.t_main,
   });
 
@@ -147,6 +145,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
 
   return (
     <ReplayContextProvider
+      analyticsContext="replay_details"
       isFetching={fetching}
       replay={replay}
       initialTimeOffsetMs={initialTimeOffsetMs}

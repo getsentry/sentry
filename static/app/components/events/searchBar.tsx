@@ -1,18 +1,18 @@
 import {useEffect, useMemo} from 'react';
-import assign from 'lodash/assign';
-import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import {defaultConfig, SearchConfig} from 'sentry/components/searchSyntax/parser';
+import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {defaultConfig} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
+import type {Organization, TagCollection} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {Field} from 'sentry/utils/discover/fields';
 import {
-  Field,
   FIELD_TAGS,
   isAggregateField,
   isEquation,
@@ -221,8 +221,7 @@ function SearchBar(props: SearchBarProps) {
         // allows searching for tags on sessions as well
         includeSessions: includeSessionTagsValues,
       }).then(
-        results =>
-          flatten(results.filter(({name}) => defined(name)).map(({name}) => name)),
+        results => results.filter(({name}) => defined(name)).map(({name}) => name),
         () => {
           throw new Error('Unable to fetch event field values');
         }
@@ -249,7 +248,7 @@ function SearchBar(props: SearchBarProps) {
         )
       : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
+    Object.assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
 
     combinedTags.has = {
       key: FieldKey.HAS,

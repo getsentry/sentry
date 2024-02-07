@@ -1,10 +1,6 @@
 import {useMemo, useRef} from 'react';
-import {
-  AutoSizer,
-  CellMeasurer,
-  List as ReactVirtualizedList,
-  ListRowProps,
-} from 'react-virtualized';
+import type {ListRowProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
 
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';

@@ -1,40 +1,38 @@
 import styled from '@emotion/styled';
 import Ansi from 'ansi-to-react';
 
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
-import {
-  getAttachmentUrl,
-  ViewerProps,
-} from 'sentry/components/events/attachmentViewers/utils';
+import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
+import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
-type Props = ViewerProps & DeprecatedAsyncComponent['props'];
+function LogFileViewer(props: ViewerProps) {
+  const {data, isLoading, isError} = useApiQuery<string>(
+    [getAttachmentUrl(props), {headers: {Accept: '*/*; charset=utf-8'}}],
+    {
+      staleTime: Infinity,
+    }
+  );
 
-type State = DeprecatedAsyncComponent['state'];
-
-class LogFileViewer extends DeprecatedAsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [
-      [
-        'attachmentText',
-        getAttachmentUrl(this.props),
-        {headers: {Accept: '*/*; charset=utf-8'}},
-      ],
-    ];
+  if (isError) {
+    return <LoadingError message={t('Failed to download attachment.')} />;
   }
 
-  renderBody() {
-    const {attachmentText} = this.state;
-
-    return !attachmentText ? null : (
-      <PreviewPanelItem>
-        <CodeWrapper>
-          <SentryStyleAnsi useClasses>{attachmentText}</SentryStyleAnsi>
-        </CodeWrapper>
-      </PreviewPanelItem>
-    );
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
+
+  return data ? (
+    <PreviewPanelItem>
+      <CodeWrapper>
+        <SentryStyleAnsi useClasses>{data}</SentryStyleAnsi>
+      </CodeWrapper>
+    </PreviewPanelItem>
+  ) : null;
 }
 
 export default LogFileViewer;

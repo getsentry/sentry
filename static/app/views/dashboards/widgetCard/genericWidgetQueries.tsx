@@ -3,25 +3,20 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {Organization, PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 
-import {DatasetConfig} from '../datasetConfig/base';
-import {
-  DashboardFilters,
-  DEFAULT_TABLE_LIMIT,
-  DisplayType,
-  Widget,
-  WidgetQuery,
-} from '../types';
+import type {DatasetConfig} from '../datasetConfig/base';
+import type {DashboardFilters, Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 
 function getReferrer(displayType: DisplayType) {
   let referrer: string = '';

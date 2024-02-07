@@ -1,6 +1,6 @@
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 
 @dataclass
@@ -18,7 +18,7 @@ class DynamicSamplingLogState:
     num_orgs: int = 0
     execution_time: float = 0.0
 
-    def to_dict(self) -> Dict[str, Union[int, float]]:
+    def to_dict(self) -> dict[str, int | float]:
         return {
             "numRowsTotal": self.num_rows_total,
             "numDbCalls": self.num_db_calls,
@@ -45,7 +45,7 @@ class DynamicSamplingLogState:
         return self
 
     @staticmethod
-    def from_dict(val: Optional[Dict[Any, Any]]) -> "DynamicSamplingLogState":
+    def from_dict(val: dict[Any, Any] | None) -> "DynamicSamplingLogState":
         if val is not None:
             return DynamicSamplingLogState(
                 num_iterations=val.get("numIterations", 0),
@@ -72,7 +72,7 @@ class TaskContext:
 
     name: str
     num_seconds: float
-    context_data: Optional[Dict[str, DynamicSamplingLogState]] = None
+    context_data: dict[str, DynamicSamplingLogState] | None = None
 
     def __post_init__(self):
         # always override
@@ -114,13 +114,13 @@ class TaskContext:
     def get_timer(self, name) -> "NamedTimer":
         return self.timers.get_timer(name)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         ret_val = {
             "taskName": self.name,
             "maxSeconds": self.num_seconds,
             "seconds": time.monotonic() - self.expiration_time + self.num_seconds,
         }
-        task_data: Dict[str, Any] = {}
+        task_data: dict[str, Any] = {}
         if self.context_data is not None:
             # update the execution time for each function
             for name, state in self.context_data.items():
@@ -140,7 +140,7 @@ class TaskContext:
 @dataclass
 class TimerState:
     elapsed: float
-    started: Optional[float]
+    started: float | None
 
 
 class Timers:
@@ -155,7 +155,7 @@ class Timers:
     """
 
     def __init__(self):
-        self.timers: Dict[str, TimerState] = {}
+        self.timers: dict[str, TimerState] = {}
 
     def get_timer(self, name: str) -> "NamedTimer":
         return NamedTimer(name, self)

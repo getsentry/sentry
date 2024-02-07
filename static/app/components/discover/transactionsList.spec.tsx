@@ -1,13 +1,8 @@
 import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  RenderResult,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import type {RenderResult} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import {t} from 'sentry/locale';

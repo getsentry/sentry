@@ -2,7 +2,8 @@ import {useMemo} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useQuery} from 'sentry/utils/queryClient';
-import hydrateA11yFrame, {RawA11yResponse} from 'sentry/utils/replays/hydrateA11yFrame';
+import type {RawA11yResponse} from 'sentry/utils/replays/hydrateA11yFrame';
+import hydrateA11yFrame from 'sentry/utils/replays/hydrateA11yFrame';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';

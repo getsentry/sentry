@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
@@ -28,7 +28,7 @@ def parse_metrics(bytes: bytes):
         values = payload[1:]
         ty = pieces[1]
         ts = None
-        tags: Dict[str, Any] = {}
+        tags: dict[str, Any] = {}
         for piece in pieces[2:]:
             if piece[0] == "#":
                 for pair in piece[1:].split(","):

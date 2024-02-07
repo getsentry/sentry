@@ -1,16 +1,17 @@
 import {Fragment, useCallback, useContext, useMemo, useRef} from 'react';
-import {AriaGridListOptions, useGridList} from '@react-aria/gridlist';
+import type {AriaGridListOptions} from '@react-aria/gridlist';
+import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
-import {ListState} from '@react-stately/list';
+import type {ListState} from '@react-stately/list';
 
 import {t} from 'sentry/locale';
 import domId from 'sentry/utils/domId';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from '../control';
 import {SelectFilterContext} from '../list';
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
-import {SelectSection} from '../types';
+import type {SelectSection} from '../types';
 
 import {GridListOption} from './option';
 import {GridListSection} from './section';

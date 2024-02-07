@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.constants import ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL
 
@@ -45,7 +43,7 @@ def delete_adjusted_factor(org_id: int) -> None:
 
 def compute_adjusted_factor(
     prev_factor: float, effective_sample_rate: float, target_sample_rate: float
-) -> Optional[float]:
+) -> float | None:
     """
     Calculates an adjustment factor in order to bring the effective sample rate close to the target sample rate.
     """

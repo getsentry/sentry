@@ -170,6 +170,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -201,6 +202,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -230,6 +232,7 @@ describe('OrganizationMemberDetail', function () {
         />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -237,13 +240,13 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('cannot leave org role team if missing org:admin', function () {
-      const {routerContext, routerProps} = initializeOrg({
-        organization: OrganizationFixture({
-          teams,
-          features: ['team-roles'],
-          access: [],
-        }),
+      const regularOrg = OrganizationFixture({
+        teams,
+        features: ['team-roles'],
+        access: [],
       });
+
+      const {routerContext, routerProps} = initializeOrg({organization: regularOrg});
 
       render(
         <OrganizationMemberDetail
@@ -252,6 +255,7 @@ describe('OrganizationMemberDetail', function () {
         />,
         {
           context: routerContext,
+          organization: regularOrg,
         }
       );
       expect(screen.getByText('Manager Team')).toBeInTheDocument();
@@ -259,13 +263,13 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('cannot join org role team if missing org:admin', async function () {
-      const {routerContext, routerProps} = initializeOrg({
-        organization: OrganizationFixture({
-          teams,
-          features: ['team-roles'],
-          access: ['org:write'],
-        }),
+      const regularOrg = OrganizationFixture({
+        teams,
+        features: ['team-roles'],
+        access: ['org:write'],
       });
+
+      const {routerContext, routerProps} = initializeOrg({organization: regularOrg});
       render(
         <OrganizationMemberDetail
           {...routerProps}
@@ -273,6 +277,7 @@ describe('OrganizationMemberDetail', function () {
         />,
         {
           context: routerContext,
+          organization: regularOrg,
         }
       );
 
@@ -292,6 +297,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -331,6 +337,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -378,6 +385,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -427,6 +435,7 @@ describe('OrganizationMemberDetail', function () {
         />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -443,6 +452,7 @@ describe('OrganizationMemberDetail', function () {
         />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -487,6 +497,7 @@ describe('OrganizationMemberDetail', function () {
         />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -503,6 +514,7 @@ describe('OrganizationMemberDetail', function () {
         />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -614,6 +626,7 @@ describe('OrganizationMemberDetail', function () {
         />,
         {
           context: routerContext,
+          organization,
         }
       );
       expect(button()).not.toBeInTheDocument();
@@ -626,6 +639,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: noAccess.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
       await expectButtonDisabled('You do not have permission to perform this action');
@@ -638,6 +652,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: no2fa.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
       await expectButtonDisabled('Not enrolled in two-factor authentication');
@@ -657,6 +672,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: has2fa.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
       renderGlobalModal();
@@ -681,6 +697,7 @@ describe('OrganizationMemberDetail', function () {
         />,
         {
           context: routerContext,
+          organization,
         }
       );
       await expectButtonDisabled(
@@ -700,6 +717,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: has2fa.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
       await expectButtonDisabled(
@@ -761,6 +779,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -795,6 +814,7 @@ describe('OrganizationMemberDetail', function () {
           />,
           {
             context: routerContext,
+            organization,
           }
         );
 
@@ -825,6 +845,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
 
@@ -861,6 +882,7 @@ describe('OrganizationMemberDetail', function () {
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
           context: routerContext,
+          organization,
         }
       );
 

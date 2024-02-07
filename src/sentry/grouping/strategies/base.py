@@ -1,18 +1,6 @@
 import inspect
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    Iterator,
-    List,
-    Optional,
-    Protocol,
-    Sequence,
-    Type,
-    TypeVar,
-    Union,
-)
+from collections.abc import Callable, Iterator, Sequence
+from typing import Any, Generic, Protocol, TypeVar
 
 import sentry_sdk
 
@@ -22,7 +10,7 @@ from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.interfaces.base import Interface
 
-STRATEGIES: Dict[str, "Strategy[Any]"] = {}
+STRATEGIES: dict[str, "Strategy[Any]"] = {}
 
 RISK_LEVEL_LOW = 0
 RISK_LEVEL_MEDIUM = 1
@@ -33,11 +21,12 @@ Risk = int  # TODO: make enum or union of literals
 # XXX: Want to make ContextDict typeddict but also want to type/overload dict
 # API on GroupingContext
 ContextValue = Any
-ContextDict = Dict[str, ContextValue]
+ContextDict = dict[str, ContextValue]
 
 DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
+DEFAULT_GROUPING_FINGERPRINTING_BASES: list[str] = []
 
-ReturnedVariants = Dict[str, GroupingComponent]
+ReturnedVariants = dict[str, GroupingComponent]
 ConcreteInterface = TypeVar("ConcreteInterface", bound=Interface, contravariant=True)
 
 
@@ -61,8 +50,8 @@ class VariantProcessor(Protocol):
 
 def strategy(
     ids: Sequence[str],
-    interface: Type[Interface],
-    score: Optional[int] = None,
+    interface: type[Interface],
+    score: int | None = None,
 ) -> Callable[[StrategyFunc[ConcreteInterface]], "Strategy[ConcreteInterface]"]:
     """
     Registers a strategy
@@ -80,7 +69,7 @@ def strategy(
         raise TypeError("no ids given")
 
     def decorator(f: StrategyFunc[ConcreteInterface]) -> Strategy[ConcreteInterface]:
-        rv: Optional[Strategy[ConcreteInterface]] = None
+        rv: Strategy[ConcreteInterface] | None = None
 
         for id in ids:
             STRATEGIES[id] = rv = Strategy(
@@ -113,7 +102,7 @@ class GroupingContext:
         self.push()
         return self
 
-    def __exit__(self, exc_type: Type[Exception], exc_value: Exception, tb: Any) -> None:
+    def __exit__(self, exc_type: type[Exception], exc_value: Exception, tb: Any) -> None:
         self.pop()
 
     def push(self) -> None:
@@ -124,7 +113,7 @@ class GroupingContext:
 
     def get_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> Union[GroupingComponent, ReturnedVariants]:
+    ) -> GroupingComponent | ReturnedVariants:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
@@ -164,7 +153,7 @@ class Strategy(Generic[ConcreteInterface]):
         id: str,
         name: str,
         interface: str,
-        score: Optional[int],
+        score: int | None,
         func: StrategyFunc[ConcreteInterface],
     ):
         self.id = id
@@ -173,7 +162,7 @@ class Strategy(Generic[ConcreteInterface]):
         self.interface = interface
         self.score = score
         self.func = func
-        self.variant_processor_func: Optional[VariantProcessor] = None
+        self.variant_processor_func: VariantProcessor | None = None
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id!r}>"
@@ -198,8 +187,8 @@ class Strategy(Generic[ConcreteInterface]):
         return func
 
     def get_grouping_component(
-        self, event: Event, context: GroupingContext, variant: Optional[str] = None
-    ) -> Union[None, GroupingComponent, ReturnedVariants]:
+        self, event: Event, context: GroupingContext, variant: str | None = None
+    ) -> None | GroupingComponent | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
         args = []
         iface = event.interfaces.get(self.interface)
@@ -282,18 +271,19 @@ class Strategy(Generic[ConcreteInterface]):
 
 
 class StrategyConfiguration:
-    id: str
-    base: Optional[Type["StrategyConfiguration"]] = None
+    id: str | None
+    base: type["StrategyConfiguration"] | None = None
     config_class = None
-    strategies: Dict[str, Strategy[Any]] = {}
-    delegates: Dict[str, Strategy[Any]] = {}
-    changelog: Optional[str] = None
+    strategies: dict[str, Strategy[Any]] = {}
+    delegates: dict[str, Strategy[Any]] = {}
+    changelog: str | None = None
     hidden = False
     risk = RISK_LEVEL_LOW
     initial_context: ContextDict = {}
-    enhancements_base: Optional[str] = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    enhancements_base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    fingerprinting_bases: Sequence[str] | None = DEFAULT_GROUPING_FINGERPRINTING_BASES
 
-    def __init__(self, enhancements: Optional[str] = None, **extra: Any):
+    def __init__(self, enhancements: str | None = None, **extra: Any):
         if enhancements is None:
             enhancements_instance = Enhancements([])
         else:
@@ -308,7 +298,7 @@ class StrategyConfiguration:
         return iter(sorted(self.strategies.values(), key=lambda x: x.score and -x.score or 0))
 
     @classmethod
-    def as_dict(cls) -> Dict[str, Any]:
+    def as_dict(cls) -> dict[str, Any]:
         return {
             "id": cls.id,
             "base": cls.base.id if cls.base else None,
@@ -325,16 +315,17 @@ class StrategyConfiguration:
 
 
 def create_strategy_configuration(
-    id: str,
-    strategies: Optional[Sequence[str]] = None,
-    delegates: Optional[Sequence[str]] = None,
-    changelog: Optional[str] = None,
+    id: str | None,
+    strategies: Sequence[str] | None = None,
+    delegates: Sequence[str] | None = None,
+    changelog: str | None = None,
     hidden: bool = False,
-    base: Optional[Type[StrategyConfiguration]] = None,
-    risk: Optional[Risk] = None,
-    initial_context: Optional[ContextDict] = None,
-    enhancements_base: Optional[str] = None,
-) -> Type[StrategyConfiguration]:
+    base: type[StrategyConfiguration] | None = None,
+    risk: Risk | None = None,
+    initial_context: ContextDict | None = None,
+    enhancements_base: str | None = None,
+    fingerprinting_bases: Sequence[str] | None = None,
+) -> type[StrategyConfiguration]:
     """Declares a new strategy configuration.
 
     Values can be inherited from a base configuration.  For strategies if there is
@@ -354,12 +345,17 @@ def create_strategy_configuration(
     NewStrategyConfiguration.delegates = dict(base.delegates) if base else {}
     NewStrategyConfiguration.initial_context = dict(base.initial_context) if base else {}
     NewStrategyConfiguration.enhancements_base = base.enhancements_base if base else None
+    if base and base.fingerprinting_bases is not None:
+        NewStrategyConfiguration.fingerprinting_bases = list(base.fingerprinting_bases)
+    else:
+        NewStrategyConfiguration.fingerprinting_bases = None
+
     if risk is None:
         risk = RISK_LEVEL_LOW
     NewStrategyConfiguration.risk = risk
     NewStrategyConfiguration.hidden = hidden
 
-    by_class: Dict[str, List[str]] = {}
+    by_class: dict[str, list[str]] = {}
     for strategy in NewStrategyConfiguration.strategies.values():
         by_class.setdefault(strategy.strategy_class, []).append(strategy.id)
 
@@ -387,6 +383,9 @@ def create_strategy_configuration(
 
     if enhancements_base:
         NewStrategyConfiguration.enhancements_base = enhancements_base
+
+    if fingerprinting_bases:
+        NewStrategyConfiguration.fingerprinting_bases = fingerprinting_bases
 
     NewStrategyConfiguration.changelog = inspect.cleandoc(changelog or "")
     NewStrategyConfiguration.__name__ = "StrategyConfiguration(%s)" % id
@@ -455,9 +454,6 @@ def call_with_variants(
             rv_variants = f(*args, **kwargs)
             assert len(rv_variants) == 1
             component = rv_variants[variant.lstrip("!")]
-
-        if component is None:
-            continue
 
         rv[variant] = component
 

@@ -9,7 +9,6 @@ class ApiOwner(Enum):
 
     BILLING = "revenue"
     CRONS = "crons"
-    DATA = "data"
     DISCOVER_N_DASHBOARDS = "discover-n-dashboards"
     ECOSYSTEM = "ecosystem"
     ENTERPRISE = "enterprise"
@@ -17,6 +16,7 @@ class ApiOwner(Enum):
     HYBRID_CLOUD = "hybrid-cloud"
     INTEGRATIONS = "product-owners-settings-integrations"
     ISSUES = "issues"
+    ML_AI = "machine-learning-ai"
     PERFORMANCE = "performance"
     TEAM_STARFISH = "team-starfish"
     PROFILING = "profiling"

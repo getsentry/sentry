@@ -22,8 +22,8 @@ from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
     def add_owner_id_to_schema(self, codeowner: ProjectCodeOwners, project: Project) -> None:

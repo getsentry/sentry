@@ -35,9 +35,7 @@
       "free_storage": 508784640,
       "model": "Android SDK built for x86",
       "uuid": "abadcade-feed-dead-beef-baddadfeeded",
-      "archs": [
-        "x86"
-      ]
+      "archs": ["x86"]
     },
     "app": {
       "app_version": "1.0",

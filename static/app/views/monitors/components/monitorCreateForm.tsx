@@ -14,6 +14,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import commonTheme from 'sentry/utils/theme';
@@ -28,7 +29,8 @@ import {
   mapMonitorFormErrors,
   transformMonitorFormData,
 } from 'sentry/views/monitors/components/monitorForm';
-import {Monitor, ScheduleType} from 'sentry/views/monitors/types';
+import type {Monitor} from 'sentry/views/monitors/types';
+import {ScheduleType} from 'sentry/views/monitors/types';
 import {crontabAsText, getScheduleIntervals} from 'sentry/views/monitors/utils';
 
 const DEFAULT_SCHEDULE_CONFIG = {
@@ -42,6 +44,7 @@ export default function MonitorCreateForm() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const monitorCreationCallbacks = HookStore.get('callback:on-monitor-created');
 
   const form = useRef(
     new FormModel({
@@ -71,6 +74,7 @@ export default function MonitorCreateForm() {
         query: endpointOptions.query,
       })
     );
+    monitorCreationCallbacks.map(cb => cb(organization));
   }
 
   function changeScheduleType(type: ScheduleType) {
@@ -90,7 +94,7 @@ export default function MonitorCreateForm() {
         'config.schedule_type': DEFAULT_SCHEDULE_CONFIG.scheduleType,
       }}
       onSubmitSuccess={onCreateMonitor}
-      submitLabel={t('Next')}
+      submitLabel={t('Create')}
     >
       <FieldContainer>
         <MultiColumnInput columns="250px 1fr">

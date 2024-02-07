@@ -7,7 +7,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PreviewFeature from 'sentry/components/previewFeature';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {ProjectKey} from 'sentry/types';
+import type {ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';

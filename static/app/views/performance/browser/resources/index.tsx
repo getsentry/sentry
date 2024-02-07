@@ -9,11 +9,8 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {RateUnits} from 'sentry/utils/discover/fields';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {RateUnit} from 'sentry/utils/discover/fields';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import ResourceView, {
@@ -30,7 +27,7 @@ import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domain
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
-export const RESOURCE_THROUGHPUT_UNIT = RateUnits.PER_MINUTE;
+export const RESOURCE_THROUGHPUT_UNIT = RateUnit.PER_MINUTE;
 
 function ResourcesLandingPage() {
   const organization = useOrganization();
@@ -41,7 +38,7 @@ function ResourcesLandingPage() {
       title={[t('Performance'), t('Resources')].join(' — ')}
       baseURL="/performance/browser/resources"
     >
-      <PageErrorProvider>
+      <PageAlertProvider>
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
@@ -63,7 +60,7 @@ function ResourcesLandingPage() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <FloatingFeedbackWidget />
-            <PageErrorAlert />
+            <PageAlert />
             <FilterOptionsContainer columnCount={2}>
               <PageFilterBar condensed>
                 <ProjectPageFilter />
@@ -82,7 +79,7 @@ function ResourcesLandingPage() {
             <ResourceView />
           </Layout.Main>
         </Layout.Body>
-      </PageErrorProvider>
+      </PageAlertProvider>
     </ModulePageProviders>
   );
 }

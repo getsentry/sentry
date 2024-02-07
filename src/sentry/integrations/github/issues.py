@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any
 
 from django.urls import reverse
 
@@ -11,8 +12,9 @@ from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.organization import Organization
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization.service import organization_service
+from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
@@ -97,9 +99,10 @@ class GitHubIssueBasic(IssueBasicMixin):
     def create_default_repo_choice(self, default_repo: str) -> tuple[str, str]:
         return default_repo, default_repo.split("/")[1]
 
+    @all_silo_function
     def get_create_issue_config(
         self, group: Group | None, user: User, **kwargs: Any
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -119,7 +122,10 @@ class GitHubIssueBasic(IssueBasicMixin):
             org = group.organization
         else:
             fields = []
-            org = Organization.objects.get_from_cache(id=self.organization_id)
+            org_context = organization_service.get_organization_by_id(
+                id=self.organization_id, include_projects=False, include_teams=False
+            )
+            org = org_context.organization
 
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
@@ -191,7 +197,7 @@ class GitHubIssueBasic(IssueBasicMixin):
             "repo": repo,
         }
 
-    def get_link_issue_config(self, group: Group, **kwargs: Any) -> List[Dict[str, Any]]:
+    def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
 

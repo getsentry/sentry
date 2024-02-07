@@ -3,8 +3,9 @@ from __future__ import annotations
 import functools
 import logging
 import time
+from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Iterable, Mapping
+from typing import Any
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -21,9 +22,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
-from sentry import analytics, options, tsdb
+from sentry import analytics, features, options, tsdb
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.exceptions import StaffRequired, SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.models.environment import Environment
@@ -48,7 +50,12 @@ from .authentication import (
     UserAuthTokenAuthentication,
 )
 from .paginator import BadPaginationError, Paginator
-from .permissions import NoPermission
+from .permissions import (
+    NoPermission,
+    StaffPermission,
+    SuperuserOrStaffFeatureFlaggedPermission,
+    SuperuserPermission,
+)
 
 __all__ = [
     "Endpoint",
@@ -204,6 +211,40 @@ class Endpoint(APIView):
 
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
+
+    def permission_denied(self, request, message=None, code=None):
+        """
+        Raise a specific superuser exception if the user can become superuser
+        and the only permission class is SuperuserPermission. Otherwise, raises
+        the appropriate exception according to parent DRF function.
+        """
+        permissions = self.get_permissions()
+        if request.user.is_authenticated and len(permissions) == 1:
+            permission_cls = permissions[0]
+            enforce_staff_permission = features.has(
+                "auth:enterprise-staff-cookie", actor=request.user
+            )
+
+            # TODO(schew2381): Remove SuperuserOrStaffFeatureFlaggedPermission
+            # from isinstance checks once feature flag is removed.
+            if enforce_staff_permission:
+                is_staff_user = request.user.is_staff
+                has_only_staff_permission = isinstance(
+                    permission_cls, (StaffPermission, SuperuserOrStaffFeatureFlaggedPermission)
+                )
+
+                if is_staff_user and has_only_staff_permission:
+                    raise StaffRequired()
+            else:
+                is_superuser_user = request.user.is_superuser
+                has_only_superuser_permission = isinstance(
+                    permission_cls, (SuperuserPermission, SuperuserOrStaffFeatureFlaggedPermission)
+                )
+
+                if is_superuser_user and has_only_superuser_permission:
+                    raise SuperuserRequired()
+
+        super().permission_denied(request, message, code)
 
     def handle_exception(  # type: ignore[override]
         self,
@@ -427,14 +468,6 @@ class Endpoint(APIView):
         count_hits=None,
         **paginator_kwargs,
     ):
-        # XXX(epurkhiser): This is an experiment that overrides all paginated
-        # API requests so that we can more easily debug on the frontend the
-        # experiemce customers have when they have lots of entites.
-        override_limit = request.COOKIES.get("__sentry_dev_pagination_limit", None)
-        if override_limit is not None:
-            default_per_page = int(override_limit)
-            max_per_page = int(override_limit)
-
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)

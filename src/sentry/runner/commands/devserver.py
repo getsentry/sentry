@@ -3,7 +3,8 @@ from __future__ import annotations
 import re
 import threading
 import types
-from typing import MutableSequence, NoReturn, Sequence
+from collections.abc import MutableSequence, Sequence
+from typing import NoReturn
 
 import click
 
@@ -326,10 +327,12 @@ def devserver(
             kafka_consumers.add("ingest-attachments")
             kafka_consumers.add("ingest-transactions")
             kafka_consumers.add("ingest-monitors")
-            kafka_consumers.add("ingest-spans")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
+
+            if settings.SENTRY_USE_SPANS_BUFFER:
+                kafka_consumers.add("process-spans")
 
         if occurrence_ingest:
             kafka_consumers.add("ingest-occurrences")
@@ -362,7 +365,7 @@ Alternatively, run without --workers.
 
         from sentry.utils.batching_kafka_consumer import create_topics
 
-        for (topic_name, topic_data) in settings.KAFKA_TOPICS.items():
+        for topic_name, topic_data in settings.KAFKA_TOPICS.items():
             if topic_data is not None:
                 create_topics(topic_data["cluster"], [topic_name], force=True)
 

@@ -9,13 +9,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import {
-  DashboardDetails,
-  DashboardWidgetSource,
-  DisplayType,
-  Widget,
-} from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
+import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',

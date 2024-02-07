@@ -70,6 +70,10 @@ export type IssueTypeConfig = {
     linksByPlatform: Partial<Record<PlatformKey, ResourceLink[]>>;
   } | null;
   /**
+   * Should the page show the feedback widget
+   */
+  showFeedbackWidget: boolean;
+  /**
    * Is the Similar Issues tab shown for this issue
    */
   similarIssues: DisabledWithReasonConfig;
@@ -109,4 +113,5 @@ export const enum ErrorHelpType {
   HYDRATION_ERROR = 'hydration_error',
   LOAD_FAILED = 'load_failed',
   SOCKET_HANG_UP = 'socket_hang_up',
+  FAILED_TO_FETCH = 'failed_to_fetch',
 }

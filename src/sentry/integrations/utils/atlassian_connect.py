@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from typing import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 import requests
 from django.http import HttpRequest

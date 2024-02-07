@@ -3,9 +3,10 @@ from __future__ import annotations
 import enum
 import functools
 import logging
-from typing import Any, Callable, List, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
-from django.dispatch.dispatcher import NO_RECEIVERS, Signal
+from django.dispatch.dispatcher import Signal
 
 from sentry.utils.env import in_test_environment
 
@@ -14,7 +15,7 @@ Receiver = Callable[[], Any]
 _AllReceivers = enum.Enum("_AllReceivers", "ALL")
 
 
-_receivers_that_raise: _AllReceivers | List[Receiver] = []
+_receivers_that_raise: _AllReceivers | list[Receiver] = []
 
 
 class receivers_raise_on_send:
@@ -27,7 +28,7 @@ class receivers_raise_on_send:
 
     receivers: Any
 
-    def __init__(self, receivers: _AllReceivers | Receiver | List[Receiver] = _AllReceivers.ALL):
+    def __init__(self, receivers: _AllReceivers | Receiver | list[Receiver] = _AllReceivers.ALL):
         self.receivers = receivers
 
     def __enter__(self) -> None:
@@ -78,32 +79,12 @@ class BetterSignal(Signal):
             wrapped.__doc__ = receiver.__doc__
         return wrapped(receiver)
 
-    def send_robust(self, sender, **named) -> List[Tuple[Receiver, Union[Exception, Any]]]:
-        """
-        A reimplementation of send_robust which logs failures, thus recovering stacktraces.
-        """
-        responses: List[Tuple[Receiver, Union[Exception, Any]]] = []
-        if not self.receivers or self.sender_receivers_cache.get(sender) is NO_RECEIVERS:
-            return responses
+    def _log_robust_failure(self, receiver: object, err: Exception) -> None:
+        if in_test_environment():
+            if _receivers_that_raise is _AllReceivers.ALL or receiver in _receivers_that_raise:
+                raise
 
-        # Call each receiver with whatever arguments it can accept.
-        # Return a list of tuple pairs [(receiver, response), ... ].
-        for receiver in self._live_receivers(sender):
-            try:
-                response = receiver(signal=self, sender=sender, **named)
-            except Exception as err:
-                if in_test_environment():
-                    if (
-                        _receivers_that_raise is _AllReceivers.ALL
-                        or receiver in _receivers_that_raise
-                    ):
-                        raise
-
-                logging.exception("signal.failure", extra={"receiver": repr(receiver)})
-                responses.append((receiver, err))
-            else:
-                responses.append((receiver, response))
-        return responses
+        logging.error("signal.failure", extra={"receiver": repr(receiver)}, exc_info=err)
 
 
 buffer_incr_complete = BetterSignal()  # ["model", "columns", "extra", "result"]
@@ -178,7 +159,7 @@ comment_created = BetterSignal()  # ["project", "user", "group", "activity_data"
 comment_updated = BetterSignal()  # ["project", "user", "group", "activity_data"]
 comment_deleted = BetterSignal()  # ["project", "user", "group", "activity_data"]
 
-terms_accepted = BetterSignal()  # ["organization", "organization_id", "user", "ip_address"]
+terms_accepted = BetterSignal()  # ["organization_id", "user", "ip_address"]
 team_created = (
     BetterSignal()
 )  # ["organization", "user", "team", "team_id", "organization_id", "user_id"]
@@ -195,6 +176,10 @@ user_signup = BetterSignal()  # ["user", "source"]
 
 # relocation
 relocated = BetterSignal()  # ["relocation_uuid"]
+relocation_link_promo_code = BetterSignal()  # ["relocation_uuid", "promo_code"]
+relocation_redeem_promo_code = BetterSignal()  # ["user_id", "relocation_uuid", "orgs"]
 
+# Fired after an update is performed on a `PostUpdateQuerySet`. Separate to a `.update` call on a model.
+post_update = BetterSignal()  # [sender: Model, updated_fields: list[str], model_ids: list[int]]
 # After `sentry upgrade` has completed.  Better than post_migrate because it won't run in tests.
 post_upgrade = BetterSignal()  # []

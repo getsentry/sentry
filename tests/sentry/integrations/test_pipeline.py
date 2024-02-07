@@ -5,7 +5,7 @@ from django.db import router
 from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
@@ -53,7 +53,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             self.create_organization(name="na_org"),
             self.create_organization(name="na_org_2"),
         ]
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             name="test", external_id=self.external_id, provider=self.provider.key
         )
         with receivers_raise_on_send(), outbox_runner(), unguarded_write(
@@ -189,7 +189,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     def test_with_expect_exists(self, *args):
-        old_integration = Integration.objects.create(
+        old_integration = self.create_provider_integration(
             provider=self.provider.key, external_id=self.external_id, name="Tester"
         )
         self.pipeline.state.data = {"expect_exists": True, "external_id": self.external_id}
@@ -205,7 +205,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     def test_expect_exists_does_not_update(self, *args):
-        old_integration = Integration.objects.create(
+        old_integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             name="Tester",
@@ -264,12 +264,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
     def test_default_identity_does_update(self, *args):
         self.provider.needs_default_identity = True
         old_identity_id = 234567
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        OrganizationIntegration.objects.create(
+        self.create_organization_integration(
             organization_id=self.organization.id,
             integration=integration,
             default_auth_id=old_identity_id,
@@ -305,12 +305,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
         # and integration records. Ensure that the new organizationintegration gets
         # a default_auth_id set.
         self.provider.needs_default_identity = True
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type="plugin"
         )
         identity = Identity.objects.create(
@@ -344,12 +344,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
         # we need to make sure any other org_integrations have the same
         # identity that we use for the new one
         self.provider.needs_default_identity = True
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type="plugin"
         )
         identity = Identity.objects.create(
@@ -383,12 +383,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     def test_different_user_same_external_id_no_default_needed(self, *args):
         new_user = self.create_user()
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type=self.provider.key
         )
         Identity.objects.create(
@@ -451,12 +451,12 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
     def test_different_user_same_external_id(self, *args):
         new_user = self.create_user()
         self.setUp()
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider=self.provider.key,
             external_id=self.external_id,
             metadata={"url": "https://example.com"},
         )
-        identity_provider = IdentityProvider.objects.create(
+        identity_provider = self.create_identity_provider(
             external_id=self.external_id, type=self.provider.key
         )
         Identity.objects.create(

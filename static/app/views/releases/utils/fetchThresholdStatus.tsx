@@ -1,7 +1,7 @@
-import {Client} from 'sentry/api';
-import {Organization} from 'sentry/types';
+import type {Client} from 'sentry/api';
+import type {Organization} from 'sentry/types';
 
-import {ThresholdStatus, ThresholdStatusesQuery} from './types';
+import type {ThresholdStatus, ThresholdStatusesQuery} from './types';
 
 export function fetchThresholdStatuses(
   organization: Organization,

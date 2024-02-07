@@ -1,5 +1,6 @@
 import type {Committer} from 'sentry/types';
-import {ApiQueryKey, useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 import useOrganization from './useOrganization';
 

@@ -3,7 +3,7 @@ import {MemberFixture} from 'sentry-fixture/member';
 import {MissingMembersFixture} from 'sentry-fixture/missingMembers';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_SNOOZE_PROMPT_DAYS} from 'sentry/utils/promptIsDismissed';
 import {InviteBanner} from 'sentry/views/settings/organizationMembers/inviteBanner';
@@ -27,7 +27,7 @@ describe('inviteBanner', function () {
       body: [missingMembers],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       method: 'GET',
       body: {
         dismissed_ts: undefined,
@@ -65,7 +65,7 @@ describe('inviteBanner', function () {
       features: [],
     });
 
-    render(
+    const {container} = render(
       <InviteBanner
         onSendInvite={() => {}}
         organization={org}
@@ -74,11 +74,7 @@ describe('inviteBanner', function () {
       />
     );
 
-    expect(
-      screen.queryByRole('heading', {
-        name: 'Bring your full GitHub team on board in Sentry',
-      })
-    ).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('does not render banner if no option', function () {
@@ -86,7 +82,7 @@ describe('inviteBanner', function () {
       features: ['integrations-gh-invite'],
     });
 
-    render(
+    const {container} = render(
       <InviteBanner
         onSendInvite={() => {}}
         organization={org}
@@ -95,11 +91,7 @@ describe('inviteBanner', function () {
       />
     );
 
-    expect(
-      screen.queryByRole('heading', {
-        name: 'Bring your full GitHub team on board in Sentry',
-      })
-    ).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('does not render banner if no missing members', async function () {
@@ -108,28 +100,23 @@ describe('inviteBanner', function () {
       githubNudgeInvite: true,
     });
 
-    MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/missing-members/',
       method: 'GET',
       body: [noMissingMembers],
     });
 
-    await act(async () => {
-      await render(
-        <InviteBanner
-          onSendInvite={() => {}}
-          organization={org}
-          allowedRoles={[]}
-          onModalClose={() => {}}
-        />
-      );
-    });
+    const {container} = render(
+      <InviteBanner
+        onSendInvite={() => {}}
+        organization={org}
+        allowedRoles={[]}
+        onModalClose={() => {}}
+      />
+    );
 
-    expect(
-      screen.queryByRole('heading', {
-        name: 'Bring your full GitHub team on board in Sentry',
-      })
-    ).not.toBeInTheDocument();
+    await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('does not render banner if no integration', async function () {
@@ -138,53 +125,42 @@ describe('inviteBanner', function () {
       githubNudgeInvite: true,
     });
 
-    MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/missing-members/',
       method: 'GET',
       body: [],
     });
 
-    await act(async () => {
-      await render(
-        <InviteBanner
-          onSendInvite={() => {}}
-          organization={org}
-          allowedRoles={[]}
-          onModalClose={() => {}}
-        />
-      );
-    });
+    const {container} = render(
+      <InviteBanner
+        onSendInvite={() => {}}
+        organization={org}
+        allowedRoles={[]}
+        onModalClose={() => {}}
+      />
+    );
 
-    expect(
-      screen.queryByRole('heading', {
-        name: 'Bring your full GitHub team on board in Sentry',
-      })
-    ).not.toBeInTheDocument();
+    await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it('does not render banner if lacking org:write', async function () {
+  it('does not render banner if lacking org:write', function () {
     const org = OrganizationFixture({
       features: ['integrations-gh-invite'],
       access: [],
       githubNudgeInvite: true,
     });
 
-    await act(async () => {
-      await render(
-        <InviteBanner
-          onSendInvite={() => {}}
-          organization={org}
-          allowedRoles={[]}
-          onModalClose={() => {}}
-        />
-      );
-    });
+    const {container} = render(
+      <InviteBanner
+        onSendInvite={() => {}}
+        organization={org}
+        allowedRoles={[]}
+        onModalClose={() => {}}
+      />
+    );
 
-    expect(
-      screen.queryByRole('heading', {
-        name: 'Bring your full GitHub team on board in Sentry',
-      })
-    ).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('renders banner if snoozed_ts days is longer than threshold', async function () {
@@ -200,7 +176,7 @@ describe('inviteBanner', function () {
         .unix(),
     };
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${org.slug}/prompts-activity/`,
       method: 'GET',
       body: {data: promptResponse},
     });
@@ -234,28 +210,22 @@ describe('inviteBanner', function () {
         .unix(),
     };
     const mockPrompt = MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${org.slug}/prompts-activity/`,
       method: 'GET',
       body: {data: promptResponse},
     });
 
-    await act(async () => {
-      await render(
-        <InviteBanner
-          onSendInvite={() => {}}
-          organization={org}
-          allowedRoles={[]}
-          onModalClose={() => {}}
-        />
-      );
-    });
+    const {container} = render(
+      <InviteBanner
+        onSendInvite={() => {}}
+        organization={org}
+        allowedRoles={[]}
+        onModalClose={() => {}}
+      />
+    );
 
-    expect(mockPrompt).toHaveBeenCalled();
-    expect(
-      screen.queryByRole('heading', {
-        name: 'Bring your full GitHub team on board in Sentry',
-      })
-    ).not.toBeInTheDocument();
+    await waitFor(() => expect(mockPrompt).toHaveBeenCalled());
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('invites member from banner', async function () {

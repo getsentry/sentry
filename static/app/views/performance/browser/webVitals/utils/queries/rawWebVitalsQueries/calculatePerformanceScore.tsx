@@ -1,12 +1,14 @@
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getWebVitalsFromTableData} from 'sentry/views/performance/browser/webVitals/utils/getWebVitalValues';
-import {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 
 export const PERFORMANCE_SCORE_WEIGHTS = {
   lcp: 30,
   fcp: 15,
   cls: 15,
   fid: 30,
+  // INP is unused in FE score calculation but we need this here to satisfy TS
+  inp: 0,
   ttfb: 10,
 };
 
@@ -16,6 +18,7 @@ export const PERFORMANCE_SCORE_MEDIANS = {
   cls: 0.25,
   fid: 300,
   ttfb: 400,
+  inp: 500,
 };
 
 export const PERFORMANCE_SCORE_P90S = {
@@ -24,12 +27,14 @@ export const PERFORMANCE_SCORE_P90S = {
   cls: 0.1,
   fid: 100,
   ttfb: 200,
+  inp: 200,
 };
 
 export type Vitals = {
   cls?: number;
   fcp?: number;
   fid?: number;
+  inp?: number;
   lcp?: number;
   ttfb?: number;
 };
@@ -93,6 +98,7 @@ export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
     ttfbWeight: PERFORMANCE_SCORE_WEIGHTS.ttfb,
     clsWeight: PERFORMANCE_SCORE_WEIGHTS.cls,
     fidWeight: PERFORMANCE_SCORE_WEIGHTS.fid,
+    inpWeight: PERFORMANCE_SCORE_WEIGHTS.inp,
   };
 };
 

@@ -52,10 +52,9 @@ interface Return {
 }
 
 export default function useListItemCheckboxState({hits, knownIds}: Props): Return {
-  const {getListQueryKey} = useFeedbackQueryKeys();
+  const {listQueryKey} = useFeedbackQueryKeys();
   const [state, setState] = useState<State>({ids: new Set()});
 
-  const listQueryKey = getListQueryKey();
   useEffect(() => {
     // Reset the state when the list changes
     setState({ids: new Set()});

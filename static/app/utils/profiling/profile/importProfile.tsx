@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/react';
-import {Transaction} from '@sentry/types';
+import type {Transaction} from '@sentry/types';
 
-import {Image} from 'sentry/types/debugImage';
+import type {Image} from 'sentry/types/debugImage';
 
-import {Frame} from '../frame';
+import type {Frame} from '../frame';
 import {
   isEventedProfile,
   isJSProfile,
@@ -14,7 +14,7 @@ import {
 
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
-import {Profile} from './profile';
+import type {Profile} from './profile';
 import {SampledProfile} from './sampledProfile';
 import {SentrySampledProfile} from './sentrySampledProfile';
 import {
@@ -209,8 +209,8 @@ export function importSchema(
     input.metadata.platform === 'node'
       ? 'node'
       : input.metadata.platform === 'javascript'
-      ? 'javascript'
-      : 'mobile',
+        ? 'javascript'
+        : 'mobile',
     input.shared.frames
   );
 

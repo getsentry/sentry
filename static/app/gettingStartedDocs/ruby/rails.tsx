@@ -9,6 +9,25 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
+const getInstallSnippet = () => `
+gem "sentry-ruby"
+gem "sentry-rails"`;
+
+const getConfigureSnippet = (params: Params) => `
+Sentry.init do |config|
+  config.dsn = '${params.dsn}'
+  config.breadcrumbs_logger = [:active_support_logger, :http_logger]
+
+  # Set traces_sample_rate to 1.0 to capture 100%
+  # of transactions for performance monitoring.
+  # We recommend adjusting this value in production.
+  config.traces_sample_rate = 1.0
+  # or
+  config.traces_sampler = lambda do |context|
+    true
+  end
+end`;
+
 const onboarding: OnboardingConfig = {
   introduction: () =>
     t(
@@ -28,10 +47,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'ruby',
-          code: `
-gem "sentry-ruby"
-gem "sentry-rails"
-          `,
+          code: getInstallSnippet(),
         },
       ],
     },
@@ -48,35 +64,17 @@ gem "sentry-rails"
       configurations: [
         {
           language: 'ruby',
-          code: `
-Sentry.init do |config|
-  config.dsn = '${params.dsn}'
-  config.breadcrumbs_logger = [:active_support_logger, :http_logger]
-
-  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  # We recommend adjusting this value in production.
-  config.traces_sample_rate = 1.0
-  # or
-  config.traces_sampler = lambda do |context|
-    true
-  end
-end
-          `,
+          code: getConfigureSnippet(params),
         },
       ],
     },
     {
       title: t('Caveats'),
-      description: (
-        <p>
-          {tct(
-            'Currently, custom exception applications [code:(config.exceptions_app)] are not supported. If you are using a custom exception app, you must manually integrate Sentry yourself.',
-            {
-              code: <code />,
-            }
-          )}
-        </p>
+      description: tct(
+        'Currently, custom exception applications [code:(config.exceptions_app)] are not supported. If you are using a custom exception app, you must manually integrate Sentry yourself.',
+        {
+          code: <code />,
+        }
       ),
     },
   ],

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import html
 import re
+from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import urlparse
 
 from django.http.request import HttpRequest, QueryDict

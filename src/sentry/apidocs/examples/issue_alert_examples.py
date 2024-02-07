@@ -2,15 +2,6 @@ from drf_spectacular.utils import OpenApiExample
 
 
 class IssueAlertExamples:
-    GENERIC_SUCCESS_RESPONSE = [
-        OpenApiExample(
-            "Successful response",
-            value={},
-            status_codes=["200"],
-            response_only=True,
-        )
-    ]
-
     GET_PROJECT_RULE = [
         OpenApiExample(
             "Get detailed view about an issue alert rule",

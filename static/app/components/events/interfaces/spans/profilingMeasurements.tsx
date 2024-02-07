@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import {
   MINIMAP_HEIGHT,
   PROFILE_MEASUREMENTS_CHART_HEIGHT,

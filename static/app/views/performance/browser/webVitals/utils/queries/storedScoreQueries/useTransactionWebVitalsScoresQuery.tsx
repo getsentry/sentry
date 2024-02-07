@@ -1,12 +1,12 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
-import {
+import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -99,6 +99,9 @@ export const useTransactionWebVitalsScoresQuery = ({
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
             'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
             'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
+            // Fake INP data using FID data
+            // TODO(edwardgou): Remove this once INP is queryable in discover
+            'p75(measurements.inp)': row['p75(measurements.fid)'] as number,
             'count()': row['count()'] as number,
             'count_scores(measurements.score.lcp)': row[
               'count_scores(measurements.score.lcp)'
@@ -115,12 +118,18 @@ export const useTransactionWebVitalsScoresQuery = ({
             'count_scores(measurements.score.fid)': row[
               'count_scores(measurements.score.fid)'
             ] as number,
+            'count_scores(measurements.score.inp)': row[
+              'count_scores(measurements.score.fid)'
+            ] as number,
             totalScore: totalScore ?? 0,
             clsScore: clsScore ?? 0,
             fcpScore: fcpScore ?? 0,
             lcpScore: lcpScore ?? 0,
             ttfbScore: ttfbScore ?? 0,
             fidScore: fidScore ?? 0,
+            // Fake INP data using FID data
+            // TODO(edwardgou): Remove this once INP is queryable in discover
+            inpScore: fidScore ?? 0,
             opportunity: row[
               `opportunity_score(measurements.score.${opportunityWebVital})`
             ] as number,

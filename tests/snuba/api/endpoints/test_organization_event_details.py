@@ -3,7 +3,6 @@ from datetime import timedelta
 import pytest
 from django.urls import NoReverseMatch, reverse
 
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -268,12 +267,9 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.status_code == 404, response.content
 
     def test_generic_event(self):
-        occurrence_data = self.build_occurrence_data(project_id=self.project.id)
-        occurrence, group_info = process_event_and_issue_occurrence(
-            occurrence_data,
+        occurrence, _ = self.process_occurrence(
+            project_id=self.project.id,
             event_data={
-                "event_id": occurrence_data["event_id"],
-                "project_id": occurrence_data["project_id"],
                 "level": "info",
             },
         )
@@ -283,7 +279,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
             kwargs={
                 "organization_slug": self.project.organization.slug,
                 "project_slug": self.project.slug,
-                "event_id": occurrence_data["event_id"],
+                "event_id": occurrence.event_id,
             },
         )
 
@@ -291,7 +287,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
             response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["id"] == occurrence_data["event_id"]
+        assert response.data["id"] == occurrence.event_id
         assert response.data["projectSlug"] == self.project.slug
         assert response.data["occurrence"] is not None
         assert response.data["occurrence"]["id"] == occurrence.id

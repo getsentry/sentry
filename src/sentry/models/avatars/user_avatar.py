@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import contextlib
 from enum import IntEnum
-from typing import Any, ClassVar, List, Tuple
+from typing import Any, ClassVar, Self
 
 from django.db import models, router, transaction
-from typing_extensions import Self
 
 from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_only_model
 
@@ -53,7 +52,7 @@ class UserAvatar(ControlAvatarBase):
 
     url_path = "avatar"
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         regions = find_regions_for_user(self.user_id)
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
             region_names=regions,
@@ -83,7 +82,7 @@ class UserAvatar(ControlAvatarBase):
         with self._maybe_prepare_outboxes(outbox_before_super=False):
             return super().update(*args, **kwds)
 
-    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, dict[str, Any]]:
+    def delete(self, *args: Any, **kwds: Any) -> tuple[int, dict[str, Any]]:
         with self._maybe_prepare_outboxes(outbox_before_super=True):
             return super().delete(*args, **kwds)
 

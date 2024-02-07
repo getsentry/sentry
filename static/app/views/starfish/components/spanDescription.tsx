@@ -1,7 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
@@ -11,7 +10,7 @@ import {
 } from 'sentry/views/starfish/components/stackTraceMiniFrame';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import type {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 interface Props {
@@ -69,25 +68,23 @@ export function DatabaseSpanDescription({
         </CodeSnippet>
       )}
 
-      <Feature features={['organizations:performance-database-view-query-source']}>
-        {!areIndexedSpansLoading && !isRawSpanLoading && (
-          <Fragment>
-            {rawSpan?.data?.['code.filepath'] ? (
-              <StackTraceMiniFrame
-                projectId={indexedSpan?.project_id?.toString()}
-                eventId={indexedSpan?.['transaction.id']}
-                frame={{
-                  filename: rawSpan?.data?.['code.filepath'],
-                  lineNo: rawSpan?.data?.['code.lineno'],
-                  function: rawSpan?.data?.['code.function'],
-                }}
-              />
-            ) : (
-              <MissingFrame />
-            )}
-          </Fragment>
-        )}
-      </Feature>
+      {!areIndexedSpansLoading && !isRawSpanLoading && (
+        <Fragment>
+          {rawSpan?.data?.['code.filepath'] ? (
+            <StackTraceMiniFrame
+              projectId={indexedSpan?.project_id?.toString()}
+              eventId={indexedSpan?.['transaction.id']}
+              frame={{
+                filename: rawSpan?.data?.['code.filepath'],
+                lineNo: rawSpan?.data?.['code.lineno'],
+                function: rawSpan?.data?.['code.function'],
+              }}
+            />
+          ) : (
+            <MissingFrame />
+          )}
+        </Fragment>
+      )}
     </Frame>
   );
 }

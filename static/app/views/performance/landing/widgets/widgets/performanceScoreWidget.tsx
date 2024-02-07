@@ -12,17 +12,19 @@ import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performanc
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
-import {PerformanceWidgetProps} from '../types';
+import type {PerformanceWidgetProps} from '../types';
 
 export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {InteractiveTitle, organization} = props;
   const theme = useTheme();
   const shouldUseStoredScores = useStoredScoresSetting();
+  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
   const {data: projectScores, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({enabled: shouldUseStoredScores});
@@ -33,17 +35,18 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
     (shouldUseStoredScores && isProjectScoresLoading) || isLoading || noTransactions
       ? undefined
       : shouldUseStoredScores
-      ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
-      : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+        ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
+        : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   const weights = projectScore
     ? {
-        cls: projectScore.clsWeight,
-        fid: projectScore.fidWeight,
-        fcp: projectScore.fcpWeight,
         lcp: projectScore.lcpWeight,
+        fcp: projectScore.fcpWeight,
+        inp: shouldReplaceFidWithInp ? projectScore.inpWeight : 0,
+        fid: shouldReplaceFidWithInp ? 0 : projectScore.fidWeight,
+        cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
       }
     : undefined;

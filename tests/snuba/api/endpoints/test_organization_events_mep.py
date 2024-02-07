@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 from unittest import mock
 
 import pytest
 from django.urls import reverse
 from rest_framework.response import Response
 
-from sentry.api.bases.organization_events import DATASET_OPTIONS
 from sentry.discover.models import TeamKeyTransaction
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.transaction_threshold import (
@@ -20,6 +19,7 @@ from sentry.search.utils import map_device_class_level
 from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
+from sentry.snuba.utils import DATASET_OPTIONS
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -3089,6 +3089,42 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["transaction"] == "foo_transaction"
         assert meta["dataset"] == "metricsEnhanced"
 
+    def test_on_demand_with_mep(self):
+        # Store faketag as an OnDemandMetricSpec, which will put faketag into the metrics indexer
+        spec = OnDemandMetricSpec(
+            field="count()",
+            query="user.email:blah@example.com",
+            environment="prod",
+            groupbys=["faketag"],
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+        self.store_on_demand_metric(123, spec=spec)
+
+        # This is the event that we should actually return
+        transaction_data = load_data("transaction", timestamp=self.min_ago)
+        transaction_data["tags"].append(("faketag", "foo"))
+        self.store_event(transaction_data, self.project.id)
+
+        with self.feature({"organizations:mep-use-default-tags": True}):
+            response = self.do_request(
+                {
+                    "field": [
+                        "faketag",
+                        "count()",
+                    ],
+                    "query": "event.type:transaction",
+                    "dataset": "metricsEnhanced",
+                    "per_page": 50,
+                }
+            )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["faketag"] == "foo"
+        assert not meta["isMetricsData"]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
@@ -3110,9 +3146,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
     def _on_demand_query_check(
         self,
         params: dict[str, Any],
-        groupbys: Optional[list[str]] = None,
-        expected_on_demand_query: Optional[bool] = True,
-        expected_dataset: Optional[str] = "metricsEnhanced",
+        groupbys: list[str] | None = None,
+        expected_on_demand_query: bool | None = True,
+        expected_dataset: str | None = "metricsEnhanced",
     ) -> Response:
         """Do a request to the events endpoint with metrics enhanced and on-demand enabled."""
         for field in params["field"]:
@@ -3248,3 +3284,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_timestamp_groupby(self):
         super().test_timestamp_groupby()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_on_demand_with_mep(self):
+        super().test_on_demand_with_mep()

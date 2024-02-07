@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import {TOP_N} from 'sentry/utils/discover/types';
 
-import {DisplayType, Widget, WidgetType} from '../types';
+import type {Widget} from '../types';
+import {DisplayType, WidgetType} from '../types';
 
 export type WidgetTemplate = Widget & {
   description: string;
@@ -86,7 +87,7 @@ export const getDefaultWidgets = () => {
           fields: ['session.status', 'sum(session)'],
           aggregates: ['sum(session)'],
           columns: ['session.status'],
-          orderby: '',
+          orderby: '-sum(session)',
         },
       ],
     },
@@ -104,7 +105,7 @@ export const getDefaultWidgets = () => {
           fields: ['geo.country_code', 'geo.region', 'p75(measurements.lcp)'],
           aggregates: ['p75(measurements.lcp)'],
           columns: ['geo.country_code', 'geo.region'],
-          orderby: '',
+          orderby: '-p75(measurements.lcp)',
         },
       ],
     },

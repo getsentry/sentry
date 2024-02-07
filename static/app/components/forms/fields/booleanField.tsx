@@ -6,7 +6,7 @@ import Switch from 'sentry/components/switchButton';
 import {Tooltip} from 'sentry/components/tooltip';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps, OnEvent} from './inputField';
+import type {InputFieldProps, OnEvent} from './inputField';
 
 export interface BooleanFieldProps extends InputFieldProps {
   confirm?: {

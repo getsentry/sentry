@@ -2,19 +2,16 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {
-  CompactSelect,
-  SelectOption,
-  SingleSelectProps,
-} from 'sentry/components/compactSelect';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {SelectOption, SingleSelectProps} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getDateWithTimezoneInUtc,
@@ -164,7 +161,7 @@ export function TimeRangeSelector({
   ...selectProps
 }: TimeRangeSelectorProps) {
   const router = useRouter();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
 
   const [search, setSearch] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
@@ -372,7 +369,7 @@ export function TimeRangeSelector({
                       start={internalValue.start ?? null}
                       end={internalValue.end ?? null}
                       utc={internalValue.utc}
-                      organization={organization}
+                      organization={organization ?? undefined}
                       showTimePicker
                       onChange={val => {
                         if (val.hasDateRangeErrors) {

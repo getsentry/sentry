@@ -1,5 +1,4 @@
 import logging
-from typing import Set
 from urllib.error import HTTPError as UrllibHTTPError
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
@@ -109,7 +108,7 @@ class NotificationPlugin(Plugin):
     def notify_about_activity(self, activity):
         pass
 
-    def get_notification_recipients(self, project, user_option: str) -> Set:
+    def get_notification_recipients(self, project, user_option: str) -> set:
         from sentry.models.options.user_option import UserOption
 
         alert_settings = {
@@ -173,7 +172,7 @@ class NotificationPlugin(Plugin):
         # perform rate limit checks to support backwards compatibility with
         # older plugins.
         if not (
-            hasattr(self, "notify_digest") and digests.enabled(project)
+            hasattr(self, "notify_digest") and digests.backend.enabled(project)
         ) and self.__is_rate_limited(group, event):
             logger = logging.getLogger(f"sentry.plugins.{self.get_conf_key()}")
             logger.info("notification.rate_limited", extra={"project_id": project.id})

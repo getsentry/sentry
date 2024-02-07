@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 import round from 'lodash/round';
 
@@ -12,8 +12,8 @@ import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
-import {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {PageFilters} from 'sentry/types';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';

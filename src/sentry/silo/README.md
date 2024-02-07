@@ -15,6 +15,7 @@ To set up the region silos locally, you'll need to make a few changes:
 
 1. Create the split databases for the two silo modes with `make create-db`
 2. Split your local database with `bin/split-silo-database`
+3. Delete any `DATABASES` settings in your `devlocal.py` or `sentry.conf.py` files, as these can prevent models from routing to the correct databases.
 
 Example Output:
 
@@ -38,8 +39,8 @@ $ bin/split-silo-database
 To spin up the silos, run:
 
 ```sh
-sentry devserver --silo=control --workers
-sentry devserver --silo=region --workers --ingest
+sentry devserver --silo=control --celery-beat --workers
+sentry devserver --silo=region --celery-beat --workers --ingest
 ```
 
 This will expose the following ports:
@@ -50,24 +51,20 @@ This will expose the following ports:
 | 8001 | HTTP API | Control |
 | 8010 | HTTP API | Region  |
 
-You can omit the `--workers` and `--ingest` options if you don't want those services running.
+You can omit the `--celery-beat`, `--workers` and `--ingest` options if you don't want those services running.
 If you're using `--ingest` and relay isn't being started make sure `settings.SENTRY_USE_RELAY` is enabled.
 
 ## Using Silos & ngrok
 
 To use a siloed dev environment with ngrok you'll need to make a few application
-configuration changes. Assuming your ngrok domain is `acme` add the following
-to either `~/.sentry/sentry.conf` or `devlocal.py` in getsentry:
+configuration changes. Assuming your ngrok domain is `acme` you can use the `--ngrok`
+flag to use a configuration preset that assumes you also have ngrok running:
 
-```python
-SENTRY_OPTIONS["system.url-prefix"] = "https://acme.ngrok.dev"
-CSRF_TRUSTED_ORIGINS = [".acme.ngrok.dev"]
-ALLOWED_HOSTS = [".acme.ngrok.dev", ".ngrok.dev", "localhost", "127.0.0.1"]
-
-SESSION_COOKIE_DOMAIN = ".acme.ngrok.dev"
-CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
-SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+```sh
+sentry devserver --ngrok=acme.ngrok.dev --silo=control
 ```
+
+:warning: You only need to use `--ngrok` on the control silo instance.
 
 Then start ngrok with the desired hostname:
 

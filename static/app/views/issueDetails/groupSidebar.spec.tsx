@@ -14,7 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
-import {TeamParticipant, UserParticipant} from 'sentry/types';
+import type {TeamParticipant, UserParticipant} from 'sentry/types';
 
 import GroupSidebar from './groupSidebar';
 
@@ -64,7 +64,7 @@ describe('GroupSidebar', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/prompts-activity/`,
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
     MockApiClient.addMockResponse({

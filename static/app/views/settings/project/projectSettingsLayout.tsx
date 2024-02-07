@@ -1,8 +1,8 @@
 import {cloneElement, isValidElement} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import * as AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import withOrganization from 'sentry/utils/withOrganization';
 import ProjectContext from 'sentry/views/projects/projectContext';

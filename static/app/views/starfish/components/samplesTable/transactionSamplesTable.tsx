@@ -1,15 +1,14 @@
-import {CSSProperties, Fragment} from 'react';
+import type {CSSProperties} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
@@ -27,7 +26,7 @@ import {
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {SampleFilter} from 'sentry/views/starfish/views/webServiceView/endpointOverview';
+import type {SampleFilter} from 'sentry/views/starfish/views/webServiceView/endpointOverview';
 
 type Keys =
   | 'id'

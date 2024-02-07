@@ -2,7 +2,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {getFormat} from 'sentry/utils/dates';
 import {JobTickTooltip} from 'sentry/views/monitors/components/overviewTimeline/jobTickTooltip';
-import {TimeWindowOptions} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {TimeWindowOptions} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 type StatusCounts = [
   in_progress: number,

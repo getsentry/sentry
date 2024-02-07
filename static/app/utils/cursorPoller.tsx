@@ -1,4 +1,5 @@
-import {Client, Request} from 'sentry/api';
+import type {Request} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 

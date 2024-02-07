@@ -14,7 +14,7 @@ from sentry.tasks.integrations.migrate_opsgenie_plugins import (
     ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
 )
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, region_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 EXTERNAL_ID = "test-app"
@@ -124,7 +124,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_update_config_valid(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
 
@@ -143,7 +143,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_update_config_invalid(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
 
@@ -174,10 +174,11 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         }
 
 
+@region_silo_test
 class OpsgenieMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="opsgenie", name="test-app", external_id=EXTERNAL_ID, metadata=METADATA
         )
         integration.add_organization(self.organization, self.user)
@@ -192,7 +193,8 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         self.plugin.set_option("enabled", True, self.project)
         self.plugin.set_option("alert_url", "https://api.opsgenie.com/v2/alerts/", self.project)
         self.plugin.set_option("api_key", "123-key", self.project)
-        self.installation = self.integration.get_installation(self.organization.id)
+        with assume_test_silo_mode_of(Integration):
+            self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(self.user)
 
     @patch("sentry.tasks.integrations.migrate_opsgenie_plugins.metrics")
@@ -201,9 +203,12 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         Test that 2 projects with the Opsgenie plugin activated that have one alert rule each
         and distinct API keys are successfully migrated.
         """
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        org_integration.config = {"team_table": []}
-        org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
+            org_integration.config = {"team_table": []}
+            org_integration.save()
 
         project2 = self.create_project(
             name="thinkies", organization=self.organization, teams=[self.team]
@@ -228,7 +233,10 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
 
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
         id1 = str(self.organization_integration.id) + "-thonk"
         id2 = str(self.organization_integration.id) + "-thinkies"
         assert org_integration.config == {
@@ -275,9 +283,12 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         """
         Keys should not be migrated twice.
         """
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        org_integration.config = {"team_table": []}
-        org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
+            org_integration.config = {"team_table": []}
+            org_integration.save()
 
         project2 = self.create_project(
             name="thinkies", organization=self.organization, teams=[self.team]
@@ -290,7 +301,10 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
 
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
         id1 = str(self.organization_integration.id) + "-thonk"
 
         assert org_integration.config == {
@@ -303,17 +317,20 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         """
         Test that migration works if a key has already been added to config.
         """
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        org_integration.config = {
-            "team_table": [
-                {
-                    "id": str(self.organization_integration.id) + "-pikachu",
-                    "team": "pikachu",
-                    "integration_key": "123-key",
-                },
-            ]
-        }
-        org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
+            org_integration.config = {
+                "team_table": [
+                    {
+                        "id": str(self.organization_integration.id) + "-pikachu",
+                        "team": "pikachu",
+                        "integration_key": "123-key",
+                    },
+                ]
+            }
+            org_integration.save()
 
         Rule.objects.create(
             label="rule",
@@ -323,7 +340,10 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
 
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
         assert org_integration.config == {
             "team_table": [
                 {
@@ -352,9 +372,12 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         """
         Test multiple rules, some of which send notifications to legacy integrations.
         """
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        org_integration.config = {"team_table": []}
-        org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
+            org_integration.config = {"team_table": []}
+            org_integration.save()
 
         Rule.objects.create(
             label="rule",
@@ -371,8 +394,11 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
 
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        id1 = str(self.organization_integration.id) + "-thonk"
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
+        id1 = str(org_integration.id) + "-thonk"
         rule_updated = Rule.objects.get(
             label="rule",
             project=self.project,
@@ -398,17 +424,20 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         """
         Don't add a new recipient from an API key if the recipient already exists.
         """
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        org_integration.config = {
-            "team_table": [
-                {
-                    "id": str(self.organization_integration.id) + "-pikachu",
-                    "team": "pikachu",
-                    "integration_key": "123-key",
-                },
-            ]
-        }
-        org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
+            org_integration.config = {
+                "team_table": [
+                    {
+                        "id": str(self.organization_integration.id) + "-pikachu",
+                        "team": "pikachu",
+                        "integration_key": "123-key",
+                    },
+                ]
+            }
+            org_integration.save()
 
         Rule.objects.create(
             label="rule",
@@ -428,7 +457,10 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
 
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
         assert org_integration.config == {
             "team_table": [
                 {
@@ -457,9 +489,12 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         """
         Test that the Opsgenie plugin is migrated correctly if the legacy alert action has a name field.
         """
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
-        org_integration.config = {"team_table": []}
-        org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
+            org_integration.config = {"team_table": []}
+            org_integration.save()
 
         Rule.objects.create(
             label="rule",
@@ -470,7 +505,10 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         with self.tasks():
             self.installation.schedule_migrate_opsgenie_plugin()
 
-        org_integration = OrganizationIntegration.objects.get(integration_id=self.integration.id)
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id
+            )
         id1 = str(self.organization_integration.id) + "-thonk"
         assert org_integration.config == {
             "team_table": [

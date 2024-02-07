@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import List, Optional, Tuple
 
 from django.db import IntegrityError, router
 from django.db.models import Q
@@ -181,7 +180,7 @@ class ArtifactSource:
     """Provides artifact data to ChainPaginator on-demand"""
 
     def __init__(
-        self, dist: Optional[Distribution], files: dict, query: List[str], checksums: List[str]
+        self, dist: Distribution | None, files: dict, query: list[str], checksums: list[str]
     ):
         self._dist = dist
         self._files = files
@@ -189,7 +188,7 @@ class ArtifactSource:
         self._checksums = checksums
 
     @cached_property
-    def sorted_and_filtered_files(self) -> List[Tuple[str, dict]]:
+    def sorted_and_filtered_files(self) -> list[tuple[str, dict]]:
         query = self._query
         checksums = self._checksums
         files = [

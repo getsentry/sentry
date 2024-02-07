@@ -1,4 +1,4 @@
-import {Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 
 const supportedProfilingPlatformSDKs = [
   'android',

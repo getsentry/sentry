@@ -1,7 +1,7 @@
-import {Location, LocationDescriptor, Path} from 'history';
+import type {Location, LocationDescriptor, Path} from 'history';
 
-import {Organization, Project} from 'sentry/types';
-import {Trace} from 'sentry/types/profiling/core';
+import type {Organization, Project} from 'sentry/types';
+import type {Trace} from 'sentry/types/profiling/core';
 
 export function generateProfilingRoute({orgSlug}: {orgSlug: Organization['slug']}): Path {
   return `/organizations/${orgSlug}/profiling/`;

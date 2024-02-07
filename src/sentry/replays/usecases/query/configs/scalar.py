@@ -1,10 +1,16 @@
 """Scalar query filtering configuration module."""
 from __future__ import annotations
 
-from typing import Sequence, Union
+from collections.abc import Sequence
 
 from sentry.api.event_search import ParenExpression, SearchFilter
-from sentry.replays.lib.new_query.conditions import IPv4Scalar, StringArray, StringScalar, UUIDArray
+from sentry.replays.lib.new_query.conditions import (
+    IPv4Scalar,
+    NonEmptyStringScalar,
+    StringArray,
+    StringScalar,
+    UUIDArray,
+)
 from sentry.replays.lib.new_query.fields import FieldProtocol, StringColumnField, UUIDColumnField
 from sentry.replays.lib.new_query.parsers import parse_str, parse_uuid
 from sentry.replays.lib.selector.parse import parse_selector
@@ -23,21 +29,21 @@ def string_field(column_name: str) -> StringColumnField:
 
 # Static Search Config
 static_search_config: dict[str, FieldProtocol] = {
-    "browser.name": StringColumnField("browser_name", parse_str, StringScalar),
-    "browser.version": StringColumnField("browser_version", parse_str, StringScalar),
-    "device.brand": StringColumnField("device_brand", parse_str, StringScalar),
-    "device.family": StringColumnField("device_family", parse_str, StringScalar),
-    "device.model": StringColumnField("device_model", parse_str, StringScalar),
-    "device.name": StringColumnField("device_name", parse_str, StringScalar),
-    "dist": StringColumnField("dist", parse_str, StringScalar),
-    "environment": StringColumnField("environment", parse_str, StringScalar),
+    "browser.name": StringColumnField("browser_name", parse_str, NonEmptyStringScalar),
+    "browser.version": StringColumnField("browser_version", parse_str, NonEmptyStringScalar),
+    "device.brand": StringColumnField("device_brand", parse_str, NonEmptyStringScalar),
+    "device.family": StringColumnField("device_family", parse_str, NonEmptyStringScalar),
+    "device.model": StringColumnField("device_model", parse_str, NonEmptyStringScalar),
+    "device.name": StringColumnField("device_name", parse_str, NonEmptyStringScalar),
+    "dist": StringColumnField("dist", parse_str, NonEmptyStringScalar),
+    "environment": StringColumnField("environment", parse_str, NonEmptyStringScalar),
     "id": StringColumnField("replay_id", lambda x: str(parse_uuid(x)), StringScalar),
-    "os.name": StringColumnField("os_name", parse_str, StringScalar),
-    "os.version": StringColumnField("os_version", parse_str, StringScalar),
-    "platform": StringColumnField("platform", parse_str, StringScalar),
-    "releases": StringColumnField("release", parse_str, StringScalar),
-    "sdk.name": StringColumnField("sdk_name", parse_str, StringScalar),
-    "sdk.version": StringColumnField("sdk_version", parse_str, StringScalar),
+    "os.name": StringColumnField("os_name", parse_str, NonEmptyStringScalar),
+    "os.version": StringColumnField("os_version", parse_str, NonEmptyStringScalar),
+    "platform": StringColumnField("platform", parse_str, NonEmptyStringScalar),
+    "releases": StringColumnField("release", parse_str, NonEmptyStringScalar),
+    "sdk.name": StringColumnField("sdk_name", parse_str, NonEmptyStringScalar),
+    "sdk.version": StringColumnField("sdk_version", parse_str, NonEmptyStringScalar),
 }
 # Aliases
 static_search_config["release"] = static_search_config["releases"]
@@ -53,10 +59,10 @@ varying_search_config: dict[str, FieldProtocol] = {
     "error_ids": ComputedField(parse_uuid, ErrorIdsArray),
     "trace_ids": UUIDColumnField("trace_ids", parse_uuid, UUIDArray),
     "urls": StringColumnField("urls", parse_str, StringArray),
-    "user.email": StringColumnField("user_email", parse_str, StringScalar),
-    "user.id": StringColumnField("user_id", parse_str, StringScalar),
+    "user.email": StringColumnField("user_email", parse_str, NonEmptyStringScalar),
+    "user.id": StringColumnField("user_id", parse_str, NonEmptyStringScalar),
     "user.ip_address": StringColumnField("ip_address_v4", parse_str, IPv4Scalar),
-    "user.username": StringColumnField("user_name", parse_str, StringScalar),
+    "user.username": StringColumnField("user_name", parse_str, NonEmptyStringScalar),
 }
 
 # Aliases
@@ -91,7 +97,7 @@ scalar_search_config = {**static_search_config, **varying_search_config}
 
 
 def can_scalar_search_subquery(
-    search_filters: Sequence[Union[ParenExpression, SearchFilter, str]]
+    search_filters: Sequence[ParenExpression | SearchFilter | str],
 ) -> bool:
     """Return "True" if a scalar event search can be performed."""
     has_seen_varying_field = False

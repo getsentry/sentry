@@ -1,11 +1,9 @@
 import {type ElementType, isValidElement} from 'react';
 import styled from '@emotion/styled';
-import first from 'lodash/first';
 
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import SizingWindow, {
-  Props as SizingWindowProps,
-} from 'sentry/components/stories/sizingWindow';
+import type {Props as SizingWindowProps} from 'sentry/components/stories/sizingWindow';
+import SizingWindow from 'sentry/components/stories/sizingWindow';
 import {space} from 'sentry/styles/space';
 
 type RenderProps = {};
@@ -29,7 +27,7 @@ export default function Matrix<P extends RenderProps>({
 }: Props<P>) {
   const defaultValues = Object.fromEntries(
     Object.entries(propMatrix).map(([key, values]) => {
-      return [key, first(values as any)];
+      return [key, (values as any[]).at(0)];
     })
   );
 

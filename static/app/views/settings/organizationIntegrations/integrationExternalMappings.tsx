@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -13,7 +12,7 @@ import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   ExternalActorSuggestion,
@@ -21,6 +20,7 @@ import {
   Organization,
 } from 'sentry/types';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
+import {capitalize} from 'sentry/utils/string/capitalize';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 

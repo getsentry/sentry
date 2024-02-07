@@ -15,7 +15,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {Incident, IncidentStatus} from 'sentry/views/alerts/types';
+import type {Incident} from 'sentry/views/alerts/types';
+import {IncidentStatus} from 'sentry/views/alerts/types';
 
 import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';

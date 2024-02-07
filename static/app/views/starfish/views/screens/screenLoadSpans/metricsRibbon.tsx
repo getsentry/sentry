@@ -1,29 +1,54 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {NewQuery} from 'sentry/types';
+import type {NewQuery, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/starfish/views/screens/platformSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
-export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: string[]}) {
+const UNDEFINED_TEXT = '--';
+
+export function MetricsRibbon({
+  filters,
+  project,
+  blocks,
+  fields,
+  referrer,
+  dataset,
+}: {
+  blocks: {
+    dataKey: string | ((data?: TableDataRow[]) => number | undefined);
+    title: string;
+    type: 'duration' | 'count';
+  }[];
+  dataset: DiscoverDatasets;
+  fields: string[];
+  referrer: string;
+  filters?: string[];
+  project?: Project | null;
+}) {
   const {selection} = usePageFilters();
+  const organization = useOrganization();
   const location = useLocation();
-  const searchQuery = new MutableSearch([
-    'event.type:transaction',
-    'transaction.op:ui.load',
-    ...(additionalFilters ?? []),
-  ]);
 
   const {
     primaryRelease,
@@ -31,25 +56,36 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const truncatedPrimary = formatVersionAndCenterTruncate(primaryRelease ?? '', 10);
-  const truncatedSecondary = formatVersionAndCenterTruncate(secondaryRelease ?? '', 10);
-
-  const queryStringPrimary = appendReleaseFilters(
-    searchQuery,
-    primaryRelease,
-    secondaryRelease
+  const hasPlatformSelectFeature = organization.features.includes(
+    'performance-screens-platform-selector'
   );
+  const platform =
+    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+    DEFAULT_PLATFORM;
+
+  const queryString = useMemo(() => {
+    const searchQuery = new MutableSearch([...(filters ?? [])]);
+
+    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+      searchQuery.addFilterValue('os.name', platform);
+    }
+
+    return appendReleaseFilters(searchQuery, primaryRelease, secondaryRelease);
+  }, [
+    filters,
+    hasPlatformSelectFeature,
+    platform,
+    primaryRelease,
+    project,
+    secondaryRelease,
+  ]);
+
   const newQuery: NewQuery = {
     name: 'ScreenMetricsRibbon',
-    fields: [
-      `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-      `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-      `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-      `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-      'count()',
-    ],
-    query: queryStringPrimary,
-    dataset: DiscoverDatasets.METRICS,
+    fields,
+    query: queryString,
+    dataset,
     version: 2,
     projects: selection.projects,
   };
@@ -57,73 +93,64 @@ export function ScreenMetricsRibbon({additionalFilters}: {additionalFilters?: st
   const {data, isLoading} = useTableQuery({
     eventView,
     enabled: !isReleasesLoading,
-    referrer: 'api.starfish.mobile-screen-totals',
+    referrer,
   });
-
-  const undefinedText = '--';
 
   return (
     <BlockContainer>
-      <Block title={t('TTID (%s)', truncatedPrimary)}>
-        {!isLoading && data ? (
-          <DurationCell
-            milliseconds={
-              data.data[0]?.[
-                `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`
-              ] as number
-            }
-          />
-        ) : (
-          undefinedText
-        )}
-      </Block>
-      <Block title={t('TTID (%s)', truncatedSecondary)}>
-        {!isLoading && data ? (
-          <DurationCell
-            milliseconds={
-              data.data[0]?.[
-                `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`
-              ] as number
-            }
-          />
-        ) : (
-          undefinedText
-        )}
-      </Block>
-      <Block title={t('TTFD (%s)', truncatedPrimary)}>
-        {!isLoading && data ? (
-          <DurationCell
-            milliseconds={
-              data.data[0]?.[
-                `avg_if(measurements.time_to_full_display,release,${primaryRelease})`
-              ] as number
-            }
-          />
-        ) : (
-          undefinedText
-        )}
-      </Block>
-      <Block title={t('TTFD (%s)', truncatedSecondary)}>
-        {!isLoading && data ? (
-          <DurationCell
-            milliseconds={
-              data.data[0]?.[
-                `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`
-              ] as number
-            }
-          />
-        ) : (
-          undefinedText
-        )}
-      </Block>
-      <Block title={t('Count')}>
-        {!isLoading && data ? (
-          <CountCell count={data.data[0]?.['count()'] as number} />
-        ) : (
-          undefinedText
-        )}
-      </Block>
+      {blocks.map(({title, dataKey, type}) => (
+        <MetricsBlock
+          key={title}
+          title={title}
+          type={type}
+          dataKey={dataKey}
+          data={data}
+          isLoading={isLoading}
+        />
+      ))}
     </BlockContainer>
+  );
+}
+
+function MetricsBlock({
+  title,
+  type,
+  data,
+  dataKey,
+  isLoading,
+}: {
+  dataKey: string | ((data?: TableDataRow[]) => number | undefined);
+  isLoading: boolean;
+  title: string;
+  type: 'duration' | 'count';
+  data?: TableData;
+  release?: string;
+}) {
+  const value =
+    typeof dataKey === 'function'
+      ? dataKey(data?.data)
+      : (data?.data?.[0]?.[dataKey] as number);
+
+  if (type === 'duration') {
+    return (
+      <Block title={title}>
+        {!isLoading && data && defined(value) ? (
+          <DurationCell milliseconds={value} />
+        ) : (
+          UNDEFINED_TEXT
+        )}
+      </Block>
+    );
+  }
+
+  return (
+    <Block title={title}>
+      {!isLoading && data && defined(value) ? (
+        <CountCell count={value} />
+      ) : (
+        UNDEFINED_TEXT
+      )}
+    </Block>
   );
 }
 

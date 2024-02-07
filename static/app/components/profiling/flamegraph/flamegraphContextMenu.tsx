@@ -18,17 +18,17 @@ import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
-import {
+import type {
   FlamegraphColorCodings,
   FlamegraphSorting,
   FlamegraphViewOptions,
 } from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useSourceCodeLink} from 'sentry/utils/profiling/hooks/useSourceLink';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -182,12 +182,12 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
                   ? t('Open in GitHub is not supported for this platform')
                   : sourceCodeLink.isLoading
-                  ? 'Resolving link'
-                  : sourceCodeLink.isSuccess &&
-                    (!sourceCodeLink.data.sourceUrl ||
-                      sourceCodeLink.data.config?.provider?.key !== 'github')
-                  ? t('Could not find source code location in GitHub')
-                  : undefined
+                    ? 'Resolving link'
+                    : sourceCodeLink.isSuccess &&
+                        (!sourceCodeLink.data.sourceUrl ||
+                          sourceCodeLink.data.config?.provider?.key !== 'github')
+                      ? t('Could not find source code location in GitHub')
+                      : undefined
               }
               {...props.contextMenu.getMenuItemProps({
                 onClick: onOpenInGithubClick,
@@ -284,8 +284,8 @@ export function DifferentialFlamegraphMenu(props: DifferentialFlamegraphMenuProp
             {filter === 'all'
               ? t('All frames')
               : filter === 'application'
-              ? t('Application frames')
-              : t('System frames')}
+                ? t('Application frames')
+                : t('System frames')}
           </ProfilingContextMenuItemCheckbox>
         ))}
       </ProfilingContextMenuGroup>

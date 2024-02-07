@@ -12,8 +12,9 @@ import DropdownLink from 'sentry/components/dropdownLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconDownload, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {CandidateDownloadStatus, ImageCandidate} from 'sentry/types/debugImage';
+import type {Organization, Project} from 'sentry/types';
+import type {ImageCandidate} from 'sentry/types/debugImage';
+import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 
 const noPermissionToDownloadDebugFilesInfo = t(
   'You do not have permission to download debug files'

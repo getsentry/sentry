@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import GlobalModal from 'sentry/components/globalModal';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -20,10 +20,18 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 import {initializeOrg} from './initializeOrg';
 
 type ProviderOptions = {
+  /**
+   * Sets legacy context providers. This value is directly passed to a
+   * `getChildContext`.
+   */
   context?: Record<string, any>;
-  organization?: Partial<Organization>;
-  project?: string;
-  projects?: string[];
+  /**
+   * Sets the OrganizationContext. You may pass null to provide no organization
+   */
+  organization?: Partial<Organization> | null;
+  /**
+   * Sets the RouterContext
+   */
   router?: Partial<InjectedRouter>;
 };
 
@@ -51,6 +59,10 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
     ? createProvider(context)
     : createProvider(routerContext);
 
+  // In some cases we may want to not provide an organization at all
+  const optionalOrganization =
+    initializeOrgOptions.organization === null ? null : organization;
+
   return function ({children}: {children?: React.ReactNode}) {
     return (
       <ContextProvider>
@@ -65,7 +77,7 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
                   routes: router.routes,
                 }}
               >
-                <OrganizationContext.Provider value={organization}>
+                <OrganizationContext.Provider value={optionalOrganization}>
                   {children}
                 </OrganizationContext.Provider>
               </RouteContext.Provider>
@@ -89,7 +101,7 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
  */
 function render(ui: React.ReactElement, options?: Options) {
   options = options ?? {};
-  const {context, organization, project, projects, ...otherOptions} = options;
+  const {context, organization, ...otherOptions} = options;
   let {router} = options;
 
   if (router === undefined && context?.context?.router) {
@@ -99,8 +111,6 @@ function render(ui: React.ReactElement, options?: Options) {
   const AllTheProviders = makeAllTheProviders({
     context,
     organization,
-    project,
-    projects,
     router,
   });
 

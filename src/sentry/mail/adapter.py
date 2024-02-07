@@ -1,6 +1,7 @@
 import logging
 from collections import namedtuple
-from typing import Any, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from sentry import digests
 from sentry.digests import Digest
@@ -43,10 +44,10 @@ class MailAdapter:
         event: Any,
         futures: Sequence[RuleFuture],
         target_type: ActionTargetType,
-        target_identifier: Optional[int] = None,
-        fallthrough_choice: Optional[FallthroughChoiceType] = None,
+        target_identifier: str | None = None,
+        fallthrough_choice: FallthroughChoiceType | None = None,
         skip_digests: bool = False,
-        notification_uuid: Optional[str] = None,
+        notification_uuid: str | None = None,
     ) -> None:
         metrics.incr("mail_adapter.rule_notify")
         rules = []
@@ -72,7 +73,7 @@ class MailAdapter:
         project = event.group.project
         extra["project_id"] = project.id
 
-        if digests.enabled(project) and not skip_digests:
+        if digests.backend.enabled(project) and not skip_digests:
 
             def get_digest_option(key):
                 return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
@@ -81,7 +82,7 @@ class MailAdapter:
                 event.group.project, target_type, target_identifier, fallthrough_choice
             )
             extra["digest_key"] = digest_key
-            immediate_delivery = digests.add(
+            immediate_delivery = digests.backend.add(
                 digest_key,
                 event_to_record(event, rules, notification_uuid=notification_uuid),
                 increment_delay=get_digest_option("increment_delay"),
@@ -132,7 +133,7 @@ class MailAdapter:
         target_type,
         target_identifier=None,
         fallthrough_choice=None,
-        notification_uuid: Optional[str] = None,
+        notification_uuid: str | None = None,
         **kwargs,
     ):
         AlertRuleNotification(
@@ -148,9 +149,9 @@ class MailAdapter:
         project: Project,
         digest: Digest,
         target_type: ActionTargetType,
-        target_identifier: Optional[int] = None,
-        fallthrough_choice: Optional[FallthroughChoiceType] = None,
-        notification_uuid: Optional[str] = None,
+        target_identifier: int | None = None,
+        fallthrough_choice: FallthroughChoiceType | None = None,
+        notification_uuid: str | None = None,
     ) -> None:
         metrics.incr("mail_adapter.notify_digest")
         return DigestNotification(

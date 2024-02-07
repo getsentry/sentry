@@ -930,3 +930,25 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 23
+
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    def test_dont_turbo_trace_queries(self, mock_run):
+        # Need to create more projects so we'll even want to turbo in the first place
+        for _ in range(3):
+            self.create_project()
+        with self.feature(self.features):
+            self.client.get(self.url, {"query": f"trace:{'a' * 32}"}, format="json")
+
+        mock_run.assert_called_once
+        assert not mock_run.mock_calls[0].args[0].flags.turbo
+
+    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    def test_use_turbo_without_trace(self, mock_run):
+        # Need to create more projects so we'll even want to turbo in the first place
+        for _ in range(3):
+            self.create_project()
+        with self.feature(self.features):
+            self.client.get(self.url, format="json")
+
+        mock_run.assert_called_once
+        assert mock_run.mock_calls[0].args[0].flags.turbo

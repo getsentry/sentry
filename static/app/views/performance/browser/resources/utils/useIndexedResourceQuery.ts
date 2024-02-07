@@ -1,15 +1,16 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-const {SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanIndexedField;
+const {SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN} = SpanIndexedField;
 
 type Options = {
+  enabled?: boolean;
   limit?: number;
   queryConditions?: string[];
   referrer?: string;
@@ -21,6 +22,7 @@ export const useIndexedResourcesQuery = ({
   limit = 50,
   sorts,
   referrer,
+  enabled = true,
 }: Options) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -33,6 +35,7 @@ export const useIndexedResourcesQuery = ({
         `any(id)`,
         'project',
         'span.group',
+        RAW_DOMAIN,
         SPAN_DESCRIPTION,
         `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`,
       ],
@@ -55,6 +58,7 @@ export const useIndexedResourcesQuery = ({
     orgSlug,
     referrer,
     options: {
+      enabled,
       refetchOnWindowFocus: false,
     },
   });
@@ -64,6 +68,7 @@ export const useIndexedResourcesQuery = ({
       project: row.project as string,
       'transaction.id': row['transaction.id'] as string,
       [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]?.toString(),
+      [RAW_DOMAIN]: row[RAW_DOMAIN]?.toString(),
       'measurements.http.response_content_length': row[
         `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`
       ] as number,

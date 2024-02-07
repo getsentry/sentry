@@ -18,7 +18,7 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization, Project, ProjectKey} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';

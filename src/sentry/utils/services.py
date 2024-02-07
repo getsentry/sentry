@@ -5,21 +5,9 @@ import inspect
 import itertools
 import logging
 import threading
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from concurrent import futures
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from django.utils.functional import LazyObject, empty
 from rest_framework.request import Request
@@ -73,11 +61,11 @@ class LazyServiceWrapper(LazyObject, Proxied):
 
     def __init__(
         self,
-        backend_base: Type[Proxied],
+        backend_base: type[Proxied],
         backend_path: str,
         options: Mapping[str, Any],
-        dangerous: Optional[Sequence[Type[Service]]] = (),
-        metrics_path: Optional[str] = None,
+        dangerous: Sequence[type[Service]] | None = (),
+        metrics_path: str | None = None,
     ):
         super().__init__()
         self.__dict__.update(
@@ -139,7 +127,7 @@ def resolve_callable(value: str | AnyCallable) -> AnyCallable:
 
 
 class Context:
-    def __init__(self, request: Request, backends: Dict[Type[Service | None], Service]):
+    def __init__(self, request: Request, backends: dict[type[Service | None], Service]):
         self.request = request
         self.backends = backends
 
@@ -231,10 +219,10 @@ class Delegator:
 
     def __init__(
         self,
-        base: Type[Service],
-        backends: Mapping[str, Tuple[Service, Executor]],
+        base: type[Service],
+        backends: Mapping[str, tuple[Service, Executor]],
         selector: Selector,
-        callback: Optional[Callback] = None,
+        callback: Callback | None = None,
     ) -> None:
         self.base = base
         self.backends = backends
@@ -249,7 +237,7 @@ class Delegator:
 
     class State(threading.local):
         def __init__(self) -> None:
-            self.context: None | Context = None
+            self.context: Context | None = None
 
     __state = State()
 
@@ -399,7 +387,7 @@ class Delegator:
 
 def build_instance_from_options(
     options: Mapping[str, Any],
-    default_constructor: None | Callable[..., Service] = None,
+    default_constructor: Callable[..., Service] | None = None,
 ) -> Service:
     try:
         path = options["path"]
@@ -477,7 +465,7 @@ class ServiceDelegator(Delegator, Service):
             backend.setup()
 
 
-def get_invalid_timing_reason(timing: Tuple[Optional[float], Optional[float]]) -> str:
+def get_invalid_timing_reason(timing: tuple[float | None, float | None]) -> str:
     start, stop = timing
     if start is None and stop is None:
         return "no_data"
@@ -508,8 +496,8 @@ def callback_timing(
     backend_names: Sequence[str],
     results: Sequence[TimedFuture],
     metric_name: str,
-    result_comparator: Optional[Callable[[str, str, str, Any, Any], Mapping[str, str]]] = None,
-    sample_rate: Optional[float] = None,
+    result_comparator: Callable[[str, str, str, Any, Any], Mapping[str, str]] | None = None,
+    sample_rate: float | None = None,
 ) -> None:
     """
     Collects timing stats on results returned to the callback method of a `ServiceDelegator`. Either

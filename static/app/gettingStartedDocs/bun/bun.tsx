@@ -1,3 +1,4 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
@@ -5,9 +6,16 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
+
+const getInstallConfig = () => [
+  {
+    language: 'bash',
+    code: 'bun add @sentry/bun',
+  },
+];
 
 const getConfigureSnippet = (params: Params) => `
 //...
@@ -29,6 +37,18 @@ const getVerifySnippet = () => `try {
   Sentry.captureException(e);
 }`;
 
+const getMetricsConfigureSnippet = (params: DocsParams) => `
+Sentry.init({
+  dsn: "${params.dsn}",
+  _experiments: {
+    metricsAggregator: true,
+  },
+});`;
+
+const getMetricsVerifySnippet = () => `
+// Add 4 to a counter named 'hits'
+Sentry.metrics.increment('hits', 4);`;
+
 const onboarding: OnboardingConfig = {
   install: () => [
     {
@@ -36,12 +56,7 @@ const onboarding: OnboardingConfig = {
       description: t(
         "Sentry captures data by using an SDK within your application's runtime."
       ),
-      configurations: [
-        {
-          language: 'bash',
-          code: 'bun add @sentry/bun',
-        },
-      ],
+      configurations: getInstallConfig(),
     },
   ],
   configure: params => [
@@ -87,9 +102,92 @@ const onboarding: OnboardingConfig = {
         ],
 };
 
+const customMetricsOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version [codeVersion:7.91.0] of [codePackage:@sentry/bun].',
+        {
+          codeVersion: <code />,
+          codePackage: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'To enable capturing metrics, you first need to add the [codeIntegration:metricsAggregator] experiment to your [codeNamespace:Sentry.init] call in your main process.',
+        {
+          codeIntegration: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getMetricsConfigureSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getMetricsVerifySnippet(),
+            },
+          ],
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/bun/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  customMetricsOnboarding,
 };
 
 export default docs;

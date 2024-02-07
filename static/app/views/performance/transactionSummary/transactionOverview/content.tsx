@@ -1,12 +1,11 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import TransactionsList, {
-  DropdownOption,
-} from 'sentry/components/discover/transactionsList';
+import type {DropdownOption} from 'sentry/components/discover/transactionsList';
+import TransactionsList from 'sentry/components/discover/transactionsList';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -14,33 +13,32 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
-import {ActionBarItem} from 'sentry/components/smartSearchBar';
+import type {ActionBarItem} from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {
   formatTagKey,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
-import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {
-  MetricsEnhancedPerformanceDataContext,
-  useMEPDataContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {MetricsEnhancedPerformanceDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
-import {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
-import {TableColumn} from 'sentry/views/discover/table/types';
+import type {Actions} from 'sentry/views/discover/table/cellAction';
+import {updateQuery} from 'sentry/views/discover/table/cellAction';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
 import {TransactionPercentage} from 'sentry/views/performance/transactionSummary/transactionOverview/transactionPercentage';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';

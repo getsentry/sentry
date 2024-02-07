@@ -3,10 +3,11 @@ import './components/visualMap';
 import {forwardRef} from 'react';
 import type {HeatmapSeriesOption, VisualMapComponentOption} from 'echarts';
 
-import {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 
 import HeatMapSeries from './series/heatMapSeries';
-import BaseChart, {BaseChartProps} from './baseChart';
+import type {BaseChartProps} from './baseChart';
+import BaseChart from './baseChart';
 
 export interface HeatmapSeries
   extends Series,

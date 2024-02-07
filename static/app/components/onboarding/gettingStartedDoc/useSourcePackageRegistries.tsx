@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

@@ -1,35 +1,42 @@
 import omit from 'lodash/omit';
 
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, Organization, PageFilters, TagCollection} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import {EventData} from 'sentry/utils/discover/eventView';
+import type {
+  MetricsApiResponse,
+  Organization,
+  PageFilters,
+  TagCollection,
+} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {EventData} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {
-  formatMetricUsingUnit,
   getMetricsApiRequestQuery,
-  getSeriesName,
+  getMetricsSeriesName,
   groupByOp,
 } from 'sentry/utils/metrics';
+import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
-  formatMRI,
   formatMRIField,
   getMRI,
   getUseCaseFromMRI,
+  isMRIField,
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
-import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {MetricSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/metricSearchBar';
-import {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-import {DisplayType, Widget, WidgetQuery} from '../types';
+import type {Widget, WidgetQuery} from '../types';
+import {DisplayType} from '../types';
 
-import {DatasetConfig, handleOrderByReset} from './base';
+import type {DatasetConfig} from './base';
+import {handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -105,21 +112,25 @@ function getFormattedMRIHeaders(query?: WidgetQuery) {
   }, {});
 }
 
-function getMetricTimeseriesSortOptions(_, widgetQuery) {
-  if (!widgetQuery.columns) {
+function getMetricTimeseriesSortOptions(_, widgetQuery: WidgetQuery) {
+  if (!widgetQuery.fields?.[0]) {
     return [];
   }
 
-  return widgetQuery.columns.reduce((acc, column) => {
+  return widgetQuery.fields.reduce((acc, field) => {
+    if (!isMRIField(field)) {
+      return acc;
+    }
     return {
       ...acc,
-      [column]: {
-        label: column,
+      [`field:${field}`]: {
+        label: formatMRIField(field),
         value: {
-          kind: FieldValueKind.TAG,
+          kind: FieldValueKind.FIELD,
+          value: field,
           meta: {
-            name: column,
-            dataType: 'string',
+            name: field,
+            dataType: 'number',
           },
         },
       },
@@ -127,20 +138,21 @@ function getMetricTimeseriesSortOptions(_, widgetQuery) {
   }, {});
 }
 
-function getMetricTableSortOptions(_, widgetQuery) {
-  if (!widgetQuery.fields[0]) {
+function getMetricTableSortOptions(_, widgetQuery: WidgetQuery) {
+  if (!widgetQuery.fields?.[0]) {
     return [];
   }
 
-  return widgetQuery.fields.map((field, i) => {
-    const mri = getMRI(field);
-    const alias = widgetQuery.fieldAliases?.[i];
+  return widgetQuery.fields
+    .map((field, i) => {
+      const alias = widgetQuery.fieldAliases?.[i];
 
-    return {
-      label: alias ?? formatMRI(mri),
-      value: mri,
-    };
-  });
+      return {
+        label: alias || formatMRIField(field),
+        value: field,
+      };
+    })
+    .filter(option => isMRIField(option.value));
 }
 
 function getFields(
@@ -344,9 +356,7 @@ export function transformMetricsResponseToSeries(
   data.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {
       results.push({
-        seriesName:
-          queryAlias ||
-          getSeriesName(group, data.groups.length === 1, widgetQuery.columns),
+        seriesName: queryAlias || getMetricsSeriesName(group),
         data: data.intervals.map((interval, index) => ({
           name: interval,
           value: group.series[field][index] ?? 0,
@@ -355,9 +365,7 @@ export function transformMetricsResponseToSeries(
     });
   });
 
-  return results.sort((a, b) => {
-    return a.data[0].value < b.data[0].value ? -1 : 1;
-  });
+  return results;
 }
 
 function getMetricRequest(
@@ -382,22 +390,17 @@ function getMetricRequest(
       },
     ] as any);
   }
-  const per_page = limit && Number(limit) >= 10 ? limit : 10;
-
-  const useNewMetricsLayer = organization.features.includes(
-    'metrics-api-new-metrics-layer'
-  );
 
   const requestData = getMetricsApiRequestQuery(
     {
       field: query.aggregates[0],
-      query: query.conditions,
-      groupBy: query.columns,
+      query: query.conditions || undefined,
+      groupBy: query.columns || undefined,
+      orderBy: query.orderby || undefined,
     },
     pageFilters,
     {
-      per_page,
-      useNewMetricsLayer,
+      limit: limit || undefined,
       fidelity: displayType === DisplayType.BAR ? 'low' : 'high',
     }
   );

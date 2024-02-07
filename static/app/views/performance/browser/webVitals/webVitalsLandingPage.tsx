@@ -1,20 +1,28 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import moment from 'moment';
 
+import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {t} from 'sentry/locale';
+import {IconClose} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {SCORE_MIGRATION_TIMESTAMP} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
@@ -22,7 +30,7 @@ import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performanc
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
@@ -41,6 +49,12 @@ export default function WebVitalsLandingPage() {
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
+  const user = ConfigStore.get('user');
+
+  const {dismiss, isDismissed} = useDismissAlert({
+    key: `${organization.slug}-${user.id}:performance-score-migration-message-dismissed`,
+  });
+
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({enabled: shouldUseStoredScores});
@@ -51,8 +65,12 @@ export default function WebVitalsLandingPage() {
     (shouldUseStoredScores && isProjectScoresLoading) || isLoading || noTransactions
       ? undefined
       : shouldUseStoredScores
-      ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
-      : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+        ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
+        : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+
+  const scoreMigrationTimestampString = moment(SCORE_MIGRATION_TIMESTAMP).format(
+    'DD MMMM YYYY'
+  );
 
   return (
     <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
@@ -93,6 +111,30 @@ export default function WebVitalsLandingPage() {
           )}
           {!onboardingProject && (
             <Fragment>
+              {shouldUseStoredScores && !isDismissed && (
+                <StyledAlert type="info" showIcon>
+                  <AlertContent>
+                    <span>
+                      {tct(
+                        `We made improvements to how Performance Scores are calculated for your projects. Starting on [scoreMigrationTimestampString], scores are updated to more accurately reflect user experiences. [link:Read more about these improvements].`,
+                        {
+                          scoreMigrationTimestampString,
+                          link: (
+                            <ExternalLink href="https://sentry.engineering/blog/how-we-improved-performance-score-accuracy" />
+                          ),
+                        }
+                      )}
+                    </span>
+                    <DismissButton
+                      priority="link"
+                      icon={<IconClose />}
+                      onClick={dismiss}
+                      aria-label={t('Dismiss Alert')}
+                      title={t('Dismiss Alert')}
+                    />
+                  </AlertContent>
+                </StyledAlert>
+              )}
               <PerformanceScoreChartContainer>
                 <PerformanceScoreChart
                   projectScore={projectScore}
@@ -142,4 +184,24 @@ const OnboardingContainer = styled('div')`
 
 const WebVitalMetersContainer = styled('div')`
   margin-bottom: ${space(4)};
+`;
+
+export const AlertContent = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+export const DismissButton = styled(Button)`
+  color: ${p => p.theme.alert.info.iconColor};
+  pointer-events: all;
+  &:hover {
+    color: ${p => p.theme.alert.info.iconHoverColor};
+    opacity: 0.5;
+  }
+`;
+
+export const StyledAlert = styled(Alert)`
+  margin-top: ${space(2)};
 `;

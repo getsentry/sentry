@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, Optional
+from typing import Any
 
 from django import forms
 
@@ -12,8 +12,10 @@ from sentry.rules.filters import EventFilter
 from sentry.types.condition_activity import ConditionActivity
 
 SEVERITY_MATCH_CHOICES = {
+    MatchType.GREATER: "greater than",
     MatchType.GREATER_OR_EQUAL: "greater than or equal to",
     MatchType.LESS_OR_EQUAL: "less than or equal to",
+    MatchType.LESS: "less than",
 }
 CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).title()) for gc in GroupCategory])
 
@@ -33,7 +35,7 @@ class IssueSeverityFilter(EventFilter):
     label = "The issue's severity is {match} {value}"
     prompt = "The issue's severity is ..."
 
-    def _passes(self, group: Optional[Group]) -> bool:
+    def _passes(self, group: Group | None) -> bool:
         has_issue_severity_alerts = features.has(
             "projects:first-event-severity-alerting", self.project
         )
@@ -49,10 +51,14 @@ class IssueSeverityFilter(EventFilter):
 
         match = self.get_option("match")
 
-        if match == MatchType.GREATER_OR_EQUAL:
+        if match == MatchType.GREATER:
+            return severity > value
+        elif match == MatchType.GREATER_OR_EQUAL:
             return severity >= value
         elif match == MatchType.LESS_OR_EQUAL:
             return severity <= value
+        elif match == MatchType.LESS:
+            return severity < value
 
         return False
 
@@ -60,7 +66,7 @@ class IssueSeverityFilter(EventFilter):
         return self._passes(event.group)
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             group = Group.objects.get_from_cache(id=condition_activity.group_id)

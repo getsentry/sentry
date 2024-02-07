@@ -1,26 +1,43 @@
+import os
+
 import click
+from django.conf import settings
 
 from sentry.runner.decorators import configuration
 
 
 @click.group()
+@configuration
 def migrations():
-    "Manage migrations."
+    from sentry.runner.initializer import monkeypatch_django_migrations
+
+    # Include our monkeypatches for migrations.
+    monkeypatch_django_migrations()
+
+    # Allow dangerous/postdeploy migrations to be run.
+    os.environ["MIGRATION_SKIP_DANGEROUS"] = "0"
 
 
 @migrations.command()
 @click.argument("app_name")
 @click.argument("migration_name")
-@configuration
 @click.pass_context
-def run(ctx, app_name, migration_name):
-    "Manually run a single data migration. Will error if migration is not data only."
+def run(ctx, app_name: str, migration_name: str) -> None:
+    "Manually run a single data migration. Will error if migration is not post-deploy/dangerous"
     del ctx  # assertion: unused argument
 
-    from django.db import connection, connections
+    for connection_name in settings.DATABASES.keys():
+        if settings.DATABASES[connection_name].get("REPLICA_OF", False):
+            continue
+        run_for_connection(app_name, migration_name, connection_name)
+
+
+def run_for_connection(app_name: str, migration_name: str, connection_name: str) -> None:
+    from django.db import connections
     from django.db.migrations.executor import MigrationExecutor
 
-    executor = MigrationExecutor(connections["default"])
+    connection = connections[connection_name]
+    executor = MigrationExecutor(connection)
     migration = executor.loader.get_migration_by_prefix(app_name, migration_name)
     if not getattr(migration, "is_dangerous", None):
         raise click.ClickException(
@@ -33,9 +50,12 @@ def run(ctx, app_name, migration_name):
         at_end=False,
     )
 
-    click.secho("Running post-deployment migration:", fg="cyan")
+    click.secho(f"Running post-deployment migration for {connection_name}:", fg="cyan")
     click.secho(f"  {migration.name}", bold=True)
     with connection.schema_editor() as schema_editor:
+        # Enable 'safe' migration execution. This enables concurrent mode on index creation
+        setattr(schema_editor, "safe", True)
+
         for op in migration.operations:
             click.echo(f"    * {op.describe()}... ", nl=False)
             new_state = project_state.clone()

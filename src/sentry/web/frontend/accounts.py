@@ -11,11 +11,16 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 
 from sentry.models.lostpasswordhash import LostPasswordHash
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.security.utils import capture_security_activity
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-from sentry.signals import email_verified
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.signals import email_verified, terms_accepted
 from sentry.utils import auth
 from sentry.web.decorators import login_required, set_referrer_policy
 from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm
@@ -38,11 +43,13 @@ def get_template(mode, name):
 
 
 @login_required
+@control_silo_function
 def login_redirect(request):
     login_url = auth.get_login_redirect(request)
     return HttpResponseRedirect(login_url)
 
 
+@control_silo_function
 def expired(request, user):
     hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
     LostPasswordHash.send_recover_password_email(user, hash, request.META["REMOTE_ADDR"])
@@ -51,6 +58,7 @@ def expired(request, user):
     return render_to_response(get_template("recover", "expired"), context, request)
 
 
+@control_silo_function
 def recover(request):
     from sentry import ratelimits as ratelimiter
 
@@ -103,6 +111,7 @@ def recover(request):
 
 
 @set_referrer_policy("strict-origin-when-cross-origin")
+@control_silo_function
 def recover_confirm(request, user_id, hash, mode="recover"):
     try:
         password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
@@ -118,10 +127,31 @@ def recover_confirm(request, user_id, hash, mode="recover"):
     if request.method == "POST":
         form = form_cls(request.POST, user=user)
         if form.is_valid():
+            if mode == "relocate":
+                # Relocation form required users to accept TOS and privacy policy
+                # Only need first membership, since all of user's orgs will be in the same region.
+                membership = OrganizationMemberMapping.objects.filter(user=user).first()
+                mapping = OrganizationMapping.objects.get(
+                    organization_id=membership.organization_id
+                )
+                # These service calls need to be outside of the transaction block
+                rpc_user = user_service.get_user(user_id=user.id)
+                orgs = organization_service.get_organizations_by_user_and_scope(
+                    region_name=mapping.region_name, user=rpc_user
+                )
+                for org in orgs:
+                    terms_accepted.send_robust(
+                        user=user,
+                        organization=org,
+                        ip_address=request.META["REMOTE_ADDR"],
+                        sender=recover_confirm,
+                    )
+
             with transaction.atomic(router.db_for_write(User)):
                 if mode == "relocate":
                     user.username = form.cleaned_data["username"]
                     user.is_unclaimed = False
+
                 user.set_password(form.cleaned_data["password"])
                 user.refresh_session_nonce(request)
                 user.save()
@@ -163,6 +193,7 @@ relocate_confirm = update_wrapper(relocate_confirm, recover)
 
 @login_required
 @require_http_methods(["POST"])
+@control_silo_function
 def start_confirm_email(request):
     from sentry import ratelimits as ratelimiter
 
@@ -210,6 +241,7 @@ def start_confirm_email(request):
 
 
 @set_referrer_policy("strict-origin-when-cross-origin")
+@control_silo_function
 def confirm_email(request, user_id, hash):
     msg = _("Thanks for confirming your email")
     level = messages.SUCCESS

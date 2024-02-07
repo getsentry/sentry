@@ -1,4 +1,5 @@
-import {MouseEvent, useEffect, useMemo} from 'react';
+import type {MouseEvent} from 'react';
+import {useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
 import ObjectInspector from 'sentry/components/objectInspector';
@@ -8,7 +9,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {formatBytesBase10} from 'sentry/utils';
-import {
+import type {
   NetworkMetaWarning,
   ReplayNetworkRequestOrResponse,
 } from 'sentry/utils/replays/replay';
@@ -19,10 +20,10 @@ import {
   isRequestFrame,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {KeyValueTuple} from 'sentry/views/replays/detail/network/details/components';
 import {
   Indent,
   keyValueTableOrNotFound,
-  KeyValueTuple,
   SectionItem,
   SizeTooltip,
   Warning,

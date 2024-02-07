@@ -8,7 +8,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import GlobalModal from 'sentry/components/globalModal';
 
 import MetricRuleDuplicate from './duplicate';
-import {Action, AlertRuleTriggerType} from './types';
+import type {Action} from './types';
+import {AlertRuleTriggerType} from './types';
 
 describe('MetricRuleDuplicate', function () {
   beforeEach(function () {

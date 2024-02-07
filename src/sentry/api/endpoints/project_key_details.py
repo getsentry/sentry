@@ -50,7 +50,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ProjectExamples.BASE_KEY,
+        examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
     def get(self, request: Request, project, key_id) -> Response:
         """
@@ -102,7 +102,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ProjectExamples.BASE_KEY,
+        examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
     def put(self, request: Request, project, key_id) -> Response:
         """
@@ -175,7 +175,6 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_SLUG,
             ProjectParams.key_id("The ID of the key to delete."),
         ],
-        request=None,
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,

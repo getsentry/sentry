@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, ClassVar, Literal, Optional, Sequence, Tuple, Union, overload
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar, Literal, overload
 
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
@@ -60,11 +61,11 @@ class TeamManager(BaseManager["Team"]):
     def get_for_user(
         self,
         organization: Organization,
-        user: Union[User, RpcUser],
-        scope: Optional[str] = None,
+        user: User | RpcUser,
+        scope: str | None = None,
         is_team_admin: bool = False,
         with_projects: bool = False,
-    ) -> Union[Sequence[Team], Sequence[Tuple[Team, Sequence[Project]]]]:
+    ) -> Sequence[Team] | Sequence[tuple[Team, Sequence[Project]]]:
         """
         Returns a list of all teams a user has some level of access to.
         """
@@ -350,7 +351,7 @@ class Team(ReplicatedRegionModel, SnowflakeIdMixin):
     # TODO(hybrid-cloud): actor refactor. Remove this method when done.
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
         if old_pk is None:
             return None

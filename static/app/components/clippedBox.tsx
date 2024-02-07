@@ -2,7 +2,8 @@ import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -49,7 +50,7 @@ function calculateAddedHeight({
   }
 }
 
-function clearMaxHeight(element?: HTMLElement | null) {
+function clearMaxHeight(element: HTMLElement | null) {
   if (element) {
     element.style.maxHeight = 'none';
   }
@@ -90,7 +91,7 @@ function revealAndDisconnectObserver({
     wrapperRef.current.addEventListener('transitionend', onTransitionEnd);
     wrapperRef.current.style.maxHeight = `${revealedWrapperHeight}px`;
   } else {
-    clearMaxHeight();
+    clearMaxHeight(wrapperRef.current);
   }
 
   revealRef.current = true;

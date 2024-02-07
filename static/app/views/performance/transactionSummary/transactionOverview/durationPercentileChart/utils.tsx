@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
 const AGGREGATE_ALIAS_VALUE_EXTRACT_PATTERN = /(\d+)$/;

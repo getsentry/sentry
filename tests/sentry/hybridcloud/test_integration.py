@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import List
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
@@ -70,8 +69,8 @@ class BaseIntegrationServiceTest(TestCase):
 
     def verify_result(
         self,
-        result: List[RpcIntegration] | List[RpcOrganizationIntegration],
-        expected: List[Integration] | List[OrganizationIntegration],
+        result: list[RpcIntegration] | list[RpcOrganizationIntegration],
+        expected: list[Integration] | list[OrganizationIntegration],
     ):
         """Ensures APIModels in result, match the Models in expected"""
         assert len(result) == len(expected)
@@ -287,6 +286,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         new_org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = self.integration3.add_organization(new_org.id)
+        assert org_integration is not None
 
         result_integration, result_org_integration = integration_service.get_organization_context(
             organization_id=new_org.id,

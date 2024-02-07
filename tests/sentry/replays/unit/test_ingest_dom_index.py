@@ -4,14 +4,25 @@ import uuid
 from typing import Any
 from unittest import mock
 
+import pytest
+
 from sentry.replays.usecases.ingest.dom_index import (
     _get_testid,
     _parse_classes,
     encode_as_uuid,
     get_user_actions,
+    log_canvas_size,
     parse_replay_actions,
 )
+from sentry.testutils.helpers.features import Feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+
+
+@pytest.fixture(autouse=True)
+def patch_rage_click_issue():
+    with mock.patch("sentry.replays.usecases.ingest.dom_index.report_rage_click_issue") as m:
+        yield m
 
 
 def test_get_user_actions():
@@ -105,6 +116,7 @@ def test_parse_replay_actions():
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
                         "nodeId": 59,
+                        "url": "https://www.sentry.io",
                         "node": {
                             "id": 59,
                             "tagName": "div",
@@ -158,7 +170,8 @@ def test_parse_replay_actions():
     assert len(action["event_hash"]) == 36
 
 
-def test_parse_replay_dead_click_actions():
+@django_db_all
+def test_parse_replay_dead_click_actions(patch_rage_click_issue, default_project):
     events = [
         {
             "type": 5,
@@ -174,6 +187,7 @@ def test_parse_replay_dead_click_actions():
                         "endReason": "timeout",
                         "timeafterclickms": 7000.0,
                         "nodeId": 59,
+                        "url": "https://www.sentry.io",
                         "node": {
                             "id": 59,
                             "tagName": "a",
@@ -208,6 +222,7 @@ def test_parse_replay_dead_click_actions():
                         "endReason": "timeout",
                         "timeafterclickms": 7000.0,
                         "nodeId": 59,
+                        "url": "https://www.sentry.io",
                         "node": {
                             "id": 59,
                             "tagName": "a",
@@ -239,6 +254,7 @@ def test_parse_replay_dead_click_actions():
                     "category": "ui.slowClickDetected",
                     "message": "div.container > div#root > div > ul > div",
                     "data": {
+                        "url": "https://www.sentry.io",
                         "clickCount": 5,
                         "endReason": "timeout",
                         "timeAfterClickMs": 7000.0,
@@ -263,13 +279,20 @@ def test_parse_replay_dead_click_actions():
             },
         },
     ]
-    replay_actions = parse_replay_actions(1, "1", 30, events)
 
+    with Feature(
+        {
+            "organizations:session-replay-rage-click-issue-creation": True,
+        }
+    ):
+        default_project.update_option("sentry:replay_rage_click_issues", True)
+        replay_actions = parse_replay_actions(default_project.id, "1", 30, events)
+    assert patch_rage_click_issue.delay.call_count == 2
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
     assert replay_actions["replay_id"] == "1"
-    assert replay_actions["project_id"] == 1
+    assert replay_actions["project_id"] == default_project.id
     assert replay_actions["retention_days"] == 30
     assert isinstance(replay_actions["payload"], list)
 
@@ -306,7 +329,8 @@ def test_parse_replay_dead_click_actions():
     assert action["is_rage"] == 1
 
 
-def test_parse_replay_rage_click_actions():
+@django_db_all
+def test_parse_replay_rage_click_actions(default_project):
     events = [
         {
             "type": 5,
@@ -323,6 +347,7 @@ def test_parse_replay_rage_click_actions():
                         "timeafterclickms": 7000.0,
                         "clickcount": 5,
                         "nodeId": 59,
+                        "url": "https://www.sentry.io",
                         "node": {
                             "id": 59,
                             "tagName": "a",
@@ -343,13 +368,13 @@ def test_parse_replay_rage_click_actions():
             },
         }
     ]
-    replay_actions = parse_replay_actions(1, "1", 30, events)
+    replay_actions = parse_replay_actions(default_project.id, "1", 30, events)
 
     assert replay_actions is not None
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
     assert replay_actions["replay_id"] == "1"
-    assert replay_actions["project_id"] == 1
+    assert replay_actions["project_id"] == default_project.id
     assert replay_actions["retention_days"] == 30
     assert isinstance(replay_actions["payload"], list)
 
@@ -396,6 +421,7 @@ def test_parse_request_response_latest():
                     "startTimestamp": 1680009712.507,
                     "endTimestamp": 1680009712.671,
                     "data": {
+                        "url": "https://www.sentry.io",
                         "method": "POST",
                         "statusCode": 200,
                         "request": {
@@ -441,6 +467,7 @@ def test_parse_request_response_no_info():
                     "startTimestamp": 1680009712.507,
                     "endTimestamp": 1680009712.671,
                     "data": {
+                        "url": "https://www.sentry.io",
                         "method": "POST",
                         "statusCode": 200,
                     },
@@ -465,6 +492,7 @@ def test_parse_request_response_old_format_request_only():
                     "startTimestamp": 1680009712.507,
                     "endTimestamp": 1680009712.671,
                     "data": {
+                        "url": "https://www.sentry.io",
                         "method": "POST",
                         "statusCode": 200,
                         "requestBodySize": 1002,
@@ -632,3 +660,44 @@ def test_parse_classes():
     assert _parse_classes("  a b ") == ["a", "b"]
     assert _parse_classes("a  ") == ["a"]
     assert _parse_classes("  a") == ["a"]
+
+
+def test_log_canvas_size():
+    event = {
+        "type": 3,
+        "data": {
+            "source": 9,
+            "id": 2440,
+            "type": 0,
+            "commands": [
+                {"property": "clearRect", "args": [0, 0, 1342, 60]},
+                {
+                    "property": "drawImage",
+                    "args": [
+                        {
+                            "rr_type": "ImageBitmap",
+                            "args": [
+                                {
+                                    "rr_type": "Blob",
+                                    "data": [{"rr_type": "ArrayBuffer", "base64": "..."}],
+                                    "type": "image/png",
+                                }
+                            ],
+                        },
+                        0,
+                        0,
+                    ],
+                },
+            ],
+        },
+        "timestamp": 1704225903264,
+    }
+
+    # Valid event.
+    log_canvas_size(1, 1, "a", [event])
+
+    # Invalid event.
+    log_canvas_size(1, 1, "a", [{}])
+
+    # No events.
+    log_canvas_size(1, 1, "a", [])

@@ -15,11 +15,12 @@ import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
-jest.mock('sentry/components/charts/simpleTableChart');
+jest.mock('sentry/components/charts/simpleTableChart', () => jest.fn(() => <div />));
 jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', function () {
@@ -31,7 +32,7 @@ describe('Dashboards > WidgetCard', function () {
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
 
-  const renderWithProviders = component =>
+  const renderWithProviders = (component: React.ReactNode) =>
     render(
       <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
       {organization, router, context: routerContext}
@@ -99,10 +100,9 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={multipleQueryWidget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -126,10 +126,9 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -151,10 +150,9 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={multipleQueryWidget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -171,7 +169,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           queries: [
@@ -188,7 +185,7 @@ describe('Dashboards > WidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -210,7 +207,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TOP_N,
@@ -224,7 +220,7 @@ describe('Dashboards > WidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -246,7 +242,6 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.LINE,
@@ -261,7 +256,7 @@ describe('Dashboards > WidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -284,14 +279,13 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
@@ -312,14 +306,13 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={mock}
@@ -340,14 +333,13 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={mock}
         onDuplicate={() => undefined}
@@ -368,14 +360,13 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -403,14 +394,13 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -438,14 +428,13 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
           queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={mock}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -488,10 +477,9 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={tableWidget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -521,10 +509,9 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -549,10 +536,9 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        organization={organization}
         widget={widget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -592,7 +578,7 @@ describe('Dashboards > WidgetCard', function () {
           queries: [{...multipleQueryWidget.queries[0]}],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -663,7 +649,7 @@ describe('Dashboards > WidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -677,9 +663,8 @@ describe('Dashboards > WidgetCard', function () {
     });
     const {tooltip, yAxis} = spy.mock.calls.pop()?.[0] ?? {};
     expect(tooltip).toBeDefined();
+
     expect(yAxis).toBeDefined();
-    // @ts-expect-error
-    expect(tooltip.valueFormatter(24, 'p95(measurements.custom)')).toEqual('24.00ms');
     // @ts-expect-error
     expect(yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual('24ms');
   });
@@ -759,7 +744,7 @@ describe('Dashboards > WidgetCard', function () {
           ],
         }}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}
@@ -789,7 +774,7 @@ describe('Dashboards > WidgetCard', function () {
         }}
         widget={multipleQueryWidget}
         selection={selection}
-        isEditing={false}
+        isEditingDashboard={false}
         onDelete={() => undefined}
         onEdit={() => undefined}
         onDuplicate={() => undefined}

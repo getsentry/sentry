@@ -1,7 +1,7 @@
 import {createContext, useContext, useEffect, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 

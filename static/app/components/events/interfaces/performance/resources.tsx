@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
+import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export type ResourceLink = {
@@ -63,6 +63,7 @@ const LinkSection = styled('div')`
   a {
     display: flex;
     align-items: center;
+    width: max-content;
   }
 
   svg {

@@ -7,11 +7,14 @@ from requests.exceptions import ConnectionError
 from sentry.integrations.jira_server.integration import JiraServerIntegration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 from . import EXAMPLE_PAYLOAD, get_integration, link_group
 
 
+@region_silo_test
 class JiraServerWebhookEndpointTest(APITestCase):
     endpoint = "sentry-extensions-jiraserver-issue-updated"
     method = "post"
@@ -33,11 +36,12 @@ class JiraServerWebhookEndpointTest(APITestCase):
         self.get_error_response(" ", status_code=400)
 
     def test_post_missing_default_identity(self):
-        org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-        )
-        org_integration.update(default_auth_id=None, config={"sync_status_reverse": True})
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+            )
+            org_integration.update(default_auth_id=None, config={"sync_status_reverse": True})
 
         link_group(self.organization, self.integration, self.group)
 

@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import identity from 'lodash/identity';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -6,7 +6,7 @@ import pickBy from 'lodash/pickBy';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 
 /**
  * Make a default page filters object

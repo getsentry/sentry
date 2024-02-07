@@ -1,5 +1,4 @@
 import logging
-from typing import Dict
 
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
@@ -18,7 +17,7 @@ from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.notification_action import OutgoingNotificationActionSerializer
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
-from sentry.apidocs.examples import notification_examples
+from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams, OrganizationParams
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
@@ -77,7 +76,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=notification_examples.CREATE_NOTIFICATION_ACTION,
+        examples=NotificationActionExamples.CREATE_NOTIFICATION_ACTION,
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """
@@ -99,7 +98,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         queryset = queryset.filter(project_query).distinct()
         trigger_type_query = request.GET.getlist("triggerType")
         if trigger_type_query:
-            triggers: Dict[str, int] = {v: k for k, v in NotificationAction.get_trigger_types()}
+            triggers: dict[str, int] = {v: k for k, v in NotificationAction.get_trigger_types()}
             trigger_types = map(lambda t: triggers.get(t), trigger_type_query)
             queryset = queryset.filter(trigger_type__in=trigger_types)
         logger.info(
@@ -128,7 +127,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=notification_examples.CREATE_NOTIFICATION_ACTION,
+        examples=NotificationActionExamples.CREATE_NOTIFICATION_ACTION,
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """

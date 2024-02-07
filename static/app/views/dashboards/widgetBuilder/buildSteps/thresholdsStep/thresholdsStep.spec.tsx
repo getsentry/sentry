@@ -1,6 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ThresholdsStep, {ThresholdsConfig} from './thresholdsStep';
+import type {ThresholdsConfig} from './thresholdsStep';
+import ThresholdsStep from './thresholdsStep';
 
 const exampleThresholdsConfig: ThresholdsConfig = {
   max_values: {

@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 @control_silo_endpoint
 class SentryAppsEndpoint(SentryAppsBaseEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
 
@@ -96,7 +96,6 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         if self._has_hook_events(request) and not features.has(
             "organizations:integrations-event-hooks", organization, actor=request.user
         ):
-
             return Response(
                 {
                     "non_field_errors": [

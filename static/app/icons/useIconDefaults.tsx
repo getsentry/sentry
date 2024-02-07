@@ -1,6 +1,6 @@
 import {createContext, useContext} from 'react';
 
-import {SVGIconProps} from './svgIcon';
+import type {SVGIconProps} from './svgIcon';
 
 const IconDefaultsContext = createContext<SVGIconProps>({});
 

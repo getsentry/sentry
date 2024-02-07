@@ -1,4 +1,4 @@
-# This is used by the action https://github.com/dorny/paths-filter (which we have forked to https://github.com/getsentry/paths-filter)
+# This is used by the action https://github.com/dorny/paths-filter
 
 # TODO: There are some meta files that we potentially could ignore for both front/backend,
 # as well as some configuration files that should trigger both
@@ -92,12 +92,13 @@ backend_any_type: &backend_any_type
   - *api_docs
 
 migrations_added:
-  - added: 'src/sentry/migrations/*'
+  - added:
+      - 'src/sentry/migrations/*'
+      - 'src/sentry/feedback/migrations/*'
+      - 'src/sentry/hybridcloud/migrations/*'
+      - 'src/sentry/replays/migrations/*'
 
-migrations_modified:
-  - modified: 'src/sentry/migrations/*'
-
-# These files will trigger our wokrflow to check if lockfile
+# These files will trigger our workflow to check if lockfile
 # updates are needed
 migration_lockfile:
   - *backend_dependencies

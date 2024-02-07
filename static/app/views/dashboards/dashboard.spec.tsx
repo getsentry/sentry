@@ -7,7 +7,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import MemberListStore from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import Dashboard from 'sentry/views/dashboards/dashboard';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import type {Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {OrganizationContext} from '../organizationContext';
 
@@ -128,7 +129,7 @@ describe('Dashboards > Dashboard', () => {
         router={initialData.router}
         location={initialData.router.location}
         widgetLimitReached={false}
-        isEditing={false}
+        isEditingDashboard={false}
       />,
       {context: initialData.routerContext}
     );
@@ -143,7 +144,7 @@ describe('Dashboards > Dashboard', () => {
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
-        isEditing={false}
+        isEditingDashboard={false}
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
@@ -167,7 +168,7 @@ describe('Dashboards > Dashboard', () => {
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
-        isEditing={false}
+        isEditingDashboard={false}
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
@@ -187,7 +188,7 @@ describe('Dashboards > Dashboard', () => {
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
-        isEditing={false}
+        isEditingDashboard={false}
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
@@ -210,7 +211,7 @@ describe('Dashboards > Dashboard', () => {
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
-        isEditing={false}
+        isEditingDashboard={false}
         onUpdate={() => undefined}
         handleUpdateWidgetList={() => undefined}
         handleAddCustomWidget={mockHandleAddCustomWidget}
@@ -238,7 +239,7 @@ describe('Dashboards > Dashboard', () => {
               paramDashboardId="1"
               dashboard={dashboard}
               organization={mockedOrg}
-              isEditing={false}
+              isEditingDashboard={false}
               onUpdate={() => undefined}
               handleUpdateWidgetList={() => undefined}
               handleAddCustomWidget={() => undefined}
@@ -290,7 +291,7 @@ describe('Dashboards > Dashboard', () => {
               paramDashboardId="1"
               dashboard={dashboard}
               organization={mockedOrg}
-              isEditing
+              isEditingDashboard
               onUpdate={newWidgets => {
                 widgets.splice(0, widgets.length, ...newWidgets);
               }}

@@ -18,7 +18,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import {Organization, ServiceHook} from 'sentry/types';
+import type {Organization, ServiceHook} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';

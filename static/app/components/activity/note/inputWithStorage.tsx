@@ -3,8 +3,8 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {NoteInput} from 'sentry/components/activity/note/input';
-import {MentionChangeEvent} from 'sentry/components/activity/note/types';
-import {NoteType} from 'sentry/types/alerts';
+import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
+import type {NoteType} from 'sentry/types/alerts';
 import localStorage from 'sentry/utils/localStorage';
 
 type InputProps = React.ComponentProps<typeof NoteInput>;

@@ -2,7 +2,8 @@ import {useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,10 +12,11 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Frame} from 'sentry/utils/profiling/frame';
-import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
@@ -171,27 +173,32 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
     );
   }, [props.func, props.project]);
 
+  let rendered = <TextTruncateOverflow>{frame.name}</TextTruncateOverflow>;
+  if (defined(props.func['examples()']?.[0])) {
+    rendered = (
+      <Link
+        onClick={props.onSlowestFunctionClick}
+        to={generateProfileFlamechartRouteWithQuery({
+          orgSlug: props.organization.slug,
+          projectSlug: props.project?.slug ?? '',
+          profileId: props.func['examples()']?.[0] as string,
+          query: {
+            // specify the frame to focus, the flamegraph will switch
+            // to the appropriate thread when these are specified
+            frameName: frame.name as string,
+            framePackage: frame.package as string,
+          },
+        })}
+      >
+        {rendered}
+      </Link>
+    );
+  }
+
   return (
     <SlowestFunctionRow>
       <SlowestFunctionMainRow>
-        <div>
-          <Link
-            onClick={props.onSlowestFunctionClick}
-            to={generateProfileFlamechartRouteWithQuery({
-              orgSlug: props.organization.slug,
-              projectSlug: props.project?.slug ?? '',
-              profileId: (props.func['examples()']?.[0] as string) ?? '',
-              query: {
-                // specify the frame to focus, the flamegraph will switch
-                // to the appropriate thread when these are specified
-                frameName: frame.name as string,
-                framePackage: frame.package as string,
-              },
-            })}
-          >
-            <TextTruncateOverflow>{frame.name}</TextTruncateOverflow>
-          </Link>
-        </div>
+        <div>{rendered}</div>
         <div>
           <PerformanceDuration nanoseconds={props.func['sum()'] as number} abbreviation />
         </div>

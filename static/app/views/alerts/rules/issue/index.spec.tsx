@@ -1,4 +1,5 @@
-import {browserHistory, PlainRoute} from 'react-router';
+import type {PlainRoute} from 'react-router';
+import {browserHistory} from 'react-router';
 import selectEvent from 'react-select-event';
 import moment from 'moment';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
@@ -107,7 +108,7 @@ const createWrapper = (props = {}) => {
         userTeamIds={[]}
       />
     </ProjectAlerts>,
-    {context: routerContext}
+    {context: routerContext, organization}
   );
 
   return {

@@ -1,4 +1,4 @@
-import {DynamicSamplingBiasType} from 'sentry/types/sampling';
+import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 
 export type DynamicSamplingEventParameters = {
   'dynamic_sampling.custom_rule_add': {

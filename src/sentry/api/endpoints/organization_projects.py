@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
@@ -54,7 +54,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationProjectResponseDict", List[OrganizationProjectResponse]
+                "OrganizationProjectResponseDict", list[OrganizationProjectResponse]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,

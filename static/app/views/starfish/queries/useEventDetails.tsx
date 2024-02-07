@@ -1,4 +1,4 @@
-import {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

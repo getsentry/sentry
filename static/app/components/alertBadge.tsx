@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {DiamondStatus} from 'sentry/components/diamondStatus';
 import {IconCheckmark, IconExclamation, IconFire, IconIssues} from 'sentry/icons';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
 type Props = {

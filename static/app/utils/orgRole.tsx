@@ -1,4 +1,4 @@
-import {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types';
 
 export function getEffectiveOrgRole(
   memberOrgRoles: string[],

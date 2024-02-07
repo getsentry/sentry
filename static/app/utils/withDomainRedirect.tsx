@@ -1,4 +1,5 @@
-import {formatPattern, RouteComponent, RouteComponentProps} from 'react-router';
+import type {RouteComponent, RouteComponentProps} from 'react-router';
+import {formatPattern} from 'react-router';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 

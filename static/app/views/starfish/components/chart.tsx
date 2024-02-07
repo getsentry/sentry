@@ -1,9 +1,10 @@
-import {RefObject, useEffect, useRef, useState} from 'react';
+import type {RefObject} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LineSeriesOption} from 'echarts';
+import type {LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
-import {
+import type {
   MarkLineOption,
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -14,22 +15,22 @@ import max from 'lodash/max';
 import min from 'lodash/min';
 import moment from 'moment';
 
-import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import type {AreaChartProps} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {
-  FormatterOptions,
-  getFormatter,
-} from 'sentry/components/charts/components/tooltip';
+import type {FormatterOptions} from 'sentry/components/charts/components/tooltip';
+import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {isChartHovered} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
-import {
+import type {
   EChartClickHandler,
   EChartDataZoomHandler,
   EChartEventHandler,
@@ -44,11 +45,8 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {
-  aggregateOutputType,
-  AggregationOutputType,
-  RateUnits,
-} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
+import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -106,7 +104,7 @@ type Props = {
   onMouseOver?: EChartMouseOverHandler;
   preserveIncompletePoints?: boolean;
   previousData?: Series[];
-  rateUnit?: RateUnits;
+  rateUnit?: RateUnit;
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
@@ -217,8 +215,8 @@ function Chart({
           stacked
         )
       : percentOnly
-      ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
-      : undefined;
+        ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
+        : undefined;
     // Fix an issue where max == 1 for duration charts would look funky cause we round
     if (dataMax === 1 && durationOnly) {
       dataMax += 1;
@@ -282,14 +280,7 @@ function Chart({
     params,
     asyncTicket
   ) => {
-    // Kinda jank. Get hovered dom elements and check if any of them are the chart
-    const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
-      element => {
-        return element.classList.contains('echarts-for-react');
-      }
-    );
-
-    if (hoveredEchartElement === chartRef?.current?.ele) {
+    if (isChartHovered(chartRef?.current)) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,

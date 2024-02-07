@@ -1,9 +1,10 @@
 import * as Sentry from '@sentry/react';
-import {mat3, vec2} from 'gl-matrix';
+import type {vec2} from 'gl-matrix';
+import {mat3} from 'gl-matrix';
 
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   createAndBindBuffer,
@@ -16,10 +17,10 @@ import {
   resizeCanvasToDisplaySize,
   safeGetContext,
 } from 'sentry/utils/profiling/gl/utils';
+import type {FlamegraphRendererOptions} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {
   DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
   FlamegraphRenderer,
-  FlamegraphRendererOptions,
 } from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 

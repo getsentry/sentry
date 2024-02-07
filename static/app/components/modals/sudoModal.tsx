@@ -1,11 +1,11 @@
 import {Component, Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
@@ -16,7 +16,7 @@ import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Authenticator} from 'sentry/types';
+import type {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';

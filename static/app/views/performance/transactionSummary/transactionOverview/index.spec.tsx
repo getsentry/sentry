@@ -1,4 +1,5 @@
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
+import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -16,7 +17,7 @@ import {
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
@@ -143,7 +144,7 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -659,11 +660,7 @@ describe('Performance > TransactionSummary', function () {
           router={router}
           location={router.location}
         />,
-        {
-          context: routerContext,
-          organization,
-          projects: projects.map(project => project.id),
-        }
+        {context: routerContext, organization}
       );
 
       renderGlobalModal();

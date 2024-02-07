@@ -1,7 +1,15 @@
 {
   "ReleaseFile": {
     "type": "object",
-    "required": ["sha1", "dist", "name", "dateCreated", "headers", "id", "size"],
+    "required": [
+      "sha1",
+      "dist",
+      "name",
+      "dateCreated",
+      "headers",
+      "id",
+      "size"
+    ],
     "properties": {
       "sha1": {
         "type": "string"

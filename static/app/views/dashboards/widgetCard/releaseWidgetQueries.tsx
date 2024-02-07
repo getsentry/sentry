@@ -5,29 +5,24 @@ import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import {
+import type {
   MetricsApiResponse,
   Organization,
   PageFilters,
   Release,
   SessionApiResponse,
 } from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {Series} from 'sentry/types/echarts';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {ReleasesConfig} from '../datasetConfig/releases';
-import {
-  DashboardFilters,
-  DEFAULT_TABLE_LIMIT,
-  DisplayType,
-  Widget,
-  WidgetQuery,
-} from '../types';
+import type {DashboardFilters, Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -35,10 +30,11 @@ import {
   METRICS_EXPRESSION_TO_FIELD,
 } from '../widgetBuilder/releaseWidget/fields';
 
-import GenericWidgetQueries, {
+import type {
   GenericWidgetQueriesChildrenProps,
   GenericWidgetQueriesProps,
 } from './genericWidgetQueries';
+import GenericWidgetQueries from './genericWidgetQueries';
 
 type Props = {
   api: Client;

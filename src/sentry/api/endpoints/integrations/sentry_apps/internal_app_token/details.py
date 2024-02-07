@@ -20,17 +20,17 @@ from sentry.models.integrations.sentry_app_installation_token import SentryAppIn
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SentryInternalAppTokenPermission,)
 
-    def convert_args(self, request: Request, sentry_app_slug, api_token, *args, **kwargs):
+    def convert_args(self, request: Request, sentry_app_slug, api_token_id, *args, **kwargs):
         # get the sentry_app from the SentryAppBaseEndpoint class
         (args, kwargs) = super().convert_args(request, sentry_app_slug, *args, **kwargs)
 
         try:
-            kwargs["api_token"] = ApiToken.objects.get(token=api_token)
-        except ApiToken.DoesNotExist:
+            kwargs["api_token"] = ApiToken.objects.get(id=api_token_id)
+        except (ApiToken.DoesNotExist, ValueError):
             raise Http404
 
         return (args, kwargs)

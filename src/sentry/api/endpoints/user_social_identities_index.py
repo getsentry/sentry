@@ -12,7 +12,7 @@ from social_auth.models import UserSocialAuth
 @control_silo_endpoint
 class UserSocialIdentitiesIndexEndpoint(UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
 

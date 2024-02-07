@@ -90,16 +90,19 @@ function EditableText({
 
       setIsEditing(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enter, inputValue, onChange]);
 
   const onEsc = useCallback(() => {
     if (esc) {
       revertValueAndCloseEditor();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [esc]);
 
   useEffect(() => {
     revertValueAndCloseEditor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDisabled, value]);
 
   // focus the cursor in the input field on edit start

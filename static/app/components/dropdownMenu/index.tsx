@@ -5,12 +5,15 @@ import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
 import {Item, Section} from '@react-stately/collections';
 
-import DropdownButton, {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import {FormSize} from 'sentry/utils/theme';
-import useOverlay, {UseOverlayProps} from 'sentry/utils/useOverlay';
+import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
+import DropdownButton from 'sentry/components/dropdownButton';
+import type {FormSize} from 'sentry/utils/theme';
+import type {UseOverlayProps} from 'sentry/utils/useOverlay';
+import useOverlay from 'sentry/utils/useOverlay';
 
 import type {MenuItemProps} from './item';
-import DropdownMenuList, {DropdownMenuContext, DropdownMenuListProps} from './list';
+import type {DropdownMenuListProps} from './list';
+import DropdownMenuList, {DropdownMenuContext} from './list';
 
 export type {MenuItemProps};
 

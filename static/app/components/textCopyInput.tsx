@@ -3,7 +3,8 @@ import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {InputGroup, InputProps} from 'sentry/components/inputGroup';
+import type {InputProps} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/inputGroup';
 import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 

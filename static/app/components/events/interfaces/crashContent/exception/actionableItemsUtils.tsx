@@ -1,20 +1,21 @@
-import {EventErrorData} from 'sentry/components/events/errorItem';
+import type {EventErrorData} from 'sentry/components/events/errorItem';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import ExternalLink from 'sentry/components/links/externalLink';
+import type {HttpProcessingErrors} from 'sentry/constants/eventErrors';
 import {
   CocoaProcessingErrors,
   GenericSchemaErrors,
-  HttpProcessingErrors,
   JavascriptProcessingErrors,
   NativeProcessingErrors,
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
 import {tct} from 'sentry/locale';
-import {Project} from 'sentry/types';
-import {DebugFile} from 'sentry/types/debugFiles';
-import {Image} from 'sentry/types/debugImage';
-import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
+import type {Project} from 'sentry/types';
+import type {DebugFile} from 'sentry/types/debugFiles';
+import type {Image} from 'sentry/types/debugImage';
+import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -128,6 +129,20 @@ export function shouldErrorBeShown(error: EventErrorData, event: Event) {
     // The Cocoa SDK sends wrong values for contexts.trace.sampled before 8.7.4
     return false;
   }
+  // Hide unactionable source context errors that happen in flutter web: https://github.com/getsentry/sentry-dart/issues/1764
+  if (
+    event.sdk?.name === 'sentry.dart.flutter' &&
+    error.type === JavascriptProcessingErrors.JS_MISSING_SOURCES_CONTENT
+  ) {
+    const source: string | undefined = error.data?.source;
+    if (
+      source &&
+      (source.includes('org-dartlang-sdk:///dart-sdk/lib/_internal') ||
+        source.includes('flutter/packages/flutter/lib'))
+    ) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -147,20 +162,18 @@ const hasThreadOrExceptionMinifiedFrameData = (
     const exceptionValues: Array<ExceptionValue> =
       definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data?.values ?? [];
 
-    return exceptionValues.some(
-      exceptionValue =>
-        exceptionValue.stacktrace?.frames?.some(frame => isDataMinified(frame.module))
+    return exceptionValues.some(exceptionValue =>
+      exceptionValue.stacktrace?.frames?.some(frame => isDataMinified(frame.module))
     );
   }
 
   const threadExceptionValues = getThreadException(definedEvent, bestThread)?.values;
 
   return threadExceptionValues
-    ? threadExceptionValues.some(
-        threadExceptionValue =>
-          threadExceptionValue.stacktrace?.frames?.some(frame =>
-            isDataMinified(frame.module)
-          )
+    ? threadExceptionValues.some(threadExceptionValue =>
+        threadExceptionValue.stacktrace?.frames?.some(frame =>
+          isDataMinified(frame.module)
+        )
       )
     : bestThread?.stacktrace?.frames?.some(frame => isDataMinified(frame.module));
 };

@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
-import SentryTypes from 'sentry/sentryTypes';
-import {Project} from 'sentry/types';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
+import type {Project} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedProjectProps = {
@@ -19,7 +19,7 @@ const withProject = <P extends InjectedProjectProps>(
   > {
     static displayName = `withProject(${getDisplayName(WrappedComponent)})`;
     static contextTypes = {
-      project: SentryTypes.Project,
+      project: SentryPropTypeValidators.isProject,
     };
 
     render() {

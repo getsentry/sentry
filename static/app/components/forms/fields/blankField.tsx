@@ -1,5 +1,5 @@
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
+import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 
 /**
  * This class is meant to hook into `fieldFromConfig`. Like the SeparatorField

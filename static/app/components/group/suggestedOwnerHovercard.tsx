@@ -140,7 +140,9 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
                             // Link to release commits
                             <Link
                               to={{
-                                pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+                                pathname: `/organizations/${
+                                  organization?.slug
+                                }/releases/${encodeURIComponent(
                                   release.version
                                 )}/commits/`,
                                 query: {project: projectId},

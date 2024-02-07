@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import uuid
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any
 
 from sentry.utils import json
 
@@ -20,8 +20,8 @@ class EventType(Enum):
     Plugin = 6
 
 
-SegmentList = List[Dict[str, Any]]
-RRWebNode = Dict[str, Any]
+SegmentList = list[dict[str, Any]]
+RRWebNode = dict[str, Any]
 
 
 def sec(timestamp: datetime.datetime) -> int:
@@ -124,12 +124,14 @@ def mock_expected_response(
 
 def mock_replay(
     timestamp: datetime.datetime,
-    project_id: str,
+    project_id: int,
     replay_id: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
     tags = kwargs.pop("tags", {})
     tags.update({"transaction": kwargs.pop("title", "Title")})
+    tags = [[key, value] for key, value in tags.items()]
+
     return {
         "type": "replay_event",
         "start_time": sec(timestamp),
@@ -237,8 +239,8 @@ def mock_replay_click(
                                 "testid": kwargs.pop("testid", ""),
                                 "aria_label": kwargs.pop("aria_label", ""),
                                 "title": kwargs.pop("title", ""),
-                                "is_dead": kwargs.pop("is_dead", 0),
-                                "is_rage": kwargs.pop("is_rage", 0),
+                                "is_dead": int(kwargs.pop("is_dead", 0)),
+                                "is_rage": int(kwargs.pop("is_rage", 0)),
                                 "event_hash": str(uuid.uuid4()),
                                 "timestamp": sec(timestamp),
                             }

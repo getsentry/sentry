@@ -108,9 +108,11 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert req_params["client_id"] == ["client_id"]
         assert req_params["client_secret"] == ["client_secret"]
 
-        assert resp.status_code == 200
-
-        self.assertDialogSuccess(resp)
+        assert resp.status_code == 302
+        assert (
+            resp["Location"]
+            == f"http://testserver/settings/{self.organization.slug}/integrations/gitlab/"
+        )
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")
@@ -190,9 +192,13 @@ class GitlabIntegrationTest(IntegrationTestCase):
             "https://gitlab.example.com/oauth/token",
             json={"access_token": "access-token-value"},
         )
+
+        group_that_does_not_exist = "cool-group"
         responses.add(responses.GET, "https://gitlab.example.com/api/v4/user", json={"id": 9})
         responses.add(
-            responses.GET, "https://gitlab.example.com/api/v4/groups/cool-group", status=404
+            responses.GET,
+            f"https://gitlab.example.com/api/v4/groups/{group_that_does_not_exist}",
+            status=404,
         )
         resp = self.client.get(
             "{}?{}".format(
@@ -201,7 +207,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
             )
         )
         assert resp.status_code == 200
-        self.assertContains(resp, "GitLab group could not be found")
+        self.assertContains(resp, f"GitLab group {group_that_does_not_exist} could not be found")
 
     @responses.activate
     def test_get_group_id(self):
@@ -668,9 +674,12 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         assert req_params["client_id"] == ["client_id"]
         assert req_params["client_secret"] == ["client_secret"]
 
-        assert resp.status_code == 200
+        assert resp.status_code == 302
 
-        self.assertDialogSuccess(resp)
+        assert (
+            resp["Location"]
+            == f"http://testserver/settings/{self.organization.slug}/integrations/gitlab/"
+        )
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")

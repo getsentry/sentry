@@ -10,10 +10,11 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
-from sentry.sentry_metrics.querying.api import (
+from sentry.sentry_metrics.querying.data import run_metrics_query
+from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
+    LatestReleaseNotFoundError,
     MetricsQueryExecutionError,
-    run_metrics_query,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import string_to_use_case_id
@@ -26,7 +27,9 @@ from sentry.snuba.metrics import (
     get_tag_values,
 )
 from sentry.snuba.metrics.utils import DerivedMetricException, DerivedMetricParseException
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import InvalidField
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import parse_stats_period
 
@@ -47,7 +50,7 @@ def get_use_case_id(request: Request) -> UseCaseID:
 
 
 @region_silo_endpoint
-class OrganizationMetricsEndpoint(OrganizationEndpoint):
+class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -57,8 +60,14 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams("You must supply at least one project to see its metrics")
 
-        metrics = get_metrics_meta(projects, use_case_id=get_use_case_id(request))
+        start, end = get_date_range_from_params(request.GET)
+
+        metrics = get_metrics_meta(
+            projects=projects, use_case_id=get_use_case_id(request), start=start, end=end
+        )
 
         return Response(metrics, status=200)
 
@@ -73,15 +82,22 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
     """Get metric name, available operations, metric unit and available tags"""
 
     def get(self, request: Request, organization, metric_name) -> Response:
+        # Right now this endpoint is not used, however we are planning an entire refactor of
+        # the metrics endpoints.
         projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams(
+                "You must supply at least one project to see the details of a metric"
+            )
+
         try:
             metric = get_single_metric_info(
-                projects,
-                metric_name,
+                projects=projects,
+                metric_name=metric_name,
                 use_case_id=get_use_case_id(request),
             )
-        except InvalidParams as e:
-            raise ResourceDoesNotExist(e)
+        except InvalidParams as exc:
+            raise ResourceDoesNotExist(detail=str(exc))
         except (InvalidField, DerivedMetricParseException) as exc:
             raise ParseError(detail=str(exc))
 
@@ -107,12 +123,18 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         metric_names = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams("You must supply at least one project to see the tag names")
+
+        start, end = get_date_range_from_params(request.GET)
 
         try:
             tags = get_all_tags(
-                projects,
-                metric_names,
+                projects=projects,
+                metric_names=metric_names,
                 use_case_id=get_use_case_id(request),
+                start=start,
+                end=end,
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
@@ -130,15 +152,21 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
     """Get all existing tag values for a metric"""
 
     def get(self, request: Request, organization, tag_name) -> Response:
-        metric_names = request.GET.getlist("metric") or None
+        metric_names = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
+        if not projects:
+            raise InvalidParams("You must supply at least one project to see the tag values")
+
+        start, end = get_date_range_from_params(request.GET)
 
         try:
             tag_values = get_tag_values(
-                projects,
-                tag_name,
-                metric_names,
+                projects=projects,
+                tag_name=tag_name,
+                metric_names=metric_names,
                 use_case_id=get_use_case_id(request),
+                start=start,
+                end=end,
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise ParseError(str(exc))
@@ -159,7 +187,21 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
+    # still 40 req/s but allows for bursts of 200 up to req/s for dashboard loading
+    default_rate_limit = RateLimit(200, 5)
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: default_rate_limit,
+            RateLimitCategory.USER: default_rate_limit,
+            RateLimitCategory.ORGANIZATION: default_rate_limit,
+        },
+    }
+
+    # Number of groups returned for each page (applies to old endpoint).
     default_per_page = 50
+    # Number of groups returned (applies to new endpoint).
+    default_limit = 20
 
     def _new_get(self, request: Request, organization) -> Response:
         # We first parse the interval and date, since this is dependent on the query params.
@@ -167,24 +209,38 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         interval = int(3600 if interval is None else interval.total_seconds())
         start, end = get_date_range_from_params(request.GET)
 
+        limit = request.GET.get("limit")
+        if not limit:
+            limit = self.default_limit
+        else:
+            try:
+                limit = int(limit)
+            except ValueError:
+                return Response(
+                    status=400,
+                    data={"detail": "The provided `limit` is invalid, an integer is required"},
+                )
+
         try:
-            # We then run the query and inject directly the field, query and groupBy, since they will be parsed
-            # internally.
             results = run_metrics_query(
                 fields=request.GET.getlist("field", []),
-                query=request.GET.get("query"),
-                group_bys=request.GET.getlist("groupBy"),
                 interval=interval,
                 start=start,
                 end=end,
                 organization=organization,
                 projects=self.get_projects(request, organization),
                 environments=self.get_environments(request, organization),
-                # TODO: move referrers into a centralized place.
-                referrer="metrics.data.api",
+                referrer=Referrer.API_DDM_METRICS_DATA.value,
+                # Optional parameters.
+                query=request.GET.get("query"),
+                group_bys=request.GET.getlist("groupBy"),
+                order_by=request.GET.get("orderBy"),
+                limit=limit,
             )
         except InvalidMetricsQueryError as e:
             return Response(status=400, data={"detail": str(e)})
+        except LatestReleaseNotFoundError as e:
+            return Response(status=404, data={"detail": str(e)})
         except MetricsQueryExecutionError as e:
             return Response(status=500, data={"detail": str(e)})
 

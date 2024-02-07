@@ -1,4 +1,4 @@
-import {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types';
 
 export enum PlatformCategory {
   FRONTEND,
@@ -297,6 +297,8 @@ export const releaseHealth: PlatformKey[] = [
   'native-crashpad',
   'native-breakpad',
   'native-qt',
+  'electron',
+  'javascript-electron',
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
@@ -378,6 +380,15 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 ];
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
+  'bun',
+  'dotnet',
+  'dotnet-aspnetcore',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-winforms',
+  'dotnet-wpf',
   'php',
   'php-laravel',
   // TODO: Enable once metrics are available for Symfony
@@ -406,6 +417,13 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'python-tryton',
   'python-wsgi',
   'rust',
+  'node',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-connect',
+  'node-express',
+  'node-gcpfunctions',
+  'node-koa',
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [

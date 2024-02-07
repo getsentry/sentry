@@ -1,36 +1,20 @@
-import requests
-import urllib3
-from django.conf import settings
-from sentry_kafka_schemas import sentry_kafka_schemas
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 
-from sentry.issues.attributes import _retrieve_group_values, _retrieve_snapshot_values
+from sentry.issues.attributes import (
+    _bulk_retrieve_snapshot_values,
+    _retrieve_group_values,
+    produce_snapshot_to_kafka,
+)
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.utils import json, snuba
+from sentry.utils import json
 from sentry.utils.snuba import _snql_query
 
 
 class DatasetTest(SnubaTestCase, TestCase):
     def _send(self, snapshot: GroupAttributesSnapshot) -> None:
-        serialized_data = json.dumps(snapshot)
-        codec = sentry_kafka_schemas.get_codec(topic=settings.KAFKA_GROUP_ATTRIBUTES)
-        codec.decode(serialized_data.encode("utf-8"), validate=True)
-
-        try:
-            resp = requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/group_attributes/insert",
-                data=json.dumps([snapshot]),
-            )
-
-            if resp.status_code != 200:
-                raise snuba.SnubaError(
-                    f"HTTP {resp.status_code} response from Snuba! {json.loads(resp.text)}"
-                )
-            return None
-        except urllib3.exceptions.HTTPError as err:
-            raise snuba.SnubaError(err)
+        produce_snapshot_to_kafka(snapshot)
 
     def test_query_dataset_returns_empty(self) -> None:
         json_body = {
@@ -58,8 +42,8 @@ class DatasetTest(SnubaTestCase, TestCase):
         project = self.create_project()
         group = self.create_group(project=project)
 
-        snapshot = _retrieve_snapshot_values(_retrieve_group_values(group.id), False)
-        self._send(snapshot)
+        snapshot = _bulk_retrieve_snapshot_values([_retrieve_group_values(group.id)], False)
+        self._send(snapshot[0])
 
         json_body = {
             "selected_columns": ["project_id", "group_id"],

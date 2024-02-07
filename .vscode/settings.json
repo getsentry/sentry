@@ -17,18 +17,24 @@
   "files.trimFinalNewlines": true,
   "files.insertFinalNewline": true,
 
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
-  },
-
   "[javascript]": {
     "editor.formatOnSave": true,
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit",
+      "source.fixAll.eslint": "explicit"
+    }
   },
 
   "[typescript]": {
     "editor.formatOnSave": true,
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit",
+      "source.fixAll.eslint": "explicit"
+    }
   },
   // Exclude Specific Files from Auto-Imports
   "typescript.preferences.autoImportFileExcludePatterns": [
@@ -41,29 +47,54 @@
 
   "[typescriptreact]": {
     "editor.formatOnSave": true,
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit",
+      "source.fixAll.eslint": "explicit"
+    }
   },
 
   "[javascriptreact]": {
     "editor.formatOnSave": true,
-    "editor.tabSize": 2
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit",
+      "source.fixAll.eslint": "explicit"
+    }
   },
 
   "[less]": {
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
   },
 
   "[python]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit",
-      "source.fixAll.eslint": "never"
+      "source.organizeImports": "explicit"
     },
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
 
   "[html]": {
     "editor.formatOnSave": false
+  },
+
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome",
+    "editor.codeActionsOnSave": {
+      "quickfix.biome": "explicit"
+    }
+  },
+
+  "[markdown]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
   },
 
   "editor.tabSize": 4,

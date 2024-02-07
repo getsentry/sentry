@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
@@ -18,9 +18,9 @@ import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, Project} from 'sentry/types';
+import type {Organization, PageFilters, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -29,7 +29,8 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
 
 import ChangedTransactions from './changedTransactions';
-import {TrendChangeType, TrendFunctionField, TrendView} from './types';
+import type {TrendFunctionField, TrendView} from './types';
+import {TrendChangeType} from './types';
 import {
   DEFAULT_MAX_DURATION,
   DEFAULT_TRENDS_STATS_PERIOD,

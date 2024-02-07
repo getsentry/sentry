@@ -51,17 +51,25 @@
   },
   "User": {
     "type": "object",
-    "required": ["schemas", "id", "active", "userName", "name", "meta", "emails"],
+    "required": [
+      "schemas",
+      "id",
+      "active",
+      "userName",
+      "name",
+      "meta",
+      "emails"
+    ],
     "properties": {
-      "schemas": {"$ref": "#/definitions/schemas"},
+      "schemas": { "$ref": "#/definitions/schemas" },
       "id": {
         "type": "string"
       },
-      "active": {"$ref": "#/definitions/active"},
-      "userName": {"$ref": "#/definitions/userName"},
-      "name": {"$ref": "#/definitions/name"},
-      "meta": {"$ref": "#/definitions/meta"},
-      "emails": {"$ref": "#/definitions/emails"}
+      "active": { "$ref": "#/definitions/active" },
+      "userName": { "$ref": "#/definitions/userName" },
+      "name": { "$ref": "#/definitions/name" },
+      "meta": { "$ref": "#/definitions/meta" },
+      "emails": { "$ref": "#/definitions/emails" }
     }
   }
 }

@@ -4,8 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import QuickTrace from 'sentry/components/quickTrace';
-import {Event} from 'sentry/types/event';
-import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
+import type {Event} from 'sentry/types/event';
+import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 describe('Quick Trace', function () {
   let location;
@@ -34,8 +34,8 @@ describe('Quick Trace', function () {
           generation === 0
             ? null
             : parentId === null
-            ? `s${generation - 1}${parentId}`
-            : `s${parentId}`,
+              ? `s${generation - 1}${parentId}`
+              : `s${parentId}`,
         performance_issues: [],
       });
     }

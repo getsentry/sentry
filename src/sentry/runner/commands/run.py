@@ -3,9 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
-import sys
 from multiprocessing import cpu_count
-from typing import Optional
 
 import click
 
@@ -72,8 +70,8 @@ def kafka_options(
     consumer_group: str,
     allow_force_cluster: bool = True,
     include_batching_options: bool = False,
-    default_max_batch_size: Optional[int] = None,
-    default_max_batch_time_ms: Optional[int] = 1000,
+    default_max_batch_size: int | None = None,
+    default_max_batch_time_ms: int | None = 1000,
 ):
     """
     Basic set of Kafka options for a consumer.
@@ -232,13 +230,7 @@ def run_worker(**options):
             **options,
         )
         worker.start()
-        try:
-            sys.exit(worker.exitcode)
-        except AttributeError:
-            # `worker.exitcode` was added in a newer version of Celery:
-            # https://github.com/celery/celery/commit/dc28e8a5
-            # so this is an attempt to be forward compatible
-            pass
+        raise SystemExit(worker.exitcode)
 
 
 @run.command()
@@ -562,7 +554,7 @@ def basic_consumer(consumer_name, consumer_args, topic, **options):
     initialize_arroyo_main()
 
     processor = get_stream_processor(consumer_name, consumer_args, topic=topic, **options)
-    run_processor_with_signals(processor)
+    run_processor_with_signals(processor, consumer_name)
 
 
 @run.command("dev-consumer")

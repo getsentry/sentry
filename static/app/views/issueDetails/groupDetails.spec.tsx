@@ -15,7 +15,8 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Environment, Group, IssueCategory} from 'sentry/types';
+import type {Environment, Group} from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -252,22 +253,6 @@ describe('groupDetails', () => {
     expect(await screen.findByText('eventError')).toBeInTheDocument();
   });
 
-  it('renders for review reason', async function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
-      body: {
-        ...group,
-        inbox: {
-          date_added: '2020-11-24T13:17:42.248751Z',
-          reason: 0,
-          reason_details: null,
-        },
-      },
-    });
-    createWrapper();
-    expect(await screen.findByText('New Issue')).toBeInTheDocument();
-  });
-
   it('renders substatus badge', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
@@ -280,7 +265,7 @@ describe('groupDetails', () => {
     });
     createWrapper({
       ...defaultInit,
-      organization: {...defaultInit.organization, features: ['escalating-issues']},
+      organization: {...defaultInit.organization},
     });
     expect(await screen.findByText('Ongoing')).toBeInTheDocument();
   });

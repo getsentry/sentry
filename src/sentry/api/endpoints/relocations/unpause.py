@@ -1,6 +1,5 @@
 import logging
 from string import Template
-from typing import Optional
 
 from django.db import DatabaseError, router, transaction
 from rest_framework.request import Request
@@ -39,7 +38,7 @@ class RelocationUnpauseEndpoint(Endpoint):
     }
     permission_classes = (SuperuserPermission,)
 
-    def _unpause(self, request: Request, relocation: Relocation) -> Optional[Response]:
+    def _unpause(self, request: Request, relocation: Relocation) -> Response | None:
         """
         Helper function to do the actual unpausing in a transaction-safe manner. It will only return
         a `Response` if the relocation failed - otherwise, it will return `None` and let the calling

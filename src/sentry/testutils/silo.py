@@ -1,27 +1,17 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import inspect
 import os
 import re
 import sys
+import threading
+import typing
+from collections.abc import Callable, Collection, Generator, Iterable, MutableSet, Sequence
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Dict,
-    Iterable,
-    List,
-    Literal,
-    MutableSet,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-    cast,
-)
+from typing import Any, Literal, cast
 from unittest import TestCase
 
 import pytest
@@ -30,24 +20,70 @@ from django.db.models import Model
 from django.db.models.fields.related import RelatedField
 from django.test import override_settings
 
-from sentry import deletions
-from sentry.api.utils import generate_region_url
-from sentry.db.models.base import BaseModel, ModelSiloLimit
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
-from sentry.deletions.base import BaseDeletionTask
-from sentry.models.actor import Actor
-from sentry.silo import SiloMode, match_fence_query
+from sentry.silo import SiloMode, SingleProcessSiloModeState, match_fence_query
 from sentry.testutils.region import get_test_env_directory, override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.snowflake import SnowflakeIdMixin
+
+if typing.TYPE_CHECKING:
+    from sentry.db.models.base import BaseModel, ModelSiloLimit
 
 TestMethod = Callable[..., None]
 
 SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 
 
+def monkey_patch_single_process_silo_mode_state():
+    class LocalSiloModeState(threading.local):
+        mode: SiloMode | None = None
+        region: Region | None = None
+
+    state = LocalSiloModeState()
+
+    @contextlib.contextmanager
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
+        assert state.mode is None, (
+            "Re-entrant invariant broken! Use exit_single_process_silo_context "
+            "to explicit pass 'fake' RPC boundaries."
+        )
+
+        old_mode = state.mode
+        old_region = state.region
+        state.mode = mode
+        state.region = region
+        try:
+            yield
+        finally:
+            state.mode = old_mode
+            state.region = old_region
+
+    @contextlib.contextmanager
+    def exit() -> Generator[None, None, None]:
+        old_mode = state.mode
+        old_region = state.region
+        state.mode = None
+        state.region = None
+        try:
+            yield
+        finally:
+            state.mode = old_mode
+            state.region = old_region
+
+    def get_mode() -> SiloMode | None:
+        return state.mode
+
+    def get_region() -> Region | None:
+        return state.region
+
+    SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_mode = staticmethod(get_mode)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
+
+
 def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Region, ...]:
+    from sentry.api.utils import generate_region_url
+
     single_tenants = frozenset(single_tenants)
     return tuple(
         Region(
@@ -65,6 +101,8 @@ def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tupl
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
+    from sentry.db.models.base import ModelSiloLimit
+
     silo_limit = getattr(t._meta, "silo_limit", None)
     if not isinstance(silo_limit, ModelSiloLimit):
         raise ValueError(
@@ -152,8 +190,8 @@ class _SiloModeTestModification:
             yield
 
     def _create_overriding_test_class(
-        self, test_class: Type[TestCase], silo_mode: SiloMode, name_suffix: str = ""
-    ) -> Type[TestCase]:
+        self, test_class: type[TestCase], silo_mode: SiloMode, name_suffix: str = ""
+    ) -> type[TestCase]:
         def override_method(method_name: str) -> Callable[..., Any]:
             context = self.test_config(silo_mode)
             method: Callable[..., Any] = getattr(test_class, method_name)
@@ -168,7 +206,7 @@ class _SiloModeTestModification:
         }
         name = test_class.__name__ + name_suffix
         new_class = type(name, (test_class,), new_methods)
-        return cast(Type[TestCase], new_class)
+        return cast(type[TestCase], new_class)
 
     def _arrange_silo_modes(self) -> tuple[SiloMode, Collection[SiloMode]]:
         """Select which silo modes will be tested by the original and dynamic classes.
@@ -188,7 +226,7 @@ class _SiloModeTestModification:
         else:
             return SiloMode.MONOLITH, non_monolith_modes
 
-    def _add_siloed_test_classes_to_module(self, test_class: Type[TestCase]) -> Type[TestCase]:
+    def _add_siloed_test_classes_to_module(self, test_class: type[TestCase]) -> type[TestCase]:
         primary_mode, secondary_modes = self._arrange_silo_modes()
 
         for silo_mode in secondary_modes:
@@ -226,11 +264,6 @@ class _SiloModeTestModification:
         if not (is_test_case_class or is_function):
             raise ValueError("@SiloModeTest must decorate a function or TestCase class")
 
-        if is_test_case_class:
-            self._validate_that_no_ancestor_is_silo_decorated(decorated_obj)
-            # _silo_modes is used to mark the class as silo decorated in the above validation
-            decorated_obj._silo_modes = self.silo_modes
-
         if SENTRY_USE_MONOLITH_DBS:
             # In this case, skip modifying the object and let it run in the default
             # silo mode (monolith)
@@ -242,6 +275,15 @@ class _SiloModeTestModification:
         return self._mark_parameterized_by_silo_mode(decorated_obj)
 
     def _validate_that_no_ancestor_is_silo_decorated(self, object_to_validate: Any):
+        # Deprecated? Silo decorators at multiple places in the inheritance tree may
+        # be necessary if a base class needs to be run in a non-default mode,
+        # especially when the default is no longer region mode. The previous
+        # rationale may have been limited to problems around swapping the local
+        # region, which may now be resolved.
+        #
+        # TODO(RyanSkonnord): Delete this after ascertaining that it's safe to have
+        #  silo decorators on test case class ancestors
+
         class_queue = [object_to_validate]
 
         # Do a breadth-first traversal of all base classes to ensure that the
@@ -251,9 +293,12 @@ class _SiloModeTestModification:
             current_class = class_queue.pop(0)
             if getattr(current_class, "_silo_modes", None):
                 raise AncestorAlreadySiloDecoratedException(
-                    f"Cannot decorate class '{object_to_validate.__name__}', which inherits from a silo decorated class"
+                    f"Cannot decorate class '{object_to_validate.__name__}', "
+                    f"which inherits from a silo decorated class ({current_class.__name__})"
                 )
             class_queue.extend(current_class.__bases__)
+
+        object_to_validate._silo_modes = self.silo_modes
 
 
 all_silo_test = SiloModeTestDecorator(*SiloMode)
@@ -311,15 +356,15 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
             region_dir = get_test_env_directory()
             with region_dir.swap_to_default_region():
                 yield
-        elif desired_silo == SiloMode.MONOLITH:
+        else:
             with override_settings(SENTRY_REGION=None):
                 yield
-        else:
-            yield
 
 
 @contextmanager
-def assume_test_silo_mode_of(*models: Type[BaseModel], can_be_monolith: bool = True) -> Any:
+def assume_test_silo_mode_of(*models: type[BaseModel], can_be_monolith: bool = True) -> Any:
+    from sentry.db.models.base import ModelSiloLimit
+
     """Potentially swap to the silo mode to match the provided model classes.
 
     The argument should be one or more model classes that are scoped to exactly one
@@ -367,10 +412,13 @@ def protected_table(table: str, operation: str) -> re.Pattern:
     return re.compile(f'{operation}[^"]+"{table}"', re.IGNORECASE)
 
 
-_protected_operations: List[re.Pattern] = []
+_protected_operations: list[re.Pattern] = []
 
 
-def get_protected_operations() -> List[re.Pattern]:
+def get_protected_operations() -> list[re.Pattern]:
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+    from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
+
     if len(_protected_operations):
         return _protected_operations
 
@@ -411,7 +459,7 @@ def get_protected_operations() -> List[re.Pattern]:
     return _protected_operations
 
 
-def validate_protected_queries(queries: Sequence[Dict[str, str]]) -> None:
+def validate_protected_queries(queries: Sequence[dict[str, str]]) -> None:
     """
     Validate a list of queries to ensure that protected queries
     are wrapped in role_override fence values.
@@ -470,7 +518,7 @@ def validate_protected_queries(queries: Sequence[Dict[str, str]]) -> None:
                 raise AssertionError("\n".join(msg))
 
 
-def iter_models(app_name: str | None = None) -> Iterable[Type[Model]]:
+def iter_models(app_name: str | None = None) -> Iterable[type[Model]]:
     for app, app_models in apps.all_models.items():
         if app == app_name or app_name is None:
             for model in app_models.values():
@@ -483,7 +531,7 @@ def iter_models(app_name: str | None = None) -> Iterable[Type[Model]]:
                 yield model
 
 
-def validate_models_have_silos(exemptions: Set[Type[Model]], app_name: str | None = None) -> None:
+def validate_models_have_silos(exemptions: set[type[Model]], app_name: str | None = None) -> None:
     for model in iter_models(app_name):
         if model in exemptions:
             continue
@@ -495,17 +543,20 @@ def validate_models_have_silos(exemptions: Set[Type[Model]], app_name: str | Non
 
 
 def validate_no_cross_silo_foreign_keys(
-    exemptions: Set[Tuple[Type[Model], Type[Model]]], app_name: str | None = None
-) -> Set[Any]:
-    seen: Set[Any] = set()
+    exemptions: set[tuple[type[Model], type[Model]]], app_name: str | None = None
+) -> set[Any]:
+    seen: set[Any] = set()
     for model in iter_models(app_name):
         seen |= validate_model_no_cross_silo_foreign_keys(model, exemptions)
     return seen
 
 
 def validate_no_cross_silo_deletions(
-    exemptions: Set[Tuple[Type[Model], Type[Model]]], app_name: str | None = None
+    exemptions: set[tuple[type[Model], type[Model]]], app_name: str | None = None
 ) -> None:
+    from sentry import deletions
+    from sentry.deletions.base import BaseDeletionTask
+
     for model_class in iter_models(app_name):
         if not hasattr(model_class._meta, "silo_limit"):
             continue
@@ -522,8 +573,8 @@ def validate_no_cross_silo_deletions(
 
 
 def _is_relation_cross_silo(
-    model: Type[Model] | Literal["self"],
-    related: Type[Model] | Literal["self"],
+    model: type[Model] | Literal["self"],
+    related: type[Model] | Literal["self"],
 ) -> bool:
     if model == "self" or related == "self":
         return False
@@ -534,8 +585,8 @@ def _is_relation_cross_silo(
 
 
 def validate_relation_does_not_cross_silo_foreign_keys(
-    model: Type[Model] | Literal["self"],
-    related: Type[Model] | Literal["self"],
+    model: type[Model] | Literal["self"],
+    related: type[Model] | Literal["self"],
 ) -> None:
     if model == "self" or related == "self":
         return
@@ -546,7 +597,9 @@ def validate_relation_does_not_cross_silo_foreign_keys(
             )
 
 
-def validate_hcfk_has_global_id(model: Type[Model], related_model: Type[Model]):
+def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]):
+    from sentry.models.actor import Actor
+
     # HybridCloudForeignKey can point to region models if they have snowflake ids
     if issubclass(related_model, SnowflakeIdMixin):
         return
@@ -563,12 +616,12 @@ def validate_hcfk_has_global_id(model: Type[Model], related_model: Type[Model]):
 
 
 def validate_model_no_cross_silo_foreign_keys(
-    model: Type[Model],
-    exemptions: Set[Tuple[Type[Model], Type[Model]]],
-) -> Set[Any]:
+    model: type[Model],
+    exemptions: set[tuple[type[Model], type[Model]]],
+) -> set[Any]:
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
-    seen: Set[Any] = set()
+    seen: set[Any] = set()
     for field in model._meta.fields:
         if isinstance(field, RelatedField):
             if (model, field.related_model) in exemptions:

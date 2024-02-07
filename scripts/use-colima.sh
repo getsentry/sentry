@@ -1,10 +1,15 @@
 #!/bin/bash
 
+if ! [[ -x ~/.local/share/sentry-devenv/bin/colima ]]; then
+    echo "You need to install devenv! https://github.com/getsentry/devenv/#install"
+    exit 1
+fi
+
 if [[ "$(sysctl -n machdep.cpu.brand_string)" != Intel* ]]; then
     case "$(sw_vers -productVersion)" in
-        *12.*|*13.0*|*13.1*|*13.2*)
+        *12.*|*13.*)
             echo "Your ARM Mac is on a version incompatible with colima."
-            echo "Use Docker Desktop for now until you upgrade to at least 13.3."
+            echo "Use Docker Desktop for now until you upgrade to at least MacOS 14."
             exit 1
             ;;
     esac
@@ -49,15 +54,9 @@ with open(os.path.expanduser("~/.docker/config.json"), "w") as f:
     f.write(json.dumps(config))
 EOF
 
-echo "Installing colima."
-brew install colima
-brew link colima
-
 echo "Starting colima."
 python3 -uS scripts/start-colima.py
 
-# The context will be colima, we just want to double make sure.
-docker context use colima
 echo "Recreating your postgres volume for use with colima. May take a few minutes."
 docker volume create --name sentry_postgres
 docker run --rm -v "${tmpdir}:/from" -v sentry_postgres:/to alpine ash -c "cd /from ; cp -a . /to"

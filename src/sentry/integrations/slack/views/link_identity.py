@@ -10,7 +10,6 @@ from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
 from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils.signing import unsign
-from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -41,7 +40,6 @@ class SlackLinkIdentityView(BaseView):
     Django view for linking user to slack account. Creates an entry on Identity table.
     """
 
-    @transaction_start("SlackLinkIdentityView")
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:

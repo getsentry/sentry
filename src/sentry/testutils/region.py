@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Collection, Sequence
 
 from django.test import override_settings
 

@@ -1,4 +1,4 @@
-import {ComponentProps} from 'react';
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';

@@ -1,5 +1,6 @@
 import type {
   AggregateSpanType,
+  MetricsSummary,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
@@ -47,12 +48,18 @@ export type VariantEvidence = {
   parent_span_ids?: string[];
 };
 
-type EventGroupVariantKey = 'custom-fingerprint' | 'app' | 'default' | 'system';
+type EventGroupVariantKey =
+  | 'built-in-fingerprint'
+  | 'custom-fingerprint'
+  | 'app'
+  | 'default'
+  | 'system';
 
 export enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
+  BUILT_IN_FINGERPRINT = 'built-in-fingerprint',
   COMPONENT = 'component',
   SALTED_COMPONENT = 'salted-component',
   PERFORMANCE_PROBLEM = 'performance-problem',
@@ -90,6 +97,10 @@ interface CustomFingerprintVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.CUSTOM_FINGERPRINT;
 }
 
+interface BuiltInFingerprintVariant extends BaseVariant, HasComponentGrouping {
+  type: EventGroupVariantType.BUILT_IN_FINGERPRINT;
+}
+
 interface SaltedComponentVariant extends BaseVariant, HasComponentGrouping {
   type: EventGroupVariantType.SALTED_COMPONENT;
 }
@@ -105,6 +116,7 @@ export type EventGroupVariant =
   | ComponentVariant
   | SaltedComponentVariant
   | CustomFingerprintVariant
+  | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
@@ -804,6 +816,7 @@ export interface EventTransaction
   )[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
+  _metrics_summary?: MetricsSummary;
   perfProblem?: PerformanceDetectorData;
 }
 

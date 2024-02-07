@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import {ProjectAnrScoreCard} from 'sentry/views/projectDetail/projectScoreCards/projectAnrScoreCard';
 
 describe('ProjectDetail > ProjectAnr', function () {

@@ -10,11 +10,11 @@ import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegra
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {colorComponentsToRGBA} from 'sentry/utils/profiling/colors/utils';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
@@ -27,7 +27,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import InlineDocs from './inlineDocs';
-import {GapSpanType} from './types';
+import type {GapSpanType} from './types';
 
 interface GapSpanDetailsProps {
   event: Readonly<EventTransaction>;
@@ -284,7 +284,7 @@ const Image = styled('img')`
 `;
 
 const FlamegraphContainer = styled('div')`
-  height: 300px;
+  height: 310px;
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
 `;

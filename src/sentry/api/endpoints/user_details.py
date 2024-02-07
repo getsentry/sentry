@@ -1,7 +1,7 @@
 import logging
+import zoneinfo
 from datetime import datetime
 
-import pytz
 from django.conf import settings
 from django.contrib.auth import logout
 from django.db import router, transaction
@@ -29,6 +29,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationDeleteState
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -36,8 +37,8 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 def _get_timezone_choices():
     results = []
-    for tz in pytz.all_timezones:
-        now = datetime.now(pytz.timezone(tz))
+    for tz in AVAILABLE_TIMEZONES:
+        now = datetime.now(zoneinfo.ZoneInfo(tz))
         offset = now.strftime("%z")
         results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
     results.sort()
@@ -78,6 +79,7 @@ class UserOptionsSerializer(serializers.Serializer):
         ),
         required=False,
     )
+    issueDetailsNewExperienceQ42023 = serializers.BooleanField(required=False)
 
 
 class BaseUserSerializer(CamelSnakeModelSerializer):
@@ -194,6 +196,8 @@ class UserDetailsEndpoint(UserEndpoint):
 
         if request.access.has_permission("users.admin"):
             serializer_cls = PrivilegedUserSerializer
+        # with superuser read write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser
         elif is_active_superuser(request):
             serializer_cls = SuperuserUserSerializer
         else:
@@ -216,6 +220,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "stacktraceOrder": "stacktrace_order",
             "defaultIssueEvent": "default_issue_event",
             "clock24Hours": "clock_24_hours",
+            "issueDetailsNewExperienceQ42023": "issue_details_new_experience_q4_2023",
         }
 
         options_result = serializer_options.validated_data

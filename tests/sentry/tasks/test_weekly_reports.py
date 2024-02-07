@@ -23,7 +23,6 @@ from sentry.tasks.weekly_reports import (
     deliver_reports,
     group_status_to_color,
     organization_project_issue_substatus_summaries,
-    organization_project_issue_summaries,
     prepare_organization_report,
     schedule_organizations,
 )
@@ -182,45 +181,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         deliver_reports(ctx)
         assert mock_send_email.call_count == 1
-
-    def test_organization_project_issue_summaries(self):
-        self.login_as(user=self.user)
-
-        now = django_timezone.now()
-        min_ago = iso_format(now - timedelta(minutes=1))
-
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
-
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-        )
-        timestamp = to_timestamp(now)
-
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-        organization_project_issue_summaries(ctx)
-
-        project_ctx = ctx.projects[self.project.id]
-
-        assert project_ctx.reopened_issue_count == 0
-        assert project_ctx.new_issue_count == 2
-        assert project_ctx.existing_issue_count == 0
-        assert project_ctx.all_issue_count == 2
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_transferred_project(self, message_builder):
@@ -384,11 +344,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
             assert context["organization"] == self.organization
             assert context["issue_summary"] == {
-                "all_issue_count": 2,
-                "existing_issue_count": 0,
-                "new_issue_count": 2,
-                "reopened_issue_count": 0,
-                # New escalating-issues
                 "escalating_substatus_count": 0,
                 "new_substatus_count": 0,
                 "ongoing_substatus_count": 0,
@@ -459,10 +414,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
             assert context["organization"] == self.organization
             assert context["issue_summary"] == {
-                "all_issue_count": 0,
-                "existing_issue_count": 0,
-                "new_issue_count": 0,
-                "reopened_issue_count": 0,
                 "escalating_substatus_count": 0,
                 "new_substatus_count": 1,
                 "ongoing_substatus_count": 1,
@@ -610,7 +561,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         }
 
     def test_group_status_to_color_obj_correct_length(self):
-        # We want to check for the values because GroupHistoryStatus.UNRESOVED and GroupHistoryStatus.ONGOING have the same value
+        # We want to check for the values because GroupHistoryStatus.UNRESOLVED and GroupHistoryStatus.ONGOING have the same value
         enum_values = set()
         for attr_name in dir(GroupHistoryStatus):
             if not callable(getattr(GroupHistoryStatus, attr_name)) and not attr_name.startswith(

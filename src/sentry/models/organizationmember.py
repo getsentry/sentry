@@ -3,10 +3,11 @@ from __future__ import annotations
 import datetime
 import secrets
 from collections import defaultdict
+from collections.abc import Mapping, MutableMapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, Any, ClassVar, List, Mapping, MutableMapping, Set, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, TypedDict
 from urllib.parse import urlencode
 
 from django.conf import settings
@@ -20,7 +21,9 @@ from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
 from sentry import features, roles
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -160,8 +163,8 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
             id=id,
         )
 
-    def get_teams_by_user(self, organization: Organization) -> Mapping[int, List[int]]:
-        user_teams: MutableMapping[int, List[int]] = defaultdict(list)
+    def get_teams_by_user(self, organization: Organization) -> Mapping[int, list[int]]:
+        user_teams: MutableMapping[int, list[int]] = defaultdict(list)
         queryset = self.filter(organization_id=organization.id).values_list("user_id", "teams")
         for user_id, team_id in queryset:
             user_teams[user_id].append(team_id)
@@ -526,7 +529,7 @@ class OrganizationMember(ReplicatedRegionModel):
             scopes.update(self.organization.get_scopes(role_obj))
         return frozenset(scopes)
 
-    def get_org_roles_from_teams(self) -> Set[str]:
+    def get_org_roles_from_teams(self) -> set[str]:
         if self.__org_roles_from_teams is None:
             # Store team_roles so that we don't repeat this query when possible.
             team_roles = {
@@ -539,12 +542,12 @@ class OrganizationMember(ReplicatedRegionModel):
             self.__org_roles_from_teams = team_roles
         return self.__org_roles_from_teams
 
-    def get_all_org_roles(self) -> List[str]:
+    def get_all_org_roles(self) -> list[str]:
         all_org_roles = self.get_org_roles_from_teams()
         all_org_roles.add(self.role)
         return list(all_org_roles)
 
-    def get_org_roles_from_teams_by_source(self) -> List[tuple[str, OrganizationRole]]:
+    def get_org_roles_from_teams_by_source(self) -> list[tuple[str, OrganizationRole]]:
         org_roles = [
             (slug, organization_roles.get(role))
             for slug, role in self.teams.all()
@@ -555,7 +558,7 @@ class OrganizationMember(ReplicatedRegionModel):
 
         return sorted(org_roles, key=lambda r: r[1].priority, reverse=True)
 
-    def get_all_org_roles_sorted(self) -> List[OrganizationRole]:
+    def get_all_org_roles_sorted(self) -> list[OrganizationRole]:
         return organization_roles.get_sorted_roles(self.get_all_org_roles())
 
     def validate_invitation(self, user_to_approve, allowed_roles):
@@ -631,8 +634,6 @@ class OrganizationMember(ReplicatedRegionModel):
         if self.invite_status == InviteStatus.APPROVED.value:
             return
 
-        self.delete()
-
         create_audit_entry_from_user(
             user_to_approve,
             api_key,
@@ -642,6 +643,8 @@ class OrganizationMember(ReplicatedRegionModel):
             data=self.get_audit_log_data(),
             event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
+
+        self.delete()
 
     def get_allowed_org_roles_to_invite(self):
         """
@@ -684,3 +687,16 @@ class OrganizationMember(ReplicatedRegionModel):
             organization_id=shard_identifier,
             mapping=rpc_org_member_update,
         )
+
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        # If the inviter didn't make it into the import, just null them out rather than evicting
+        # this user from the organization due to their absence.
+        if (
+            self.inviter_id is not None
+            and pk_map.get_pk(NormalizedModelName("sentry.user"), self.inviter_id) is None
+        ):
+            self.inviter_id = None
+
+        return super().normalize_before_relocation_import(pk_map, scope, flags)

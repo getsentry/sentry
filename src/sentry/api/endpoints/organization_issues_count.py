@@ -27,7 +27,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.ISSUES
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

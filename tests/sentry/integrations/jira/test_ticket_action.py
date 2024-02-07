@@ -5,9 +5,8 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
 from sentry.eventstore.models import Event
-from sentry.integrations.jira import JiraCreateTicketAction
+from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
@@ -28,7 +27,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     def setUp(self):
         super().setUp()
         self.project_name = "Jira Cloud"
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="jira",
             name=self.project_name,
             metadata={
@@ -38,7 +39,6 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
         self.installation = self.integration.get_installation(self.organization.id)
 
         self.login_as(user=self.user)
@@ -105,6 +105,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             assert external_issue_count == 1
 
             # assert ticket created on jira
+            assert isinstance(self.installation, JiraIntegration)
             data = self.installation.get_issue(key)
             assert event.message in data["description"]
 

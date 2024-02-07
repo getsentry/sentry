@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Collection, Mapping, Sequence
 from datetime import timezone
-from typing import Any, Collection, Dict, Mapping, Sequence
+from typing import Any
 
 from django.http import HttpResponse
 from django.utils.text import slugify
@@ -33,7 +34,7 @@ from sentry.services.hybrid_cloud.repository import RpcRepository, repository_se
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
-from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
+from sentry.tasks.integrations.github.constants import RATE_LIMITED_MESSAGE
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
@@ -131,8 +132,8 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
         return False
 
-    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
-        trees: Dict[str, RepoTree] = {}
+    def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
+        trees: dict[str, RepoTree] = {}
         domain_name = self.model.metadata["domain_name"]
         extra = {"metadata": self.model.metadata}
         if domain_name.find("github.com/") == -1:

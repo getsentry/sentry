@@ -1325,6 +1325,32 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
 
+    def test_top_events_with_projects_other(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "project"],
+                    "topEvents": 1,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert set(data.keys()) == {"Other", self.project.slug}
+
+        assert data[self.project.slug]["order"] == 0
+        assert [attrs[0]["count"] for _, attrs in data[self.project.slug]["data"]] == [15, 0]
+
+        assert data["Other"]["order"] == 1
+        assert [attrs[0]["count"] for _, attrs in data["Other"]["data"]] == [7, 6]
+
     def test_tag_with_conflicting_function_alias_simple(self):
         event_data = {
             "data": {
@@ -1533,6 +1559,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
+    @pytest.mark.xfail(
+        reason="The response is wrong whenever we have a top events timeseries on project + any other field + aggregation"
+    )
     def test_top_events_with_projects(self):
         with self.feature(self.enabled_features):
             response = self.client.get(

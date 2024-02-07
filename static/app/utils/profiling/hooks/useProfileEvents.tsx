@@ -1,11 +1,11 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
+import type {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
 
 import type {EventsResults, Sort} from './types';
 

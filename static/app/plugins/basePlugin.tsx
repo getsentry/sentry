@@ -1,5 +1,5 @@
 import Settings from 'sentry/plugins/components/settings';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Organization, Plugin, Project} from 'sentry/types';
 
 type Props = {
   organization: Organization;

@@ -1,4 +1,4 @@
-import {MonitorBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {MonitorBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
 
 export function filterMonitorStatsBucketByEnv(
   bucket: MonitorBucket,

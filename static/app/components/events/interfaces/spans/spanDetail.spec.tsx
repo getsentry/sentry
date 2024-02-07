@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SpanDetail from 'sentry/components/events/interfaces/spans/spanDetail';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
-import {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types';
 
 describe('SpanDetail', function () {
   const organization = OrganizationFixture();
@@ -88,6 +88,29 @@ describe('SpanDetail', function () {
       expect(screen.getByText('http.response_transfer_size')).toBeInTheDocument();
       expect(screen.getByText('http.response_content_length')).toBeInTheDocument();
       expect(screen.getByText('132.0 B')).toBeInTheDocument();
+    });
+  });
+
+  describe('http.client spans', function () {
+    it('shows size fields for integer and string values', function () {
+      render(
+        renderSpanDetail({
+          span: SpanFixture({
+            op: 'http.client',
+            description: 'POST /resources.json',
+            data: {
+              'http.response_content_length': '143',
+              'http.request_content_length': 12,
+            },
+          }),
+        })
+      );
+
+      expect(screen.getByText('http.response_content_length')).toBeInTheDocument();
+      expect(screen.getByText('143.0 B')).toBeInTheDocument();
+
+      expect(screen.getByText('http.request_content_length')).toBeInTheDocument();
+      expect(screen.getByText('12.0 B')).toBeInTheDocument();
     });
   });
 

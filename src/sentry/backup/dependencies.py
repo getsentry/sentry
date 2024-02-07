@@ -4,9 +4,10 @@ from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple, Optional, Tuple, Type
+from typing import NamedTuple
 
 from django.db import models
+from django.db.models import UniqueConstraint
 from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
@@ -113,7 +114,7 @@ class ForeignFieldKind(Enum):
 class ForeignField(NamedTuple):
     """A field that creates a dependency on another Sentry model."""
 
-    model: Type[models.base.Model]
+    model: type[models.base.Model]
     kind: ForeignFieldKind
     nullable: bool
 
@@ -131,16 +132,16 @@ class ModelRelations:
     # cause it to be dangling when we do an `ExportScope.Organization` export, but non-dangling if
     # we do an `ExportScope.Global` export. HOWEVER, as best as I can tell, this situation does not
     # actually exist today, so we can ignore this subtlety for now and just us a boolean here.
-    dangling: Optional[bool]
+    dangling: bool | None
     foreign_keys: dict[str, ForeignField]
-    model: Type[models.base.Model]
-    relocation_dependencies: set[Type[models.base.Model]]
+    model: type[models.base.Model]
+    relocation_dependencies: set[type[models.base.Model]]
     relocation_scope: RelocationScope | set[RelocationScope]
     silos: list[SiloMode]
     table_name: str
     uniques: list[frozenset[str]]
 
-    def flatten(self) -> set[Type[models.base.Model]]:
+    def flatten(self) -> set[type[models.base.Model]]:
         """Returns a flat list of all related models, omitting the kind of relation they have."""
 
         return {ff.model for ff in self.foreign_keys.values()}
@@ -152,7 +153,7 @@ class ModelRelations:
             return self.model.get_possible_relocation_scopes()
         return set()
 
-    def get_dependencies_for_relocation(self) -> set[Type[models.base.Model]]:
+    def get_dependencies_for_relocation(self) -> set[type[models.base.Model]]:
         return self.flatten().union(self.relocation_dependencies)
 
     def get_uniques_without_foreign_keys(self) -> list[frozenset[str]]:
@@ -182,11 +183,11 @@ class ModelRelations:
         return out
 
 
-def get_model_name(model: Type[models.Model] | models.Model) -> NormalizedModelName:
+def get_model_name(model: type[models.Model] | models.Model) -> NormalizedModelName:
     return NormalizedModelName(f"{model._meta.app_label}.{model._meta.object_name}")
 
 
-def get_model(model_name: NormalizedModelName) -> Optional[Type[models.base.Model]]:
+def get_model(model_name: NormalizedModelName) -> type[models.base.Model] | None:
     """
     Given a standardized model name string, retrieve the matching Sentry model.
     """
@@ -249,12 +250,12 @@ class PrimaryKeyMap:
     keys are not supported!
     """
 
-    mapping: dict[str, dict[int, Tuple[int, ImportKind, Optional[str]]]]
+    mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]]
 
     def __init__(self):
         self.mapping = defaultdict(dict)
 
-    def get_pk(self, model_name: NormalizedModelName, old: int) -> Optional[int]:
+    def get_pk(self, model_name: NormalizedModelName, old: int) -> int | None:
         """
         Get the new, post-mapping primary key from an old primary key.
         """
@@ -276,7 +277,7 @@ class PrimaryKeyMap:
 
         return {entry[0] for entry in self.mapping[str(model_name)].items()}
 
-    def get_kind(self, model_name: NormalizedModelName, old: int) -> Optional[ImportKind]:
+    def get_kind(self, model_name: NormalizedModelName, old: int) -> ImportKind | None:
         """
         Is the mapped entry a newly inserted model, or an already existing one that has been merged
         in?
@@ -292,7 +293,7 @@ class PrimaryKeyMap:
 
         return entry[1]
 
-    def get_slug(self, model_name: NormalizedModelName, old: int) -> Optional[str]:
+    def get_slug(self, model_name: NormalizedModelName, old: int) -> str | None:
         """
         Does the mapped entry have a unique slug associated with it?
         """
@@ -395,13 +396,16 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         for model in model_iterator:
             # Ignore some native Django models, since other models don't reference them and we don't
             # really use them for business logic.
-            if model._meta.app_label in {"sessions", "sites"}:
+            if model._meta.app_label in {"sessions", "sites", "test"}:
                 continue
 
             foreign_keys: dict[str, ForeignField] = dict()
             uniques: set[frozenset[str]] = {
                 frozenset(combo) for combo in model._meta.unique_together
             }
+            for constraint in model._meta.constraints:
+                if isinstance(constraint, UniqueConstraint):
+                    uniques.add(frozenset(constraint.fields))
 
             # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
@@ -577,7 +581,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
-def sorted_dependencies() -> list[Type[models.base.Model]]:
+def sorted_dependencies() -> list[type[models.base.Model]]:
     """Produce a list of model definitions such that, for every item in the list, all of the other models it mentions in its fields and/or natural key (ie, its "dependencies") have already appeared in the list.
 
     Similar to Django's algorithm except that we discard the importance of natural keys
@@ -634,7 +638,42 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
 
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
-def reversed_dependencies() -> list[Type[models.base.Model]]:
+def reversed_dependencies() -> list[type[models.base.Model]]:
     sorted = list(sorted_dependencies())
     sorted.reverse()
     return sorted
+
+
+def get_final_derivations_of(model: type[models.base.Model]) -> set[type[models.base.Model]]:
+    """
+    A "final" derivation of the given `model` base class is any non-abstract class for the "sentry"
+    app with `BaseModel` as an ancestor. Top-level calls to this class should pass in `BaseModel` as
+    the argument.
+    """
+
+    out = set()
+    for sub in model.__subclasses__():
+        subs = sub.__subclasses__()
+        if subs:
+            out.update(get_final_derivations_of(sub))
+        if not sub._meta.abstract and sub._meta.db_table and sub._meta.app_label == "sentry":
+            out.add(sub)
+    return out
+
+
+# No arguments, so we lazily cache the result after the first calculation.
+@lru_cache(maxsize=1)
+def get_exportable_sentry_models() -> set[type[models.base.Model]]:
+    """
+    Like `get_final_derivations_of`, except that it further filters the results to include only
+    `__relocation_scope__ != RelocationScope.Excluded`.
+    """
+
+    from sentry.db.models import BaseModel
+
+    return set(
+        filter(
+            lambda c: getattr(c, "__relocation_scope__") is not RelocationScope.Excluded,
+            get_final_derivations_of(BaseModel),
+        )
+    )

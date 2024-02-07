@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {vec2} from 'gl-matrix';
+import type {vec2} from 'gl-matrix';
 
 import {requestAnimationFrameTimeout} from 'sentry/views/profiling/utils';
 

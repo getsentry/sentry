@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -14,7 +14,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, ProjectKey} from 'sentry/types';
+import type {Organization, ProjectKey} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/formatters';
 

@@ -426,3 +426,35 @@ default_manager.add(
         template="added team {team_slug} to project {project_slug}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=182,
+        name="METRIC_BLOCK",
+        api_name="metric.block",
+        template="blocked metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=183,
+        name="METRIC_TAGS_BLOCK",
+        api_name="metric.tags.block",
+        template="blocked {tags} tags of metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=184,
+        name="METRIC_UNBLOCK",
+        api_name="metric.unblock",
+        template="unblocked metric {metric_mri} for project {project_slug}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=185,
+        name="METRIC_TAGS_UNBLOCK",
+        api_name="metric.tags.unblock",
+        template="unblocked {tags} tags of metric {metric_mri} for project {project_slug}",
+    )
+)

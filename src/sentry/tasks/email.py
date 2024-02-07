@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from sentry.auth import access
 from sentry.models.group import Group
@@ -12,7 +11,7 @@ from sentry.utils.email import send_messages
 logger = logging.getLogger(__name__)
 
 
-def _get_user_from_email(group: Group, email: str) -> Optional[RpcUser]:
+def _get_user_from_email(group: Group, email: str) -> RpcUser | None:
     for user in user_service.get_many_by_email(emails=[email]):
         # Make sure that the user actually has access to this project
         context = access.from_user(user=user, organization=group.organization)
@@ -24,16 +23,7 @@ def _get_user_from_email(group: Group, email: str) -> Optional[RpcUser]:
     return None
 
 
-@instrumented_task(
-    name="sentry.tasks.email.process_inbound_email",
-    queue="email.inbound",
-    default_retry_delay=60 * 5,
-    max_retries=None,
-    silo_mode=SiloMode.REGION,
-)
 def process_inbound_email(mailfrom: str, group_id: int, payload: str):
-    # TODO(hybridcloud) Once we aren't invoking this with celery
-    # detach  this from celery and have a basic function instead.
     from sentry.models.group import Group
     from sentry.web.forms import NewNoteForm
 

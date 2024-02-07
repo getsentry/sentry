@@ -281,6 +281,7 @@ class ApiClientTest(TestCase):
                         == "Connection broken: invalid chunk length"
                     )
 
+    @responses.activate
     @mock.patch(
         "sentry.shared_integrations.client.base.BaseApiResponse.from_response",
         return_value=BaseApiResponse(),
@@ -289,6 +290,8 @@ class ApiClientTest(TestCase):
         self,
         mock_from_response: mock.MagicMock,
     ):
+        responses.add("GET", "https://example.com")
+
         # pytest parameterization doesn't work in test classes, but we can fake it
         cases = [
             ("no transaction", None, 1),
@@ -306,7 +309,7 @@ class ApiClientTest(TestCase):
                 mock_configure_scope.return_value.__enter__.return_value = mock_scope
 
                 with mock.patch("sentry_sdk.start_transaction") as mock_start_transaction:
-                    client.get("http://example.com")
+                    client.get("https://example.com")
 
                     assert (
                         mock_start_transaction.call_count == expected_call_count

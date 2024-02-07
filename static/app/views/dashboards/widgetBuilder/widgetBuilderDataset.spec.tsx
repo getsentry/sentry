@@ -15,14 +15,15 @@ import {
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
   // Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -31,19 +32,6 @@ const defaultOrgFeatures = [
   'dashboards-mep',
   'dashboards-rh-widget',
 ];
-
-// function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
-//   return {
-//     id: '1',
-//     title: 'Dashboard',
-//     createdBy: undefined,
-//     dateCreated: '2020-01-01T00:00:00.000Z',
-//     widgets: [],
-//     projects: [],
-//     filters: {},
-//     ...dashboard,
-//   };
-// }
 
 function renderTestComponent({
   dashboard,

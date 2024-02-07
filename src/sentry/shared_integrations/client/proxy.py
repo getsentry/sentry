@@ -3,8 +3,9 @@ from __future__ import annotations
 import ipaddress
 import logging
 import socket
+from collections.abc import Mapping
 from functools import lru_cache
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import ParseResult, urljoin, urlparse
 
 import sentry_sdk
@@ -124,6 +125,12 @@ class IntegrationProxyClient(ApiClient):
         )
         self.org_integration_id = org_integration_id
         self.keyid = keyid
+
+        # The default timeout value for the APIClient and the RegionSiloClient is 30 seconds.
+        # If the request flow for processing a Webhook outbox message is between the RegionSiloClient and the
+        # IntegrationProxyClient, then the IntegrationProxyClient will need to have a smaller timeout value.
+        # Otherwise, the RegionSiloClient will timeout before it can receive a response from the IntegrationProxyClient.
+        self.timeout = 10
 
         if self.determine_whether_should_proxy_to_control():
             self._should_proxy_to_control = True

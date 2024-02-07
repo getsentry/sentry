@@ -68,8 +68,8 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
     def test_date_range(self):
         start, end = get_date_range_from_params({"start": "2018-11-01", "end": "2018-11-07"})
 
-        assert start == datetime.datetime(2018, 11, 1, tzinfo=timezone.utc)
-        assert end == datetime.datetime(2018, 11, 7, tzinfo=timezone.utc)
+        assert start == datetime.datetime(2018, 11, 1, tzinfo=datetime.UTC)
+        assert end == datetime.datetime(2018, 11, 7, tzinfo=datetime.UTC)
 
         with pytest.raises(InvalidParams):
             get_date_range_from_params(
@@ -92,13 +92,13 @@ class GetDateRangeFromParamsTest(unittest.TestCase):
     def test_relative_date_range(self):
         start, end = get_date_range_from_params({"timeframeStart": "14d", "timeframeEnd": "7d"})
 
-        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=timezone.utc)
-        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=timezone.utc)
+        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=datetime.UTC)
+        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=datetime.UTC)
 
         start, end = get_date_range_from_params({"statsPeriodStart": "14d", "statsPeriodEnd": "7d"})
 
-        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=timezone.utc)
-        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=timezone.utc)
+        assert start == datetime.datetime(2018, 11, 27, 3, 21, 34, tzinfo=datetime.UTC)
+        assert end == datetime.datetime(2018, 12, 4, 3, 21, 34, tzinfo=datetime.UTC)
 
     @freeze_time("2018-12-11 03:21:34")
     def test_relative_date_range_incomplete(self):

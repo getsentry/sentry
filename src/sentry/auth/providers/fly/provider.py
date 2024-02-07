@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, cast
+from typing import Any, cast
 
 from sentry import options
 from sentry.auth.partnership_configs import SPONSOR_OAUTH_NAME, ChannelName
@@ -44,13 +44,13 @@ class FlyOAuth2Provider(OAuth2Provider):
         return ACCESS_TOKEN_URL
 
     @classmethod
-    def build_config(self, resource: Optional[Any] = None):
+    def build_config(self, resource: Any | None = None):
         """
         On configuration, we determine which provider organization to configure sentry SSO for.
         This configuration is then stored and passed into the pipeline instances during SSO
         to determine whether the Auth'd user has the appropriate access to the provider org
         """
-        return {"org": {"id": cast(Dict, resource).get("id")}}
+        return {"org": {"id": cast(dict, resource).get("id")}}
 
     def build_identity(self, state):
         """

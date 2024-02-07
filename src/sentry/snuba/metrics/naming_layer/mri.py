@@ -32,11 +32,13 @@ __all__ = (
 )
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Sequence, cast
+from typing import cast
 
 from sentry.exceptions import InvalidParams
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
 from sentry.snuba.metrics.utils import (
@@ -47,13 +49,24 @@ from sentry.snuba.metrics.utils import (
     MetricUnit,
 )
 
-NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom|spans|escalating_issues)"
-ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
-# This regex allows for a string of words composed of small letters alphanumeric characters with
-# allowed the underscore character, optionally separated by a single dot
-MRI_NAME_REGEX = r"([a-z0-9_]+(?:\.[a-z0-9_]+)*)"
-# ToDo(ahmed): Add a better regex for unit portion for MRI
-MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{ENTITY_TYPE_REGEX}):(?P<namespace>{NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>[\w.]*)"
+
+def _build_namespace_regex() -> str:
+    """
+    Builds a namespace regex for matching MRIs based on the declared use case ids in the
+    product.
+    """
+    use_case_ids = []
+    for use_case_id in UseCaseID:
+        use_case_ids.append(use_case_id.value)
+
+    return rf"({'|'.join(use_case_ids)})"
+
+
+MRI_METRIC_TYPE_REGEX = r"(c|s|d|g|e)"
+MRI_NAMESPACE_REGEX = _build_namespace_regex()
+MRI_NAME_REGEX = r"([a-zA-Z0-9_]+(?:\.[a-zA-Z0-9_]+)*)"
+MRI_UNIT_REGEX = r"[\w.]*"
+MRI_SCHEMA_REGEX_STRING = rf"(?P<entity>{MRI_METRIC_TYPE_REGEX}):(?P<namespace>{MRI_NAMESPACE_REGEX})/(?P<name>{MRI_NAME_REGEX})@(?P<unit>{MRI_UNIT_REGEX})"
 MRI_SCHEMA_REGEX = re.compile(rf"^{MRI_SCHEMA_REGEX_STRING}$")
 MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX_STRING})\)$")
 
@@ -203,7 +216,7 @@ class ParsedMRIField:
         return f"{self.op}({self.mri.name})"
 
 
-def parse_mri_field(field: Optional[str]) -> Optional[ParsedMRIField]:
+def parse_mri_field(field: str | None) -> ParsedMRIField | None:
     if field is None:
         return None
 
@@ -263,7 +276,7 @@ def format_mri_field_value(field: str, value: str) -> str:
         return value
 
 
-def parse_mri(mri_string: Optional[str]) -> Optional[ParsedMRI]:
+def parse_mri(mri_string: str | None) -> ParsedMRI | None:
     """
     Parse a mri string to determine its entity, namespace, name and unit.
     """
@@ -277,7 +290,7 @@ def parse_mri(mri_string: Optional[str]) -> Optional[ParsedMRI]:
     return ParsedMRI(**match.groupdict())
 
 
-def is_mri(mri_string: Optional[str]) -> bool:
+def is_mri(mri_string: str | None) -> bool:
     """
     Returns true if the passed value is a mri.
     """
@@ -289,6 +302,15 @@ def is_custom_metric(parsed_mri: ParsedMRI) -> bool:
     A custom mri is a mri which uses the custom namespace, and it's different from a custom measurement.
     """
     return parsed_mri.namespace == "custom"
+
+
+def is_measurement(parsed_mri: ParsedMRI) -> bool:
+    """
+    A measurement won't use the custom namespace, but will be under the transaction namespace.
+
+    This checks the namespace, and name to match what we consider to be a standard + custom measurement.
+    """
+    return parsed_mri.namespace == "transactions" and parsed_mri.name.startswith("measurements.")
 
 
 def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
@@ -303,7 +325,7 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
         and parsed_mri.name.startswith("measurements.")
         and
         # Iterate through the transaction MRI and check that this parsed_mri isn't in there
-        parsed_mri.mri_string not in [mri.value for mri in TransactionMRI.__members__.values()]
+        all(parsed_mri.mri_string != mri.value for mri in TransactionMRI.__members__.values())
     )
 
 

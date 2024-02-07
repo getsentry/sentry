@@ -5,10 +5,11 @@ import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/util
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {Frame} from 'sentry/utils/profiling/frame';
-import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {Frame} from 'sentry/utils/profiling/frame';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 
-import {DifferentialFlamegraphQueryResult} from './useDifferentialFlamegraphQuery';
+import type {DifferentialFlamegraphQueryResult} from './useDifferentialFlamegraphQuery';
 
 interface UseDifferentialFlamegraphModelProps {
   after: DifferentialFlamegraphQueryResult['after'];

@@ -275,6 +275,7 @@ API_OWNERSHIP_ALLOWLIST_DONT_MODIFY = [
     "/extensions/slack/action/",
     "/api/0/organizations/{organization_slug}/discover/saved/{query_id}/visit/",
     "/api/0/prompts-activity/",
+    "/api/0/organizations/{organization_slug}/prompts-activity/",
     "/api/0/teams/{organization_slug}/{team_slug}/avatar/",
     "/api/0/organizations/{organization_slug}/api-keys/{api_key_id}/",
     "/api/0/projects/{organization_slug}/{project_slug}/releases/completion/",

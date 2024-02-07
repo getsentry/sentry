@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Generator, Sequence
 from datetime import datetime
-from typing import Any, Dict, Generator, List, Optional, Sequence, Union
+from typing import Any
 
 from snuba_sdk import (
     Column,
@@ -39,17 +40,17 @@ ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 
 
 def query_replays_collection(
-    project_ids: List[int],
+    project_ids: list[int],
     start: datetime,
     end: datetime,
-    environment: List[str],
-    fields: List[str],
-    sort: Optional[str],
-    limit: Optional[str],
-    offset: Optional[str],
+    environment: list[str],
+    fields: list[str],
+    sort: str | None,
+    limit: str | None,
+    offset: str | None,
     search_filters: Sequence[SearchFilter],
-    organization: Optional[Organization] = None,
-    actor: Optional[Any] = None,
+    organization: Organization | None = None,
+    actor: Any | None = None,
 ) -> dict:
     """Query aggregated replay collection."""
     paginators = make_pagination_values(limit, offset)
@@ -72,7 +73,7 @@ def query_replay_instance(
     replay_id: str,
     start: datetime,
     end: datetime,
-    organization: Optional[Organization] = None,
+    organization: Organization | None = None,
 ):
     """Query aggregated replay instance."""
     if isinstance(project_id, list):
@@ -94,10 +95,10 @@ def query_replay_instance(
 
 
 def query_replays_count(
-    project_ids: List[int],
+    project_ids: list[int],
     start: datetime,
     end: datetime,
-    replay_ids: List[str],
+    replay_ids: list[str],
     tenant_ids: dict[str, Any],
 ):
     snuba_request = Request(
@@ -147,7 +148,7 @@ def query_replays_count(
 
 
 def query_replays_dataset_tagkey_values(
-    project_ids: List[int],
+    project_ids: list[int],
     start: datetime,
     end: datetime,
     environment: str | None,
@@ -214,7 +215,7 @@ def query_replays_dataset_tagkey_values(
 
 def anyIfNonZeroIP(
     column_name: str,
-    alias: Optional[str] = None,
+    alias: str | None = None,
     aliased: bool = True,
 ) -> Function:
     return Function(
@@ -226,7 +227,7 @@ def anyIfNonZeroIP(
 
 def anyIf(
     column_name: str,
-    alias: Optional[str] = None,
+    alias: str | None = None,
     aliased: bool = True,
 ) -> Function:
     """Returns any value of a non group-by field. in our case, they are always the same,
@@ -307,7 +308,7 @@ def make_pagination_values(limit: Any, offset: Any) -> Paginators:
     return Paginators(limit, offset)
 
 
-def _coerce_to_integer_default(value: Optional[str], default: int) -> int:
+def _coerce_to_integer_default(value: str | None, default: int) -> int:
     """Return an integer or default."""
     if value is None:
         return default
@@ -321,7 +322,7 @@ def _coerce_to_integer_default(value: Optional[str], default: int) -> int:
 def _strip_uuid_dashes(
     input_name: str,
     input_value: Expression,
-    alias: Optional[str] = None,
+    alias: str | None = None,
     aliased: bool = True,
 ):
     return Function(
@@ -462,7 +463,7 @@ def _filter_empty_uuids(column_name):
 #
 # If a mapping is left as `[]` the query-alias will default to the field name.
 
-FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
+FIELD_QUERY_ALIAS_MAP: dict[str, list[str]] = {
     "id": ["replay_id"],
     "replay_type": ["replay_type"],
     "project_id": ["project_id"],
@@ -727,7 +728,7 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
 }
 
 
-def collect_aliases(fields: List[str]) -> List[str]:
+def collect_aliases(fields: list[str]) -> list[str]:
     """Return a unique list of aliases required to satisfy the fields."""
     # Required fields.
     result = {"is_archived", "finished_at", "agg_environment"}
@@ -748,7 +749,7 @@ def collect_aliases(fields: List[str]) -> List[str]:
     return list(result)
 
 
-def select_from_fields(fields: List[str]) -> List[Union[Column, Function]]:
+def select_from_fields(fields: list[str]) -> list[Column | Function]:
     """Return a list of columns to select."""
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
 

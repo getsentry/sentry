@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, NamedTuple, Tuple, Union
+from typing import NamedTuple
 
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
+from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -37,7 +38,7 @@ class Repo(NamedTuple):
 
 class RepoTree(NamedTuple):
     repo: Repo
-    files: List[str]
+    files: list[str]
 
 
 class CodeMapping(NamedTuple):
@@ -80,7 +81,7 @@ def remove_straight_path_prefix(file_path: str) -> str:
     return file_path[get_straight_path_prefix_end_index(file_path) :]
 
 
-def filter_source_code_files(files: List[str]) -> List[str]:
+def filter_source_code_files(files: list[str]) -> list[str]:
     """
     This takes the list of files of a repo and returns
     the file paths for supported source code files
@@ -98,6 +99,38 @@ def filter_source_code_files(files: List[str]) -> List[str]:
             logger.exception("We've failed to store the file path.")
 
     return _supported_files
+
+
+def convert_stacktrace_frame_path_to_source_path(
+    frame: EventFrame,
+    code_mapping: RepositoryProjectPathConfig,
+    platform: str | None,
+    sdk_name: str | None,
+) -> str | None:
+    """
+    Applies the given code mapping to the given stacktrace frame and returns the source path.
+
+    If the code mapping does not apply to the frame, returns None.
+    """
+
+    # In most cases, code mappings get applied to frame.filename, but some platforms such as Java
+    # contain folder info in other parts of the frame (e.g. frame.module="com.example.app.MainActivity"
+    # gets transformed to "com/example/app/MainActivity.java"), so in those cases we use the
+    # transformed path instead.
+    stacktrace_path = (
+        try_munge_frame_path(frame=frame, platform=platform, sdk_name=sdk_name) or frame.filename
+    )
+
+    if stacktrace_path and stacktrace_path.startswith(code_mapping.stack_root):
+        return stacktrace_path.replace(code_mapping.stack_root, code_mapping.source_root, 1)
+
+    # Some platforms only provide the file's name without folder paths, so we
+    # need to use the absolute path instead. If the code mapping has a non-empty
+    # stack_root value and it matches the absolute path, we do the mapping on it.
+    if frame.abs_path and frame.abs_path.startswith(code_mapping.stack_root):
+        return frame.abs_path.replace(code_mapping.stack_root, code_mapping.source_root, 1)
+
+    return None
 
 
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
@@ -167,8 +200,8 @@ class FrameFilename:
         return self.full_path == other.full_path
 
 
-def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]:
-    buckets: Dict[str, List[FrameFilename]] = {}
+def stacktrace_buckets(stacktraces: list[str]) -> dict[str, list[FrameFilename]]:
+    buckets: dict[str, list[FrameFilename]] = {}
     for stacktrace_frame_file_path in stacktraces:
         try:
             frame_filename = FrameFilename(stacktrace_frame_file_path)
@@ -189,11 +222,11 @@ def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]
 
 # call generate_code_mappings() after you initialize CodeMappingTreesHelper
 class CodeMappingTreesHelper:
-    def __init__(self, trees: Dict[str, RepoTree]):
+    def __init__(self, trees: dict[str, RepoTree]):
         self.trees = trees
-        self.code_mappings: Dict[str, CodeMapping] = {}
+        self.code_mappings: dict[str, CodeMapping] = {}
 
-    def process_stackframes(self, buckets: Dict[str, List[FrameFilename]]) -> bool:
+    def process_stackframes(self, buckets: dict[str, list[FrameFilename]]) -> bool:
         """This processes all stackframes and returns if a new code mapping has been generated"""
         reprocess = False
         for stackframe_root, stackframes in buckets.items():
@@ -207,12 +240,12 @@ class CodeMappingTreesHelper:
                         self.code_mappings[stackframe_root] = code_mapping
         return reprocess
 
-    def generate_code_mappings(self, stacktraces: List[str]) -> List[CodeMapping]:
+    def generate_code_mappings(self, stacktraces: list[str]) -> list[CodeMapping]:
         """Generate code mappings based on the initial trees object and the list of stack traces"""
         # We need to make sure that calling this method with a new list of stack traces
         # should always start with a clean slate
         self.code_mappings = {}
-        buckets: Dict[str, List[FrameFilename]] = stacktrace_buckets(stacktraces)
+        buckets: dict[str, list[FrameFilename]] = stacktrace_buckets(stacktraces)
 
         # We reprocess stackframes until we are told that no code mappings were produced
         # This is order to reprocess past stackframes in light of newly discovered code mappings
@@ -225,9 +258,9 @@ class CodeMappingTreesHelper:
 
         return list(self.code_mappings.values())
 
-    def _find_code_mapping(self, frame_filename: FrameFilename) -> Union[CodeMapping, None]:
+    def _find_code_mapping(self, frame_filename: FrameFilename) -> CodeMapping | None:
         """Look for the file path through all the trees and generate code mappings for it"""
-        _code_mappings: List[CodeMapping] = []
+        _code_mappings: list[CodeMapping] = []
         # XXX: This will need optimization by changing the data structure of the trees
         for repo_full_name in self.trees.keys():
             try:
@@ -253,7 +286,7 @@ class CodeMappingTreesHelper:
 
         return _code_mappings[0]
 
-    def list_file_matches(self, frame_filename: FrameFilename) -> List[Dict[str, str]]:
+    def list_file_matches(self, frame_filename: FrameFilename) -> list[dict[str, str]]:
         file_matches = []
         for repo_full_name in self.trees.keys():
             repo_tree = self.trees[repo_full_name]
@@ -277,7 +310,7 @@ class CodeMappingTreesHelper:
 
     def _normalized_stack_and_source_roots(
         self, stacktrace_root: str, source_path: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         # We have a one to one code mapping (e.g. "app/" & "app/")
         if source_path == stacktrace_root:
             stacktrace_root = ""
@@ -298,7 +331,7 @@ class CodeMappingTreesHelper:
         self,
         repo_tree: RepoTree,
         frame_filename: FrameFilename,
-    ) -> List[CodeMapping]:
+    ) -> list[CodeMapping]:
         matched_files = [
             src_path
             for src_path in repo_tree.files
@@ -387,7 +420,7 @@ class CodeMappingTreesHelper:
 
 
 def create_code_mapping(
-    organization_integration: Union[OrganizationIntegration, RpcOrganizationIntegration],
+    organization_integration: OrganizationIntegration | RpcOrganizationIntegration,
     project: Project,
     code_mapping: CodeMapping,
 ) -> RepositoryProjectPathConfig:
@@ -429,10 +462,11 @@ def create_code_mapping(
     return new_code_mapping
 
 
-def get_sorted_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConfig]:
+def get_sorted_code_mapping_configs(project: Project) -> list[RepositoryProjectPathConfig]:
     """
     Returns the code mapping config list for a project sorted based on precedence.
     User generated code mappings are evaluated before Sentry generated code mappings.
+    Code mappings with absolute path stack roots are evaluated before relative path stack roots.
     Code mappings with more defined stack trace roots are evaluated before less defined stack trace
     roots.
 
@@ -455,10 +489,15 @@ def get_sorted_code_mapping_configs(project: Project) -> List[RepositoryProjectP
             for index, sorted_config in enumerate(sorted_configs):
                 # This check will ensure that all user defined code mappings will come before Sentry generated ones
                 if (
-                    sorted_config.automatically_generated and not config.automatically_generated
-                ) or (  # Insert more defined stack roots before less defined ones
-                    (sorted_config.automatically_generated == config.automatically_generated)
-                    and config.stack_root.startswith(sorted_config.stack_root)
+                    (sorted_config.automatically_generated and not config.automatically_generated)
+                    or (  # Insert absolute paths before relative paths
+                        not sorted_config.stack_root.startswith("/")
+                        and config.stack_root.startswith("/")
+                    )
+                    or (  # Insert more defined stack roots before less defined ones
+                        (sorted_config.automatically_generated == config.automatically_generated)
+                        and config.stack_root.startswith(sorted_config.stack_root)
+                    )
                 ):
                     sorted_configs.insert(index, config)
                     inserted = True

@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -14,9 +13,10 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
-import {Integration, IntegrationProvider, Organization} from 'sentry/types';
-import {generateBaseControlSiloUrl, generateOrgSlugUrl} from 'sentry/utils';
-import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import ConfigStore from 'sentry/stores/configStore';
+import type {Integration, IntegrationProvider, Organization} from 'sentry/types';
+import {generateOrgSlugUrl} from 'sentry/utils';
+import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
@@ -54,7 +54,6 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   State
 > {
   disableErrorReport = false;
-  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
@@ -112,11 +111,26 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
     // auto select the org if there is only one
     const {organizations} = this.state;
     if (organizations.length === 1) {
-      this.onSelectOrg({value: organizations[0].slug});
+      this.onSelectOrg(organizations[0].slug);
+    }
+
+    // now check the subomdain and use that org slug if it exists
+    const customerDomain = ConfigStore.get('customerDomain');
+    if (customerDomain?.subdomain) {
+      this.onSelectOrg(customerDomain.subdomain);
     }
   }
 
-  onSelectOrg = async ({value: orgSlug}: {value: string}) => {
+  onSelectOrg = async (orgSlug: string) => {
+    const customerDomain = ConfigStore.get('customerDomain');
+    // redirect to the org if it's different than the org being selected
+    if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
+      const urlWithQuery = generateOrgSlugUrl(orgSlug) + this.props.location.search;
+      window.location.assign(urlWithQuery);
+      return;
+    }
+
+    // otherwise proceed as normal
     this.setState({selectedOrgSlug: orgSlug, reloading: true, organization: undefined});
 
     try {
@@ -124,11 +138,12 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
         Organization,
         {providers: IntegrationProvider[]},
       ] = await Promise.all([
-        this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
-        this.controlSiloApi.requestPromise(
+        this.api.requestPromise(`/organizations/${orgSlug}/`),
+        this.api.requestPromise(
           `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
         ),
       ]);
+
       // should never happen with a valid provider
       if (providers.length === 0) {
         throw new Error('Invalid provider');
@@ -140,7 +155,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
         try {
           // The API endpoint /extensions/github/installation is not prefixed with /api/0
           // so we have to use this workaround.
-          installationData = await this.controlSiloApi.requestPromise(
+          installationData = await this.api.requestPromise(
             `/../../extensions/github/installation/${installationId}/`
           );
         } catch (_err) {
@@ -375,7 +390,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
 
         <FieldGroup label={t('Organization')} inline={false} stacked required>
           <SelectControl
-            onChange={this.onSelectOrg}
+            onChange={({value: orgSlug}) => this.onSelectOrg(orgSlug)}
             value={selectedOrgSlug}
             placeholder={t('Select an organization')}
             options={options}
@@ -402,5 +417,4 @@ const ButtonWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  line-height: 24px;
 `;

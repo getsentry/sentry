@@ -1,19 +1,12 @@
 from __future__ import annotations
 
-import functools
-from typing import Callable, Optional, Tuple
-
 import pytest
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache
-from django.http import HttpRequest
 from django.test import override_settings
 
 from sentry import options
 from sentry.app import env
-from sentry.middleware.auth import AuthenticationMiddleware
-from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
@@ -23,63 +16,21 @@ from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.region import get_test_env_directory
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.requests import (
+    RequestFactory,
+    make_request,
+    make_user_request,
+    make_user_request_from_org,
+    request_factory,
+)
+from sentry.testutils.silo import (
+    assume_test_silo_mode_of,
+    control_silo_test,
+    create_test_regions,
+    no_silo_test,
+)
 from sentry.types import region
-from sentry.utils.auth import login
 from sentry.web.client_config import get_client_config
-
-RequestFactory = Callable[[], Optional[Tuple[HttpRequest, User]]]
-
-
-def request_factory(f):
-    @functools.wraps(f)
-    def wrapper(*args, **kwds) -> Tuple[HttpRequest, User] | None:
-        result = f(*args, **kwds)
-        if result is not None:
-            request, user = result
-            if not user.is_anonymous:
-                login(request, user)
-                AuthenticationMiddleware(placeholder_get_response).process_request(request)
-            else:
-                request.user = user
-                request.auth = None
-            env.request = request
-            cache.clear()
-        else:
-            env.clear()
-        return result
-
-    return wrapper
-
-
-@request_factory
-def make_request() -> tuple[HttpRequest, AnonymousUser]:
-    request = HttpRequest()
-    request.method = "GET"
-    request.META["REMOTE_ADDR"] = "127.0.0.1"
-    request.META["SERVER_NAME"] = "testserver"
-    request.META["SERVER_PORT"] = 80
-    request.session = Factories.create_session()
-    return request, AnonymousUser()
-
-
-@request_factory
-def make_user_request(org=None) -> Tuple[HttpRequest, User]:
-    request, _ = make_request()
-    user = Factories.create_user()
-    org = org or Factories.create_organization()
-    Factories.create_member(organization=org, user=user)
-    teams = [Factories.create_team(org, members=[user]) for i in range(2)]
-    [Factories.create_project(org, teams=teams) for i in range(2)]
-    return request, user
-
-
-@request_factory
-def make_user_request_from_org(org=None):
-    org = org or Factories.create_organization()
-    request, user = make_user_request(org)
-    request.session["activeorg"] = org.slug
-    return request, user
 
 
 @request_factory
@@ -92,7 +43,8 @@ def make_user_request_from_non_existant_org(org=None):
 
 def make_user_request_from_org_with_auth_identities(org=None):
     request, user = make_user_request_from_org(org)
-    org = Organization.objects.get_for_user_ids({user.id})[0]
+    with assume_test_silo_mode_of(Organization):
+        org = Organization.objects.get_for_user_ids({user.id})[0]
     provider = AuthProvider.objects.create(
         organization_id=org.id, provider="google", config={"domain": "olddomain.com"}
     )
@@ -112,6 +64,13 @@ def clear_env_request():
     env.clear()
 
 
+multiregion_client_config_test = control_silo_test(
+    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    include_monolith_run=True,
+)
+
+
+@multiregion_client_config_test
 @pytest.mark.parametrize(
     "request_factory",
     [
@@ -139,21 +98,16 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
     base_line["links"].pop("regionUrl")
     cache.clear()
 
-    with override_settings(SILO_MODE=SiloMode.REGION):
-        result = get_client_config(request)
-        result.pop("regions")
-        result["links"].pop("regionUrl")
-        assert result == base_line
-        cache.clear()
-
-    with override_settings(SILO_MODE=SiloMode.CONTROL):
-        result = get_client_config(request)
-        result.pop("regions")
-        result["links"].pop("regionUrl")
-        assert result == base_line
-        cache.clear()
+    for silo_mode in SiloMode:
+        with override_settings(SILO_MODE=silo_mode):
+            result = get_client_config(request)
+            result.pop("regions")
+            result["links"].pop("regionUrl")
+            assert result == base_line
+            cache.clear()
 
 
+@no_silo_test
 @django_db_all(transaction=True)
 def test_client_config_deleted_user():
     request, user = make_user_request_from_org()
@@ -166,6 +120,7 @@ def test_client_config_deleted_user():
     assert result["user"] is None
 
 
+@no_silo_test
 @django_db_all
 def test_client_config_default_region_data():
     request, user = make_user_request_from_org()
@@ -178,8 +133,8 @@ def test_client_config_default_region_data():
     assert regions[0]["url"] == options.get("system.url-prefix")
 
 
+@no_silo_test
 @django_db_all
-@override_settings(SILO_MODE=SiloMode.MONOLITH)
 def test_client_config_empty_region_data():
     region_directory = region.load_from_config(())
 
@@ -197,11 +152,8 @@ def test_client_config_empty_region_data():
     assert regions[0]["url"] == options.get("system.url-prefix")
 
 
+@multiregion_client_config_test
 @django_db_all
-@control_silo_test(
-    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
-    include_monolith_run=True,
-)
 def test_client_config_with_region_data():
     request, user = make_user_request_from_org()
     request.user = user
@@ -212,11 +164,8 @@ def test_client_config_with_region_data():
     assert {r["name"] for r in regions} == {"eu", "us"}
 
 
+@multiregion_client_config_test
 @django_db_all
-@control_silo_test(
-    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
-    include_monolith_run=True,
-)
 def test_client_config_with_single_tenant_membership():
     request, user = make_user_request_from_org()
     request.user = user
@@ -232,11 +181,8 @@ def test_client_config_with_single_tenant_membership():
     assert {r["name"] for r in regions} == {"eu", "us", "acme"}
 
 
+@multiregion_client_config_test
 @django_db_all
-@control_silo_test(
-    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
-    include_monolith_run=True,
-)
 def test_client_config_links_regionurl():
     request, user = make_user_request_from_org()
     request.user = user
@@ -251,14 +197,15 @@ def test_client_config_links_regionurl():
         assert result["links"]
         assert result["links"]["regionUrl"] == "http://us.testserver"
 
+    with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION="eu"):
+        result = get_client_config(request)
+        assert result["links"]
+        assert result["links"]["regionUrl"] == "http://eu.testserver"
 
+
+@multiregion_client_config_test
 @django_db_all
-@control_silo_test(
-    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
-    include_monolith_run=True,
-)
 def test_client_config_links_with_priority_org():
-    # request, user = make_user_request_from_non_existant_org()
     request, user = make_user_request_from_org()
     request.user = user
 

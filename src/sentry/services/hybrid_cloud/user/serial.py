@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, FrozenSet, Iterable, List
+from collections.abc import Iterable
+from typing import Any
 
 from django.utils.functional import LazyObject
 
@@ -54,7 +55,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
         # on some servers due to migration history
         args["name"] = ""
 
-    roles: FrozenSet[str] = frozenset()
+    roles: frozenset[str] = frozenset()
     if hasattr(user, "roles") and user.roles is not None:
         roles = frozenset(_flatten(user.roles))
     args["roles"] = roles
@@ -79,12 +80,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
     else:
         orm_avatar = user.avatar.first()
         if orm_avatar is not None:
-            avatar = RpcAvatar(
-                id=orm_avatar.id,
-                file_id=orm_avatar.file_id,
-                ident=orm_avatar.ident,
-                avatar_type=orm_avatar.get_avatar_type_display(),
-            )
+            avatar = serialize_user_avatar(avatar=orm_avatar)
     args["avatar"] = avatar
 
     args["authenticators"] = [
@@ -102,7 +98,16 @@ def serialize_rpc_user(user: User) -> RpcUser:
     return RpcUser(**args)
 
 
-def _flatten(iter: Iterable[Any]) -> List[Any]:
+def serialize_user_avatar(avatar: UserAvatar) -> RpcAvatar:
+    return RpcAvatar(
+        id=avatar.id,
+        file_id=avatar.file_id,
+        ident=avatar.ident,
+        avatar_type=avatar.get_avatar_type_display(),
+    )
+
+
+def _flatten(iter: Iterable[Any]) -> list[Any]:
     return (
         ((_flatten(iter[0]) + _flatten(iter[1:])) if len(iter) > 0 else [])
         if type(iter) is list or isinstance(iter, BaseQuerySet)

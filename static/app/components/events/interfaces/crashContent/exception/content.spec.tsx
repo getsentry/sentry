@@ -27,7 +27,7 @@ describe('Exception Content', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/prompts-activity/`,
+      url: `/organizations/${organization.slug}/prompts-activity/`,
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
@@ -232,7 +232,7 @@ describe('Exception Content', function () {
         snoozed_ts: undefined,
       };
       MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
+        url: `/organizations/${organization.slug}/prompts-activity/`,
         body: promptResponse,
       });
       MockApiClient.addMockResponse({

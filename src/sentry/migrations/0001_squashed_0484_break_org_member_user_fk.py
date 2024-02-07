@@ -10,7 +10,6 @@ import django.db.models.manager
 import django.utils.timezone
 from django.conf import settings
 from django.db import migrations, models
-from django.utils.timezone import utc
 
 import bitfield.models
 import sentry.db.mixin
@@ -8967,7 +8966,9 @@ class Migration(CheckedMigration):
                 ("scheduled_from", models.DateTimeField(default=django.utils.timezone.now)),
                 (
                     "scheduled_for",
-                    models.DateTimeField(default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=utc)),
+                    models.DateTimeField(
+                        default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=datetime.UTC)
+                    ),
                 ),
             ],
             options={
@@ -8996,7 +8997,9 @@ class Migration(CheckedMigration):
                 ("scheduled_from", models.DateTimeField(default=django.utils.timezone.now)),
                 (
                     "scheduled_for",
-                    models.DateTimeField(default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=utc)),
+                    models.DateTimeField(
+                        default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=datetime.UTC)
+                    ),
                 ),
                 ("region_name", models.CharField(max_length=48)),
             ],

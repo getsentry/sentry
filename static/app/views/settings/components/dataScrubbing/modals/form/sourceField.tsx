@@ -7,7 +7,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-import {SourceSuggestion, SourceSuggestionType} from '../../types';
+import type {SourceSuggestion} from '../../types';
+import {SourceSuggestionType} from '../../types';
 import {binarySuggestions, unarySuggestions} from '../../utils';
 
 import SourceSuggestionExamples from './sourceSuggestionExamples';

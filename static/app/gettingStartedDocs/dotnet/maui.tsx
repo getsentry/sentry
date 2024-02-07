@@ -7,6 +7,7 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -204,6 +205,7 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
+  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry.Maui'}),
 };
 
 export default docs;

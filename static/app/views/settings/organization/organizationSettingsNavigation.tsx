@@ -2,12 +2,12 @@ import {Component} from 'react';
 
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
-import {Organization} from 'sentry/types';
-import {HookName, Hooks} from 'sentry/types/hooks';
+import type {Organization} from 'sentry/types';
+import type {HookName, Hooks} from 'sentry/types/hooks';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
 import navigationConfiguration from 'sentry/views/settings/organization/navigationConfiguration';
-import {NavigationSection} from 'sentry/views/settings/types';
+import type {NavigationSection} from 'sentry/views/settings/types';
 
 type Props = {
   organization: Organization;

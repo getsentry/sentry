@@ -10,7 +10,7 @@ from rest_framework.exceptions import Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, ratelimits
+from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -150,21 +150,11 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             monitor_data = result.get("monitor")
             create_monitor = monitor_data and not monitor
             update_monitor = monitor_data and monitor
-            disable_creation = (
-                features.has("organizations:crons-disable-new-projects", project.organization)
-                and not project.flags.has_cron_monitors
-            )
 
             # Create a new monitor during checkin. Uses update_or_create to
             # protect against races.
             try:
                 if create_monitor:
-                    if disable_creation:
-                        return self.respond(
-                            "Creating monitors in projects without pre-existing monitors is temporarily disabled",
-                            status=400,
-                        )
-
                     monitor, created = Monitor.objects.update_or_create(
                         organization_id=project.organization_id,
                         slug=monitor_data["slug"],

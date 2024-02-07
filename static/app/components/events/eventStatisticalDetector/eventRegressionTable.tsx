@@ -1,14 +1,15 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 import Duration from 'sentry/components/duration';
-import GridEditable, {GridColumnOrder} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage, formatRate} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -129,7 +130,7 @@ function bodyCellRenderer(options, builtinRenderers) {
 }
 
 function throughputRenderer(throughput, {dataRow, option}) {
-  const rendered = formatRate(throughput, RateUnits.PER_MINUTE);
+  const rendered = formatRate(throughput, RateUnit.PER_MINUTE);
   return <NumberContainer>{wrap(rendered, dataRow, option)}</NumberContainer>;
 }
 

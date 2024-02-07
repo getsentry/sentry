@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Set
+from datetime import datetime
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.core.cache import cache
@@ -12,10 +13,10 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
-from sentry.api.permissions import SentryPermission
+from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.environment import Environment
@@ -88,6 +89,10 @@ class OrganizationPermission(SentryPermission):
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         return is_member_disabled_from_limit(request, organization)
+
+
+class OrganizationAndStaffPermission(StaffPermissionMixin, OrganizationPermission):
+    pass
 
 
 class OrganizationAuditPermission(OrganizationPermission):
@@ -241,13 +246,23 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         return (args, kwargs)
 
 
+class FilterParams(TypedDict, total=False):
+    start: datetime | None
+    end: datetime | None
+    project_id: list[int]
+    project_objects: list[Project]
+    organization_id: int
+    environment: list[str] | None
+    environment_objects: list[Environment] | None
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
     def get_projects(
         self,
         request: HttpRequest,
-        organization: Organization,
+        organization: Organization | RpcOrganization,
         force_global_perms: bool = False,
         include_all_accessible: bool = False,
         project_ids: set[int] | None = None,
@@ -273,56 +288,76 @@ class OrganizationEndpoint(Endpoint):
         standardize how this is used and remove this parameter.
         :param project_ids: Projects if they were passed via request
         data instead of get params
+        :param project_slugs: Project slugs if they were passed via request
+        data instead of get params
         :return: A list of Project objects, or raises PermissionDenied.
+
+        NOTE: If both project_ids and project_slugs are passed, we will default
+        to fetching projects via project_id list.
         """
-        if project_ids is None:
-            slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
-            if ALL_ACCESS_PROJECTS_SLUG in slugs:
-                project_ids = ALL_ACCESS_PROJECTS
-            elif slugs:
-                projects = Project.objects.filter(
-                    organization=organization, slug__in=slugs
-                ).values_list("id", flat=True)
-                project_ids = set(projects)
-
-                # return early to prevent passing empty set of project_ids to _get_projects_by_id
-                # which would return all projects in the organization
-                if not project_ids:
-                    return []
-            else:
-                project_ids = self.get_requested_project_ids_unchecked(request)  # type: ignore
-
-        return self._get_projects_by_id(
-            project_ids,
-            request,
-            organization,
-            force_global_perms,
-            include_all_accessible,
-        )
-
-    def _get_projects_by_id(
-        self,
-        project_ids: set[int],
-        request: HttpRequest,
-        organization: Organization,
-        force_global_perms: bool = False,
-        include_all_accessible: bool = False,
-    ) -> list[Project]:
         qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
-        user = getattr(request, "user", None)
-        # A project_id of -1 means 'all projects I have access to'
-        # While no project_ids means 'all projects I am a member of'.
-        if project_ids == ALL_ACCESS_PROJECTS:
-            include_all_accessible = True
-            project_ids = set()
+        if project_slugs and project_ids:
+            raise ParseError(detail="Cannot query for both ids and slugs")
 
-        requested_projects = project_ids.copy()
-        if project_ids:
-            qs = qs.filter(id__in=project_ids)
+        slugs = project_slugs or set(filter(None, request.GET.getlist("projectSlug")))
+        ids = project_ids or self.get_requested_project_ids_unchecked(request)
+
+        if project_ids is None and slugs:
+            # If we're querying for project slugs specifically
+            if ALL_ACCESS_PROJECTS_SLUG in slugs:
+                # All projects i have access to
+                include_all_accessible = True
+            else:
+                qs = qs.filter(slug__in=slugs)
+        else:
+            # If we are explicitly querying for projects via id
+            # Or we're querying for an empty set of ids
+            if ALL_ACCESS_PROJECT_ID in ids:
+                # All projects i have access to
+                include_all_accessible = True
+            elif ids:
+                qs = qs.filter(id__in=ids)
+            # No project ids === `all projects i am a member of`
 
         with sentry_sdk.start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
             span.set_data("Project Count", len(projects))
+
+        filter_by_membership = not bool(ids) and not bool(slugs)
+        filtered_projects = self._filter_projects_by_permissions(
+            projects=projects,
+            request=request,
+            filter_by_membership=filter_by_membership,
+            force_global_perms=force_global_perms,
+            include_all_accessible=include_all_accessible,
+        )
+        filtered_project_ids = {p.id for p in filtered_projects}
+        filtered_project_slugs = {p.slug for p in filtered_projects}
+
+        if (
+            not include_all_accessible
+            and not filter_by_membership
+            and (
+                (ids and ids != filtered_project_ids) or (slugs and slugs != filtered_project_slugs)
+            )
+        ):
+            # If a user requests all projects - they should get back all projects they have permission for
+            # If a user requests specified projects, but they don't have access to them
+            # Then we should raise a permission denied
+            raise PermissionDenied
+
+        return filtered_projects
+
+    def _filter_projects_by_permissions(
+        self,
+        projects: list[Project],
+        request: HttpRequest,
+        filter_by_membership: bool = False,
+        force_global_perms: bool = False,
+        include_all_accessible: bool = False,
+    ) -> list[Project]:
+        user = getattr(request, "user", None)
+        filtered = projects
         with sentry_sdk.start_span(op="apply_project_permissions") as span:
             span.set_data("Project Count", len(projects))
             if force_global_perms:
@@ -330,25 +365,21 @@ class OrganizationEndpoint(Endpoint):
             else:
                 if (
                     user
-                    and is_active_superuser(request)
-                    or requested_projects
-                    or include_all_accessible
+                    and is_active_superuser(request)  # superuser should fetch all projects
+                    or not filter_by_membership  # explicitly requested projects
+                    or include_all_accessible  # requested $all projects
                 ):
                     span.set_tag("mode", "has_project_access")
                     func = request.access.has_project_access
                 else:
                     span.set_tag("mode", "has_project_membership")
                     func = request.access.has_project_membership
-                projects = [p for p in qs if func(p)]
 
-        project_ids = {p.id for p in projects}
+                filtered = [p for p in projects if func(p)]
 
-        if requested_projects and project_ids != requested_projects:
-            raise PermissionDenied
+        return filtered
 
-        return projects
-
-    def get_requested_project_ids_unchecked(self, request: Request) -> set[int]:
+    def get_requested_project_ids_unchecked(self, request: Request | HttpRequest) -> set[int]:
         """
         Returns the project ids that were requested by the request.
 
@@ -368,10 +399,11 @@ class OrganizationEndpoint(Endpoint):
     def get_filter_params(
         self,
         request: Request,
-        organization: Organization,
+        organization: Organization | RpcOrganization,
         date_filter_optional: bool = False,
         project_ids: list[int] | set[int] | None = None,
-    ) -> dict[str, Any]:
+        project_slugs: list[str] | set[str] | None = None,
+    ) -> FilterParams:
         """
         Extracts common filter parameters from the request and returns them
         in a standard format.
@@ -419,7 +451,11 @@ class OrganizationEndpoint(Endpoint):
         try:
             if isinstance(project_ids, list):
                 project_ids = set(project_ids)
-            projects = self.get_projects(request, organization, project_ids=project_ids)
+            if isinstance(project_slugs, list):
+                project_slugs = set(project_slugs)
+            projects = self.get_projects(
+                request, organization, project_ids=project_ids, project_slugs=project_slugs
+            )
         except ValueError:
             raise ParseError(detail="Invalid project ids")
 
@@ -431,7 +467,7 @@ class OrganizationEndpoint(Endpoint):
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
         set_measurement("query.num_projects", len_projects)
 
-        params: dict[str, Any] = {
+        params: FilterParams = {
             "start": start,
             "end": end,
             "project_id": [p.id for p in projects],
@@ -486,8 +522,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     def get_projects(  # type: ignore[override]
         self,
         request: Request,
-        organization: Organization,
+        organization: Organization | RpcOrganization,
         project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
         include_all_accessible: bool = True,
     ) -> list[Project]:
         """
@@ -520,14 +557,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             force_global_perms=has_valid_api_key,
             include_all_accessible=include_all_accessible,
             project_ids=project_ids,
+            project_slugs=project_slugs,
         )
 
     def has_release_permission(
         self,
         request: Request,
-        organization: Organization,
-        release: Optional[Release] = None,
-        project_ids: Optional[Set[int]] = None,
+        organization: Organization | RpcOrganization,
+        release: Release | None = None,
+        project_ids: set[int] | None = None,
     ) -> bool:
         """
         Does the given request have permission to access this release, based

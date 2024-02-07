@@ -7,13 +7,13 @@ import Confirm from 'sentry/components/confirm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {OrgRoleInfo} from 'sentry/components/orgRole';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AvatarUser, Member, Organization} from 'sentry/types';
+import type {AvatarUser, Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 type Props = {
   canAddMembers: boolean;
@@ -75,7 +75,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
   };
 
   renderMemberRole() {
-    const {member, organization} = this.props;
+    const {member} = this.props;
     const {roleName, pending, expired} = member;
     if (isMemberDisabledFromLimit(member)) {
       return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
@@ -88,7 +88,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
         </InvitedRole>
       );
     }
-    return <OrgRoleInfo member={member} organization={organization} />;
+    return <Fragment>{capitalize(member.orgRole)}</Fragment>;
   }
 
   render() {
@@ -202,8 +202,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                         "This user is managed through your organization's identity provider."
                       )
                     : isPartnershipUser
-                    ? t('You cannot make changes to this partner-provisioned user.')
-                    : t('You do not have access to remove members')
+                      ? t('You cannot make changes to this partner-provisioned user.')
+                      : t('You do not have access to remove members')
                 }
                 icon={<IconSubtract isCircled />}
               >
@@ -235,10 +235,10 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                         "Your account is managed through your organization's identity provider."
                       )
                     : isPartnershipUser
-                    ? t('You cannot make changes as a partner-provisioned user.')
-                    : t(
-                        'You cannot leave this organization as you are the only organization owner.'
-                      )
+                      ? t('You cannot make changes as a partner-provisioned user.')
+                      : t(
+                          'You cannot leave this organization as you are the only organization owner.'
+                        )
                 }
               >
                 {t('Leave')}

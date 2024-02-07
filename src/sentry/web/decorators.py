@@ -1,11 +1,11 @@
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
-from sentry_sdk import Hub
 
 from sentry.utils import auth
 
@@ -43,15 +43,3 @@ def set_referrer_policy(policy: str) -> Callable[[EndpointFunc], EndpointFunc]:
         return wrapped
 
     return real_decorator
-
-
-def transaction_start(endpoint: str) -> Callable[[EndpointFunc], EndpointFunc]:
-    def decorator(func: EndpointFunc) -> EndpointFunc:
-        @wraps(func)
-        def wrapped(request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-            with Hub.current.start_transaction(op="http.server", name=endpoint, sampled=True):
-                return func(request, *args, **kwargs)
-
-        return wrapped
-
-    return decorator

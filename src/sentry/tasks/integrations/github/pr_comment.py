@@ -1,25 +1,21 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-from enum import Enum
-from typing import Any, List, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import sentry_sdk
 from django.db import connection
-from django.utils import timezone
 from sentry_sdk.crons.decorator import monitor
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
-from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.pullrequest import CommentType, PullRequestComment
+from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -28,6 +24,11 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
+from sentry.tasks.integrations.github.constants import (
+    ISSUE_LOCKED_ERROR_MESSAGE,
+    RATE_LIMITED_MESSAGE,
+)
+from sentry.tasks.integrations.github.utils import PullRequestIssue, create_or_update_comment
 from sentry.types.referrer_ids import GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -38,35 +39,17 @@ logger = logging.getLogger(__name__)
 
 MERGED_PR_METRICS_BASE = "github_pr_comment.{key}"
 
-
-@dataclass
-class PullRequestIssue:
-    title: str
-    subtitle: str
-    url: str
-    affected_users: Optional[int] = None
-    event_count: Optional[int] = None
-    function_name: Optional[str] = None
-
-
-class GithubAPIErrorType(Enum):
-    RATE_LIMITED = "gh_rate_limited"
-    MISSING_PULL_REQUEST = "missing_gh_pull_request"
-    UNKNOWN = "unknown_api_error"
-
-
-COMMENT_BODY_TEMPLATE = """## Suspect Issues
+MERGED_PR_COMMENT_BODY_TEMPLATE = """\
+## Suspect Issues
 This pull request was deployed and Sentry observed the following issues:
 
 {issue_list}
 
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
-SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
+MERGED_PR_SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
 
-ISSUE_LOCKED_ERROR_MESSAGE = "Unable to create comment because issue is locked."
-
-RATE_LIMITED_MESSAGE = "API rate limit exceeded"
+MAX_SUSPECT_COMMITS = 1000
 
 
 def format_comment_subtitle(subtitle):
@@ -77,10 +60,10 @@ def format_comment_url(url, referrer):
     return url + "?referrer=" + referrer
 
 
-def format_comment(issues: List[PullRequestIssue]):
+def format_comment(issues: list[PullRequestIssue]):
     issue_list = "\n".join(
         [
-            SINGLE_ISSUE_TEMPLATE.format(
+            MERGED_PR_SINGLE_ISSUE_TEMPLATE.format(
                 title=issue.title,
                 subtitle=format_comment_subtitle(issue.subtitle),
                 url=format_comment_url(issue.url, GITHUB_PR_BOT_REFERRER),
@@ -89,7 +72,7 @@ def format_comment(issues: List[PullRequestIssue]):
         ]
     )
 
-    return COMMENT_BODY_TEMPLATE.format(issue_list=issue_list)
+    return MERGED_PR_COMMENT_BODY_TEMPLATE.format(issue_list=issue_list)
 
 
 def pr_to_issue_query(pr_id: int):
@@ -139,63 +122,13 @@ def get_top_5_issues_by_count(issue_list: list[int], project: Project) -> list[d
     return raw_snql_query(request, referrer=Referrer.GITHUB_PR_COMMENT_BOT.value)["data"]
 
 
-def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
+def get_comment_contents(issue_list: list[int]) -> list[PullRequestIssue]:
     """Retrieve the issue information that will be used for comment contents"""
     issues = Group.objects.filter(id__in=issue_list).all()
     return [
         PullRequestIssue(title=issue.title, subtitle=issue.culprit, url=issue.get_absolute_url())
         for issue in issues
     ]
-
-
-def get_pr_comment(pr_id: int, comment_type: int) -> PullRequestComment | None:
-    pr_comment_query = PullRequestComment.objects.filter(
-        pull_request__id=pr_id, comment_type=comment_type
-    )
-    return pr_comment_query[0] if pr_comment_query.exists() else None
-
-
-def create_or_update_comment(
-    pr_comment: PullRequestComment | None,
-    client: GitHubAppsClient,
-    repo: Repository,
-    pr_key: int,
-    comment_body: str,
-    pullrequest_id: int,
-    issue_list: List[int],
-    comment_type: int = CommentType.MERGED_PR,
-    metrics_base=MERGED_PR_METRICS_BASE,
-):
-    # client will raise ApiError if the request is not successful
-    if pr_comment is None:
-        resp = client.create_comment(repo=repo.name, issue_id=pr_key, data={"body": comment_body})
-
-        current_time = timezone.now()
-        PullRequestComment.objects.create(
-            external_id=resp.body["id"],
-            pull_request_id=pullrequest_id,
-            created_at=current_time,
-            updated_at=current_time,
-            group_ids=issue_list,
-            comment_type=comment_type,
-        )
-        metrics.incr(metrics_base.format(key="comment_created"))
-    else:
-        resp = client.update_comment(
-            repo=repo.name, comment_id=pr_comment.external_id, data={"body": comment_body}
-        )
-        metrics.incr(metrics_base.format(key="comment_updated"))
-        pr_comment.updated_at = timezone.now()
-        pr_comment.group_ids = issue_list
-        pr_comment.save()
-
-    # TODO(cathy): Figure out a way to track average rate limit left for GH client
-
-    logger_event = metrics_base.format(key="create_or_update_comment")
-    logger.info(
-        logger_event,
-        extra={"new_comment": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
-    )
 
 
 @instrumented_task(
@@ -205,6 +138,9 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id)
 
     gh_repo_id, pr_key, org_id, issue_list = pr_to_issue_query(pullrequest_id)[0]
+
+    # cap to 1000 issues in which the merge commit is the suspect commit
+    issue_list = issue_list[:MAX_SUSPECT_COMMITS]
 
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
@@ -222,8 +158,6 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         logger.info("github.pr_comment.option_missing", extra={"organization_id": org_id})
         return
 
-    pr_comment = get_pr_comment(pr_id=pullrequest_id, comment_type=CommentType.MERGED_PR)
-
     try:
         project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
@@ -234,6 +168,15 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     top_5_issues = get_top_5_issues_by_count(issue_list, project)
     top_5_issue_ids = [issue["group_id"] for issue in top_5_issues]
+    logger.info(
+        "github.pr_comment.top_5_issues",
+        extra={
+            "top_5_issue_ids": top_5_issue_ids,
+            "issue_list": issue_list,
+            "pr_id": pullrequest_id,
+        },
+    )
+
     issue_comment_contents = get_comment_contents(top_5_issue_ids)
 
     try:
@@ -266,13 +209,13 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     try:
         create_or_update_comment(
-            pr_comment=pr_comment,
             client=client,
             repo=repo,
             pr_key=pr_key,
             comment_body=comment_body,
             pullrequest_id=pullrequest_id,
             issue_list=top_24_issues,
+            metrics_base=MERGED_PR_METRICS_BASE,
         )
     except ApiError as e:
         cache.delete(cache_key)
@@ -297,7 +240,6 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 @instrumented_task(
     name="sentry.tasks.integrations.github_comment_reactions", silo_mode=SiloMode.REGION
 )
-# TODO(rjo100): dual write check-ins for debugging
 @monitor(monitor_slug="github_comment_reactions_test")
 def github_comment_reactions():
     logger.info("github.pr_comment.reactions_task")
@@ -305,6 +247,8 @@ def github_comment_reactions():
     comments = PullRequestComment.objects.filter(
         created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
     ).select_related("pull_request")
+
+    comment_count = 0
 
     for comment in RangeQuerySetWrapper(comments):
         pr = comment.pull_request
@@ -346,4 +290,10 @@ def github_comment_reactions():
                 sentry_sdk.capture_exception(e)
             continue
 
+        comment_count += 1
+
         metrics.incr("github_pr_comment.comment_reactions.success")
+
+    logger.info(
+        "github_pr_comment.comment_reactions.total_collected", extra={"count": comment_count}
+    )

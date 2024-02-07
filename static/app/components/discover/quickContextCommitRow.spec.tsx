@@ -1,6 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Commit, Repository, RepositoryStatus, User} from 'sentry/types';
+import type {Commit, Repository, User} from 'sentry/types';
+import {RepositoryStatus} from 'sentry/types';
 
 import {QuickContextCommitRow} from './quickContextCommitRow';
 

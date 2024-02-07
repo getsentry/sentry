@@ -53,7 +53,9 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       {
         name: 'codecovAccess',
         type: 'boolean',
-        disabled: !organization.features.includes('codecov-integration'),
+        disabled:
+          !organization.features.includes('codecov-integration') ||
+          !access.has('org:write'),
         label: (
           <PoweredByCodecov>
             {t('Enable Code Coverage Insights')}{' '}
@@ -93,7 +95,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       },
     ];
     return formsConfig;
-  }, [organization]);
+  }, [access, organization]);
 
   return (
     <Form

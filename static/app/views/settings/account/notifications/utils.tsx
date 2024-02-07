@@ -1,4 +1,4 @@
-import {OrganizationSummary, Project} from 'sentry/types';
+import type {OrganizationSummary, Project} from 'sentry/types';
 import {NOTIFICATION_SETTINGS_PATHNAMES} from 'sentry/views/settings/account/notifications/constants';
 
 /**
@@ -36,7 +36,7 @@ export const groupByOrganization = (
  * Returns a link to docs on explaining how to manage quotas for that event type
  */
 export function getDocsLinkForEventType(
-  event: 'error' | 'transaction' | 'attachment' | 'replay'
+  event: 'error' | 'transaction' | 'attachment' | 'replay' | 'monitorSeat'
 ) {
   switch (event) {
     case 'transaction':
@@ -45,6 +45,8 @@ export function getDocsLinkForEventType(
       return 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/#2-rate-limiting';
     case 'replay':
       return 'https://docs.sentry.io/product/session-replay/';
+    case 'monitorSeat':
+      return 'https://docs.sentry.io/product/crons/';
     default:
       return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
   }

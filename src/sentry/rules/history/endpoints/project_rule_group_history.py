@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Mapping, MutableMapping, Sequence, TypedDict
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -15,7 +16,6 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
@@ -57,11 +57,11 @@ class RuleGroupHistorySerializer(Serializer):
 @region_silo_endpoint
 class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     @extend_schema(
-        operation_id="Retrieve a group firing history for an issue alert",
+        operation_id="Retrieve a Group Firing History for an Issue Alert",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
@@ -73,7 +73,6 @@ class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=IssueAlertExamples.GENERIC_SUCCESS_RESPONSE,
     )
     def get(self, request: Request, project: Project, rule: Rule) -> Response:
         per_page = self.get_per_page(request)

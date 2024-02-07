@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {getDuration} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

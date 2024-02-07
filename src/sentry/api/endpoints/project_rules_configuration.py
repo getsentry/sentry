@@ -15,7 +15,7 @@ from sentry.rules import rules
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project) -> Response:

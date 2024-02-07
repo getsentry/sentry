@@ -1,10 +1,11 @@
-import {ComponentProps, CSSProperties, forwardRef} from 'react';
+import type {ComponentProps, CSSProperties} from 'react';
+import {forwardRef} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import HeaderCell from 'sentry/components/replays/virtualizedGrid/headerCell';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
+import type useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 
 type SortConfig = ReturnType<typeof useSortNetwork>['sortConfig'];
 type Props = {

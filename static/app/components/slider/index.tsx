@@ -2,7 +2,8 @@ import {forwardRef, useCallback, useImperativeHandle, useMemo, useRef} from 'rea
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useNumberFormatter} from '@react-aria/i18n';
-import {AriaSliderProps, AriaSliderThumbOptions, useSlider} from '@react-aria/slider';
+import type {AriaSliderProps, AriaSliderThumbOptions} from '@react-aria/slider';
+import {useSlider} from '@react-aria/slider';
 import {useSliderState} from '@react-stately/slider';
 
 import {Tooltip} from 'sentry/components/tooltip';
@@ -254,8 +255,8 @@ function BaseSlider(
                 index === 0
                   ? 'start'
                   : index === allTickValues.length - 1
-                  ? 'end'
-                  : 'center'
+                    ? 'end'
+                    : 'center'
               }
             >
               {showTickLabels && (

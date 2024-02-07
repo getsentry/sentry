@@ -1,14 +1,19 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
+import type {MotionProps} from 'framer-motion';
+import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -20,8 +25,9 @@ import {RelocationOnboardingContextProvider} from 'sentry/views/relocation/reloc
 
 import EncryptBackup from './encryptBackup';
 import GetStarted from './getStarted';
+import InProgress from './inProgress';
 import PublicKey from './publicKey';
-import {StepDescriptor} from './types';
+import type {StepDescriptor} from './types';
 import UploadBackup from './uploadBackup';
 
 type RouteParams = {
@@ -56,49 +62,102 @@ function getRelocationOnboardingSteps(): StepDescriptor[] {
       Component: UploadBackup,
       cornerVariant: 'top-left',
     },
+    {
+      id: 'in-progress',
+      title: t('Your relocation is in progress'),
+      Component: InProgress,
+      cornerVariant: 'top-left',
+    },
   ];
 }
 
+enum LoadingState {
+  FETCHED,
+  FETCHING,
+  ERROR,
+}
+
 function RelocationOnboarding(props: Props) {
-  const [hasPublicKeyError, setHasError] = useState(false);
+  const {
+    params: {step: stepId},
+  } = props;
+  const onboardingSteps = getRelocationOnboardingSteps();
+  const stepObj = onboardingSteps.find(({id}) => stepId === id);
+  const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
+  const api = useApi();
+  const regions = ConfigStore.get('regions');
+
+  const [existingRelocationState, setExistingRelocationState] = useState(
+    LoadingState.FETCHING
+  );
+  const [existingRelocation, setExistingRelocation] = useState('');
 
   // TODO(getsentry/team-ospo#214): We should use sessionStorage to track this, since it should not
   // change during a single run through this workflow.
   const [publicKey, setPublicKey] = useState('');
+  const [publicKeyState, setPublicKeyState] = useState(LoadingState.FETCHING);
 
-  const api = useApi();
-  const fetchData = useCallback(() => {
+  const fetchExistingRelocation = useCallback(() => {
+    setExistingRelocationState(LoadingState.FETCHING);
+    return Promise.all(
+      regions.map(region =>
+        api.requestPromise(`/relocations/`, {
+          method: 'GET',
+          host: region.url,
+        })
+      )
+    )
+      .then(responses => {
+        const response = responses.flat(1);
+        response.sort((a, b) => {
+          return (
+            new Date(a.dateAdded || 0).getTime() - new Date(b.dateAdded || 0).getTime()
+          );
+        });
+        const existingRelocationUUID =
+          response.find(
+            candidate =>
+              candidate.status === 'IN_PROGRESS' || candidate.status === 'PAUSE'
+          )?.uuid || '';
+
+        setExistingRelocation(existingRelocationUUID);
+        setExistingRelocationState(LoadingState.FETCHED);
+        if (existingRelocationUUID !== '' && stepId !== 'in-progress') {
+          browserHistory.push('/relocation/in-progress/');
+        }
+        if (existingRelocationUUID === '' && stepId === 'in-progress') {
+          browserHistory.push('/relocation/get-started/');
+        }
+      })
+      .catch(_error => {
+        setExistingRelocation('');
+        setExistingRelocationState(LoadingState.ERROR);
+      });
+  }, [api, regions, stepId]);
+  useEffect(() => {
+    fetchExistingRelocation();
+  }, [fetchExistingRelocation]);
+
+  const fetchPublicKey = useCallback(() => {
     const endpoint = `/publickeys/relocations/`;
+    setPublicKeyState(LoadingState.FETCHING);
+
     return api
       .requestPromise(endpoint)
       .then(response => {
         setPublicKey(response.public_key);
-        setHasError(false);
+        setPublicKeyState(LoadingState.FETCHED);
       })
       .catch(_error => {
         setPublicKey('');
-        setHasError(true);
+        setPublicKeyState(LoadingState.ERROR);
       });
   }, [api]);
-
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const loadingError = (
-    <LoadingError message={t('Failed to load your public key.')} onRetry={fetchData} />
-  );
-
-  const {
-    params: {step: stepId},
-  } = props;
-
-  const onboardingSteps = getRelocationOnboardingSteps();
-  const stepObj = onboardingSteps.find(({id}) => stepId === id);
-  const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
+    fetchPublicKey();
+  }, [fetchPublicKey]);
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
-
   useEffect(() => {
     return () => {
       window.clearTimeout(cornerVariantTimeoutRed.current);
@@ -153,52 +212,90 @@ function RelocationOnboarding(props: Props) {
     return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0].id}/`)} />;
   }
 
+  const headerView =
+    stepId === 'in-progress' ? null : (
+      <Header>
+        <LogoSvg />
+        {stepIndex !== -1 && (
+          <StyledStepper
+            numSteps={onboardingSteps.length}
+            currentStepIndex={stepIndex}
+            onClick={i => {
+              goToStep(onboardingSteps[i]);
+            }}
+          />
+        )}
+      </Header>
+    );
+
+  const backButtonView =
+    stepId === 'in-progress' ? null : (
+      <Back
+        onClick={() => goToStep(onboardingSteps[stepIndex - 1])}
+        animate={stepIndex > 0 ? 'visible' : 'hidden'}
+      />
+    );
+
+  const isLoading =
+    existingRelocationState !== LoadingState.FETCHED ||
+    publicKeyState !== LoadingState.FETCHED;
+  const contentView = isLoading ? (
+    <LoadingIndicator />
+  ) : (
+    <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
+      <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
+        {stepObj.Component && (
+          <stepObj.Component
+            active
+            data-test-id={`onboarding-step-${stepObj.id}`}
+            existingRelocationUUID={existingRelocation}
+            stepIndex={stepIndex}
+            onComplete={(uuid?) => {
+              if (uuid) {
+                setExistingRelocation(uuid);
+              }
+              if (stepObj) {
+                goNextStep(stepObj);
+              }
+            }}
+            publicKey={publicKey}
+            route={props.route}
+            router={props.router}
+            location={props.location}
+          />
+        )}
+      </OnboardingStep>
+    </AnimatePresence>
+  );
+
+  const hasErr =
+    existingRelocationState === LoadingState.ERROR ||
+    publicKeyState === LoadingState.ERROR;
+  const errView = hasErr ? (
+    <LoadingError
+      data-test-id="loading-error"
+      message={t('Failed to load information from server - check your connection?')}
+      onRetry={() => {
+        if (existingRelocationState) {
+          fetchExistingRelocation();
+        }
+        if (publicKeyState) {
+          fetchPublicKey();
+        }
+      }}
+    />
+  ) : null;
+
   return (
     <OnboardingWrapper data-test-id="relocation-onboarding">
       <RelocationOnboardingContextProvider>
         <SentryDocumentTitle title={stepObj.title} />
-        <Header>
-          <LogoSvg />
-          {stepIndex !== -1 && (
-            <StyledStepper
-              numSteps={onboardingSteps.length}
-              currentStepIndex={stepIndex}
-              onClick={i => {
-                goToStep(onboardingSteps[i]);
-              }}
-            />
-          )}
-        </Header>
+        {headerView}
         <Container>
-          <Back
-            onClick={() => goToStep(onboardingSteps[stepIndex - 1])}
-            animate={stepIndex > 0 ? 'visible' : 'hidden'}
-          />
-          <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
-            <OnboardingStep
-              key={stepObj.id}
-              data-test-id={`onboarding-step-${stepObj.id}`}
-            >
-              {stepObj.Component && (
-                <stepObj.Component
-                  active
-                  data-test-id={`onboarding-step-${stepObj.id}`}
-                  stepIndex={stepIndex}
-                  onComplete={() => {
-                    if (stepObj) {
-                      goNextStep(stepObj);
-                    }
-                  }}
-                  publicKey={publicKey}
-                  route={props.route}
-                  router={props.router}
-                  location={props.location}
-                />
-              )}
-            </OnboardingStep>
-          </AnimatePresence>
+          {backButtonView}
+          {contentView}
           <AdaptivePageCorners animateVariant={cornerVariantControl} />
-          {stepObj.id === 'public-key' && hasPublicKeyError ? loadingError : null}
+          {errView}
         </Container>
       </RelocationOnboardingContextProvider>
     </OnboardingWrapper>

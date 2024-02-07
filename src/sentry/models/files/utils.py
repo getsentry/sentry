@@ -7,12 +7,12 @@ from datetime import timedelta
 from hashlib import sha1
 
 from django.conf import settings
-from django.core.files.storage import get_storage_class
 from django.utils import timezone
 
 from sentry import options
 from sentry.locks import locks
 from sentry.utils import redis
+from sentry.utils.imports import import_string
 from sentry.utils.retries import TimedRetryPolicy
 
 ONE_DAY = 60 * 60 * 24
@@ -133,7 +133,7 @@ def get_storage(config=None):
     except KeyError:
         pass
 
-    storage = get_storage_class(backend)
+    storage = import_string(backend)
     return storage(**options)
 
 
@@ -152,7 +152,7 @@ def get_relocation_storage(config=None):
     except KeyError:
         pass
 
-    storage = get_storage_class(backend)
+    storage = import_string(backend)
     return storage(**relocation)
 
 

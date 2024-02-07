@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+import logging
+from collections.abc import Callable
+from typing import Any
 
 from django.conf import settings
 from django.http.response import HttpResponseBase
@@ -25,6 +27,8 @@ SENTRY_APP_REGION_URL_NAMES = (
     "sentry-api-0-sentry-app-requests",
     "sentry-api-0-sentry-app-interaction",
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _get_view_silo_mode(view_func: Callable[..., HttpResponseBase]) -> frozenset[SiloMode] | None:
@@ -52,9 +56,12 @@ def proxy_request_if_needed(
     if not silo_modes or current_silo_mode in silo_modes:
         return None
 
+    url_name = "unknown"
+    if request.resolver_match:
+        url_name = request.resolver_match.url_name or url_name
+
     if "organization_slug" in view_kwargs:
         org_slug = view_kwargs["organization_slug"]
-        url_name = request.resolver_match.url_name if request.resolver_match else "unknown"
 
         metrics.incr(
             "apigateway.proxy_request",
@@ -63,7 +70,7 @@ def proxy_request_if_needed(
                 "kind": "orgslug",
             },
         )
-        return proxy_request(request, org_slug)
+        return proxy_request(request, org_slug, url_name)
 
     if (
         "uuid" in view_kwargs
@@ -74,11 +81,11 @@ def proxy_request_if_needed(
         metrics.incr(
             "apigateway.proxy_request",
             tags={
-                "url_name": request.resolver_match.url_name,
+                "url_name": url_name,
                 "kind": "sentryapp-installation",
             },
         )
-        return proxy_sentryappinstallation_request(request, install_uuid)
+        return proxy_sentryappinstallation_request(request, install_uuid, url_name)
 
     if (
         "sentry_app_slug" in view_kwargs
@@ -89,11 +96,11 @@ def proxy_request_if_needed(
         metrics.incr(
             "apigateway.proxy_request",
             tags={
-                "url_name": request.resolver_match.url_name,
+                "url_name": url_name,
                 "kind": "sentryapp",
             },
         )
-        return proxy_sentryapp_request(request, app_slug)
+        return proxy_sentryapp_request(request, app_slug, url_name)
 
     if (
         request.resolver_match
@@ -103,10 +110,23 @@ def proxy_request_if_needed(
         metrics.incr(
             "apigateway.proxy_request",
             tags={
-                "url_name": request.resolver_match.url_name,
+                "url_name": url_name,
                 "kind": "regionpin",
             },
         )
 
-        return proxy_region_request(request, region)
+        return proxy_region_request(request, region, url_name)
+
+    if url_name != "unknown":
+        # If we know the URL but didn't proxy it record we could be missing
+        # URL handling and that needs to be fixed.
+        metrics.incr(
+            "apigateway.proxy_request",
+            tags={
+                "kind": "noop",
+                "url_name": url_name,
+            },
+        )
+        logger.info("apigateway.unknown_url", extra={"url": request.path})
+
     return None

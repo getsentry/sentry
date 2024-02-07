@@ -12,7 +12,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture({});
@@ -56,7 +56,7 @@ describe('StackTrace', function () {
       snoozed_ts: undefined,
     };
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
     });
     MockApiClient.addMockResponse({

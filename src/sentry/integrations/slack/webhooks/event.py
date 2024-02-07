@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,7 +23,6 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.urls import parse_link
-from sentry.web.decorators import transaction_start
 
 from ..utils import logger
 from .base import SlackDMEndpoint
@@ -179,6 +179,14 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if not results:
             return False
 
+        # XXX(isabella): we use our message builders to create the blocks for each link to be
+        # unfurled, so the original result will include the fallback text string, however, the
+        # unfurl endpoint does not accept fallback text.
+        if features.has("organizations:slack-block-kit", organization):
+            for link_info in results.values():
+                if "text" in link_info:
+                    del link_info["text"]
+
         payload = {
             "channel": data["channel"],
             "ts": data["message_ts"],
@@ -194,7 +202,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
         return True
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
-    @transaction_start("SlackEventEndpoint")
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)

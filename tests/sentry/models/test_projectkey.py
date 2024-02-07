@@ -7,10 +7,10 @@ from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeySt
 from sentry.silo import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import create_test_regions, region_silo_test
 
 
-@region_silo_test(include_monolith_run=True)
+@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class ProjectKeyTest(TestCase):
     model = ProjectKey
 

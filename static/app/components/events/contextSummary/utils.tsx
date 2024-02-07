@@ -1,7 +1,19 @@
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {Context} from './types';
+import type {Context} from './types';
+
+const serverSideSdks = [
+  'sentry.javascript.nextjs',
+  'sentry.javascript.gatsby',
+  'sentry.javascript.remix',
+  'sentry.javascript.astro',
+  'sentry.javascript.sveltekit',
+];
+
+function isServerSideRenderedEvent(event: Event) {
+  return event.sdk && serverSideSdks.includes(event.sdk.name);
+}
 
 /**
  * Generates a predicate to filter a list of contexts for an event.
@@ -21,7 +33,7 @@ export const makeContextFilter = (event: Event) =>
       }
     }
 
-    if (event.sdk?.name === 'sentry.javascript.nextjs') {
+    if (isServerSideRenderedEvent(event)) {
       if (context.keys.includes('browser')) {
         const runtime = event.contexts?.runtime;
 

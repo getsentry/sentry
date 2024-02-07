@@ -1,8 +1,8 @@
-import {InternalAppApiToken} from 'sentry/types';
+import {NewInternalAppApiToken} from 'sentry/types';
 
 export function SentryAppTokenFixture(
-  params: Partial<InternalAppApiToken> = {}
-): InternalAppApiToken {
+  params: Partial<NewInternalAppApiToken> = {}
+): NewInternalAppApiToken {
   return {
     token: '123456123456123456123456-token',
     dateCreated: '2019-03-02T18:30:26Z',
@@ -12,6 +12,7 @@ export function SentryAppTokenFixture(
     application: null,
     id: '1',
     state: 'active',
+    tokenLastCharacters: 'oken',
     ...params,
   };
 }

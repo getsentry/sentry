@@ -17,7 +17,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.environment import EnvironmentProject
-from sentry.models.integrations.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -143,7 +142,7 @@ class ProjectDetailsTest(APITestCase):
 
     def test_has_alert_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="msteams")
+            integration = self.create_provider_integration(provider="msteams")
             integration.add_organization(self.organization)
 
         project = self.create_project()
@@ -159,7 +158,7 @@ class ProjectDetailsTest(APITestCase):
 
     def test_no_alert_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="jira")
+            integration = self.create_provider_integration(provider="jira")
             integration.add_organization(self.organization)
 
         project = self.create_project()
@@ -591,6 +590,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token": "*",
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
+            "sentry:replay_rage_click_issues": True,
             "feedback:branding": False,
             "filters:react-hydration-errors": True,
             "filters:chunk-load-error": True,
@@ -704,6 +704,7 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             ).exists()
         assert project.get_option("feedback:branding") == "0"
+        assert project.get_option("sentry:replay_rage_click_issues") is True
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert AuditLogEntry.objects.filter(
                 organization_id=project.organization_id,

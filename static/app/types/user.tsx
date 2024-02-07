@@ -46,6 +46,7 @@ export interface User extends Omit<AvatarUser, 'options'> {
     avatarType: Avatar['avatarType'];
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
+    issueDetailsNewExperienceQ42023: boolean;
     language: string;
     stacktraceOrder: number;
     theme: 'system' | 'light' | 'dark';
@@ -75,12 +76,16 @@ interface BaseApiToken {
   state: string;
 }
 
-// We include the token for API tokens used for internal apps
+// API Tokens should not be using and storing the token values in the application, as the tokens are secrets.
 export interface InternalAppApiToken extends BaseApiToken {
   application: null;
   refreshToken: string;
+  tokenLastCharacters: string;
+}
+
+// We include the token for new API tokens
+export interface NewInternalAppApiToken extends InternalAppApiToken {
   token: string;
-  tokenLastCharacters?: string;
 }
 
 export type ApiApplication = {

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, DefaultDict, List, Mapping
+from collections.abc import Mapping
+from typing import Any, DefaultDict
 
 from rest_framework import status
 from rest_framework.request import Request
@@ -23,8 +24,10 @@ from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.services.hybrid_cloud.util import region_silo_function
 
 
+@region_silo_function
 def build_action_response(
     registered_type,
     integration: RpcIntegration | None = None,
@@ -100,7 +103,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
         actions = []
 
         # Cache Integration objects in this data structure to save DB calls.
-        provider_integrations: DefaultDict[str, List[RpcIntegration]] = defaultdict(list)
+        provider_integrations: DefaultDict[str, list[RpcIntegration]] = defaultdict(list)
         for integration in get_available_action_integrations_for_org(organization):
             provider_integrations[integration.provider].append(integration)
 

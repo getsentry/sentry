@@ -25,7 +25,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     DEPRECATION_DATE = datetime.fromisoformat("2024-02-07T00:00:00+00:00:00")
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     @deprecated(DEPRECATION_DATE, "sentry-api-0-organization-combined-rules")
@@ -61,8 +61,8 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleIndexMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     permission_classes = (ProjectAlertRulePermission,)
 

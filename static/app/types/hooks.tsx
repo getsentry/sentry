@@ -3,7 +3,10 @@ import type {Route, RouteComponentProps, RouteContextInterface} from 'react-rout
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
-import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
+import type {
+  ProductSelectionProps,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
@@ -110,6 +113,14 @@ type ProfilingAM1OrMMXUpgradeProps = {
   organization: Organization;
 };
 
+type CronsBillingBannerProps = {
+  organization: Organization;
+};
+
+type OrganizationHeaderProps = {
+  organization: Organization;
+};
+
 type ProductSelectionAvailabilityProps = Pick<
   ProductSelectionProps,
   'lazyLoader' | 'skipLazyLoader' | 'platform' | 'withBottomMargin'
@@ -141,11 +152,28 @@ type QualitativeIssueFeedbackProps = {
   organization: Organization;
 };
 
+// on-create-project-product-selection
+type CreateProjectProductSelectionChangedCallback = (options: {
+  defaultProducts: ProductSolution[];
+  organization: Organization;
+  selectedProducts: ProductSolution[];
+}) => void;
+
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
+
+type MonitorCreatedCallback = (organization: Organization) => void;
 
 type SentryLogoProps = SVGIconProps & {
   pride?: boolean;
 };
+export type ParntershipAgreementType = 'standard' | 'partner_presence';
+export type PartnershipAgreementProps = {
+  agreements: Array<ParntershipAgreementType>;
+  partnerDisplayName: string;
+  onSubmitSuccess?: () => void;
+  organizationSlug?: string;
+};
+
 /**
  * Component wrapping hooks
  */
@@ -153,6 +181,7 @@ export type ComponentHooks = {
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
+  'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -168,6 +197,8 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
+  'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgradeProps>;
@@ -180,6 +211,7 @@ export type ComponentHooks = {
   'component:replay-onboarding-cta-button': () => React.ComponentType<{}> | null;
   'component:sentry-logo': () => React.ComponentType<SentryLogoProps>;
   'component:superuser-access-category': React.ComponentType<any>;
+  'component:superuser-warning': React.ComponentType<any>;
 };
 
 /**
@@ -253,7 +285,6 @@ export type FeatureDisabledHooks = {
 export type InterfaceChromeHooks = {
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
-  'organization:header': OrganizationHeaderComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
@@ -310,7 +341,9 @@ export type ReactHooks = {
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
+  'callback:on-create-project-product-selection': CreateProjectProductSelectionChangedCallback;
   'callback:on-guide-update': GuideUpdateCallback;
+  'callback:on-monitor-created': MonitorCreatedCallback;
 };
 
 /**
@@ -334,11 +367,6 @@ type GenericOrganizationComponentHook = (opts: {
  * Receives a project object and should return a React node.
  */
 type GenericProjectComponentHook = (opts: {project: Project}) => React.ReactNode;
-
-// TODO(ts): We should correct the organization header hook to conform to the
-// GenericOrganizationComponentHook, passing org as a prop object, not direct
-// as the only argument.
-type OrganizationHeaderComponentHook = (org: Organization) => React.ReactNode;
 
 /**
  * A FeatureDisabledHook returns a react element when a feature is not enabled.

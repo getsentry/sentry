@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import List, Mapping, Optional, Sequence
+from collections.abc import Mapping, Sequence
 
 import click
 from arroyo.backends.abstract import Consumer
@@ -30,7 +30,7 @@ def convert_max_batch_time(ctx, param, value):
 
 
 def multiprocessing_options(
-    default_max_batch_size: Optional[int] = None, default_max_batch_time_ms: Optional[int] = 1000
+    default_max_batch_size: int | None = None, default_max_batch_time_ms: int | None = 1000
 ):
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
@@ -52,18 +52,18 @@ def multiprocessing_options(
     ]
 
 
-def ingest_replay_recordings_options() -> List[click.Option]:
+def ingest_replay_recordings_options() -> list[click.Option]:
     """Return a list of ingest-replay-recordings options."""
     options = multiprocessing_options(default_max_batch_size=10)
     options.append(click.Option(["--threads", "num_threads"], type=int, default=4))
     return options
 
 
-def ingest_replay_recordings_buffered_options() -> List[click.Option]:
+def ingest_replay_recordings_buffered_options() -> list[click.Option]:
     """Return a list of ingest-replay-recordings-buffered options."""
     options = [
         click.Option(
-            ["--max-buffer-row-count", "max_buffer_row_count"],
+            ["--max-buffer-message-count", "max_buffer_message_count"],
             type=int,
             default=100,
         ),
@@ -76,6 +76,31 @@ def ingest_replay_recordings_buffered_options() -> List[click.Option]:
             ["--max-buffer-time-in-seconds", "max_buffer_time_in_seconds"],
             type=int,
             default=1,
+        ),
+    ]
+    return options
+
+
+def ingest_monitors_options() -> list[click.Option]:
+    """Return a list of ingest-monitors options."""
+    options = [
+        click.Option(
+            ["--mode", "mode"],
+            type=click.Choice(["serial", "parallel"]),
+            default="serial",
+            help="The mode to process check-ins in. Parallel uses multithreading.",
+        ),
+        click.Option(
+            ["--max-batch-size", "max_batch_size"],
+            type=int,
+            default=500,
+            help="Maximum number of check-ins to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-batch-time", "max_batch_time"],
+            type=int,
+            default=10,
+            help="Maximum time spent batching check-ins to batch before processing in parallel.",
         ),
     ]
     return options
@@ -160,6 +185,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-monitors": {
         "topic": settings.KAFKA_INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
+        "click_options": ingest_monitors_options(),
     },
     "billing-metrics-consumer": {
         "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
@@ -297,9 +323,8 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "synchronize_commit_group_default": "snuba-consumers",
         "click_options": _POST_PROCESS_FORWARDER_OPTIONS,
     },
-    "ingest-spans": {
-        "click_options": _INGEST_SPANS_OPTIONS,
-        "topic": settings.KAFKA_INGEST_SPANS,
+    "process-spans": {
+        "topic": settings.KAFKA_SNUBA_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
@@ -318,19 +343,19 @@ def print_deprecation_warning(name, group_id):
 def get_stream_processor(
     consumer_name: str,
     consumer_args: Sequence[str],
-    topic: Optional[str],
-    cluster: Optional[str],
+    topic: str | None,
+    cluster: str | None,
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    join_timeout: Optional[float],
-    max_poll_interval_ms: Optional[int],
-    synchronize_commit_log_topic: Optional[str],
-    synchronize_commit_group: Optional[str],
-    healthcheck_file_path: Optional[str],
+    join_timeout: float | None,
+    max_poll_interval_ms: int | None,
+    synchronize_commit_log_topic: str | None,
+    synchronize_commit_group: str | None,
+    healthcheck_file_path: str | None,
     enable_dlq: bool,
     validate_schema: bool = False,
-    group_instance_id: Optional[str] = None,
+    group_instance_id: str | None = None,
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]

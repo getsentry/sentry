@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 import requests as requests_
 import sentry_sdk
@@ -29,6 +30,7 @@ from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.rule import Rule
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -37,7 +39,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviderEnum
 from sentry.utils import json
-from sentry.web.decorators import transaction_start
 
 from ..utils import logger
 
@@ -83,6 +84,14 @@ RESOLVE_OPTIONS = {
     "In the current release": "resolved:inCurrentRelease",
 }
 
+ARCHIVE_OPTIONS = {
+    "Until escalating": "ignored:archived_until_escalating",
+    "Until 10 events": "ignored:archived_until_condition_met:10",
+    "Until 100 events": "ignored:archived_until_condition_met:100",
+    "Until 1000 events": "ignored:archived_until_condition_met:1000",
+    "Forever": "ignored:archived_forever",
+}
+
 
 def update_group(
     group: Group,
@@ -104,6 +113,14 @@ def update_group(
         user=user,
         data=data,
     )
+
+
+def get_rule(slack_request: SlackActionRequest) -> Group | None:
+    """Get the rule that fired"""
+    rule_id = slack_request.callback_data.get("rule")
+    if not rule_id:
+        return None
+    return Rule.objects.get(id=rule_id)
 
 
 def get_group(slack_request: SlackActionRequest) -> Group | None:
@@ -243,7 +260,7 @@ class SlackActionEndpoint(Endpoint):
         group: Group,
         action: MessageAction,
     ) -> None:
-        status_data = (action.value or "").split(":", 1)
+        status_data = (action.value or "").split(":", 2)
         if not len(status_data):
             return
 
@@ -254,6 +271,8 @@ class SlackActionEndpoint(Endpoint):
         # sub-status only applies to ignored/archived issues
         if len(status_data) > 1 and status_data[0] == "ignored":
             status["substatus"] = status_data[1]
+            if status["substatus"] == "archived_until_condition_met":
+                status.update({"statusDetails": {"ignoreCount": int(status_data[2])}})
 
         resolve_type = status_data[-1]
 
@@ -292,7 +311,7 @@ class SlackActionEndpoint(Endpoint):
             "blocks": [
                 {
                     "type": "section",
-                    "text": {"type": "mrkdwn", "text": "Resolve in"},
+                    "text": {"type": "mrkdwn", "text": "Resolve"},
                     "accessory": {
                         "type": "static_select",
                         "initial_option": {
@@ -314,6 +333,51 @@ class SlackActionEndpoint(Endpoint):
             "callback_id": callback_id,
         }
 
+    def build_archive_modal_payload(self, callback_id):
+        formatted_archive_options = []
+        for text, value in ARCHIVE_OPTIONS.items():
+            formatted_archive_options.append(
+                {
+                    "text": {
+                        "type": "plain_text",
+                        "text": text,
+                        "emoji": True,
+                    },
+                    "value": value,
+                }
+            )
+
+        return {
+            "type": "modal",
+            "title": {"type": "plain_text", "text": "Archive Issue"},
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "Archive",
+                    },
+                    "accessory": {
+                        "type": "static_select",
+                        "initial_option": {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Until escalating",
+                                "emoji": True,
+                            },
+                            "value": "ignored:archived_until_escalating",
+                        },
+                        "options": formatted_archive_options,
+                        "action_id": "static_select-action",
+                    },
+                }
+            ],
+            "close": {"type": "plain_text", "text": "Cancel"},
+            "submit": {"type": "plain_text", "text": "Archive"},
+            "private_metadata": callback_id,
+            "callback_id": callback_id,
+        }
+
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
@@ -328,7 +392,7 @@ class SlackActionEndpoint(Endpoint):
         }
         if use_block_kit and slack_request.data.get("channel"):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
-
+            callback_id["rule"] = slack_request.callback_data.get("rule")
         callback_id = json.dumps(callback_id)
 
         dialog = {
@@ -363,6 +427,30 @@ class SlackActionEndpoint(Endpoint):
             except ApiError as e:
                 logger.exception("slack.action.response-error", extra={"error": str(e)})
 
+    def open_archive_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
+        callback_id = {
+            "issue": group.id,
+            "orig_response_url": slack_request.data["response_url"],
+            "is_message": _is_message(slack_request.data),
+            "rule": slack_request.callback_data.get("rule"),
+        }
+
+        if slack_request.data.get("channel"):
+            callback_id["channel_id"] = slack_request.data["channel"]["id"]
+        callback_id = json.dumps(callback_id)
+
+        slack_client = SlackClient(integration_id=slack_request.integration.id)
+        modal_payload = self.build_archive_modal_payload(callback_id)
+        try:
+            payload = {
+                "view": json.dumps(modal_payload),
+                "trigger_id": slack_request.data["trigger_id"],
+            }
+            headers = {"content-type": "application/json; charset=utf-8"}
+            slack_client.post("/views.open", data=json.dumps(payload), headers=headers)
+        except ApiError as e:
+            logger.exception("slack.action.response-error", extra={"error": str(e)})
+
     def construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
         # for interactive action requests.
@@ -389,6 +477,11 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
+        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
+        rule = None
+        if use_block_kit:
+            rule = get_rule(slack_request)
+
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
         identity_user = slack_request.get_identity_user()
@@ -404,9 +497,8 @@ class SlackActionEndpoint(Endpoint):
 
         original_tags_from_request = slack_request.get_tags()
 
-        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
         if use_block_kit and slack_request.type == "view_submission":
-            # TODO: if we use modals for something other than resolve, this will need to be more specific
+            # TODO: if we use modals for something other than resolve and archive, this will need to be more specific
 
             # Masquerade a status action
             selection = None
@@ -432,15 +524,17 @@ class SlackActionEndpoint(Endpoint):
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
-            attachment = SlackIssuesMessageBuilder(
+            blocks = SlackIssuesMessageBuilder(
                 group,
                 identity=identity,
                 actions=[action],
                 tags=original_tags_from_request,
+                rules=[rule] if rule else None,
+                issue_details=True,
                 skip_fallback=True,
             ).build()
             body = self.construct_reply(
-                attachment, is_message=slack_request.callback_data["is_message"]
+                blocks, is_message=slack_request.callback_data["is_message"]
             )
             # use the original response_url to update the link attachment
             slack_client = SlackClient(integration_id=slack_request.integration.id)
@@ -468,7 +562,11 @@ class SlackActionEndpoint(Endpoint):
                 return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
             attachment = SlackIssuesMessageBuilder(
-                group, identity=identity, actions=[action], tags=original_tags_from_request
+                group,
+                identity=identity,
+                actions=[action],
+                tags=original_tags_from_request,
+                rules=[rule] if rule else None,
             ).build()
             body = self.construct_reply(
                 attachment, is_message=slack_request.callback_data["is_message"]
@@ -495,13 +593,22 @@ class SlackActionEndpoint(Endpoint):
         for action in action_list:
             try:
                 if action.name == "status" or (
-                    use_block_kit and action.name in ("ignored:forever", "ignored:until_escalating")
+                    use_block_kit
+                    and action.name
+                    in (
+                        "ignored:forever",
+                        "ignored:until_escalating",
+                        "unresolved:ongoing",
+                    )  # TODO: delete the first two names when block kit is GA
                 ):
                     self.on_status(request, identity_user, group, action)
                 elif action.name == "assign":
                     self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
                     self.open_resolve_dialog(slack_request, group)
+                    defer_attachment_update = True
+                elif action.name == "archive_dialog" and use_block_kit:
+                    self.open_archive_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
@@ -514,12 +621,22 @@ class SlackActionEndpoint(Endpoint):
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
 
-        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
-
         if use_block_kit:
             response = SlackIssuesMessageBuilder(
-                group, identity=identity, actions=action_list, tags=original_tags_from_request
+                group,
+                identity=identity,
+                actions=action_list,
+                tags=original_tags_from_request,
+                rules=[rule] if rule else None,
             ).build()
+            # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
+            # response so the unfurling endpoint understands the payload
+            if (
+                slack_request.data.get("container")
+                and slack_request.data["container"].get("is_app_unfurl")
+                and "text" in response
+            ):
+                del response["text"]
             slack_client = SlackClient(integration_id=slack_request.integration.id)
 
             if not slack_request.data.get("response_url"):
@@ -533,7 +650,11 @@ class SlackActionEndpoint(Endpoint):
             return self.respond(response)
 
         attachment = SlackIssuesMessageBuilder(
-            group, identity=identity, actions=action_list, tags=original_tags_from_request
+            group,
+            identity=identity,
+            actions=action_list,
+            tags=original_tags_from_request,
+            rules=[rule] if rule else None,
         ).build()
         body = self.construct_reply(attachment, is_message=_is_message(slack_request.data))
 
@@ -571,7 +692,7 @@ class SlackActionEndpoint(Endpoint):
     @classmethod
     def get_action_list(
         cls, slack_request: SlackActionRequest, use_block_kit: bool
-    ) -> List[MessageAction]:
+    ) -> list[MessageAction]:
         action_data = slack_request.data.get("actions")
         if use_block_kit and action_data:
             # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
@@ -579,7 +700,7 @@ class SlackActionEndpoint(Endpoint):
             if action_data[0].get("action_id"):
                 action_list = []
                 for action_data in action_data:
-                    if action_data.get("type") == "static_select":
+                    if action_data.get("type") in ("static_select", "external_select"):
                         action = BlockKitMessageAction(
                             name=action_data["action_id"],
                             label=action_data["selected_option"]["text"]["text"],
@@ -610,7 +731,6 @@ class SlackActionEndpoint(Endpoint):
             if "name" in action_data
         ]
 
-    @transaction_start("SlackActionEndpoint")
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)
@@ -628,7 +748,13 @@ class SlackActionEndpoint(Endpoint):
         action_option = self.get_action_option(slack_request=slack_request)
 
         # If a user is just clicking a button link we return a 200
-        if action_option in ("sentry_docs_link_clicked", "grace_period_warning"):
+        if action_option in (
+            "sentry_docs_link_clicked",
+            "grace_period_warning",
+            "integration_disabled_slack",
+            "trial_end_warning",
+            "link_clicked",
+        ):
             return self.respond()
 
         if action_option in UNFURL_ACTION_OPTIONS:

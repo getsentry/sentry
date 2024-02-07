@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 

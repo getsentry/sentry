@@ -1,4 +1,5 @@
-import {CSSProperties, forwardRef} from 'react';
+import type {CSSProperties} from 'react';
+import {forwardRef} from 'react';
 import {browserHistory} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -14,14 +15,14 @@ import {Flex} from 'sentry/components/profiling/flex';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
+import {IconChat, IconCircleFill, IconFatal, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Group} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
@@ -54,6 +55,8 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
     const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
     const isCrashReport = feedbackItem.metadata.source === 'crash_report_embed_form';
+    const isUserReportWithError = feedbackItem.metadata.source === 'user_report_envelope';
+    const hasComments = feedbackItem.numComments > 0;
     const theme = isOpen || config.theme === 'dark' ? darkTheme : lightTheme;
 
     return (
@@ -83,8 +86,10 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
                 style={{gridArea: 'checkbox'}}
                 disabled={isSelected === 'all-selected'}
                 checked={isSelected !== false}
-                onChange={e => onSelect(e.target.checked)}
-                onClick={e => e.stopPropagation()}
+                onChange={e => {
+                  onSelect(e.target.checked);
+                  e.stopPropagation();
+                }}
                 invertColors={isOpen}
               />
             </Row>
@@ -96,14 +101,19 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
             <TimeSince date={feedbackItem.firstSeen} style={{gridArea: 'time'}} />
 
             {feedbackItem.hasSeen ? null : (
-              <Row style={{gridArea: 'unread'}}>
+              <DotRow style={{gridArea: 'unread'}}>
                 <IconCircleFill size="xs" color={isOpen ? 'white' : 'purple400'} />
-              </Row>
+              </DotRow>
             )}
 
-            <Row align="flex-start" justify="flex-start" style={{gridArea: 'message'}}>
-              <TextOverflow>{feedbackItem.metadata.message}</TextOverflow>
-            </Row>
+            <PreviewRow
+              align="flex-start"
+              justify="flex-start"
+              style={{gridArea: 'message'}}
+              isOpen={isOpen}
+            >
+              <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
+            </PreviewRow>
 
             <BottomGrid style={{gridArea: 'bottom'}}>
               <Row justify="flex-start" gap={space(0.75)}>
@@ -118,7 +128,13 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
               <Row justify="flex-end" gap={space(1)}>
                 <IssueTrackingSignals group={feedbackItem as unknown as Group} />
 
-                {isCrashReport && (
+                {hasComments && (
+                  <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
+                    <IconChat color="gray500" size="sm" />
+                  </Tooltip>
+                )}
+
+                {(isCrashReport || isUserReportWithError) && (
                   <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
                     <IconFatal color="red400" size="xs" />
                   </Tooltip>
@@ -126,7 +142,7 @@ const FeedbackListItem = forwardRef<HTMLDivElement, Props>(
 
                 {hasReplayId && (
                   <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
-                    {<IconPlay size="xs" />}
+                    <IconPlay size="xs" />
                   </Tooltip>
                 )}
 
@@ -195,4 +211,23 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
   }
 `;
 
+const PreviewRow = styled(Row)<{isOpen: boolean}>`
+  height: 2.8em;
+  align-items: flex-start;
+  color: ${p => (p.isOpen ? p.theme.white : p.theme.gray300)};
+`;
+
+const DotRow = styled(Row)`
+  height: 2.2em;
+  align-items: flex-start;
+`;
+
+const StyledTextOverflow = styled(TextOverflow)`
+  white-space: initial;
+  height: 2.8em;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  line-height: ${p => p.theme.text.lineHeightBody};
+`;
 export default FeedbackListItem;

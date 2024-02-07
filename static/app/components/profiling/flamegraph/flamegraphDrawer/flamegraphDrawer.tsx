@@ -1,4 +1,5 @@
-import {memo, MouseEventHandler, useCallback, useMemo, useState} from 'react';
+import type {MouseEventHandler} from 'react';
+import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -7,14 +8,17 @@ import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButt
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import type {
+  CanvasPoolManager,
+  CanvasScheduler,
+} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,8 +60,8 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
       treeType === 'application'
         ? f => !f.frame.is_application
         : treeType === 'system'
-        ? f => f.frame.is_application
-        : () => false;
+          ? f => f.frame.is_application
+          : () => false;
 
     const maybeFilteredRoots =
       treeType !== 'all'
@@ -318,12 +322,12 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
     'drawer drawer'
     `
       : layout === 'table left'
-      ? `
+        ? `
       'tabs tabs drawer'
       'table table drawer'
       'details details drawer';
       `
-      : `
+        : `
       'drawer tabs tabs'
       'drawer table table'
       'drawer details details';

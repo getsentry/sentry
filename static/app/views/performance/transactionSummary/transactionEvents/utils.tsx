@@ -1,12 +1,13 @@
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 
 import {t} from 'sentry/locale';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
-import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {filterToField, SpanOperationBreakdownFilter} from '../filter';
+import type {SpanOperationBreakdownFilter} from '../filter';
+import {filterToField} from '../filter';
 import {TransactionFilterOptions} from '../utils';
 
 export enum EventsDisplayFilterName {

@@ -6,7 +6,7 @@ import {
   PlatformCategory,
   serverless,
 } from 'sentry/data/platformCategories';
-import {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types';
 
 /**
  *

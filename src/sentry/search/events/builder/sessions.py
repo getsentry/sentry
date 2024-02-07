@@ -1,4 +1,5 @@
-from typing import Any, List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from snuba_sdk import Column, Entity, Flags, Granularity, Query, Request
 
@@ -21,15 +22,15 @@ class SessionsV2QueryBuilder(QueryBuilder):
     def __init__(
         self,
         *args: Any,
-        granularity: Optional[int] = None,
-        extra_filter_allowlist_fields: Optional[Sequence[str]] = None,
+        granularity: int | None = None,
+        extra_filter_allowlist_fields: Sequence[str] | None = None,
         **kwargs: Any,
     ):
         self._extra_filter_allowlist_fields = extra_filter_allowlist_fields or []
         self.granularity = Granularity(granularity) if granularity is not None else None
         super().__init__(*args, **kwargs)
 
-    def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
+    def resolve_groupby(self, groupby_columns: list[str] | None = None) -> list[SelectType]:
         """
         The default QueryBuilder `resolve_groupby` function needs to be overridden here because, it only adds the
         columns in the groupBy clause to the query if the query has `aggregates` present in it. For this specific case
@@ -42,7 +43,7 @@ class SessionsV2QueryBuilder(QueryBuilder):
             return []
         return list({self.resolve_column(column) for column in groupby_columns})
 
-    def default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def default_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         name = search_filter.key.name
         if name in self.filter_allowlist_fields or name in self._extra_filter_allowlist_fields:
             return super().default_filter_converter(search_filter)

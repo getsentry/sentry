@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry.integrations.github.webhook import get_github_external_id
 from sentry.integrations.github_enterprise.webhook import GitHubEnterpriseWebhookEndpoint, get_host

@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {type Group, IssueCategory, type Organization} from 'sentry/types';
@@ -26,8 +26,9 @@ export default function useReplayFromIssue({
 
   const [fetchError, setFetchError] = useState();
 
+  // use Discover for errors and Issue Platform for everything else
   const dataSource =
-    group.issueCategory === IssueCategory.PERFORMANCE ? 'search_issues' : 'discover';
+    group.issueCategory === IssueCategory.ERROR ? 'discover' : 'search_issues';
 
   const fetchReplayIds = useCallback(async () => {
     try {
@@ -39,6 +40,7 @@ export default function useReplayFromIssue({
             query: `issue.id:[${group.id}]`,
             data_source: dataSource,
             statsPeriod: '14d',
+            environment: location.query.environment,
             project: ALL_ACCESS_PROJECTS,
           },
         }
@@ -48,7 +50,7 @@ export default function useReplayFromIssue({
       Sentry.captureException(error);
       setFetchError(error);
     }
-  }, [api, organization.slug, group.id, dataSource]);
+  }, [api, organization.slug, group.id, dataSource, location.query.environment]);
 
   const eventView = useMemo(() => {
     if (!replayIds || !replayIds.length) {

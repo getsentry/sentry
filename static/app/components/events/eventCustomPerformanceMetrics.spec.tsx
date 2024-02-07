@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 
 describe('EventCustomPerformanceMetrics', function () {
   beforeEach(function () {

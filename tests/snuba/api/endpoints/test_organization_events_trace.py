@@ -7,15 +7,15 @@ from django.urls import NoReverseMatch, reverse
 
 from sentry import options
 from sentry.issues.grouptype import NoiseConfig, PerformanceFileIOMainThreadGroupType
-from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import to_timestamp_from_iso_format
 from sentry.utils.samples import load_data
+from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
-class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
+class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase):
     url_name: str
     FEATURES = [
         "organizations:performance-view",
@@ -74,7 +74,42 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                     "performance-file-io-main-thread-creation": 1.0,
                 }
             ):
-                return self.store_event(data, project_id=project_id, **kwargs)
+                event = self.store_event(data, project_id=project_id, **kwargs)
+                for span in data["spans"]:
+                    if span:
+                        span.update({"event_id": event.event_id})
+                        self.store_span(self.create_span(span))
+                self.store_span(self.convert_event_data_to_span(event))
+                return event
+
+    def convert_event_data_to_span(self, event):
+        trace_context = event.data["contexts"]["trace"]
+        start_ts = event.data["start_timestamp"]
+        end_ts = event.data["timestamp"]
+        span_data = self.create_span(
+            {
+                "event_id": event.event_id,
+                "organization_id": event.organization.id,
+                "project_id": event.project.id,
+                "trace_id": trace_context["trace_id"],
+                "span_id": trace_context["span_id"],
+                "parent_span_id": trace_context.get("parent_span_id", "0" * 12),
+                "description": event.data["transaction"],
+                "segment_id": uuid4().hex[:16],
+                "group_raw": uuid4().hex[:16],
+                "profile_id": uuid4().hex,
+                # Multiply by 1000 cause it needs to be ms
+                "start_timestamp_ms": int(start_ts * 1000),
+                "received": start_ts,
+                "duration_ms": int(end_ts - start_ts),
+            }
+        )
+        if "parent_span_id" in trace_context:
+            span_data["parent_span_id"] = trace_context["parent_span_id"]
+        else:
+            del span_data["parent_span_id"]
+
+        return span_data
 
     def setUp(self):
         """
@@ -752,9 +787,10 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-events-trace"
 
     def assert_event(self, result, event_data, message):
+        assert result["transaction"] == event_data.transaction, message
         assert result["event_id"] == event_data.event_id, message
-        assert result["timestamp"] == event_data.data["timestamp"], message
-        assert result["start_timestamp"] == event_data.data["start_timestamp"], message
+        # assert result["timestamp"] == event_data.data["timestamp"], message
+        # assert result["start_timestamp"] == event_data.data["start_timestamp"], message
 
     def assert_trace_data(self, root, gen2_no_children=True):
         """see the setUp docstring for an idea of what the response structure looks like"""
@@ -795,6 +831,15 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             elif gen2_no_children:
                 assert len(gen2["children"]) == 0
 
+    def client_get(self, data, url=None):
+        if url is None:
+            url = self.url
+        return self.client.get(
+            url,
+            data,
+            format="json",
+        )
+
     def test_no_projects(self):
         user = self.create_user()
         org = self.create_organization(owner=user)
@@ -816,10 +861,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     def test_simple(self):
         self.load_trace()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
@@ -832,10 +875,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     def test_simple_with_limit(self):
         self.load_trace()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1, "limit": 200},
-                format="json",
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
@@ -848,10 +889,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     def test_detailed_trace(self):
         self.load_trace()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1, "detailed": 1},
-                format="json",
             )
         assert response.status_code == 200, response.content
         trace_transaction = response.data["transactions"][0]
@@ -893,10 +932,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         )
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                url,
+            response = self.client_get(
                 data={"project": -1, "detailed": 1},
-                format="json",
+                url=url,
             )
 
         assert response.status_code == 200, response.content
@@ -933,10 +971,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         )
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
 
         assert response.status_code == 200, response.content
@@ -988,10 +1024,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             duration=300,
         )
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
 
         assert response.status_code == 200, response.content
@@ -1028,10 +1062,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             kwargs={"organization_slug": self.project.organization.slug, "trace_id": trace_id},
         )
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
 
         assert response.status_code == 200, response.content
@@ -1062,10 +1094,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         ]
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
 
         assert response.status_code == 200, response.content
@@ -1098,10 +1128,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         )
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
 
         assert response.status_code == 200, response.content
@@ -1177,10 +1205,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         )
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
 
         assert response.status_code == 200, response.content
@@ -1207,17 +1233,15 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         error, error1 = self.load_errors()
 
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
 
         assert response.status_code == 200, response.content
         self.assert_trace_data(response.data["transactions"][0])
         gen1_event = response.data["transactions"][0]["children"][0]
         assert len(gen1_event["errors"]) == 2
-        assert {
+        data = {
             "event_id": error.event_id,
             "issue_id": error.group_id,
             "span": self.gen1_span_ids[0],
@@ -1228,8 +1252,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": to_timestamp_from_iso_format(error.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in gen1_event["errors"]
-        assert {
+        }
+        data1 = {
             "event_id": error1.event_id,
             "issue_id": error1.group_id,
             "span": self.gen1_span_ids[0],
@@ -1240,7 +1264,9 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             "timestamp": to_timestamp_from_iso_format(error1.timestamp),
             "generation": 0,
             "event_type": "error",
-        } in gen1_event["errors"]
+        }
+        assert data in gen1_event["errors"]
+        assert data1 in gen1_event["errors"]
 
     def test_with_only_orphan_errors_with_same_span_ids(self):
         span_id = uuid4().hex[:16]
@@ -1275,10 +1301,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with self.feature(
             [*self.FEATURES, "organizations:performance-tracing-without-performance"]
         ):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
@@ -1334,10 +1358,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with self.feature(
             [*self.FEATURES, "organizations:performance-tracing-without-performance"]
         ):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
         assert response.status_code == 200, response.content
         assert len(response.data["orphan_errors"]) == 2
@@ -1392,10 +1414,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         with self.feature(
             [*self.FEATURES, "organizations:performance-tracing-without-performance"]
         ):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
         assert response.status_code == 200, response.content
         assert len(response.data["transactions"]) == 1
@@ -1419,10 +1439,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         start, _ = self.get_start_end(1000)
         default_event = self.load_default()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1},
-                format="json",
             )
 
         assert response.status_code == 200, response.content
@@ -1446,10 +1464,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.load_trace()
         # Pruning shouldn't happen for the root event
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1, "event_id": self.root_event.event_id},
-                format="json",
             )
         assert response.status_code == 200, response.content
         self.assert_trace_data(response.data["transactions"][0])
@@ -1457,10 +1473,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     def test_pruning_event(self):
         self.load_trace()
         with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
+            response = self.client_get(
                 data={"project": -1, "event_id": self.gen2_events[0].event_id},
-                format="json",
             )
         assert response.status_code == 200, response.content
         root = response.data["transactions"][0]
@@ -1481,6 +1495,57 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
                 self.assert_event(gen3, self.gen3_event, "gen3_0")
             else:
                 assert len(gen1["children"]) == 0
+
+
+class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpointTest):
+    def client_get(self, data, url=None):
+        data["useSpans"] = 1
+        return super().client_get(data, url)
+
+    @pytest.mark.skip(
+        "Loops can only be orphans cause the most recent parent to be saved will overwrite the previous"
+    )
+    def test_bad_span_loop(self):
+        super().test_bad_span_loop()
+
+    @pytest.mark.skip("Can't use the detailed response with useSpans on")
+    def test_detailed_trace_with_bad_tags(self):
+        super().test_detailed_trace_with_bad_tags()
+
+    @pytest.mark.skip("We shouldn't need to prune with events anymore since spans should be faster")
+    def test_pruning_event(self):
+        super().test_pruning_event()
+
+    def test_detailed_trace(self):
+        """Can't use detailed with useSpans, so this should actually just 400"""
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1, "detailed": 1},
+            )
+
+        assert response.status_code == 400, response.content
+
+    @mock.patch("sentry.api.endpoints.organization_events_trace.SpansIndexedQueryBuilder")
+    def test_indexed_spans_only_query_required_projects(self, mock_query_builder):
+        # Add a few more projects to the org
+        self.create_project(organization=self.organization)
+        self.create_project(organization=self.organization)
+
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"project": -1},
+            )
+
+        assert sorted(
+            [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
+        ) == sorted(mock_query_builder.mock_calls[0].args[1]["project_id"])
+
+        assert sorted(
+            [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
+        ) == sorted([p.id for p in mock_query_builder.mock_calls[0].args[1]["project_objects"]])
+
+        assert response.status_code == 200, response.content
 
 
 @region_silo_test

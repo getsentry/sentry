@@ -1,5 +1,5 @@
 import {Component, createRef, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -13,15 +13,16 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
-import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
+import type {Fuse} from 'sentry/utils/fuzzySearch';
+import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
+import type {
   TraceError,
   TraceFullDetailed,
   TraceMeta,
@@ -34,7 +35,7 @@ import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles';
 import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
-import {TraceInfo} from './types';
+import type {TraceInfo} from './types';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
 type IndexedFusedTransaction = {

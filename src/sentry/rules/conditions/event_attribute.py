@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django import forms
 
@@ -297,7 +298,7 @@ class EventAttributeCondition(EventCondition):
         return self._passes(attribute_values)
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             attr = self.get_option("attribute").lower()
@@ -320,10 +321,10 @@ class EventAttributeCondition(EventCondition):
         except (TypeError, KeyError):
             return False
 
-    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
+    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
         attr = self.get_option("attribute")
         column = ATTR_CHOICES[attr]
         if column is None:
             raise NotImplementedError
-        columns: Dict[Dataset, Sequence[str]] = get_dataset_columns([column])
+        columns: dict[Dataset, Sequence[str]] = get_dataset_columns([column])
         return columns

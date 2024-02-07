@@ -1,20 +1,24 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {AriaTabListOptions, useTabList} from '@react-aria/tabs';
+import type {AriaTabListOptions} from '@react-aria/tabs';
+import {useTabList} from '@react-aria/tabs';
 import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import {TabListStateOptions, useTabListState} from '@react-stately/tabs';
-import {Node, Orientation} from '@react-types/shared';
+import type {TabListStateOptions} from '@react-stately/tabs';
+import {useTabListState} from '@react-stately/tabs';
+import type {Node, Orientation} from '@react-types/shared';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {TabsContext} from './index';
-import {Item, TabListItemProps} from './item';
+import type {TabListItemProps} from './item';
+import {Item} from './item';
 import {Tab} from './tab';
 import {tabsShouldForwardProp} from './utils';
 

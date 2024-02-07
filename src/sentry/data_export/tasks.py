@@ -102,7 +102,9 @@ def assemble_download(
                 # file handle to a stream writer that will encode to utf8.
                 tfw = codecs.getwriter("utf-8")(tf)
 
-                writer = csv.DictWriter(tfw, processor.header_fields, extrasaction="ignore")
+                writer = csv.DictWriter(
+                    tfw, processor.header_fields, escapechar="\\", extrasaction="ignore"
+                )
                 if first_page:
                     writer.writeheader()
 

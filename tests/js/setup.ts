@@ -1,10 +1,8 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-import {TextDecoder, TextEncoder} from 'util';
-
-import {ReactElement} from 'react';
+import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
+import {TextDecoder, TextEncoder} from 'node:util';
 import {ConfigFixture} from 'sentry-fixture/config';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -50,7 +48,6 @@ jest.mock('lodash/debounce', () =>
 );
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
-jest.mock('sentry/utils/withOrganization');
 jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
@@ -110,6 +107,7 @@ jest.mock('@sentry/react', function sentryReact() {
     startSpan: jest.spyOn(SentryReact, 'startSpan'),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
+    getClient: jest.spyOn(SentryReact, 'getClient'),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Hub: SentryReact.Hub,
@@ -118,6 +116,7 @@ jest.mock('@sentry/react', function sentryReact() {
     withProfiler: SentryReact.withProfiler,
     metrics: {
       MetricsAggregator: jest.fn().mockReturnValue({}),
+      metricsAggregatorIntegration: jest.fn(),
       increment: jest.fn(),
       gauge: jest.fn(),
       set: jest.fn(),

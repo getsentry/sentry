@@ -1,5 +1,5 @@
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
@@ -7,9 +7,10 @@ import {ProjectPerformanceType} from '../../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
-import {BasePerformanceViewProps} from './types';
+import type {BasePerformanceViewProps} from './types';
 
 export function AllTransactionsView(props: BasePerformanceViewProps) {
+  const {setPageError} = usePageAlert();
   const doubleChartRowCharts: PerformanceWidgetSetting[] = [];
 
   if (
@@ -52,7 +53,7 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.P99_DURATION_AREA,
           ]}
         />
-        <Table {...props} setError={usePageError().setPageError} />
+        <Table {...props} setError={setPageError} />
       </div>
     </PerformanceDisplayProvider>
   );

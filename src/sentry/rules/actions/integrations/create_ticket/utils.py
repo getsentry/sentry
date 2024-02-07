@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, Sequence
+from collections.abc import Callable, Sequence
 
 from rest_framework.response import Response
 
@@ -37,10 +37,13 @@ def create_link(
         - key: String. The unique ID of the external resource
         - metadata: Optional Object. Can contain `display_name`.
     """
+
+    external_issue_key = installation.make_external_key(response)
+
     external_issue = ExternalIssue.objects.create(
         organization_id=event.group.project.organization_id,
         integration_id=integration.id,
-        key=response["key"],
+        key=external_issue_key,
         title=event.title,
         description=installation.get_group_description(event.group, event),
         metadata=response.get("metadata"),

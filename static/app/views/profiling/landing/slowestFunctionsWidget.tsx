@@ -1,4 +1,5 @@
-import {CSSProperties, Fragment, ReactNode, useCallback, useMemo, useState} from 'react';
+import type {CSSProperties, ReactNode} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -19,7 +20,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Frame} from 'sentry/utils/profiling/frame';
-import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';

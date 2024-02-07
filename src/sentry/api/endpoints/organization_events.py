@@ -1,5 +1,5 @@
 import logging
-from typing import Mapping
+from collections.abc import Mapping
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -85,6 +85,7 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_STARFISH_MOBILE_STARTUP_EVENT_SAMPLES.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_SPAN_TABLE.value,
     Referrer.API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES.value,
+    Referrer.API_STARFISH_MOBILE_STARTUP_TOTALS.value,
 }
 
 API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value

@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {ReleasesContext} from 'sentry/utils/releases/releasesProvider';
 import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
-import {DashboardFilters} from 'sentry/views/dashboards/types';
+import type {DashboardFilters} from 'sentry/views/dashboards/types';
 
 function renderReleasesSelect({
   onSearch,
@@ -115,8 +115,10 @@ describe('Dashboards > ReleasesSelectControl', function () {
 
     await userEvent.click(document.body);
 
-    expect(mockHandleChangeFilter).toHaveBeenCalledWith({
-      release: ['latest', 'sentry-android-shop@1.2.0', 'sentry-android-shop@1.4.0'],
+    await waitFor(() => {
+      expect(mockHandleChangeFilter).toHaveBeenCalledWith({
+        release: ['latest', 'sentry-android-shop@1.2.0', 'sentry-android-shop@1.4.0'],
+      });
     });
   });
 

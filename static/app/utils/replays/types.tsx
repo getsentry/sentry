@@ -15,7 +15,7 @@ import type {
 } from '@sentry/react';
 import invariant from 'invariant';
 
-import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
 /**
  * Extra breadcrumb types not included in `@sentry/replay`
@@ -189,6 +189,7 @@ export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
 export type NavFrame = HydratedBreadcrumb<'navigation'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
+export type FeedbackOpenedFrame = HydratedBreadcrumb<'sentry.feedback'>;
 
 // This list must match each of the categories used in `HydratedBreadcrumb` above
 // and any app-specific types that we hydrate (ie: replay.init).
@@ -197,6 +198,7 @@ export const BreadcrumbCategories = [
   'navigation',
   'replay.init',
   'replay.mutations',
+  'sentry.feedback',
   'ui.blur',
   'ui.click',
   'ui.focus',

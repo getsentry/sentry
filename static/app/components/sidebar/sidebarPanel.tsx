@@ -8,7 +8,7 @@ import HookStore from 'sentry/stores/hookStore';
 import {slideInLeft} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
 
-import {CommonSidebarProps} from './types';
+import type {CommonSidebarProps} from './types';
 
 type PositionProps = Pick<CommonSidebarProps, 'orientation' | 'collapsed'>;
 
@@ -35,9 +35,9 @@ const PanelContainer = styled('div')<PositionProps>`
       : css`
           width: 460px;
           top: 0;
-          left: ${p.collapsed
-            ? p.theme.sidebar.collapsedWidth
-            : p.theme.sidebar.expandedWidth};
+          left: ${
+            p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth
+          };
         `};
 `;
 

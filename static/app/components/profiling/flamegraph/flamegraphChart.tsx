@@ -1,23 +1,14 @@
-import {
-  CSSProperties,
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import type {CSSProperties} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {t} from 'sentry/locale';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
 import {
   getConfigViewTranslationBetweenVectors,
@@ -25,7 +16,7 @@ import {
   transformMatrixBetweenRect,
 } from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';

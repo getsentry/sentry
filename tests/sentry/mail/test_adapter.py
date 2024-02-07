@@ -1,12 +1,12 @@
 import uuid
+import zoneinfo
 from collections import Counter
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from functools import cached_property
-from typing import Mapping, Sequence
 from unittest import mock
 from unittest.mock import ANY
 
-import pytz
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
@@ -22,7 +22,6 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.integrations.integration import Integration
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
@@ -46,7 +45,6 @@ from sentry.replays.testutils import mock_replay
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.silo import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -484,7 +482,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         recipient_context = notification.get_recipient_context(
             RpcActor.from_orm_user(self.user), {}
         )
-        assert recipient_context["timezone"] == pytz.timezone("Europe/Vienna")
+        assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
 
         self.assertEqual(notification.project, self.project)
         self.assertEqual(notification.reference, group)
@@ -622,7 +620,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         from django.template.defaultfilters import date
 
         timestamp = datetime.now(tz=timezone.utc)
-        local_timestamp_s = django_timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
+        local_timestamp_s = django_timezone.localtime(timestamp, zoneinfo.ZoneInfo("Europe/Vienna"))
         local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -643,6 +641,28 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
         assert local_timestamp in str(msg.alternatives)
+
+    def _test_invalid_timezone(self, s: str) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            UserOption.objects.create(user=self.user, key="timezone", value=s)
+
+        event = self.store_event(
+            data={"message": "foobar", "level": "error"},
+            project_id=self.project.id,
+        )
+        notification = AlertRuleNotification(
+            Notification(event=event), ActionTargetType.ISSUE_OWNERS
+        )
+        recipient_context = notification.get_recipient_context(
+            RpcActor.from_orm_user(self.user), {}
+        )
+        assert recipient_context["timezone"] == timezone.utc
+
+    def test_context_invalid_timezone_empty_string(self):
+        self._test_invalid_timezone("")
+
+    def test_context_invalid_timezone_garbage_value(self):
+        self._test_invalid_timezone("not/a/real/timezone")
 
     def test_notify_with_suspect_commits(self):
         repo = Repository.objects.create(
@@ -770,7 +790,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(provider="msteams")
+            integration = self.create_provider_integration(provider="msteams")
             integration.add_organization(organization)
 
         with self.tasks():
@@ -1236,7 +1256,6 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 [],
             )
 
-    @with_feature("organizations:escalating-issues")
     def test_group_substatus_header(self):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -1619,14 +1638,14 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.mail.adapter.digests")
     @mock.patch("sentry.mail.adapter.logger")
     def test_digest(self, mock_logger, digests):
-        digests.enabled.return_value = True
+        digests.backend.enabled.return_value = True
 
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(project=self.project)
 
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
-        assert digests.add.call_count == 1
+        assert digests.backend.add.call_count == 1
         assert event.group
         mock_logger.info.assert_called_with(
             "mail.adapter.notification.%s",
@@ -1647,13 +1666,13 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
 
     @mock.patch("sentry.mail.adapter.digests")
     def test_digest_with_perf_issue(self, digests):
-        digests.enabled.return_value = True
+        digests.backend.enabled.return_value = True
         event = self.create_performance_issue()
         rule = self.create_project_rule(project=self.project)
 
         futures = [RuleFuture(rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
-        assert digests.add.call_count == 1
+        assert digests.backend.add.call_count == 1
 
     def test_notify_includes_uuid(self):
         event = self.store_event(data={}, project_id=self.project.id)

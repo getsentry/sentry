@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from string import Template
-from typing import Any, Optional
+from typing import Any
 from zipfile import ZipFile
 
 import yaml
@@ -15,17 +15,19 @@ from cryptography.fernet import Fernet
 from django.db import router, transaction
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
+from sentry_sdk import capture_exception
 
+from sentry import analytics
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
-from sentry.backup.dependencies import NormalizedModelName, get_model
-from sentry.backup.exports import export_in_config_scope, export_in_user_scope
-from sentry.backup.helpers import (
+from sentry.backup.crypto import (
     GCPKMSDecryptor,
     GCPKMSEncryptor,
-    ImportFlags,
     get_default_crypto_key_version,
     unwrap_encrypted_export_tarball,
 )
+from sentry.backup.dependencies import NormalizedModelName, get_model
+from sentry.backup.exports import export_in_config_scope, export_in_user_scope
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage, get_storage
@@ -43,7 +45,7 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.signals import relocated
+from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
@@ -127,6 +129,7 @@ ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
 @instrumented_task(
     name="sentry.relocation.uploading_complete",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -138,7 +141,7 @@ def uploading_complete(uuid: str) -> None:
     before we try to do all sorts of fun stuff with it.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -174,6 +177,7 @@ def uploading_complete(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_scan",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -199,7 +203,7 @@ def preprocessing_scan(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -330,6 +334,7 @@ def preprocessing_scan(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_transfer",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -344,7 +349,7 @@ def preprocessing_transfer(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -410,6 +415,7 @@ def preprocessing_transfer(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_baseline_config",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -423,7 +429,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -462,6 +468,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_colliding_users",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -476,7 +483,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -512,6 +519,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_complete",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -528,7 +536,7 @@ def preprocessing_complete(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -723,6 +731,7 @@ def _update_relocation_validation_attempt(
 @instrumented_task(
     name="sentry.relocation.validating_start",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -736,7 +745,7 @@ def validating_start(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -799,6 +808,7 @@ def validating_start(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.validating_poll",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_VALIDATION_POLLS,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -812,7 +822,7 @@ def validating_poll(uuid: str, build_id: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -898,6 +908,7 @@ def validating_poll(uuid: str, build_id: str) -> None:
 @instrumented_task(
     name="sentry.relocation.validating_complete",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -913,7 +924,7 @@ def validating_complete(uuid: str, build_id: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -982,7 +993,7 @@ def importing(uuid: str) -> None:
     trying it again!
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1028,6 +1039,7 @@ def importing(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.postprocessing",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1039,7 +1051,7 @@ def postprocessing(uuid: str) -> None:
     Make the owner of this relocation an owner of all of the organizations we just imported.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1085,7 +1097,6 @@ def postprocessing(uuid: str) -> None:
                 user_id=relocation.owner_id,
                 role="owner",
             )
-
         # Last, but certainly not least: trigger signals, so that interested subscribers in eg:
         # getsentry can do whatever postprocessing they need to. If even a single one fails, we fail
         # the entire task.
@@ -1093,12 +1104,34 @@ def postprocessing(uuid: str) -> None:
             if isinstance(result, Exception):
                 raise result
 
+        # This signal nust come after the relocated signal, to ensure that the subscription and customer models
+        # have been appropriately set up before attempting to redeem a promo code.
+        relocation_redeem_promo_code.send_robust(
+            sender=postprocessing,
+            user_id=relocation.owner_id,
+            relocation_uuid=uuid,
+            orgs=list(imported_orgs),
+        )
+
+        for org in imported_orgs:
+            try:
+                analytics.record(
+                    "relocation.organization_imported",
+                    organization_id=org.id,
+                    relocation_uuid=str(relocation.uuid),
+                    slug=org.slug,
+                    owner_id=relocation.owner_id,
+                )
+            except Exception as e:
+                capture_exception(e)
+
     notifying_users.apply_async(args=[uuid])
 
 
 @instrumented_task(
     name="sentry.relocation.notifying_users",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1110,7 +1143,7 @@ def notifying_users(uuid: str) -> None:
     Send an email to all users that have been imported, telling them to claim their accounts.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1162,6 +1195,7 @@ def notifying_users(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.notifying_owner",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1173,7 +1207,7 @@ def notifying_owner(uuid: str) -> None:
     Send an email to the creator and owner, telling them that their relocation was successful.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1204,6 +1238,7 @@ def notifying_owner(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.completed",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1215,7 +1250,7 @@ def completed(uuid: str) -> None:
     Finish up a relocation by marking it a success.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,

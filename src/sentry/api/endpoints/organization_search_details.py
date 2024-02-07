@@ -36,7 +36,7 @@ class OrganizationSearchEditPermission(OrganizationSearchPermission):
 
 @region_silo_endpoint
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.OWNERS_SNUBA
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,

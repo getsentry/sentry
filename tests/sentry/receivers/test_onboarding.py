@@ -5,7 +5,6 @@ import pytest
 from django.utils import timezone as django_timezone
 
 from sentry.api.invite_helper import ApiInviteHelper
-from sentry.models.integrations.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -43,7 +42,7 @@ pytestmark = [requires_snuba]
 class OrganizationOnboardingTaskTest(TestCase):
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_integration(self, provider, external_id=9999):
-        return Integration.objects.create(
+        return self.create_provider_integration(
             provider=provider,
             name="test",
             external_id=external_id,

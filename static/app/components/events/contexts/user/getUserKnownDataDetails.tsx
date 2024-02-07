@@ -5,7 +5,8 @@ import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
-import {UserEventContextData, UserKnownDataType} from '.';
+import type {UserEventContextData} from '.';
+import {UserKnownDataType} from '.';
 
 const EMAIL_REGEX = /[^@]+@[^\.]+\..+/;
 

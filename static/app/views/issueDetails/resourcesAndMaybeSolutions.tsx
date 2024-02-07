@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {AiAutofix} from 'sentry/components/events/aiAutofix';
 import {AiSuggestedSolution} from 'sentry/components/events/aiSuggestedSolution';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
@@ -23,12 +24,18 @@ type Props = {
 export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group, project);
+
+  // NOTE: AI Autofix is for INTERNAL testing only for now.
+  const displayAiAutofix =
+    project.features.includes('ai-autofix') &&
+    !shouldShowCustomErrorResourceConfig(group, project);
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
     organization.aiSuggestedSolution &&
-    !shouldShowCustomErrorResourceConfig(group, project);
+    !shouldShowCustomErrorResourceConfig(group, project) &&
+    !displayAiAutofix;
 
-  if (!config.resources && !displayAiSuggestedSolution) {
+  if (!config.resources && !(displayAiSuggestedSolution || displayAiAutofix)) {
     return null;
   }
 
@@ -49,6 +56,7 @@ export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
         {displayAiSuggestedSolution && (
           <AiSuggestedSolution event={event} projectSlug={project.slug} />
         )}
+        {displayAiAutofix && <AiAutofix group={group} />}
       </Content>
     </Wrapper>
   );

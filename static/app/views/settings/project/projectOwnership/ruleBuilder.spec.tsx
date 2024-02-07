@@ -15,7 +15,7 @@ import {
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import RuleBuilder from 'sentry/views/settings/project/projectOwnership/ruleBuilder';
 
 describe('RuleBuilder', function () {

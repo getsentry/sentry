@@ -1,7 +1,6 @@
 import uuid
 from uuid import uuid4
 
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.search.events.constants import SEMVER_ALIAS
@@ -379,14 +378,10 @@ class GroupEventDetailsHelpfulEndpointTest(
 
     def test_query_issue_platform_title(self):
         issue_title = "king of england"
-        occurrence_data = self.build_occurrence_data(project_id=self.project.id, title=issue_title)
-        occurrence, group_info = process_event_and_issue_occurrence(
-            occurrence_data,
-            event_data={
-                "event_id": occurrence_data["event_id"],
-                "project_id": occurrence_data["project_id"],
-                "level": "info",
-            },
+        occurrence, group_info = self.process_occurrence(
+            project_id=self.project.id,
+            title=issue_title,
+            event_data={"level": "info"},
         )
 
         assert group_info is not None

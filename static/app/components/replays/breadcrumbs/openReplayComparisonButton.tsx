@@ -5,7 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const LazyComparisonModal = lazy(

@@ -38,7 +38,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         operation_id="Retrieve a Replay Instance",
         parameters=[GlobalParams.ORG_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],
         responses={
-            200: inline_sentry_response_serializer("data", ReplayDetailsResponse),
+            200: inline_sentry_response_serializer("GetReplay", ReplayDetailsResponse),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
@@ -56,6 +56,9 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
                 request, organization, project_ids=ALL_ACCESS_PROJECTS
             )
         except NoProjects:
+            return Response(status=404)
+
+        if not filter_params["start"] or not filter_params["end"]:
             return Response(status=404)
 
         try:

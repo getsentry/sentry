@@ -1,24 +1,13 @@
 import logging
 import uuid
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    TypedDict,
-    Union,
-)
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, killswitches, quotas, utils
+from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
@@ -44,6 +33,8 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
+from sentry.sentry_metrics.use_case_id_registry import USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS
+from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
@@ -52,6 +43,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
+    "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-ga-modules",
     "projects:span-metrics-extraction-all-modules",
@@ -66,7 +58,6 @@ EXPOSABLE_FEATURES = [
     "organizations:custom-metrics",
     "organizations:metric-meta",
     "organizations:standalone-span-ingestion",
-    "organizations:relay-cardinality-limiter",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -103,9 +94,9 @@ def get_exposed_features(project: Project) -> Sequence[str]:
 
 
 def get_public_key_configs(
-    project: Project, full_config: bool, project_keys: Optional[Sequence[ProjectKey]] = None
-) -> List[Mapping[str, Any]]:
-    public_keys: List[Mapping[str, Any]] = []
+    project: Project, full_config: bool, project_keys: Sequence[ProjectKey] | None = None
+) -> list[Mapping[str, Any]]:
+    public_keys: list[Mapping[str, Any]] = []
     for project_key in project_keys or ():
         key = {
             "publicKey": project_key.public_key,
@@ -133,7 +124,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
-    error_messages: List[str] = []
+    error_messages: list[str] = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
@@ -170,7 +161,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if blacklisted_ips:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
-    csp_disallowed_sources: List[str] = []
+    csp_disallowed_sources: list[str] = []
     if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
         csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
     csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
@@ -180,7 +171,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     return filter_settings
 
 
-def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
+def get_quotas(project: Project, keys: Sequence[ProjectKey] | None = None) -> list[str]:
     try:
         computed_quotas = [
             quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
@@ -193,8 +184,63 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
         return computed_quotas
 
 
+class SlidingWindow(TypedDict):
+    windowSeconds: int
+    granularitySeconds: int
+
+
+class CardinalityLimit(TypedDict):
+    id: str
+    window: SlidingWindow
+    limit: int
+    scope: Literal["organization"]
+    namespace: str | None
+
+
+def get_metrics_config(project: Project) -> Mapping[str, Any] | None:
+    metrics_config = {}
+
+    if features.has("organizations:relay-cardinality-limiter", project.organization):
+        cardinality_limits: list[CardinalityLimit] = []
+        cardinality_options = {
+            "unsupported": "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org"
+        }
+        cardinality_options.update(
+            (namespace.value, option)
+            for namespace, option in USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS.items()
+        )
+        for namespace, option_name in cardinality_options.items():
+            option = options.get(option_name)
+            if not option or not len(option) == 1:
+                # Multiple quotas are not supported
+                continue
+
+            quota = option[0]
+
+            cardinality_limits.append(
+                {
+                    "id": namespace,
+                    "window": {
+                        "windowSeconds": quota["window_seconds"],
+                        "granularitySeconds": quota["granularity_seconds"],
+                    },
+                    "limit": quota["limit"],
+                    "scope": "organization",
+                    "namespace": namespace,
+                }
+            )
+        metrics_config["cardinalityLimits"] = cardinality_limits
+
+    if features.has("organizations:metrics-blocking", project.organization):
+        metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+        if metrics_blocking_state is not None:
+            metrics_config.update(metrics_blocking_state)  # type:ignore
+
+    return metrics_config or None
+
+
 def get_project_config(
-    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
+    project: Project, full_config: bool = True, project_keys: Sequence[ProjectKey] | None = None
 ) -> "ProjectConfig":
     """Constructs the ProjectConfig information.
     :param project: The project to load configuration for. Ensure that
@@ -215,7 +261,7 @@ def get_project_config(
             return _get_project_config(project, full_config=full_config, project_keys=project_keys)
 
 
-def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
+def get_dynamic_sampling_config(project: Project) -> Mapping[str, Any] | None:
     if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
@@ -239,7 +285,7 @@ class TransactionNameRule(TypedDict):
     redaction: TransactionNameRuleRedaction
 
 
-def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
+def get_transaction_names_config(project: Project) -> Sequence[TransactionNameRule] | None:
     if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
@@ -309,7 +355,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 
 
 def _get_project_config(
-    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
+    project: Project, full_config: bool = True, project_keys: Sequence[ProjectKey] | None = None
 ) -> "ProjectConfig":
     if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
@@ -362,6 +408,8 @@ def _get_project_config(
         return ProjectConfig(project, **cfg)
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
+
+    add_experimental_config(config, "metrics", get_metrics_config, project)
 
     if _should_extract_transaction_metrics(project):
         add_experimental_config(
@@ -451,10 +499,10 @@ def _get_project_config(
                         },
                         {
                             "measurement": "lcp",
-                            "weight": 0.0,
+                            "weight": 0.30,
                             "p10": 1200.0,
                             "p50": 2400.0,
-                            "optional": False,
+                            "optional": True,
                         },
                         {
                             "measurement": "fid",
@@ -622,7 +670,6 @@ def _get_project_config(
             ]
         }
 
-    config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
             config["filterSettings"] = filter_settings
@@ -666,7 +713,7 @@ class _ConfigBase:
     def __setattr__(self, key: str, value: Any) -> None:
         raise Exception("Trying to change read only ProjectConfig object")
 
-    def __getattr__(self, name: str) -> Union[Any, Mapping[str, Any]]:
+    def __getattr__(self, name: str) -> Any | Mapping[str, Any]:
         data = self.__get_data()
         return data.get(to_camel_case_name(name))
 
@@ -781,7 +828,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 
     is_enabled = setting != "0"
 
-    ret_val: Dict[str, Union[bool, Sequence[str]]] = {"isEnabled": is_enabled}
+    ret_val: dict[str, bool | Sequence[str]] = {"isEnabled": is_enabled}
 
     # special case for legacy browser.
     # If the number of special cases increases we'll have to factor this functionality somewhere
@@ -817,7 +864,7 @@ TransactionNameStrategy = Literal["strict", "clientBased"]
 
 class TransactionMetricsSettings(TypedDict):
     version: int
-    extractCustomTags: List[str]
+    extractCustomTags: list[str]
     customMeasurements: CustomMeasurementSettings
     acceptTransactionNames: TransactionNameStrategy
 
@@ -831,12 +878,12 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
 
 
 def get_transaction_metrics_settings(
-    project: Project, breakdowns_config: Optional[Mapping[str, Any]]
+    project: Project, breakdowns_config: Mapping[str, Any] | None
 ) -> TransactionMetricsSettings:
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-    custom_tags: List[str] = []
+    custom_tags: list[str] = []
 
     if breakdowns_config is not None:
         # we already have a breakdown configuration that tells relay which

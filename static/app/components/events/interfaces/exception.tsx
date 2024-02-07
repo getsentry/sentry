@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
-import {ExceptionType, Group, Project} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import type {ExceptionType, Group, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
 import {PermalinkTitle, TraceEventDataSection} from '../traceEventDataSection';
@@ -96,8 +97,8 @@ export function Exception({
               display.includes('raw-stack-trace')
                 ? StackView.RAW
                 : fullStackTrace
-                ? StackView.FULL
-                : StackView.APP
+                  ? StackView.FULL
+                  : StackView.APP
             }
             projectSlug={projectSlug}
             newestFirst={recentFirst}

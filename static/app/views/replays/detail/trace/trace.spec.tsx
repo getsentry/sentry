@@ -2,7 +2,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {useTransactionData} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import Trace from 'sentry/views/replays/detail/trace/trace';
 

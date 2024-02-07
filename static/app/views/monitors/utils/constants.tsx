@@ -6,9 +6,10 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Aliases} from 'sentry/utils/theme';
-import {StatsBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
-import {CheckInStatus, MonitorStatus} from 'sentry/views/monitors/types';
+import type {Aliases} from 'sentry/utils/theme';
+import type {StatsBucket} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {MonitorStatus} from 'sentry/views/monitors/types';
+import {CheckInStatus} from 'sentry/views/monitors/types';
 
 // Orders the status in terms of ascending precedence for showing to the user
 export const CHECKIN_STATUS_PRECEDENT = [

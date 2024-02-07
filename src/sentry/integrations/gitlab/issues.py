@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import re
-from typing import Any, Dict, List, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.urls import reverse
 
 from sentry.integrations.mixins import IssueBasicMixin
 from sentry.models.group import Group
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -45,7 +49,10 @@ class GitlabIssueBasic(IssueBasicMixin):
             return ("", "")
         return (project["id"], project["name_with_namespace"])
 
-    def get_create_issue_config(self, group: Group, user: User, **kwargs) -> List[Dict[str, Any]]:
+    @all_silo_function
+    def get_create_issue_config(
+        self, group: Group | None, user: User, **kwargs
+    ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
         params = kwargs.pop("params", {})
@@ -114,7 +121,7 @@ class GitlabIssueBasic(IssueBasicMixin):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-    def get_link_issue_config(self, group: Group, **kwargs) -> List[Dict[str, Any]]:
+    def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 

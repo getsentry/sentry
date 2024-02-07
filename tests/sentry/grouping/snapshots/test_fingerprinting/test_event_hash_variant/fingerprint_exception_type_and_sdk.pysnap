@@ -1,0 +1,39 @@
+---
+created: '2024-01-10T17:07:19.615751Z'
+creator: sentry
+source: tests/sentry/grouping/test_fingerprinting.py
+# Shows that the custom fingerprinting rule is applied when both SDK and type match
+---
+config:
+  rules:
+  - attributes: {}
+    fingerprint:
+    - database-unavailable
+    matchers:
+    - - sdk
+      - sentry.java
+    - - type
+      - DatabaseUnavailable
+  version: 1
+fingerprint:
+- database-unavailable
+title: 'DatabaseUnavailable: For some reason the database went away'
+variants:
+  app:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component
+  custom-fingerprint:
+    client_values:
+    - my-route
+    - '{{ default }}'
+    matched_rule: sdk:"sentry.java" type:"DatabaseUnavailable" -> "database-unavailable"
+    type: custom-fingerprint
+    values:
+    - database-unavailable
+  system:
+    component:
+      contributes: false
+      hint: custom fingerprint takes precedence
+    type: component

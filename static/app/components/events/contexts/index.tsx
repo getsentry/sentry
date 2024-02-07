@@ -1,8 +1,8 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Group} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
 
 import {Chunk} from './chunk';

@@ -16,13 +16,14 @@ import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization, Team} from 'sentry/types';
+import type {Member, Organization, Team} from 'sentry/types';
 import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 import {useTeams} from 'sentry/utils/useTeams';
 import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
-import {DropdownAddTeam, TeamSelectProps} from './utils';
+import type {TeamSelectProps} from './utils';
+import {DropdownAddTeam} from './utils';
 
 type Props = TeamSelectProps & {
   /**

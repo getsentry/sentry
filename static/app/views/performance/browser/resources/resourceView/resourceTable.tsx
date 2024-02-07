@@ -2,22 +2,24 @@ import {Fragment, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
-import {PLATFORM_TO_ICON} from 'platformicons/build/platformIcon';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
+import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageAlert, usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import {FONT_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
-import {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
+import {
+  FONT_FILE_EXTENSIONS,
+  IMAGE_FILE_EXTENSIONS,
+} from 'sentry/views/performance/browser/resources/shared/constants';
+import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
+import type {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
@@ -42,20 +44,15 @@ const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 const {SPM} = SpanFunction;
 
-const RESOURCE_SIZE_ALERT: PageAlert = {
-  type: 'info',
-  message: t(
-    `If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher.`
-  ),
-};
+const RESOURCE_SIZE_ALERT = t(
+  `If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher.`
+);
 
 type Row = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
   'project.id': number;
-  'resource.render_blocking_status': string;
   'span.description': string;
-  'span.domain': string;
   'span.group': string;
   'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
   'spm()': number;
@@ -73,7 +70,7 @@ type Props = {
 function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
-  const {setPageError, pageError} = usePageError();
+  const {setPageInfo, pageAlert} = usePageAlert();
 
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
@@ -104,44 +101,30 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   const tableData: Row[] = data;
 
   useEffect(() => {
-    if (pageError !== RESOURCE_SIZE_ALERT) {
+    if (pageAlert?.message !== RESOURCE_SIZE_ALERT) {
       for (const row of tableData) {
         const encodedSize = row[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`];
         if (encodedSize >= 2147483647) {
-          setPageError(RESOURCE_SIZE_ALERT);
+          setPageInfo(RESOURCE_SIZE_ALERT, {dismissId: DismissId.RESOURCE_SIZE_ALERT});
           break;
         }
       }
     }
-  }, [tableData, setPageError, pageError]);
+  }, [tableData, setPageInfo, pageAlert?.message]);
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
-    const getIcon = (
-      spanOp: string,
-      fileExtension: string
-    ): keyof typeof PLATFORM_TO_ICON | 'unknown' => {
-      if (spanOp === 'resource.script') {
-        return 'javascript';
-      }
-      if (fileExtension === 'css') {
-        return 'css';
-      }
-      if (FONT_FILE_EXTENSIONS.includes(fileExtension)) {
-        return 'font';
-      }
-      return 'unknown';
-    };
 
     if (key === SPAN_DESCRIPTION) {
       const fileExtension = row[SPAN_DESCRIPTION].split('.').pop() || '';
 
       return (
         <DescriptionWrapper>
-          <PlatformIcon platform={getIcon(row[SPAN_OP], fileExtension) || 'unknown'} />
+          <ResourceIcon fileExtension={fileExtension} spanOp={row[SPAN_OP]} />
           <SpanDescriptionCell
             moduleName={ModuleName.HTTP}
             projectId={row[PROJECT_ID]}
+            spanOp={row[SPAN_OP]}
             description={row[SPAN_DESCRIPTION]}
             group={row[SPAN_GROUP]}
           />
@@ -173,7 +156,11 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     }
     if (key === 'time_spent_percentage()') {
       return (
-        <TimeSpentCell percentage={row[key]} total={row[`sum(${SPAN_SELF_TIME})`]} />
+        <TimeSpentCell
+          percentage={row[key]}
+          total={row[`sum(${SPAN_SELF_TIME})`]}
+          op={row[SPAN_OP]}
+        />
       );
     }
     return <span>{row[key]}</span>;
@@ -212,6 +199,24 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
+}
+
+function ResourceIcon(props: {fileExtension: string; spanOp: string}) {
+  const {spanOp, fileExtension} = props;
+
+  if (spanOp === ResourceSpanOps.SCRIPT) {
+    return <PlatformIcon platform="javascript" />;
+  }
+  if (fileExtension === 'css') {
+    return <PlatformIcon platform="css" />;
+  }
+  if (FONT_FILE_EXTENSIONS.includes(fileExtension)) {
+    return <PlatformIcon platform="font" />;
+  }
+  if (spanOp === ResourceSpanOps.IMAGE || IMAGE_FILE_EXTENSIONS.includes(fileExtension)) {
+    return <IconImage color="black" legacySize="20px" />;
+  }
+  return <PlatformIcon platform="unknown" />;
 }
 
 export default ResourceTable;

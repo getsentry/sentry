@@ -1,16 +1,13 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 
 import {getKnownData, getUnknownData} from '../utils';
 
 import {getOperatingSystemKnownDataDetails} from './getOperatingSystemKnownDataDetails';
-import {
-  OperatingSystemIgnoredDataType,
-  OperatingSystemKnownData,
-  OperatingSystemKnownDataType,
-} from './types';
+import type {OperatingSystemKnownData} from './types';
+import {OperatingSystemIgnoredDataType, OperatingSystemKnownDataType} from './types';
 
 type Props = {
   data: OperatingSystemKnownData;

@@ -30,6 +30,8 @@ class ActivityType(Enum):
     AUTO_SET_ONGOING = 24
     SET_ESCALATING = 25
 
+    SET_PRIORITY = 26
+
 
 # Warning: This must remain in this EXACT order.
 CHOICES = tuple(
@@ -60,5 +62,6 @@ CHOICES = tuple(
         ActivityType.MARK_REVIEWED,  # 23
         ActivityType.AUTO_SET_ONGOING,  # 24
         ActivityType.SET_ESCALATING,  # 25
+        ActivityType.SET_PRIORITY,  # 26
     ]
 )

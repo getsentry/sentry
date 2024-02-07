@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import * as qs from 'query-string';
 
-import {LineChartSeries} from 'sentry/components/charts/lineChart';
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EChartClickHandler} from 'sentry/types/echarts';
+import type {EChartClickHandler} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -15,10 +16,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {useRoutingContext} from 'sentry/views/starfish/utils/routingContext';
-import {
-  DataDisplayType,
-  DataRow,
-} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import type {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {DataDisplayType} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_MODULE} = SpanMetricsField;
 

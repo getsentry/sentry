@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from django.test import override_settings
 from django.urls import reverse
@@ -32,7 +32,7 @@ class RpcServiceEndpointTest(APITestCase):
 
         return f"rpcsignature {signature}"
 
-    def test_auth(self):
+    def test_invalid_endpoint(self):
         path = self._get_path("not_a_service", "not_a_method")
         response = self.client.post(path)
         assert response.status_code == 403
@@ -43,21 +43,33 @@ class RpcServiceEndpointTest(APITestCase):
         )
         return response
 
+    def test_missing_authentication(self):
+        path = self._get_path("organization", "get_organization_by_id")
+        data: dict[str, Any] = {"args": {}, "meta": {"organization_id": self.organization.id}}
+        response = self.client.post(path, data=data)
+        assert response.status_code == 403
+
+    def test_invalid_authentication(self):
+        path = self._get_path("organization", "get_organization_by_id")
+        data: dict[str, Any] = {"args": {}, "meta": {"organization_id": self.organization.id}}
+        response = self.client.post(path, data=data, HTTP_AUTHORIZATION="rpcsignature trash")
+        assert response.status_code == 401
+
     def test_bad_service_name(self):
         path = self._get_path("not_a_service", "not_a_method")
-        data: Dict[str, Any] = {"args": {}, "meta": {}}
+        data: dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 404
 
     def test_bad_method_name(self):
         path = self._get_path("user", "not_a_method")
-        data: Dict[str, Any] = {"args": {}, "meta": {}}
+        data: dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 404
 
     def test_no_body(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data: Dict[str, Any] = {"args": {}, "meta": {}}
+        data: dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
@@ -66,7 +78,7 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_invalid_args_syntax(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data: Dict[str, Any] = {"args": [], "meta": {}}
+        data: dict[str, Any] = {"args": [], "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
@@ -75,7 +87,7 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_missing_argument_key(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
@@ -84,7 +96,7 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_missing_argument_values(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data: Dict[str, Any] = {"args": {}}
+        data: dict[str, Any] = {"args": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {

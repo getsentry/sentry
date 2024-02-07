@@ -1,6 +1,6 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
@@ -22,14 +22,10 @@ import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {
-  SpanFunction,
-  SpanMetricsField,
-  SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
+import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {useModuleSort} from 'sentry/views/starfish/views/spans/useModuleSort';
-import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanMetricsRibbon} from 'sentry/views/starfish/views/spanSummaryPage/spanMetricsRibbon';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
@@ -67,9 +63,9 @@ function SpanSummaryPage({params}: Props) {
 
   const sort = useModuleSort(QueryParameterNames.ENDPOINTS_SORT, DEFAULT_SORT);
 
-  const {data} = useSpanMetrics(
+  const {data} = useSpanMetrics({
     filters,
-    [
+    fields: [
       SpanMetricsField.SPAN_OP,
       SpanMetricsField.SPAN_DESCRIPTION,
       SpanMetricsField.SPAN_ACTION,
@@ -81,11 +77,8 @@ function SpanSummaryPage({params}: Props) {
       `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       `${SpanFunction.HTTP_ERROR_COUNT}()`,
     ],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-page-metrics'
-  );
+    referrer: 'api.starfish.span-summary-page-metrics',
+  });
 
   const spanMetrics = data[0] ?? {};
 
@@ -101,16 +94,18 @@ function SpanSummaryPage({params}: Props) {
   };
 
   const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    filters,
-    ['spm()'],
-    'api.starfish.span-summary-page-metrics-chart'
+    {
+      filters,
+      yAxis: ['spm()'],
+      referrer: 'api.starfish.span-summary-page-metrics-chart',
+    }
   );
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
+  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries({
     filters,
-    [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
-    'api.starfish.span-summary-page-metrics-chart'
-  );
+    yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    referrer: 'api.starfish.span-summary-page-metrics-chart',
+  });
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
@@ -144,8 +139,9 @@ function SpanSummaryPage({params}: Props) {
       </Layout.Header>
 
       <Layout.Body>
-        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
+          <FloatingFeedbackWidget />
+
           <HeaderContainer>
             <PaddedContainer>
               <PageFilterBar condensed>
@@ -166,23 +162,19 @@ function SpanSummaryPage({params}: Props) {
             </DescriptionContainer>
           )}
 
-          <BlockContainer>
-            <Block>
-              <ThroughputChart
-                series={throughputData['spm()']}
-                isLoading={isThroughputDataLoading}
-              />
-            </Block>
+          <ChartContainer>
+            <ThroughputChart
+              series={throughputData['spm()']}
+              isLoading={isThroughputDataLoading}
+            />
 
-            <Block>
-              <DurationChart
-                series={
-                  durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
-                }
-                isLoading={isDurationDataLoading}
-              />
-            </Block>
-          </BlockContainer>
+            <DurationChart
+              series={
+                durationData[`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`]
+              }
+              isLoading={isDurationDataLoading}
+            />
+          </ChartContainer>
 
           {span && (
             <SpanTransactionsTable
@@ -211,6 +203,17 @@ const DEFAULT_SORT: Sort = {
 
 const PaddedContainer = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const ChartContainer = styled('div')`
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr 1fr;
+    gap: ${space(2)};
+  }
 `;
 
 const HeaderContainer = styled('div')`

@@ -739,6 +739,32 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             assert data["order"] == 2 - position
             assert [attrs for time, attrs in chart_data] == [[{"count": duration}]] * 5
 
+    def test_top_events_with_project(self):
+        self.store_transaction_metric(
+            100,
+            timestamp=self.day_ago + timedelta(hours=1, minutes=30),
+        )
+
+        response = self.do_request(
+            data={
+                # make sure to query the project with 0 events
+                "project": self.project.id,
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "interval": "1h",
+                "yAxis": "p75(transaction.duration)",
+                "orderby": ["-p75(transaction.duration)"],
+                "field": ["p75(transaction.duration)", "project"],
+                "topEvents": 5,
+                "dataset": "metrics",
+                **self.additional_params,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data[f"{self.project.slug}"]
+        assert data["order"] == 0
+
 
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest

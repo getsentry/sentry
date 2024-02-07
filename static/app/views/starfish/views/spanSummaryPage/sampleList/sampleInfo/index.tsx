@@ -1,8 +1,8 @@
-import {CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import {RateUnits} from 'sentry/utils/discover/fields';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {RateUnit} from 'sentry/utils/discover/fields';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -29,7 +29,7 @@ type Props = {
 
 function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod} = props;
-  const {setPageError} = usePageError();
+  const {setPageError} = usePageAlert();
 
   const displayedMetrics = props.displayedMetrics ?? DEFAULT_DISPLAYED_METRICS;
 
@@ -42,9 +42,9 @@ function SampleInfo(props: Props) {
     filters['transaction.method'] = transactionMethod;
   }
 
-  const {data, error} = useSpanMetrics(
+  const {data, error} = useSpanMetrics({
     filters,
-    [
+    fields: [
       SPAN_OP,
       'spm()',
       `sum(${SPAN_SELF_TIME})`,
@@ -52,11 +52,8 @@ function SampleInfo(props: Props) {
       'time_spent_percentage()',
       'count()',
     ],
-    undefined,
-    undefined,
-    undefined,
-    'api.starfish.span-summary-panel-metrics'
-  );
+    referrer: 'api.starfish.span-summary-panel-metrics',
+  });
 
   const spanMetrics = data[0] ?? {};
 
@@ -106,7 +103,7 @@ function SampleInfo(props: Props) {
             <ThroughputCell
               containerProps={{style}}
               rate={spanMetrics?.['spm()']}
-              unit={RateUnits.PER_MINUTE}
+              unit={RateUnit.PER_MINUTE}
             />
           </Block>
         );

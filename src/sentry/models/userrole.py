@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import FrozenSet, List
-
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -41,7 +39,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
 
     __repr__ = sane_repr("name", "permissions")
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         regions = list(find_all_region_names())
         return [
             outbox
@@ -54,7 +52,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
         ]
 
     @classmethod
-    def permissions_for_user(cls, user_id: int) -> FrozenSet[str]:
+    def permissions_for_user(cls, user_id: int) -> frozenset[str]:
         """
         Return a set of permission for the given user ID scoped to roles.
         """
@@ -75,7 +73,7 @@ class UserRoleUser(ControlOutboxProducingModel):
     user = FlexibleForeignKey("sentry.User")
     role = FlexibleForeignKey("sentry.UserRole")
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         regions = list(find_all_region_names())
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
             region_names=regions,

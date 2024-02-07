@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import urlencode
 
 from sentry_relay.processing import parse_release
@@ -20,7 +21,7 @@ class RegressionActivityNotification(GroupActivityNotification):
         self.version = self.activity.data.get("version", "")
         self.version_parsed = parse_release(self.version)["description"]
 
-    def get_description(self) -> tuple[str, Optional[str], Mapping[str, Any]]:
+    def get_description(self) -> tuple[str, str | None, Mapping[str, Any]]:
         text_message, html_message, params = "{author} marked {an issue} as a regression", None, {}
 
         if self.version:

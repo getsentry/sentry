@@ -1,13 +1,13 @@
 // eslint-disable-next-line simple-import-sort/imports
 import {browserHistory, createRoutes, match} from 'react-router';
-import {ExtraErrorData} from '@sentry/integrations';
+import {extraErrorDataIntegration} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
 import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
-import {Event} from '@sentry/types';
+import type {Event} from '@sentry/types';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
-import {Config} from 'sentry/types';
+import type {Config} from 'sentry/types';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
@@ -46,13 +46,11 @@ const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  */
 function getSentryIntegrations(routes?: Function) {
   const integrations = [
-    new ExtraErrorData({
+    extraErrorDataIntegration({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-
-    new Sentry.metrics.MetricsAggregator(),
-
+    Sentry.metrics.metricsAggregatorIntegration(),
     new BrowserTracing({
       ...(typeof routes === 'function'
         ? {

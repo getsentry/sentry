@@ -8,7 +8,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import {Plugin} from 'sentry/types';
+import type {Plugin} from 'sentry/types';
 
 type Props = {
   onEnablePlugin: (plugin: Plugin) => void;

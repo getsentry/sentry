@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import useOrganization from 'sentry/utils/useOrganization';

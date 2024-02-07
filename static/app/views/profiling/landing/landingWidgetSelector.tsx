@@ -2,7 +2,8 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useRouter from 'sentry/utils/useRouter';

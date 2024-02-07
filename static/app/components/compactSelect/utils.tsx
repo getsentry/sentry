@@ -2,14 +2,14 @@ import {useCallback, useMemo} from 'react';
 import {useFocus, usePress} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
-import {ListState} from '@react-stately/list';
-import {SelectionManager} from '@react-stately/selection';
-import {Node, Selection} from '@react-types/shared';
+import type {ListState} from '@react-stately/list';
+import type {SelectionManager} from '@react-stately/selection';
+import type {Node, Selection} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
 
 import {SectionToggleButton} from './styles';
-import {
+import type {
   SelectOption,
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
@@ -112,7 +112,7 @@ export function getHiddenOptions<Value extends React.Key>(
 
   const hiddenOptionsSet = new Set<Value>();
   const remainingItems = items
-    .map<SelectOptionOrSection<Value> | null>(item => {
+    .flatMap<SelectOptionOrSection<Value> | null>(item => {
       if ('options' in item) {
         const filteredOptions = item.options
           .map(opt => {
@@ -135,7 +135,6 @@ export function getHiddenOptions<Value extends React.Key>(
       hiddenOptionsSet.add(item.value);
       return null;
     })
-    .flat()
     .filter((item): item is SelectOptionOrSection<Value> => !!item);
 
   //

@@ -3,9 +3,8 @@ from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.eventstore.models import Event
-from sentry.integrations.jira_server import JiraServerCreateTicketAction
+from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.rule import Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
@@ -19,13 +18,14 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     def setUp(self):
         super().setUp()
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="jira_server",
             name="Jira Server",
             metadata={"base_url": "https://jira.example.com", "verify_ssl": True},
         )
 
-        self.integration.add_organization(self.organization, self.user)
         self.installation = self.integration.get_installation(self.organization.id)
 
         self.login_as(user=self.user)
@@ -180,6 +180,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         assert external_issue_count == 1
 
         # assert ticket created on jira server
+        assert isinstance(self.installation, JiraServerIntegration)
         data = self.installation.get_issue(key)
         assert sample_description in data["description"]
 

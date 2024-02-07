@@ -44,7 +44,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp.data == []
 
     def test_without_feature_flag(self):
-        resp = self.client.get(self.url)
+        with self.feature({"organizations:integrations-codeowners": False}):
+            resp = self.client.get(self.url)
         assert resp.status_code == 403
         assert resp.data == {"detail": "You do not have permission to perform this action."}
 

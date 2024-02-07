@@ -3,21 +3,10 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from django.db.models import Count
@@ -205,7 +194,7 @@ def get_group_settings_link(
 
 
 def get_integration_link(
-    organization: Organization, integration_slug: str, notification_uuid: Optional[str] = None
+    organization: Organization, integration_slug: str, notification_uuid: str | None = None
 ) -> str:
     query_params = {"referrer": "alert_email"}
     if notification_uuid:
@@ -262,8 +251,9 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
                     commit_data["subject"] = (
                         commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
                     )
+                    if commit.get("pullRequest"):
+                        commit_data["pull_request"] = commit["pullRequest"]
                     commits[commit["id"]] = commit_data
-
     # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
     # commits from Commit Context dont have a "score" key
     return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
@@ -317,7 +307,7 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
 
 
 def get_span_evidence_value(
-    span: Union[Dict[str, Union[str, float]], None] = None, include_op: bool = True
+    span: dict[str, str | float] | None = None, include_op: bool = True
 ) -> str:
     """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"
@@ -337,8 +327,8 @@ def get_span_evidence_value(
 
 
 def get_parent_and_repeating_spans(
-    spans: Union[List[Dict[str, Union[str, float]]], None], problem: PerformanceProblem
-) -> tuple[Union[Dict[str, Union[str, float]], None], Union[Dict[str, Union[str, float]], None]]:
+    spans: list[dict[str, str | float]] | None, problem: PerformanceProblem
+) -> tuple[dict[str, str | float] | None, dict[str, str | float] | None]:
     """Parse out the parent and repeating spans given an event's spans"""
     if not spans:
         return (None, None)
@@ -365,16 +355,16 @@ def occurrence_perf_to_email_html(context: Any) -> str:
 
 
 def get_spans(
-    entries: List[Dict[str, Union[List[Dict[str, Union[str, float]]], str]]]
-) -> Optional[List[Dict[str, Union[str, float]]]]:
+    entries: list[dict[str, list[dict[str, str | float]] | str]]
+) -> list[dict[str, str | float]] | None:
     """Get the given event's spans"""
     if not len(entries):
         return None
 
-    spans: Optional[List[Dict[str, Union[str, float]]]] = None
+    spans: list[dict[str, str | float]] | None = None
     for entry in entries:
         if entry.get("type") == "spans":
-            spans = cast(Optional[List[Dict[str, Union[str, float]]]], entry.get("data"))
+            spans = cast(Optional[list[dict[str, Union[str, float]]]], entry.get("data"))
             break
 
     return spans
@@ -454,7 +444,7 @@ def get_replay_id(event: Event | GroupEvent) -> str | None:
 @dataclass
 class PerformanceProblemContext:
     problem: PerformanceProblem
-    spans: Union[List[Dict[str, Union[str, float]]], None]
+    spans: list[dict[str, str | float]] | None
     event: Event | None
 
     def __post_init__(self) -> None:
@@ -463,7 +453,7 @@ class PerformanceProblemContext:
         self.parent_span = parent_span
         self.repeating_spans = repeating_spans
 
-    def to_dict(self) -> Dict[str, str | float | List[str]]:
+    def to_dict(self) -> dict[str, str | float | list[str]]:
         return {
             "transaction_name": self.transaction,
             "parent_span": get_span_evidence_value(self.parent_span),
@@ -495,7 +485,7 @@ class PerformanceProblemContext:
 
         return (end - start) * 1000
 
-    def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
+    def _find_span_by_id(self, id: str) -> dict[str, Any] | None:
         if not self.spans:
             return None
 
@@ -505,12 +495,12 @@ class PerformanceProblemContext:
                 return span
         return None
 
-    def get_span_duration(self, span: Dict[str, Any] | None) -> timedelta:
+    def get_span_duration(self, span: dict[str, Any] | None) -> timedelta:
         if span:
             return timedelta(seconds=span.get("timestamp", 0) - span.get("start_timestamp", 0))
         return timedelta(0)
 
-    def _sum_span_duration(self, spans: list[Dict[str, Any] | None]) -> float:
+    def _sum_span_duration(self, spans: list[dict[str, Any] | None]) -> float:
         "Given non-overlapping spans, find the sum of the span durations in milliseconds"
         sum = 0.0
         for span in spans:
@@ -522,7 +512,7 @@ class PerformanceProblemContext:
     def from_problem_and_spans(
         cls,
         problem: PerformanceProblem,
-        spans: Union[List[Dict[str, Union[str, float]]], None],
+        spans: list[dict[str, str | float]] | None,
         event: Event | None = None,
     ) -> PerformanceProblemContext:
         if problem.type == PerformanceNPlusOneAPICallsGroupType:
@@ -536,7 +526,7 @@ class PerformanceProblemContext:
 
 
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
-    def to_dict(self) -> Dict[str, str | float | List[str]]:
+    def to_dict(self) -> dict[str, str | float | list[str]]:
         return {
             "transaction_name": self.transaction,
             "repeating_spans": self.path_prefix,
@@ -556,7 +546,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
         return parsed_url.path or ""
 
     @property
-    def parameters(self) -> List[str]:
+    def parameters(self) -> list[str]:
         if not self.spans or len(self.spans) == 0:
             return []
 
@@ -566,7 +556,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
             if span.get("span_id") in self.problem.offender_span_ids
         ]
 
-        all_parameters: Mapping[str, List[str]] = defaultdict(list)
+        all_parameters: Mapping[str, list[str]] = defaultdict(list)
 
         for url in urls:
             parsed_url = urlparse(url)
@@ -581,7 +571,7 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
 
 
 class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "span_evidence_key_value": [
                 {"key": _("Transaction"), "value": self.transaction},
@@ -606,7 +596,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
         return self._find_span_desc_by_id(starting_span_id)
 
     @property
-    def parallelizable_spans(self) -> List[str]:
+    def parallelizable_spans(self) -> list[str]:
         if not self.problem.offender_span_ids or len(self.problem.offender_span_ids) < 1:
             return [""]
 
@@ -644,7 +634,7 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
 
 
 class RenderBlockingAssetProblemContext(PerformanceProblemContext):
-    def to_dict(self) -> Dict[str, str | float | List[str]]:
+    def to_dict(self) -> dict[str, str | float | list[str]]:
         return {
             "transaction_name": self.transaction,
             "slow_span_description": self.slow_span_description,
@@ -654,7 +644,7 @@ class RenderBlockingAssetProblemContext(PerformanceProblemContext):
         }
 
     @property
-    def slow_span(self) -> Dict[str, Union[str, float]] | None:
+    def slow_span(self) -> dict[str, str | float] | None:
         if not self.spans:
             return None
 

@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import GroupList from 'sentry/components/issues/groupList';
-import {IssueCategory} from 'sentry/types';
+import type {IssueCategory} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';

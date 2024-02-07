@@ -7,7 +7,8 @@ import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {EventId, EventIdStatus} from '../../types';
+import type {EventId} from '../../types';
+import {EventIdStatus} from '../../types';
 import {saveToSourceGroupData} from '../utils';
 
 import EventIdFieldStatusIcon from './eventIdFieldStatusIcon';

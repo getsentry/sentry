@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 
@@ -37,11 +37,11 @@ DEFAULT_EXPIRY_TIME: timedelta = timedelta(hours=24)
 
 @dataclass()
 class GroupTypeRegistry:
-    _registry: Dict[int, Type[GroupType]] = field(default_factory=dict)
-    _slug_lookup: Dict[str, Type[GroupType]] = field(default_factory=dict)
-    _category_lookup: Dict[int, Set[int]] = field(default_factory=lambda: defaultdict(set))
+    _registry: dict[int, type[GroupType]] = field(default_factory=dict)
+    _slug_lookup: dict[str, type[GroupType]] = field(default_factory=dict)
+    _category_lookup: dict[int, set[int]] = field(default_factory=lambda: defaultdict(set))
 
-    def add(self, group_type: Type[GroupType]) -> None:
+    def add(self, group_type: type[GroupType]) -> None:
         if self._registry.get(group_type.type_id):
             raise ValueError(
                 f"A group type with the type_id {group_type.type_id} has already been registered."
@@ -50,12 +50,12 @@ class GroupTypeRegistry:
         self._slug_lookup[group_type.slug] = group_type
         self._category_lookup[group_type.category].add(group_type.type_id)
 
-    def all(self) -> List[Type[GroupType]]:
+    def all(self) -> list[type[GroupType]]:
         return list(self._registry.values())
 
     def get_visible(
-        self, organization: Organization, actor: Optional[Any] = None
-    ) -> List[Type[GroupType]]:
+        self, organization: Organization, actor: Any | None = None
+    ) -> list[type[GroupType]]:
         with sentry_sdk.start_span(op="GroupTypeRegistry.get_visible") as span:
             released = [gt for gt in self.all() if gt.released]
             feature_to_grouptype = {
@@ -79,18 +79,18 @@ class GroupTypeRegistry:
             span.set_data("feature_to_grouptype", feature_to_grouptype)
             return released + enabled
 
-    def get_all_group_type_ids(self) -> Set[int]:
+    def get_all_group_type_ids(self) -> set[int]:
         return {type.type_id for type in self._registry.values()}
 
-    def get_by_category(self, category: int) -> Set[int]:
+    def get_by_category(self, category: int) -> set[int]:
         return self._category_lookup[category]
 
-    def get_by_slug(self, slug: str) -> Optional[Type[GroupType]]:
+    def get_by_slug(self, slug: str) -> type[GroupType] | None:
         if slug not in self._slug_lookup:
             return None
         return self._slug_lookup[slug]
 
-    def get_by_type_id(self, id_: int) -> Type[GroupType]:
+    def get_by_type_id(self, id_: int) -> type[GroupType]:
         if id_ not in self._registry:
             raise ValueError(f"No group type with the id {id_} is registered.")
         return self._registry[id_]
@@ -115,7 +115,7 @@ class GroupType:
     slug: str
     description: str
     category: int
-    noise_config: Optional[NoiseConfig] = None
+    noise_config: NoiseConfig | None = None
     # If True this group type should be released everywhere. If False, fall back to features to
     # decide if this is released.
     released: bool = False
@@ -126,7 +126,7 @@ class GroupType:
     enable_escalation_detection: bool = True
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
 
-    def __init_subclass__(cls: Type[GroupType], **kwargs: Any) -> None:
+    def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         registry.add(cls)
 
@@ -141,7 +141,7 @@ class GroupType:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
     @classmethod
-    def is_visible(cls, organization: Organization, user: Optional[User] = None) -> bool:
+    def is_visible(cls, organization: Organization, user: User | None = None) -> bool:
         if cls.released:
             return True
 
@@ -168,8 +168,6 @@ class GroupType:
 
         When the feature flag is removed, we can remove the organization parameter from this method.
         """
-        if not features.has("organizations:issue-platform-crons-sd", organization):
-            return True
         return cls.enable_escalation_detection
 
     @classmethod
@@ -193,22 +191,22 @@ class GroupType:
         return f"{cls.build_base_feature_name()}-post-process-group"
 
 
-def get_all_group_type_ids() -> Set[int]:
+def get_all_group_type_ids() -> set[int]:
     # TODO: Replace uses of this with the registry
     return registry.get_all_group_type_ids()
 
 
-def get_group_types_by_category(category: int) -> Set[int]:
+def get_group_types_by_category(category: int) -> set[int]:
     # TODO: Replace uses of this with the registry
     return registry.get_by_category(category)
 
 
-def get_group_type_by_slug(slug: str) -> Optional[Type[GroupType]]:
+def get_group_type_by_slug(slug: str) -> type[GroupType] | None:
     # TODO: Replace uses of this with the registry
     return registry.get_by_slug(slug)
 
 
-def get_group_type_by_type_id(id: int) -> Type[GroupType]:
+def get_group_type_by_type_id(id: int) -> type[GroupType]:
     # TODO: Replace uses of this with the registry
     return registry.get_by_type_id(id)
 
@@ -483,9 +481,18 @@ class MonitorCheckInMissed(GroupType):
 
 @dataclass(frozen=True)
 class ReplayDeadClickType(GroupType):
+    # This is not currently used
     type_id = 5001
     slug = "replay_click_dead"
     description = "Dead Click Detected"
+    category = GroupCategory.REPLAY.value
+
+
+@dataclass(frozen=True)
+class ReplayRageClickType(GroupType):
+    type_id = 5002
+    slug = "replay_click_rage"
+    description = "Rage Click Detected"
     category = GroupCategory.REPLAY.value
 
 
@@ -500,7 +507,7 @@ class FeedbackGroup(GroupType):
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)
 def should_create_group(
-    grouptype: Type[GroupType],
+    grouptype: type[GroupType],
     client: Any,
     grouphash: str,
     project: Project,

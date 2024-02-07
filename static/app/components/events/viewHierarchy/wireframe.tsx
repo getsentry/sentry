@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {Button} from 'sentry/components/button';
-import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
+import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
   getDeepestNodeAtPoint,
@@ -14,9 +14,9 @@ import {
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
 
 const MIN_BORDER_SIZE = 20;
 const MOUSE_DRAG_THRESHOLD = 3;
@@ -83,11 +83,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
     const yCenter = Math.abs(canvasSize.height - hierarchyData.maxHeight * scale) / 2;
 
     // prettier-ignore
-    return mat3.fromValues(
-      scale, 0, 0,
-      0, scale, 0,
-      xCenter, yCenter, 1
-    );
+    return mat3.fromValues(scale, 0, 0, 0, scale, 0, xCenter, yCenter, 1);
   }, [
     canvasSize.height,
     canvasSize.width,

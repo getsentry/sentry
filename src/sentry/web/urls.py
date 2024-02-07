@@ -534,6 +534,11 @@ urlpatterns += [
                     name="sentry-customer-domain-organization-settings",
                 ),
                 re_path(
+                    r"^plugins/",
+                    react_page_view,
+                    name="sentry-customer-domain-plugins-settings",
+                ),
+                re_path(
                     r"^projects/",
                     react_page_view,
                     name="sentry-customer-domain-projects-settings",
@@ -1060,7 +1065,7 @@ urlpatterns += [
     re_path(
         r"^robots\.txt$",
         api.robots_txt,
-        name="sentry-api-robots-txt",
+        name="sentry-robots-txt",
     ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without

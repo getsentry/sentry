@@ -1,4 +1,5 @@
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Union
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 
 from snuba_sdk import Column, Function
 
@@ -16,14 +17,12 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 def resolve_project_threshold_config(
     # See resolve_tag_value signature
-    tag_value_resolver: Callable[
-        [Union[UseCaseID, UseCaseKey], int, str], Optional[Union[int, str]]
-    ],
+    tag_value_resolver: Callable[[UseCaseID | UseCaseKey, int, str], int | str | None],
     # See resolve_tag_key signature
-    column_name_resolver: Callable[[Union[UseCaseID, UseCaseKey], int, str], str],
+    column_name_resolver: Callable[[UseCaseID | UseCaseKey, int, str], str],
     project_ids: Sequence[int],
     org_id: int,
-    use_case_id: Optional[UseCaseID] = None,
+    use_case_id: UseCaseID | None = None,
 ) -> SelectType:
     """
     Shared function that resolves the project threshold configuration used by both snuba/metrics
@@ -177,10 +176,10 @@ def resolve_project_threshold_config(
 
 
 def resolve_metrics_percentile(
-    args: Mapping[str, Union[str, Column, SelectType, int, float]],
-    alias: Optional[str],
-    fixed_percentile: Optional[float] = None,
-    extra_conditions: Optional[List[Function]] = None,
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str | None,
+    fixed_percentile: float | None = None,
+    extra_conditions: list[Function] | None = None,
 ) -> SelectType:
     if fixed_percentile is None:
         fixed_percentile = args["percentile"]
@@ -224,7 +223,7 @@ def resolve_metrics_percentile(
 
 
 def resolve_percent_change(
-    first_value: SelectType, second_value: SelectType, alias: Optional[str] = None
+    first_value: SelectType, second_value: SelectType, alias: str | None = None
 ) -> SelectType:
     """(v2-v1)/abs(v1)"""
     return resolve_division(
@@ -236,9 +235,9 @@ def resolve_percent_change(
 
 def resolve_avg_compare_if(
     column_resolver: Callable[[str], Column],
-    args: Mapping[str, Union[str, Column, SelectType, int, float]],
+    args: Mapping[str, str | Column | SelectType | int | float],
     value_key: str,
-    alias: Optional[str],
+    alias: str | None,
 ) -> SelectType:
     """Helper function for avg compare"""
     return Function(
@@ -262,8 +261,8 @@ def resolve_avg_compare_if(
 
 def resolve_avg_compare(
     column_resolver: Callable[[str], Column],
-    args: Mapping[str, Union[str, Column, SelectType, int, float]],
-    alias: Optional[str] = None,
+    args: Mapping[str, str | Column | SelectType | int | float],
+    alias: str | None = None,
 ) -> SelectType:
     return resolve_percent_change(
         resolve_avg_compare_if(column_resolver, args, "first_value", alias),
@@ -273,10 +272,10 @@ def resolve_avg_compare(
 
 
 def resolve_metrics_layer_percentile(
-    args: Mapping[str, Union[str, Column, SelectType, int, float]],
+    args: Mapping[str, str | Column | SelectType | int | float],
     alias: str,
     resolve_mri: Callable[[str], Column],
-    fixed_percentile: Optional[float] = None,
+    fixed_percentile: float | None = None,
 ):
     # TODO: rename to just resolve_metrics_percentile once the non layer code can be retired
     if fixed_percentile is None:
@@ -304,7 +303,7 @@ def resolve_metrics_layer_percentile(
 
 
 def resolve_division(
-    dividend: SelectType, divisor: SelectType, alias: str, fallback: Optional[Any] = None
+    dividend: SelectType, divisor: SelectType, alias: str, fallback: Any | None = None
 ) -> SelectType:
     return Function(
         "if",

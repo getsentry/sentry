@@ -681,6 +681,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/api-authorizations/": {"GET", "DELETE"},
     "/api/0/api-tokens/": {"DELETE", "GET", "POST"},
     "/api/0/prompts-activity/": {"GET", "PUT"},
+    "/api/0/organizations/{organization_slug}/prompts-activity/": {"GET", "PUT"},
     "/api/0/authenticators/": {"GET"},
     "/api/0/accept-transfer/": {"GET", "POST"},
     "/api/0/accept-invite/{organization_slug}/{member_id}/{token}/": {"GET", "POST"},

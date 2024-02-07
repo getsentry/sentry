@@ -66,7 +66,7 @@ class GroupInbox(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupinbox"
-        index_together = (("project", "date_added"),)
+        indexes = (models.Index(fields=("project", "date_added")),)
 
 
 def add_group_to_inbox(group, reason, reason_details=None):

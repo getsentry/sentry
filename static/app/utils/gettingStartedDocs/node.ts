@@ -1,3 +1,4 @@
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
 export type ProductSelectionMap = Record<ProductSolution, boolean>;
@@ -30,18 +31,18 @@ export function joinWithIndentation(lines: string[], indent = 2) {
 }
 
 export function getInstallSnippet({
-  productSelection,
+  params,
   packageManager,
   additionalPackages = [],
   basePackage = '@sentry/node',
 }: {
   packageManager: 'npm' | 'yarn';
-  productSelection: ProductSelectionMap;
+  params: DocsParams;
   additionalPackages?: string[];
   basePackage?: string;
 }) {
   let packages = [basePackage];
-  if (productSelection.profiling) {
+  if (params.isProfilingSelected) {
     packages.push('@sentry/profiling-node');
   }
   packages = packages.concat(additionalPackages);
@@ -49,6 +50,46 @@ export function getInstallSnippet({
   return packageManager === 'yarn'
     ? `yarn add ${packages.join(' ')}`
     : `npm install --save ${packages.join(' ')}`;
+}
+
+export function getInstallConfig(
+  params: DocsParams,
+  {
+    basePackage = '@sentry/node',
+    additionalPackages,
+  }: {
+    additionalPackages?: string[];
+    basePackage?: string;
+  } = {}
+) {
+  return [
+    {
+      code: [
+        {
+          label: 'npm',
+          value: 'npm',
+          language: 'bash',
+          code: getInstallSnippet({
+            params,
+            additionalPackages,
+            packageManager: 'npm',
+            basePackage,
+          }),
+        },
+        {
+          label: 'yarn',
+          value: 'yarn',
+          language: 'bash',
+          code: getInstallSnippet({
+            params,
+            additionalPackages,
+            packageManager: 'yarn',
+            basePackage,
+          }),
+        },
+      ],
+    },
+  ];
 }
 
 export function getDefaultNodeImports({

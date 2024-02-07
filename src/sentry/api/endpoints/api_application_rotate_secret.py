@@ -14,7 +14,7 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus, g
 @control_silo_endpoint
 class ApiApplicationRotateSecretEndpoint(Endpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     authentication_classes = (SessionAuthentication,)

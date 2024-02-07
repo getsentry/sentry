@@ -1,13 +1,7 @@
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
-  /**
-   * Current Organization
-   */
-  organization: Organization;
-
   /**
    * Children can be a node or a function as child.
    */
@@ -21,16 +15,16 @@ type Props = {
 /**
  * Component to handle demo mode switches
  */
-function DemoModeGate(props: Props) {
-  const {organization, children, demoComponent = null} = props;
+function DemoModeGate({children, demoComponent}: Props) {
+  const organization = useOrganization({allowNull: true});
 
   if (organization?.orgRole === 'member' && ConfigStore.get('demoMode')) {
     if (typeof demoComponent === 'function') {
       return demoComponent({children});
     }
-    return demoComponent;
+    return demoComponent ?? null;
   }
   return children;
 }
 
-export default withOrganization(DemoModeGate);
+export default DemoModeGate;

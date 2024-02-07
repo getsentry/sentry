@@ -9,12 +9,8 @@ import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {
-  Organization,
-  ReleaseComparisonChartType,
-  ReleaseProject,
-  ReleaseWithHealth,
-} from 'sentry/types';
+import type {Organization, ReleaseProject, ReleaseWithHealth} from 'sentry/types';
+import {ReleaseComparisonChartType} from 'sentry/types';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';

@@ -1,6 +1,7 @@
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import Any, List, Mapping, Optional
+from typing import Any, Optional
 
 from django.utils import timezone
 
@@ -89,7 +90,7 @@ def fetch_metric_alert_events_timeseries(
     rule_aggregate: str,
     query_params: Mapping[str, str],
     user: Optional["User"] = None,
-) -> List[Any]:
+) -> list[Any]:
     try:
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
@@ -127,7 +128,7 @@ def fetch_metric_alert_incidents(
     alert_rule: AlertRule,
     time_period: Mapping[str, str],
     user: Optional["User"] = None,
-) -> List[Any]:
+) -> list[Any]:
     try:
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
@@ -154,13 +155,13 @@ def fetch_metric_alert_incidents(
 def build_metric_alert_chart(
     organization: Organization,
     alert_rule: AlertRule,
-    selected_incident: Optional[Incident] = None,
-    period: Optional[str] = None,
-    start: Optional[str] = None,
-    end: Optional[str] = None,
+    selected_incident: Incident | None = None,
+    period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     user: Optional["User"] = None,
-    size: Optional[ChartSize] = None,
-) -> Optional[str]:
+    size: ChartSize | None = None,
+) -> str | None:
     """Builds the dataset required for metric alert chart the same way the frontend would"""
     snuba_query: SnubaQuery = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)

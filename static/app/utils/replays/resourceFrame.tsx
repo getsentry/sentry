@@ -23,8 +23,8 @@ export function getFrameStatus(frame: SpanFrame) {
   return isRequestFrame(frame)
     ? frame.data.statusCode
     : isResourceFrame(frame)
-    ? frame.data.statusCode
-    : undefined;
+      ? frame.data.statusCode
+      : undefined;
 }
 
 export function getReqRespContentTypes(frame: SpanFrame) {

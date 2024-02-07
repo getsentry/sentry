@@ -1,6 +1,7 @@
 import pick from 'lodash/pick';
 
 import {useLocation} from 'sentry/utils/useLocation';
+import type {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 
 export enum BrowserStarfishFields {
   SPAN_OP = 'span.op',
@@ -18,11 +19,7 @@ export type ModuleFilters = {
     | 'blocking'
     | '!blocking';
   [BrowserStarfishFields.SPAN_DOMAIN]?: string;
-  [BrowserStarfishFields.SPAN_OP]?:
-    | 'resource.script'
-    | 'resource.css'
-    | 'resource.font'
-    | 'resource.img';
+  [BrowserStarfishFields.SPAN_OP]?: ResourceSpanOps;
   [BrowserStarfishFields.TRANSACTION]?: string;
   [BrowserStarfishFields.SPAN_DOMAIN]?: string;
 };

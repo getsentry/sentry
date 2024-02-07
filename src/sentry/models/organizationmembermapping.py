@@ -50,9 +50,9 @@ class OrganizationMemberMapping(Model):
         db_table = "sentry_organizationmembermapping"
         unique_together = (("organization_id", "organizationmember_id"),)
 
-        index_together = (
-            ("organization_id", "user"),
-            ("organization_id", "email"),
+        indexes = (
+            models.Index(fields=("organization_id", "user")),
+            models.Index(fields=("organization_id", "email")),
         )
 
     __repr__ = sane_repr("organization_id", "organizationmember_id", "user_id", "role")

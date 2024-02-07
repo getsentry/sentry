@@ -32,12 +32,6 @@ filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
 
-    # TODO: after upgrading to django 4.x
-    "ignore:'index_together' is deprecated. Use 'Meta.indexes' in.*",
-    "ignore:Passing unsaved model instances to related filters is deprecated.",
-    "ignore:The django.utils.timezone.utc alias is deprecated.*",
-    "ignore:django.core.files.storage.get_storage_class is deprecated in favor of using django.core.files.storage.storages.",
-
     # a bunch of google packages use legacy namespace packages
     "ignore:pkg_resources is deprecated as an API",
     "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
@@ -54,7 +48,7 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugin"]
 files = ["."]
@@ -208,7 +202,6 @@ module = [
     "sentry.api.endpoints.project_rule_preview",
     "sentry.api.endpoints.project_rules_configuration",
     "sentry.api.endpoints.project_servicehook_stats",
-    "sentry.api.endpoints.project_stacktrace_link",
     "sentry.api.endpoints.project_stacktrace_links",
     "sentry.api.endpoints.project_transaction_names",
     "sentry.api.endpoints.rule_snooze",
@@ -275,7 +268,6 @@ module = [
     "sentry.db.models.query",
     "sentry.db.models.utils",
     "sentry.db.postgres.base",
-    "sentry.db.postgres.creation",
     "sentry.db.router",
     "sentry.digests.notifications",
     "sentry.discover.endpoints.discover_key_transactions",
@@ -283,8 +275,6 @@ module = [
     "sentry.features.handler",
     "sentry.features.manager",
     "sentry.grouping.fingerprinting",
-    "sentry.grouping.strategies.base",
-    "sentry.grouping.strategies.configurations",
     "sentry.grouping.strategies.hierarchical",
     "sentry.grouping.strategies.legacy",
     "sentry.grouping.strategies.newstyle",
@@ -304,7 +294,6 @@ module = [
     "sentry.incidents.models",
     "sentry.incidents.subscription_processor",
     "sentry.incidents.tasks",
-    "sentry.ingest.inbound_filters",
     "sentry.integrations.aws_lambda.integration",
     "sentry.integrations.base",
     "sentry.integrations.bitbucket.client",
@@ -389,7 +378,6 @@ module = [
     "sentry.issues.occurrence_consumer",
     "sentry.issues.search",
     "sentry.issues.status_change",
-    "sentry.mail.adapter",
     "sentry.middleware.access_log",
     "sentry.middleware.auth",
     "sentry.middleware.ratelimit",
@@ -484,7 +472,6 @@ module = [
     "sentry.snuba.sessions_v2",
     "sentry.snuba.spans_indexed",
     "sentry.snuba.spans_metrics",
-    "sentry.snuba.tasks",
     "sentry.stacktraces.functions",
     "sentry.tagstore.snuba.backend",
     "sentry.tagstore.types",
@@ -495,7 +482,6 @@ module = [
     "sentry.tasks.digests",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
-    "sentry.tasks.integrations.github.pr_comment",
     "sentry.tasks.integrations.migrate_issues",
     "sentry.tasks.integrations.migrate_repo",
     "sentry.tasks.integrations.slack.find_channel_id_for_rule",
@@ -525,7 +511,6 @@ module = [
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
     "sentry.tsdb.redis",
-    "sentry.tsdb.snuba",
     "sentry.types.integrations",
     "sentry.utils.audit",
     "sentry.utils.auth",
@@ -579,7 +564,6 @@ module = [
     "sentry.web.frontend.oauth_authorize",
     "sentry.web.frontend.oauth_token",
     "sentry.web.frontend.organization_integration_setup",
-    "sentry.web.frontend.out",
     "sentry.web.frontend.pipeline_advancer",
     "sentry.web.frontend.project_event",
     "sentry.web.frontend.react_page",
@@ -631,7 +615,6 @@ module = [
     "tests.sentry.issues.test_utils",
     "tests.sentry.models.test_organizationmember",
     "tests.sentry.replays.test_project_replay_recording_segment_index",
-    "tests.sentry.replays.unit.test_dead_click_issue",
     "tests.sentry.tasks.test_post_process",
 ]
 disable_error_code = [
@@ -659,8 +642,10 @@ disable_error_code = [
 # beginning: stronger typing
 [[tool.mypy.overrides]]
 module = [
+    "src.sentry.tasks.on_demand_metrics",
     "src.sentry.relay.config.metric_extraction",
     "src.sentry.snuba.metrics.extraction",
+    "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.relay.config.test_metric_extraction",
 ]
 disallow_untyped_defs = true

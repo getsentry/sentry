@@ -1,6 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {vec2} from 'gl-matrix';
+import type {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {IconLightning} from 'sentry/icons';
@@ -8,14 +8,14 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import type {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 
@@ -108,8 +108,8 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
       ? t('no change')
       : `${relative > 0 ? '+' : ''}${formatPercentage(relative)}`
     : props.flamegraph.negated
-    ? t('removed function')
-    : t(`new function`);
+      ? t('removed function')
+      : t(`new function`);
 
   return (
     <BoundTooltip

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import copy
-from typing import Any, ClassVar, List
+from typing import Any, ClassVar
 
 from django.db import models
 from django.utils import timezone
@@ -166,7 +166,7 @@ class Authenticator(ControlOutboxProducingModel):
         verbose_name_plural = _("authenticators")
         unique_together = (("user", "type"),)
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         regions = find_regions_for_user(self.user_id)
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
             region_names=regions,

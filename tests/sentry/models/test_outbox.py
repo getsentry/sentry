@@ -1,8 +1,9 @@
 import dataclasses
 import functools
 import threading
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, ContextManager
+from typing import Any, ContextManager
 from unittest.mock import call, patch
 
 import pytest
@@ -34,7 +35,12 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    assume_test_silo_mode_of,
+    control_silo_test,
+    region_silo_test,
+)
 from sentry.types.region import Region, RegionCategory, get_local_region
 
 
@@ -51,7 +57,6 @@ def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @pytest.fixture(autouse=True, scope="function")
-@pytest.mark.django_db(transaction=True)
 def setup_clear_fixture_outbox_messages():
     with outbox_runner():
         pass
@@ -99,14 +104,14 @@ class ControlOutboxTest(TestCase):
                 inst.save()
 
             for inst in ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.SLACK,
+                shard_identifier=WebhookProviderIdentifier.SLACK,
                 region_names=[settings.SENTRY_MONOLITH_REGION, "special-slack-region"],
                 request=request,
             ):
                 inst.save()
 
             for inst in ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                shard_identifier=WebhookProviderIdentifier.GITHUB,
                 region_names=[settings.SENTRY_MONOLITH_REGION, "special-github-region"],
                 request=request,
             ):
@@ -175,7 +180,7 @@ class ControlOutboxTest(TestCase):
 
     def test_control_outbox_for_webhooks(self):
         [outbox] = ControlOutbox.for_webhook_update(
-            webhook_identifier=WebhookProviderIdentifier.GITHUB,
+            shard_identifier=WebhookProviderIdentifier.GITHUB,
             region_names=["webhook-region"],
             request=self.webhook_request,
         )
@@ -217,7 +222,7 @@ class ControlOutboxTest(TestCase):
             )
             expected_request_count = 1 if SiloMode.get_current_mode() == SiloMode.CONTROL else 0
             [outbox] = ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                shard_identifier=WebhookProviderIdentifier.GITHUB,
                 region_names=[self.region.name],
                 request=self.webhook_request,
             )
@@ -238,7 +243,7 @@ class ControlOutboxTest(TestCase):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
             [outbox] = ControlOutbox.for_webhook_update(
-                webhook_identifier=WebhookProviderIdentifier.GITHUB,
+                shard_identifier=WebhookProviderIdentifier.GITHUB,
                 region_names=[self.region.name],
                 request=self.webhook_request,
             )
@@ -601,6 +606,7 @@ class RegionOutboxTest(TestCase):
             assert RegionOutbox.objects.count() == 0
 
 
+@region_silo_test
 class TestOutboxesManager(TestCase):
     def test_bulk_operations(self):
         org = self.create_organization()
@@ -621,12 +627,14 @@ class TestOutboxesManager(TestCase):
 
         with outbox_runner():
             assert RegionOutbox.objects.count() == 10
-            assert OrganizationMemberTeamReplica.objects.count() == 1
             assert OrganizationMemberTeam.objects.count() == 11
+            with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+                assert OrganizationMemberTeamReplica.objects.count() == 1
 
         assert RegionOutbox.objects.count() == 0
-        assert OrganizationMemberTeamReplica.objects.count() == 11
         assert OrganizationMemberTeam.objects.count() == 11
+        with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+            assert OrganizationMemberTeamReplica.objects.count() == 11
 
         existing = OrganizationMemberTeam.objects.all().exclude(id=do_not_touch.id).all()
         for obj in existing:
@@ -635,17 +643,83 @@ class TestOutboxesManager(TestCase):
 
         with outbox_runner():
             assert RegionOutbox.objects.count() == 10
-            assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 0
+            with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+                assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 0
 
         assert RegionOutbox.objects.count() == 0
-        assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 10
+        with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+            assert OrganizationMemberTeamReplica.objects.filter(role="cow").count() == 10
 
         OrganizationMemberTeam.objects.bulk_delete(existing)
 
         with outbox_runner():
             assert RegionOutbox.objects.count() == 10
-            assert OrganizationMemberTeamReplica.objects.count() == 11
             assert OrganizationMemberTeam.objects.count() == 1
+            with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+                assert OrganizationMemberTeamReplica.objects.count() == 11
 
         assert RegionOutbox.objects.count() == 0
-        assert OrganizationMemberTeamReplica.objects.count() == 1
+        with assume_test_silo_mode_of(OrganizationMemberTeamReplica):
+            assert OrganizationMemberTeamReplica.objects.count() == 1
+
+
+@control_silo_test
+class OutboxAggregationTest(TestCase):
+    def setUp(self):
+        shard_counts = {1: (4, "eu"), 2: (7, "us"), 3: (1, "us")}
+        with outbox_runner():
+            pass
+
+        for shard_id, (shard_count, region_name) in shard_counts.items():
+            for i in range(shard_count):
+                ControlOutbox(
+                    region_name=region_name,
+                    shard_scope=OutboxScope.WEBHOOK_SCOPE,
+                    shard_identifier=shard_id,
+                    category=OutboxCategory.WEBHOOK_PROXY,
+                    object_identifier=shard_id * 10000 + i,
+                    payload='{"foo": "bar"}',
+                ).save()
+
+    def test_calculate_sharding_depths(self):
+        shard_depths = ControlOutbox.get_shard_depths_descending()
+
+        assert shard_depths == [
+            dict(
+                shard_identifier=2,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=7,
+            ),
+            dict(
+                shard_identifier=1,
+                region_name="eu",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=4,
+            ),
+            dict(
+                shard_identifier=3,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=1,
+            ),
+        ]
+
+        # Test limiting the query to a single entry
+        shard_depths = ControlOutbox.get_shard_depths_descending(limit=1)
+        assert shard_depths == [
+            dict(
+                shard_identifier=2,
+                region_name="us",
+                shard_scope=OutboxScope.WEBHOOK_SCOPE.value,
+                depth=7,
+            )
+        ]
+
+    def test_calculate_sharding_depths_empty(self):
+        ControlOutbox.objects.all().delete()
+        assert ControlOutbox.objects.count() == 0
+        assert ControlOutbox.get_shard_depths_descending() == []
+
+    def test_total_count(self):
+        assert ControlOutbox.get_total_outbox_count() == 7 + 4 + 1

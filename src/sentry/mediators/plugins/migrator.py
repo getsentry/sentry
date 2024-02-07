@@ -1,5 +1,3 @@
-from typing import List
-
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.plugins.base import plugins
@@ -42,7 +40,7 @@ class Migrator(Mediator):
         return [r for r in self.repositories if r.provider == provider]
 
     @property
-    def repositories(self) -> List[RpcRepository]:
+    def repositories(self) -> list[RpcRepository]:
         return repository_service.get_repositories(organization_id=self.organization.id)
 
     @memoize

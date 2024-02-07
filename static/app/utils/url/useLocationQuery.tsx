@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
+import type {decodeList} from 'sentry/utils/queryString';
+import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
 type Scalar = string | boolean | number | undefined;

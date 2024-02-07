@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  AssigneeSelectorDropdown,
+import type {
   AssigneeSelectorDropdownProps,
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
+import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import ExternalLink from 'sentry/components/links/externalLink';

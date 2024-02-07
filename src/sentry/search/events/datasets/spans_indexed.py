@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional, Union
+from collections.abc import Callable, Mapping
 
 from snuba_sdk import Column, Direction, Function, OrderBy
 
@@ -26,13 +26,13 @@ from sentry.search.events.types import SelectType, WhereType
 class SpansIndexedDatasetConfig(DatasetConfig):
     def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
-        self.total_count: Optional[int] = None
-        self.total_sum_transaction_duration: Optional[float] = None
+        self.total_count: int | None = None
+        self.total_sum_transaction_duration: float | None = None
 
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
+    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
@@ -207,7 +207,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
     def orderby_converter(self) -> Mapping[str, Callable[[Direction], OrderBy]]:
         return {}
 
-    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
@@ -218,7 +218,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _resolve_bounded_sample(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         base_condition = Function(
@@ -254,7 +254,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _resolve_rounded_time(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
         start, end = self.builder.start, self.builder.end
@@ -280,9 +280,9 @@ class SpansIndexedDatasetConfig(DatasetConfig):
 
     def _resolve_percentile(
         self,
-        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        args: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
-        fixed_percentile: Optional[float] = None,
+        fixed_percentile: float | None = None,
     ) -> SelectType:
         return (
             Function(

@@ -22,7 +22,7 @@ def validate_sort_field(field_name: str) -> str:
 @region_silo_endpoint
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization, key) -> Response:

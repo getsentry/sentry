@@ -2,12 +2,13 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
+import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
@@ -16,13 +17,12 @@ import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
-import {EMPTY_OPTION_VALUE} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 import {
   DataTitles,
   getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/starfish/views/spans/types';
-import {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
+import type {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_SELF_TIME, SPAN_MODULE, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
@@ -35,13 +35,13 @@ type Props = {
   eventView?: EventView;
   extraQuery?: string[];
   spanCategory?: string;
-  throughputUnit?: RateUnits;
+  throughputUnit?: RateUnit;
 };
 
 type ChartProps = {
   filters: ModuleFilters;
   moduleName: ModuleName;
-  throughputUnit: RateUnits;
+  throughputUnit: RateUnit;
   extraQuery?: string[];
 };
 
@@ -53,7 +53,7 @@ export function SpanTimeCharts({
   moduleName,
   appliedFilters,
   spanCategory,
-  throughputUnit = RateUnits.PER_MINUTE,
+  throughputUnit = RateUnit.PER_MINUTE,
   extraQuery,
 }: Props) {
   const {selection} = usePageFilters();
@@ -138,9 +138,9 @@ function ThroughputChart({
     const groupData = dataByGroup[groupName];
 
     let throughputMultiplier = 1; // We're fetching per minute, so default is 1
-    if (throughputUnit === RateUnits.PER_SECOND) {
+    if (throughputUnit === RateUnit.PER_SECOND) {
       throughputMultiplier = 1 / 60;
-    } else if (throughputUnit === RateUnits.PER_HOUR) {
+    } else if (throughputUnit === RateUnit.PER_HOUR) {
       throughputMultiplier = 60;
     }
 

@@ -3,7 +3,8 @@ from __future__ import annotations
 import abc
 import inspect
 import logging
-from typing import Any, Callable, Iterable, Mapping, Protocol, Type
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, Protocol
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -18,6 +19,7 @@ from django.http.response import HttpResponseBase
 from django.middleware.csrf import CsrfViewMiddleware
 from django.template.context_processors import csrf
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
@@ -54,7 +56,7 @@ audit_logger = logging.getLogger("sentry.audit.ui")
 
 
 class ViewSiloLimit(SiloLimit):
-    def modify_endpoint_class(self, decorated_class: Type[View]) -> type:
+    def modify_endpoint_class(self, decorated_class: type[View]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
         new_class = type(
             decorated_class.__name__,
@@ -281,7 +283,11 @@ class OrganizationMixin:
             if using_customer_domain and request.user and request.user.is_authenticated:
                 requesting_org_slug = request.subdomain
                 org_context = organization_service.get_organization_by_slug(
-                    slug=requesting_org_slug, only_visible=False, user_id=request.user.id
+                    slug=requesting_org_slug,
+                    only_visible=False,
+                    user_id=request.user.id,
+                    include_projects=False,
+                    include_teams=False,
                 )
                 if org_context and org_context.organization:
                     if org_context.organization.status == OrganizationStatus.PENDING_DELETION:
@@ -325,7 +331,7 @@ class BaseView(View, OrganizationMixin):
             self.csrf_protect = csrf_protect
         super().__init__(*args, **kwargs)
 
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         """
         A note on the CSRF protection process.
@@ -546,8 +552,8 @@ class AbstractOrganizationView(BaseView, abc.ABC):
             # Require auth if we there is an organization associated with the slug that we just cannot access
             # for some reason.
             return (
-                organization_service.get_organization_by_slug(
-                    user_id=None, slug=organization_slug, only_visible=True
+                organization_service.check_organization_by_slug(
+                    slug=organization_slug, only_visible=True
                 )
                 is not None
             )

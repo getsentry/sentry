@@ -26,7 +26,7 @@ class OrganizationRecentSearchPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.OWNERS_SNUBA
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,

@@ -1,7 +1,8 @@
 import {Component} from 'react';
 import type {Range} from 'react-date-range';
-import {WithRouterProps} from 'react-router';
-import {Theme, withTheme} from '@emotion/react';
+import type {WithRouterProps} from 'react-router';
+import type {Theme} from '@emotion/react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -10,7 +11,7 @@ import Checkbox from 'sentry/components/checkbox';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getEndOfDay,
@@ -54,11 +55,6 @@ type Props = WithRouterProps & {
   onChangeUtc: () => void;
 
   /**
-   * Just used for metrics
-   */
-  organization: Organization;
-
-  /**
    * Start date value for absolute date selector
    */
   start: Date | null;
@@ -71,6 +67,11 @@ type Props = WithRouterProps & {
    * The largest date range (ie. end date - start date) allowed
    */
   maxDateRange?: number;
+
+  /**
+   * Just used for metrics
+   */
+  organization?: Organization;
 
   /**
    * Should we have a time selector?
@@ -127,7 +128,7 @@ class BaseDateRange extends Component<Props, State> {
     }
 
     trackAnalytics('dateselector.time_changed', {
-      organization,
+      organization: organization ?? null,
       field_changed: 'start',
       time: startTime,
       path: getRouteStringFromRoutes(router.routes),
@@ -156,7 +157,7 @@ class BaseDateRange extends Component<Props, State> {
     }
 
     trackAnalytics('dateselector.time_changed', {
-      organization,
+      organization: organization ?? null,
       field_changed: 'end',
       time: endTime,
       path: getRouteStringFromRoutes(router.routes),

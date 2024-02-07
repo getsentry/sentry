@@ -1,9 +1,7 @@
 import styled from '@emotion/styled';
 
-import {
-  getAttachmentUrl,
-  ViewerProps,
-} from 'sentry/components/events/attachmentViewers/utils';
+import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
+import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import PanelItem from 'sentry/components/panels/panelItem';
 
 type Props = Omit<ViewerProps, 'attachment'> & {

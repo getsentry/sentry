@@ -1,4 +1,4 @@
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 

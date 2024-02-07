@@ -9,7 +9,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
+import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -30,7 +30,7 @@ import type {
   User,
 } from 'sentry/types';
 import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
-import {FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),
@@ -91,6 +91,7 @@ export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
   organization: Organization;
+  alignMenu?: 'left' | 'right' | undefined;
   assignedTo?: Actor | null;
   disabled?: boolean;
   group?: Group | FeedbackIssue;
@@ -437,13 +438,11 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   renderInviteMemberLink() {
-    const {loading} = this.state;
-
     return (
       <InviteMemberLink
         to="#invite-member"
         data-test-id="invite-member"
-        disabled={loading}
+        disabled={this.state.loading}
         onClick={event => {
           event.preventDefault();
           openInviteMembersModal({source: 'assignee_selector'});
@@ -539,7 +538,7 @@ export class AssigneeSelectorDropdown extends Component<
   }
 
   render() {
-    const {disabled, children, assignedTo} = this.props;
+    const {alignMenu, disabled, children, assignedTo} = this.props;
     const {loading} = this.state;
     const memberList = this.memberList();
 
@@ -554,7 +553,7 @@ export class AssigneeSelectorDropdown extends Component<
           memberList !== undefined ? this.renderNewDropdownItems.bind(this) : () => null
         }
         onSelect={this.handleAssign}
-        alignMenu="right"
+        alignMenu={alignMenu ?? 'right'}
         itemSize="small"
         searchPlaceholder={t('Filter teams and people')}
         menuFooter={
@@ -618,21 +617,11 @@ const IconContainer = styled('div')`
   flex-shrink: 0;
 `;
 
-const MenuItemWrapper = styled('div')<{
-  disabled?: boolean;
-  py?: number;
-}>`
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+const MenuItemWrapper = styled('div')`
   display: flex;
   align-items: center;
   font-size: 13px;
   padding: ${space(0.5)} ${space(0.5)};
-  ${p =>
-    typeof p.py !== 'undefined' &&
-    `
-      padding-top: ${p.py};
-      padding-bottom: ${p.py};
-    `};
 `;
 
 const MenuItemFooterWrapper = styled('div')`

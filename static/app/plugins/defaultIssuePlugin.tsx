@@ -1,6 +1,6 @@
 import BasePlugin from 'sentry/plugins/basePlugin';
 import IssueActions from 'sentry/plugins/components/issueActions';
-import {Group, Organization, Plugin, Project} from 'sentry/types';
+import type {Group, Organization, Plugin, Project} from 'sentry/types';
 
 type Props = {
   actionType: 'create' | 'link';

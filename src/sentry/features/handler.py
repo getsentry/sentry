@@ -3,7 +3,8 @@ from __future__ import annotations
 __all__ = ["FeatureHandler", "BatchFeatureHandler"]
 
 import abc
-from typing import TYPE_CHECKING, Mapping, MutableSet, Optional, Sequence
+from collections.abc import Mapping, MutableSet, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sentry.features.base import Feature
@@ -23,9 +24,7 @@ class FeatureHandler:
         return self.has(feature, actor)
 
     @abc.abstractmethod
-    def has(
-        self, feature: Feature, actor: User, skip_entity: Optional[bool] = False
-    ) -> bool | None:
+    def has(self, feature: Feature, actor: User, skip_entity: bool | None = False) -> bool | None:
         raise NotImplementedError
 
     def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool | None]:
@@ -40,10 +39,10 @@ class FeatureHandler:
         self,
         feature_names: Sequence[str],
         actor: User,
-        projects: Optional[Sequence[Project]] = None,
-        organization: Optional[Organization] = None,
+        projects: Sequence[Project] | None = None,
+        organization: Organization | None = None,
         batch: bool = True,
-    ) -> Optional[Mapping[str, Mapping[str, bool | None]]]:
+    ) -> Mapping[str, Mapping[str, bool | None]] | None:
         raise NotImplementedError
 
 
@@ -60,9 +59,7 @@ class BatchFeatureHandler(FeatureHandler):
     ) -> bool | None:
         raise NotImplementedError
 
-    def has(
-        self, feature: Feature, actor: User, skip_entity: Optional[bool] = False
-    ) -> bool | None:
+    def has(self, feature: Feature, actor: User, skip_entity: bool | None = False) -> bool | None:
         return self._check_for_batch(feature.name, feature.get_subject(), actor)
 
     def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool | None]:

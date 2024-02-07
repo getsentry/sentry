@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 
 import {EventDisplay} from './eventDisplay';
 
@@ -142,7 +142,7 @@ describe('eventDisplay', () => {
 
     expect(
       await screen.findByRole('button', {name: 'Full Event Details'})
-    ).toHaveAttribute('href', '/organizations/org-slug/discover/project-slug:1/');
+    ).toHaveAttribute('href', '/organizations/org-slug/performance/project-slug:1/?');
   });
 
   it('allows for pagination if there are more events loaded', async () => {

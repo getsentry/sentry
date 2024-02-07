@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -13,21 +13,21 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
 
-import {SetStateAction} from '../types';
+import type {SetStateAction} from '../types';
 
 import OpsFilter from './opsFilter';
 import SuspectSpansTable from './suspectSpansTable';
-import {SpanSort, SpansTotalValues} from './types';
+import type {SpanSort, SpansTotalValues} from './types';
 import {
   getSuspectSpanSortFromEventView,
   getTotalsView,

@@ -3,15 +3,15 @@ import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
+import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
 
@@ -32,6 +32,11 @@ type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
 interface ReplayPlayerContextProps extends HighlightCallbacks {
+  /**
+   * The context in which the replay is being viewed.
+   */
+  analyticsContext: string;
+
   /**
    * The time, in milliseconds, where the user focus is.
    * The user focus can be reported by any collaborating object, usually on
@@ -137,7 +142,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * @param play
    */
   togglePlayPause: (play: boolean) => void;
-
   /**
    * Allow RRWeb to use Fast-Forward mode for idle moments in the video
    *
@@ -147,6 +151,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
 }
 
 const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
+  analyticsContext: '',
   clearAllHighlights: () => {},
   currentHoverTime: undefined,
   currentTime: 0,
@@ -173,6 +178,12 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
 });
 
 type Props = {
+  /**
+   * The context in which the replay is being viewed.
+   * Attached to certain analytics events.
+   */
+  analyticsContext: string;
+
   children: React.ReactNode;
 
   /**
@@ -204,13 +215,14 @@ function updateSavedReplayConfig(config: ReplayConfig) {
 }
 
 export function Provider({
+  analyticsContext,
   children,
   initialTimeOffsetMs,
   isFetching,
   replay,
   value = {},
 }: Props) {
-  const config = useLegacyStore(ConfigStore);
+  const user = useUser();
   const organization = useOrganization();
   const events = replay?.getRRWebFrames();
   const savedReplayConfigRef = useRef<ReplayConfig>(
@@ -236,7 +248,8 @@ export function Provider({
   const didApplyInitialOffset = useRef(false);
   const [timelineScale, setTimelineScale] = useState(1);
 
-  const isFinished = replayerRef.current?.getCurrentTime() === finishedAtMS;
+  const durationMs = replay?.getDurationMs() ?? 0;
+  const startTimeOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);
@@ -252,15 +265,16 @@ export function Provider({
     replayerRef,
   });
 
-  const setReplayFinished = useCallback(() => {
-    setFinishedAtMS(replayerRef.current?.getCurrentTime() ?? -1);
-    setIsPlaying(false);
-  }, []);
-
-  const getCurrentTime = useCallback(
+  const getCurrentPlayerTime = useCallback(
     () => (replayerRef.current ? Math.max(replayerRef.current.getCurrentTime(), 0) : 0),
     []
   );
+
+  const isFinished = getCurrentPlayerTime() === finishedAtMS;
+  const setReplayFinished = useCallback(() => {
+    setFinishedAtMS(getCurrentPlayerTime());
+    setIsPlaying(false);
+  }, [getCurrentPlayerTime]);
 
   const privateSetCurrentTime = useCallback(
     (requestedTimeMs: number) => {
@@ -276,12 +290,11 @@ export function Provider({
         replayer.setConfig({skipInactive: false});
       }
 
-      const maxTimeMs = replayerRef.current?.getMetaData().totalTime;
-      const time = requestedTimeMs > maxTimeMs ? 0 : Math.max(0, requestedTimeMs);
+      const time = clamp(requestedTimeMs, 0, startTimeOffsetMs + durationMs);
 
       // Sometimes rrweb doesn't get to the exact target time, as long as it has
       // changed away from the previous time then we can hide then buffering message.
-      setBufferTime({target: time, previous: getCurrentTime()});
+      setBufferTime({target: time, previous: getCurrentPlayerTime()});
 
       // Clear previous timers. Without this (but with the setTimeout) multiple
       // requests to set the currentTime could finish out of order and cause jumping.
@@ -299,25 +312,27 @@ export function Provider({
         setIsPlaying(false);
       }
     },
-    [getCurrentTime, isPlaying]
+    [startTimeOffsetMs, durationMs, getCurrentPlayerTime, isPlaying]
   );
 
   const setCurrentTime = useCallback(
     (requestedTimeMs: number) => {
-      privateSetCurrentTime(requestedTimeMs);
+      privateSetCurrentTime(requestedTimeMs + startTimeOffsetMs);
       clearAllHighlights();
     },
-    [privateSetCurrentTime, clearAllHighlights]
+    [privateSetCurrentTime, startTimeOffsetMs, clearAllHighlights]
   );
 
   const applyInitialOffset = useCallback(() => {
+    const offsetMs = (initialTimeOffsetMs?.offsetMs ?? 0) + startTimeOffsetMs;
+
     if (
       !didApplyInitialOffset.current &&
-      initialTimeOffsetMs &&
+      (initialTimeOffsetMs || offsetMs) &&
       events &&
       replayerRef.current
     ) {
-      const {highlight: highlightArgs, offsetMs} = initialTimeOffsetMs;
+      const highlightArgs = initialTimeOffsetMs?.highlight;
       if (offsetMs > 0) {
         privateSetCurrentTime(offsetMs);
       }
@@ -336,6 +351,7 @@ export function Provider({
     addHighlight,
     initialTimeOffsetMs,
     privateSetCurrentTime,
+    startTimeOffsetMs,
   ]);
 
   useEffect(clearAllHighlights, [clearAllHighlights, isPlaying]);
@@ -422,14 +438,14 @@ export function Provider({
       if (isPlaying) {
         replayer.pause();
         replayer.setConfig({speed: newSpeed});
-        replayer.play(getCurrentTime());
+        replayer.play(getCurrentPlayerTime());
       } else {
         replayer.setConfig({speed: newSpeed});
       }
 
       setSpeedState(newSpeed);
     },
-    [getCurrentTime, isPlaying]
+    [getCurrentPlayerTime, isPlaying]
   );
 
   const togglePlayPause = useCallback(
@@ -440,19 +456,20 @@ export function Provider({
       }
 
       if (play) {
-        replayer.play(getCurrentTime());
+        replayer.play(getCurrentPlayerTime());
       } else {
-        replayer.pause(getCurrentTime());
+        replayer.pause(getCurrentPlayerTime());
       }
       setIsPlaying(play);
 
       trackAnalytics('replay.play-pause', {
         organization,
-        user_email: config.user.email,
+        user_email: user.email,
         play,
+        context: analyticsContext,
       });
     },
-    [getCurrentTime, config.user.email, organization]
+    [organization, user.email, analyticsContext, getCurrentPlayerTime]
   );
 
   useEffect(() => {
@@ -474,10 +491,10 @@ export function Provider({
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
-      replayerRef.current.play(0);
+      replayerRef.current.play(startTimeOffsetMs);
       setIsPlaying(true);
     }
-  }, []);
+  }, [startTimeOffsetMs]);
 
   const toggleSkipInactive = useCallback((skip: boolean) => {
     const replayer = replayerRef.current;
@@ -498,14 +515,16 @@ export function Provider({
     setIsSkippingInactive(skip);
   }, []);
 
-  const currentPlayerTime = useCurrentTime(getCurrentTime);
+  const currentPlayerTime = useCurrentTime(getCurrentPlayerTime);
 
-  const [isBuffering, currentTime] =
+  const [isBuffering, currentBufferedPlayerTime] =
     buffer.target !== -1 &&
     buffer.previous === currentPlayerTime &&
     buffer.target !== buffer.previous
       ? [true, buffer.target]
       : [false, currentPlayerTime];
+
+  const currentTime = currentBufferedPlayerTime - startTimeOffsetMs;
 
   useEffect(() => {
     if (!isBuffering && events && events.length >= 2 && replayerRef.current) {
@@ -522,6 +541,7 @@ export function Provider({
   return (
     <ReplayPlayerContext.Provider
       value={{
+        analyticsContext,
         clearAllHighlights,
         currentHoverTime,
         currentTime,

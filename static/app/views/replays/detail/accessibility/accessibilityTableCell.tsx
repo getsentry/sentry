@@ -1,4 +1,5 @@
-import {ComponentProps, CSSProperties, forwardRef} from 'react';
+import type {ComponentProps, CSSProperties} from 'react';
+import {forwardRef} from 'react';
 import classNames from 'classnames';
 
 import {
@@ -9,10 +10,10 @@ import {
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconInfo, IconWarning} from 'sentry/icons';
 import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
-import {Color} from 'sentry/utils/theme';
+import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+import type {Color} from 'sentry/utils/theme';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
+import type useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
 
 const EMPTY_CELL = '--';
 

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import ClassVar, Optional
+from typing import ClassVar, Self
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
-from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
@@ -86,7 +85,7 @@ class OrgAuthToken(ReplicatedControlModel):
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
         # source module in such a way that this is no longer an issue.
         from sentry.api.utils import generate_region_url

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, List, Optional, Union
+from typing import Any
 
 import sentry_sdk
 
@@ -9,12 +9,12 @@ from sentry.dynamic_sampling.rules.utils import ProjectId, TransactionName
 
 @dataclass
 class RebalancedItem:
-    id: Union[ProjectId, TransactionName]
+    id: ProjectId | TransactionName
     count: float
     new_sample_rate: float = 0.0
 
 
-def sum_classes_counts(classes: List[RebalancedItem]) -> float:
+def sum_classes_counts(classes: list[RebalancedItem]) -> float:
     ret_val = 0.0
 
     for elm in classes:
@@ -23,7 +23,7 @@ def sum_classes_counts(classes: List[RebalancedItem]) -> float:
     return ret_val
 
 
-def guarded_run(model: Model[Any, Any], model_input: ModelInput) -> Optional[Any]:
+def guarded_run(model: Model[Any, Any], model_input: ModelInput) -> Any | None:
     try:
         return model.run(model_input)
     except Exception as e:

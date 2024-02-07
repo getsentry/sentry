@@ -2,9 +2,9 @@ import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
-import {TagSegment} from 'sentry/actionCreators/events';
+import type {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -181,7 +181,7 @@ function TagFacetsDistributionMeter({
                     {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
                   </LegendText>
                 </Tooltip>
-                {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+                <LegendPercent>{`${pctLabel}%`}</LegendPercent>
               </LegendRow>
             );
 

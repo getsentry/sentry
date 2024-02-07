@@ -1,7 +1,8 @@
 import {useCallback, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {mat3, vec2} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
+import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
@@ -15,15 +16,15 @@ import {
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/utils/profiling/differentialFlamegraph';
+import type {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/utils/profiling/differentialFlamegraph';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Frame} from 'sentry/utils/profiling/frame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {Frame} from 'sentry/utils/profiling/frame';
 import {
   computeConfigViewWithStrategy,
   formatColorForFrame,
@@ -65,8 +66,8 @@ function DifferentialFlamegraphView() {
     frameFilterSetting === 'application'
       ? applicationFrameOnly
       : frameFilterSetting === 'system'
-      ? systemFrameOnly
-      : undefined;
+        ? systemFrameOnly
+        : undefined;
 
   const project = useCurrentProjectFromRouteParam();
 

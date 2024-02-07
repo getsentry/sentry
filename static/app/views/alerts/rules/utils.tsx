@@ -1,13 +1,11 @@
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {
-  IssueAlertActionType,
-  IssueAlertRule,
-  RuleActionsCategories,
-} from 'sentry/types/alerts';
+import type {Organization, Project} from 'sentry/types';
+import type {IssueAlertRule} from 'sentry/types/alerts';
+import {IssueAlertActionType, RuleActionsCategories} from 'sentry/types/alerts';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {Dataset, MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 export function getProjectOptions({
   organization,
@@ -87,7 +85,7 @@ export function getRuleActionCategory(rule: IssueAlertRule) {
 }
 
 export function getAlertRuleActionCategory(rule: MetricRule) {
-  const actions = rule.triggers.map(trigger => trigger.actions).flat();
+  const actions = rule.triggers.flatMap(trigger => trigger.actions);
   const numDefaultActions = actions.filter(action => action.type === 'email').length;
 
   switch (numDefaultActions) {

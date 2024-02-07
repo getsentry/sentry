@@ -1,6 +1,6 @@
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isInteger from 'lodash/isInteger';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -14,7 +14,7 @@ import {
   getPageFilterStorage,
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/persistence';
-import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
+import type {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {
   ALL_ACCESS_PROJECTS,
@@ -23,7 +23,7 @@ import {
 } from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {
+import type {
   DateString,
   Environment,
   MinimalProject,

@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -8,10 +8,10 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
 import {t} from 'sentry/locale';
-import {AvatarProject} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {AvatarProject} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
-import {
+import type {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';

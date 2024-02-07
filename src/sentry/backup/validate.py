@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from collections import OrderedDict as ordereddict
 from collections import defaultdict
 from copy import deepcopy
 from difflib import unified_diff
-from typing import Dict, OrderedDict, Tuple
 
 from sentry.backup.comparators import ComparatorMap, ForeignKeyComparator, get_default_comparators
 from sentry.backup.dependencies import ImportKind, NormalizedModelName, PrimaryKeyMap, get_model
@@ -44,7 +44,7 @@ def validate(
 
         def assign(
             self, obj: JSONData, ordinal_value: int | tuple, side: Side
-        ) -> Tuple[InstanceID, list[ComparatorFinding]]:
+        ) -> tuple[InstanceID, list[ComparatorFinding]]:
             """Assigns the next available ordinal to the supplied `obj` model."""
 
             pk = obj["pk"]
@@ -75,12 +75,12 @@ def validate(
 
             return (InstanceID(str(model_name), obj["ordinal"]), findings if findings else [])
 
-    OrdinalCounters = Dict[NormalizedModelName, OrdinalCounter]
-    ModelMap = Dict[NormalizedModelName, OrderedDict[InstanceID, JSONData]]
+    OrdinalCounters = dict[NormalizedModelName, OrdinalCounter]
+    ModelMap = dict[NormalizedModelName, OrderedDict[InstanceID, JSONData]]
 
     def build_model_map(
         models: JSONData, side: Side, findings: ComparatorFindings
-    ) -> Tuple[ModelMap, OrdinalCounters]:
+    ) -> tuple[ModelMap, OrdinalCounters]:
         """Does two things in tandem: builds a map of InstanceID -> JSON model, and simultaneously builds a map of model name -> number of ordinals assigned."""
 
         from sentry.db.models import BaseModel
@@ -88,7 +88,7 @@ def validate(
 
         model_map: ModelMap = defaultdict(ordereddict)
         ordinal_counters: OrdinalCounters = defaultdict(OrdinalCounter)
-        need_ordering: dict[NormalizedModelName, Dict[tuple, JSONData]] = defaultdict(dict)
+        need_ordering: dict[NormalizedModelName, dict[tuple, JSONData]] = defaultdict(dict)
         pks_to_usernames: dict[int, str] = dict()
 
         for model in models:

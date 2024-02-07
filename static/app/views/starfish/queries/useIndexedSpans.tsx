@@ -1,11 +1,12 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import type {SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 const DEFAULT_LIMIT = 10;

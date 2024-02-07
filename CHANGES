@@ -1,3 +1,67 @@
+24.1.1
+------
+
+### Various fixes & improvements
+
+- feat(issue-details): Add URL and breadcrumbs sidebar to issue replay when in fullscreen mode (#63920) by @malwilley
+- ref(open-pr-comments): include affected users in javascript comments (#63909) by @cathteng
+- fix(ai-ml): Fix ai feature PII check for isStaff users (#63958) by @jennmueng
+- fix(self-hosted): Try dynamically setting CSRF_TRUSTED_ORIGINS (#63908) by @hubertdeng123
+- fix(ai-autofix): Fix ai autofix release lookup (#63926) by @jennmueng
+- fix(feedback): update comments signal tooltip (#63953) by @michellewzhang
+- ref(feedback): expand `sentryAppIssues`  instead of endpoint call (#63952) by @michellewzhang
+- chore(api): Remove mocks from API helper invite tests (#63892) by @leeandher
+- fix(perf): Generate instrumentation gap spans before spans groups (#63531) by @gggritso
+- ref(api): Delete unnecessary `start_transaction` call in `project_configs.py` (#63948) by @szokeasaurusrex
+- feat(sdks): update js sdk to 7.98.0 (#63891) by @edwardgou-sentry
+- ref/tests(metrics_extraction): Reduce changes when adjusting spec versions (#63947) by @armenzg
+- fix(hybridcloud) Use record deletion to clear delivered outbox (#63890) by @markstory
+- feat(replay): Allow clicking on the circles in the replay timeline (#63887) by @ryan953
+- feat(feedback): Add comments icon to feedback list items (#63903) by @ryan953
+- fix(feedback): Only show URL when crash reports have a value, or its a feedback from the widget (#63901) by @ryan953
+- ref(ddm): replace types with interfaces (#63944) by @obostjancic
+- chore(cardinality): Add cardinality limiter mode option (#63942) by @Dav1dde
+- feat(issues/feedback): allow `sentryAppIssues` to be expanded (#63905) by @michellewzhang
+- chore(spans): Option for span usage metric (#63934) by @jjbayer
+- ref(ddm): Split utils (#63933) by @ArthurKnaus
+- ref(ddm): Adapt metadata to new folder structure (#63938) by @iambriccardo
+- fix(ddm): useNewMetricsLayer param (#63937) by @obostjancic
+- ref(ddm): Rename the files for metrics metadata (#63931) by @iambriccardo
+
+_Plus 517 more_
+
+24.1.0
+------
+
+### Various fixes & improvements
+
+- feat(ddm-onboarding): Add dotnet instructions (#63194) by @ArthurKnaus
+- fix(hybridcloud) Add org slug route for prompts-activity (#63122) by @markstory
+- Fix typo in symx metrics (#63201) by @Swatinem
+- chore(app-start): Add screen total referrer (#63192) by @narsaynorath
+- ref(metrics_extraction): Metric spec versioning preparation (#63114) by @armenzg
+- feat(ds): Only show Get Samples if org is dynamically sampled (#63193) by @matejminar
+- feat(ddm-onboarding): Add js server instructions (#63189) by @ArthurKnaus
+- chore(ddm): remove addWidgets functionality (#63188) by @obostjancic
+- feat(ddm): new query default (#63187) by @obostjancic
+- feat(ddm-onboarding): Add electron instructions (#63186) by @ArthurKnaus
+- ref(ddm): Disable DDM via env var (#63178) by @jan-auer
+- profiling(ref): specify int type for profiling.flamegraph.profile-set.size option (#63175) by @viglia
+- feat(ddm): Move settings out of metrics selector (#63104) by @matejminar
+- fix(flutter-web): hide unactionable missing source context errors (#62998) by @buenaflor
+- ref(profiling): add option to handle the size of the profiles set to compute the flamegraph (#63112) by @viglia
+- fix(self-hosted): Superuser can set options in self-hosted (#63068) by @hubertdeng123
+- feat(partnerships): adding org slug to agreement component (#63156) by @sentaur-athena
+- feat: apitoken last characters option (#62972) by @mdtro
+- fix: remove lodash/find usages (#63150) by @anonrig
+- fix(performance): simplify `extractSpanURLString` method (#63153) by @anonrig
+- ref(escalating issues): Remove backend feature flag references (#63036) by @ceorourke
+- fix: remove lodash/flatmap usages (#63149) by @anonrig
+- fix(events): remove lodash/assign usage (#63148) by @anonrig
+- fix(webVitals): remove lodash/toUpper usage (#63146) by @anonrig
+
+_Plus 677 more_
+
 23.12.1
 -------
 

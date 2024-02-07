@@ -52,7 +52,7 @@ class JiraUninstalledTest(APITestCase):
     def test_with_shared_secret(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
         org = self.organization
 
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="jira",
             status=ObjectStatus.ACTIVE,
             external_id=self.external_id,
@@ -78,7 +78,7 @@ class JiraUninstalledTest(APITestCase):
     def test_with_key_id(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
         org = self.organization
 
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="jira", status=ObjectStatus.ACTIVE, external_id=self.external_id
         )
         integration.add_organization(org, self.user)

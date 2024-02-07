@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {PromptResponse} from 'sentry/actionCreators/prompts';
 import {
   makePromptsCheckQueryKey,
-  PromptResponse,
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
@@ -50,8 +50,8 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
   const isCreatedAfterMigration = rule && createdOrModifiedAfterMigration(rule);
   const prompt = usePromptsCheck(
     {
+      organization,
       feature: METRIC_ALERT_IGNORE_ARCHIVED_ISSUES,
-      organizationId: organization.id,
       projectId: project?.id,
     },
     {staleTime: Infinity, enabled: showErrorMigrationWarning && !isCreatedAfterMigration}
@@ -76,7 +76,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
 
   const dismissPrompt = () => {
     promptsUpdate(api, {
-      organizationId: organization.id,
+      organization,
       projectId: project?.id,
       feature: METRIC_ALERT_IGNORE_ARCHIVED_ISSUES,
       status: 'dismissed',
@@ -86,8 +86,8 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
     setApiQueryData<PromptResponse>(
       queryClient,
       makePromptsCheckQueryKey({
+        organization,
         feature: METRIC_ALERT_IGNORE_ARCHIVED_ISSUES,
-        organizationId: organization.id,
         projectId: project?.id,
       }),
       () => {

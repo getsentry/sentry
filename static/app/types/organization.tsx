@@ -1,6 +1,6 @@
-import {Project} from 'sentry/types/project';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {Project} from 'sentry/types/project';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';

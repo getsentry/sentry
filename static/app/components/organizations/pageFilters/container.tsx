@@ -1,9 +1,9 @@
 import {Fragment, useEffect, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
 
+import type {InitializeUrlStateParams} from 'sentry/actionCreators/pageFilters';
 import {
   initializeUrlState,
-  InitializeUrlStateParams,
   updateDateTime,
   updateEnvironments,
   updatePersistence,
@@ -12,13 +12,12 @@ import {
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 import {getDatetimeFromState, getStateFromQuery} from './parse';
 
@@ -29,6 +28,7 @@ type InitializeUrlStateProps = Omit<
   | 'queryParams'
   | 'router'
   | 'shouldEnforceSingleProject'
+  | 'organization'
 >;
 
 interface Props extends InitializeUrlStateProps {
@@ -53,7 +53,7 @@ interface Props extends InitializeUrlStateProps {
  * The page filters container handles initialization of page filters for the
  * wrapped content. Children will not be rendered until the filters are ready.
  */
-function Container({
+function PageFiltersContainer({
   skipLoadLastUsed,
   skipLoadLastUsedEnvironment,
   children,
@@ -61,7 +61,6 @@ function Container({
 }: Props) {
   const {
     forceProject,
-    organization,
     defaultSelection,
     showAbsolute,
     shouldForceProject,
@@ -72,6 +71,7 @@ function Container({
   } = props;
   const router = useRouter();
   const location = useLocation();
+  const organization = useOrganization();
 
   const {isReady} = usePageFilters();
 
@@ -83,7 +83,7 @@ function Container({
     ? projects.filter(project => specificProjectSlugs.includes(project.slug))
     : projects;
 
-  const {user} = useLegacyStore(ConfigStore);
+  const user = useUser();
   const memberProjects = user.isSuperuser
     ? specifiedProjects
     : specifiedProjects.filter(project => project.isMember);
@@ -191,7 +191,5 @@ function Container({
 
   return <Fragment>{children}</Fragment>;
 }
-
-const PageFiltersContainer = withOrganization(Container);
 
 export default PageFiltersContainer;

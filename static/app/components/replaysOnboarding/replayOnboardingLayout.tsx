@@ -2,16 +2,12 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
+import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {
-  PlatformOptionsControl,
-  useUrlPlatformOptions,
-} from 'sentry/components/onboarding/platformOptionsControl';
+import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import ReplayConfigToggle from 'sentry/components/replaysOnboarding/replayConfigToggle';
-import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function ReplayOnboardingLayout({
@@ -30,8 +26,7 @@ export function ReplayOnboardingLayout({
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const [mask, setMask] = useState(true);
   const [block, setBlock] = useState(true);
-  const {platformOptions} = docsConfig;
-  const {introduction, steps} = useMemo(() => {
+  const {steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
@@ -85,13 +80,6 @@ export function ReplayOnboardingLayout({
   return (
     <AuthTokenGeneratorProvider projectSlug={projectSlug}>
       <Wrapper>
-        <Header>
-          {introduction && <div>{introduction}</div>}
-          {platformOptions && !['replayOnboardingJsLoader'].includes(configType) ? (
-            <PlatformOptionsControl platformOptions={platformOptions} />
-          ) : null}
-        </Header>
-        <Divider withBottomMargin />
         <Steps>
           {steps.map(step =>
             step.type === StepType.CONFIGURE ? (
@@ -118,20 +106,6 @@ export function ReplayOnboardingLayout({
     </AuthTokenGeneratorProvider>
   );
 }
-
-const Header = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
-
-const Divider = styled('hr')<{withBottomMargin?: boolean}>`
-  height: 1px;
-  width: 100%;
-  background: ${p => p.theme.border};
-  border: none;
-  ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
-`;
 
 const Steps = styled('div')`
   display: flex;

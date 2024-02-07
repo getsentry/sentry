@@ -1,6 +1,6 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -83,10 +83,7 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          code: `
-${getSdkSetupSnippet(params)}
-api = falcon.API()
-      `,
+          code: getSdkSetupSnippet(params),
         },
       ],
     },

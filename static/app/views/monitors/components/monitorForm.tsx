@@ -9,7 +9,8 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
@@ -20,7 +21,7 @@ import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
@@ -30,13 +31,8 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {crontabAsText, getScheduleIntervals} from 'sentry/views/monitors/utils';
 
-import {
-  IntervalConfig,
-  Monitor,
-  MonitorConfig,
-  MonitorType,
-  ScheduleType,
-} from '../types';
+import type {IntervalConfig, Monitor, MonitorConfig, MonitorType} from '../types';
+import {ScheduleType} from '../types';
 
 const SCHEDULE_OPTIONS: SelectValue<string>[] = [
   {value: ScheduleType.CRONTAB, label: t('Crontab')},
@@ -212,11 +208,7 @@ function MonitorForm({
     : null;
 
   const isSuperuser = isActiveSuperuser();
-  const disableNewProjects = organization.features.includes('crons-disable-new-projects');
-  const filteredProjects = projects.filter(
-    project =>
-      (isSuperuser || project.isMember) && (!disableNewProjects || project.hasMonitors)
-  );
+  const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
   const alertRuleTarget = monitor?.alertRule?.targets.map(
     target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`

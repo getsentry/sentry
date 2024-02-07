@@ -137,6 +137,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         # assert ticket created in DB
         key = self.get_key(event)
+        assert key == f"{self.repo}#{self.issue_num}"
         external_issue_count = len(ExternalIssue.objects.filter(key=key))
         assert external_issue_count == 1
 

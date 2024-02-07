@@ -21,7 +21,6 @@ from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo
-from sentry.issues.escalating import manage_issue_states
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
@@ -30,6 +29,7 @@ from sentry.issues.grouptype import (
     ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.priority import PriorityLevel
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -1456,7 +1456,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         with assume_test_silo_mode(SiloMode.CONTROL):
             with unguarded_write(using=router.db_for_write(Integration)):
                 Integration.objects.all().delete()
-            integration = Integration.objects.create(provider="bitbucket")
+            integration = self.create_provider_integration(provider="bitbucket")
             integration.add_organization(self.organization)
 
         with self.tasks():
@@ -1477,7 +1477,7 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         with assume_test_silo_mode(SiloMode.CONTROL):
             with unguarded_write(using=router.db_for_write(Integration)):
                 Integration.objects.all().delete()
-            integration = Integration.objects.create(
+            integration = self.create_provider_integration(
                 external_id="35.232.149.196:12345",
                 provider="github_enterprise",
                 metadata={
@@ -1555,14 +1555,9 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
 
 
 class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
-    @with_feature("organizations:escalating-issues")
-    @patch("sentry.signals.issue_escalating.send_robust")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
-    @with_feature("organizations:issue-platform-crons-sd")
-    def test_invalidates_snooze_ff_on(
-        self, mock_processor, mock_send_unignored_robust, mock_send_escalating_robust
-    ):
+    def test_invalidates_snooze_issue_platform(self, mock_processor, mock_send_unignored_robust):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
         group = event.group
         should_detect_escalation = group.issue_type.should_detect_escalation(
@@ -1600,27 +1595,19 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(EventMatcher(event), False, False, True, True, False)
 
         if should_detect_escalation:
-            mock_send_escalating_robust.assert_called_once_with(
-                project=group.project,
-                group=group,
-                event=EventMatcher(event),
-                sender=manage_issue_states,
-                was_until_escalating=False,
-            )
             assert not GroupSnooze.objects.filter(id=snooze.id).exists()
         else:
-            mock_send_escalating_robust.assert_not_called()
             assert GroupSnooze.objects.filter(id=snooze.id).exists()
 
         group.refresh_from_db()
         if should_detect_escalation:
             assert group.status == GroupStatus.UNRESOLVED
-            assert group.substatus == GroupSubStatus.ESCALATING
+            assert group.substatus == GroupSubStatus.ONGOING
             assert GroupInbox.objects.filter(
-                group=group, reason=GroupInboxReason.ESCALATING.value
+                group=group, reason=GroupInboxReason.ONGOING.value
             ).exists()
             assert Activity.objects.filter(
-                group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
+                group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
             ).exists()
             assert mock_send_unignored_robust.called
         else:
@@ -1636,13 +1623,9 @@ class SnoozeTestSkipSnoozeMixin(BasePostProgressGroupMixin):
 
 
 class SnoozeTestMixin(BasePostProgressGroupMixin):
-    @with_feature("organizations:escalating-issues")
-    @patch("sentry.signals.issue_escalating.send_robust")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processor.RuleProcessor")
-    def test_invalidates_snooze(
-        self, mock_processor, mock_send_unignored_robust, mock_send_escalating_robust
-    ):
+    def test_invalidates_snooze(self, mock_processor, mock_send_unignored_robust):
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
 
         group = event.group
@@ -1677,23 +1660,16 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_processor.assert_called_with(EventMatcher(event), False, False, True, True, False)
-        mock_send_escalating_robust.assert_called_once_with(
-            project=group.project,
-            group=group,
-            event=EventMatcher(event),
-            sender=manage_issue_states,
-            was_until_escalating=False,
-        )
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
-        assert group.substatus == GroupSubStatus.ESCALATING
+        assert group.substatus == GroupSubStatus.ONGOING
         assert GroupInbox.objects.filter(
-            group=group, reason=GroupInboxReason.ESCALATING.value
+            group=group, reason=GroupInboxReason.ONGOING.value
         ).exists()
         assert Activity.objects.filter(
-            group=group, project=group.project, type=ActivityType.SET_ESCALATING.value
+            group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
         ).exists()
         assert mock_send_unignored_robust.called
 
@@ -1759,7 +1735,6 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.NEW
 
-    @with_feature("organizations:escalating-issues")
     @patch("sentry.issues.escalating.is_escalating", return_value=(True, 0))
     def test_forecast_in_activity(self, mock_is_escalating):
         """
@@ -1786,7 +1761,6 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         ).exists()
 
     @with_feature("projects:first-event-severity-new-escalation")
-    @with_feature("organizations:escalating-issues")
     @patch("sentry.issues.escalating.is_escalating")
     def test_skip_escalation_logic_for_new_groups(self, mock_is_escalating):
         """
@@ -1816,6 +1790,9 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         {
             "issues.sdk_crash_detection.cocoa.project_id": 1234,
             "issues.sdk_crash_detection.cocoa.sample_rate": 1.0,
+            "issues.sdk_crash_detection.react-native.project_id": 12345,
+            "issues.sdk_crash_detection.react-native.sample_rate": 1.0,
+            "issues.sdk_crash_detection.react-native.organization_allowlist": [1],
         }
     )
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
@@ -1835,9 +1812,19 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
 
         args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
         assert args["event"].project.id == event.project.id
-        assert args["configs"] == [
-            {"sdk_name": SdkName.Cocoa, "project_id": 1234, "sample_rate": 1.0}
-        ]
+
+        assert len(args["configs"]) == 2
+        cocoa_config = args["configs"][0]
+        assert cocoa_config.sdk_name == SdkName.Cocoa
+        assert cocoa_config.project_id == 1234
+        assert cocoa_config.sample_rate == 1.0
+        assert cocoa_config.organization_allowlist == []
+
+        react_native_config = args["configs"][1]
+        assert react_native_config.sdk_name == SdkName.ReactNative
+        assert react_native_config.project_id == 12345
+        assert react_native_config.sample_rate == 1.0
+        assert react_native_config.organization_allowlist == [1]
 
     @with_feature("organizations:sdk-crash-detection")
     @override_options(
@@ -2035,10 +2022,15 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
 
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    @with_feature("projects:issue-priority")
     def test_has_escalated(self, mock_run_post_process_job):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10)
+        group.update(
+            first_seen=django_timezone.now() - timedelta(hours=1),
+            times_seen=10,
+            priority=PriorityLevel.LOW,
+        )
         event.group = Group.objects.get(id=group.id)
 
         with self.feature("projects:first-event-severity-new-escalation"):
@@ -2053,9 +2045,11 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.ESCALATING
+        assert group.priority == PriorityLevel.MEDIUM
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    @with_feature("projects:issue-priority")
     def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2071,9 +2065,11 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert not job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
+        assert group.priority == PriorityLevel.HIGH
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    @with_feature("projects:issue-priority")
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2091,13 +2087,19 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert not job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
+        assert group.priority == PriorityLevel.HIGH
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=11)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
+    @with_feature("projects:issue-priority")
     def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
-        group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10)
+        group.update(
+            first_seen=django_timezone.now() - timedelta(hours=1),
+            times_seen=10,
+            priority=PriorityLevel.LOW,
+        )
 
         with self.feature("projects:first-event-severity-new-escalation"):
             self.call_post_process_group(
@@ -2111,6 +2113,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert not job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.NEW
+        assert group.priority == PriorityLevel.LOW
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
@@ -2147,6 +2150,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             first_seen=django_timezone.now() - timedelta(hours=1),
             times_seen=10000,
             substatus=GroupSubStatus.ESCALATING,
+            priority=PriorityLevel.MEDIUM,
         )
         with self.feature("projects:first-event-severity-new-escalation"):
             self.call_post_process_group(
@@ -2160,6 +2164,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         assert not job["has_escalated"]
         group.refresh_from_db()
         assert group.substatus == GroupSubStatus.ESCALATING
+        assert group.priority == PriorityLevel.MEDIUM
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)

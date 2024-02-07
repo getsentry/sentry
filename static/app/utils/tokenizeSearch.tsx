@@ -1,5 +1,8 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
+const ALLOWED_WILDCARD_FIELDS = ['span.description'];
+export const EMPTY_OPTION_VALUE = '(empty)' as const;
+
 export enum TokenType {
   OPERATOR,
   FILTER,
@@ -35,6 +38,37 @@ function isParen(token: Token, character: '(' | ')') {
 
 export class MutableSearch {
   tokens: Token[];
+
+  /**
+   * Creates a `MutableSearch` from a key-value mapping of field:value.
+   * This construct doesn't support conditions like `OR` and `AND` or
+   * parentheses, so it's only useful for simple queries.
+   * @param params
+   * @returns {MutableSearch}
+   */
+  static fromQueryObject(params: {
+    [key: string]: string | number | undefined;
+  }): MutableSearch {
+    const query = new MutableSearch('');
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (!value) {
+        return;
+      }
+
+      if (value === EMPTY_OPTION_VALUE) {
+        query.addFilterValue('!has', key);
+      } else {
+        query.addFilterValue(
+          key,
+          value.toString(),
+          !ALLOWED_WILDCARD_FIELDS.includes(key)
+        );
+      }
+    });
+
+    return query;
+  }
 
   /**
    * Creates a MutableSearch from a string query

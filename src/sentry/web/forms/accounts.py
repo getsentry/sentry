@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import re
+import zoneinfo
 from datetime import datetime
 from typing import Any
 
-import pytz
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
@@ -17,13 +17,14 @@ from sentry import ratelimits as ratelimiter
 from sentry.auth import password_validation
 from sentry.models.user import User
 from sentry.utils.auth import find_users, logger
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
 
 def _get_timezone_choices():
     results = []
-    for tz in pytz.common_timezones:
-        now = datetime.now(pytz.timezone(tz))
+    for tz in AVAILABLE_TIMEZONES:
+        now = datetime.now(zoneinfo.ZoneInfo(tz))
         offset = now.strftime("%z")
         results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
     results.sort()
@@ -341,6 +342,14 @@ class TwoFactorForm(forms.Form):
 class RelocationForm(forms.Form):
     username = forms.CharField(max_length=128, required=False, widget=forms.TextInput())
     password = forms.CharField(widget=forms.PasswordInput())
+    tos_check = forms.BooleanField(
+        label=_(
+            f"I agree to the <a href={settings.TERMS_URL}>Terms of Service</a> and <a href={settings.PRIVACY_URL}>Privacy Policy</a>"
+        ),
+        widget=forms.CheckboxInput(),
+        required=False,
+        initial=False,
+    )
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user", None)
@@ -358,3 +367,10 @@ class RelocationForm(forms.Form):
         password = self.cleaned_data["password"]
         password_validation.validate_password(password, user=self.user)
         return password
+
+    def clean_tos_check(self):
+        value = self.cleaned_data.get("tos_check")
+        if not value:
+            raise forms.ValidationError(
+                _("You must agree to the Terms of Service and Privacy Policy before proceeding.")
+            )

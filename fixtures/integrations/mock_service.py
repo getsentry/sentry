@@ -26,7 +26,7 @@ class MockService(StubService):
         super().__init__()
         self.mode = mode
         self._next_error_code = None
-        self._next_ids = defaultdict(lambda: 0)
+        self._next_ids = defaultdict(int)
 
         if self.mode == "file":
             path = os.path.join(FIXTURE_DIRECTORY, self.service_name, "data")

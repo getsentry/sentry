@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import DetailsSplitDivider from 'sentry/components/replays/virtualizedGrid/detailsSplitDivider';
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
-import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import AccessibilityDetailsContent from 'sentry/views/replays/detail/accessibility/details/content';
 
 type Props = {

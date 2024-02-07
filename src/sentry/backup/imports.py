@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import BinaryIO, Iterator, Optional, Tuple, Type
+from typing import BinaryIO
 from uuid import uuid4
 
 from django.core import serializers
 from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
 
+from sentry.backup.crypto import Decryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
     ImportKind,
     ModelRelations,
@@ -17,7 +19,7 @@ from sentry.backup.dependencies import (
     get_model_name,
     reversed_dependencies,
 )
-from sentry.backup.helpers import Decryptor, Filter, ImportFlags, Printer, decrypt_encrypted_tarball
+from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.models.importchunk import ControlImportChunkReplica
@@ -206,11 +208,11 @@ def _import(
 
     # The input JSON blob should already be ordered by model kind. We simply break up 1 JSON blob
     # with N model kinds into N json blobs with 1 model kind each.
-    def yield_json_models(content) -> Iterator[Tuple[NormalizedModelName, str]]:
+    def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = json.loads(content)
-        last_seen_model_name: Optional[NormalizedModelName] = None
-        batch: list[Type[Model]] = []
+        last_seen_model_name: NormalizedModelName | None = None
+        batch: list[type[Model]] = []
         for model in models:
             model_name = NormalizedModelName(model["model"])
             if last_seen_model_name != model_name:

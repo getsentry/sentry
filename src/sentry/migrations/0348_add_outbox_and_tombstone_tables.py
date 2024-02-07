@@ -4,7 +4,6 @@ import datetime
 
 import django.utils.timezone
 from django.db import migrations, models
-from django.utils.timezone import utc
 
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.jsonfield
@@ -80,7 +79,9 @@ class Migration(CheckedMigration):
                 ("scheduled_from", models.DateTimeField(default=django.utils.timezone.now)),
                 (
                     "scheduled_for",
-                    models.DateTimeField(default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=utc)),
+                    models.DateTimeField(
+                        default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=datetime.UTC)
+                    ),
                 ),
             ],
             options={
@@ -109,7 +110,9 @@ class Migration(CheckedMigration):
                 ("scheduled_from", models.DateTimeField(default=django.utils.timezone.now)),
                 (
                     "scheduled_for",
-                    models.DateTimeField(default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=utc)),
+                    models.DateTimeField(
+                        default=datetime.datetime(2016, 8, 1, 0, 0, tzinfo=datetime.UTC)
+                    ),
                 ),
                 ("region_name", models.CharField(max_length=48)),
             ],

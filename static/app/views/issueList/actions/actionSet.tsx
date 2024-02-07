@@ -3,17 +3,18 @@ import {useTheme} from '@emotion/react';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
-import IgnoreActions from 'sentry/components/actions/ignore';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {BaseGroup, GroupStatus, Project} from 'sentry/types';
+import type {BaseGroup, Project} from 'sentry/types';
+import {GroupStatus} from 'sentry/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
+import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,7 +57,6 @@ function ActionSet({
     allInQuerySelected,
     query,
     queryCount,
-    organization,
   });
 
   const label = getLabel(numIssues, allInQuerySelected);
@@ -105,7 +105,6 @@ function ActionSet({
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   const menuItems: MenuItemProps[] = [
     {
@@ -193,7 +192,7 @@ function ActionSet({
 
   return (
     <Fragment>
-      {hasEscalatingIssuesUi && query.includes('is:archived') ? (
+      {query.includes('is:archived') ? (
         <Button
           size="xs"
           onClick={() => {
@@ -249,33 +248,21 @@ function ActionSet({
           }}
         />
       )}
-      {hasEscalatingIssuesUi ? (
-        <GuideAnchor
-          target="issue_stream_archive_button"
-          position="bottom"
-          disabled={ignoreDisabled}
-        >
-          <ArchiveActions
-            onUpdate={onUpdate}
-            shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
-            confirmMessage={() =>
-              confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
-            }
-            confirmLabel={label('archive')}
-            disabled={ignoreDisabled}
-          />
-        </GuideAnchor>
-      ) : (
-        <IgnoreActions
+      <GuideAnchor
+        target="issue_stream_archive_button"
+        position="bottom"
+        disabled={ignoreDisabled}
+      >
+        <ArchiveActions
           onUpdate={onUpdate}
-          shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
+          shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
           confirmMessage={() =>
-            confirm({action: ConfirmAction.IGNORE, canBeUndone: true})
+            confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})
           }
-          confirmLabel={label('ignore')}
+          confirmLabel={label('archive')}
           disabled={ignoreDisabled}
         />
-      )}
+      </GuideAnchor>
       {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}

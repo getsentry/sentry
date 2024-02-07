@@ -1,23 +1,21 @@
 import {browserHistory} from 'react-router';
-import {Location} from 'history';
-import isEmpty from 'lodash/isEmpty';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
-} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import type {Organization} from 'sentry/types';
+import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {assignTempId} from './layoutUtils';
-import {DashboardDetails, DashboardListItem} from './types';
+import type {DashboardDetails, DashboardListItem} from './types';
 import {hasSavedPageFilters} from './utils';
 
 type OrgDashboardsChildrenProps = {
@@ -108,11 +106,9 @@ class OrgDashboards extends DeprecatedAsyncComponent<Props, State> {
         // Only redirect if there are saved filters and none of the filters
         // appear in the query params
         hasSavedPageFilters(data) &&
-        isEmpty(
-          Object.keys(location.query).filter(unsavedQueryParam =>
-            queryParamFilters.has(unsavedQueryParam)
-          )
-        )
+        Object.keys(location.query).filter(unsavedQueryParam =>
+          queryParamFilters.has(unsavedQueryParam)
+        ).length === 0
       ) {
         browserHistory.replace({
           ...location,
@@ -209,7 +205,7 @@ class OrgDashboards extends DeprecatedAsyncComponent<Props, State> {
       loading &&
       selectedDashboard &&
       hasSavedPageFilters(selectedDashboard) &&
-      isEmpty(location.query)
+      Object.keys(location.query).length === 0
     ) {
       // Block dashboard from rendering if the dashboard has filters and
       // the URL does not contain filters yet. The filters can either match the

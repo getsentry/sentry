@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import {UnityContext, UnityContextKey} from 'sentry/types/event';
+import type {UnityContext} from 'sentry/types/event';
+import {UnityContextKey} from 'sentry/types/event';
 
 export const unityKnownDataValues = Object.values(UnityContextKey);
 

@@ -20,7 +20,7 @@
     ["transaction", "/"],
     ["url", "http://localhost:3030/"]
   ],
-  "_metrics": {"bytes.ingested.event": 19380, "bytes.stored.event": 24245},
+  "_metrics": { "bytes.ingested.event": 19380, "bytes.stored.event": 24245 },
   "breadcrumbs": {
     "values": [
       {
@@ -40,7 +40,7 @@
         "type": "default",
         "category": "navigation",
         "level": "info",
-        "data": {"from": "/", "to": "/"}
+        "data": { "from": "/", "to": "/" }
       },
       {
         "timestamp": 1673477526.895,
@@ -229,17 +229,22 @@
   },
   "breakdowns": {
     "span_ops": {
-      "ops.browser": {"value": 34.499884, "unit": "millisecond"},
-      "ops.http": {"value": 1329.79989, "unit": "millisecond"},
-      "ops.resource": {"value": 145.400285, "unit": "millisecond"},
-      "ops.ui": {"value": 227.100134, "unit": "millisecond"},
-      "total.time": {"value": 2187.700271, "unit": "millisecond"}
+      "ops.browser": { "value": 34.499884, "unit": "millisecond" },
+      "ops.http": { "value": 1329.79989, "unit": "millisecond" },
+      "ops.resource": { "value": 145.400285, "unit": "millisecond" },
+      "ops.ui": { "value": 227.100134, "unit": "millisecond" },
+      "total.time": { "value": 2187.700271, "unit": "millisecond" }
     }
   },
   "contexts": {
-    "browser": {"name": "Chrome", "version": "108.0.0", "type": "browser"},
-    "device": {"family": "Mac", "model": "Mac", "brand": "Apple", "type": "device"},
-    "os": {"name": "Mac OS X", "version": "10.15.7", "type": "os"},
+    "browser": { "name": "Chrome", "version": "108.0.0", "type": "browser" },
+    "device": {
+      "family": "Mac",
+      "model": "Mac",
+      "brand": "Apple",
+      "type": "device"
+    },
+    "os": { "name": "Mac OS X", "version": "10.15.7", "type": "os" },
     "trace": {
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "span_id": "829d17842d952371",
@@ -266,22 +271,25 @@
   },
   "hashes": ["056162e622dc33b070c4130bc25a5898"],
   "ingest_path": [
-    {"version": "22.12.0", "public_key": "XE7QiyuNlja9PZ7I9qJlwQotzecWrUIN91BAO7Q5R38"}
+    {
+      "version": "22.12.0",
+      "public_key": "XE7QiyuNlja9PZ7I9qJlwQotzecWrUIN91BAO7Q5R38"
+    }
   ],
   "key_id": "2887834",
   "level": "info",
   "location": "/",
   "logger": "",
   "measurements": {
-    "connection.rtt": {"value": 0.0, "unit": "millisecond"},
-    "fcp": {"value": 440.199999988079, "unit": "millisecond"},
-    "fid": {"value": 10.099999994039536, "unit": "millisecond"},
-    "fp": {"value": 440.09999999403954, "unit": "millisecond"},
-    "lcp": {"value": 440.199, "unit": "millisecond"},
-    "ttfb": {"value": 35.50004959106445, "unit": "millisecond"},
-    "ttfb.requesttime": {"value": 32.09996223449707, "unit": "millisecond"}
+    "connection.rtt": { "value": 0.0, "unit": "millisecond" },
+    "fcp": { "value": 440.199999988079, "unit": "millisecond" },
+    "fid": { "value": 10.099999994039536, "unit": "millisecond" },
+    "fp": { "value": 440.09999999403954, "unit": "millisecond" },
+    "lcp": { "value": 440.199, "unit": "millisecond" },
+    "ttfb": { "value": 35.50004959106445, "unit": "millisecond" },
+    "ttfb.requesttime": { "value": 32.09996223449707, "unit": "millisecond" }
   },
-  "metadata": {"location": "/", "title": "/"},
+  "metadata": { "location": "/", "title": "/" },
   "nodestore_insert": 1673477530.800675,
   "received": 1673477529.434847,
   "request": {
@@ -308,9 +316,9 @@
       "HttpContext",
       "BrowserTracing"
     ],
-    "packages": [{"name": "npm:@sentry/react", "version": "7.26.0"}]
+    "packages": [{ "name": "npm:@sentry/react", "version": "7.26.0" }]
   },
-  "span_grouping_config": {"id": "default:2022-10-27"},
+  "span_grouping_config": { "id": "default:2022-10-27" },
   "spans": [
     {
       "timestamp": 1673477526.8665,
@@ -322,7 +330,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -340,7 +348,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -358,7 +366,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -376,7 +384,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -394,7 +402,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -412,7 +420,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -430,7 +438,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -448,7 +456,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -466,7 +474,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -484,7 +492,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -502,7 +510,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -520,7 +528,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -538,7 +546,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -556,7 +564,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -574,7 +582,7 @@
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
       "status": "ok",
-      "tags": {"http.status_code": "200"},
+      "tags": { "http.status_code": "200" },
       "data": {
         "method": "GET",
         "type": "fetch",
@@ -754,7 +762,11 @@
       "span_id": "9d5b3c332aec7802",
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
-      "data": {"http.decoded_response_content_length": 296, "http.response_content_length": 296, "http.transfer_size": 596},
+      "data": {
+        "http.decoded_response_content_length": 296,
+        "http.response_content_length": 296,
+        "http.transfer_size": 596
+      },
       "hash": "4f2043f50fc2f515"
     },
     {
@@ -766,7 +778,11 @@
       "span_id": "a92f3520fc053460",
       "parent_span_id": "829d17842d952371",
       "trace_id": "80972418b74940bda6977932055f7fcd",
-      "data": {"http.decoded_response_content_length": 76, "http.response_content_length": 76, "http.transfer_size": 376},
+      "data": {
+        "http.decoded_response_content_length": 76,
+        "http.response_content_length": 76,
+        "http.transfer_size": 376
+      },
       "hash": "26d97630b7867f3e"
     },
     {
@@ -861,11 +877,11 @@
   "timestamp": 1673477529.1537,
   "title": "/",
   "transaction": "/",
-  "transaction_info": {"source": "url", "changes": [], "propagations": 1},
+  "transaction_info": { "source": "url", "changes": [], "propagations": 1 },
   "type": "transaction",
   "user": {
     "ip_address": "127.0.0.1",
-    "geo": {"country_code": "CA", "city": "Toronto", "region": "Canada"}
+    "geo": { "country_code": "CA", "city": "Toronto", "region": "Canada" }
   },
   "version": "7"
 }

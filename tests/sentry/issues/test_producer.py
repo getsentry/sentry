@@ -54,6 +54,25 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert stored_occurrence
         assert occurrence.event_id == stored_occurrence.event_id
 
+    def test_without_payload_type(self) -> None:
+        # Ensure the occurrence is processes without a payload_type too.
+        occurrence = self.build_occurrence(project_id=self.project.id)
+        produce_occurrence_to_kafka(
+            occurrence=occurrence,
+            event_data={
+                "event_id": occurrence.event_id,
+                "project_id": self.project.id,
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "2"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        stored_occurrence = IssueOccurrence.fetch(occurrence.id, occurrence.project_id)
+        assert stored_occurrence
+        assert occurrence.event_id == stored_occurrence.event_id
+
     def test_with_only_occurrence(self) -> None:
         event = self.store_event(data=load_data("transaction"), project_id=self.project.id)
         occurrence = self.build_occurrence(event_id=event.event_id, project_id=self.project.id)
@@ -66,7 +85,6 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         assert occurrence.event_id == stored_occurrence.event_id
 
 
-@apply_feature_flag_on_cls("organizations:issue-platform-api-crons-sd")
 class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
     def setUp(self):
         self.fingerprint = ["group-1"]
@@ -172,11 +190,16 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             ).exists()
 
     def test_with_status_change_unresolved(self):
+        # We modify a single group through different substatuses that are supported in the UI
+        # to ensure the status change is processed correctly.
+        self.group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING)
         for substatus, activity_type in [
             (GroupSubStatus.ESCALATING, ActivityType.SET_ESCALATING),
-            (GroupSubStatus.ONGOING, ActivityType.SET_UNRESOLVED),
+            (GroupSubStatus.ONGOING, ActivityType.AUTO_SET_ONGOING),
             (GroupSubStatus.REGRESSED, ActivityType.SET_REGRESSION),
+            (GroupSubStatus.ONGOING, ActivityType.SET_UNRESOLVED),
         ]:
+            # Produce the status change message and process it
             status_change = StatusChangeMessage(
                 fingerprint=self.fingerprint,
                 project_id=self.group.project_id,

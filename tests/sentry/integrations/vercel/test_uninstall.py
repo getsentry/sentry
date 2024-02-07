@@ -60,6 +60,7 @@ POST_DELETE_RESPONSE_NEW = """{
 }"""
 
 
+@control_silo_test
 class VercelUninstallTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/vercel/delete/"
@@ -69,13 +70,14 @@ class VercelUninstallTest(APITestCase):
             "installation_type": "team",
             "webhook_id": "my_webhook_id",
         }
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            user=None,
             provider="vercel",
             external_id="vercel_team_id",
             name="My Vercel Team",
             metadata=metadata,
         )
-        self.integration.add_organization(self.organization)
 
     def _get_delete_response(self):
         # https://vercel.com/docs/integrations?query=event%20paylo#webhooks/events/integration-configuration-removed
@@ -144,7 +146,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
                 },
             },
         }
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="vercel",
             external_id="vercel_team_id",
             name="My Vercel Team",
@@ -238,7 +240,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
                 }
             },
         }
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="vercel",
             external_id="vercel_user_id",
             name="My Vercel Team",
@@ -366,7 +368,7 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
                 }
             },
         }
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="vercel",
             external_id="vercel_user_id",
             name="My Vercel Team",

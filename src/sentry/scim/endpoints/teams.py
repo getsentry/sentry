@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, List
+from typing import Any
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
@@ -151,7 +151,7 @@ def _team_expand(excluded_attributes):
 
 
 class SCIMListTeamsResponse(SCIMListBaseResponse):
-    Resources: List[OrganizationTeamSCIMSerializerResponse]
+    Resources: list[OrganizationTeamSCIMSerializerResponse]
 
 
 @extend_schema(tags=["SCIM"])
@@ -475,7 +475,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     @extend_schema(
         operation_id="Delete an Individual Team",
         parameters=[GlobalParams.ORG_SLUG, SCIMParams.TEAM_ID],
-        request=None,
         responses={
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,

@@ -1,7 +1,4 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-
-const process = require('process');
 
 const isRelaxed = !!process.env.SENTRY_ESLINT_RELAXED;
 const isCi = !!process.env.CI;
@@ -18,6 +15,7 @@ const strictRulesNotCi = {
 };
 
 module.exports = {
+  root: true,
   extends: [isRelaxed ? 'sentry-app' : 'sentry-app/strict'],
   globals: {
     require: false,
@@ -27,16 +25,28 @@ module.exports = {
     tick: true,
     jest: true,
   },
-
   rules: {
     'react-hooks/exhaustive-deps': [
       'warn',
       {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
     ],
     ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
-  },
 
+    // TODO(@anonrig): Remove these rules from eslint-sentry-config.
+    'import/no-nodejs-modules': 'off',
+  },
+  // JSON file formatting is handled by Biome. ESLint should not be linting
+  // and formatting these files.
+  ignorePatterns: ['*.json'],
   overrides: [
+    {
+      files: ['tests/js/**/*.{ts,js}'],
+      extends: ['plugin:testing-library/react', 'sentry-app/strict'],
+      rules: {
+        // TODO(@anonrig): Remove these rules from eslint-sentry-config.
+        'import/no-nodejs-modules': 'off',
+      },
+    },
     {
       files: ['*.ts', '*.tsx'],
       rules: {},

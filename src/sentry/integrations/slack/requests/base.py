@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 from rest_framework import status as status_
 from rest_framework.request import Request
@@ -12,12 +13,13 @@ from sentry.services.hybrid_cloud.identity.model import RpcIdentityProvider
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.utils.safe import get_path
 
 from ..utils import check_signing_secret, logger
 
 
 def _get_field_id_option(data: Mapping[str, Any], field_name: str) -> str | None:
-    id_option: str | None = data.get(f"{field_name}_id") or data.get(field_name, {}).get("id")
+    id_option: str | None = data.get(f"{field_name}_id") or get_path(data, field_name, "id")
     return id_option
 
 

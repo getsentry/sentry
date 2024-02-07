@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {
-  UserEventContext,
-  UserEventContextData,
-} from 'sentry/components/events/contexts/user';
+import type {UserEventContextData} from 'sentry/components/events/contexts/user';
+import {UserEventContext} from 'sentry/components/events/contexts/user';
 
 // the values of this mock are correct and the types need to be updated
 export const userMockData = {

@@ -1,7 +1,8 @@
 import type {Series} from 'sentry/types/echarts';
 
 import ScatterSeries from './series/scatterSeries';
-import BaseChart, {BaseChartProps} from './baseChart';
+import type {BaseChartProps} from './baseChart';
+import BaseChart from './baseChart';
 
 export type ScatterChartSeries = Series;
 

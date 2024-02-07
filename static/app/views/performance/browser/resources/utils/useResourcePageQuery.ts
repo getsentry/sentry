@@ -1,4 +1,4 @@
-import {Sort} from 'sentry/utils/discover/fields';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 

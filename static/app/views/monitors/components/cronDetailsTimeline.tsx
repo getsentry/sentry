@@ -10,7 +10,7 @@ import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -22,9 +22,9 @@ import {
   GridLineTimeLabels,
 } from 'sentry/views/monitors/components/overviewTimeline/gridLines';
 import {TimelineTableRow} from 'sentry/views/monitors/components/overviewTimeline/timelineTableRow';
-import {MonitorBucketData} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {MonitorBucketData} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/views/monitors/components/overviewTimeline/utils';
-import {Monitor} from 'sentry/views/monitors/types';
+import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 interface Props {

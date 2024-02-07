@@ -6,10 +6,10 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
-import {Scope} from 'sentry/types';
+import type {Scope} from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import {FieldObject, JsonFormObject} from './types';
+import type {FieldObject, JsonFormObject} from './types';
 
 export interface FormPanelProps {
   /**

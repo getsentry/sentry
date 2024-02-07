@@ -1,11 +1,8 @@
 import {Fragment} from 'react';
-import {LocationDescriptorObject} from 'history';
+import type {LocationDescriptorObject} from 'history';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';

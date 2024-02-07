@@ -7,13 +7,15 @@ import {
   useRef,
   useState,
 } from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
+import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -23,15 +25,9 @@ import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import {
-  Group,
-  GroupStatus,
-  IssueCategory,
-  IssueType,
-  Organization,
-  Project,
-} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group, Organization, Project} from 'sentry/types';
+import {GroupStatus, IssueCategory, IssueType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -41,15 +37,12 @@ import {
   getMessage,
   getTitle,
 } from 'sentry/utils/events';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {
-  ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -59,6 +52,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import {useUser} from 'sentry/utils/useUser';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {ERROR_TYPES} from './constants';
@@ -593,10 +587,12 @@ function useTrackView({
   tab: Tab;
   project?: Project;
 }) {
+  const organization = useOrganization();
   const location = useLocation();
   const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index, query} =
     location.query;
   const groupEventType = useLoadedEventType();
+  const user = useUser();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -613,6 +609,10 @@ function useTrackView({
     alert_type: typeof alert_type === 'string' ? alert_type : undefined,
     ref_fallback,
     group_event_type: groupEventType,
+    has_hierarchical_grouping:
+      !!organization.features?.includes('grouping-stacktrace-ui') &&
+      !!(event?.metadata?.current_tree_label || event?.metadata?.finest_tree_label),
+    new_issue_experience: user?.options?.issueDetailsNewExperienceQ42023 ?? false,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -885,6 +885,8 @@ function GroupDetails(props: GroupDetailsProps) {
     return `${title || message || defaultTitle} — ${eventDetails}`;
   };
 
+  const config = group && getConfigForIssueType(group, group.project);
+
   return (
     <Fragment>
       {isSampleError && group && (
@@ -896,6 +898,7 @@ function GroupDetails(props: GroupDetailsProps) {
           forceProject={group?.project}
           shouldForceProject
         >
+          {config && config.showFeedbackWidget && <FloatingFeedbackWidget />}
           <GroupDetailsPageContent
             {...props}
             {...{

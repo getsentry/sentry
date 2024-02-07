@@ -1,9 +1,10 @@
 import {Component} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
@@ -15,11 +16,12 @@ import * as qs from 'query-string';
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
@@ -30,15 +32,15 @@ import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   BaseGroup,
   Group,
-  IssueCategory,
   Organization,
   PageFilters,
   SavedSearch,
   TagCollection,
 } from 'sentry/types';
+import {IssueCategory} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import CursorPoller from 'sentry/utils/cursorPoller';
@@ -46,11 +48,13 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {
+  makeIssuesINPObserver,
+  VisuallyCompleteWithData,
+} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
-import withRouteAnalytics, {
-  WithRouteAnalyticsProps,
-} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withIssueTags from 'sentry/utils/withIssueTags';
@@ -63,6 +67,7 @@ import IssueListActions from './actions';
 import IssueListFilters from './filters';
 import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
+import type {QueryCounts} from './utils';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   FOR_REVIEW_QUERIES,
@@ -71,7 +76,6 @@ import {
   isForReviewQuery,
   IssueSortOptions,
   Query,
-  QueryCounts,
   TAB_MAX_COUNT,
 } from './utils';
 
@@ -174,6 +178,7 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   componentDidMount() {
+    this._performanceObserver = makeIssuesINPObserver();
     this._poller = new CursorPoller({
       linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous?.href,
       success: this.onRealtimePoll,
@@ -284,18 +289,17 @@ class IssueListOverview extends Component<Props, State> {
 
   componentWillUnmount() {
     const groups = GroupStore.getState() as Group[];
-    if (
-      groups.length > 0 &&
-      !this.state.issuesLoading &&
-      !this.state.realtimeActive &&
-      this.props.organization.features.includes('issue-stream-performance-cache')
-    ) {
+    if (groups.length > 0 && !this.state.issuesLoading && !this.state.realtimeActive) {
       IssueListCacheStore.save(this.getCacheEndpointParams(), {
         groups,
         queryCount: this.state.queryCount,
         queryMaxCount: this.state.queryMaxCount,
         pageLinks: this.state.pageLinks,
       });
+    }
+
+    if (this._performanceObserver) {
+      this._performanceObserver.disconnect();
     }
     this._poller.disable();
     SelectedGroupStore.reset();
@@ -304,6 +308,7 @@ class IssueListOverview extends Component<Props, State> {
     this.listener?.();
   }
 
+  private _performanceObserver: PerformanceObserver | undefined;
   private _poller: any;
   private _lastRequest: any;
   private _lastStatsRequest: any;
@@ -345,10 +350,6 @@ class IssueListOverview extends Component<Props, State> {
    * @returns Returns true if the data was loaded from cache
    */
   loadFromCache(): boolean {
-    if (!this.props.organization.features.includes('issue-stream-performance-cache')) {
-      return false;
-    }
-
     const cache = IssueListCacheStore.getFromCache(this.getCacheEndpointParams());
     if (!cache) {
       return false;
@@ -808,7 +809,6 @@ class IssueListOverview extends Component<Props, State> {
   listener = GroupStore.listen(() => this.onGroupChange(), undefined);
 
   onGroupChange() {
-    const {organization} = this.props;
     const {actionTakenGroupData} = this.state;
     const query = this.getQuery();
 
@@ -844,8 +844,7 @@ class IssueListOverview extends Component<Props, State> {
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        const hasEscalatingIssues = organization.features.includes('escalating-issues');
-        this.onIssueAction(ignoredIds, hasEscalatingIssues ? 'Archived' : 'Ignored');
+        this.onIssueAction(ignoredIds, 'Archived');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
       // issues if on the All Unresolved tab or saved/custom searches.
@@ -1303,7 +1302,6 @@ class IssueListOverview extends Component<Props, State> {
                     groupIds={groupIds}
                     displayReprocessingLayout={displayReprocessingActions}
                     query={query}
-                    sort={this.getSort()}
                     selectedProjectIds={selection.projects}
                     loading={issuesLoading}
                     error={error}

@@ -1,18 +1,14 @@
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
-from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
-    EnrichedThreshold,
-    is_error_count_healthy,
-)
-from sentry.api.serializers import serialize
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.models.release_threshold.constants import ReleaseThresholdType, TriggerType
+from sentry.models.release_threshold.constants import ReleaseThresholdType
 from sentry.models.release_threshold.release_threshold import ReleaseThreshold
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.cases import APITestCase
 
 
 class ReleaseThresholdStatusTest(APITestCase):
@@ -96,7 +92,7 @@ class ReleaseThresholdStatusTest(APITestCase):
             environment=self.canary_environment,
         )
         ReleaseThreshold.objects.create(
-            threshold_type=ReleaseThresholdType.NEW_ISSUE_COUNT,
+            threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
             trigger_type=1,
             value=100,
             window_in_seconds=100,
@@ -388,7 +384,7 @@ class ReleaseThresholdStatusTest(APITestCase):
         now = str(datetime.now())
         yesterday = str(datetime.now() - timedelta(hours=24))
         response = self.get_success_response(
-            self.organization.slug, start=yesterday, end=now, project=[self.project2.slug]
+            self.organization.slug, start=yesterday, end=now, projectSlug=[self.project2.slug]
         )
 
         assert len(response.data.keys()) == 1
@@ -411,657 +407,78 @@ class ReleaseThresholdStatusTest(APITestCase):
         r2_keys = [k for k, v in data.items() if k.split("-")[1] == self.release2.version]
         assert len(r2_keys) == 0
 
-
-class ErrorCountThresholdCheckTest(TestCase):
-    def setUp(self):
-        # 3 projects
-        self.project1 = self.create_project(name="foo", organization=self.organization)
-        self.project2 = self.create_project(name="bar", organization=self.organization)
-
-        self.canary_environment = Environment.objects.create(
-            organization_id=self.organization.id, name="canary"
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.fetch_sessions_data"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_crash_free_rate_healthy_check"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.get_errors_counts_timeseries_by_project_and_release"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_error_count_healthy"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.get_new_issue_counts"
+    )
+    @patch(
+        "sentry.api.endpoints.release_thresholds.release_threshold_status_index.is_new_issue_count_healthy"
+    )
+    def test_fetches_relevant_stats(
+        self,
+        mock_is_new_issue_count_healthy,
+        mock_get_new_issue_counts,
+        mock_is_error_count_healthy,
+        mock_get_error_counts,
+        mock_is_crash_free_rate_healthy,
+        mock_fetch_sessions_data,
+    ):
+        self.project4 = self.create_project(name="baz", organization=self.organization)
+        self.release4 = Release.objects.create(version="v4", organization=self.organization)
+        self.release4.add_project(self.project4)
+        # Threshold for error count
+        ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            trigger_type=0,  # over
+            value=100,
+            window_in_seconds=100,
+            project=self.project4,
+        )
+        # Threshold for new issue count
+        ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.NEW_ISSUE_COUNT,
+            trigger_type=0,  # over
+            value=10,
+            window_in_seconds=100,
+            project=self.project4,
+        )
+        # Threshold for crash free rate
+        ReleaseThreshold.objects.create(
+            threshold_type=ReleaseThresholdType.CRASH_FREE_SESSION_RATE,
+            trigger_type=1,  # under
+            value=99,
+            window_in_seconds=3600,
+            project=self.project4,
         )
 
-        # release created for proj1, and proj2
-        self.release1 = Release.objects.create(version="v1", organization=self.organization)
-        # add_project get_or_creates a ReleaseProject
-        self.release1.add_project(self.project1)
-        self.release1.add_project(self.project2)
+        now = str(datetime.now())
+        yesterday = str(datetime.now() - timedelta(hours=24))
 
-        # release created for proj1
-        self.release2 = Release.objects.create(version="v2", organization=self.organization)
-        # add_project get_or_creates a ReleaseProject
-        self.release2.add_project(self.project1)
+        mock_is_error_count_healthy.return_value = True, 100
+        mock_is_new_issue_count_healthy.return_value = True, 100
+        mock_is_crash_free_rate_healthy.return_value = True, 100
 
-    def test_threshold_within_timeseries(self):
-        """
-        construct a timeseries with:
-        - a single release
-        - a single project
-        - no environment
-        - multiple timestamps both before and after our threshold window
-        """
-        now = datetime.utcnow()
-        timeseries = [
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=3)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=2)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=1)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": now.isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-        ]
-
-        # current threshold within series
-        current_threshold_healthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 4,  # error counts _not_ be over threshold value
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=current_threshold_healthy, timeseries=timeseries
+        self.get_success_response(
+            self.organization.slug,
+            start=yesterday,
+            end=now,
+            release=[self.release4.version],
         )
-        assert is_healthy
 
-        # threshold equal to count
-        threshold_at_limit_healthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 1,  # error counts equal to threshold limit value
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_at_limit_healthy, timeseries=timeseries
-        )
-        assert is_healthy
-
-        # past healthy threshold within series
-        past_threshold_healthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=2),
-            "end": now - timedelta(minutes=1),
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 2,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=past_threshold_healthy, timeseries=timeseries
-        )
-        assert is_healthy
-
-        # threshold within series but trigger is under
-        threshold_under_unhealthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.UNDER_STR,
-            "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_under_unhealthy, timeseries=timeseries
-        )
-        assert not is_healthy
-
-        # threshold within series but end is in future
-        threshold_unfinished: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now + timedelta(minutes=5),
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_unfinished, timeseries=timeseries
-        )
-        assert is_healthy
-
-    def test_multiple_releases_within_timeseries(self):
-        now = datetime.utcnow()
-        timeseries = [
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=3)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release2.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=3)).isoformat(),
-                "environment": None,
-                "count()": 2,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=2)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release2.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=2)).isoformat(),
-                "environment": None,
-                "count()": 2,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=1)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release2.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=1)).isoformat(),
-                "environment": None,
-                "count()": 2,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": now.isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release2.version,
-                "project_id": self.project1.id,
-                "time": now.isoformat(),
-                "environment": None,
-                "count()": 2,
-            },
-        ]
-
-        # base threshold within series
-        threshold_healthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_healthy, timeseries=timeseries
-        )
-        assert is_healthy
-
-        # threshold within series but separate unhealthy release
-        threshold_unhealthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release2.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 1,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_unhealthy, timeseries=timeseries
-        )
-        assert not is_healthy
-
-    def test_multiple_projects_within_timeseries(self):
-        now = datetime.utcnow()
-        timeseries = [
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=3)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project2.id,
-                "time": (now - timedelta(minutes=3)).isoformat(),
-                "environment": None,
-                "count()": 2,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=2)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project2.id,
-                "time": (now - timedelta(minutes=2)).isoformat(),
-                "environment": None,
-                "count()": 2,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=1)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project2.id,
-                "time": (now - timedelta(minutes=1)).isoformat(),
-                "environment": None,
-                "count()": 2,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": now.isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project2.id,
-                "time": now.isoformat(),
-                "environment": None,
-                "count()": 2,
-            },
-        ]
-
-        # base threshold within series
-        # unhealthy means error count OVER 4 over 1m window
-        threshold_healthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_healthy, timeseries=timeseries
-        )
-        assert is_healthy
-
-        # threshold within series but separate unhealthy project
-        threshold_unhealthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project2),
-            "project_id": self.project2.id,
-            "project_slug": self.project2.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 1,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_unhealthy, timeseries=timeseries
-        )
-        assert not is_healthy
-
-    def test_multiple_environments_within_timeseries(self):
-        now = datetime.utcnow()
-        timeseries = [
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=3)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=3)).isoformat(),
-                "environment": "canary",
-                "count()": 2,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=2)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=2)).isoformat(),
-                "environment": "canary",
-                "count()": 2,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=1)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=1)).isoformat(),
-                "environment": "canary",
-                "count()": 2,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": now.isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": now.isoformat(),
-                "environment": "canary",
-                "count()": 2,
-            },
-        ]
-
-        # base threshold within series
-        threshold_healthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 2,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_healthy, timeseries=timeseries
-        )
-        assert is_healthy
-
-        # threshold within series but separate unhealthy environment
-        threshold_unhealthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": serialize(self.canary_environment),
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 1,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_unhealthy, timeseries=timeseries
-        )
-        assert not is_healthy
-
-    def test_unordered_timeseries(self):
-        """
-        construct a timeseries with:
-        - a single release
-        - a single project
-        - no environment
-        - multiple timestamps both before and after our threshold window
-        - all disorganized
-        """
-        now = datetime.utcnow()
-        timeseries = [
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=3)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": now.isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=1)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-            {
-                "release": self.release1.version,
-                "project_id": self.project1.id,
-                "time": (now - timedelta(minutes=2)).isoformat(),
-                "environment": None,
-                "count()": 1,
-            },
-        ]
-
-        # current threshold within series
-        current_threshold_healthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 4,  # error counts _not_ be over threshold value
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=current_threshold_healthy, timeseries=timeseries
-        )
-        assert is_healthy
-
-        # threshold equal to count
-        threshold_at_limit_healthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 1,  # error counts equal to threshold limit value
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_at_limit_healthy, timeseries=timeseries
-        )
-        assert is_healthy
-
-        # past healthy threshold within series
-        past_threshold_healthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=2),
-            "end": now - timedelta(minutes=1),
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 2,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=past_threshold_healthy, timeseries=timeseries
-        )
-        assert is_healthy
-
-        # threshold within series but trigger is under
-        threshold_under_unhealthy: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now,
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.UNDER_STR,
-            "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_under_unhealthy, timeseries=timeseries
-        )
-        assert not is_healthy
-
-        # threshold within series but end is in future
-        threshold_unfinished: EnrichedThreshold = {
-            "date": now,
-            "start": now - timedelta(minutes=1),
-            "end": now + timedelta(minutes=5),
-            "environment": None,
-            "is_healthy": False,
-            "key": "",
-            "project": serialize(self.project1),
-            "project_id": self.project1.id,
-            "project_slug": self.project1.slug,
-            "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
-            "trigger_type": TriggerType.OVER_STR,
-            "value": 4,
-            "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
-            "metric_value": None,
-        }
-        is_healthy, metric_count = is_error_count_healthy(
-            ethreshold=threshold_unfinished, timeseries=timeseries
-        )
-        assert is_healthy
+        assert mock_get_error_counts.call_count == 1
+        assert mock_is_error_count_healthy.call_count == 1
+        assert mock_get_new_issue_counts.call_count == 1
+        assert mock_is_new_issue_count_healthy.call_count == 1
+        assert mock_fetch_sessions_data.call_count == 1
+        assert mock_is_crash_free_rate_healthy.call_count == 1

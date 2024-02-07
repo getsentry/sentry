@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -27,7 +27,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
 
     owner = ApiOwner.REPLAY
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get_field_list(self, organization: Organization, request: Request) -> Sequence[str]:

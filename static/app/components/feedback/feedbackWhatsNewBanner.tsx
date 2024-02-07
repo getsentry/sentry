@@ -1,9 +1,10 @@
-import {CSSProperties, useEffect} from 'react';
+import type {CSSProperties} from 'react';
+import {useEffect} from 'react';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
+import PageBanner from 'sentry/components/alerts/pageBanner';
 import {LinkButton} from 'sentry/components/button';
-import PageBanner from 'sentry/components/replays/pageBanner';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';

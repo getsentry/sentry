@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {BaseGroup, GroupTombstoneHelper, Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {BaseGroup, GroupTombstoneHelper, Organization} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {getTitle, isTombstone} from 'sentry/utils/events';
 import withOrganization from 'sentry/utils/withOrganization';
 

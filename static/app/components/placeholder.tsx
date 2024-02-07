@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {space, ValidSize} from 'sentry/styles/space';
+import type {ValidSize} from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export interface PlaceholderProps {
   bottomGutter?: ValidSize;

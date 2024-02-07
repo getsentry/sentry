@@ -8,13 +8,12 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, ClassVar, Optional, Tuple
-from urllib.parse import urlsplit, urlunsplit
+from typing import IO, ClassVar, Self
+from urllib.parse import urlunsplit
 
 import sentry_sdk
 from django.core.files.base import File as FileObj
 from django.db import models, router
-from typing_extensions import Self
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope
@@ -34,6 +33,7 @@ from sentry.models.release import Release
 from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.urls import urlsplit_best_effort
 from sentry.utils.zip import safe_extract_zip
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ class ReleaseFile(Model):
 
     class Meta:
         unique_together = (("release_id", "ident"),)
-        index_together = (("release_id", "name"),)
+        indexes = (models.Index(fields=("release_id", "name")),)
         app_label = "sentry"
         db_table = "sentry_releasefile"
 
@@ -135,7 +135,7 @@ class ReleaseFile(Model):
         * (optional) full url without scheme and netloc or querystring
         """
         # Always ignore the fragment
-        scheme, netloc, path, query, _ = urlsplit(url)
+        scheme, netloc, path, query = urlsplit_best_effort(url)
 
         uri_without_fragment = (scheme, netloc, path, query, "")
         uri_relative = ("", "", path, query, "")
@@ -224,7 +224,7 @@ class ReleaseArchive:
         manifest_bytes = self.read("manifest.json")
         return json.loads(manifest_bytes.decode("utf-8"))
 
-    def get_file_by_url(self, url: str) -> Tuple[IO[bytes], dict]:
+    def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict]:
         """Return file-like object and headers.
 
         The caller is responsible for closing the returned stream.
@@ -281,13 +281,13 @@ class _ArtifactIndexData:
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Optional[Distribution], **filter_args):
+    def __init__(self, release: Release, dist: Distribution | None, **filter_args):
         self._release = release
         self._dist = dist
         self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
         self._filter_args = filter_args  # Extra constraints on artifact index release file
 
-    def readable_data(self, use_cache: bool) -> Optional[dict]:
+    def readable_data(self, use_cache: bool) -> dict | None:
         """Simple read, no synchronization necessary"""
         try:
             releasefile = self._releasefile_qs()[0]
@@ -384,8 +384,8 @@ class _ArtifactIndexGuard:
 
 @sentry_sdk.tracing.trace
 def read_artifact_index(
-    release: Release, dist: Optional[Distribution], use_cache: bool = False, **filter_args
-) -> Optional[dict]:
+    release: Release, dist: Distribution | None, use_cache: bool = False, **filter_args
+) -> dict | None:
     """Get index data"""
     guard = _ArtifactIndexGuard(release, dist, **filter_args)
     return guard.readable_data(use_cache)
@@ -399,9 +399,9 @@ def _compute_sha1(archive: ReleaseArchive, url: str) -> str:
 @sentry_sdk.tracing.trace
 def update_artifact_index(
     release: Release,
-    dist: Optional[Distribution],
+    dist: Distribution | None,
     archive_file: File,
-    temp_file: Optional[IO] = None,
+    temp_file: IO | None = None,
 ):
     """Add information from release archive to artifact index
 
@@ -442,7 +442,7 @@ def update_artifact_index(
 
 
 @sentry_sdk.tracing.trace
-def delete_from_artifact_index(release: Release, dist: Optional[Distribution], url: str) -> bool:
+def delete_from_artifact_index(release: Release, dist: Distribution | None, url: str) -> bool:
     """Delete the file with the given url from the manifest.
 
     Does *not* delete the file from the zip archive.

@@ -13,7 +13,7 @@
 !jest.config.js
 !now.json
 !package.json
-!.prettierrc
+!biome.json
 !stylelint.config.js
 !tsconfig.json
 !config

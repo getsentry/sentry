@@ -1,4 +1,5 @@
-import {CSSProperties, Fragment, useCallback} from 'react';
+import type {CSSProperties} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -12,7 +13,7 @@ import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
 import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
-import {OnDimensionChange} from 'sentry/views/replays/detail/useVirtualListDimentionChange';
+import type {OnDimensionChange} from 'sentry/views/replays/detail/useVirtualListDimentionChange';
 
 interface Props {
   currentHoverTime: number | undefined;

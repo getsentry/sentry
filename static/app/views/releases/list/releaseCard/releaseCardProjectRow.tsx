@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import LazyLoad from 'react-lazyload';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
@@ -20,7 +20,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Deploy, Organization, Release, ReleaseProject} from 'sentry/types';
+import type {Deploy, Organization, Release, ReleaseProject} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
 
@@ -31,9 +31,9 @@ import {
   getReleaseUnhandledIssuesUrl,
   isMobileRelease,
 } from '../../utils';
-import {ThresholdStatus} from '../../utils/types';
+import type {ThresholdStatus} from '../../utils/types';
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import {ReleasesRequestRenderProps} from '../releasesRequest';
+import type {ReleasesRequestRenderProps} from '../releasesRequest';
 
 import {
   AdoptionColumn,

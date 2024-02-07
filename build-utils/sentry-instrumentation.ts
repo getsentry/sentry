@@ -1,13 +1,11 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-
-import crypto from 'crypto';
-import https from 'https';
-import os from 'os';
+import crypto from 'node:crypto';
+import https from 'node:https';
+import os from 'node:os';
 
 import type Sentry from '@sentry/node';
 import type {Transaction} from '@sentry/types';
-import webpack from 'webpack';
+import type webpack from 'webpack';
 
 const {
   NODE_ENV,
@@ -46,7 +44,6 @@ class SentryInstrumentation {
     }
 
     const sentry = require('@sentry/node');
-    require('@sentry/tracing');
     const {ProfilingIntegration} = require('@sentry/profiling-node');
 
     sentry.init({

@@ -17,7 +17,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorForm from './components/monitorForm';
-import {Monitor} from './types';
+import type {Monitor} from './types';
 
 export default function EditMonitor() {
   const {monitorSlug} = useParams();

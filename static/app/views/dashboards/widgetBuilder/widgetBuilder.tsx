@@ -1,8 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import isEmpty from 'lodash/isEmpty';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
@@ -21,18 +20,18 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
+import type {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   explodeField,
   generateFieldAsString,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
-  QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -49,12 +48,10 @@ import {
   generateWidgetsAfterCompaction,
   getDefaultWidgetHeight,
 } from 'sentry/views/dashboards/layoutUtils';
+import type {DashboardDetails, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  Widget,
-  WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -73,10 +70,11 @@ import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
 import {GroupByStep} from './buildSteps/groupByStep';
 import {SortByStep} from './buildSteps/sortByStep';
-import ThresholdsStep, {
+import type {
   ThresholdMaxKeys,
   ThresholdsConfig,
 } from './buildSteps/thresholdsStep/thresholdsStep';
+import ThresholdsStep from './buildSteps/thresholdsStep/thresholdsStep';
 import {VisualizationStep} from './buildSteps/visualizationStep';
 import {YAxisStep} from './buildSteps/yAxisStep';
 import {Footer} from './footer';
@@ -168,7 +166,7 @@ function WidgetBuilder({
   tags,
 }: Props) {
   const {widgetIndex, orgId, dashboardId} = params;
-  const {source, displayType, defaultTitle, limit} = location.query;
+  const {source, displayType, defaultTitle, limit, dataset} = location.query;
   const defaultWidgetQuery = getParsedDefaultWidgetQuery(
     location.query.defaultWidgetQuery
   );
@@ -202,8 +200,8 @@ function WidgetBuilder({
   const pageFilters: PageFilters = statsPeriod
     ? {...selection, datetime: {start: null, end: null, period: statsPeriod, utc: null}}
     : start && end
-    ? {...selection, datetime: {start, end, period: null, utc: null}}
-    : selection;
+      ? {...selection, datetime: {start, end, period: null, utc: null}}
+      : selection;
 
   // when opening from discover or issues page, the user selects the dashboard in the widget UI
   const notDashboardsOrigin = [
@@ -211,15 +209,20 @@ function WidgetBuilder({
     DashboardWidgetSource.ISSUE_DETAILS,
   ].includes(source);
 
-  const dataset = source === DashboardWidgetSource.DDM ? DataSet.METRICS : DataSet.EVENTS;
+  const dataSet = dataset
+    ? dataset
+    : source === DashboardWidgetSource.DDM
+      ? DataSet.METRICS
+      : DataSet.EVENTS;
 
   const api = useApi();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
-    getDatasetConfig(WidgetType.DISCOVER)
+    getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[dataSet])
   );
+
   const defaultThresholds: ThresholdsConfig = {max_values: {}, unit: null};
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
@@ -238,7 +241,7 @@ function WidgetBuilder({
       loading: !!notDashboardsOrigin,
       userHasModified: false,
       prebuiltWidgetId: null,
-      dataSet: dataset,
+      dataSet,
       queryConditionsValid: true,
       selectedDashboard: dashboard.id || NEW_DASHBOARD_ID,
     };
@@ -382,7 +385,10 @@ function WidgetBuilder({
       defined(currentDashboardId) && currentDashboardId !== NEW_DASHBOARD_ID
         ? `/organizations/${orgId}/dashboard/${currentDashboardId}/`
         : `/organizations/${orgId}/dashboards/${NEW_DASHBOARD_ID}/`,
-    query: isEmpty(queryParamsWithoutSource) ? undefined : queryParamsWithoutSource,
+    query:
+      Object.keys(queryParamsWithoutSource).length === 0
+        ? undefined
+        : queryParamsWithoutSource,
   };
 
   const isTimeseriesChart = getIsTimeseriesChart(state.displayType);
@@ -898,7 +904,7 @@ function WidgetBuilder({
 
   function goToDashboards(id: string, query?: Record<string, any>) {
     const pathQuery =
-      !isEmpty(queryParamsWithoutSource) || query
+      Object.keys(queryParamsWithoutSource).length > 0 || query
         ? {
             ...queryParamsWithoutSource,
             ...query,

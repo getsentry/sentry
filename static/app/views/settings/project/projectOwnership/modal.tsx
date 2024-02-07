@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import uniq from 'lodash/uniq';
 
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
+import type {Frame, Organization, Project, TagWithTopValues} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import {uniq} from 'sentry/utils/array/uniq';
+import {safeURL} from 'sentry/utils/url/safeURL';
 import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {
@@ -60,12 +61,12 @@ function getUrlPath(maybeUrl?: string) {
     return '';
   }
 
-  try {
-    const url = new URL(maybeUrl);
-    return `*${url.pathname}`;
-  } catch {
+  const parsedURL = safeURL(maybeUrl);
+  if (!parsedURL) {
     return maybeUrl;
   }
+
+  return `*${parsedURL.pathname}`;
 }
 
 function OwnershipSuggestions({

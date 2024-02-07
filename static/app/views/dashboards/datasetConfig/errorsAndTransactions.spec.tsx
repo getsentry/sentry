@@ -4,7 +4,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventView, {EventViewOptions} from 'sentry/utils/discover/eventView';
+import type {EventViewOptions} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 
 describe('getCustomFieldRenderer', function () {

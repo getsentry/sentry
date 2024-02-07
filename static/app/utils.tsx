@@ -1,9 +1,8 @@
-import {Query} from 'history';
-import isObject from 'lodash/isObject';
+import type {Query} from 'history';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {Project} from 'sentry/types';
-import {EventTag} from 'sentry/types/event';
+import type {Project} from 'sentry/types';
+import type {EventTag} from 'sentry/types/event';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
 
@@ -33,7 +32,10 @@ export function valueIsEqual(value?: any, other?: any, deep?: boolean): boolean 
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
-  } else if (isObject(value) || isObject(other)) {
+  } else if (
+    (value && typeof value === 'object') ||
+    (other && typeof other === 'object')
+  ) {
     if (objectMatchesSubset(value, other, deep)) {
       return true;
     }

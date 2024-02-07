@@ -4,13 +4,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {NewQuery, SavedQuery} from 'sentry/types';
+import type {NewQuery, SavedQuery} from 'sentry/types';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {
   isAPIPayloadSimilar,
-  MetaType,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
-import {Column} from 'sentry/utils/discover/fields';
+import type {Column} from 'sentry/utils/discover/fields';
 import {
   CHART_AXIS_OPTIONS,
   DiscoverDatasets,

@@ -1,6 +1,6 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -179,7 +179,7 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Once the SDK is installed or updated, you can enable code locations being emitted with your metricsin your [code:config/sentry.php] file:',
+        'Once the SDK is installed or updated, you can enable code locations being emitted with your metrics in your [code:config/sentry.php] file:',
         {
           code: <code />,
         }
@@ -191,7 +191,7 @@ const customMetricsOnboarding: OnboardingConfig = {
               label: 'PHP',
               value: 'php',
               language: 'php',
-              code: `'metric_code_locations' => true,`,
+              code: `'attach_metric_code_locations' => true,`,
             },
           ],
         },
@@ -232,7 +232,7 @@ const customMetricsOnboarding: OnboardingConfig = {
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-laravel/discussions/823" />
+                <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/metrics/" />
               ),
             }
           ),

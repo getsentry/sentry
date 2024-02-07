@@ -6,36 +6,22 @@ import hmac
 import inspect
 import logging
 from abc import abstractmethod
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    Mapping,
-    MutableMapping,
-    NoReturn,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
 
 import django.urls
 import pydantic
 import requests
 import sentry_sdk
 from django.conf import settings
-from typing_extensions import Self
+from requests.adapters import HTTPAdapter, Retry
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
@@ -70,7 +56,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
     resolving the arguments to the correct region for a remote call.
     """
 
-    def __init__(self, base_service_cls: Type[RpcService], base_method: Callable[..., Any]) -> None:
+    def __init__(self, base_service_cls: type[RpcService], base_method: Callable[..., Any]) -> None:
         self.base_service_cls = base_service_cls
         super().__init__(base_method, is_instance_method=True)
         self._region_resolution = self._extract_region_resolution()
@@ -124,7 +110,7 @@ class _RegionResolutionResult:
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
     def __init__(
         self,
-        base_service_cls: Type[RpcService],
+        base_service_cls: type[RpcService],
         constructors: Mapping[SiloMode, Callable[[], RpcService]],
         signatures: Mapping[str, RpcMethodSignature],
     ) -> None:
@@ -180,7 +166,7 @@ def regional_rpc_method(
     return decorator
 
 
-_global_service_registry: Dict[str, DelegatingRpcService] = {}
+_global_service_registry: dict[str, DelegatingRpcService] = {}
 
 
 class RpcService(abc.ABC):
@@ -377,7 +363,7 @@ class RpcResponseException(RpcException):
 
 def _look_up_service_method(
     service_name: str, method_name: str
-) -> Tuple[DelegatingRpcService, Callable[..., Any]]:
+) -> tuple[DelegatingRpcService, Callable[..., Any]]:
     try:
         service = _global_service_registry[service_name]
     except KeyError:
@@ -492,6 +478,11 @@ class _RemoteSiloCall:
             "Authorization": f"Rpcsignature {signature}",
         }
 
+        metrics.distribution(
+            "hybrid_cloud.dispatch_rpc.request_size",
+            len(data),
+            tags=self._metrics_tags(),
+        )
         with self._open_request_context():
             if use_test_client:
                 response = self._fire_test_request(headers, data)
@@ -501,13 +492,13 @@ class _RemoteSiloCall:
                 "hybrid_cloud.dispatch_rpc.response_code",
                 tags=self._metrics_tags(status=response.status_code),
             )
+            metrics.distribution(
+                "hybrid_cloud.dispatch_rpc.response_size",
+                len(response.content),
+                tags=self._metrics_tags(status=response.status_code),
+            )
 
             if response.status_code == 200:
-                metrics.gauge(
-                    "hybrid_cloud.dispatch_rpc.response_size",
-                    len(response.content),
-                    tags=self._metrics_tags(),
-                )
                 return response.json()
             self._raise_from_response_status_error(response)
 
@@ -526,6 +517,10 @@ class _RemoteSiloCall:
         return RpcRemoteException(self.service_name, self.method_name, message)
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_tag("rpc_method", f"{self.service_name}.{self.method_name}")
+            scope.set_tag("rpc_status_code", response.status_code)
+
         if in_test_environment():
             if response.status_code == 500:
                 raise self._remote_exception(
@@ -556,8 +551,9 @@ class _RemoteSiloCall:
         else:
             target_mode = SiloMode.CONTROL
 
-        with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-            target_mode, self.region
+        with (
+            SingleProcessSiloModeState.exit(),
+            SingleProcessSiloModeState.enter(target_mode, self.region),
         ):
             extra: Mapping[str, Any] = {
                 f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
@@ -565,6 +561,18 @@ class _RemoteSiloCall:
             return Client().post(self.path, data, headers["Content-Type"], **extra)
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
+        retry_adapter = HTTPAdapter(
+            max_retries=Retry(
+                total=5,
+                backoff_factor=0.1,
+                status_forcelist=[503],
+                allowed_methods=["POST"],
+            )
+        )
+        http = requests.Session()
+        http.mount("http://", retry_adapter)
+        http.mount("https://", retry_adapter)
+
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
@@ -574,8 +582,12 @@ class _RemoteSiloCall:
         if baggage := sentry_sdk.get_baggage():
             headers["Baggage"] = baggage
         try:
-            return requests.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
-        except requests.Timeout as e:
+            return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
+        except requests.exceptions.ConnectionError as e:
+            raise self._remote_exception("RPC Connection failed") from e
+        except requests.exceptions.RetryError as e:
+            raise self._remote_exception("RPC failed, max retries reached.") from e
+        except requests.exceptions.Timeout as e:
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
 
 

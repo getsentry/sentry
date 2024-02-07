@@ -3,12 +3,12 @@ import moment from 'moment';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {ChangedSuspectSpan} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {
-  ChangedSuspectSpan,
   NumberedSpansList,
   SpanChangeType,
 } from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
-import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 const transaction: NormalizedTrendsTransaction = {
   aggregate_range_1: 78.2757131147541,

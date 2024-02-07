@@ -1,13 +1,13 @@
-import styled from '@emotion/styled';
-
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
 import Link from 'sentry/components/links/link';
-import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {BreadcrumbTypeDefault, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {
+  BreadcrumbTypeDefault,
+  BreadcrumbTypeNavigation,
+} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
@@ -111,18 +111,6 @@ function FormatMessage({
 
     return description;
   }
-  switch (breadcrumb.messageFormat) {
-    case 'sql':
-      return <FormattedCode>{content}</FormattedCode>;
-    default:
-      return content;
-  }
-}
 
-const FormattedCode = styled('div')`
-  padding: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
-  overflow-x: auto;
-  white-space: pre;
-`;
+  return content;
+}

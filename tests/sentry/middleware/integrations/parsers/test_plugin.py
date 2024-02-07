@@ -1,22 +1,27 @@
-from unittest import mock
-from unittest.mock import MagicMock
-
+import responses
+from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
+from sentry.models.outbox import ControlOutbox
 from sentry.testutils.cases import TestCase
-from sentry.testutils.outbox import assert_webhook_outboxes
+from sentry.testutils.outbox import (
+    assert_no_webhook_outboxes,
+    assert_webhook_outboxes_with_shard_id,
+)
 from sentry.testutils.silo import control_silo_test, create_test_regions
 
 
-@control_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@control_silo_test(regions=create_test_regions("us"))
 class PluginRequestParserTest(TestCase):
-    get_response = MagicMock()
     factory = RequestFactory()
 
+    def get_response(self, request: HttpRequest) -> HttpResponse:
+        return HttpResponse(status=200, content="passthrough")
+
+    @responses.activate
     def test_routing_webhooks_no_region(self):
         routes = [
             reverse("sentry-plugins-github-webhook", args=[self.organization.id]),
@@ -29,11 +34,13 @@ class PluginRequestParserTest(TestCase):
         for route in routes:
             request = self.factory.post(route)
             parser = PluginRequestParser(request=request, response_handler=self.get_response)
-            with mock.patch.object(
-                parser, "get_response_from_control_silo"
-            ) as get_response_from_control_silo:
-                parser.get_response()
-                assert get_response_from_control_silo.called
+
+            response = parser.get_response()
+            assert isinstance(response, HttpResponse)
+            assert response.status_code == 200
+            assert response.content == b"passthrough"
+            assert len(responses.calls) == 0
+            assert_no_webhook_outboxes()
 
     def test_routing_webhooks_with_region(self):
         routes = [
@@ -47,9 +54,9 @@ class PluginRequestParserTest(TestCase):
             request = self.factory.post(route)
             parser = PluginRequestParser(request=request, response_handler=self.get_response)
             parser.get_response()
-            assert_webhook_outboxes(
+            assert_webhook_outboxes_with_shard_id(
                 factory_request=request,
-                webhook_identifier=WebhookProviderIdentifier.LEGACY_PLUGIN,
+                expected_shard_id=self.organization.id,
                 region_names=["us"],
             )
             # Purge outboxes after checking each route

@@ -5,9 +5,9 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 
-import {Threshold} from '../utils/types';
+import type {Threshold} from '../utils/types';
 
 import {ThresholdGroupRows} from './thresholdGroupRows';
 

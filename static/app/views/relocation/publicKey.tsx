@@ -1,17 +1,15 @@
-import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconFile} from 'sentry/icons/iconFile';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import ContinueButton from 'sentry/views/relocation/components/continueButton';
 import RelocationCodeBlock from 'sentry/views/relocation/components/relocationCodeBlock';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import Wrapper from 'sentry/views/relocation/components/wrapper';
 
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 export function PublicKey({publicKey, onComplete}: StepProps) {
   const handleContinue = (event: any) => {
@@ -41,9 +39,7 @@ export function PublicKey({publicKey, onComplete}: StepProps) {
       >
         {publicKey}
       </RelocationCodeBlock>
-      <ContinueButton priority="primary" type="submit" onClick={handleContinue}>
-        {t('Continue')}
-      </ContinueButton>
+      <ContinueButton priority="primary" type="submit" onClick={handleContinue} />
     </motion.div>
   );
 
@@ -61,7 +57,7 @@ export function PublicKey({publicKey, onComplete}: StepProps) {
   );
 
   return (
-    <Wrapper>
+    <Wrapper data-test-id="public-key">
       <StepHeading step={2}>{t("Save Sentry's public key to your machine")}</StepHeading>
       {publicKey ? loaded : unloaded}
     </Wrapper>
@@ -69,7 +65,3 @@ export function PublicKey({publicKey, onComplete}: StepProps) {
 }
 
 export default PublicKey;
-
-const ContinueButton = styled(Button)`
-  margin-top: ${space(1.5)};
-`;

@@ -4,7 +4,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, Project} from 'sentry/types';
+import type {Organization, Project} from 'sentry/types';
 
 type Props = DeprecatedAsyncComponent['props'] & {
   organization: Organization;

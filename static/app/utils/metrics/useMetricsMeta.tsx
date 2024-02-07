@@ -1,21 +1,45 @@
-import {PageFilters} from 'sentry/types';
-import {formatMRI} from 'sentry/utils/metrics/mri';
-import {useApiQuery, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type {PageFilters} from 'sentry/types';
+import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {MetricMeta, UseCase} from '../../types/metrics';
+import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
+
+import {getMetaDateTimeParams} from './index';
 
 const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
 
+export function getMetricsMetaQueryKeys(
+  orgSlug: string,
+  projects: PageFilters['projects'],
+  useCases?: UseCase[]
+): ApiQueryKey[] {
+  return (
+    useCases?.map(useCase => getMetricsMetaQueryKey(orgSlug, {projects}, useCase)) ?? []
+  );
+}
+
+export function getMetricsMetaQueryKey(
+  orgSlug: string,
+  {projects, datetime}: Partial<PageFilters>,
+  useCase: UseCase
+): ApiQueryKey {
+  const queryParams = projects?.length
+    ? {useCase, projects, ...getMetaDateTimeParams(datetime)}
+    : {useCase, ...getMetaDateTimeParams(datetime)};
+  return [`/organizations/${orgSlug}/metrics/meta/`, {query: queryParams}];
+}
+
 function useMetaUseCase(
   useCase: UseCase,
-  projects: PageFilters['projects'],
+  pageFilters: Partial<PageFilters>,
   options: Omit<UseApiQueryOptions<MetricMeta[]>, 'staleTime'>
 ) {
   const {slug} = useOrganization();
 
   const apiQueryResult = useApiQuery<MetricMeta[]>(
-    [`/organizations/${slug}/metrics/meta/`, {query: {useCase, project: projects}}],
+    getMetricsMetaQueryKey(slug, pageFilters, useCase),
     {
       ...options,
       staleTime: 2000, // 2 seconds to cover page load
@@ -26,23 +50,34 @@ function useMetaUseCase(
 }
 
 export function useMetricsMeta(
-  projects: PageFilters['projects'],
-  useCases?: UseCase[]
+  pageFilters: Partial<PageFilters>,
+  useCases?: UseCase[],
+  filterBlockedMetrics = true
 ): {data: MetricMeta[]; isLoading: boolean} {
   const enabledUseCases = useCases ?? DEFAULT_USE_CASES;
 
-  const {data: sessionMeta = [], ...sessionsReq} = useMetaUseCase('sessions', projects, {
-    enabled: enabledUseCases.includes('sessions'),
-  });
-  const {data: txnsMeta = [], ...txnsReq} = useMetaUseCase('transactions', projects, {
+  const {data: sessionMeta = [], ...sessionsReq} = useMetaUseCase(
+    'sessions',
+    pageFilters,
+    {
+      enabled: enabledUseCases.includes('sessions'),
+    }
+  );
+  const {data: txnsMeta = [], ...txnsReq} = useMetaUseCase('transactions', pageFilters, {
     enabled: enabledUseCases.includes('transactions'),
   });
-  const {data: customMeta = [], ...customReq} = useMetaUseCase('custom', projects, {
+  const {data: customMeta = [], ...customReq} = useMetaUseCase('custom', pageFilters, {
     enabled: enabledUseCases.includes('custom'),
   });
-  const {data: spansMeta = [], ...spansReq} = useMetaUseCase('spans', projects, {
+  const {data: spansMeta = [], ...spansReq} = useMetaUseCase('spans', pageFilters, {
     enabled: enabledUseCases.includes('spans'),
   });
+
+  const isLoading =
+    (sessionsReq.isLoading && sessionsReq.fetchStatus !== 'idle') ||
+    (txnsReq.isLoading && txnsReq.fetchStatus !== 'idle') ||
+    (customReq.isLoading && customReq.fetchStatus !== 'idle') ||
+    (spansReq.isLoading && spansReq.fetchStatus !== 'idle');
 
   const data = [
     ...(enabledUseCases.includes('sessions') ? sessionMeta : []),
@@ -51,12 +86,24 @@ export function useMetricsMeta(
     ...(enabledUseCases.includes('spans') ? spansMeta : []),
   ].sort((a, b) => formatMRI(a.mri).localeCompare(formatMRI(b.mri)));
 
+  if (!filterBlockedMetrics) {
+    return {data, isLoading};
+  }
+
   return {
-    data,
-    isLoading:
-      (sessionsReq.isLoading && sessionsReq.fetchStatus !== 'idle') ||
-      (txnsReq.isLoading && txnsReq.fetchStatus !== 'idle') ||
-      (customReq.isLoading && customReq.fetchStatus !== 'idle') ||
-      (spansReq.isLoading && spansReq.fetchStatus !== 'idle'),
+    data: data.filter(meta => {
+      return meta.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
+    }),
+    isLoading,
   };
+}
+
+export function useProjectMetric(mri: MRI, projectId: number) {
+  const useCase = getUseCaseFromMRI(mri);
+  const res = useMetricsMeta({projects: [projectId]}, [useCase ?? 'custom'], false);
+
+  const metricMeta = res.data?.find(({mri: metaMri}) => metaMri === mri);
+  const blockingStatus = metricMeta?.blockingStatus?.[0];
+
+  return {...res, data: {...metricMeta, blockingStatus}};
 }

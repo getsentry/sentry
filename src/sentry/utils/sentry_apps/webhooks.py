@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from requests import Response
 from requests.exceptions import ConnectionError, Timeout
@@ -70,9 +70,7 @@ def check_broken(sentryapp: SentryApp | RpcSentryApp, org_id: str):
         )
 
 
-def record_timeout(
-    sentryapp: SentryApp | RpcSentryApp, org_id: str, e: Union[ConnectionError, Timeout]
-):
+def record_timeout(sentryapp: SentryApp | RpcSentryApp, org_id: str, e: ConnectionError | Timeout):
     """
     Record Unpublished Sentry App timeout or connection error in integration buffer to check if it is broken and should be disabled
     """
@@ -86,7 +84,9 @@ def record_timeout(
     check_broken(sentryapp, org_id)
 
 
-def record_response(sentryapp: SentryApp | RpcSentryApp, org_id: str, response: Response):
+def record_response_for_disabling_integration(
+    sentryapp: SentryApp | RpcSentryApp, org_id: str, response: Response
+):
     if not sentryapp.is_internal:
         return
     redis_key = get_redis_key(sentryapp, org_id)
@@ -162,7 +162,11 @@ def send_and_save_webhook_request(
         response=response,
         headers=app_platform_event.headers,
     )
-    record_response(sentry_app, org_id, response)
+    # we don't disable alert rules for internal integrations
+    # so we don't want to consider responses related to them
+    # for the purpose of disabling integrations
+    if app_platform_event.action != "event.alert":
+        record_response_for_disabling_integration(sentry_app, org_id, response)
 
     if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
         raise ApiHostError.from_request(response.request)

@@ -1,11 +1,15 @@
 import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {DashboardDetails, DashboardListItem, Widget} from 'sentry/views/dashboards/types';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
 
 export function fetchDashboards(api: Client, orgSlug: string) {
@@ -33,7 +37,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 
 export function createDashboard(
   api: Client,
-  orgId: string,
+  orgSlug: string,
   newDashboard: DashboardDetails,
   duplicate?: boolean
 ): Promise<DashboardDetails> {
@@ -41,7 +45,7 @@ export function createDashboard(
     newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/`,
+    `/organizations/${orgSlug}/dashboards/`,
     {
       method: 'POST',
       data: {

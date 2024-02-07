@@ -1,4 +1,4 @@
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

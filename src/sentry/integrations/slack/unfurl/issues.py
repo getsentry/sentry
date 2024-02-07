@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional
 
 from django.http.request import HttpRequest
 
 from sentry import eventstore
-from sentry.integrations.slack.message_builder.issues import build_group_attachment
+from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.models.group import Group
 from sentry.models.integrations.integration import Integration
 from sentry.models.project import Project
@@ -26,8 +25,8 @@ map_issue_args = make_type_coercer(
 def unfurl_issues(
     request: HttpRequest,
     integration: Integration,
-    links: List[UnfurlableUrl],
-    user: Optional[User] = None,
+    links: list[UnfurlableUrl],
+    user: User | None = None,
 ) -> UnfurledUrl:
     """
     Returns a map of the attachments used in the response we send to Slack
@@ -62,9 +61,9 @@ def unfurl_issues(
                 if event_id
                 else None
             )
-            out[link.url] = build_group_attachment(
-                group_by_id[issue_id], event=event, link_to_event=True, is_unfurl=True
-            )
+            out[link.url] = SlackIssuesMessageBuilder(
+                group=group_by_id[issue_id], event=event, link_to_event=True, is_unfurl=True
+            ).build()
     return out
 
 

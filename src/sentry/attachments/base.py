@@ -1,8 +1,8 @@
 import zlib
 
+import sentry_sdk
 import zstandard
 
-from sentry import options
 from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
 
@@ -172,6 +172,7 @@ class BaseAttachmentCache:
 
         return bytes(data)
 
+    @sentry_sdk.tracing.trace
     def delete(self, key):
         for attachment in self.get(key):
             attachment.delete()
@@ -180,6 +181,4 @@ class BaseAttachmentCache:
 
 
 def compress_chunk(chunk_data: bytes) -> bytes:
-    if options.get("attachment-cache.use-zstd"):
-        return zstandard.compress(chunk_data)
-    return zlib.compress(chunk_data)
+    return zstandard.compress(chunk_data)

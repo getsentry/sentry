@@ -1,27 +1,26 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from io import BytesIO
-from typing import Callable, Generator, Sequence, TextIO
+from typing import TextIO
 
 import click
 
 from sentry.backup.comparators import get_default_comparators
-from sentry.backup.findings import Finding, FindingJSONEncoder
-from sentry.backup.helpers import (
+from sentry.backup.crypto import (
     DecryptionError,
     Decryptor,
     Encryptor,
     GCPKMSDecryptor,
     GCPKMSEncryptor,
-    ImportFlags,
     LocalFileDecryptor,
     LocalFileEncryptor,
-    Printer,
-    Side,
     create_encrypted_export_tarball,
     decrypt_encrypted_tarball,
 )
+from sentry.backup.findings import Finding, FindingJSONEncoder
+from sentry.backup.helpers import ImportFlags, Printer, Side
 from sentry.backup.validate import validate
 from sentry.runner.decorators import configuration
 from sentry.utils import json

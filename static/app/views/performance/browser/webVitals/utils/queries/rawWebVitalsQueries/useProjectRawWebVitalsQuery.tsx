@@ -1,4 +1,4 @@
-import {Tag} from 'sentry/types';
+import type {Tag} from 'sentry/types';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -45,7 +45,7 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
     pageFilters.selection
   );
 
-  return useDiscoverQuery({
+  const result = useDiscoverQuery({
     eventView: projectEventView,
     limit: 50,
     location,
@@ -57,4 +57,13 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
     skipAbort: true,
     referrer: 'api.performance.browser.web-vitals.project',
   });
+  // Fake INP data with FID data
+  // TODO(edwardgou): Remove this once INP is queryable in discover
+  if (result.data?.data[0]) {
+    result.data.data[0]['count_web_vitals(measurements.inp, any)'] =
+      result.data.data[0]['count_web_vitals(measurements.fid, any)'];
+    result.data.data[0]['p75(measurements.inp)'] =
+      result.data.data[0]['p75(measurements.fid)'];
+  }
+  return result;
 };

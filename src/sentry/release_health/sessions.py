@@ -1,6 +1,6 @@
+from collections.abc import Collection, Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime
-from typing import Collection, Mapping, Optional, Sequence, Set, Tuple, Union
 
 import sentry_sdk
 
@@ -58,7 +58,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         previous_start: datetime,
         previous_end: datetime,
         rollup: int,
-        org_id: Optional[OrganizationId] = None,
+        org_id: OrganizationId | None = None,
     ) -> CurrentAndPreviousCrashFreeRates:
         return get_current_and_previous_crash_free_rates(
             project_ids=project_ids,
@@ -71,18 +71,16 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_release_adoption(
         self,
-        project_releases: Sequence[Tuple[ProjectId, ReleaseName]],
-        environments: Optional[Sequence[EnvironmentName]] = None,
-        now: Optional[datetime] = None,
-        org_id: Optional[OrganizationId] = None,
+        project_releases: Sequence[tuple[ProjectId, ReleaseName]],
+        environments: Sequence[EnvironmentName] | None = None,
+        now: datetime | None = None,
+        org_id: OrganizationId | None = None,
     ) -> ReleasesAdoption:
         return _get_release_adoption(
             project_releases=project_releases, environments=environments, now=now
         )
 
-    def sessions_query_config(
-        self, organization: Organization, start: datetime
-    ) -> SessionsQueryConfig:
+    def sessions_query_config(self, organization: Organization) -> SessionsQueryConfig:
         if features.has(
             "organizations:minute-resolution-sessions",
             organization,
@@ -118,7 +116,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         project_id: ProjectId,
         release: ReleaseName,
         org_id: OrganizationId,
-        environments: Optional[Sequence[EnvironmentName]] = None,
+        environments: Sequence[EnvironmentName] | None = None,
     ) -> ReleaseSessionsTimeBounds:
         return _get_release_sessions_time_bounds(
             project_id=project_id, release=release, org_id=org_id, environments=environments
@@ -127,8 +125,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     def check_has_health_data(
         self,
         projects_list: Collection[ProjectOrRelease],
-        now: Optional[datetime] = None,
-    ) -> Set[ProjectOrRelease]:
+        now: datetime | None = None,
+    ) -> set[ProjectOrRelease]:
         return _check_has_health_data(projects_list, now=now)
 
     def check_releases_have_health_data(
@@ -138,7 +136,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         release_versions: Sequence[ReleaseName],
         start: datetime,
         end: datetime,
-    ) -> Set[ReleaseName]:
+    ) -> set[ReleaseName]:
         return _check_releases_have_health_data(
             organization_id,
             project_ids,
@@ -150,11 +148,11 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     def get_release_health_data_overview(
         self,
         project_releases: Sequence[ProjectRelease],
-        environments: Optional[Sequence[EnvironmentName]] = None,
-        summary_stats_period: Optional[StatsPeriod] = None,
-        health_stats_period: Optional[StatsPeriod] = None,
-        stat: Optional[OverviewStat] = None,
-        now: Optional[datetime] = None,
+        environments: Sequence[EnvironmentName] | None = None,
+        summary_stats_period: StatsPeriod | None = None,
+        health_stats_period: StatsPeriod | None = None,
+        stat: OverviewStat | None = None,
+        now: datetime | None = None,
     ) -> Mapping[ProjectRelease, ReleaseHealthOverview]:
         return _get_release_health_data_overview(
             project_releases=project_releases,
@@ -170,8 +168,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         project_id: ProjectId,
         release: ReleaseName,
         start: datetime,
-        environments: Optional[Sequence[EnvironmentName]] = None,
-        now: Optional[datetime] = None,
+        environments: Sequence[EnvironmentName] | None = None,
+        now: datetime | None = None,
     ) -> Sequence[CrashFreeBreakdown]:
         return _get_crash_free_breakdown(
             project_id=project_id, release=release, start=start, environments=environments, now=now
@@ -180,14 +178,14 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     def get_changed_project_release_model_adoptions(
         self,
         project_ids: Sequence[ProjectId],
-        now: Optional[datetime] = None,
+        now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
         return _get_changed_project_release_model_adoptions(project_ids, now=now)
 
     def get_oldest_health_data_for_releases(
         self,
         project_releases: Sequence[ProjectRelease],
-        now: Optional[datetime] = None,
+        now: datetime | None = None,
     ) -> Mapping[ProjectRelease, str]:
         return _get_oldest_health_data_for_releases(project_releases, now=now)
 
@@ -196,8 +194,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         organization_id: OrganizationId,
         project_ids: Sequence[ProjectId],
         scope: str,
-        stats_period: Optional[str] = None,
-        environments: Optional[Sequence[EnvironmentName]] = None,
+        stats_period: str | None = None,
+        environments: Sequence[EnvironmentName] | None = None,
     ) -> int:
         return _get_project_releases_count(
             organization_id, project_ids, scope, stats_period, environments
@@ -211,8 +209,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         rollup: int,
         start: datetime,
         end: datetime,
-        environments: Optional[Sequence[EnvironmentName]] = None,
-    ) -> Union[ProjectReleaseUserStats, ProjectReleaseSessionStats]:
+        environments: Sequence[EnvironmentName] | None = None,
+    ) -> ProjectReleaseUserStats | ProjectReleaseSessionStats:
         return _get_project_release_stats(
             project_id=project_id,
             release=release,
@@ -229,7 +227,7 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         rollup: int,  # rollup in seconds
         start: datetime,
         end: datetime,
-        environment_id: Optional[int] = None,
+        environment_id: int | None = None,
     ) -> int:
         """
         Returns the number of sessions in the specified period (optionally
@@ -248,8 +246,8 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
         project_ids: Sequence[ProjectId],
         start: datetime,
         end: datetime,
-        environment_ids: Optional[Sequence[int]] = None,
-        rollup: Optional[int] = None,  # rollup in seconds
+        environment_ids: Sequence[int] | None = None,
+        rollup: int | None = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:
         """
         Returns the number of sessions for each project specified.
@@ -260,12 +258,12 @@ class SessionsReleaseHealthBackend(ReleaseHealthBackend):
     def get_project_releases_by_stability(
         self,
         project_ids: Sequence[ProjectId],
-        offset: Optional[int],
-        limit: Optional[int],
+        offset: int | None,
+        limit: int | None,
         scope: str,
-        stats_period: Optional[str] = None,
-        environments: Optional[Sequence[str]] = None,
-        now: Optional[datetime] = None,
+        stats_period: str | None = None,
+        environments: Sequence[str] | None = None,
+        now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
         return _get_project_releases_by_stability(
             project_ids, offset, limit, scope, stats_period, environments, now

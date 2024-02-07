@@ -1,6 +1,6 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -30,7 +30,7 @@ const getMetricsConfigureSnippet = () => `
 use function \\Sentry\\init;
 
 \\Sentry\\init([
-    'metric_code_locations' => true,
+    'attach_metric_code_locations' => true,
 ]);`;
 
 const getVerifySnippet = () => `
@@ -192,7 +192,7 @@ const customMetricsOnboarding: OnboardingConfig = {
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-php/discussions/1666" />
+                <ExternalLink href="https://docs.sentry.io/platforms/php/metrics/" />
               ),
             }
           ),

@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 
 import {BarChart} from 'sentry/components/charts/barChart';
-import {BaseChartProps} from 'sentry/components/charts/baseChart';
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {space} from 'sentry/styles/space';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,

@@ -3,9 +3,12 @@ import {useEffect, useState} from 'react';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import {ConfigType, Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  ConfigType,
+  Docs,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import type {
   Organization,
   PlatformIntegration,
@@ -63,29 +66,32 @@ export function SdkDocumentation({
       ? platform.language === 'minidump'
         ? `minidump/minidump`
         : platform?.id === 'native-qt'
-        ? `native/native-qt`
-        : platform?.id === 'android'
-        ? `android/android`
-        : platform?.id === 'ionic'
-        ? `ionic/ionic`
-        : platform?.id === 'unity'
-        ? `unity/unity`
-        : platform?.id === 'unreal'
-        ? `unreal/unreal`
-        : platform?.id === 'capacitor'
-        ? `capacitor/capacitor`
-        : platform?.id === 'flutter'
-        ? `flutter/flutter`
-        : platform?.id === 'dart'
-        ? `dart/dart`
-        : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
+          ? `native/native-qt`
+          : platform?.id === 'android'
+            ? `android/android`
+            : platform?.id === 'ionic'
+              ? `ionic/ionic`
+              : platform?.id === 'unity'
+                ? `unity/unity`
+                : platform?.id === 'unreal'
+                  ? `unreal/unreal`
+                  : platform?.id === 'capacitor'
+                    ? `capacitor/capacitor`
+                    : platform?.id === 'flutter'
+                      ? `flutter/flutter`
+                      : platform?.id === 'dart'
+                        ? `dart/dart`
+                        : platform?.id.replace(
+                            `${platform.language}-`,
+                            `${platform.language}/`
+                          )
       : platform?.id === 'python-celery'
-      ? `python/celery`
-      : platform?.id === 'python-rq'
-      ? `python/rq`
-      : platform?.id === 'python-pymongo'
-      ? `python/mongo`
-      : `${platform?.language}/${platform?.id}`;
+        ? `python/celery`
+        : platform?.id === 'python-rq'
+          ? `python/rq`
+          : platform?.id === 'python-pymongo'
+            ? `python/mongo`
+            : `${platform?.language}/${platform?.id}`;
 
   const {
     data: projectKeys,

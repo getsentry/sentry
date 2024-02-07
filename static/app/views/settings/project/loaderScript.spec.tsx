@@ -9,7 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
-import {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization, Project, ProjectKey} from 'sentry/types';
 import LoaderScript from 'sentry/views/settings/project/loaderScript';
 
 function mockApi({

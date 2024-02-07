@@ -1,4 +1,4 @@
-from typing import List, Mapping, Tuple
+from collections.abc import Mapping
 
 import sentry_sdk
 
@@ -13,7 +13,7 @@ def _get_cache_key(org_id: int, proj_id: int) -> str:
 
 def get_transactions_resampling_rates(
     org_id: int, proj_id: int, default_rate: float
-) -> Tuple[Mapping[str, float], float]:
+) -> tuple[Mapping[str, float], float]:
     redis_client = get_redis_client_for_ds()
     cache_key = _get_cache_key(org_id=org_id, proj_id=proj_id)
     try:
@@ -27,7 +27,7 @@ def get_transactions_resampling_rates(
 
 
 def set_transactions_resampling_rates(
-    org_id: int, proj_id: int, named_rates: List[RebalancedItem], default_rate: float, ttl_ms: int
+    org_id: int, proj_id: int, named_rates: list[RebalancedItem], default_rate: float, ttl_ms: int
 ) -> None:
     redis_client = get_redis_client_for_ds()
     cache_key = _get_cache_key(org_id=org_id, proj_id=proj_id)

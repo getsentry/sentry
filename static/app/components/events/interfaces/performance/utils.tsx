@@ -1,18 +1,17 @@
 import * as Sentry from '@sentry/react';
 import keyBy from 'lodash/keyBy';
 
+import type {EntrySpans, EventTransaction} from 'sentry/types';
 import {
-  EntrySpans,
   EntryType,
-  EventTransaction,
   getIssueTypeFromOccurrenceType,
   IssueCategory,
   IssueType,
 } from 'sentry/types';
 
-import {RawSpanType} from '../spans/types';
+import type {RawSpanType} from '../spans/types';
 
-import {TraceContextSpanProxy} from './spanEvidence';
+import type {TraceContextSpanProxy} from './spanEvidence';
 
 export function getSpanInfoFromTransactionEvent(
   event: Pick<

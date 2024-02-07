@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
@@ -9,8 +9,9 @@ import Form from 'sentry/components/forms/form';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {getDebugSourceName} from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import type {Organization} from 'sentry/types';
+import type {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
 import {useParams} from 'sentry/utils/useParams';
 
 import AppStoreConnect from './appStoreConnect';

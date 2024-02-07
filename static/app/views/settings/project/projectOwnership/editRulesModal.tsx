@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
+import type {EditOwnershipRulesModalOptions} from 'sentry/actionCreators/modal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';

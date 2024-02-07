@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/integrations';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -11,13 +11,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Repository, RepositoryStatus} from 'sentry/types';
+import type {Repository} from 'sentry/types';
+import {RepositoryStatus} from 'sentry/types';
 
 type Props = {
   api: Client;
   orgSlug: string;
   repository: Repository;
-  onRepositoryChange?: (data: {id: string; status: RepositoryStatus}) => void;
+  onRepositoryChange?: (data: Repository) => void;
   showProvider?: boolean;
 };
 

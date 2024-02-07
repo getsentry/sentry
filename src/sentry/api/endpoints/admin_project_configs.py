@@ -5,18 +5,19 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.models.project import Project
 from sentry.relay import projectconfig_cache
 
 
+# NOTE: This endpoint should be in getsentry
 @region_silo_endpoint
 class AdminRelayProjectConfigsEndpoint(Endpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def get(self, request: Request) -> Response:
         project_id = request.GET.get("projectId")

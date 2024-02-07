@@ -1,12 +1,12 @@
 import {useEffect, useState} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {createDashboard, updateDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -14,15 +14,12 @@ import Input from 'sentry/components/input';
 import LoadingError from 'sentry/components/loadingError';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SelectValue} from 'sentry/types';
+import type {Organization, SelectValue} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {
-  DashboardDetails,
-  DashboardListItem,
-  MAX_WIDGETS,
-} from 'sentry/views/dashboards/types';
+import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
+import {MAX_WIDGETS} from 'sentry/views/dashboards/types';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 

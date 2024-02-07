@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from random import randrange
-from typing import List
 
 from django.db import router
 from django.utils import timezone
@@ -65,7 +64,7 @@ def check_auth_identity(auth_identity_id: int, **kwargs):
 )
 def check_auth_identities(
     auth_identity_id: int | None = None,
-    auth_identity_ids: List[int] | None = None,
+    auth_identity_ids: list[int] | None = None,
     chunk_size=100,
     **kwargs,
 ):

@@ -8,7 +8,8 @@ import set from 'lodash/set';
 
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-import {BarChart, BarChartProps, BarChartSeries} from './barChart';
+import type {BarChartProps, BarChartSeries} from './barChart';
+import {BarChart} from './barChart';
 import type {BaseChartProps} from './baseChart';
 
 function makeBaseChartOptions({

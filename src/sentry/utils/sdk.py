@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import copy
-import inspect
 import logging
 import random
-from typing import TYPE_CHECKING, Any, List, Mapping, NamedTuple, Sequence
+import sys
+from collections.abc import Generator, Mapping, Sequence
+from types import FrameType
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import sentry_sdk
 from django.conf import settings
@@ -37,6 +39,7 @@ UNSAFE_FILES = (
     "sentry/event_manager.py",
     "sentry/tasks/process_buffer.py",
     "sentry/ingest/consumer/processors.py",
+    "sentry/tasks/spans.py",
     # This consumer lives outside of sentry but is just as unsafe.
     "outcomes_consumer.py",
 )
@@ -91,6 +94,13 @@ UNSAFE_TAG = "_unsafe"
 EXPERIMENT_TAG = "_experimental_event"
 
 
+def _current_stack_filenames() -> Generator[str, None, None]:
+    f: FrameType | None = sys._getframe()
+    while f is not None:
+        yield f.f_code.co_filename
+        f = f.f_back
+
+
 def is_current_event_safe():
     """
     Tests the current stack for unsafe locations that would likely cause
@@ -107,7 +117,7 @@ def is_current_event_safe():
         if project_id and project_id == settings.SENTRY_PROJECT:
             return False
 
-    for _, filename, _, _, _, _ in inspect.stack():
+    for filename in _current_stack_filenames():
         if filename.endswith(UNSAFE_FILES):
             return False
 
@@ -558,7 +568,7 @@ def check_current_scope_transaction(
     values.
 
     Note: Ignores scope `transaction` values with `source = "custom"`, indicating a value which has
-    been set maunually. (See the `transaction_start` decorator, for example.)
+    been set maunually.
     """
 
     with configure_scope() as scope:
@@ -627,7 +637,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
 
 
 def bind_ambiguous_org_context(
-    orgs: Sequence[Organization] | Sequence[RpcOrganization] | List[str], source: str | None = None
+    orgs: Sequence[Organization] | Sequence[RpcOrganization] | list[str], source: str | None = None
 ) -> None:
     """
     Add org context information to the scope in the case where the current org might be one of a

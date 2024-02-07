@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Collection, Iterable, Mapping
 from itertools import chain
-from typing import TYPE_CHECKING, ClassVar, Collection, Iterable, Mapping
+from typing import TYPE_CHECKING, ClassVar
 from uuid import uuid1
 
 import sentry_sdk
@@ -300,7 +301,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
         db_table = "sentry_project"
         unique_together = (("organization", "slug"),)
 
-    __repr__ = sane_repr("team_id", "name", "slug")
+    __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 
     _rename_fields_on_pending_delete = frozenset(["slug"])
 

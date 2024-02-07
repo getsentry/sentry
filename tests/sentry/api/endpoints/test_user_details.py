@@ -1,3 +1,5 @@
+from django.test import override_settings
+
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization, OrganizationStatus
@@ -8,6 +10,7 @@ from sentry.models.userrole import UserRole
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -39,6 +42,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["language"] == "en"
         assert resp.data["options"]["stacktraceOrder"] == -1
         assert not resp.data["options"]["clock24Hours"]
+        assert not resp.data["options"]["issueDetailsNewExperienceQ42023"]
 
     def test_superuser(self):
         superuser = self.create_user(email="b@example.com", is_superuser=True)
@@ -84,6 +88,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "language": "fr",
                 "clock24Hours": True,
                 "extra": True,
+                "issueDetailsNewExperienceQ42023": True,
             },
         )
 
@@ -100,6 +105,10 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="stacktrace_order") == "2"
         assert UserOption.objects.get_value(user=self.user, key="language") == "fr"
         assert UserOption.objects.get_value(user=self.user, key="clock_24_hours")
+        assert UserOption.objects.get_value(
+            user=self.user, key="issue_details_new_experience_q4_2023"
+        )
+
         assert not UserOption.objects.get_value(user=self.user, key="extra")
 
     def test_saving_changes_value(self):
@@ -182,6 +191,39 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
 
         user = User.objects.get(id=self.user.id)
         assert not user.is_active
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_cannot_change_is_active(self):
+        self.user.update(is_active=True)
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        self.get_error_response(
+            self.user.id,
+            isActive="false",
+            status_code=403,
+        )
+
+        self.user.refresh_from_db()
+        assert self.user.is_active
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_write_can_change_is_active(self):
+        self.user.update(is_active=True)
+        superuser = self.create_user(email="b@example.com", is_superuser=True)
+        self.add_user_permission(superuser, "superuser.write")
+        self.login_as(user=superuser, superuser=True)
+
+        resp = self.get_success_response(
+            self.user.id,
+            isActive="false",
+        )
+        assert resp.data["id"] == str(self.user.id)
+
+        self.user.refresh_from_db()
+        assert not self.user.is_active
 
     def test_superuser_cannot_add_superuser(self):
         self.user.update(is_superuser=False)

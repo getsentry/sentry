@@ -850,6 +850,26 @@ class TestWebhookRequests(TestCase):
         self.sentry_app.refresh_from_db()  # reload to get updated events
         assert len(self.sentry_app.events) == 0  # check that events are empty / app is disabled
 
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
+    @override_settings(BROKEN_TIMEOUT_THRESHOLD=3)
+    def test_ignore_issue_alert(self, safe_urlopen):
+        """
+        Test that the integration is disabled after BROKEN_TIMEOUT_THRESHOLD number of timeouts
+        """
+        with assume_test_silo_mode_of(SentryApp):
+            self.sentry_app.update(status=SentryAppStatus.INTERNAL)
+        data = {"issue": serialize(self.issue)}
+        # we don't raise errors for unpublished and internal apps
+        for i in range(3):
+            send_webhooks(
+                installation=self.install, event="event.alert", data=data, actor=self.user
+            )
+        assert not safe_urlopen.called
+        assert [len(item) == 0 for item in self.integration_buffer._get_broken_range_from_buffer()]
+        assert len(self.integration_buffer._get_all_from_buffer()) == 0
+        self.sentry_app.refresh_from_db()  # reload to get updated events
+        assert len(self.sentry_app.events) == 3  # check we didn't disable the webhooks
+
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
     )

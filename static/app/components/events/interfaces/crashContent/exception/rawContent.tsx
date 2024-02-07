@@ -1,14 +1,14 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {ExceptionType, Organization, PlatformKey, Project} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {ExceptionType, Organization, PlatformKey, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 

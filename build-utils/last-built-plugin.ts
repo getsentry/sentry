@@ -1,10 +1,9 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
-import webpack from 'webpack';
+import type webpack from 'webpack';
 
 type Options = {
   basePath: string;

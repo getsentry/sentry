@@ -1,6 +1,6 @@
 import {createRef, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Alert from 'sentry/components/alert';
@@ -20,9 +20,9 @@ import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
+import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import NewTraceDetailsSpanDetail, {
   SpanDetailContainer,
-  SpanDetailProps,
   SpanDetails,
 } from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import {
@@ -51,23 +51,26 @@ import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryBreadcrumbs, EntryType, EventTransaction, Organization} from 'sentry/types';
+import type {EntryBreadcrumbs, EventTransaction, Organization} from 'sentry/types';
+import {EntryType} from 'sentry/types';
 import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {PageErrorProvider} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
+import {CustomMetricsEventData} from 'sentry/views/ddm/customMetricsEventData';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
-import {EventDetail} from './newTraceDetailsContent';
+import type {EventDetail} from './newTraceDetailsContent';
 import {Row, Tags} from './styles';
 
 type DetailPanelProps = {
@@ -210,6 +213,38 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     .filter(isNotMarkMeasurement)
     .filter(isNotPerformanceScoreMeasurement)
     .sort();
+
+  const renderMeasurements = () => {
+    if (!detail.event) {
+      return null;
+    }
+
+    const {measurements} = detail.event;
+
+    const measurementKeys = Object.keys(measurements ?? {})
+      .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
+      .sort();
+
+    if (!measurements || measurementKeys.length <= 0) {
+      return null;
+    }
+
+    return (
+      <Fragment>
+        {measurementKeys.map(measurement => (
+          <Row
+            key={measurement}
+            title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
+          >
+            <PerformanceDuration
+              milliseconds={Number(measurements[measurement].value.toFixed(3))}
+              abbreviation
+            />
+          </Row>
+        ))}
+      </Fragment>
+    );
+  };
 
   const renderGoToProfileButton = () => {
     if (!detail.traceFullDetailedEvent.profile_id) {
@@ -359,6 +394,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
 
           <OpsBreakdown event={detail.event} />
 
+          {renderMeasurements()}
+
           <Tags
             enableHiding
             location={location}
@@ -368,7 +405,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
 
           {measurementNames.length > 0 && (
             <tr>
-              <td className="key">{t('Custom Metrics')}</td>
+              <td className="key">{t('Measurements')}</td>
               <td className="value">
                 <Measurements>
                   {measurementNames.map(name => {
@@ -426,6 +463,12 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       )}
       <EventExtraData event={detail.event} />
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
+      {detail.event._metrics_summary ? (
+        <CustomMetricsEventData
+          metricsSummary={detail.event._metrics_summary}
+          startTimestamp={detail.event.startTimestamp}
+        />
+      ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
       {projectSlug && <EventAttachments event={detail.event} projectSlug={projectSlug} />}
       {project && <EventViewHierarchy event={detail.event} project={project} />}
@@ -499,8 +542,11 @@ function TraceViewDetailPanel({detail, onClose}: DetailPanelProps) {
   const organization = useOrganization();
   const location = useLocation();
   return (
-    <PageErrorProvider>
-      <DetailPanel detailKey={detail ? 'open' : undefined} onClose={onClose}>
+    <PageAlertProvider>
+      <DetailPanel
+        detailKey={detail && detail.openPanel === 'open' ? 'open' : undefined}
+        onClose={onClose}
+      >
         {detail &&
           (isEventDetail(detail) ? (
             <EventDetails
@@ -512,7 +558,7 @@ function TraceViewDetailPanel({detail, onClose}: DetailPanelProps) {
             <SpanDetailsBody organization={organization} detail={detail} />
           ))}
       </DetailPanel>
-    </PageErrorProvider>
+    </PageAlertProvider>
   );
 }
 
@@ -551,6 +597,8 @@ const Title = styled(FlexBox)`
 const TransactionOp = styled('div')`
   font-size: 25px;
   font-weight: bold;
+  max-width: 600px;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TransactionIdTitle = styled('a')`

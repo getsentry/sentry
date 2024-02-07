@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types';
 
 const popularPlatformCategories: Set<PlatformKey> = new Set([
   'android',

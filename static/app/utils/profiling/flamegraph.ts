@@ -1,5 +1,5 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';
@@ -157,10 +157,10 @@ export class Flamegraph {
         this.profile.unit === 'nanoseconds'
           ? 1e9
           : this.profile.unit === 'microseconds'
-          ? 1e6
-          : this.profile.unit === 'milliseconds'
-          ? 1e3
-          : 1;
+            ? 1e6
+            : this.profile.unit === 'milliseconds'
+              ? 1e3
+              : 1;
     }
 
     this.configSpace = new Rect(0, 0, width, this.depth);

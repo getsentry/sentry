@@ -1,12 +1,11 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import flatten from 'lodash/flatten';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FormField from 'sentry/components/forms/formField';
-import {TableType} from 'sentry/components/forms/types';
+import type {TableType} from 'sentry/components/forms/types';
 import Input from 'sentry/components/input';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -15,7 +14,7 @@ import {defined, objectIsEmpty} from 'sentry/utils';
 import {singleLineRenderer} from 'sentry/utils/marked';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps} from './inputField';
+import type {InputFieldProps} from './inputField';
 
 interface DefaultProps {
   /**
@@ -65,9 +64,11 @@ export default class TableField extends Component<InputFieldProps> {
       onChange?.(nextValue, []);
 
       // nextValue is an array of ObservableObjectAdministration objects
-      const validValues = !flatten(Object.values(nextValue).map(Object.entries)).some(
-        ([key, val]) => key !== 'id' && !val // don't allow empty values except if it's the ID field
-      );
+      const validValues = !Object.values(nextValue)
+        .flatMap(Object.entries)
+        .some(
+          ([key, val]) => key !== 'id' && !val // don't allow empty values except if it's the ID field
+        );
 
       if (allowEmpty || validValues) {
         // TOOD: add debouncing or use a form save button

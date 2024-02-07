@@ -1,20 +1,31 @@
-import {ForwardedRef, forwardRef, useEffect} from 'react';
+import type {ForwardedRef} from 'react';
+import {forwardRef, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 const PANEL_WIDTH = '50vw';
+const PANEL_HEIGHT = '50vh';
+const INITIAL_STYLES = {
+  bottom: {opacity: 0, x: 0, y: 0},
+  right: {opacity: 0, x: PANEL_WIDTH, y: 0},
+};
+const FINAL_STYLES = {
+  bottom: {opacity: 0, x: 0, y: PANEL_HEIGHT},
+  right: {opacity: 0, x: PANEL_WIDTH},
+};
 
 type SlideOverPanelProps = {
   children: React.ReactNode;
   collapsed: boolean;
   onOpen?: () => void;
+  slidePosition?: 'right' | 'bottom';
 };
 
 export default forwardRef(SlideOverPanel);
 
 function SlideOverPanel(
-  {collapsed, children, onOpen}: SlideOverPanelProps,
+  {collapsed, children, onOpen, slidePosition}: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
   useEffect(() => {
@@ -22,12 +33,15 @@ function SlideOverPanel(
       onOpen();
     }
   }, [collapsed, onOpen]);
+  const initial = slidePosition ? INITIAL_STYLES[slidePosition] : INITIAL_STYLES.right;
+  const final = slidePosition ? FINAL_STYLES[slidePosition] : FINAL_STYLES.right;
   return (
     <_SlideOverPanel
       ref={ref}
       collapsed={collapsed}
-      initial={{opacity: 0, x: PANEL_WIDTH}}
-      animate={!collapsed ? {opacity: 1, x: 0} : {opacity: 0, x: PANEL_WIDTH}}
+      initial={initial}
+      animate={!collapsed ? {opacity: 1, x: 0, y: 0} : final}
+      slidePosition={slidePosition}
       transition={{
         type: 'spring',
         stiffness: 500,
@@ -45,15 +59,27 @@ const _SlideOverPanel = styled(motion.div, {
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
   collapsed: boolean;
+  slidePosition?: 'right' | 'bottom';
 }>`
-  width: ${PANEL_WIDTH};
-  position: fixed;
-  top: 0;
+  ${p =>
+    p.slidePosition === 'bottom'
+      ? `
+      width: 100%;
+      height: ${PANEL_HEIGHT};
+      position: sticky;
+      border-top: 1px solid ${p.theme.border};
+    `
+      : `
+      width: ${PANEL_WIDTH};
+      height: 100%;
+      position: fixed;
+      top: 0;
+      border-left: 1px solid ${p.theme.border};
+    `}
   bottom: 0;
   right: 0;
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
-  border-left: 1px solid ${p => p.theme.border};
   text-align: left;
   z-index: ${p => p.theme.zIndex.sidebar - 1};
   ${p =>

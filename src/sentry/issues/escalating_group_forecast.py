@@ -9,7 +9,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional, TypedDict, cast
+from typing import TypedDict, cast
 
 from sentry import nodestore
 from sentry.models.group import Group
@@ -23,7 +23,7 @@ ONE_EVENT_FORECAST = [10] * 14
 class EscalatingGroupForecastData(TypedDict):
     project_id: int
     group_id: int
-    forecast: List[int]
+    forecast: list[int]
     date_added: float
 
 
@@ -39,7 +39,7 @@ class EscalatingGroupForecast:
 
     project_id: int
     group_id: int
-    forecast: List[int]
+    forecast: list[int]
     date_added: datetime
 
     def save(self) -> None:
@@ -57,7 +57,7 @@ class EscalatingGroupForecast:
         return group.issue_type.should_detect_escalation(organization)
 
     @classmethod
-    def fetch(cls, project_id: int, group_id: int) -> Optional[EscalatingGroupForecast]:
+    def fetch(cls, project_id: int, group_id: int) -> EscalatingGroupForecast | None:
         """
         Return the forecast from nodestore if it exists.
 
@@ -83,7 +83,7 @@ class EscalatingGroupForecast:
         )
 
     @classmethod
-    def fetch_todays_forecast(cls, project_id: int, group_id: int) -> Optional[int]:
+    def fetch_todays_forecast(cls, project_id: int, group_id: int) -> int | None:
         date_now = datetime.now().date()
         escalating_forecast = EscalatingGroupForecast.fetch(project_id, group_id)
 

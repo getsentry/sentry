@@ -1,11 +1,8 @@
 import {Fragment} from 'react';
 import {Link} from 'react-router';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination from 'sentry/components/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useInteractionQuery} from 'sentry/views/performance/browser/interactionSummary/useInteractionQuery';

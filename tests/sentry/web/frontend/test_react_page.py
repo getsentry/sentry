@@ -1,11 +1,17 @@
 from fnmatch import fnmatch
 
+from django.test import override_settings
 from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
+from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
+from sentry.types.region import Region, RegionCategory
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
+
+us = Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
 
 
 @control_silo_test
@@ -110,7 +116,6 @@ class ReactPageViewTest(TestCase):
             assert self.client.session["activeorg"]
 
         with self.feature({"organizations:customer-domains": True}):
-
             # Redirect to customer domain
             response = self.client.get(
                 reverse("sentry-organization-issue-list", args=[org.slug]), follow=True
@@ -154,13 +159,30 @@ class ReactPageViewTest(TestCase):
             assert response.status_code == 200
             assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
 
+    @override_regions((us,))
+    def test_redirect_to_customer_domain_from_region_domain(self):
+        user = self.create_user("bar@example.com")
+        org = self.create_organization(owner=user)
+
+        self.login_as(user)
+        # Force activeorg state
+        self.client.session["activeorg"] = org.slug
+        self.client.session.save()
+
+        with self.feature({"organizations:customer-domains": True}):
+            response = self.client.get(
+                "/issues/",
+                HTTP_HOST="us.testserver",
+            )
+            assert response.status_code == 302
+            assert response["Location"] == f"http://{org.slug}.testserver/issues/"
+
     def test_does_not_redirect_to_customer_domain_for_unsupported_paths(self):
         user = self.create_user("bar@example.com")
         org = self.create_organization(owner=user)
         self.login_as(user)
 
         with self.feature({"organizations:customer-domains": True}):
-
             url_name = "sentry-organization-create"
             url_name_is_non_customer_domain = any(
                 fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES
@@ -239,30 +261,71 @@ class ReactPageViewTest(TestCase):
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
 
-    def test_customer_domain_non_member_org_superuser(self):
-        org = self.create_organization(owner=self.user)
+    def test_customer_domain_non_member(self):
+        self.create_organization(owner=self.user)
         other_org = self.create_organization()
 
-        self.login_as(self.user, superuser=True)
-
-        with self.feature({"organizations:customer-domains": [org.slug]}):
-            # Induce activeorg
+        self.login_as(self.user)
+        with override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True), self.feature(
+            {"organizations:customer-domains": [other_org.slug]}
+        ):
+            # Should not be able to induce activeorg
+            assert "activeorg" not in self.client.session
             response = self.client.get(
                 "/",
-                HTTP_HOST=f"{org.slug}.testserver",
+                HTTP_HOST=f"{other_org.slug}.testserver",
                 follow=True,
             )
             assert response.status_code == 200
-            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
-            assert self.client.session["activeorg"] == org.slug
+            assert response.redirect_chain == [(f"http://{other_org.slug}.testserver/issues/", 302)]
+            assert "activeorg" not in self.client.session
 
-            # Access another org as superuser on non-customer domain
+    def _run_customer_domain_elevated_privileges(self, is_superuser: bool, is_staff: bool):
+        user = self.create_user("foo@example.com", is_superuser=is_superuser, is_staff=is_staff)
+        org = self.create_organization(owner=user)
+        other_org = self.create_organization()
+
+        self.login_as(user, superuser=is_superuser, staff=is_staff)
+        with override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True), self.feature(
+            {"organizations:customer-domains": [other_org.slug]}
+        ):
+            # Induce activeorg
+            assert "activeorg" not in self.client.session
             response = self.client.get(
-                reverse("sentry-organization-issue-list", args=[other_org.slug]),
+                "/",
+                HTTP_HOST=f"{other_org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            if is_superuser:
+                assert response.redirect_chain == [
+                    (f"http://{other_org.slug}.testserver/issues/", 302)
+                ]
+                assert self.client.session["activeorg"] == other_org.slug
+            else:
+                assert response.redirect_chain == [
+                    (f"http://{other_org.slug}.testserver/auth/login/{other_org.slug}/", 302)
+                ]
+                assert "activeorg" not in self.client.session
+
+            # Accessing org on non-customer domain with superuser and/or staff.
+            response = self.client.get(
+                reverse("sentry-organization-issue-list", args=[org.slug]),
                 follow=True,
             )
             assert response.status_code == 200
             assert response.redirect_chain == []
+
+    def test_customer_domain_non_member_org_superuser(self):
+        self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=False)
+
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_customer_domain_non_member_org_staff(self):
+        self._run_customer_domain_elevated_privileges(is_superuser=False, is_staff=True)
+
+    @with_feature("auth:enterprise-staff-cookie")
+    def test_customer_domain_non_member_org_superuser_and_staff(self):
+        self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=True)
 
     def test_customer_domain_superuser(self):
         org = self.create_organization(owner=self.user)

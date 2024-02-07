@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Sequence, cast
+from typing import Any, cast
 
 import sentry_sdk
 from requests import PreparedRequest
@@ -43,7 +44,7 @@ MINIMUM_REQUESTS = 200
 
 
 class GithubRateLimitInfo:
-    def __init__(self, info: Dict[str, int]) -> None:
+    def __init__(self, info: dict[str, int]) -> None:
         self.limit = info["limit"]
         self.remaining = info["remaining"]
         self.reset = info["reset"]
@@ -168,8 +169,10 @@ class GithubProxyClient(IntegrationProxyClient):
             )
             return prepared_request
 
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
         prepared_request.headers["Authorization"] = f"Bearer {token}"
+        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        if prepared_request.headers.get("Content-Type") == "application/raw; charset=utf-8":
+            prepared_request.headers["Accept"] = "application/vnd.github.raw"
 
         return prepared_request
 
@@ -262,7 +265,7 @@ class GitHubClientMixin(GithubProxyClient):
     def get_tree(self, repo_full_name: str, tree_sha: str) -> JSONData:
         tree: JSONData = {}
         # We do not cache this call since it is a rather large object
-        contents: Dict[str, Any] = self.get(
+        contents: dict[str, Any] = self.get(
             f"/repos/{repo_full_name}/git/trees/{tree_sha}",
             # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
             params={"recursive": 1},
@@ -288,7 +291,7 @@ class GitHubClientMixin(GithubProxyClient):
         only_source_code_files: bool = True,
         only_use_cache: bool = False,
         cache_seconds: int = 3600 * 24,
-    ) -> List[str]:
+    ) -> list[str]:
         """It return all files for a repo or just source code files.
 
         repo_full_name: e.g. getsentry/sentry
@@ -299,7 +302,7 @@ class GitHubClientMixin(GithubProxyClient):
         cache_seconds: How long to cache a value for
         """
         key = f"github:repo:{repo_full_name}:{'source-code' if only_source_code_files else 'all'}"
-        repo_files: List[str] = cache.get(key, [])
+        repo_files: list[str] = cache.get(key, [])
         if not repo_files and not only_use_cache:
             tree = self.get_tree(repo_full_name, tree_sha)
             if tree:
@@ -318,12 +321,12 @@ class GitHubClientMixin(GithubProxyClient):
 
         return repo_files
 
-    def get_trees_for_org(self, gh_org: str, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
+    def get_trees_for_org(self, gh_org: str, cache_seconds: int = 3600 * 24) -> dict[str, RepoTree]:
         """
         This fetches tree representations of all repos for an org and saves its
         contents into the cache.
         """
-        trees: Dict[str, RepoTree] = {}
+        trees: dict[str, RepoTree] = {}
         extra = {"gh_org": gh_org}
         repositories = self._populate_repositories(gh_org, cache_seconds)
         extra.update({"repos_num": str(len(repositories))})
@@ -339,9 +342,9 @@ class GitHubClientMixin(GithubProxyClient):
 
         return trees
 
-    def _populate_repositories(self, gh_org: str, cache_seconds: int) -> List[Dict[str, str]]:
+    def _populate_repositories(self, gh_org: str, cache_seconds: int) -> list[dict[str, str]]:
         cache_key = f"githubtrees:repositories:{gh_org}"
-        repositories: List[Dict[str, str]] = cache.get(cache_key, [])
+        repositories: list[dict[str, str]] = cache.get(cache_key, [])
 
         if not repositories:
             # Remove unnecessary fields from the response
@@ -357,7 +360,7 @@ class GitHubClientMixin(GithubProxyClient):
 
         return repositories
 
-    def _populate_trees_process_error(self, error: ApiError, extra: Dict[str, str]) -> bool:
+    def _populate_trees_process_error(self, error: ApiError, extra: dict[str, str]) -> bool:
         """
         Log different messages based on the error received. Returns a boolean indicating whether
         the error should count towards the connection errors tally.
@@ -402,12 +405,12 @@ class GitHubClientMixin(GithubProxyClient):
 
         return should_count_error
 
-    def _populate_trees(self, repositories: List[Dict[str, str]]) -> Dict[str, RepoTree]:
+    def _populate_trees(self, repositories: list[dict[str, str]]) -> dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
         This function takes API rate limits into consideration to prevent exhaustion.
         """
-        trees: Dict[str, RepoTree] = {}
+        trees: dict[str, RepoTree] = {}
         only_use_cache = False
         connection_error_count = 0
 
@@ -460,7 +463,7 @@ class GitHubClientMixin(GithubProxyClient):
         return trees
 
     def _populate_tree(
-        self, repo_info: Dict[str, str], only_use_cache: bool, cache_seconds: int
+        self, repo_info: dict[str, str], only_use_cache: bool, cache_seconds: int
     ) -> RepoTree:
         full_name = repo_info["full_name"]
         branch = repo_info["default_branch"]
@@ -615,16 +618,27 @@ class GitHubClientMixin(GithubProxyClient):
     def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
         return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
 
-    def get_file(self, repo: Repository, path: str, ref: str) -> str:
+    def get_file(self, repo: Repository, path: str, ref: str, codeowners: bool = False) -> str:
         """Get the contents of a file
 
         See https://docs.github.com/en/rest/reference/repos#get-repository-content
         """
         from base64 import b64decode
 
-        contents = self.get(path=f"/repos/{repo.name}/contents/{path}", params={"ref": ref})
-        encoded_content = contents["content"]
-        return b64decode(encoded_content).decode("utf-8")
+        headers = {"Content-Type": "application/raw; charset=utf-8"} if codeowners else {}
+        contents = self.get(
+            path=f"/repos/{repo.name}/contents/{path}",
+            params={"ref": ref},
+            raw_response=True if codeowners else False,
+            headers=headers,
+        )
+
+        result = (
+            contents.content.decode("utf-8")
+            if codeowners
+            else b64decode(contents["content"]).decode("utf-8")
+        )
+        return result
 
     def get_blame_for_file(
         self, repo: Repository, path: str, ref: str, lineno: int

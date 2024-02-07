@@ -1,4 +1,4 @@
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types';
 
 type Meta = NonNullable<Event['_meta']>;
 

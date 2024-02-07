@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import ClassVar
+from typing import ClassVar, Self
 
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
-from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (

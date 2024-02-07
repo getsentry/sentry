@@ -3,14 +3,15 @@ import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
 import Text from 'sentry/components/text';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   JobTickData,
   TimeWindowOptions,
 } from 'sentry/views/monitors/components/overviewTimeline/types';
-import {CheckInStatus} from 'sentry/views/monitors/types';
+import type {CheckInStatus} from 'sentry/views/monitors/types';
 import {getColorsFromStatus, statusToText} from 'sentry/views/monitors/utils';
 
 interface Props extends Omit<TooltipProps, 'title'> {

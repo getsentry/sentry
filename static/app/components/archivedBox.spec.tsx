@@ -80,17 +80,14 @@ describe('ArchivedBox', function () {
     expect(screen.getByText(/This issue has been archived forever/)).toBeInTheDocument();
   });
   it('handles archived until escalating', function () {
-    const org_with_escalating = OrganizationFixture({
-      features: ['escalating-issues'],
-    });
     render(
       <ArchivedBox
         substatus={GroupSubstatus.ARCHIVED_UNTIL_ESCALATING}
         statusDetails={{ignoreUntilEscalating: true}}
-        organization={org_with_escalating}
+        organization={organization}
       />,
       {
-        organization: org_with_escalating,
+        organization,
       }
     );
     expect(
@@ -100,24 +97,21 @@ describe('ArchivedBox', function () {
     ).toBeInTheDocument();
   });
   it('tracks analytics when issue status docs is clicks', async function () {
-    const org_with_escalating = OrganizationFixture({
-      features: ['escalating-issues'],
-    });
     render(
       <ArchivedBox
         substatus={GroupSubstatus.ARCHIVED_UNTIL_ESCALATING}
         statusDetails={{ignoreUntilEscalating: true}}
-        organization={org_with_escalating}
+        organization={organization}
       />,
       {
-        organization: org_with_escalating,
+        organization,
       }
     );
     await userEvent.click(screen.getByText('read the docs'));
 
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issue_details.issue_status_docs_clicked',
-      expect.objectContaining({organization: org_with_escalating})
+      expect.objectContaining({organization})
     );
   });
 });

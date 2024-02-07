@@ -1,4 +1,4 @@
-import {MonitorBucketData} from 'sentry/views/monitors/components/overviewTimeline/types';
+import type {MonitorBucketData} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 
 import {mergeBuckets} from './mergeBuckets';

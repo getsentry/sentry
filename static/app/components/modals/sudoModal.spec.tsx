@@ -20,20 +20,28 @@ describe('Sudo Modal', function () {
       },
     };
 
+    const organization = OrganizationFixture();
+
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
-    });
     MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [OrganizationFixture()],
+      body: [organization],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',

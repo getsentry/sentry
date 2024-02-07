@@ -1,22 +1,31 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 import moment from 'moment';
 
-import {APIRequestMethod} from 'sentry/api';
+import type {APIRequestMethod} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import Input from 'sentry/components/input';
 import {IconAdd, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {getExactDuration, parseLargestSuffix} from 'sentry/utils/formatters';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {NEW_THRESHOLD_PREFIX} from '../utils/constants';
-import {EditingThreshold, Threshold} from '../utils/types';
+import {
+  CRASH_FREE_SESSION_RATE_STR,
+  CRASH_FREE_USER_RATE_STR as _CRASH_FREE_USER_RATE_STR,
+  FAILURE_RATE_STR as _FAILURE_RATE_STR,
+  NEW_ISSUE_COUNT_STR,
+  NEW_THRESHOLD_PREFIX,
+  REGRESSED_ISSUE_COUNT_STR as _REGRESSED_ISSUE_COUNT_STR,
+  TOTAL_ERROR_COUNT_STR,
+  UNHANDLED_ISSUE_COUNT_STR as _UNHANDLED_ISSUE_COUNT_STR,
+} from '../utils/constants';
+import type {EditingThreshold, Threshold} from '../utils/types';
 
 type Props = {
   allEnvironmentNames: string[];
@@ -71,6 +80,63 @@ export function ThresholdGroupRows({
     }
     return new Set([...initial, ...Object.keys(editingThresholds)]);
   }, [initialThreshold, editingThresholds]);
+
+  const thresholdTypeList = useMemo(() => {
+    const isInternal = organization.features?.includes('releases-v2-internal');
+    const list = [
+      {
+        value: TOTAL_ERROR_COUNT_STR,
+        textValue: 'Errors',
+        label: 'Error Count',
+      },
+    ];
+    if (isInternal) {
+      list.push(
+        {
+          value: CRASH_FREE_SESSION_RATE_STR,
+          textValue: 'Crash Free Sessions',
+          label: 'Crash Free Sessions',
+        },
+        {
+          value: NEW_ISSUE_COUNT_STR,
+          textValue: 'New Issue Count',
+          label: 'New Issue Count',
+        }
+      );
+    }
+    return list;
+  }, [organization]);
+
+  const windowOptions = thresholdType => {
+    let options = [
+      {
+        value: 'hours',
+        textValue: 'hours',
+        label: 'hrs',
+      },
+      {
+        value: 'days',
+        textValue: 'days',
+        label: 'days',
+      },
+    ];
+    if (thresholdType !== CRASH_FREE_SESSION_RATE_STR) {
+      options = [
+        {
+          value: 'seconds',
+          textValue: 'seconds',
+          label: 's',
+        },
+        {
+          value: 'minutes',
+          textValue: 'minutes',
+          label: 'min',
+        },
+        ...options,
+      ];
+    }
+    return options;
+  };
 
   const initializeNewThreshold = (
     environmentName: string | undefined = undefined,
@@ -199,7 +265,13 @@ export function ThresholdGroupRows({
   const editThresholdState = (thresholdId, key, value) => {
     if (editingThresholds[thresholdId]) {
       const updateEditing = JSON.parse(JSON.stringify(editingThresholds));
+      const currentThresholdValues = updateEditing[thresholdId];
       updateEditing[thresholdId][key] = value;
+      if (key === 'threshold_type' && value === CRASH_FREE_SESSION_RATE_STR) {
+        if (['seconds', 'minutes'].indexOf(currentThresholdValues.windowSuffix) > -1) {
+          updateEditing[thresholdId].windowSuffix = 'hours';
+        }
+      }
       setEditingThresholds(updateEditing);
     }
   };
@@ -223,7 +295,7 @@ export function ThresholdGroupRows({
             {!initialThreshold || threshold.id !== initialThreshold.id ? (
               <CompactSelect
                 style={{width: '100%'}}
-                value={(threshold as EditingThreshold).environmentName}
+                value={(threshold as EditingThreshold).environmentName || ''}
                 onChange={selectedOption =>
                   editThresholdState(
                     threshold.id,
@@ -231,17 +303,24 @@ export function ThresholdGroupRows({
                     selectedOption.value
                   )
                 }
-                options={allEnvironmentNames.map(env => ({
-                  value: env,
-                  textValue: env,
-                  label: env,
-                }))}
+                options={[
+                  {
+                    value: '',
+                    textValue: '',
+                    label: '',
+                  },
+                  ...allEnvironmentNames.map(env => ({
+                    value: env,
+                    textValue: env,
+                    label: env,
+                  })),
+                ]}
               />
             ) : (
               <FlexCenter>
-                {/* 'None' means it _has_ an environment, but the env has no name */}
+                {/* '' means it _has_ an environment, but the env has no name */}
                 {(threshold as Threshold).environment
-                  ? (threshold as Threshold).environment.name || 'None'
+                  ? (threshold as Threshold).environment.name || ''
                   : '{No environment}'}
               </FlexCenter>
             )}
@@ -268,28 +347,7 @@ export function ThresholdGroupRows({
                         selectedOption.value
                       )
                     }
-                    options={[
-                      {
-                        value: 'seconds',
-                        textValue: 'seconds',
-                        label: 's',
-                      },
-                      {
-                        value: 'minutes',
-                        textValue: 'minutes',
-                        label: 'min',
-                      },
-                      {
-                        value: 'hours',
-                        textValue: 'hours',
-                        label: 'hrs',
-                      },
-                      {
-                        value: 'days',
-                        textValue: 'days',
-                        label: 'days',
-                      },
-                    ]}
+                    options={windowOptions(threshold.threshold_type)}
                   />
                 </FlexCenter>
                 <FlexCenter>
@@ -302,13 +360,7 @@ export function ThresholdGroupRows({
                         selectedOption.value
                       )
                     }
-                    options={[
-                      {
-                        value: 'total_error_count',
-                        textValue: 'Errors',
-                        label: 'Error Count',
-                      },
-                    ]}
+                    options={thresholdTypeList}
                   />
                   {threshold.trigger_type === 'over' ? (
                     <Button

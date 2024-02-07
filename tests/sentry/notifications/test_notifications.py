@@ -16,8 +16,7 @@ from sentry.event_manager import EventManager
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
+from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.rule import Rule
@@ -72,7 +71,9 @@ class ActivityNotificationTest(APITestCase):
     """
 
     def setUp(self):
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -81,8 +82,7 @@ class ActivityNotificationTest(APITestCase):
                 "installation_type": "born_as_bot",
             },
         )
-        self.integration.add_organization(self.organization, self.user)
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        self.idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         self.identity = Identity.objects.create(
             external_id="UXXXXXXX1",
             idp=self.idp,
@@ -460,7 +460,6 @@ class ActivityNotificationTest(APITestCase):
         Test that an email AND Slack notification are sent with
         the expected values when an issue is held back for reprocessing
         """
-        pass
 
     @responses.activate
     @patch("sentry.analytics.record")

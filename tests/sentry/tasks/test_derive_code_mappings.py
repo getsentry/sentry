@@ -17,6 +17,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.derive_code_mappings import derive_code_mappings, identify_stacktrace_paths
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -328,6 +329,7 @@ class TestNodeDeriveCodeMappings(BaseDeriveCodeMappings):
             assert code_mapping.repository.name == repo_name
 
 
+@region_silo_test
 class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
         super().setUp()
@@ -429,9 +431,10 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
     def test_derive_code_mappings_duplicates(
         self, mock_logger, mock_generate_code_mappings, mock_get_trees_for_org
     ):
-        organization_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration=self.integration
-        )
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            organization_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration=self.integration
+            )
         repository = Repository.objects.create(
             name="repo",
             organization_id=self.organization.id,

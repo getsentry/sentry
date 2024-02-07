@@ -2,6 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
+import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebuggerData,
@@ -12,8 +14,8 @@ import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ExceptionType, Project} from 'sentry/types';
-import {Event, ExceptionValue} from 'sentry/types/event';
+import type {ExceptionType, Project} from 'sentry/types';
+import type {Event, ExceptionValue} from 'sentry/types/event';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
@@ -167,6 +169,9 @@ export function Content({
 
     const platform = getStacktracePlatform(event, exc.stacktrace);
 
+    // The banners should appear on the top exception only
+    const isTopException = newestFirst ? excIdx === values.length - 1 : excIdx === 0;
+
     return (
       <div key={excIdx} className="exception" data-test-id="exception-value">
         {defined(exc?.module) ? (
@@ -195,6 +200,11 @@ export function Content({
           newestFirst={newestFirst}
           onExceptionClick={expandException}
         />
+        {exc.stacktrace && isTopException && (
+          <ErrorBoundary customComponent={null}>
+            <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
+          </ErrorBoundary>
+        )}
         <StackTrace
           data={
             type === StackType.ORIGINAL

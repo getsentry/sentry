@@ -305,15 +305,9 @@ describe('IssueList', function () {
     });
 
     it('shows archived tab', async function () {
-      render(
-        <IssueListWithStores
-          {...routerProps}
-          organization={{...organization, features: ['escalating-issues']}}
-        />,
-        {
-          context: routerContext,
-        }
-      );
+      render(<IssueListWithStores {...routerProps} organization={{...organization}} />, {
+        context: routerContext,
+      });
 
       await waitFor(() => {
         expect(issuesRequest).toHaveBeenCalled();
@@ -461,7 +455,7 @@ describe('IssueList', function () {
           datetime: {period: '14d'},
         },
         organization: OrganizationFixture({
-          features: ['issue-stream-performance', 'issue-stream-performance-cache'],
+          features: ['issue-stream-performance'],
           projects: [],
         }),
       };

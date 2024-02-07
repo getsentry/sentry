@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -28,7 +28,7 @@ class DocIntegrationsTest(APITestCase):
             features=[2, 3, 4],
         )
 
-    def get_avatars(self, response: Response) -> List[JSONData]:
+    def get_avatars(self, response: Response) -> list[JSONData]:
         return [doc.get("avatar") for doc in response.data]
 
 

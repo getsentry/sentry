@@ -1,16 +1,15 @@
 import {Component, createRef, useEffect, useRef} from 'react';
+import type {ListRowProps, OverscanIndicesGetterParams} from 'react-virtualized';
 import {
   AutoSizer,
   CellMeasurer,
   CellMeasurerCache,
   List as ReactVirtualizedList,
-  ListRowProps,
-  OverscanIndicesGetterParams,
   WindowScroller,
 } from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import differenceWith from 'lodash/differenceWith';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
@@ -19,41 +18,43 @@ import {ROW_HEIGHT, SpanBarType} from 'sentry/components/performance/waterfall/c
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
-import {TraceInfo} from 'sentry/views/performance/traceDetails/types';
+import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/types';
 
-import {ActiveOperationFilter} from './filter';
+import type {ActiveOperationFilter} from './filter';
 import {NewTraceDetailsProfiledSpanBar} from './newTraceDetailsSpanBar';
-import {SpanDetailProps} from './newTraceDetailsSpanDetails';
-import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
-import * as SpanContext from './spanContext';
+import type {SpanDetailProps} from './newTraceDetailsSpanDetails';
+import type {ScrollbarManagerChildrenProps} from './scrollbarManager';
+import {withScrollbarManager} from './scrollbarManager';
+import type * as SpanContext from './spanContext';
 import {SpanDescendantGroupBar} from './spanDescendantGroupBar';
 import SpanSiblingGroupBar from './spanSiblingGroupBar';
-import {
+import type {
   EnhancedProcessedSpanType,
   EnhancedSpan,
   FilterSpans,
-  GroupType,
   ParsedTraceType,
   SpanTreeNode,
-  SpanTreeNodeType,
   SpanType,
   TreeDepthType,
 } from './types';
+import {GroupType, SpanTreeNodeType} from './types';
+import type {VerticalMark} from './utils';
 import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash} from './utils';
-import WaterfallModel from './waterfallModel';
+import type WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
   filterSpans: FilterSpans | undefined;
   location: Location;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
+  parentContinuingDepths: TreeDepth[];
   parentGeneration: number;
-  parentHasContinuingDepths: boolean;
   parentIsLast: boolean;
+  parentIsOrphan: boolean;
   quickTrace: QuickTraceContextChildrenProps;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
@@ -63,6 +64,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   traceViewRef: React.RefObject<HTMLDivElement>;
   waterfallModel: WaterfallModel;
   focusedSpanIds?: Set<string>;
+  measurements?: Map<number, VerticalMark>;
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
 
@@ -403,13 +405,11 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
       removeContentSpanBarRef,
       storeSpanBar,
       traceHasMultipleRoots,
-      traceInfo,
     } = this.props;
 
     const generateBounds = waterfallModel.generateBounds({
       viewStart: 0,
       viewEnd: 1,
-      traceInfo,
     });
 
     type AccType = {
@@ -482,16 +482,28 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
         });
 
         if (!this.props.parentIsLast) {
-          continuingTreeDepthPastParent.push(this.props.parentGeneration);
+          const value: TreeDepthType = this.props.parentIsOrphan
+            ? {depth: this.props.parentGeneration, type: 'orphan'}
+            : this.props.parentGeneration;
+          continuingTreeDepthPastParent.push(value);
         }
 
         // Add continuing depths from the trace level to to span rows.
+        const {parentContinuingDepths, parentGeneration} = this.props;
         const minDepth = traceHasMultipleRoots ? 1 : 2;
         if (
-          (this.props.parentGeneration > 2 || traceHasMultipleRoots) &&
-          this.props.parentHasContinuingDepths
+          (parentGeneration > 2 || traceHasMultipleRoots) &&
+          parentContinuingDepths.length > 0
         ) {
-          let i = this.props.parentGeneration - 1;
+          // To avoid an extra connector line, skip a step of continuing depths if the parent txn is at least 2 generations deep
+          // and it's a last child.
+          const generationOffset =
+            parentContinuingDepths.length === 1 &&
+            parentContinuingDepths[0].depth === 0 &&
+            parentGeneration > 2
+              ? 2
+              : 1;
+          let i = parentGeneration - generationOffset;
           while (i >= minDepth) {
             const value: TreeDepthType =
               traceHasMultipleRoots && i === 1 ? {depth: i, type: 'orphan'} : i;
@@ -679,6 +691,7 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     return (
       <SpanRow
         {...props}
+        measurements={this.props.measurements}
         quickTrace={this.props.quickTrace}
         location={this.props.location}
         onRowClick={this.props.onRowClick}
@@ -789,22 +802,24 @@ class NewTraceDetailsSpanTree extends Component<PropType> {
     return (
       <TraceViewContainer>
         <WindowScroller onScroll={this.throttledOnScroll}>
-          {({height, isScrolling, onChildScroll, scrollTop}) => (
+          {({height, isScrolling, onChildScroll, scrollTop, registerChild}) => (
             <AutoSizer disableHeight>
               {({width}) => (
-                <ReactVirtualizedList
-                  autoHeight
-                  isScrolling={isScrolling}
-                  onScroll={onChildScroll}
-                  scrollTop={scrollTop}
-                  deferredMeasurementCache={this.cache}
-                  height={height}
-                  width={width}
-                  rowHeight={this.cache.rowHeight}
-                  rowCount={spanTree.length}
-                  rowRenderer={props => this.renderRow(props, spanTree)}
-                  ref={listRef}
-                />
+                <div ref={el => registerChild(el)}>
+                  <ReactVirtualizedList
+                    autoHeight
+                    isScrolling={isScrolling}
+                    onScroll={onChildScroll}
+                    scrollTop={scrollTop}
+                    deferredMeasurementCache={this.cache}
+                    height={height}
+                    width={width}
+                    rowHeight={this.cache.rowHeight}
+                    rowCount={spanTree.length}
+                    rowRenderer={props => this.renderRow(props, spanTree)}
+                    ref={listRef}
+                  />
+                </div>
               )}
             </AutoSizer>
           )}
@@ -826,6 +841,7 @@ type SpanRowProps = ListRowProps & {
   removeSpanRowFromState: (spanId: string) => void;
   spanContextProps: SpanContext.SpanContextProps;
   spanTree: SpanTreeNode[];
+  measurements?: Map<number, VerticalMark>;
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
 
@@ -843,6 +859,7 @@ function SpanRow(props: SpanRowProps) {
     onRowClick,
     quickTrace,
     location,
+    measurements,
   } = props;
 
   const rowRef = useRef<HTMLDivElement>(null);
@@ -876,6 +893,7 @@ function SpanRow(props: SpanRowProps) {
         return (
           <NewTraceDetailsProfiledSpanBar
             fromTraceView
+            measurements={measurements}
             onRowClick={onRowClick}
             key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
             {...node.props}
@@ -887,6 +905,7 @@ function SpanRow(props: SpanRowProps) {
       case SpanTreeNodeType.DESCENDANT_GROUP:
         return (
           <SpanDescendantGroupBar
+            measurements={measurements}
             key={`${node.props.spanNumber}-span-group`}
             {...node.props}
             didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
@@ -895,6 +914,7 @@ function SpanRow(props: SpanRowProps) {
       case SpanTreeNodeType.SIBLING_GROUP:
         return (
           <SpanSiblingGroupBar
+            measurements={measurements}
             key={`${node.props.spanNumber}-span-sibling`}
             {...node.props}
             didAnchoredSpanMount={extraProps.didAnchoredSpanMount}

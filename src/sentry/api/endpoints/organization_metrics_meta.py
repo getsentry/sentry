@@ -17,7 +17,7 @@ COUNT_NULL = "count_null_transactions()"
 @region_silo_endpoint
 class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """Metrics data can contain less than great data like null or unparameterized transactions
 
@@ -67,7 +67,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
 @region_silo_endpoint
 class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     """Return the total sum of metrics data, the null transactions and unparameterized transactions
 

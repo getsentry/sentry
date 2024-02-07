@@ -20,8 +20,8 @@ DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member
 class OrganizationApiKeyIndexEndpoint(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAdminPermission,)
 

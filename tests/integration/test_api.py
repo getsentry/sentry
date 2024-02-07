@@ -2,7 +2,9 @@ from datetime import datetime, timedelta, timezone
 
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.silo import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 
@@ -10,6 +12,7 @@ pytestmark = [requires_snuba]
 
 
 # TODO: move these into the tests/sentry/auth directory and remove deprecated logic
+@region_silo_test
 class AuthenticationTest(AuthProviderTestCase):
     def setUp(self):
         self.organization = self.create_organization(name="foo")
@@ -24,10 +27,11 @@ class AuthenticationTest(AuthProviderTestCase):
         member.save()
         event = self.store_event(data={}, project_id=self.project.id)
         group_id = event.group_id
-        auth_provider = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy", flags=0
-        )
-        AuthIdentity.objects.create(auth_provider=auth_provider, user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_provider = AuthProvider.objects.create(
+                organization_id=self.organization.id, provider="dummy", flags=0
+            )
+            AuthIdentity.objects.create(auth_provider=auth_provider, user=self.user)
         self.login_as(self.user)
 
         self.paths = (
@@ -45,8 +49,9 @@ class AuthenticationTest(AuthProviderTestCase):
         self._test_paths_with_status(401)
 
     def test_sso_superuser_required(self):
-        # superuser should still require SSO as they're a member of the org
-        self.user.update(is_superuser=True)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # superuser should still require SSO as they're a member of the org
+            self.user.update(is_superuser=True)
         self._test_paths_with_status(401)
 
     def test_sso_with_expiry_valid(self):

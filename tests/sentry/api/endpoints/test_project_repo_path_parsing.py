@@ -1,6 +1,5 @@
 from django.urls import reverse
 
-from sentry.models.integrations.integration import Integration
 from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
@@ -31,14 +30,14 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def setUp(self):
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration, self.oi = self.create_provider_integration_for(
+                self.org,
+                self.user,
                 provider="github",
                 name="getsentry",
                 external_id="1234",
                 metadata={"domain_name": "github.com/getsentry"},
             )
-
-            self.oi = self.integration.add_organization(self.org, self.user)
 
         self.repo = self.create_repo(
             project=self.project,
@@ -75,7 +74,7 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
     def test_no_integration(self):
         # create the integration but don't install it
         with assume_test_silo_mode(SiloMode.CONTROL):
-            Integration.objects.create(
+            self.create_provider_integration(
                 provider="github",
                 name="steve",
                 external_id="345",
@@ -152,7 +151,7 @@ class ProjectStacktraceLinkGitlabTest(BaseStacktraceLinkTest):
         super().setUp()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="gitlab",
                 name="getsentry",
                 external_id="1234",

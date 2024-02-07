@@ -1,32 +1,12 @@
 import {useCallback, useEffect, useState} from 'react';
 
-import {ApiResult} from 'sentry/api';
-import {DateString, MetricsApiResponse} from 'sentry/types';
-import {
-  getMetricsApiRequestQuery,
-  mapToMRIFields,
-  MetricsQuery,
-} from 'sentry/utils/metrics';
+import type {DateString, MetricsApiResponse} from 'sentry/types';
+import {getMetricsApiRequestQuery, mapToMRIFields} from 'sentry/utils/metrics';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {MetricsApiRequestQueryOptions} from '../../types/metrics';
-
-function getRefetchInterval(
-  data: ApiResult | undefined,
-  interval: string
-): number | false {
-  // no data means request failed - don't refetch
-  if (!data) {
-    return false;
-  }
-  if (interval === '10s') {
-    // refetch every 10 seconds
-    return 10 * 1000;
-  }
-  // refetch every 60 seconds
-  return 60 * 1000;
-}
+import type {MetricsApiRequestQueryOptions} from '../../types/metrics';
 
 export function useMetricsData(
   {mri, op, datetime, projects, environments, query, groupBy}: MetricsQuery,
@@ -34,20 +14,16 @@ export function useMetricsData(
 ) {
   const organization = useOrganization();
 
-  const useNewMetricsLayer = organization.features.includes(
-    'metrics-api-new-metrics-layer'
-  );
-
   const field = op ? `${op}(${mri})` : mri;
 
   const queryToSend = getMetricsApiRequestQuery(
     {
       field,
-      query: `${query ?? ''}`,
+      query: query ?? '',
       groupBy,
     },
     {datetime, projects, environments},
-    {...overrides, useNewMetricsLayer}
+    {...overrides}
   );
 
   const metricsApiRepsonse = useApiQuery<MetricsApiResponse>(
@@ -57,7 +33,7 @@ export function useMetricsData(
       staleTime: 0,
       refetchOnReconnect: true,
       refetchOnWindowFocus: true,
-      refetchInterval: data => getRefetchInterval(data, queryToSend.interval),
+      refetchInterval: false,
     }
   );
   mapToMRIFields(metricsApiRepsonse.data, [field]);
@@ -69,11 +45,16 @@ export function useMetricsData(
 // 1. return data is undefined only during the initial load
 // 2. provides a callback to trim the data to a specific time range when chart zoom is used
 export function useMetricsDataZoom(
-  props: MetricsQuery,
+  metricsQuery: MetricsQuery,
   overrides: Partial<MetricsApiRequestQueryOptions> = {}
 ) {
   const [metricsData, setMetricsData] = useState<MetricsApiResponse | undefined>();
-  const {data: rawData, isLoading, isError, error} = useMetricsData(props, overrides);
+  const {
+    data: rawData,
+    isLoading,
+    isError,
+    error,
+  } = useMetricsData(metricsQuery, overrides);
 
   useEffect(() => {
     if (rawData) {

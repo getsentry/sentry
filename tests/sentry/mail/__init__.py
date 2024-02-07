@@ -1,4 +1,5 @@
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 from unittest import mock
 
 from sentry.event_manager import EventManager, get_event_type

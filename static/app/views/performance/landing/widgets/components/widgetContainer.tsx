@@ -5,16 +5,17 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {Field} from 'sentry/utils/discover/fields';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
@@ -26,11 +27,8 @@ import SlowScreens from 'sentry/views/performance/landing/widgets/widgets/slowSc
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {_setChartSetting, filterAllowedChartsMetrics, getChartSetting} from '../utils';
-import {
-  ChartDefinition,
-  PerformanceWidgetSetting,
-  WIDGET_DEFINITIONS,
-} from '../widgetDefinitions';
+import type {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
+import {WIDGET_DEFINITIONS} from '../widgetDefinitions';
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
 import {PerformanceScoreWidget} from '../widgets/performanceScoreWidget';
@@ -39,7 +37,7 @@ import {StackedAreaChartListWidget} from '../widgets/stackedAreaChartListWidget'
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
 
-import {ChartRowProps} from './widgetChartRow';
+import type {ChartRowProps} from './widgetChartRow';
 
 interface Props extends ChartRowProps {
   allowedCharts: PerformanceWidgetSetting[];

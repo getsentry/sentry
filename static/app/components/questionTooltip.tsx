@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
+import type {TooltipProps} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import type {IconSize} from 'sentry/utils/theme';
 
@@ -12,13 +13,13 @@ interface QuestionProps
     >
   > {
   /**
-   * Set's the size of the icon.
+   * Sets the size of the icon.
    *
    * Remember to keep the size relative to the text or content it is near.
    */
   size: IconSize;
   /**
-   * The message to show in the question icons tooltip
+   * The message to show in the question icons tooltip.
    */
   title: React.ReactNode;
   className?: string;

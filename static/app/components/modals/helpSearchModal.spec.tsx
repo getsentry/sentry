@@ -3,17 +3,22 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
-import App from 'sentry/views/app';
 
 describe('Docs Search Modal', function () {
   beforeEach(function () {
+    const organization = OrganizationFixture();
+
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [OrganizationFixture({slug: 'billy-org', name: 'billy org'})],
+      body: [organization],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: organization,
     });
 
     MockApiClient.addMockResponse({
@@ -42,29 +47,13 @@ describe('Docs Search Modal', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
-    });
-
-    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });
   });
 
   it('can open help search modal', async function () {
-    const {routerContext, routerProps} = initializeOrg();
-
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>,
-      {
-        context: routerContext,
-      }
-    );
+    renderGlobalModal();
 
     // No Modal
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

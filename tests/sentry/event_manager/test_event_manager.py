@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import time
 from unittest import mock
 from unittest.mock import MagicMock, patch
@@ -16,7 +16,7 @@ from arroyo.types import Partition, Topic
 from django.conf import settings
 from django.core.cache import cache
 from django.test.utils import override_settings
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from rest_framework.status import HTTP_404_NOT_FOUND
 
 from fixtures.github import (
@@ -46,6 +46,7 @@ from sentry.event_manager import (
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
+from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import (
@@ -67,6 +68,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.integrations import Integration
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
@@ -77,7 +79,6 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.userreport import UserReport
 from sentry.options import set
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
-from sentry.silo import SiloMode
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -91,7 +92,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -286,7 +287,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         old_release = Release.objects.create(
             version="a",
             organization_id=self.project.organization_id,
-            date_added=timezone.now() - timedelta(minutes=30),
+            date_added=django_timezone.now() - timedelta(minutes=30),
         )
         old_release.add_project(self.project)
 
@@ -362,7 +363,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Create a release and a group associated with it
         old_release = self.create_release(
-            version="foobar", date_added=timezone.now() - timedelta(minutes=30)
+            version="foobar", date_added=django_timezone.now() - timedelta(minutes=30)
         )
         manager = EventManager(
             make_event(
@@ -422,7 +423,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Create a release and a group associated with it
         old_release = self.create_release(
-            version="a", date_added=timezone.now() - timedelta(minutes=30)
+            version="a", date_added=django_timezone.now() - timedelta(minutes=30)
         )
         manager = EventManager(
             make_event(
@@ -482,7 +483,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Create a release and a group associated with it
         old_release = self.create_release(
-            version="foo@1.0.0", date_added=timezone.now() - timedelta(minutes=30)
+            version="foo@1.0.0", date_added=django_timezone.now() - timedelta(minutes=30)
         )
         manager = EventManager(
             make_event(
@@ -725,7 +726,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         old_release = Release.objects.create(
             version="a",
             organization_id=self.project.organization_id,
-            date_added=timezone.now() - timedelta(minutes=30),
+            date_added=django_timezone.now() - timedelta(minutes=30),
         )
         old_release.add_project(self.project)
 
@@ -2116,7 +2117,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager = EventManager(event)
         manager.normalize()
 
-        grouping_config = {
+        grouping_config: GroupingConfig = {
             "enhancements": enhancement.dumps(),
             "id": "mobile:2021-02-12",
         }
@@ -2126,7 +2127,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
-        assert event1.get_hashes().hashes == event2.get_hashes(grouping_config).hashes
+        assert (
+            event1.get_hashes().hashes
+            == event2.get_hashes(load_grouping_config(grouping_config)).hashes
+        )
 
     def test_write_none_tree_labels(self):
         """Write tree labels even if None"""
@@ -2230,7 +2234,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
             # and we should see an audit log record.
-            with assume_test_silo_mode(SiloMode.CONTROL):
+            with assume_test_silo_mode_of(AuditLogEntry):
                 record = AuditLogEntry.objects.first()
             assert record.event == audit_log.get_event_id("PROJECT_EDIT")
             assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
@@ -2451,14 +2455,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     )
     def test_perf_issue_slow_db_issue_is_created(self):
         def attempt_to_generate_slow_db_issue() -> Event:
-            for _ in range(100):
-                event = self.create_performance_issue(
-                    event_data=make_event(**get_event("slow-db-spans")),
-                    issue_type=PerformanceSlowDBQueryGroupType,
-                )
-                last_event = event
-
-            return last_event
+            return self.create_performance_issue(
+                event_data=make_event(**get_event("slow-db-spans")),
+                issue_type=PerformanceSlowDBQueryGroupType,
+            )
 
         # Should not create the group without the feature flag
         last_event = attempt_to_generate_slow_db_issue()
@@ -2552,14 +2552,16 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert "grouping.in_app_frame_mix" not in metrics_logged
 
 
+@region_silo_test
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
     def setUp(self):
         super().setUp()
         self.repo_name = "example"
         self.project = self.create_project(name="foo")
-        self.org_integration = self.integration.add_organization(
-            self.project.organization, self.user
-        )
+        with assume_test_silo_mode_of(Integration):
+            self.org_integration = self.integration.add_organization(
+                self.project.organization, self.user
+            )
         self.repo = self.create_repo(
             project=self.project,
             name=self.repo_name,

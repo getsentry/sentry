@@ -1,4 +1,5 @@
-import {Fragment, ReactElement} from 'react';
+import type {ReactElement} from 'react';
+import {Fragment} from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -72,7 +73,7 @@ const StyledNavItem = styled(RouterLink)`
     outline: none;
   }
 
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     background: ${p => p.theme.backgroundSecondary};
     padding-left: 15px;

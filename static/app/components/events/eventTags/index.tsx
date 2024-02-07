@@ -1,12 +1,12 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import Pills from 'sentry/components/pills';
-import {Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';

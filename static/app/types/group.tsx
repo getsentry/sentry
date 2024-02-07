@@ -1,9 +1,16 @@
+import type {TitledPlugin} from 'sentry/components/group/pluginActions';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
-import type {Commit, PullRequest, Repository} from './integrations';
+import type {
+  Commit,
+  ExternalIssue,
+  PlatformExternalIssue,
+  PullRequest,
+  Repository,
+} from './integrations';
 import type {Team} from './organization';
 import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
@@ -54,6 +61,7 @@ export enum IssueCategory {
   ERROR = 'error',
   CRON = 'cron',
   PROFILE = 'profile',
+  REPLAY = 'replay',
 }
 
 export enum IssueType {
@@ -84,6 +92,9 @@ export enum IssueType {
   PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
   PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
   PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
+
+  // Replay
+  REPLAY_RAGE_CLICK = 'replay_click_rage',
 }
 
 export enum IssueTitle {
@@ -311,6 +322,7 @@ export enum GroupActivityType {
   MARK_REVIEWED = 'mark_reviewed',
   AUTO_SET_ONGOING = 'auto_set_ongoing',
   SET_ESCALATING = 'set_escalating',
+  SET_PRIORITY = 'set_priority',
 }
 
 interface GroupActivityBase {
@@ -322,7 +334,7 @@ interface GroupActivityBase {
   user?: null | User;
 }
 
-interface GroupActivityNote extends GroupActivityBase {
+export interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
   };
@@ -330,12 +342,55 @@ interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, any>;
+  data: Record<string, unknown>;
+  type: GroupActivityType.SET_RESOLVED;
+}
+
+/**
+ * An integration marks an issue as resolved
+ */
+interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
+  data: {
+    integration_id: number;
+    /**
+     * Human readable name of the integration
+     */
+    provider: string;
+    /**
+     * The key of the integration
+     */
+    provider_key: string;
+  };
   type: GroupActivityType.SET_RESOLVED;
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, any>;
+  data: Record<string, unknown>;
+  type: GroupActivityType.SET_UNRESOLVED;
+}
+
+interface GroupActivitySetUnresolvedForecast extends GroupActivityBase {
+  data: {
+    forecast: number;
+  };
+  type: GroupActivityType.SET_UNRESOLVED;
+}
+
+/**
+ * An integration marks an issue as unresolved
+ */
+interface GroupActivitySetUnresolvedIntegration extends GroupActivityBase {
+  data: {
+    integration_id: number;
+    /**
+     * Human readable name of the integration
+     */
+    provider: string;
+    /**
+     * The key of the integration
+     */
+    provider_key: string;
+  };
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
@@ -488,6 +543,14 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
   type: GroupActivityType.SET_ESCALATING;
 }
 
+export interface GroupActivitySetPriority extends GroupActivityBase {
+  data: {
+    priority: PriorityLevel;
+    reason: string;
+  };
+  type: GroupActivityType.SET_PRIORITY;
+}
+
 export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
@@ -516,7 +579,10 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
+  | GroupActivitySetResolvedIntegration
   | GroupActivitySetUnresolved
+  | GroupActivitySetUnresolvedForecast
+  | GroupActivitySetUnresolvedIntegration
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
@@ -536,7 +602,8 @@ export type GroupActivity =
   | GroupActivityAssigned
   | GroupActivityCreateIssue
   | GroupActivityAutoSetOngoing
-  | GroupActivitySetEscalating;
+  | GroupActivitySetEscalating
+  | GroupActivitySetPriority;
 
 export type Activity = GroupActivity;
 
@@ -631,6 +698,12 @@ export const enum GroupSubstatus {
   NEW = 'new',
 }
 
+export const enum PriorityLevel {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -653,9 +726,10 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: any[]; // TODO(ts)
+  pluginActions: TitledPlugin[];
   pluginContexts: any[]; // TODO(ts)
-  pluginIssues: any[]; // TODO(ts)
+  pluginIssues: TitledPlugin[];
+  priority: PriorityLevel;
   project: Project;
   seenBy: User[];
   shareId: string;
@@ -667,8 +741,10 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
   owners?: SuggestedOwner[] | null;
+  sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
 }
 
@@ -758,7 +834,7 @@ export type ChunkType = {
 };
 
 /**
- * User Feedback
+ * Old User Feedback
  */
 export type UserReport = {
   comments: string;

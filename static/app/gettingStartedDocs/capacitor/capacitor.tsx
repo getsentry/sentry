@@ -11,6 +11,7 @@ import {
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 export enum SiblingOption {
@@ -21,9 +22,9 @@ export enum SiblingOption {
   VUE2 = 'vue2',
 }
 
-type PlaformOptionKey = 'siblingOption';
+type PlatformOptionKey = 'siblingOption';
 
-const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   siblingOption: {
     label: t('Sibling Package'),
     items: [
@@ -32,7 +33,7 @@ const platformOptions: Record<PlaformOptionKey, PlatformOption> = {
         value: SiblingOption.ANGULARV12,
       },
       {
-        label: t('Angular 10 and 11'),
+        label: t('Angular 10 & 11'),
         value: SiblingOption.ANGULARV10,
       },
       {
@@ -59,8 +60,8 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
     siblingOption === SiblingOption.VUE2
       ? `Vue,`
       : siblingOption === SiblingOption.VUE3
-      ? 'app,'
-      : ''
+        ? 'app,'
+        : ''
   }dsn: "${params.dsn}",
   integrations: [${
     params.isPerformanceSelected
@@ -132,8 +133,8 @@ function getPerformanceIntegration(siblingOption: string): string {
     isVue(siblingOption)
       ? `routingInstrumentation: SentryVue.vueRouterInstrumentation(router),`
       : isAngular(siblingOption)
-      ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
-      : ''
+        ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
+        : ''
   }`;
 }
 
@@ -419,6 +420,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
         showExtraStep: false,
         showDescription: false,
       }),
+      additionalInfo: tracePropagationMessage,
     },
   ],
   verify: () => [],

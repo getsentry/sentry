@@ -729,7 +729,7 @@ class RegionJiraIntegrationTest(APITestCase):
 class JiraIntegrationTest(APITestCase):
     @cached_property
     def integration(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -748,7 +748,7 @@ class JiraIntegrationTest(APITestCase):
         self.login_as(self.user)
 
     def test_update_organization_config_sync_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -860,7 +860,7 @@ class JiraIntegrationTest(APITestCase):
         )
 
     def test_update_organization_config_issues_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -894,7 +894,7 @@ class JiraIntegrationTest(APITestCase):
         ]
 
     def test_get_config_data(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         org_integration = OrganizationIntegration.objects.get(
@@ -929,7 +929,7 @@ class JiraIntegrationTest(APITestCase):
         }
 
     def test_get_config_data_issues_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -955,7 +955,7 @@ class JiraIntegrationTest(APITestCase):
 class JiraMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -1088,7 +1088,7 @@ class JiraInstallationTest(IntegrationTestCase):
             "base_url": "https://example.atlassian.net",
             "domain_name": "example.atlassian.net",
         }
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             external_id="my-external-id",

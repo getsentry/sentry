@@ -1,8 +1,8 @@
 import mimetypes
-import random
 from dataclasses import dataclass
+from hashlib import sha1
 from io import BytesIO
-from typing import IO, Optional
+from typing import IO
 
 import zstandard
 from django.conf import settings
@@ -11,7 +11,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
 
-from sentry import options
 from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
@@ -45,8 +44,8 @@ class PutfileResult:
     content_type: str
     size: int
     sha1: str
-    file_id: Optional[int] = None
-    blob_path: Optional[str] = None
+    file_id: int | None = None
+    blob_path: str | None = None
 
 
 @region_silo_only_model
@@ -86,7 +85,10 @@ class EventAttachment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_eventattachment"
-        index_together = ("project_id", "date_added")
+        indexes = (
+            models.Index(fields=("project_id", "date_added")),
+            models.Index(fields=("project_id", "event_id")),
+        )
 
     __repr__ = sane_repr("event_id", "name")
 
@@ -124,6 +126,9 @@ class EventAttachment(Model):
         return rv
 
     def getfile(self) -> IO:
+        if self.size == 0:
+            return BytesIO(b"")
+
         if self.blob_path:
             if self.blob_path.startswith("eventattachments/v1/"):
                 storage = get_storage()
@@ -142,12 +147,15 @@ class EventAttachment(Model):
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
         from sentry.models.files import File, FileBlob
 
-        blob = BytesIO(attachment.data)
         content_type = normalize_content_type(attachment.content_type, attachment.name)
 
-        store_blobs = project_id in options.get("eventattachments.store-blobs.projects") or (
-            random.random() < options.get("eventattachments.store-blobs.sample-rate")
-        )
+        if len(attachment.data) == 0:
+            return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
+
+        blob = BytesIO(attachment.data)
+
+        # NOTE: we still keep the old code around for a while before complete removing it
+        store_blobs = True
 
         if store_blobs:
             size, checksum = get_size_and_checksum(blob)

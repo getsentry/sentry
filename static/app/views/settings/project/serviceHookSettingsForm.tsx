@@ -10,7 +10,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {Organization, ServiceHook} from 'sentry/types';
+import type {Organization, ServiceHook} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'];

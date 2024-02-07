@@ -1,16 +1,23 @@
-from typing import Any, Dict, List, TypedDict
+from typing import Any, TypedDict
 
 import sentry.options
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
 from sentry.utils import metrics
 
 # List of options to include in the global config.
-RELAY_OPTIONS: List[str] = []
+RELAY_OPTIONS: list[str] = [
+    "profiling.profile_metrics.unsampled_profiles.platforms",
+    "profiling.profile_metrics.unsampled_profiles.sample_rate",
+    "profiling.profile_metrics.unsampled_profiles.enabled",
+    "relay.span-usage-metric",
+    "relay.cardinality-limiter.mode",
+    "relay.cardinality-limiter.error-sample-rate",
+]
 
 
 class GlobalConfig(TypedDict, total=False):
     measurements: MeasurementsConfig
-    options: Dict[str, Any]
+    options: dict[str, Any]
 
 
 @metrics.wraps("relay.globalconfig.get")

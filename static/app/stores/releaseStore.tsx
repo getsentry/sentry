@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {Deploy, Organization, Release} from 'sentry/types';
+import type {Deploy, Organization, Release} from 'sentry/types';
 
 type StoreRelease = Map<string, Release>;
 type StoreDeploys = Map<string, Array<Deploy>>;

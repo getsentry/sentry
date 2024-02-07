@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from django.db import router, transaction
 from django.db.models import Count, F
@@ -21,17 +22,18 @@ from sentry.services.hybrid_cloud.auth import (
     RpcOrganizationAuthConfig,
 )
 from sentry.services.hybrid_cloud.auth.serial import serialize_api_key, serialize_auth_provider
+from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.signals import sso_enabled
 from sentry.silo import unguarded_write
 
 
 class DatabaseBackedAuthService(AuthService):
-    def get_organization_api_keys(self, *, organization_id: int) -> List[RpcApiKey]:
+    def get_organization_api_keys(self, *, organization_id: int) -> list[RpcApiKey]:
         return [
             serialize_api_key(k) for k in ApiKey.objects.filter(organization_id=organization_id)
         ]
 
-    def get_organization_key(self, *, key: str) -> Optional[RpcApiKey]:
+    def get_organization_key(self, *, key: str) -> RpcApiKey | None:
         try:
             return serialize_api_key(ApiKey.objects.get(key=key))
         except ApiKey.DoesNotExist:
@@ -43,8 +45,8 @@ class DatabaseBackedAuthService(AuthService):
         organization_id: int,
         provider_key: str,
         provider_config: Mapping[str, Any],
-        user_id: Optional[int] = None,
-        sender: Optional[str] = None,
+        user_id: int | None = None,
+        sender: str | None = None,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProvider))):
             auth_provider_query = AuthProvider.objects.filter(
@@ -64,11 +66,13 @@ class DatabaseBackedAuthService(AuthService):
                 )
 
                 if user_id:
-                    sso_enabled.send_robust(
+                    organization_service.schedule_signal(
+                        sso_enabled,
                         organization_id=organization_id,
-                        user_id=user_id,
-                        provider=provider_key,
-                        sender=type(self) if sender is None else sender,
+                        args=dict(
+                            user_id=user_id,
+                            provider=provider_key,
+                        ),
                     )
 
     def create_auth_identity(
@@ -92,15 +96,15 @@ class DatabaseBackedAuthService(AuthService):
 
     def get_auth_provider_with_config(
         self, *, provider: str, config: Mapping[str, Any]
-    ) -> Optional[RpcAuthProvider]:
+    ) -> RpcAuthProvider | None:
         existing_provider = AuthProvider.objects.filter(provider=provider, config=config).first()
         if existing_provider is None:
             return None
         return serialize_auth_provider(existing_provider)
 
     def get_org_auth_config(
-        self, *, organization_ids: List[int]
-    ) -> List[RpcOrganizationAuthConfig]:
+        self, *, organization_ids: list[int]
+    ) -> list[RpcOrganizationAuthConfig]:
         aps = {
             ap.organization_id: ap
             for ap in AuthProvider.objects.filter(organization_id__in=organization_ids)
@@ -124,14 +128,14 @@ class DatabaseBackedAuthService(AuthService):
 
     def get_org_ids_with_scim(
         self,
-    ) -> List[int]:
+    ) -> list[int]:
         return list(
             AuthProvider.objects.filter(
                 flags=F("flags").bitor(AuthProvider.flags.scim_enabled)
             ).values_list("organization_id", flat=True)
         )
 
-    def get_auth_provider(self, organization_id: int) -> Optional[RpcAuthProvider]:
+    def get_auth_provider(self, organization_id: int) -> RpcAuthProvider | None:
         try:
             auth_provider = AuthProvider.objects.get(organization_id=organization_id)
         except AuthProvider.DoesNotExist:

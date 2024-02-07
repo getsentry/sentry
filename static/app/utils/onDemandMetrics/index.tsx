@@ -1,12 +1,9 @@
-import React from 'react';
+import type React from 'react';
 
-import {
-  ParseResult,
-  parseSearch,
-  Token,
-  TokenResult,
-} from 'sentry/components/searchSyntax/parser';
-import {AggregationKey, FieldKey, getFieldDefinition} from 'sentry/utils/fields';
+import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import type {FieldKey} from 'sentry/utils/fields';
+import {AggregationKey, getFieldDefinition} from 'sentry/utils/fields';
 import {
   ON_DEMAND_METRICS_UNSUPPORTED_TAGS,
   STANDARD_SEARCH_FIELD_KEYS,

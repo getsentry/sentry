@@ -6,12 +6,9 @@ import functools
 import itertools
 import threading
 import typing
+from collections.abc import Callable, Generator, Iterable
 from enum import Enum
-from typing import Any, Callable, Generator, Iterable
-
-from django.conf import settings
-
-from sentry.utils.env import in_test_environment
+from typing import Any
 
 if typing.TYPE_CHECKING:
     from sentry.types.region import Region
@@ -29,11 +26,9 @@ class SiloMode(Enum):
     REGION = "REGION"
 
     @classmethod
-    def resolve(cls, mode: str | SiloMode | None, default: SiloMode | None = None) -> SiloMode:
+    def resolve(cls, mode: str | SiloMode | None) -> SiloMode:
         if not mode:
-            if not default:
-                return SiloMode.MONOLITH
-            return default
+            return SiloMode.MONOLITH
         if isinstance(mode, SiloMode):
             return mode
         return cls[mode]
@@ -42,61 +37,56 @@ class SiloMode(Enum):
         return str(self.value)
 
     @classmethod
-    @contextlib.contextmanager
-    def enter_single_process_silo_context(
-        cls, mode: SiloMode, region: Region | None = None
-    ) -> Generator[None, None, None]:
-        """
-        Used by silo endpoint decorators and other contexts that help 'suggest' to acceptance testing and local
-        single process silo testing which 'silo context' the process should be running in.  Prevents re-entrant
-        cases unless the exit_single_process_silo_context is explicitly embedded, ensuring that this single process
-        silo mode simulates the boundaries explicitly between what would be separate processes in deployment.
-        """
-        if in_test_environment():
-            assert (
-                single_process_silo_mode_state.mode is None
-            ), "Re-entrant invariant broken! Use exit_single_process_silo_context to explicit pass 'fake' RPC boundaries."
-        old_mode = single_process_silo_mode_state.mode
-        old_region = single_process_silo_mode_state.region
-        single_process_silo_mode_state.mode = mode
-        single_process_silo_mode_state.region = region
-        try:
-            yield
-        finally:
-            single_process_silo_mode_state.mode = old_mode
-            single_process_silo_mode_state.region = old_region
-
-    @classmethod
-    @contextlib.contextmanager
-    def exit_single_process_silo_context(cls) -> Generator[None, None, None]:
-        """
-        Used by silo endpoint decorators and other contexts to signal that a potential inter process interaction
-        is being simulated locally for acceptance tests that validate the behavior of multiple endpoints with
-        process boundaries in play.  Call this inside of any RPC interaction to ensure that such acceptance tests
-        can 'swap' the silo context on the fly.
-        """
-        old_mode = single_process_silo_mode_state.mode
-        old_region = single_process_silo_mode_state.region
-        single_process_silo_mode_state.mode = None
-        single_process_silo_mode_state.region = None
-        try:
-            yield
-        finally:
-            single_process_silo_mode_state.mode = old_mode
-            single_process_silo_mode_state.region = old_region
-
-    @classmethod
     def get_current_mode(cls) -> SiloMode:
-        process_level_silo_mode = cls.resolve(settings.SILO_MODE)
-        return cls.resolve(single_process_silo_mode_state.mode, process_level_silo_mode)
+        from django.conf import settings
+
+        configured_mode: str | SiloMode | None = settings.SILO_MODE  # type: ignore[misc]
+        process_level_silo_mode = cls.resolve(configured_mode)
+        return SingleProcessSiloModeState.get_mode() or process_level_silo_mode
 
 
 class SingleProcessSiloModeState(threading.local):
-    mode: SiloMode | None = None
-    region: Region | None = None
+    """
+    Used by silo endpoint decorators and other contexts that help 'suggest' to
+    acceptance testing and local single process silo testing which 'silo context' the
+    process should be running in.
 
+    All calls to this class's methods are no-ops in a production environment,
+    but are monkey-patched in a test environment. See the function
+        sentry.testutils.silo.monkey_patch_single_process_silo_mode_state
+    for the test environment's method bodies.
+    """
 
-single_process_silo_mode_state = SingleProcessSiloModeState()
+    @staticmethod
+    @contextlib.contextmanager
+    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None, None, None]:
+        """
+        Prevents re-entrant cases unless the exit_single_process_silo_context is
+        explicitly embedded, ensuring that this single process silo mode simulates
+        the boundaries explicitly between what would be separate processes in
+        deployment.
+        """
+        yield
+
+    @staticmethod
+    @contextlib.contextmanager
+    def exit() -> Generator[None, None, None]:
+        """
+        Used by silo endpoint decorators and other contexts to signal that a
+        potential inter process interaction is being simulated locally for acceptance
+        tests that validate the behavior of multiple endpoints with process
+        boundaries in play.  Call this inside of any RPC interaction to ensure that
+        such acceptance tests can 'swap' the silo context on the fly.
+        """
+        yield
+
+    @staticmethod
+    def get_mode() -> SiloMode | None:
+        return None
+
+    @staticmethod
+    def get_region() -> Region | None:
+        return None
 
 
 class SiloLimit(abc.ABC):

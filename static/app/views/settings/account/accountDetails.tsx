@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 
 import {updateUser} from 'sentry/actionCreators/account';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,12 +12,8 @@ import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types';
-import {
-  ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 

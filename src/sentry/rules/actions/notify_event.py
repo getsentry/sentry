@@ -1,4 +1,4 @@
-from typing import Generator, Optional, Sequence
+from collections.abc import Generator, Sequence
 
 from sentry.eventstore.models import GroupEvent
 from sentry.plugins.base import plugins
@@ -33,7 +33,7 @@ class NotifyEventAction(EventAction):
         return results
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         group = event.group
 

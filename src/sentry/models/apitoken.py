@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import secrets
+from collections.abc import Collection
 from datetime import timedelta
-from typing import ClassVar, Collection, Optional, Tuple
+from typing import Any, ClassVar
 
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+from sentry import options
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -57,15 +59,12 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     def __str__(self):
         return force_str(self.token)
 
-    # TODO(mdtro): uncomment this function after 0583_apitoken_add_name_and_last_chars migration has been applied
-    # def save(self, *args: Any, **kwargs: Any) -> None:
-    #     # when a new ApiToken is created we take the last four characters of the token
-    #     # and save them in the `token_last_characters` field so users can identify
-    #     # tokens in the UI where they're mostly obfuscated
-    #     token_last_characters = self.token[-4:]
-    #     self.token_last_characters = token_last_characters
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if options.get("apitoken.auto-add-last-chars"):
+            token_last_characters = self.token[-4:]
+            self.token_last_characters = token_last_characters
 
-    #     return super().save(**kwargs)
+        return super().save(**kwargs)
 
     def outbox_region_names(self) -> Collection[str]:
         return list(find_all_region_names())
@@ -115,7 +114,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # If there is a token collision, generate new tokens.
         query = models.Q(token=self.token) | models.Q(
             refresh_token__isnull=False, refresh_token=self.refresh_token

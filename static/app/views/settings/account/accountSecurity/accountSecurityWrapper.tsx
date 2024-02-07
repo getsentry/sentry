@@ -1,11 +1,11 @@
 import {cloneElement} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
-import {Authenticator, OrganizationSummary, UserEmail} from 'sentry/types';
+import type {Authenticator, OrganizationSummary, UserEmail} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 const ENDPOINT = '/users/me/authenticators/';

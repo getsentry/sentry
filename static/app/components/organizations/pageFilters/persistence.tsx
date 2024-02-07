@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {PinnedPageFilter} from 'sentry/types';
+import type {PinnedPageFilter} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import localStorage from 'sentry/utils/localStorage';
 

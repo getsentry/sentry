@@ -50,11 +50,11 @@
               "lineno": 0,
               "in_app": false,
               "data": {
-              "orig_in_app": -1,
-              "symbolicator_status": "unknown_image"
+                "orig_in_app": -1,
+                "symbolicator_status": "unknown_image"
               },
               "instruction_addr": "0x7fff248b1f42"
-              }
+            }
           ]
         }
       }

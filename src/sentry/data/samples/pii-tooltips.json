@@ -7,28 +7,14 @@
             "foo": {
               "": {
                 "len": 25,
-                "rem": [
-                  [
-                    "my_rule",
-                    "s",
-                    0,
-                    10
-                  ]
-                ]
+                "rem": [["my_rule", "s", 0, 10]]
               }
             }
           },
           "message": {
             "": {
               "len": 25,
-              "rem": [
-                [
-                  "my_rule",
-                  "s",
-                  0,
-                  10
-                ]
-              ]
+              "rem": [["my_rule", "s", 0, 10]]
             }
           }
         }
@@ -39,27 +25,13 @@
         "app_name": {
           "": {
             "len": 17,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         },
         "app_version": {
           "": {
             "len": 5,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         }
       },
@@ -67,27 +39,13 @@
         "name": {
           "": {
             "len": 6,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         },
         "version": {
           "": {
             "len": 13,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         }
       },
@@ -95,14 +53,7 @@
         "arch": {
           "": {
             "len": 3,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         }
       },
@@ -110,27 +61,13 @@
         "name": {
           "": {
             "len": 4,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         },
         "version": {
           "": {
             "len": 5,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         }
       },
@@ -138,53 +75,25 @@
         "build": {
           "": {
             "len": 5,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         },
         "kernel_version": {
           "": {
             "len": 6,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         },
         "name": {
           "": {
             "len": 8,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         },
         "version": {
           "": {
             "len": 7,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         }
       },
@@ -192,27 +101,13 @@
         "name": {
           "": {
             "len": 8,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         },
         "version": {
           "": {
             "len": 5,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         }
       }
@@ -220,14 +115,7 @@
     "environment": {
       "": {
         "len": 11,
-        "rem": [
-          [
-            "my_rule",
-            "s",
-            0,
-            10
-          ]
-        ]
+        "rem": [["my_rule", "s", 0, 10]]
       }
     },
     "exception": {
@@ -239,53 +127,25 @@
                 "filename": {
                   "": {
                     "len": 56,
-                    "rem": [
-                      [
-                        "my_rule",
-                        "s",
-                        0,
-                        10
-                      ]
-                    ]
+                    "rem": [["my_rule", "s", 0, 10]]
                   }
                 },
                 "function": {
                   "": {
                     "len": 39,
-                    "rem": [
-                      [
-                        "my_rule",
-                        "s",
-                        0,
-                        10
-                      ]
-                    ]
+                    "rem": [["my_rule", "s", 0, 10]]
                   }
                 },
                 "module": {
                   "": {
                     "len": 7,
-                    "rem": [
-                      [
-                        "my_rule",
-                        "s",
-                        0,
-                        10
-                      ]
-                    ]
+                    "rem": [["my_rule", "s", 0, 10]]
                   }
                 },
                 "vars": {
                   "foo": {
                     "": {
-                      "rem": [
-                        [
-                          "my_rule",
-                          "s",
-                          0,
-                          10
-                        ]
-                      ]
+                      "rem": [["my_rule", "s", 0, 10]]
                     }
                   }
                 }
@@ -295,27 +155,13 @@
           "type": {
             "": {
               "len": 5,
-              "rem": [
-                [
-                  "my_rule",
-                  "s",
-                  0,
-                  10
-                ]
-              ]
+              "rem": [["my_rule", "s", 0, 10]]
             }
           },
           "value": {
             "": {
               "len": 33,
-              "rem": [
-                [
-                  "my_rule",
-                  "s",
-                  0,
-                  10
-                ]
-              ]
+              "rem": [["my_rule", "s", 0, 10]]
             }
           }
         }
@@ -325,14 +171,7 @@
       "crashed_process": {
         "": {
           "len": 7,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       }
     },
@@ -340,28 +179,14 @@
       "formatted": {
         "": {
           "len": 40,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       }
     },
     "release": {
       "": {
         "len": 26,
-        "rem": [
-          [
-            "my_rule",
-            "s",
-            0,
-            10
-          ]
-        ]
+        "rem": [["my_rule", "s", 0, 10]]
       }
     },
     "request": {
@@ -370,14 +195,7 @@
           "1": {
             "": {
               "len": 8,
-              "rem": [
-                [
-                  "my_rule",
-                  "s",
-                  0,
-                  10
-                ]
-              ]
+              "rem": [["my_rule", "s", 0, 10]]
             }
           }
         }
@@ -385,14 +203,7 @@
       "method": {
         "": {
           "len": 8,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       },
       "query_string": {
@@ -400,14 +211,7 @@
           "1": {
             "": {
               "len": 8,
-              "rem": [
-                [
-                  "my_rule",
-                  "s",
-                  0,
-                  10
-                ]
-              ]
+              "rem": [["my_rule", "s", 0, 10]]
             }
           }
         }
@@ -415,14 +219,7 @@
       "url": {
         "": {
           "len": 8,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       }
     },
@@ -430,27 +227,13 @@
       "name": {
         "": {
           "len": 15,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       },
       "version": {
         "": {
           "len": 5,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       }
     },
@@ -459,14 +242,7 @@
         "1": {
           "": {
             "len": 10,
-            "rem": [
-              [
-                "my_rule",
-                "s",
-                0,
-                10
-              ]
-            ]
+            "rem": [["my_rule", "s", 0, 10]]
           }
         }
       }
@@ -474,80 +250,38 @@
     "transaction": {
       "": {
         "len": 31,
-        "rem": [
-          [
-            "my_rule",
-            "s",
-            0,
-            10
-          ]
-        ]
+        "rem": [["my_rule", "s", 0, 10]]
       }
     },
     "user": {
       "email": {
         "": {
           "len": 8,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       },
       "id": {
         "": {
           "len": 8,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       },
       "ip_address": {
         "": {
           "len": 8,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       },
       "name": {
         "": {
           "len": 8,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       },
       "username": {
         "": {
           "len": 8,
-          "rem": [
-            [
-              "my_rule",
-              "s",
-              0,
-              10
-            ]
-          ]
+          "rem": [["my_rule", "s", 0, 10]]
         }
       }
     }
@@ -614,12 +348,8 @@
               "in_app": false,
               "lineno": 282,
               "module": "[censored] some other data",
-              "post_context": [
-                ""
-              ],
-              "pre_context": [
-                ""
-              ],
+              "post_context": [""],
+              "pre_context": [""],
               "vars": {
                 "foo": "[censored] some other data"
               }
@@ -640,31 +370,16 @@
   },
   "release": "[censored] some other data",
   "request": {
-    "headers": [
-      [
-        "X-Secret-Key",
-        "[censored] some other data"
-      ]
-    ],
+    "headers": [["X-Secret-Key", "[censored] some other data"]],
     "method": "[censored] some other data",
-    "query_string": [
-      [
-        "secret_key",
-        "[censored] some other data"
-      ]
-    ],
+    "query_string": [["secret_key", "[censored] some other data"]],
     "url": "[censored] some other data"
   },
   "sdk": {
     "name": "[censored] some other data",
     "version": "[censored] some other data"
   },
-  "tags": [
-    [
-      "event_type",
-      "[censored] some other data"
-    ]
-  ],
+  "tags": [["event_type", "[censored] some other data"]],
   "transaction": "[censored] some other data",
   "user": {
     "email": "[censored] some other data",

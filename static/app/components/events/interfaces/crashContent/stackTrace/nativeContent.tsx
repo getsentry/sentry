@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import StacktracePlatformIcon from 'sentry/components/events/interfaces/crashContent/stackTrace/platformIcon';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Frame, Group, PlatformKey} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {Frame, Group, PlatformKey} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import NativeFrame from '../../nativeFrame';

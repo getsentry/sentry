@@ -1,13 +1,13 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Literal, TypedDict
 
 from django.db.models import prefetch_related_objects
-from typing_extensions import TypedDict
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.models.project import Project
 from sentry.monitors.utils import fetch_associated_groups
+from sentry.monitors.validators import IntervalNames
 
 from .models import Monitor, MonitorCheckIn, MonitorEnvironment, MonitorStatus
 
@@ -36,8 +36,29 @@ class MonitorEnvironmentSerializer(Serializer):
         }
 
 
+class MonitorConfigSerializerResponse(TypedDict):
+    schedule_type: Literal["crontab", "interval"]
+    schedule: str | tuple[int, IntervalNames]
+    checkin_margin: int | None
+    max_runtime: int | None
+    timezone: str | None
+    failure_issue_threshold: int | None
+    recovery_threshold: int | None
+    alert_rule_id: int | None
+
+
+class MonitorAlertRuleTargetSerializerResponse(TypedDict):
+    targetIdentifier: int
+    targetType: str
+
+
+class MonitorAlertRuleSerializerResponse(TypedDict):
+    targets: list[MonitorAlertRuleTargetSerializerResponse]
+    environment: str
+
+
 class MonitorSerializerResponseOptional(TypedDict, total=False):
-    alertRule: Any  # TODO: Find out what type this is
+    alertRule: MonitorAlertRuleSerializerResponse
 
 
 class MonitorSerializerResponse(MonitorSerializerResponseOptional):
@@ -46,11 +67,16 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     slug: str
     status: str
     isMuted: bool
-    type: str
-    config: Any
+    type: Literal["cron_job", "unknown"]
+    config: MonitorConfigSerializerResponse
     dateCreated: datetime
     project: ProjectSerializerResponse
     environments: MonitorEnvironmentSerializerResponse
+
+
+class MonitorBulkEditResponse:
+    updated: list[MonitorSerializerResponse]
+    errored: list[MonitorSerializerResponse]
 
 
 @register(Monitor)
@@ -138,7 +164,7 @@ class MonitorSerializer(Serializer):
 
 
 class MonitorCheckInSerializerResponseOptional(TypedDict, total=False):
-    groups: List[str]
+    groups: list[str]
 
 
 class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional):
@@ -169,7 +195,7 @@ class MonitorCheckInSerializer(Serializer):
         if self._expand("groups") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
             trace_ids = []
-            trace_groups: Dict[str, List[Dict[str, int]]] = defaultdict(list)
+            trace_groups: dict[str, list[dict[str, int]]] = defaultdict(list)
 
             for item in item_list:
                 if item.trace_id:

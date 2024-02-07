@@ -1,10 +1,10 @@
 import {Component} from 'react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TimeseriesValue} from 'sentry/types';
+import type {TimeseriesValue} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 

@@ -1,4 +1,5 @@
-import {ComponentProps, Fragment} from 'react';
+import type {ComponentProps} from 'react';
+import {Fragment} from 'react';
 
 import FeatureBadge from 'sentry/components/featureBadge';
 import Matrix from 'sentry/components/stories/matrix';

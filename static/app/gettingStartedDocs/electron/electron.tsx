@@ -10,7 +10,7 @@ import {
   getReplaySDKSetupSnippet,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {tracePropagationMessage} from 'sentry/components/replaysOnboarding/utils';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -21,6 +21,21 @@ import * as Sentry from "@sentry/electron";
 Sentry.init({
   dsn: "${params.dsn}",
 });`;
+
+const getMetricsConfigureSnippet = (params: Params) => `
+import * as Sentry from '@sentry/electron/main';
+
+// main process init
+Sentry.init({
+  dsn: "${params.dsn}",
+  _experiments: {
+    metricsAggregator: true,
+  },
+});`;
+
+const getMetricsVerifySnippet = () => `
+// Add 4 to a counter named 'hits'
+Sentry.metrics.increment('hits', 4);`;
 
 const getInstallConfig = () => [
   {
@@ -140,6 +155,7 @@ const replayOnboarding: OnboardingConfig = {
               }),
             },
           ],
+          additionalInfo: tracePropagationMessage,
         },
       ],
     },
@@ -148,10 +164,92 @@ const replayOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const customMetricsOnboarding: OnboardingConfig = {
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'You need a minimum version [codeVersion:4.17.0] of [codePackage:@sentry/electron].',
+        {
+          codeVersion: <code />,
+          codePackage: <code />,
+        }
+      ),
+      configurations: getInstallConfig(),
+    },
+  ],
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'To enable capturing metrics, you first need to add the [codeIntegration:metricsAggregator] experiment to your [codeNamespace:Sentry.init] call in your main process.',
+        {
+          codeIntegration: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getMetricsConfigureSnippet(params),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes. Try out this example:",
+        {
+          codeCounters: <code />,
+          codeSets: <code />,
+          codeDistribution: <code />,
+          codeGauge: <code />,
+          codeNamespace: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'JavaScript',
+              value: 'javascript',
+              language: 'javascript',
+              code: getMetricsVerifySnippet(),
+            },
+          ],
+        },
+        {
+          description: t(
+            'With a bit of delay you can see the data appear in the Sentry UI.'
+          ),
+        },
+        {
+          description: tct(
+            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
+            {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/electron/metrics/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingNpm: replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  customMetricsOnboarding,
 };
 
 export default docs;

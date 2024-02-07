@@ -109,15 +109,17 @@ describe('ProjectFilters', function () {
     renderComponent();
 
     expect(
-      await screen.findByRole('checkbox', {name: 'Internet Explorer Version 8 and lower'})
+      await screen.findByRole('checkbox', {
+        name: 'Internet Explorer (Deprecated) Version 8 and lower',
+      })
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 9'})
+      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 9'})
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 10'})
+      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 10'})
     ).not.toBeChecked();
   });
 
@@ -128,7 +130,9 @@ describe('ProjectFilters', function () {
     const mock = createFilterMock(filter);
 
     await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Safari Version 5 and lower'})
+      await screen.findByRole('checkbox', {
+        name: 'Safari (Deprecated) Version 5 and lower',
+      })
     );
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     // Have to do this because no jest matcher for JS Set
@@ -140,7 +144,7 @@ describe('ProjectFilters', function () {
 
     // Toggle filter off
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 11'})
+      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 11'})
     );
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
       'ie_pre_9',
@@ -153,10 +157,12 @@ describe('ProjectFilters', function () {
 
     // Click ie9 and < ie9
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 9'})
+      screen.getByRole('checkbox', {name: 'Internet Explorer (Deprecated) Version 9'})
     );
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 8 and lower'})
+      screen.getByRole('checkbox', {
+        name: 'Internet Explorer (Deprecated) Version 8 and lower',
+      })
     );
 
     expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([

@@ -5,7 +5,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
-import {NavigationGroupProps} from 'sentry/views/settings/types';
+import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
 function SettingsNavigationGroup(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;

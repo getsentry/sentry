@@ -1,15 +1,16 @@
 import {Fragment, useCallback, useContext, useMemo, useRef} from 'react';
-import {AriaListBoxOptions, useListBox} from '@react-aria/listbox';
+import type {AriaListBoxOptions} from '@react-aria/listbox';
+import {useListBox} from '@react-aria/listbox';
 import {mergeProps} from '@react-aria/utils';
-import {ListState} from '@react-stately/list';
+import type {ListState} from '@react-stately/list';
 
 import {t} from 'sentry/locale';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from '../control';
 import {SelectFilterContext} from '../list';
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
-import {SelectSection} from '../types';
+import type {SelectSection} from '../types';
 
 import {ListBoxOption} from './option';
 import {ListBoxSection} from './section';

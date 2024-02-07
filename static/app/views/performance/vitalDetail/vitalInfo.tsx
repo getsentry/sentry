@@ -1,8 +1,8 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Organization} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
-import {WebVital} from 'sentry/utils/fields';
+import type {Organization} from 'sentry/types';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {WebVital} from 'sentry/utils/fields';
 import VitalsCardDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import toArray from 'sentry/utils/toArray';
 

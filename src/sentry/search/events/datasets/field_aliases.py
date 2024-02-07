@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List, Tuple
-
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Function
 
@@ -33,7 +31,7 @@ def resolve_team_key_transaction_alias(
 
 def get_team_transactions(
     builder: builder.QueryBuilder, resolve_metric_index: bool = False
-) -> List[Tuple[int, str]]:
+) -> list[tuple[int, str]]:
     org_id = builder.params.organization.id if builder.params.organization is not None else None
     project_ids = builder.params.project_ids
     team_ids = builder.params.team_ids
@@ -127,8 +125,8 @@ def resolve_span_module(builder, alias: str) -> SelectType:
 
 
 def resolve_device_class(builder: builder.QueryBuilder, alias: str) -> SelectType:
-    values: List[str] = []
-    keys: List[str] = []
+    values: list[str] = []
+    keys: list[str] = []
     for device_key, device_values in DEVICE_CLASS.items():
         values.extend(device_values)
         keys.extend([device_key] * len(device_values))

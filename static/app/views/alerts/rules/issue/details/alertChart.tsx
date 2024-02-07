@@ -10,7 +10,7 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import type {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';

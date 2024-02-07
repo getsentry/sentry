@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
@@ -7,7 +8,8 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -15,7 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {Team} from 'sentry/types';
+import type {Team} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -50,13 +52,8 @@ function TeamSettings({team, params}: TeamSettingsProps) {
     }
   };
 
-  const idpProvisioned = team.flags['idp:provisioned'];
-  const orgRoleList = organization.orgRoleList;
-  const hasOrgRoleFlag = organization.features.includes('org-roles-for-teams');
-
   const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
   const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
-  const hasOrgAdmin = hasEveryAccess(['org:admin'], {organization});
 
   return (
     <Fragment>
@@ -74,16 +71,11 @@ function TeamSettings({team, params}: TeamSettingsProps) {
         initialData={{
           name: team.name,
           slug: team.slug,
-          orgRole: team.orgRole,
         }}
       >
         <JsonForm
           additionalFieldProps={{
-            idpProvisioned,
-            hasOrgRoleFlag,
             hasTeamWrite,
-            hasOrgAdmin,
-            orgRoleList,
           }}
           forms={teamSettingsFields}
         />

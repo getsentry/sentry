@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import timezone
-from typing import Any, Dict, Mapping, Optional, Sequence, TypedDict
+from typing import Any, TypedDict
 
 from django.utils.datastructures import OrderedSet
 from isodate import parse_datetime
@@ -14,13 +15,13 @@ logger = logging.getLogger("sentry.integrations.github")
 
 
 class GitHubAuthor(TypedDict):
-    name: Optional[str]
-    email: Optional[str]
+    name: str | None
+    email: str | None
 
 
 class GitHubFileBlameCommit(TypedDict):
     oid: str
-    author: Optional[GitHubAuthor]
+    author: GitHubAuthor | None
     message: str
     committedDate: str
 
@@ -45,8 +46,8 @@ class GitHubGraphQlResponse(TypedDict):
     errors: list[dict[str, str]]
 
 
-FilePathMapping = Dict[str, Dict[str, OrderedSet]]
-GitHubRepositoryResponse = Dict[str, GitHubRefResponse]
+FilePathMapping = dict[str, dict[str, OrderedSet]]
+GitHubRepositoryResponse = dict[str, GitHubRefResponse]
 
 
 def generate_file_path_mapping(files: Sequence[SourceLineInfo]) -> FilePathMapping:
@@ -115,7 +116,7 @@ def extract_commits_from_blame_response(
     file_blames: list[FileBlameInfo] = []
     logger.info("get_blame_for_files.extract_commits_from_blame.missing_repository", extra=extra)
     for repo_index, (full_repo_name, ref_mapping) in enumerate(file_path_mapping.items()):
-        repo_mapping: Optional[GitHubRepositoryResponse] = response.get("data", {}).get(
+        repo_mapping: GitHubRepositoryResponse | None = response.get("data", {}).get(
             f"repository{repo_index}"
         )
         if not repo_mapping:
@@ -125,7 +126,7 @@ def extract_commits_from_blame_response(
             )
             continue
         for ref_index, (ref_name, file_paths) in enumerate(ref_mapping.items()):
-            ref: Optional[GitHubRefResponse] = repo_mapping.get(f"ref{ref_index}")
+            ref: GitHubRefResponse | None = repo_mapping.get(f"ref{ref_index}")
             if not isinstance(ref, dict):
                 logger.warning(
                     "get_blame_for_files.extract_commits_from_blame.missing_branch",
@@ -133,7 +134,7 @@ def extract_commits_from_blame_response(
                 )
                 continue
             for file_path_index, file_path in enumerate(file_paths):
-                blame: Optional[GitHubBlameResponse] = ref.get("target", {}).get(
+                blame: GitHubBlameResponse | None = ref.get("target", {}).get(
                     f"blame{file_path_index}"
                 )
                 if not blame:
@@ -175,7 +176,7 @@ def _get_matching_file_blame(
     file: SourceLineInfo,
     blame_ranges: Sequence[GitHubFileBlameRange],
     extra: dict[str, str | int | None],
-) -> Optional[FileBlameInfo]:
+) -> FileBlameInfo | None:
     """
     Generates a FileBlameInfo object for the given file. Searches the given blame range
     and validates that the commit is valid before creating the FileBlameInfo object.
@@ -191,7 +192,7 @@ def _get_matching_file_blame(
         )
         return None
 
-    commit: Optional[GitHubFileBlameCommit] = matching_blame_range.get("commit", None)
+    commit: GitHubFileBlameCommit | None = matching_blame_range.get("commit", None)
     if not commit:
         logger.error(
             "get_blame_for_files.extract_commits_from_blame.no_commit_data",

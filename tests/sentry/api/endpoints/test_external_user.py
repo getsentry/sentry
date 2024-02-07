@@ -1,7 +1,5 @@
-from sentry.models.integrations.integration import Integration
-from sentry.silo import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test
@@ -14,12 +12,10 @@ class ExternalUserTest(APITestCase):
         self.login_as(self.user)
 
         self.org_slug = self.organization.slug  # force creation
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
-                provider="github", name="GitHub", external_id="github:1"
-            )
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="github", name="GitHub", external_id="github:1"
+        )
 
-            self.integration.add_organization(self.organization, self.user)
         self.data = {
             "externalName": "@NisanthanNanthakumar",
             "provider": "github",
@@ -38,7 +34,8 @@ class ExternalUserTest(APITestCase):
         }
 
     def test_without_feature_flag(self):
-        response = self.get_error_response(self.org_slug, status_code=403, **self.data)
+        with self.feature({"organizations:integrations-codeowners": False}):
+            response = self.get_error_response(self.org_slug, status_code=403, **self.data)
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_missing_provider(self):

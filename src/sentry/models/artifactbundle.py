@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import zipfile
+from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
-from typing import IO, Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import IO, Any
 
 import sentry_sdk
 from django.conf import settings
@@ -38,11 +39,11 @@ class SourceFileType(Enum):
     INDEXED_RAM_BUNDLE = 4
 
     @classmethod
-    def choices(cls) -> List[Tuple[int, str]]:
+    def choices(cls) -> list[tuple[int, str]]:
         return [(key.value, key.name) for key in cls]
 
     @classmethod
-    def from_lowercase_key(cls, lowercase_key: Optional[str]) -> Optional[SourceFileType]:
+    def from_lowercase_key(cls, lowercase_key: str | None) -> SourceFileType | None:
         if lowercase_key is None:
             return None
 
@@ -58,7 +59,7 @@ class ArtifactBundleIndexingState(Enum):
     WAS_INDEXED = 1
 
     @classmethod
-    def choices(cls) -> List[Tuple[int, str]]:
+    def choices(cls) -> list[tuple[int, str]]:
         return [(key.value, key.name) for key in cls]
 
 
@@ -91,7 +92,7 @@ class ArtifactBundle(Model):
     @classmethod
     def get_release_associations(
         cls, organization_id: int, artifact_bundle: ArtifactBundle
-    ) -> List[Mapping[str, str | None]]:
+    ) -> list[Mapping[str, str | None]]:
         # We sort by id, since it's the best (already existing) field to define total order of
         # release associations that is somehow consistent with upload sequence.
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
@@ -185,7 +186,7 @@ class ArtifactBundleFlatFileIndex(Model):
         indexstore.set_bytes(self._indexstore_id(), encoded_data)
         self.update(date_added=timezone.now())
 
-    def load_flat_file_index(self) -> Optional[bytes]:
+    def load_flat_file_index(self) -> bytes | None:
         return indexstore.get_bytes(self._indexstore_id())
 
 
@@ -243,7 +244,7 @@ class ArtifactBundleIndex(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundleindex"
 
-        index_together = (("url", "artifact_bundle"),)
+        indexes = (models.Index(fields=("url", "artifact_bundle")),)
 
 
 @region_silo_only_model
@@ -264,7 +265,11 @@ class ReleaseArtifactBundle(Model):
 
         # We add the organization_id to this index since there are many occurrences of the same release/dist
         # pair, and we would like to reduce the result set by scoping to the org.
-        index_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
+        indexes = (
+            models.Index(
+                fields=("organization_id", "release_name", "dist_name", "artifact_bundle")
+            ),
+        )
 
 
 @region_silo_only_model
@@ -281,7 +286,7 @@ class DebugIdArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_debugidartifactbundle"
 
-        index_together = (("debug_id", "artifact_bundle"),)
+        indexes = (models.Index(fields=("debug_id", "artifact_bundle")),)
 
 
 @region_silo_only_model
@@ -297,7 +302,7 @@ class ProjectArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_projectartifactbundle"
 
-        index_together = (("project_id", "artifact_bundle"),)
+        indexes = (models.Index(fields=("project_id", "artifact_bundle")),)
 
 
 class ArtifactBundleArchive:
@@ -341,7 +346,7 @@ class ArtifactBundleArchive:
         return {k.lower(): v for k, v in headers.items()}
 
     @staticmethod
-    def normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
+    def normalize_debug_id(debug_id: str | None) -> str | None:
         if debug_id is None:
             return None
 
@@ -376,7 +381,7 @@ class ArtifactBundleArchive:
             # Building the map for url lookup.
             self._entries_by_url[url] = (file_path, info)
 
-    def get_all_urls(self) -> List[str]:
+    def get_all_urls(self) -> list[str]:
         return [url for url in self._entries_by_url.keys()]
 
     def get_all_debug_ids(self) -> Iterable[tuple[str, SourceFileType]]:
@@ -385,7 +390,7 @@ class ArtifactBundleArchive:
     def has_debug_ids(self):
         return len(self._entries_by_debug_id) > 0
 
-    def extract_bundle_id(self) -> Optional[str]:
+    def extract_bundle_id(self) -> str | None:
         bundle_id = self.manifest.get("debug_id")
 
         if bundle_id is not None:
@@ -393,25 +398,25 @@ class ArtifactBundleArchive:
 
         return bundle_id
 
-    def get_files(self) -> Dict[str, dict]:
+    def get_files(self) -> dict[str, dict]:
         return self.manifest.get("files", {})
 
-    def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
+    def get_file_by_url(self, url: str) -> tuple[IO, dict]:
         file_path, info = self._entries_by_url[url]
         return self._zip_file.open(file_path), info.get("headers", {})
 
     def get_file_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType
-    ) -> Tuple[IO[bytes], dict]:
+    ) -> tuple[IO[bytes], dict]:
         file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
 
-    def get_file(self, file_path: str) -> Tuple[IO, dict]:
+    def get_file(self, file_path: str) -> tuple[IO, dict]:
         files = self.manifest.get("files", {})
         file_info = files.get(file_path, {})
         return self._zip_file.open(file_path), file_info.get("headers", {})
 
-    def get_files_by(self, block: Callable[[str, dict], bool]) -> Dict[str, dict]:
+    def get_files_by(self, block: Callable[[str, dict], bool]) -> dict[str, dict]:
         files = self.manifest.get("files", {})
         results = {}
 
@@ -421,7 +426,7 @@ class ArtifactBundleArchive:
 
         return results
 
-    def get_files_by_url_or_debug_id(self, query: Optional[str]) -> Dict[str, dict]:
+    def get_files_by_url_or_debug_id(self, query: str | None) -> dict[str, dict]:
         def filter_function(_: str, info: dict) -> bool:
             if query is None:
                 return True
@@ -449,7 +454,7 @@ class ArtifactBundleArchive:
 
         return self.get_files_by(filter_function)
 
-    def get_file_info(self, file_path: Optional[str]) -> Optional[zipfile.ZipInfo]:
+    def get_file_info(self, file_path: str | None) -> zipfile.ZipInfo | None:
         if file_path is None:
             return None
         try:
@@ -459,7 +464,7 @@ class ArtifactBundleArchive:
 
     def get_file_url_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType
-    ) -> Optional[str]:
+    ) -> str | None:
         entry = self._entries_by_debug_id.get((debug_id, source_file_type))
         if entry is not None:
             return entry[1]

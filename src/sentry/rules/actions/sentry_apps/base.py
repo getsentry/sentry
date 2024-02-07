@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from sentry.models.project import Project
 from sentry.rules.actions import EventAction

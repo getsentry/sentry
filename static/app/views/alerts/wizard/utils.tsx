@@ -1,7 +1,7 @@
 import {getUseCaseFromMRI, parseField} from 'sentry/utils/metrics/mri';
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 
-import {MetricAlertType, WizardRuleTemplate} from './options';
+import type {MetricAlertType, WizardRuleTemplate} from './options';
 
 // A set of unique identifiers to be able to tie aggregate and dataset back to a wizard alert type
 const alertTypeIdentifiers: Record<Dataset, Partial<Record<MetricAlertType, string>>> = {

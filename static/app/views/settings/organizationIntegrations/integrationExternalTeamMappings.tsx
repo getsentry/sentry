@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
-import {
+import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,

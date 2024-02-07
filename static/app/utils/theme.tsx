@@ -13,6 +13,9 @@ export const lightColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
+  lightModeBlack: '#1D1127',
+  lightModeWhite: '#FFFFFF',
+
   surface100: '#F5F3F7',
   surface200: '#FAF9FB',
   surface300: '#FFFFFF',
@@ -76,6 +79,9 @@ export const lightColors = {
 export const darkColors = {
   black: '#1D1127',
   white: '#FFFFFF',
+
+  lightModeBlack: '#FFFFFF',
+  lightModeWhite: '#1D1127',
 
   surface100: '#18121C',
   surface200: '#1A141F',
@@ -152,7 +158,7 @@ const prismLight = {
 
 const prismDark = {
   '--prism-base': '#D6D0DC',
-  '--prism-selected': '#18121C',
+  '--prism-selected': '#393041',
   '--prism-inline-code': '#D6D0DC',
   '--prism-inline-code-background': '#18121C',
   '--prism-highlight-background': '#A8A2C31C',
@@ -415,6 +421,7 @@ const dataCategory = {
   [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
   [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
   [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
+  [DATA_CATEGORY_INFO.monitorSeat.plural]: CHART_PALETTE[4][5],
 };
 
 /**
@@ -651,8 +658,8 @@ const generatePrismVariables = (
 
 const iconSizes = {
   xs: '12px',
-  sm: '16px',
-  md: '20px',
+  sm: '14px',
+  md: '18px',
   lg: '24px',
   xl: '32px',
   xxl: '72px',

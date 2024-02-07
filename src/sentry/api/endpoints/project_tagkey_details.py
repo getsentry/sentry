@@ -15,7 +15,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 @region_silo_endpoint
 class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,

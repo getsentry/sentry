@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {RateUnits} from 'sentry/utils/discover/fields';
+import {RateUnit} from 'sentry/utils/discover/fields';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
 import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -26,7 +26,7 @@ export function SpanMetricsRibbon({spanMetrics}: Props) {
       <Block title={getThroughputTitle(op)}>
         <ThroughputCell
           rate={spanMetrics?.[`${SpanFunction.SPM}()`]}
-          unit={RateUnits.PER_MINUTE}
+          unit={RateUnit.PER_MINUTE}
         />
       </Block>
 

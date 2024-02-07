@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import Link from 'sentry/components/links/link';
@@ -12,9 +12,10 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, ReleaseProject} from 'sentry/types';
-import DiscoverQuery, {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import type {Organization, ReleaseProject} from 'sentry/types';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {
@@ -218,11 +219,11 @@ function PerformanceCardTable({
                 organization,
                 location,
               });
-              const allReleasesWebVitals = webVitalsRenderer?.map(
-                renderer => renderer?.(dataRow, {organization, location})
+              const allReleasesWebVitals = webVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
               );
-              const allReleasesSpans = spansRenderer?.map(
-                renderer => renderer?.(dataRow, {organization, location})
+              const allReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
               );
 
               return (
@@ -246,11 +247,11 @@ function PerformanceCardTable({
                 organization,
                 location,
               });
-              const thisReleasesWebVitals = webVitalsRenderer?.map(
-                renderer => renderer?.(dataRow, {organization, location})
+              const thisReleasesWebVitals = webVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
               );
-              const thisReleasesSpans = spansRenderer?.map(
-                renderer => renderer?.(dataRow, {organization, location})
+              const thisReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
               );
 
               return (
@@ -390,8 +391,8 @@ function PerformanceCardTable({
                 location,
               });
               const allReleasesApdex = apdexRenderer?.(dataRow, {organization, location});
-              const allReleasesSpans = spansRenderer?.map(
-                renderer => renderer?.(dataRow, {organization, location})
+              const allReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
               );
 
               return (
@@ -416,8 +417,8 @@ function PerformanceCardTable({
                 organization,
                 location,
               });
-              const thisReleasesSpans = spansRenderer?.map(
-                renderer => renderer?.(dataRow, {organization, location})
+              const thisReleasesSpans = spansRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
               );
 
               return (
@@ -513,8 +514,8 @@ function PerformanceCardTable({
                 organization,
                 location,
               });
-              const allReleasesMobile = mobileVitalsRenderer?.map(
-                renderer => renderer?.(dataRow, {organization, location})
+              const allReleasesMobile = mobileVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
               );
 
               return (
@@ -533,8 +534,8 @@ function PerformanceCardTable({
                 organization,
                 location,
               });
-              const thisReleasesMobile = mobileVitalsRenderer?.map(
-                renderer => renderer?.(dataRow, {organization, location})
+              const thisReleasesMobile = mobileVitalsRenderer?.map(renderer =>
+                renderer?.(dataRow, {organization, location})
               );
 
               return (

@@ -33,6 +33,6 @@ const Colorized = styled('div')<ColorizedProps>`
     p.trendDirection === 'good'
       ? p.theme.successText
       : p.trendDirection === 'bad'
-      ? p.theme.errorText
-      : p.theme.subText};
+        ? p.theme.errorText
+        : p.theme.subText};
 `;

@@ -1,4 +1,5 @@
-import {ComponentProps, CSSProperties, forwardRef, useMemo} from 'react';
+import type {ComponentProps, CSSProperties} from 'react';
+import {forwardRef, useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import classNames from 'classnames';
 
@@ -18,7 +19,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
-import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
+import type useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 const EMPTY_CELL = '--';

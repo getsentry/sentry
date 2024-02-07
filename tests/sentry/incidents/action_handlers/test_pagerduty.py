@@ -7,13 +7,15 @@ from sentry.incidents.action_handlers import PagerDutyActionHandler
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.integrations.integration import Integration
+from sentry.silo import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 from . import FireTest
 
 
+@region_silo_test
 @freeze_time()
 class PagerDutyActionHandlerTest(FireTest):
     def setUp(self):
@@ -26,19 +28,21 @@ class PagerDutyActionHandlerTest(FireTest):
                 "service_name": "hellboi",
             }
         ]
-        self.integration = Integration.objects.create(
+        self.integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            self.user,
             provider="pagerduty",
             name="Example PagerDuty",
             external_id="example-pagerduty",
             metadata={"service": service},
         )
-        org_integration = self.integration.add_organization(self.organization, self.user)
 
-        self.service = add_service(
-            org_integration,
-            service_name=service[0]["service_name"],
-            integration_key=service[0]["integration_key"],
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.service = add_service(
+                org_integration,
+                service_name=service[0]["service_name"],
+                integration_key=service[0]["integration_key"],
+            )
 
         self.action = self.create_alert_rule_trigger_action(
             target_identifier=self.service["id"],
@@ -120,11 +124,12 @@ class PagerDutyActionHandlerTest(FireTest):
             },
         ]
         org_integration = self.integration.organizationintegration_set.first()
-        add_service(
-            org_integration,
-            service_name=service[0]["service_name"],
-            integration_key=service[0]["integration_key"],
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            add_service(
+                org_integration,
+                service_name=service[0]["service_name"],
+                integration_key=service[0]["integration_key"],
+            )
         self.run_fire_test()
 
     def test_resolve_metric_alert(self):

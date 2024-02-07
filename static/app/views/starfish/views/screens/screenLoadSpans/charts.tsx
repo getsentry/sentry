@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -9,14 +9,17 @@ import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatVersion} from 'sentry/utils/formatters';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
@@ -30,9 +33,17 @@ import {
   OUTPUT_TYPE,
   YAXIS_COLUMNS,
 } from 'sentry/views/starfish/views/screens';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/starfish/views/screens/platformSelector';
 import {ScreensBarChart} from 'sentry/views/starfish/views/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
-import {transformDeviceClassEvents} from 'sentry/views/starfish/views/screens/utils';
+import {
+  isCrossPlatform,
+  transformDeviceClassEvents,
+} from 'sentry/views/starfish/views/screens/utils';
 
 export enum YAxis {
   WARM_START,
@@ -49,11 +60,13 @@ type Props = {
   yAxes: YAxis[];
   additionalFilters?: string[];
   chartHeight?: number;
+  project?: Project | null;
 };
 
-export function ScreenCharts({yAxes, additionalFilters}: Props) {
+export function ScreenCharts({yAxes, additionalFilters, project}: Props) {
   const pageFilter = usePageFilters();
   const location = useLocation();
+  const organization = useOrganization();
 
   const yAxisCols = yAxes.map(val => YAXIS_COLUMNS[val]);
 
@@ -63,12 +76,34 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  const query = new MutableSearch([
-    'event.type:transaction',
-    'transaction.op:ui.load',
-    ...(additionalFilters ?? []),
+  const hasPlatformSelectFeature = organization.features.includes(
+    'performance-screens-platform-selector'
+  );
+  const platform =
+    decodeScalar(location.query[PLATFORM_QUERY_PARAM]) ??
+    localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ??
+    DEFAULT_PLATFORM;
+
+  const queryString = useMemo(() => {
+    const query = new MutableSearch([
+      'event.type:transaction',
+      'transaction.op:ui.load',
+      ...(additionalFilters ?? []),
+    ]);
+
+    if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {
+      query.addFilterValue('os.name', platform);
+    }
+
+    return appendReleaseFilters(query, primaryRelease, secondaryRelease);
+  }, [
+    additionalFilters,
+    hasPlatformSelectFeature,
+    platform,
+    primaryRelease,
+    project,
+    secondaryRelease,
   ]);
-  const queryString = appendReleaseFilters(query, primaryRelease, secondaryRelease);
 
   const {
     data: series,

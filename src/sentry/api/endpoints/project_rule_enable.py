@@ -16,7 +16,7 @@ from sentry.models.rule import Rule
 @region_silo_endpoint
 class ProjectRuleEnableEndpoint(ProjectEndpoint):
     publish_status = {
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)

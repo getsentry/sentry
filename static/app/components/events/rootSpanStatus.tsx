@@ -2,10 +2,10 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
+import type {TraceContextType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, EventTransaction} from 'sentry/types/event';
+import type {Event, EventTransaction} from 'sentry/types/event';
 
 type Props = {
   event: Event;

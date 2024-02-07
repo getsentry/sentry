@@ -1,4 +1,4 @@
-import {Event, Group, Organization} from 'sentry/types';
+import type {Event, Group, Organization} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {

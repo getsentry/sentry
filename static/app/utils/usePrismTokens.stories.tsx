@@ -7,7 +7,8 @@ import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
-import {SyntaxHighlightLine, usePrismTokens} from 'sentry/utils/usePrismTokens';
+import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
+import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 const JS_CODE = `function foo() {
   // Returns 'bar'

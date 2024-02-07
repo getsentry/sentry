@@ -4,11 +4,12 @@ import functools
 import logging
 import time
 from abc import ABCMeta, abstractmethod
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
 from math import floor
-from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, TypedDict, cast
+from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.db.models import Q
@@ -101,8 +102,8 @@ class PriorityParams:
 
 
 def get_search_filter(
-    search_filters: Optional[Sequence[SearchFilter]], name: str, operator: str
-) -> Optional[Any]:
+    search_filters: Sequence[SearchFilter] | None, name: str, operator: str
+) -> Any | None:
     """
     Finds the value of a search filter with the passed name and operator. If
     multiple values are found, returns the most restrictive value
@@ -145,7 +146,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def dependency_aggregations(self) -> Mapping[str, List[str]]:
+    def dependency_aggregations(self) -> Mapping[str, list[str]]:
         """This method should return a dict of key:value
         where key is an aggregation_def field name
         and value is a list of aggregation field names that the 'key' aggregation requires."""
@@ -169,28 +170,28 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def postgres_only_fields(self) -> Set[str]:
+    def postgres_only_fields(self) -> set[str]:
         raise NotImplementedError
 
     @abstractmethod
     def query(
         self,
         projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
+        retention_window_start: datetime | None,
         group_queryset: BaseQuerySet,
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         sort_by: str,
         limit: int,
         cursor: Cursor | None,
         count_hits: bool,
-        paginator_options: Optional[Mapping[str, Any]],
-        search_filters: Optional[Sequence[SearchFilter]],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
-        max_hits: Optional[int] = None,
-        referrer: Optional[str] = None,
-        actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        paginator_options: Mapping[str, Any] | None,
+        search_filters: Sequence[SearchFilter] | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
+        max_hits: int | None = None,
+        referrer: str | None = None,
+        actor: Any | None = None,
+        aggregate_kwargs: PrioritySortWeights | None = None,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -200,11 +201,11 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         self,
         organization_id: int,
         project_ids: Sequence[int],
-        environments: Optional[Sequence[str]],
+        environments: Sequence[str] | None,
         search_filters: Sequence[SearchFilter],
-    ) -> list[Optional[Any]]:
+    ) -> list[Any | None]:
         """Converts the SearchFilter format into snuba-compatible clauses"""
-        converted_filters: list[Optional[Sequence[Any]]] = []
+        converted_filters: list[Sequence[Any] | None] = []
         for search_filter in search_filters or ():
             conditions, projects_to_filter, group_ids = format_search_filter(
                 search_filter,
@@ -240,8 +241,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         start: datetime,
         end: datetime,
         having: Sequence[Sequence[Any]],
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
-        replace_priority_aggregation: Optional[bool] = False,
+        aggregate_kwargs: PrioritySortWeights | None = None,
+        replace_priority_aggregation: bool | None = False,
     ) -> list[Any]:
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
@@ -269,17 +270,17 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         query_partial: IntermediateSearchQueryPartial,
         organization: Organization,
         project_ids: Sequence[int],
-        environments: Optional[Sequence[str]],
-        group_ids: Optional[Sequence[int]],
+        environments: Sequence[str] | None,
+        group_ids: Sequence[int] | None,
         filters: Mapping[str, Sequence[int]],
         search_filters: Sequence[SearchFilter],
         sort_field: str,
         start: datetime,
         end: datetime,
-        cursor: Optional[Cursor],
+        cursor: Cursor | None,
         get_sample: bool,
-        actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        actor: Any | None = None,
+        aggregate_kwargs: PrioritySortWeights | None = None,
     ) -> SnubaQueryParams:
         """
         :raises UnsupportedSearchQuery: when search_filters includes conditions on a dataset that doesn't support it
@@ -359,19 +360,19 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         start: datetime,
         end: datetime,
         project_ids: Sequence[int],
-        environment_ids: Optional[Sequence[int]],
+        environment_ids: Sequence[int] | None,
         sort_field: str,
         organization: Organization,
-        cursor: Optional[Cursor] = None,
-        group_ids: Optional[Sequence[int]] = None,
-        limit: Optional[int] = None,
+        cursor: Cursor | None = None,
+        group_ids: Sequence[int] | None = None,
+        limit: int | None = None,
         offset: int = 0,
         get_sample: bool = False,
-        search_filters: Optional[Sequence[SearchFilter]] = None,
-        referrer: Optional[str] = None,
-        actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
-    ) -> Tuple[List[Tuple[int, Any]], int]:
+        search_filters: Sequence[SearchFilter] | None = None,
+        referrer: str | None = None,
+        actor: Any | None = None,
+        aggregate_kwargs: PrioritySortWeights | None = None,
+    ) -> tuple[list[tuple[int, Any]], int]:
         """Queries Snuba for events with associated Groups based on the input criteria.
 
         Returns a tuple of:
@@ -722,21 +723,21 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     def query(
         self,
         projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
+        retention_window_start: datetime | None,
         group_queryset: BaseQuerySet,
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         sort_by: str,
         limit: int,
         cursor: Cursor | None,
         count_hits: bool,
-        paginator_options: Optional[Mapping[str, Any]],
-        search_filters: Optional[Sequence[SearchFilter]],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
-        max_hits: Optional[int] = None,
-        referrer: Optional[str] = None,
-        actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        paginator_options: Mapping[str, Any] | None,
+        search_filters: Sequence[SearchFilter] | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
+        max_hits: int | None = None,
+        referrer: str | None = None,
+        actor: Any | None = None,
+        aggregate_kwargs: PrioritySortWeights | None = None,
     ) -> CursorResult[Group]:
         now = timezone.now()
         end = None
@@ -1021,19 +1022,19 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         too_many_candidates: bool,
         sort_field: str,
         projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
+        retention_window_start: datetime | None,
         group_queryset: Query,
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         sort_by: str,
         limit: int,
         cursor: Cursor | None,
         count_hits: bool,
         paginator_options: Mapping[str, Any],
-        search_filters: Optional[Sequence[SearchFilter]],
+        search_filters: Sequence[SearchFilter] | None,
         start: datetime,
         end: datetime,
-        actor: Optional[Any] = None,
-    ) -> Optional[int]:
+        actor: Any | None = None,
+    ) -> int | None:
         """
         This method should return an integer representing the number of hits (results) of your search.
         It will return 0 if hits were calculated and there are none.
@@ -1191,11 +1192,11 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
     def calculate_start_end(
         self,
-        retention_window_start: Optional[datetime],
-        search_filters: Optional[Sequence[SearchFilter]],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
-    ) -> Tuple[datetime, datetime, datetime]:
+        retention_window_start: datetime | None,
+        search_filters: Sequence[SearchFilter] | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
+    ) -> tuple[datetime, datetime, datetime]:
         now = timezone.now()
         end = None
         end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
@@ -1214,21 +1215,21 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     def query(
         self,
         projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
+        retention_window_start: datetime | None,
         group_queryset: BaseQuerySet,
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         sort_by: str,
         limit: int,
-        cursor: Optional[Cursor],
+        cursor: Cursor | None,
         count_hits: bool,
-        paginator_options: Optional[Mapping[str, Any]],
-        search_filters: Optional[Sequence[SearchFilter]],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
-        max_hits: Optional[int] = None,
-        referrer: Optional[str] = None,
-        actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        paginator_options: Mapping[str, Any] | None,
+        search_filters: Sequence[SearchFilter] | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
+        max_hits: int | None = None,
+        referrer: str | None = None,
+        actor: Any | None = None,
+        aggregate_kwargs: PrioritySortWeights | None = None,
     ) -> CursorResult[Group]:
         if not validate_cdc_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")
@@ -1370,11 +1371,11 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
     def calculate_start_end(
         self,
-        retention_window_start: Optional[datetime],
-        search_filters: Optional[Sequence[SearchFilter]],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
-    ) -> Tuple[datetime, datetime, datetime]:
+        retention_window_start: datetime | None,
+        search_filters: Sequence[SearchFilter] | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
+    ) -> tuple[datetime, datetime, datetime]:
         now = timezone.now()
         end = None
         end_params = [_f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f]
@@ -1390,7 +1391,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         end = max([retention_date, end])
         return start, end, retention_date
 
-    def validate_search_filters(self, search_filters: Optional[Sequence[SearchFilter]]) -> bool:
+    def validate_search_filters(self, search_filters: Sequence[SearchFilter] | None) -> bool:
         """
         Validates whether a set of search filters can be handled by this search backend.
         """
@@ -1408,21 +1409,21 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
     def query(
         self,
         projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
+        retention_window_start: datetime | None,
         group_queryset: BaseQuerySet,
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         sort_by: str,
         limit: int,
-        cursor: Optional[Cursor],
+        cursor: Cursor | None,
         count_hits: bool,
-        paginator_options: Optional[Mapping[str, Any]],
-        search_filters: Optional[Sequence[SearchFilter]],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
-        max_hits: Optional[int] = None,
-        referrer: Optional[str] = None,
-        actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        paginator_options: Mapping[str, Any] | None,
+        search_filters: Sequence[SearchFilter] | None,
+        date_from: datetime | None,
+        date_to: datetime | None,
+        max_hits: int | None = None,
+        referrer: str | None = None,
+        actor: Any | None = None,
+        aggregate_kwargs: PrioritySortWeights | None = None,
     ) -> CursorResult[Group]:
         if not self.validate_search_filters(search_filters):
             raise InvalidQueryForExecutor("Search filters invalid for this query executor")

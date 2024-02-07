@@ -2,7 +2,7 @@ import {
   withoutPerformanceSupport,
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
-import {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
+import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 
 export function filterProjects(rawProjects: Project[]) {
   // filter on projects that have not sent a first transaction event

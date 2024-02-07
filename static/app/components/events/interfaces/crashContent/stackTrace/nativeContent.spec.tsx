@@ -14,7 +14,7 @@ import {NativeContent} from 'sentry/components/events/interfaces/crashContent/st
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types';
-import {StacktraceType} from 'sentry/types/stacktrace';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture({});
@@ -56,7 +56,7 @@ describe('Native StackTrace', function () {
       snoozed_ts: undefined,
     };
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
     });
     MockApiClient.addMockResponse({

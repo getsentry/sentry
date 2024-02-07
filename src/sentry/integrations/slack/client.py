@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any
 
 from requests import PreparedRequest, Response
 from sentry_sdk.tracing import Span
@@ -80,11 +81,11 @@ class SlackClient(IntegrationProxyClient):
 
     def track_response_data(
         self,
-        code: Union[str, int],
+        code: str | int,
         span: Span | None = None,
-        error: Optional[str] = None,
-        resp: Optional[Response] = None,
-        extra: Optional[Mapping[str, str]] = None,
+        error: str | None = None,
+        resp: Response | None = None,
+        extra: Mapping[str, str] | None = None,
     ) -> None:
         # if no span was passed, create a dummy to which to add data to avoid having to wrap every
         # span call in `if span`
@@ -134,15 +135,26 @@ class SlackClient(IntegrationProxyClient):
         self,
         method: str,
         path: str,
-        headers: Optional[Mapping[str, str]] = None,
-        data: Optional[Mapping[str, Any]] = None,
-        params: Optional[Mapping[str, Any]] = None,
+        headers: Mapping[str, str] | None = None,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
         json: bool = False,
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
+        raw_response: bool = False,
+        *args: Any,
+        **kwargs: Any,
     ) -> BaseApiResponse:
-        response: BaseApiResponse = self._request(
-            method, path, headers=headers, data=data, params=params, json=json
+        response = self._request(
+            method,
+            path,
+            headers=headers,
+            data=data,
+            params=params,
+            json=json,
+            raw_response=raw_response,
+            *args,
+            **kwargs,
         )
-        if not response.json.get("ok"):
-            raise ApiError(response.get("error", ""))  # type: ignore
+        if not raw_response and not response.json.get("ok"):
+            raise ApiError(response.get("error", ""))
         return response

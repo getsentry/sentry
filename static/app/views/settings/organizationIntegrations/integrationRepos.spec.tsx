@@ -10,7 +10,7 @@ import IntegrationRepos from 'sentry/views/settings/organizationIntegrations/int
 describe('IntegrationRepos', function () {
   const org = OrganizationFixture();
   const integration = GitHubIntegrationFixture();
-  let resetReposSpy;
+  let resetReposSpy: jest.SpyInstance;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -19,8 +19,7 @@ describe('IntegrationRepos', function () {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
-    resetReposSpy();
+    resetReposSpy.mockClear();
   });
 
   describe('Getting repositories', function () {
@@ -114,7 +113,7 @@ describe('IntegrationRepos', function () {
       expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
     });
 
-    it('does not disable add repo for members', function () {
+    it('does not disable add repo for members', async function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         body: {
@@ -133,7 +132,7 @@ describe('IntegrationRepos', function () {
           organization={OrganizationFixture({access: []})}
         />
       );
-      expect(screen.getByText('Add Repository')).toBeEnabled();
+      await waitFor(() => expect(screen.getByText('Add Repository')).toBeEnabled());
     });
   });
 

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types';
 
 type Props = {
   isReprocessingQuery: boolean;
@@ -70,7 +70,7 @@ const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
   animation: 0.25s FadeIn linear forwards;
 
   @media (max-width: ${p =>
-      p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
+    p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
     display: none;
   }
 
@@ -125,7 +125,7 @@ const AssigneesLabel = styled('div')<{isSavedSearchesOpen?: boolean}>`
   margin-right: ${space(2)};
 
   @media (max-width: ${p =>
-      p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
+    p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
     display: none;
   }
 `;

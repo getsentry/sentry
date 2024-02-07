@@ -7,7 +7,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Tag from 'sentry/components/tag';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Organization,
   Project,
   ProjectSdkUpdates,

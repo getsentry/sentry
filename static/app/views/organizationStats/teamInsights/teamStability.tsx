@@ -5,7 +5,7 @@ import round from 'lodash/round';
 
 import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import {DateTimeObject} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';
@@ -13,17 +13,12 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  Organization,
-  Project,
-  SessionApiResponse,
-  SessionFieldWithOperation,
-  SessionStatus,
-} from 'sentry/types';
+import type {Organization, Project, SessionApiResponse} from 'sentry/types';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
 import {formatFloat} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';

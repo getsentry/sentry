@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Mapping, MutableMapping, Optional, Sequence, Union
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -104,7 +105,7 @@ def trim(
     return object_hook(result)
 
 
-def get_path(data: PathSearchable, *path, **kwargs):
+def get_path(data: PathSearchable, *path, should_log=False, **kwargs):
     """
     Safely resolves data from a recursive data structure. A value is only
     returned if the full path exists, otherwise ``None`` is returned.
@@ -115,10 +116,18 @@ def get_path(data: PathSearchable, *path, **kwargs):
     filtered with the given callback. Alternatively, pass ``True`` as filter to
     only filter ``None`` values.
     """
+    logger = logging.getLogger(__name__)
     default = kwargs.pop("default", None)
-    f: Optional[bool] = kwargs.pop("filter", None)
+    f: bool | None = kwargs.pop("filter", None)
     for k in kwargs:
         raise TypeError("get_path() got an undefined keyword argument '%s'" % k)
+
+    logger_data = {}
+    if should_log:
+        logger_data = {
+            "path_searchable": json.dumps(data),
+            "path_arg": json.dumps(path),
+        }
 
     for p in path:
         if isinstance(data, Mapping) and p in data:
@@ -126,10 +135,21 @@ def get_path(data: PathSearchable, *path, **kwargs):
         elif isinstance(data, (list, tuple)) and isinstance(p, int) and -len(data) <= p < len(data):
             data = data[p]
         else:
+            if should_log:
+                logger_data["invalid_path"] = json.dumps(p)
+                logger.info("sentry.safe.get_path.invalid_path_section", extra=logger_data)
             return default
+
+    if should_log:
+        if data is None:
+            logger.info("sentry.safe.get_path.iterated_path_is_none", extra=logger_data)
+        else:
+            logger_data["iterated_path"] = json.dumps(data)
 
     if f and data and isinstance(data, (list, tuple)):
         data = list(filter((lambda x: x is not None) if f is True else f, data))
+        if should_log and len(data) == 0 and "iterated_path" in logger_data:
+            logger.info("sentry.safe.get_path.filtered_path_is_none", extra=logger_data)
 
     return data if data is not None else default
 

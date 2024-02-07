@@ -18,6 +18,7 @@ NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
     NotificationSettingEnum.QUOTA_TRANSACTIONS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_ATTACHMENTS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_REPLAYS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.QUOTA_MONITOR_SEATS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_WARNINGS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.SPIKE_PROTECTION: NotificationSettingsOptionEnum.ALWAYS,

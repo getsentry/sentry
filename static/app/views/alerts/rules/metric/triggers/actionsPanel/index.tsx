@@ -13,7 +13,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, SelectValue} from 'sentry/types';
+import type {Organization, Project, SelectValue} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
@@ -22,14 +22,13 @@ import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleMod
 import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
 import ActionTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
-import {
+import type {
   Action,
-  ActionLabel,
   ActionType,
   MetricActionTemplate,
-  TargetLabel,
   Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
+import {ActionLabel, TargetLabel} from 'sentry/views/alerts/rules/metric/types';
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;

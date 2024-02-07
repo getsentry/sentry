@@ -16,14 +16,14 @@ import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
+import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-import {SpanType} from './types';
+import type {SpanType} from './types';
 
 const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;

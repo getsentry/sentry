@@ -5,9 +5,6 @@ from django.http.response import HttpResponseBase
 from django.middleware.locale import LocaleMiddleware
 from django.utils import translation
 
-from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
-from sentry.utils.safe import safe_execute
-
 
 class SentryLocaleMiddleware(LocaleMiddleware):
     def process_request(self, request: HttpRequest) -> None:
@@ -19,8 +16,6 @@ class SentryLocaleMiddleware(LocaleMiddleware):
             self.__skip_caching = request.path_info.startswith(settings.ANONYMOUS_STATIC_PREFIXES)
             if self.__skip_caching:
                 return
-
-            safe_execute(self.load_user_conf, request, _with_transaction=False)
 
             lang_code = request.GET.get("lang")
             # user is explicitly forcing language
@@ -34,18 +29,6 @@ class SentryLocaleMiddleware(LocaleMiddleware):
                     request.LANGUAGE_CODE = translation.get_language()
             else:
                 super().process_request(request)
-
-    def load_user_conf(self, request: HttpRequest) -> None:
-        if not request.user.is_authenticated:
-            return
-
-        options = user_option_service.get_many(
-            filter={"user_ids": [request.user.id], "keys": ["language", "timezone"]}
-        )
-
-        if language := get_option_from_list(options, key="language"):
-            # TODO: django 4.x removes this from session
-            request.session[translation.LANGUAGE_SESSION_KEY] = language  # type: ignore[attr-defined]
 
     def process_response(
         self, request: HttpRequest, response: HttpResponseBase

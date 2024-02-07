@@ -2,7 +2,7 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
-import usePerfFilters from 'sentry/views/replays/detail/perfTable/usePerfFilters';
+import type usePerfFilters from 'sentry/views/replays/detail/perfTable/usePerfFilters';
 
 type Props = {
   traceRows: undefined | unknown[];
