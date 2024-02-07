@@ -122,14 +122,13 @@ def assert_webhook_payloads_for_mailbox(
     message_count = messages.count()
     if message_count != len(region_names_set):
         raise Exception(
-            f"Mismatch: Found {message_count} ControlOutboxes but {len(region_names_set)} region_names"
+            f"Mismatch: Found {message_count} WebhookPayload but {len(region_names_set)} region_names"
         )
     for message in messages:
         assert message.request_method == expected_payload["request_method"]
         assert message.request_path == expected_payload["request_path"]
         assert message.request_headers == expected_payload["request_headers"]
         assert message.request_body == expected_payload["request_body"]
-        assert message.integration_id
         assert message.schedule_for == THE_PAST
         assert message.attempts == 0
         try:

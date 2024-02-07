@@ -145,6 +145,7 @@ class BaseRequestParser(abc.ABC):
         if len(regions) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
+        # TODO(hybridcloud) Rename/remove this once webhookpayloads are stable.
         shard_identifier = shard_identifier_override or self.webhook_identifier.value
         rollout_rate = options.get("hybridcloud.webhookpayload.rollout")
         if ((shard_identifier % 100000) / 100000) < rollout_rate:
