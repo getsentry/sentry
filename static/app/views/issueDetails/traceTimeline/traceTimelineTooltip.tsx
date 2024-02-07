@@ -6,6 +6,8 @@ import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -18,6 +20,7 @@ interface TraceTimelineTooltipProps {
 
 export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineTooltipProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const {projects} = useProjects({
     slugs: [
       ...timelineEvents.reduce((acc, cur) => acc.add(cur.project), new Set<string>()),
@@ -42,7 +45,20 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
           return (
             <EventItem
               key={timelineEvent.id}
-              to={`/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`}
+              to={{
+                pathname: `/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`,
+                query: {
+                  ...location.query,
+                  referrer: 'issues_trace_timeline',
+                },
+              }}
+              onClick={() => {
+                trackAnalytics('issue_details.issue_tab.trace_timeline_clicked', {
+                  organization,
+                  event_id: timelineEvent.id,
+                  group_id: `${timelineEvent['issue.id']}`,
+                });
+              }}
             >
               <div>
                 {project && (
