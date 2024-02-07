@@ -147,12 +147,12 @@ class BlacklistAdapter(HTTPAdapter):
     is_ipaddress_permitted: IsIpAddressPermitted = None
 
     def __init__(
-        self, is_ipaddress_permitted: IsIpAddressPermitted = None, *args, **kwargs
+        self, is_ipaddress_permitted: IsIpAddressPermitted = None, max_retries: Retry | None = None
     ) -> None:
-        super().__init__(*args, **kwargs)
         # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
         # `urllib3.connectionpool.ConnectionPool` instances managed by `SafePoolManager`.
         self.is_ipaddress_permitted = is_ipaddress_permitted
+        super().__init__(max_retries=max_retries)
 
     def init_poolmanager(self, connections, maxsize, block=DEFAULT_POOLBLOCK, **pool_kwargs):
         self._pool_connections = connections
