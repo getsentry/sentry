@@ -246,9 +246,15 @@ def _get_widget_metric_specs(
                     if not extraction_enabled:
                         # Return no specs if any extraction is blocked for a widget that should have specs.
                         ignored_widget_ids[widget_query.widget.id] = True
+                    metrics.incr(
+                        "on_demand_metrics.widgets.can_use_stateful_extraction", sample_rate=1.0
+                    )
                 else:
                     # Stateful extraction cannot be used in some cases (eg. newly created or recently modified widgets).
                     # We skip cardinality checks for those cases, however, and assume extraction is allowed temporarily.
+                    metrics.incr(
+                        "on_demand_metrics.widgets.cannot_use_stateful_extraction", sample_rate=1.0
+                    )
                     continue
             else:
                 # TODO: Remove this cardinality check after above option is enabled permanently.
@@ -531,7 +537,8 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
             sentry_sdk.capture_exception(
                 Exception("Skipped extraction due to mismatched on_demand entries")
             )
-        return False
+        # We default to allowed extraction if something unexpected occurs otherwise customers lose data.
+        return True
 
     on_demand_entry = on_demand_entries[0]
 
