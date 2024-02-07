@@ -112,7 +112,7 @@ export function getHiddenOptions<Value extends React.Key>(
 
   const hiddenOptionsSet = new Set<Value>();
   const remainingItems = items
-    .map<SelectOptionOrSection<Value> | null>(item => {
+    .flatMap<SelectOptionOrSection<Value> | null>(item => {
       if ('options' in item) {
         const filteredOptions = item.options
           .map(opt => {
@@ -135,7 +135,6 @@ export function getHiddenOptions<Value extends React.Key>(
       hiddenOptionsSet.add(item.value);
       return null;
     })
-    .flat()
     .filter((item): item is SelectOptionOrSection<Value> => !!item);
 
   //

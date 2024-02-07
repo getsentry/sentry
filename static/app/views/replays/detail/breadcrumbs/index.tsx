@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjectFromId from 'sentry/utils/useProjectFromId';
 import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
@@ -31,28 +32,21 @@ const cellMeasurer = {
 };
 
 function Breadcrumbs() {
-  const {currentTime, replay, startTimeOffsetMs, durationMs} = useReplayContext();
+  const {currentTime, replay} = useReplayContext();
   const organization = useOrganization();
   const hasPerfTab = organization.features.includes('session-replay-trace-table');
+
+  const projectSlug = useProjectFromId({
+    project_id: replay?.getReplay().project_id,
+  })?.slug;
 
   const {onClickTimestamp} = useCrumbHandlers();
   const {data: frameToExtraction, isFetching: isFetchingExtractions} =
     useExtractedDomNodes({replay});
   const {data: frameToTrace, isFetching: isFetchingTraces} = useReplayPerfData({replay});
 
-  const startTimestampMs =
-    replay?.getReplay()?.started_at?.getTime() ?? 0 + startTimeOffsetMs;
-  const allFrames = replay?.getChapterFrames();
-
-  const frames = useMemo(
-    () =>
-      allFrames?.filter(
-        frame =>
-          frame.offsetMs >= startTimeOffsetMs &&
-          frame.offsetMs <= startTimeOffsetMs + durationMs
-      ),
-    [allFrames, durationMs, startTimeOffsetMs]
-  );
+  const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
+  const frames = replay?.getChapterFrames();
 
   const [scrollToRow, setScrollToRow] = useState<undefined | number>(undefined);
 
@@ -115,6 +109,7 @@ function Breadcrumbs() {
           frame={item}
           extraction={frameToExtraction?.get(item)}
           traces={hasPerfTab ? frameToTrace?.get(item) : undefined}
+          projectSlug={projectSlug}
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}

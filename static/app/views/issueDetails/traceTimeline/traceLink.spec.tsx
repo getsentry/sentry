@@ -72,4 +72,9 @@ describe('TraceLink', () => {
       await screen.findByRole('link', {name: 'View Full Trace (2 issues)'})
     ).toBeInTheDocument();
   });
+
+  it('renders no trace available', async () => {
+    render(<TraceLink event={EventFixture({})} />, {organization});
+    expect(await screen.findByText('No Trace Available')).toBeInTheDocument();
+  });
 });
