@@ -9,7 +9,6 @@ import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {RouteContext} from 'sentry/views/routeContext';
 
 import ReplayPreview from './replayPreview';
@@ -88,11 +87,9 @@ const render: typeof baseRender = children => {
         routes: router.routes,
       }}
     >
-      <OrganizationContext.Provider value={OrganizationFixture({slug: mockOrgSlug})}>
-        {children}
-      </OrganizationContext.Provider>
+      {children}
     </RouteContext.Provider>,
-    {context: routerContext}
+    {context: routerContext, organization: OrganizationFixture({slug: mockOrgSlug})}
   );
 };
 

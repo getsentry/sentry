@@ -13,7 +13,6 @@ import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 type StaticReplayPreviewProps = {
@@ -38,7 +37,7 @@ export function StaticReplayPreview({
   const organization = useOrganization();
   const routes = useRoutes();
   const fullReplayUrl = {
-    pathname: normalizeUrl(`/organizations/${organization.slug}/replays/${replayId}/`),
+    pathname: `/organizations/${organization.slug}/replays/${replayId}/`,
     query: {
       referrer: getRouteStringFromRoutes(routes),
       t_main: focusTab ?? TabKey.ERRORS,
