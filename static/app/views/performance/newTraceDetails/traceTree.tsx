@@ -61,7 +61,7 @@ export declare namespace TraceTree {
   };
 }
 
-function fetchTransactionEvent(
+function fetchTransactionSpans(
   api: Client,
   organization: Organization,
   project_slug: string,
@@ -389,7 +389,7 @@ export class TraceTree {
 
     const promise =
       this._spanPromises.get(node) ??
-      fetchTransactionEvent(
+      fetchTransactionSpans(
         options.api,
         options.organization,
         node.metadata.project_slug!,
