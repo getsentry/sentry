@@ -131,6 +131,22 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
 
         assert expected.items() <= response.data.items()
 
+    def test_install_published_app_by_other_org(self):
+        user2 = self.create_user("foo@example.com")
+        org2 = self.create_organization(owner=user2)
+        self.login_as(user=user2)
+
+        response = self.get_success_response(
+            org2.slug, slug=self.published_app.slug, status_code=200
+        )
+
+        expected = {
+            "app": {"slug": self.published_app.slug, "uuid": self.published_app.uuid},
+            "organization": {"slug": org2.slug},
+        }
+
+        assert expected.items() <= response.data.items()
+
     def test_install_superuser(self):
         self.login_as(user=self.superuser, superuser=True)
         app = self.create_sentry_app(name="Sample", organization=self.org)
