@@ -59,6 +59,20 @@ export class RenderField extends Component<RenderProps, State> {
     selectedMappedValue: null,
   };
 
+  componentDidUpdate(prevProps: RenderProps) {
+    const prevProjectIds = prevProps.sentryProjects.map(proj => proj.id);
+    const projectIds = this.props.sentryProjects.map(proj => proj.id);
+
+    if (prevProjectIds !== projectIds) {
+      const newProjects = projectIds.filter(x => !prevProjectIds.includes(x));
+      if (newProjects.length === 1) {
+        this.setState({
+          selectedSentryProjectId: newProjects[0],
+        });
+      }
+    }
+  }
+
   render() {
     const {
       onChange,
