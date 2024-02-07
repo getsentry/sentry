@@ -2,6 +2,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
+from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -15,21 +16,26 @@ ERR_BAD_SIGNATURE = _("The link you followed is invalid or expired.")
 EndpointFunc = Callable[..., HttpResponse]
 
 
-def login_required(func: EndpointFunc) -> EndpointFunc:
-    @wraps(func)
-    def wrapped(request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
-        if not request.user.is_authenticated:
-            auth.initiate_login(request, next_url=request.get_full_path())
-            if "organization_slug" in kwargs:
-                redirect_uri = reverse(
-                    "sentry-auth-organization", args=[kwargs["organization_slug"]]
-                )
-            else:
-                redirect_uri = auth.get_login_url()
-            return HttpResponseRedirect(redirect_uri)
-        return func(request, *args, **kwargs)
+def login_required(message: str | None = None, level: int | None = None):
+    def real_decorator(func: EndpointFunc) -> EndpointFunc:
+        @wraps(func)
+        def wrapped(request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+            if not request.user.is_authenticated:
+                if message and level:
+                    messages.add_message(request, level, message)
+                auth.initiate_login(request, next_url=request.get_full_path())
+                if "organization_slug" in kwargs:
+                    redirect_uri = reverse(
+                        "sentry-auth-organization", args=[kwargs["organization_slug"]]
+                    )
+                else:
+                    redirect_uri = auth.get_login_url()
+                return HttpResponseRedirect(redirect_uri)
+            return func(request, *args, **kwargs)
 
-    return wrapped
+        return wrapped
+
+    return real_decorator
 
 
 def set_referrer_policy(policy: str) -> Callable[[EndpointFunc], EndpointFunc]:
