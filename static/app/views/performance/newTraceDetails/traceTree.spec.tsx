@@ -907,8 +907,8 @@ describe('TraceTree', () => {
   });
 });
 
-// @ts-ignore
-function _printTree(tree) {
+// eslint-disable-next-line
+function printTree(tree) {
   const log = tree.list
     .map(t => {
       return (
