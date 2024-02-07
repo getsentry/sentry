@@ -318,6 +318,7 @@ describe('Issues Similar Embeddings View', function () {
     expect(trackAnalytics).toHaveBeenCalledWith(
       'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
       expect.objectContaining({
+        projectId: project.id,
         groupId: 'group-id',
         value: 'Yes',
       })

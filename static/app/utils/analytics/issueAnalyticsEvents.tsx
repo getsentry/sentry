@@ -87,6 +87,7 @@ export type IssueEventParameters = {
     groupId: string;
     parentGroupId: string;
     value: string;
+    projectId?: string;
   };
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;

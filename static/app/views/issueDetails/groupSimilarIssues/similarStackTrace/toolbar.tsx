@@ -59,6 +59,7 @@ class SimilarToolbar extends Component<Props, State> {
         'issue_details.similar_issues.similarity_embeddings_feedback_recieved',
         {
           organization: this.props.organization,
+          projectId: this.props.project?.id,
           parentGroupId,
           groupId: this.props.groupId,
           value,
