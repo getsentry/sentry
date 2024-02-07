@@ -1,5 +1,4 @@
 import mimetypes
-import random
 from dataclasses import dataclass
 from hashlib import sha1
 from io import BytesIO
@@ -12,7 +11,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
 
-from sentry import options
 from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
@@ -156,9 +154,8 @@ class EventAttachment(Model):
 
         blob = BytesIO(attachment.data)
 
-        store_blobs = project_id in options.get("eventattachments.store-blobs.projects") or (
-            random.random() < options.get("eventattachments.store-blobs.sample-rate")
-        )
+        # NOTE: we still keep the old code around for a while before complete removing it
+        store_blobs = True
 
         if store_blobs:
             size, checksum = get_size_and_checksum(blob)
