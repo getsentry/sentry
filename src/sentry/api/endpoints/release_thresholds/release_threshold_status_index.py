@@ -23,6 +23,7 @@ from sentry.api.endpoints.release_thresholds.health_checks import (
     is_error_count_healthy,
     is_new_issue_count_healthy,
 )
+from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
 from sentry.api.endpoints.release_thresholds.utils import (
     fetch_sessions_data,
     get_errors_counts_timeseries_by_project_and_release,
@@ -41,7 +42,6 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.release_threshold_status")
 
 if TYPE_CHECKING:
-    from sentry.api.endpoints.release_thresholds.types import EnrichedThreshold
     from sentry.models.deploy import Deploy
     from sentry.models.organization import Organization
     from sentry.models.project import Project
