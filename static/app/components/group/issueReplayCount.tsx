@@ -10,11 +10,9 @@ import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForI
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-type NewType = {
+interface Props {
   group: Group;
-};
-
-type Props = NewType;
+}
 
 /**
  * Show the count of how many replays are associated to an issue.
