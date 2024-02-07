@@ -782,7 +782,6 @@ def get_default_comparators():
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
             ],
             "sentry.dashboardwidgetqueryondemand": [DateUpdatedComparator("date_modified")],
-            "sentry.dashboardwidgetquery": [DateUpdatedComparator("date_modified")],
             "sentry.organization": [AutoSuffixComparator("slug")],
             "sentry.organizationintegration": [DateUpdatedComparator("date_updated")],
             "sentry.organizationmember": [

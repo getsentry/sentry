@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import parse_qs
@@ -10,9 +9,6 @@ import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.integrations.slack.message_builder.issues import get_tags
-from sentry.issues.grouptype import MonitorCheckInFailure
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.identity import Identity, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -36,16 +32,8 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.dates import ensure_aware
 
 pytestmark = [requires_snuba]
-
-
-old_get_tags = get_tags
-
-
-def fake_get_tags(group, event_for_tags, tags):
-    return old_get_tags(group, event_for_tags, None)
 
 
 @region_silo_test
@@ -157,7 +145,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
@@ -171,7 +158,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         """
 
         event = self.create_performance_issue()
-        # this is a PerformanceNPlusOneGroupType event
+
         notification = AlertRuleNotification(
             Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
         )
@@ -193,52 +180,6 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             alert_type="alerts",
             issue_link_extra_params=f"&alert_rule_id={self.rule.id}&alert_type=issue",
         )
-        assert "level" not in blocks[3]["text"]["text"]
-        assert "release" in blocks[3]["text"]["text"]
-
-    @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
-    @responses.activate
-    @with_feature("organizations:slack-block-kit")
-    def test_crons_issue_alert_user_block(self):
-        orig_event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-        event = orig_event.for_group(orig_event.groups[0])
-        occurrence = IssueOccurrence(
-            uuid.uuid4().hex,
-            self.project.id,
-            uuid.uuid4().hex,
-            ["some-fingerprint"],
-            "something bad happened",
-            "it was bad",
-            "1234",
-            {"Test": 123},
-            [
-                IssueEvidence("Evidence 1", "Value 1", True),
-                IssueEvidence("Evidence 2", "Value 2", False),
-                IssueEvidence("Evidence 3", "Value 3", False),
-            ],
-            MonitorCheckInFailure,
-            ensure_aware(datetime.now()),
-            "info",
-            "/api/123",
-        )
-        occurrence.save()
-        event.occurrence = occurrence
-
-        event.group.type = MonitorCheckInFailure.type_id
-        notification = AlertRuleNotification(
-            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
-        )
-        with self.tasks():
-            notification.send()
-
-        blocks, fallback_text = get_blocks_and_fallback_text()
-        assert (
-            fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/alerts/rules/{event.project.slug}/{self.rule.id}/details/|ja rule>"
-        )
-        assert len(blocks) == 5
 
     @responses.activate
     @mock.patch(

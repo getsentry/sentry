@@ -110,10 +110,10 @@ describe('Screen Summary', function () {
       });
 
       const blocks = [
-        {header: 'Cold Start (R1)', value: '1.00s'},
-        {header: 'Cold Start (R2)', value: '2.00s'},
-        {header: 'Warm Start (R1)', value: '5.00s'},
-        {header: 'Warm Start (R2)', value: '6.00s'},
+        {header: 'Cold Start (2.10.5)', value: '1.00s'},
+        {header: 'Cold Start (2.10.… (42))', value: '2.00s'},
+        {header: 'Warm Start (2.10.5)', value: '5.00s'},
+        {header: 'Warm Start (2.10.… (42))', value: '6.00s'},
         {header: 'Count', value: '50'},
       ];
 

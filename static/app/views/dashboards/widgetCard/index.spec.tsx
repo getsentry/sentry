@@ -663,8 +663,9 @@ describe('Dashboards > WidgetCard', function () {
     });
     const {tooltip, yAxis} = spy.mock.calls.pop()?.[0] ?? {};
     expect(tooltip).toBeDefined();
-
     expect(yAxis).toBeDefined();
+    // @ts-expect-error
+    expect(tooltip.valueFormatter(24, 'p95(measurements.custom)')).toEqual('24.00ms');
     // @ts-expect-error
     expect(yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual('24ms');
   });

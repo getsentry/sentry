@@ -38,7 +38,7 @@ import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
-import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
+import {MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
   datetime: PageFilters['datetime'];
@@ -190,7 +190,6 @@ export const MetricWidget = memo(
                 focusArea={focusArea}
                 samples={samples}
                 chartHeight={300}
-                chartGroup={DDM_CHART_GROUP}
                 {...widget}
               />
             ) : (
@@ -211,7 +210,6 @@ export const MetricWidget = memo(
 
 interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   widgetIndex: number;
-  chartGroup?: string;
   chartHeight?: number;
   focusArea?: FocusAreaProps;
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
@@ -235,7 +233,6 @@ export const MetricWidgetBody = memo(
     getChartPalette = createChartPalette,
     focusArea,
     chartHeight,
-    chartGroup,
     samples,
     ...metricsQuery
   }: MetricWidgetBodyProps & PageFilters) => {
@@ -344,7 +341,6 @@ export const MetricWidgetBody = memo(
           height={chartHeight}
           scatter={samples}
           focusArea={focusArea}
-          group={chartGroup}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable

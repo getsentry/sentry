@@ -580,11 +580,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-      <Route
-        path="replays/"
-        name={t('Replays')}
-        component={make(() => import('sentry/views/settings/project/projectReplays'))}
-      />
 
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute

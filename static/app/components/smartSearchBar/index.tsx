@@ -46,6 +46,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import SearchBoxTextArea from 'sentry/utils/search/searchBoxTextArea';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
@@ -99,15 +100,6 @@ const generateOpAutocompleteGroup = (
     type: ItemType.TAG_OPERATOR,
   };
 };
-
-function maybeFocusInput(input: HTMLTextAreaElement | null) {
-  // Cannot focus if there is no input or if the input is already focused
-  if (!input || document.activeElement === input) {
-    return;
-  }
-
-  input.focus();
-}
 
 const pickParserOptions = (props: Props) => {
   const {
@@ -460,7 +452,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const {query, actionBarItems} = this.props;
     const parserOptions = pickParserOptions(this.props);
 
-    const {query: lastQuery, actionBarItems: lastActionBar} = prevProps;
+    const {query: lastQuery, actionBarItems: lastAcionBarItems} = prevProps;
     const prevParserOptions = pickParserOptions(prevProps);
 
     if (query !== lastQuery && (defined(query) || defined(lastQuery))) {
@@ -470,7 +462,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       this.setState(this.makeQueryState(this.state.query));
     }
 
-    if (lastActionBar?.length !== actionBarItems?.length) {
+    if (lastAcionBarItems?.length !== actionBarItems?.length) {
       this.setState({numActionsVisible: actionBarItems?.length ?? 0});
     }
   }
@@ -599,7 +591,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const token = this.cursorToken;
 
     if (this.searchInput.current && filterTokens.length > 0) {
-      maybeFocusInput(this.searchInput.current);
+      this.searchInput.current.focus();
 
       let offset = filterTokens[0].location.end.offset;
       if (token) {
@@ -631,7 +623,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
       if (this.searchInput.current) {
         // Only use exec command if exists
-        maybeFocusInput(this.searchInput.current);
+        this.searchInput.current.focus();
 
         this.searchInput.current.selectionStart = 0;
         this.searchInput.current.selectionEnd = query.length;
@@ -659,7 +651,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     if (token && token.type === Token.FILTER) {
       if (token.negated) {
         if (this.searchInput.current) {
-          maybeFocusInput(this.searchInput.current);
+          this.searchInput.current.focus();
 
           const tokenCursorOffset = this.cursorPosition - token.key.location.start.offset;
 
@@ -686,7 +678,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         }
       } else {
         if (this.searchInput.current) {
-          maybeFocusInput(this.searchInput.current);
+          this.searchInput.current.focus();
 
           const tokenCursorOffset = this.cursorPosition - token.key.location.start.offset;
 
@@ -1735,7 +1727,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     this.setState(this.makeQueryState(newQuery), () => {
       // setting a new input value will lose focus; restore it
       if (this.searchInput.current) {
-        maybeFocusInput(this.searchInput.current);
+        this.searchInput.current.focus();
         if (cursorPosition) {
           this.searchInput.current.selectionStart = cursorPosition;
           this.searchInput.current.selectionEnd = cursorPosition;
@@ -1941,6 +1933,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
     const input = (
       <SearchInput
+        type="text"
         placeholder={placeholder}
         id={id}
         data-test-id="smart-search-input"
@@ -1958,6 +1951,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         disabled={disabled}
         maxLength={maxQueryLength}
         spellCheck={false}
+        maxRows={query ? undefined : 1}
       />
     );
 
@@ -1977,7 +1971,10 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         return <ActionBarButton key={key} />;
       });
 
-    const hasOverflownActions = actionItems.length > numActionsVisible;
+    const overflowedActions = actionItems
+      .slice(numActionsVisible)
+      .map(({makeAction}) => makeAction(actionProps).menuItem);
+
     const cursor = this.cursorPosition;
 
     const visibleShortcuts = shortcuts.filter(
@@ -2032,7 +2029,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             />
           )}
           {visibleActions}
-          {hasOverflownActions ? (
+          {overflowedActions.length > 0 && (
             <OverlowingActionsMenu
               position="bottom-end"
               trigger={props => (
@@ -2044,19 +2041,19 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
                 />
               )}
               triggerLabel={t('Show more')}
-              items={actionItems
-                .slice(numActionsVisible)
-                .map(({makeAction}) => makeAction(actionProps).menuItem)}
+              items={overflowedActions}
               size="sm"
             />
-          ) : null}
+          )}
         </ActionsBar>
 
         {this.shouldShowDatePicker && (
           <SearchBarDatePicker
             date={this.cursorValueIsoDate?.value}
             dateString={this.cursorValueIsoDate?.text}
-            handleSelectDateTime={this.onAutoCompleteIsoDate}
+            handleSelectDateTime={value => {
+              this.onAutoCompleteIsoDate(value);
+            }}
           />
         )}
 
@@ -2122,12 +2119,8 @@ export {SmartSearchBar};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`
   min-height: ${p => p.theme.form.md.height}px;
-  border: ${p =>
-    p.inputHasFocus ? `1px solid ${p.theme.focusBorder}` : `1px solid ${p.theme.border}`};
-  box-shadow: ${p =>
-    p.inputHasFocus
-      ? `0 0 0 1px ${p.theme.focusBorder}`
-      : `inset ${p.theme.dropShadowMedium}`};
+  border: 1px solid ${p => p.theme.border};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: ${p => p.theme.background};
   padding: 6px ${space(1)};
   position: relative;
@@ -2141,6 +2134,13 @@ const Container = styled('div')<{inputHasFocus: boolean}>`
   .show-sidebar & {
     background: ${p => p.theme.backgroundSecondary};
   }
+
+  ${p =>
+    p.inputHasFocus &&
+    `
+    border-color: ${p.theme.focusBorder};
+    box-shadow: 0 0 0 1px ${p.theme.focusBorder};
+  `}
 `;
 
 const SearchIconContainer = styled('div')`
@@ -2159,24 +2159,25 @@ const SearchLabel = styled('label')`
 
 const InputWrapper = styled('div')`
   position: relative;
-  width: 100%;
-  height: 100%;
 `;
 
 const Highlight = styled('div')`
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   user-select: none;
   white-space: pre-wrap;
   word-break: break-word;
-  line-height: 24px;
+  line-height: 25px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const SearchInput = styled('textarea')`
-  position: absolute;
-  inset: 0;
+const SearchInput = styled(SearchBoxTextArea)`
+  position: relative;
+  display: flex;
   resize: none;
   outline: none;
   border: 0;

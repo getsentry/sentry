@@ -168,7 +168,7 @@ export function getMaxOfSeries(series: Series[]) {
 }
 
 export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {
-  [WebVital.LCP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA, Browser.FIREFOX],
+  [WebVital.LCP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA],
   [WebVital.FID]: [
     Browser.CHROME,
     Browser.EDGE,
@@ -194,7 +194,6 @@ export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {
     Browser.SAFARI,
     Browser.IE,
   ],
-  [WebVital.INP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA],
 };
 
 export function getVitalChartDefinitions({

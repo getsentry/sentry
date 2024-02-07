@@ -87,7 +87,8 @@ class SentryAppsPermission(SentryPermission):
 
         self.determine_access(request, context)
 
-        if superuser_has_permission(request):
+        # TODO(cathy): replace with superuser_has_permission
+        if is_active_superuser(request):
             return True
 
         # User must be a part of the Org they're trying to create the app in.
@@ -277,7 +278,8 @@ class SentryAppInstallationsPermission(SentryPermission):
 
         self.determine_access(request, organization)
 
-        if superuser_has_permission(request):
+        # TODO(cathy): replace with superuser_has_permission
+        if is_active_superuser(request):
             return True
 
         organizations = (

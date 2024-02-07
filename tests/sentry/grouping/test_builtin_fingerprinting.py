@@ -695,32 +695,3 @@ class BuiltInFingerprintingTest(TestCase):
         assert "built-in-fingerprint" not in variants
         assert event_transaction_no_tx.data["fingerprint"] == ["my-route", "{{ default }}"]
         assert event_transaction_no_tx.data.get("_fingerprint_info") is None
-
-    def test_hydration_rule_w_family_matcher(self):
-        """
-        Testing if rules are applied correctly with a family matcher
-        """
-
-        mgr = EventManager(data=self.hydration_error_trace, grouping_config=GROUPING_CONFIG)
-        mgr.normalize()
-        data = mgr.get_data()
-        data.setdefault("fingerprint", ["{{ default }}"])
-        fingerprinting_config = FingerprintingRules.from_config_string(
-            'family:javascript tags.transaction:"*" message:"Text content does not match server-rendered HTML." -> hydrationerror, {{tags.transaction}}'
-        )
-        apply_server_fingerprinting(data, fingerprinting_config)
-        event_type = get_event_type(data)
-        event_metadata = event_type.get_metadata(data)
-        data.update(materialize_metadata(data, event_type, event_metadata))
-
-        event = eventstore.backend.create_event(data=data)
-
-        assert event.data.data["_fingerprint_info"]["matched_rule"] == {
-            "attributes": {},
-            "fingerprint": ["hydrationerror", "{{tags.transaction}}"],
-            "matchers": [
-                ["family", "javascript"],
-                ["tags.transaction", "*"],
-                ["message", self.hydration_error_trace["message"]],
-            ],
-        }

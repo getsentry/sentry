@@ -3,7 +3,6 @@ from django.db import router, transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import serializers
-from rest_framework.fields import CharField
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,7 +21,6 @@ from sentry.security.utils import capture_security_activity
 
 
 class ApiTokenSerializer(serializers.Serializer):
-    name = CharField(max_length=255, allow_blank=True, required=False)
     scopes = MultipleChoiceField(required=True, choices=settings.SENTRY_SCOPES)
 
 
@@ -37,36 +35,23 @@ class ApiTokensEndpoint(Endpoint):
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    @classmethod
-    def _get_appropriate_user_id(cls, request: Request) -> str:
-        """
-        Gets the user id to use for the request, based on what the current state of the request is.
-        If the request is made by a superuser, then they are allowed to act on behalf of other user's data.
-        Therefore, when GET or DELETE endpoints are invoked by the superuser, we may utilize a provided user_id.
-
-        The user_id to use comes from the GET or BODY parameter based on the request type.
-        For GET endpoints, the GET dict is used.
-        For all others, the DATA dict is used.
-        """
-        # Get the user id for the user that made the current request as a baseline default
-        user_id = request.user.id
-        if is_active_superuser(request):
-            datastore = request.GET if request.GET else request.data
-            # If a userId override is not found, use the id for the user who made the request
-            user_id = datastore.get("userId", user_id)
-
-        return user_id
-
     @method_decorator(never_cache)
     def get(self, request: Request) -> Response:
-        user_id = self._get_appropriate_user_id(request=request)
+        user_id = request.user.id
+        if is_active_superuser(request):
+            user_id = request.GET.get("userId", user_id)
 
         token_list = list(
             ApiToken.objects.filter(application__isnull=True, user_id=user_id).select_related(
                 "application"
             )
         )
-        return Response(serialize(token_list, request.user, include_token=False))
+        """
+        TODO:
+        - when the delete endpoint no longer requires the full token value, update this to stop including token
+        - update the endpoint to use pagination instead of unbounded return
+        """
+        return Response(serialize(token_list, request.user))
 
     @method_decorator(never_cache)
     def post(self, request: Request) -> Response:
@@ -77,7 +62,6 @@ class ApiTokensEndpoint(Endpoint):
 
             token = ApiToken.objects.create(
                 user_id=request.user.id,
-                name=result.get("name", None),
                 scope_list=result["scopes"],
                 refresh_token=None,
                 expires_at=None,
@@ -99,21 +83,27 @@ class ApiTokensEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def delete(self, request: Request):
-        user_id = self._get_appropriate_user_id(request=request)
+        user_id = request.user.id
+        if is_active_superuser(request):
+            user_id = request.data.get("userId", user_id)
+        # TODO: we should not be requiring full token value in the delete endpoint, and should instead be using the id
+        token = request.data.get("token", None)
         token_id = request.data.get("tokenId", None)
         # Account for token_id being 0, which can be considered valid
-        if token_id is None:
-            return Response({"tokenId": token_id}, status=400)
+        if not token and token_id is None:
+            return Response({"token": token, "tokenId": token_id}, status=400)
 
         with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
-            token_to_delete: ApiToken | None = ApiToken.objects.filter(
-                id=token_id, application__isnull=True, user_id=user_id
-            ).first()
-
-            if token_to_delete is None:
-                return Response({"tokenId": token_id, "userId": user_id}, status=400)
-
-            token_to_delete.delete()
+            if token:
+                for token in ApiToken.objects.filter(
+                    user_id=user_id, token=token, application__isnull=True
+                ):
+                    token.delete()
+            else:
+                token_to_delete = ApiToken.objects.get(
+                    id=token_id, application__isnull=True, user_id=user_id
+                )
+                token_to_delete.delete()
 
         analytics.record("api_token.deleted", user_id=request.user.id)
 

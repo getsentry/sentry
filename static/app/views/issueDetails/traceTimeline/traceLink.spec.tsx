@@ -1,9 +1,11 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 import {TraceLink} from './traceLink';
@@ -30,7 +32,6 @@ describe('TraceLink', () => {
         title: 'Slow DB Query',
         id: 'abc',
         issue: 'SENTRY-ABC1',
-        transaction: '/api/slow/',
       },
     ],
     meta: {fields: {}, units: {}},
@@ -45,15 +46,23 @@ describe('TraceLink', () => {
         title: 'AttributeError: Something Failed',
         id: event.id,
         issue: 'SENTRY-2EYS',
-        transaction: 'important.task',
-        'event.type': 'error',
       },
     ],
     meta: {fields: {}, units: {}},
   };
 
   beforeEach(() => {
+    // Can be removed with issueDetailsNewExperienceQ42023
     ProjectsStore.loadInitialData([project]);
+    ConfigStore.set(
+      'user',
+      UserFixture({
+        options: {
+          ...UserFixture().options,
+          issueDetailsNewExperienceQ42023: true,
+        },
+      })
+    );
   });
 
   it('renders the number of issues', async () => {

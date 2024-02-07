@@ -3,10 +3,7 @@ import type {Route, RouteComponentProps, RouteContextInterface} from 'react-rout
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
-import type {
-  ProductSelectionProps,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
+import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
@@ -151,13 +148,6 @@ type QualitativeIssueFeedbackProps = {
   group: Group;
   organization: Organization;
 };
-
-// on-create-project-product-selection
-type CreateProjectProductSelectionChangedCallback = (options: {
-  defaultProducts: ProductSolution[];
-  organization: Organization;
-  selectedProducts: ProductSolution[];
-}) => void;
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
@@ -341,7 +331,6 @@ export type ReactHooks = {
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
-  'callback:on-create-project-product-selection': CreateProjectProductSelectionChangedCallback;
   'callback:on-guide-update': GuideUpdateCallback;
   'callback:on-monitor-created': MonitorCreatedCallback;
 };

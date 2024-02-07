@@ -12,10 +12,6 @@ import type {Tag} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {Dot} from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
-import {
-  ORDER,
-  ORDER_WITH_INP,
-} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
@@ -25,7 +21,6 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 import PerformanceScoreRingWithTooltips from './performanceScoreRingWithTooltips';
@@ -74,11 +69,9 @@ type WebVitalDetailHeaderProps = {
 };
 
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
   const theme = useTheme();
   const colors = theme.charts.getColorPalette(3);
-  const dotColor =
-    colors[(shouldReplaceFidWithInp ? ORDER_WITH_INP : ORDER).indexOf(webVital)];
+  const dotColor = colors[['lcp', 'fcp', 'fid', 'cls', 'ttfb'].indexOf(webVital)];
   const status = score !== undefined ? scoreToStatus(score) : undefined;
 
   return (

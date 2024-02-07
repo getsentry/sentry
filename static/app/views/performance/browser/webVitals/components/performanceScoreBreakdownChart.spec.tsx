@@ -5,10 +5,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  formatTimeSeriesResultsToChartData,
-  PerformanceScoreBreakdownChart,
-} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
+import {PerformanceScoreBreakdownChart} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -219,51 +216,5 @@ describe('PerformanceScoreBreakdownChart', function () {
         }),
       })
     );
-  });
-
-  describe('formatTimeSeriesResultsToChartData', function () {
-    it('formats time series results using provided order', function () {
-      const result = formatTimeSeriesResultsToChartData(
-        {
-          lcp: [],
-          fcp: [],
-          fid: [],
-          cls: [],
-          ttfb: [],
-          inp: [],
-          total: [],
-        },
-        ['#444674', '#895289', '#d6567f', '#f38150', '#f2b712'],
-        false,
-        ['lcp', 'fcp', 'inp', 'cls', 'ttfb']
-      );
-      expect(result).toEqual([
-        {
-          color: '#444674',
-          data: [],
-          seriesName: 'LCP',
-        },
-        {
-          color: '#895289',
-          data: [],
-          seriesName: 'FCP',
-        },
-        {
-          color: '#d6567f',
-          data: [],
-          seriesName: 'INP',
-        },
-        {
-          color: '#f38150',
-          data: [],
-          seriesName: 'CLS',
-        },
-        {
-          color: '#f2b712',
-          data: [],
-          seriesName: 'TTFB',
-        },
-      ]);
-    });
   });
 });

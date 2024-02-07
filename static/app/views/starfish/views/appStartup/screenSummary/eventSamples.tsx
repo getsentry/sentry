@@ -7,11 +7,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {EventSamplesTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -37,7 +33,6 @@ export function EventSamples({
 }: Props) {
   const location = useLocation();
   const {selection} = usePageFilters();
-  const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
 
   const searchQuery = new MutableSearch([
@@ -64,10 +59,7 @@ export function EventSamples({
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    'transaction.id': t(
-      'Event ID (%s)',
-      release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
-    ),
+    'transaction.id': t('Event ID (%s)', formatVersionAndCenterTruncate(release)),
     profile_id: t('Profile'),
     'span.description': t('Start Type'),
     'span.duration': t('Duration'),

@@ -9,10 +9,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  ORDER,
-  ORDER_WITH_INP,
-} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import type {WebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
 import {useProjectRawWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
@@ -20,11 +16,18 @@ import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/perf
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {UnweightedWebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
-import {useReplaceFidWithInpSetting} from 'sentry/views/performance/browser/webVitals/utils/useReplaceFidWithInpSetting';
 import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import Chart from 'sentry/views/starfish/components/chart';
 
 export const SCORE_MIGRATION_TIMESTAMP = 1702771200000;
+
+const {
+  lcp: LCP_WEIGHT,
+  fcp: FCP_WEIGHT,
+  fid: FID_WEIGHT,
+  cls: CLS_WEIGHT,
+  ttfb: TTFB_WEIGHT,
+} = PERFORMANCE_SCORE_WEIGHTS;
 
 type Props = {
   transaction?: string;
@@ -33,28 +36,66 @@ type Props = {
 export const formatTimeSeriesResultsToChartData = (
   data: WebVitalsScoreBreakdown,
   segmentColors: string[],
-  useWeights = true,
-  order = ORDER
+  useWeights = true
 ): Series[] => {
-  return order.map((webVital, index) => {
-    const series = data[webVital];
-    const color = segmentColors[index];
-    return {
-      seriesName: webVital.toUpperCase(),
-      data: series.map(({name, value}) => ({
+  return [
+    {
+      data: data?.lcp.map(({name, value}) => ({
         name,
-        value: Math.round(
-          value * (useWeights ? PERFORMANCE_SCORE_WEIGHTS[webVital] : 100) * 0.01
-        ),
+        value: Math.round(value * (useWeights ? LCP_WEIGHT : 100) * 0.01),
       })),
-      color,
-    };
-  });
+      seriesName: 'LCP',
+      color: segmentColors[0],
+    },
+    {
+      data: data?.fcp.map(
+        ({name, value}) => ({
+          name,
+          value: Math.round(value * (useWeights ? FCP_WEIGHT : 100) * 0.01),
+        }),
+        []
+      ),
+      seriesName: 'FCP',
+      color: segmentColors[1],
+    },
+    {
+      data: data?.fid.map(
+        ({name, value}) => ({
+          name,
+          value: Math.round(value * (useWeights ? FID_WEIGHT : 100) * 0.01),
+        }),
+        []
+      ),
+      seriesName: 'FID',
+      color: segmentColors[2],
+    },
+    {
+      data: data?.cls.map(
+        ({name, value}) => ({
+          name,
+          value: Math.round(value * (useWeights ? CLS_WEIGHT : 100) * 0.01),
+        }),
+        []
+      ),
+      seriesName: 'CLS',
+      color: segmentColors[3],
+    },
+    {
+      data: data?.ttfb.map(
+        ({name, value}) => ({
+          name,
+          value: Math.round(value * (useWeights ? TTFB_WEIGHT : 100) * 0.01),
+        }),
+        []
+      ),
+      seriesName: 'TTFB',
+      color: segmentColors[4],
+    },
+  ];
 };
 
 export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const shouldUseStoredScores = useStoredScoresSetting();
-  const shouldReplaceFidWithInp = useReplaceFidWithInpSetting();
   const theme = useTheme();
   const segmentColors = theme.charts.getColorPalette(3);
 
@@ -91,19 +132,15 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
-  const chartSeriesOrder = shouldReplaceFidWithInp ? ORDER_WITH_INP : ORDER;
-
   const preMigrationWeightedTimeseries = formatTimeSeriesResultsToChartData(
     preMigrationTimeseriesData,
     segmentColors,
-    true,
-    chartSeriesOrder
+    true
   );
   let weightedTimeseries = formatTimeSeriesResultsToChartData(
     timeseriesData,
     segmentColors,
-    !shouldUseStoredScores,
-    chartSeriesOrder
+    !shouldUseStoredScores
   );
 
   weightedTimeseries = weightedTimeseries.map((series, index) => {
@@ -150,8 +187,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const preMigrationUnweightedTimeseries = formatTimeSeriesResultsToChartData(
     preMigrationTimeseriesData,
     segmentColors,
-    false,
-    chartSeriesOrder
+    false
   );
 
   let unweightedTimeseries = formatTimeSeriesResultsToChartData(
@@ -167,8 +203,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         }
       : timeseriesData,
     segmentColors,
-    false,
-    chartSeriesOrder
+    false
   );
 
   unweightedTimeseries = unweightedTimeseries.map((series, index) => {
@@ -196,7 +231,6 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
               lcp: projectScore.lcpWeight,
               fcp: projectScore.fcpWeight,
               fid: projectScore.fidWeight,
-              inp: projectScore.inpWeight,
               cls: projectScore.clsWeight,
               ttfb: projectScore.ttfbWeight,
             }

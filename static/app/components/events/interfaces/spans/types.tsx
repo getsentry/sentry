@@ -39,7 +39,7 @@ export interface MetricsSummaryItem {
 }
 
 export interface MetricsSummary {
-  [mri: MRI]: MetricsSummaryItem[] | null;
+  [mri: MRI]: MetricsSummaryItem[];
 }
 
 export type RawSpanType = {

@@ -6,7 +6,7 @@ import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/ut
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface BaseEvent {
+export interface TimelineEvent {
   id: string;
   issue: string;
   'issue.id': number;
@@ -14,16 +14,7 @@ interface BaseEvent {
   'project.name': string;
   timestamp: string;
   title: string;
-  transaction: string;
 }
-
-interface TimelineDiscoverEvent extends BaseEvent {}
-interface TimelineIssuePlatformEvent extends BaseEvent {
-  'event.type': string;
-  'stack.function': string[];
-}
-
-export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
 
 export interface TraceEventResponse {
   data: TimelineEvent[];
@@ -54,7 +45,7 @@ export function useTraceTimelineEvents(
         query: {
           // Get performance issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
-          field: ['title', 'project', 'timestamp', 'issue.id', 'issue', 'transaction'],
+          field: ['title', 'project', 'timestamp', 'issue.id', 'issue'],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
@@ -80,16 +71,7 @@ export function useTraceTimelineEvents(
         query: {
           // Other events
           dataset: DiscoverDatasets.DISCOVER,
-          field: [
-            'title',
-            'project',
-            'timestamp',
-            'issue.id',
-            'issue',
-            'transaction',
-            'event.type',
-            'stack.function',
-          ],
+          field: ['title', 'project', 'timestamp', 'issue.id', 'issue'],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',

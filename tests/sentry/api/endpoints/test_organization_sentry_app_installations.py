@@ -1,9 +1,6 @@
-from django.test import override_settings
-
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -65,24 +62,6 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
             }
         ]
 
-        # also works for SaaS
-        with self.settings(SENTRY_SELF_HOSTED=False):
-            response = self.get_success_response(self.org.slug, status_code=200)
-            response = self.get_success_response(self.super_org.slug, status_code=200)
-
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
-    def test_superuser_read_and_write_sees_all_installs(self):
-        # test SaaS only
-        self.login_as(user=self.superuser, superuser=True)
-        self.get_success_response(self.org.slug, status_code=200)
-        self.get_success_response(self.super_org.slug, status_code=200)
-
-        self.add_user_permission(self.superuser, "superuser.write")
-
-        self.get_success_response(self.org.slug, status_code=200)
-        self.get_success_response(self.super_org.slug, status_code=200)
-
     def test_users_only_sees_installs_on_their_org(self):
         self.login_as(user=self.user)
         response = self.get_success_response(self.org.slug, status_code=200)
@@ -127,32 +106,6 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
         }
 
         assert expected.items() <= response.data.items()
-
-    def test_install_superuser(self):
-        self.login_as(user=self.superuser, superuser=True)
-        app = self.create_sentry_app(name="Sample", organization=self.org)
-        self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
-
-        with self.settings(SENTRY_SELF_HOSTED=False):
-            app = self.create_sentry_app(name="Sample 2", organization=self.org, published=True)
-            self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
-
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
-    def test_install_superuser_read(self):
-        self.login_as(user=self.superuser, superuser=True)
-
-        app = self.create_sentry_app(name="Sample", organization=self.org)
-        self.get_error_response(self.org.slug, slug=app.slug, status_code=404)
-
-    @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
-    def test_install_superuser_write(self):
-        self.login_as(user=self.superuser, superuser=True)
-        self.add_user_permission(self.superuser, "superuser.write")
-
-        app = self.create_sentry_app(name="Sample", organization=self.org)
-        self.get_success_response(self.org.slug, slug=app.slug, status_code=200)
 
     def test_members_cannot_install_apps(self):
         user = self.create_user("bar@example.com")

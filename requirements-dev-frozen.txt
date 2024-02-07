@@ -175,7 +175,7 @@ selenium==4.16.0
 sentry-arroyo==2.16.0
 sentry-cli==2.16.0
 sentry-devenv==1.2.2
-sentry-forked-django-stubs==4.2.7.post2
+sentry-forked-django-stubs==4.2.7.post1
 sentry-forked-djangorestframework-stubs==3.14.5.post1
 sentry-kafka-schemas==0.1.38
 sentry-ophio==0.1.5

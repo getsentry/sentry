@@ -94,7 +94,6 @@ def _deobfuscate_view_hierarchy(event_data: dict[str, Any], project: Project, vi
                     windows_to_deobfuscate.extend(children)
 
 
-@sentry_sdk.trace
 def deobfuscation_template(data, map_type, deobfuscation_fn):
     """
     Template for operations involved in deobfuscating view hierarchies.
@@ -109,27 +108,28 @@ def deobfuscation_template(data, map_type, deobfuscation_fn):
     if not any(attachment.type == "event.view_hierarchy" for attachment in attachments):
         return
 
-    new_attachments = []
-    for attachment in attachments:
-        if attachment.type == "event.view_hierarchy":
-            view_hierarchy = json.loads(attachment_cache.get_data(attachment))
-            deobfuscation_fn(data, project, view_hierarchy)
+    with sentry_sdk.start_transaction(name=f"{map_type}.deobfuscate_view_hierarchy", sampled=True):
+        new_attachments = []
+        for attachment in attachments:
+            if attachment.type == "event.view_hierarchy":
+                view_hierarchy = json.loads(attachment_cache.get_data(attachment))
+                deobfuscation_fn(data, project, view_hierarchy)
 
-            # Reupload to cache as a unchunked data
-            new_attachments.append(
-                CachedAttachment(
-                    type=attachment.type,
-                    id=attachment.id,
-                    name=attachment.name,
-                    content_type=attachment.content_type,
-                    data=json.dumps_htmlsafe(view_hierarchy).encode(),
-                    chunks=None,
+                # Reupload to cache as a unchunked data
+                new_attachments.append(
+                    CachedAttachment(
+                        type=attachment.type,
+                        id=attachment.id,
+                        name=attachment.name,
+                        content_type=attachment.content_type,
+                        data=json.dumps_htmlsafe(view_hierarchy).encode(),
+                        chunks=None,
+                    )
                 )
-            )
-        else:
-            new_attachments.append(attachment)
+            else:
+                new_attachments.append(attachment)
 
-    attachment_cache.set(cache_key, attachments=new_attachments, timeout=CACHE_TIMEOUT)
+        attachment_cache.set(cache_key, attachments=new_attachments, timeout=CACHE_TIMEOUT)
 
 
 def deobfuscate_view_hierarchy(data):

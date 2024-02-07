@@ -1,4 +1,4 @@
-import type {Organization} from 'sentry/types';
+import type {Organization, User} from 'sentry/types';
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
 
@@ -48,6 +48,12 @@ export function getChunkTimeRange(
   return [Math.floor(chunkStartTimestamp), Math.floor(chunkEndTimestamp) + 1];
 }
 
-export function hasTraceTimelineFeature(organization: Organization | null) {
-  return organization?.features?.includes('issues-trace-timeline');
+export function hasTraceTimelineFeature(
+  organization: Organization | null,
+  user: User | undefined
+) {
+  const newIssueExperienceEnabled = user?.options?.issueDetailsNewExperienceQ42023;
+  const hasFeature = organization?.features?.includes('issues-trace-timeline');
+
+  return !!(newIssueExperienceEnabled && hasFeature);
 }

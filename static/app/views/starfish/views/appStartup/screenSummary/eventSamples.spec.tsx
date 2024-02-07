@@ -4,7 +4,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
 import {
   MobileCursors,
@@ -12,7 +11,6 @@ import {
 } from 'sentry/views/starfish/views/screens/constants';
 
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/views/starfish/queries/useReleases');
 
 describe('ScreenLoadEventSamples', function () {
   const organization = OrganizationFixture();
@@ -35,26 +33,6 @@ describe('ScreenLoadEventSamples', function () {
         environments: [],
         projects: [parseInt(project.id, 10)],
       },
-    });
-    jest.mocked(useReleaseSelection).mockReturnValue({
-      primaryRelease: 'com.example.vu.android@2.10.5',
-      isLoading: false,
-      secondaryRelease: 'com.example.vu.android@2.10.3+42',
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/`,
-      body: [
-        {
-          id: 970136705,
-          version: 'com.example.vu.android@2.10.5',
-          dateCreated: '2023-12-19T21:37:53.895495Z',
-        },
-        {
-          id: 969902997,
-          version: 'com.example.vu.android@2.10.3+42',
-          dateCreated: '2023-12-19T18:04:06.953025Z',
-        },
-      ],
     });
     mockEventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -95,7 +73,9 @@ describe('ScreenLoadEventSamples', function () {
     );
 
     // Check that headers are set properly
-    expect(screen.getByRole('columnheader', {name: 'Event ID (R1)'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Event ID (2.10.5)'})
+    ).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Profile'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Start Type'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Duration'})).toBeInTheDocument();

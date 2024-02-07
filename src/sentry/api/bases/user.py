@@ -7,13 +7,12 @@ from typing_extensions import override
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
-from sentry.auth.superuser import is_active_superuser, superuser_has_permission
+from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.access.service import access_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -27,14 +26,8 @@ class UserPermission(SentryPermission):
             return True
         if request.auth:
             return False
-
         if is_active_superuser(request):
-            # collect admin level permissions (only used when a user is active superuser)
-            permissions = access_service.get_permissions_for_user(request.user.id)
-
-            if superuser_has_permission(request, permissions):
-                return True
-
+            return True
         return False
 
 
@@ -45,12 +38,13 @@ class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
     """
 
 
-class OrganizationUserPermission(UserAndStaffPermission):
+class OrganizationUserPermission(UserPermission):
     scope_map = {"DELETE": ["member:admin"]}
 
     def has_org_permission(self, request: Request, user):
         """
-        Org can act on a user account, if the user is a member of only one org
+        Org can act on a user account,
+        if the user is a member of only one org
         e.g. reset org member's 2FA
         """
 

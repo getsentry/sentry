@@ -530,7 +530,9 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         """
         update_role = False
 
-        with sentry_sdk.configure_scope() as scope:
+        with sentry_sdk.start_transaction(
+            name="scim.provision_member", op="scim", sampled=True
+        ) as txn:
             if "sentryOrgRole" in request.data and request.data["sentryOrgRole"]:
                 role = request.data["sentryOrgRole"].lower()
                 idp_role_restricted = True
@@ -538,7 +540,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             else:
                 role = organization.default_role
                 idp_role_restricted = False
-            scope.set_tag("role_restricted", idp_role_restricted)
+            txn.set_tag("role_restricted", idp_role_restricted)
 
             # Allow any role as long as it doesn't have `org:admin` permissions
             allowed_roles = {role for role in roles.get_all() if not role.has_scope("org:admin")}
@@ -546,10 +548,10 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             # Check for roles not found
             # TODO: move this to the serializer verification
             if role not in {role.id for role in allowed_roles}:
-                scope.set_tag("invalid_role_selection", True)
+                txn.set_tag("invalid_role_selection", True)
                 raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
 
-            scope.set_tag("invalid_role_selection", False)
+            txn.set_tag("invalid_role_selection", False)
             serializer = OrganizationMemberSerializer(
                 data={
                     "email": request.data.get("userName"),
@@ -606,11 +608,9 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                 organization_id=organization.id,
                 target_object=member.id,
                 data=member.get_audit_log_data(),
-                event=(
-                    audit_log.get_event_id("MEMBER_INVITE")
-                    if settings.SENTRY_ENABLE_INVITES
-                    else audit_log.get_event_id("MEMBER_ADD")
-                ),
+                event=audit_log.get_event_id("MEMBER_INVITE")
+                if settings.SENTRY_ENABLE_INVITES
+                else audit_log.get_event_id("MEMBER_ADD"),
             )
 
             if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):

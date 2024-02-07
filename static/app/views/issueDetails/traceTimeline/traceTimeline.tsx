@@ -7,6 +7,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {hasTraceTimelineFeature} from 'sentry/views/issueDetails/traceTimeline/utils';
 
 import {TraceTimelineEvents} from './traceTimelineEvents';
@@ -19,10 +20,11 @@ interface TraceTimelineProps {
 }
 
 export function TraceTimeline({event}: TraceTimelineProps) {
+  const user = useUser();
   const organization = useOrganization({allowNull: true});
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
-  const hasFeature = hasTraceTimelineFeature(organization);
+  const hasFeature = hasTraceTimelineFeature(organization, user);
   const {isError, isLoading, data} = useTraceTimelineEvents({event}, hasFeature);
 
   if (!hasFeature || !event.contexts?.trace?.trace_id) {
@@ -63,10 +65,9 @@ const TimelineOutline = styled('div')`
   left: 0;
   top: 5px;
   width: 100%;
-  height: 8px;
+  height: 6px;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme.backgroundSecondary};
 `;
 
 /**

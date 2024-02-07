@@ -284,7 +284,7 @@ const Image = styled('img')`
 `;
 
 const FlamegraphContainer = styled('div')`
-  height: 310px;
+  height: 300px;
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
 `;

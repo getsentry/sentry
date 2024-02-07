@@ -5,6 +5,7 @@ import type {XAXisOption} from 'echarts/types/dist/shared';
 import moment from 'moment';
 
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {getDuration} from 'sentry/utils/formatters';
 import {isCumulativeOp} from 'sentry/utils/metrics';
 import type {MetricCorrelation, MetricSummary} from 'sentry/utils/metrics/types';
 import {fitToValueRect, getValueRect} from 'sentry/views/ddm/chartUtils';
@@ -19,7 +20,6 @@ type UseChartSamplesProps = {
   onMouseOut?: (sample: Sample) => void;
   onMouseOver?: (sample: Sample) => void;
   operation?: string;
-  valueFormatter?: (value: number) => string;
 };
 
 // TODO: remove this once we have a stabilized type for this
@@ -42,7 +42,6 @@ export function useChartSamples({
   chartRef,
   operation,
   timeseries,
-  valueFormatter,
 }: UseChartSamplesProps) {
   const theme = useTheme();
 
@@ -189,14 +188,10 @@ export function useChartSamples({
       },
       valueFormatter: (_, label?: string) => {
         const sample = samples[label ?? ''];
-        const yValue = ((sample.min ?? 0) + (sample.max ?? 0)) / 2;
-        if (!valueFormatter) {
-          return yValue.toPrecision(5);
-        }
-        return valueFormatter(yValue);
+        return getDuration(sample.duration / 1000, 2, true);
       },
     };
-  }, [samples, valueFormatter]);
+  }, [samples]);
 
   return {
     handleClick,

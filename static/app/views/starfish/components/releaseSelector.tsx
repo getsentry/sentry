@@ -19,17 +19,13 @@ import {
 } from 'sentry/views/starfish/queries/useReleases';
 import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 
-export const PRIMARY_RELEASE_ALIAS = 'R1';
-export const SECONDARY_RELEASE_ALIAS = 'R2';
-
 type Props = {
   selectorKey: string;
   selectorName?: string;
   selectorValue?: string;
-  triggerLabelPrefix?: string;
 };
 
-export function ReleaseSelector({selectorKey, selectorValue, triggerLabelPrefix}: Props) {
+export function ReleaseSelector({selectorKey, selectorValue}: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm);
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
@@ -70,18 +66,15 @@ export function ReleaseSelector({selectorKey, selectorValue, triggerLabelPrefix}
       options.push(option);
     });
 
-  const triggerLabelContent = selectorValue
-    ? formatVersionAndCenterTruncate(selectorValue, 16)
-    : selectorValue;
-
   return (
     <StyledCompactSelect
       triggerProps={{
         icon: <IconReleases />,
         title: selectorValue,
-        prefix: triggerLabelPrefix,
       }}
-      triggerLabel={triggerLabelContent}
+      triggerLabel={
+        selectorValue ? formatVersionAndCenterTruncate(selectorValue, 16) : selectorValue
+      }
       menuTitle={t('Filter Release')}
       loading={isLoading}
       searchable
@@ -143,14 +136,12 @@ export function ReleaseComparisonSelector() {
         selectorValue={primaryRelease}
         selectorName={t('Release 1')}
         key="primaryRelease"
-        triggerLabelPrefix={PRIMARY_RELEASE_ALIAS}
       />
       <ReleaseSelector
         selectorKey="secondaryRelease"
         selectorName={t('Release 2')}
         selectorValue={secondaryRelease}
         key="secondaryRelease"
-        triggerLabelPrefix={SECONDARY_RELEASE_ALIAS}
       />
     </StyledPageSelector>
   );

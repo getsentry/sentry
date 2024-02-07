@@ -88,6 +88,7 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
         assert len(response_content) == 1
 
         assert response_content[0]["id"] == str(token.id)
+        assert response_content[0]["token"] == token.token
 
     def no_access_for_members(self):
         user = self.create_user(email="meep@example.com")

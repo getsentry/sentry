@@ -488,14 +488,6 @@ def _can_widget_query_use_stateful_extraction(
     on_demand_entry = on_demand_entries[0]
     on_demand_hashes = on_demand_entry.spec_hashes
 
-    if on_demand_entry.date_modified < widget_query.date_modified:
-        # On demand entry was updated before the widget_query got updated, meaning it's potentially out of date
-        metrics.incr(
-            "on_demand_metrics.on_demand_spec.out_of_date_on_demand",
-            sample_rate=1.0,
-        )
-        return False
-
     if set(spec_hashes) != set(on_demand_hashes):
         # Spec hashes should match.
         with sentry_sdk.push_scope() as scope:
@@ -509,7 +501,6 @@ def _can_widget_query_use_stateful_extraction(
             amount=len(metrics_specs),
             sample_rate=1.0,
         )
-
         return False
 
     return True
@@ -715,8 +706,9 @@ def _convert_aggregate_and_query_to_metrics(
             logger.exception("Invalid on-demand metric spec", extra=extra)
         except Exception:
             # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
-            metrics.incr("on_demand_metrics.invalid_metric_spec.other")
-            logger.exception("Failed on-demand metric spec creation.", extra=extra)
+            # Sentry console.
+            if not prefilling:
+                logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
     return metric_specs_and_hashes
 

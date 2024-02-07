@@ -98,21 +98,76 @@ class ActionTarget(FlexibleIntEnum):
         )
 
 
+class AbstractNotificationAction(Model):
+    """
+    Abstract model meant to retroactively create a contract for notification actions
+    (e.g. metric alerts, spike protection, etc.)
+    """
+
+    integration_id = HybridCloudForeignKey(
+        "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
+    )
+    sentry_app_id = HybridCloudForeignKey(
+        "sentry.SentryApp", blank=True, null=True, on_delete="CASCADE"
+    )
+
+    # The type of service which will receive the action notification (e.g. slack, pagerduty, etc.)
+    type = models.SmallIntegerField(choices=ActionService.as_choices())
+    # The type of target which the service uses for routing (e.g. user, team)
+    target_type = models.SmallIntegerField(choices=ActionTarget.as_choices())
+    # Identifier of the target for the given service (e.g. slack channel id, pagerdutyservice id)
+    target_identifier = models.TextField(null=True)
+    # User-friendly name of the target (e.g. #slack-channel, pagerduty-service-name)
+    target_display = models.TextField(null=True)
+
+    @property
+    def service_type(self) -> int:
+        """
+        Used for disambiguity of self.type
+        """
+        return self.type
+
+    class Meta:
+        abstract = True
+
+
 class ActionTrigger(FlexibleIntEnum):
     """
     The possible sources of action notifications.
-    Items prefixed with 'GS_' have registrations in getsentry.
+    Use values less than 100 here to avoid conflicts with getsentry's trigger values.
     """
 
     AUDIT_LOG = 0
-    GS_SPIKE_PROTECTION = 100
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
-        return (
-            (cls.AUDIT_LOG.value, "audit-log"),
-            (cls.GS_SPIKE_PROTECTION.value, "spike-protection"),
-        )
+        return ((cls.AUDIT_LOG.value, "audit-log"),)
+
+
+class TriggerGenerator:
+    """
+    Allows NotificationAction.trigger_type to enforce extra triggers via
+    NotificationAction.register_trigger_type
+    """
+
+    def __iter__(self):
+        yield from NotificationAction._trigger_types
+
+
+@region_silo_only_model
+class NotificationActionProject(Model):
+    __relocation_scope__ = {RelocationScope.Global, RelocationScope.Organization}
+
+    project = FlexibleForeignKey("sentry.Project")
+    action = FlexibleForeignKey("sentry.NotificationAction")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_notificationactionproject"
+
+    def get_relocation_scope(self) -> RelocationScope:
+        action = NotificationAction.objects.get(id=self.action_id)
+        return action.get_relocation_scope()
 
 
 class ActionRegistration(metaclass=ABCMeta):
@@ -150,55 +205,6 @@ class ActionRegistration(metaclass=ABCMeta):
 ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
 
 
-class AbstractNotificationAction(Model):
-    """
-    Abstract model meant to retroactively create a contract for notification actions
-    (e.g. metric alerts, spike protection, etc.)
-    """
-
-    integration_id = HybridCloudForeignKey(
-        "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
-    )
-    sentry_app_id = HybridCloudForeignKey(
-        "sentry.SentryApp", blank=True, null=True, on_delete="CASCADE"
-    )
-
-    # The type of service which will receive the action notification (e.g. slack, pagerduty, etc.)
-    type = models.SmallIntegerField(choices=ActionService.as_choices())
-    # The type of target which the service uses for routing (e.g. user, team)
-    target_type = models.SmallIntegerField(choices=ActionTarget.as_choices())
-    # Identifier of the target for the given service (e.g. slack channel id, pagerdutyservice id)
-    target_identifier = models.TextField(null=True)
-    # User-friendly name of the target (e.g. #slack-channel, pagerduty-service-name)
-    target_display = models.TextField(null=True)
-
-    @property
-    def service_type(self) -> int:
-        """
-        Used for disambiguity of self.type
-        """
-        return self.type
-
-    class Meta:
-        abstract = True
-
-
-@region_silo_only_model
-class NotificationActionProject(Model):
-    __relocation_scope__ = {RelocationScope.Global, RelocationScope.Organization}
-
-    project = FlexibleForeignKey("sentry.Project")
-    action = FlexibleForeignKey("sentry.NotificationAction")
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_notificationactionproject"
-
-    def get_relocation_scope(self) -> RelocationScope:
-        action = NotificationAction.objects.get(id=self.action_id)
-        return action.get_relocation_scope()
-
-
 @region_silo_only_model
 class NotificationAction(AbstractNotificationAction):
     """
@@ -214,15 +220,32 @@ class NotificationAction(AbstractNotificationAction):
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField("sentry.Project", through=NotificationActionProject)
 
-    # The type of trigger which controls when the actions will go off (e.g. 'spike-protection')
-    trigger_type = models.SmallIntegerField(choices=_trigger_types)
+    # The type of trigger which controls when the actions will go off (e.g. spike-protection)
+    trigger_type = models.SmallIntegerField(choices=TriggerGenerator())
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_notificationaction"
 
     @classmethod
-    def register_action(cls, trigger_type: int, service_type: int, target_type: int):
+    def register_trigger_type(
+        cls,
+        value: int,
+        display_text: str,
+    ) -> None:
+        """
+        This method is used for adding trigger types to this model from getsentry.
+        If the trigger is relevant to sentry as well, directly modify ActionTrigger.
+        """
+        cls._trigger_types += ((value, display_text),)
+
+    @classmethod
+    def register_action(
+        cls,
+        trigger_type: int,
+        service_type: int,
+        target_type: int,
+    ):
         """
         Register a new trigger/service/target combination for NotificationActions.
         For example, allowing audit-logs (trigger) to fire actions to slack (service) channels (target)
@@ -234,9 +257,9 @@ class NotificationAction(AbstractNotificationAction):
         """
 
         def inner(registration: type[ActionRegistrationT]) -> type[ActionRegistrationT]:
-            if trigger_type not in dict(ActionTrigger.as_choices()):
+            if trigger_type not in dict(cls._trigger_types):
                 raise AttributeError(
-                    f"Trigger type of {trigger_type} is not registered. Modify ActionTrigger."
+                    f"Trigger type of {trigger_type} is not registered. Modify ActionTrigger or call register_trigger_type()."
                 )
 
             if service_type not in dict(ActionService.as_choices()):

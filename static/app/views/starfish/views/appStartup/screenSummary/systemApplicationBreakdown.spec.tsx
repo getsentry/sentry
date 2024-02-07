@@ -106,7 +106,7 @@ describe('SystemApplicationBreakdown', function () {
 
     await userEvent.hover(await screen.findByTestId('primary-release-breakdown'));
     expect(await screen.findByTestId('breakdown-tooltip-content')).toHaveTextContent(
-      'System7070%Application3030%'
+      'System70%Application30%'
     );
 
     await userEvent.unhover(screen.getByTestId('primary-release-breakdown'));
@@ -116,7 +116,7 @@ describe('SystemApplicationBreakdown', function () {
 
     await userEvent.hover(screen.getByTestId('secondary-release-breakdown'));
     expect(await screen.findByTestId('breakdown-tooltip-content')).toHaveTextContent(
-      'System70100%Application00%'
+      'System100%'
     );
   });
 });

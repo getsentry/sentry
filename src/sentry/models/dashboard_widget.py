@@ -108,7 +108,6 @@ class DashboardWidgetQuery(Model):
     # Order of the widget query in the widget.
     order = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
-    date_modified = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"

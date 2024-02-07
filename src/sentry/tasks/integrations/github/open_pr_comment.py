@@ -91,8 +91,6 @@ OPEN_PR_ISSUE_TABLE_TOGGLE_TEMPLATE = """\
 
 OPEN_PR_ISSUE_DESCRIPTION_LENGTH = 52
 
-MAX_RECENT_ISSUES = 10000
-
 
 def format_open_pr_comment(issue_tables: list[str]) -> str:
     return OPEN_PR_COMMENT_BODY_TEMPLATE.format(issue_tables="\n".join(issue_tables))
@@ -305,10 +303,8 @@ def get_top_5_issues_by_count_for_file(
             last_seen__gte=datetime.now() - timedelta(days=14),
             status=GroupStatus.UNRESOLVED,
             project__in=projects,
-        )
-        .order_by("-times_seen")
-        .values_list("id", flat=True)
-    )[:MAX_RECENT_ISSUES]
+        ).values_list("id", flat=True)
+    )
     project_ids = [p.id for p in projects]
 
     multi_if = language_parser.generate_multi_if(function_names)

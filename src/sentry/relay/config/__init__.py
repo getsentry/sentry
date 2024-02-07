@@ -671,6 +671,7 @@ def _get_project_config(
             ]
         }
 
+    config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
             config["filterSettings"] = filter_settings

@@ -38,7 +38,7 @@ def run_metrics_query(
     )
 
     # We prepare the executor, that will be responsible for scheduling the execution multiple queries.
-    executor = QueryExecutor(organization=organization, projects=projects, referrer=referrer)
+    executor = QueryExecutor(organization=organization, referrer=referrer)
 
     # We parse the input and iterating over each timeseries.
     parser = QueryParser(projects=projects, fields=fields, query=query, group_bys=group_bys)

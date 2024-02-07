@@ -93,11 +93,7 @@ function findChildElementsInTree(
     }
 
     const currentComponentName: string =
-      typeof child.type === 'string'
-        ? child.type
-        : 'displayName' in child.type
-          ? (child.type.displayName as string) // `.displayName` is added by `babel-plugin-add-react-displayname` in production builds
-          : child.type.name; // `.name` is available in development builds
+      typeof child.type === 'string' ? child.type : child.type.name;
 
     if (currentComponentName === componentName) {
       found.push(child);

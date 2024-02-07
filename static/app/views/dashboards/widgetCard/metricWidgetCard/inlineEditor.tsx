@@ -346,8 +346,6 @@ const InlineEditorWrapper = styled('div')`
   padding: ${space(1)};
   gap: ${space(1)};
   width: 100%;
-  /* minimal z-index that allows dropdowns to expand over other dashboard elements */
-  z-index: 6;
 `;
 
 const QueryDefinitionWrapper = styled('div')`

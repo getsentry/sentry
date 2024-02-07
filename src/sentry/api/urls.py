@@ -4,9 +4,6 @@ from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
-from sentry.api.endpoints.group_similar_issues_embeddings import (
-    GroupSimilarIssuesEmbeddingsEndpoint,
-)
 from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
 from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
@@ -246,6 +243,7 @@ from .endpoints.integrations import (
     OrganizationPluginsEndpoint,
 )
 from .endpoints.integrations.sentry_apps import (
+    NewSentryInternalAppTokenDetailsEndpoint,
     OrganizationSentryAppComponentsEndpoint,
     OrganizationSentryAppsEndpoint,
     SentryAppAuthorizationsEndpoint,
@@ -705,11 +703,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/similar/$",
             GroupSimilarIssuesEndpoint.as_view(),
             name=f"{name_prefix}-group-similar",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^\/]+)/similar-issues-embeddings/$",
-            GroupSimilarIssuesEmbeddingsEndpoint.as_view(),
-            name=f"{name_prefix}-group-similar-issues-embeddings",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/external-issues/$",
@@ -2768,8 +2761,15 @@ SENTRY_APP_URLS = [
         SentryInternalAppTokensEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-tokens",
     ),
+    # The order of the next 2 urls matters. We want to let the numeric id handler try to match the regex first,
+    # before moving to alphanumeric which is a catch-all.
     re_path(
-        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token_id>[^\/]+)/$",
+        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>\d+)/$",
+        NewSentryInternalAppTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-sentry-internal-app-token-details",
+    ),
+    re_path(
+        r"^(?P<sentry_app_slug>[^\/]+)/api-tokens/(?P<api_token>\w+)/$",
         SentryInternalAppTokenDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-internal-app-token-details",
     ),

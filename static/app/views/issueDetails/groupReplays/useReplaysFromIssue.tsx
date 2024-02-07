@@ -26,9 +26,8 @@ export default function useReplayFromIssue({
 
   const [fetchError, setFetchError] = useState();
 
-  // use Discover for errors and Issue Platform for everything else
   const dataSource =
-    group.issueCategory === IssueCategory.ERROR ? 'discover' : 'search_issues';
+    group.issueCategory === IssueCategory.PERFORMANCE ? 'search_issues' : 'discover';
 
   const fetchReplayIds = useCallback(async () => {
     try {

@@ -17,9 +17,9 @@ from sentry.http import build_session
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.integrations.utils import is_response_error, is_response_success
+from sentry.models.organization import Organization
 from sentry.net.http import SafeSession
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import json, metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
@@ -442,7 +442,7 @@ class BaseApiClient(TrackResponseMixin):
         if buffer.is_integration_broken():
             self.disable_integration(buffer)
 
-    def disable_integration(self, buffer: IntegrationRequestBuffer) -> None:
+    def disable_integration(self, buffer) -> None:
         rpc_integration, rpc_org_integrations = integration_service.get_organization_contexts(
             integration_id=self.integration_id
         )
@@ -451,13 +451,7 @@ class BaseApiClient(TrackResponseMixin):
 
         org = None
         if len(rpc_org_integrations) > 0:
-            org_context = organization_service.get_organization_by_id(
-                id=rpc_org_integrations[0].organization_id,
-                include_projects=False,
-                include_teams=False,
-            )
-            if org_context:
-                org = org_context.organization
+            org = Organization.objects.filter(id=rpc_org_integrations[0].organization_id).first()
 
         extra = {
             "integration_id": self.integration_id,
@@ -495,7 +489,7 @@ class BaseApiClient(TrackResponseMixin):
             notify_disable(org, rpc_integration.provider, self._get_redis_key())
             buffer.clear()
             create_system_audit_entry(
-                organization_id=org.id,
+                organization=org,
                 target_object=org.id,
                 event=audit_log.get_event_id("INTEGRATION_DISABLED"),
                 data={"provider": rpc_integration.provider},

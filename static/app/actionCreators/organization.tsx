@@ -19,7 +19,7 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 async function fetchOrg(
   api: Client,
   slug: string,
-  usePreload?: boolean
+  isInitialFetch?: boolean
 ): Promise<Organization> {
   const [org] = await getPreloadedDataPromise(
     'organization',
@@ -31,7 +31,7 @@ async function fetchOrg(
         includeAllArgs: true,
         query: {detailed: 0},
       }),
-    usePreload
+    isInitialFetch
   );
 
   if (!org) {
@@ -53,7 +53,7 @@ async function fetchOrg(
 
 async function fetchProjectsAndTeams(
   slug: string,
-  usePreload?: boolean
+  isInitialFetch?: boolean
 ): Promise<
   [
     [Project[], string | undefined, XMLHttpRequest | ResponseMeta | undefined],
@@ -76,7 +76,7 @@ async function fetchProjectsAndTeams(
           collapse: 'latestDeploys',
         },
       }),
-    usePreload
+    isInitialFetch
   );
 
   const teamsPromise = getPreloadedDataPromise(
@@ -88,7 +88,7 @@ async function fetchProjectsAndTeams(
       uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
         includeAllArgs: true,
       }),
-    usePreload
+    isInitialFetch
   );
 
   try {
@@ -117,13 +117,12 @@ async function fetchProjectsAndTeams(
  * @param slug The organization slug
  * @param silent Should we silently update the organization (do not clear the
  *               current organization in the store)
- * @param usePreload Should the preloaded data be used if available?
  */
 export function fetchOrganizationDetails(
   api: Client,
   slug: string,
   silent: boolean,
-  usePreload?: boolean
+  isInitialFetch?: boolean
 ) {
   if (!silent) {
     OrganizationStore.reset();
@@ -134,7 +133,7 @@ export function fetchOrganizationDetails(
 
   const loadOrganization = async () => {
     try {
-      await fetchOrg(api, slug, usePreload);
+      await fetchOrg(api, slug, isInitialFetch);
     } catch (err) {
       if (!err) {
         return;
@@ -162,7 +161,10 @@ export function fetchOrganizationDetails(
   };
 
   const loadTeamsAndProjects = async () => {
-    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
+    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(
+      slug,
+      isInitialFetch
+    );
 
     ProjectsStore.loadInitialData(projects ?? []);
 

@@ -31,7 +31,6 @@ import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAna
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -110,7 +109,6 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   });
 
   const provider = config.providers.find(p => p.key === integration?.provider.key);
-  const {projects} = useProjects();
 
   useRouteAnalyticsEventNames(
     'integrations.details_viewed',
@@ -124,10 +122,6 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         }
       : {}
   );
-
-  useEffect(() => {
-    refetchIntegration();
-  }, [projects, refetchIntegration]);
 
   useEffect(() => {
     // This page should not be accessible by members (unless its github or gitlab)

@@ -86,8 +86,6 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
       `avg_if(measurements.app_start_cold,release,${secondaryRelease})`,
       `avg_if(measurements.app_start_warm,release,${primaryRelease})`,
       `avg_if(measurements.app_start_warm,release,${secondaryRelease})`,
-      `avg_compare(measurements.app_start_cold,release,${primaryRelease},${secondaryRelease})`,
-      `avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`,
       'count_starts(measurements.app_start_cold)',
       'count_starts(measurements.app_start_warm)',
       'count()',
@@ -192,18 +190,13 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     MAX_CHART_RELEASE_CHARS
   );
 
-  const countTopScreens = Math.min(TOP_SCREENS, topTransactions.length);
-
   return (
     <div data-test-id="starfish-mobile-app-startup-view">
       <ChartContainer>
         <ScreensBarChart
           chartOptions={[
             {
-              title:
-                countTopScreens > 1
-                  ? t('Top %s Screen Cold Starts', countTopScreens)
-                  : t('Top Screen Cold Start'),
+              title: t('Cold Start by Top Screen'),
               yAxis: YAXIS_COLUMNS[YAxis.COLD_START],
               xAxisLabel: topTransactions,
               series: Object.values(
@@ -225,10 +218,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
         <ScreensBarChart
           chartOptions={[
             {
-              title:
-                countTopScreens > 1
-                  ? t('Top %s Screen Warm Starts', countTopScreens)
-                  : t('Top Screen Warm Start'),
+              title: t('Warm Start by Top Screen'),
               yAxis: YAXIS_COLUMNS[YAxis.WARM_START],
               xAxisLabel: topTransactions,
               series: Object.values(
@@ -262,7 +252,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
         }}
         organization={organization}
         query={getFreeTextFromQuery(derivedQuery)}
-        placeholder={t('Search for Screen')}
+        placeholder={t('Search for Screens')}
         additionalConditions={
           new MutableSearch(
             appendReleaseFilters(tableSearchFilters, primaryRelease, secondaryRelease)

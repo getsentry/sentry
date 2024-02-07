@@ -33,6 +33,19 @@ jobs:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
+  modified-migration:
+    name: check if modified migration
+    runs-on: ubuntu-22.04
+    timeout-minutes: 4
+    needs: did-migration-change
+    if: needs.did-migration-change.outputs.modified == 'true'
+
+    steps:
+      - name: Failure because of modified migration
+        run: |
+          echo "If you have a valid reason to modify a migration please get approval"
+          echo "from @getsentry/owners-migrations." && exit 1
+
   sql:
     name: Generate SQL
     runs-on: ubuntu-22.04

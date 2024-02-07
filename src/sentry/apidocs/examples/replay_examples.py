@@ -58,18 +58,3 @@ class ReplayExamples:
             response_only=True,
         ),
     ]
-
-    GET_REPLAY_COUNTS = [
-        OpenApiExample(
-            "Query replay count by issue or transaction id",
-            value={
-                1: 9,
-                2: 0,
-                5: 0,
-                9: 1,
-                10: 29,
-            },
-            status_codes=["200"],
-            response_only=True,
-        )
-    ]

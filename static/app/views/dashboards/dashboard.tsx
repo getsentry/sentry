@@ -52,7 +52,7 @@ import {
 import SortableWidget from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardWidgetSource, WidgetType} from './types';
-import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
+import {getDashboardFiltersFromURL} from './utils';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
@@ -69,7 +69,6 @@ const BOTTOM_MOBILE_VIEW_POSITION = {
 const MOBILE_BREAKPOINT = parseInt(theme.breakpoints.small, 10);
 const BREAKPOINTS = {[MOBILE]: 0, [DESKTOP]: MOBILE_BREAKPOINT};
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
-export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 
 type Props = {
   api: Client;
@@ -116,7 +115,6 @@ class Dashboard extends Component<Props, State> {
       },
       windowWidth: window.innerWidth,
     };
-    connectDashboardCharts(DASHBOARD_CHART_GROUP);
   }
 
   static getDerivedStateFromProps(props, state) {
@@ -630,4 +628,6 @@ const WidgetWidthWrapper = styled('div')`
   left: 16px !important;
   right: 16px !important;
   width: auto !important;
+  /* minimal working z-index */
+  z-index: 6;
 `;

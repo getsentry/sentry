@@ -25,15 +25,8 @@ class NotificationActionsAvailableEndpointTest(APITestCase):
     def test_get_success(self):
         self.get_success_response(self.organization.slug)
 
-    @patch("sentry.models.notificationaction.ActionTrigger")
-    def test_get_dynamic_response(self, mock_action_trigger):
-        """
-        Note: This test assumes the ActionTrigger already contains reference to the trigger. Only
-        validates that new action registrations get serialized (as is the case for getsentry)
-        """
+    def test_get_dynamic_response(self):
         trigger = (-1, "t-virus")
-        mock_action_trigger.as_choices.return_value = (trigger,)
-
         trigger_available_response = {
             "action": {
                 "triggerType": trigger[1],
@@ -46,22 +39,18 @@ class NotificationActionsAvailableEndpointTest(APITestCase):
         class MockActionRegistration(ActionRegistration):
             serialize_available = MagicMock(return_value=[trigger_available_response])
 
-        response = self.get_success_response(
-            self.organization.slug,
-            status_code=status.HTTP_200_OK,
-        )
-        assert trigger_available_response not in response.data["actions"]
-        assert not MockActionRegistration.serialize_available.called
-
+        registration = MockActionRegistration
+        NotificationAction.register_trigger_type(*trigger)
         NotificationAction.register_action(
             trigger_type=trigger[0],
             service_type=ActionService.SENTRY_NOTIFICATION.value,
             target_type=ActionTarget.SPECIFIC.value,
-        )(MockActionRegistration)
+        )(registration)
+        assert not registration.serialize_available.called
 
         response = self.get_success_response(
             self.organization.slug,
             status_code=status.HTTP_200_OK,
         )
         assert trigger_available_response in response.data["actions"]
-        assert MockActionRegistration.serialize_available.called
+        assert registration.serialize_available.called

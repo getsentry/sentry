@@ -29,13 +29,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 function flattenMetricsSummary(
   metricsSummary: MetricsSummary
 ): {item: MetricsSummaryItem; key: string; mri: MRI}[] {
-  return (
-    Object.entries(metricsSummary) as [
-      keyof MetricsSummary,
-      MetricsSummary[keyof MetricsSummary],
-    ][]
-  ).flatMap(([mri, items]) =>
-    (items || []).map((item, index) => ({item, mri, key: `${mri}${index}`}))
+  return Object.entries(metricsSummary).flatMap(([mri, items]) =>
+    items.map((item, index) => ({item, mri, key: `${mri}${index}`}))
   );
 }
 
@@ -49,13 +44,11 @@ export function CustomMetricsEventData({
   metricsSummary,
   startTimestamp,
 }: {
+  metricsSummary: MetricsSummary;
   startTimestamp: number;
-  metricsSummary?: MetricsSummary;
 }) {
   const organization = useOrganization();
-  const metricsSummaryEntries = metricsSummary
-    ? flattenMetricsSummary(metricsSummary)
-    : [];
+  const metricsSummaryEntries = flattenMetricsSummary(metricsSummary);
   const widgetStart = new Date(startTimestamp * 1000 - HALF_HOUR_IN_MS);
   const widgetEnd = new Date(startTimestamp * 1000 + HALF_HOUR_IN_MS);
 

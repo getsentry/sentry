@@ -16,8 +16,6 @@ from sentry.snuba.metrics.extraction import (
     to_standard_metrics_query,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
-from sentry.utils.glob import glob_match
 
 
 @django_db_all
@@ -168,18 +166,24 @@ class TestCreatesOndemandMetricSpec:
             ("percentile(transaction.duration, 1)", "transaction.duration>0"),
             ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
             ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
-            # custom tags not supported by standard metrics
-            ("count()", "project:a-1 route.action:CloseBatch"),
+            (
+                "count()",
+                "project:a-1 route.action:CloseBatch level:info",  # custom tags not supported by standard metrics
+            ),
             ("count()", "transaction.duration:[1,2,3]"),
             ("count()", "project:a_1 or project:b-2 or transaction.duration:>0"),
             ("count()", "foo:bar"),  # custom tags not supported by standard metrics
             ("failure_count()", "transaction.duration:>100"),
             ("failure_rate()", "transaction.duration:>100"),
             ("apdex(10)", "transaction.duration:>100"),
-            # count_web_vitals supported by on demand
-            ("count_web_vitals(measurements.fcp,any)", "transaction.duration:>0"),
-            # apdex with specified threshold is on-demand metric even without query
-            ("apdex(10)", ""),
+            (
+                "count_web_vitals(measurements.fcp,any)",
+                "transaction.duration:>0",
+            ),  # count_web_vitals supported by on demand
+            (
+                "apdex(10)",
+                "",
+            ),  # apdex with specified threshold is on-demand metric even without query
             ("count()", "transaction.duration:>0 my-transaction"),
             ("count()", "transaction.source:route"),
         ],
@@ -460,40 +464,6 @@ def test_spec_wildcard() -> None:
         "op": "glob",
         "value": ["1.*"],
     }
-
-
-@django_db_all
-@pytest.mark.parametrize(
-    "query,title,expected_pattern",
-    [
-        ("title:*[dispatch:*", "backend test [dispatch:something]", r"*\[dispatch:*"),
-        ("title:*{dispatch:*", "test {dispatch:something]", r"*\{dispatch:*"),
-        ("title:*dispatch]:*", "backend dispatch]:", r"*dispatch\]:*"),
-        ("title:*dispatch}:*", "test [dispatch}:", r"*dispatch\}:*"),
-        ("title:*?dispatch*", "backend ?dispatch", r"*\?dispatch*"),
-    ],
-)
-def test_spec_wildcard_escaping(
-    default_project, insta_snapshot, query, title, expected_pattern
-) -> None:
-    spec = OnDemandMetricSpec("count()", query)
-
-    assert spec._metric_type == "c"
-    assert spec.field_to_extract is None
-    assert spec.op == "sum"
-    assert spec.condition == {
-        "name": "event.transaction",
-        "op": "glob",
-        "value": [expected_pattern],
-    }
-
-    # We also validate using Relay's glob implementation to make sure the escaping
-    # is interpreted correctly.
-    assert glob_match(title, expected_pattern, ignorecase=True)
-
-    # We want to validate the json output, to make sure that characters are correctly escaped.
-    metric_spec = spec.to_metric_spec(default_project)
-    insta_snapshot(json.dumps(metric_spec))
 
 
 def test_spec_count_if() -> None:

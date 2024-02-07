@@ -90,7 +90,7 @@ const StyledLink = styled(
   border-radius: 0.25em;
   transition: 0.2s border-color;
 
-  &:focus-visible {
+  &.focus-visible {
     outline: none;
     box-shadow: ${p => p.theme.alert[p.priority].border}7f 0 0 0 2px;
   }

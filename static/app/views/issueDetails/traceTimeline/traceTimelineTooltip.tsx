@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -11,12 +11,10 @@ import useProjects from 'sentry/utils/useProjects';
 
 import type {TimelineEvent} from './useTraceTimelineEvents';
 
-interface TraceTimelineTooltipProps {
-  event: Event;
-  timelineEvents: TimelineEvent[];
-}
-
-export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineTooltipProps) {
+export function TraceTimelineTooltip({
+  event,
+  timelineEvents,
+}: {event: Event; timelineEvents: TimelineEvent[]}) {
   const organization = useOrganization();
   const {projects} = useProjects({
     slugs: [
@@ -29,48 +27,33 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
     return <YouAreHere>{t('You are here')}</YouAreHere>;
   }
 
-  const filteredTimelineEvents = timelineEvents.filter(
-    timelineEvent => timelineEvent.id !== event.id
-  );
-  const displayYouAreHere = filteredTimelineEvents.length !== timelineEvents.length;
   return (
     <UnstyledUnorderedList>
-      {displayYouAreHere && <YouAreHereItem>{t('You are here')}</YouAreHereItem>}
       <EventItemsWrapper>
-        {filteredTimelineEvents.slice(0, 3).map(timelineEvent => {
+        {timelineEvents.slice(0, 3).map(timelineEvent => {
+          const titleSplit = timelineEvent.title.split(':');
           const project = projects.find(p => p.slug === timelineEvent.project);
+
           return (
             <EventItem
               key={timelineEvent.id}
               to={`/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`}
             >
               <div>
-                {project && (
-                  <ProjectBadge project={project} avatarSize={18} hideName disableLink />
-                )}
+                {project && <ProjectBadge project={project} avatarSize={18} hideName />}
               </div>
               <EventTitleWrapper>
-                <EventTitle>{timelineEvent.title}</EventTitle>
-                <EventDescription>
-                  {timelineEvent.transaction
-                    ? timelineEvent.transaction
-                    : 'stack.function' in timelineEvent
-                      ? timelineEvent['stack.function'].at(-1)
-                      : null}
-                </EventDescription>
+                <EventTitle>{titleSplit[0]}</EventTitle>
+                <EventDescription>{titleSplit.slice(1).join('')}</EventDescription>
               </EventTitleWrapper>
             </EventItem>
           );
         })}
       </EventItemsWrapper>
-      {filteredTimelineEvents.length > 3 && (
+      {timelineEvents.length > 3 && (
         <TraceItem>
           <Link to={generateTraceTarget(event, organization)}>
-            {tn(
-              'View %s more event',
-              'View %s more events',
-              filteredTimelineEvents.length - 3
-            )}
+            {t('View trace for %s more', timelineEvents.length - 3)}
           </Link>
         </TraceItem>
       )}
@@ -82,7 +65,6 @@ const UnstyledUnorderedList = styled('div')`
   display: flex;
   flex-direction: column;
   text-align: left;
-  width: 220px;
 `;
 
 const EventItemsWrapper = styled('div')`
@@ -92,16 +74,9 @@ const EventItemsWrapper = styled('div')`
 `;
 
 const YouAreHere = styled('div')`
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(1)};
+  font-weight: bold;
   text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const YouAreHereItem = styled('div')`
-  padding: ${space(1)} ${space(2)};
-  text-align: center;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const EventItem = styled(Link)`
@@ -110,9 +85,9 @@ const EventItem = styled(Link)`
   color: ${p => p.theme.textColor};
   gap: ${space(1)};
   width: 100%;
-  padding: ${space(1)} ${space(1)} ${space(0.5)} ${space(1)};
+  padding: ${space(1)};
   border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeSmall};
+  min-height: 44px;
 
   &:hover {
     background-color: ${p => p.theme.surface200};
@@ -133,7 +108,6 @@ const EventTitle = styled('div')`
 
 const EventDescription = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  direction: rtl;
 `;
 
 const TraceItem = styled('div')`

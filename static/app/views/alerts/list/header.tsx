@@ -4,7 +4,6 @@ import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -69,7 +68,6 @@ function AlertHeader({router, activeTab}: Props) {
           >
             {t('Create Alert')}
           </CreateAlertButton>
-          <FeedbackWidgetButton />
           <Button
             size="sm"
             onClick={handleNavigateToSettings}

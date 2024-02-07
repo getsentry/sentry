@@ -9,11 +9,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 import {
   DEFAULT_PLATFORM,
   PLATFORM_LOCAL_STORAGE_KEY,
@@ -48,7 +44,6 @@ export function ScreenLoadEventSamples({
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
 
   const deviceClass = decodeScalar(location.query['device.class']);
@@ -86,10 +81,7 @@ export function ScreenLoadEventSamples({
   const sort = fromSorts(decodeScalar(location.query[sortKey]))[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    id: t(
-      'Event ID (%s)',
-      release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
-    ),
+    id: t('Event ID (%s)', formatVersionAndCenterTruncate(release)),
     'profile.id': t('Profile'),
     'measurements.time_to_initial_display': t('TTID'),
     'measurements.time_to_full_display': t('TTFD'),

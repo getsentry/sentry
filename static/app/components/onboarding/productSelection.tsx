@@ -12,7 +12,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PlatformKey} from 'sentry/types';
 import {decodeList} from 'sentry/utils/queryString';
@@ -318,22 +317,15 @@ export function ProductSelection({
         }
       }
 
-      const selectedProducts = [...newProduct] as ProductSolution[];
       router.replace({
         pathname: router.location.pathname,
         query: {
           ...router.location.query,
-          product: selectedProducts,
+          product: [...newProduct],
         },
       });
-
-      if (organization.features.includes('project-create-replay-feedback')) {
-        HookStore.get('callback:on-create-project-product-selection').map(cb =>
-          cb({defaultProducts, organization, selectedProducts})
-        );
-      }
     },
-    [defaultProducts, organization, router, urlProducts]
+    [router, urlProducts, defaultProducts]
   );
 
   if (!products) {

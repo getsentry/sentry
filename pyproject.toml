@@ -32,6 +32,9 @@ filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
 
+    # TODO: after upgrading to django 4.x
+    "ignore:'index_together' is deprecated. Use 'Meta.indexes' in.*",
+
     # a bunch of google packages use legacy namespace packages
     "ignore:pkg_resources is deprecated as an API",
     "ignore:Deprecated call to `pkg_resources.declare_namespace\\('google.*'\\)`.",
@@ -268,6 +271,7 @@ module = [
     "sentry.db.models.query",
     "sentry.db.models.utils",
     "sentry.db.postgres.base",
+    "sentry.db.postgres.creation",
     "sentry.db.router",
     "sentry.digests.notifications",
     "sentry.discover.endpoints.discover_key_transactions",
@@ -511,6 +515,7 @@ module = [
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
     "sentry.tsdb.redis",
+    "sentry.tsdb.snuba",
     "sentry.types.integrations",
     "sentry.utils.audit",
     "sentry.utils.auth",
@@ -642,10 +647,8 @@ disable_error_code = [
 # beginning: stronger typing
 [[tool.mypy.overrides]]
 module = [
-    "src.sentry.tasks.on_demand_metrics",
     "src.sentry.relay.config.metric_extraction",
     "src.sentry.snuba.metrics.extraction",
-    "tests.sentry.tasks.test_on_demand_metrics",
     "tests.sentry.relay.config.test_metric_extraction",
 ]
 disallow_untyped_defs = true

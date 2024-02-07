@@ -15,7 +15,7 @@ def ai_autofix_check_for_timeout(group_id: int, created_at: str):
     metadata = group.data.get("metadata", {})
     autofix_data = metadata.get("autofix", {})
     # created_at is checked to make sure that the correct run is being marked as completed
-    if autofix_data.get("status") == "PROCESSING" and autofix_data.get("created_at") == created_at:
+    if autofix_data.get("status") == "PROCESSING" and autofix_data.get("createdAt") == created_at:
         steps = autofix_data.get("steps", [])
 
         for step in steps:
@@ -28,7 +28,7 @@ def ai_autofix_check_for_timeout(group_id: int, created_at: str):
             **autofix_data,
             "fix": None,
             "status": "ERROR",
-            "completed_at": datetime.now().isoformat(),
+            "completedAt": datetime.now().isoformat(),
             "steps": steps,
         }
         group.data["metadata"] = metadata

@@ -15,7 +15,6 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -37,7 +36,6 @@ import {
   getMessage,
   getTitle,
 } from 'sentry/utils/events';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -885,8 +883,6 @@ function GroupDetails(props: GroupDetailsProps) {
     return `${title || message || defaultTitle} — ${eventDetails}`;
   };
 
-  const config = group && getConfigForIssueType(group, group.project);
-
   return (
     <Fragment>
       {isSampleError && group && (
@@ -898,7 +894,6 @@ function GroupDetails(props: GroupDetailsProps) {
           forceProject={group?.project}
           shouldForceProject
         >
-          {config && config.showFeedbackWidget && <FloatingFeedbackWidget />}
           <GroupDetailsPageContent
             {...props}
             {...{

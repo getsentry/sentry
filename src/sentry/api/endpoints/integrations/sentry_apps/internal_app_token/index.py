@@ -34,8 +34,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
         attrs = {"application": None}
 
         token_list = [
-            ApiTokenSerializer().serialize(token, attrs, request.user, include_token=False)
-            for token in tokens
+            ApiTokenSerializer().serialize(token, attrs, request.user) for token in tokens
         ]
 
         if not sentry_app.show_auth_info(request.access):

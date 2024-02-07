@@ -1,3 +1,5 @@
+import 'focus-visible';
+
 import {NODE_ENV, UI_DEV_ENABLE_PROFILING} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types';

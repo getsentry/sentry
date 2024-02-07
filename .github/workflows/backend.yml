@@ -139,8 +139,7 @@ jobs:
 
       - name: run tests
         run: |
-          # historic migrations trigger some warnings
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations -W ignore" make test-python-ci
+          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations" make test-python-ci
 
       # Upload coverage data even if running the tests step fails since
       # it reduces large coverage fluctuations
@@ -187,7 +186,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 3
     steps:
-      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+      - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
         id: token
         continue-on-error: true
         with:
@@ -291,7 +290,7 @@ jobs:
       - run: mypy
         id: run
 
-      - uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
+      - uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
         id: token
         continue-on-error: true
         with:

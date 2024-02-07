@@ -8,7 +8,6 @@ from uuid import uuid4
 
 import jsonschema
 
-from sentry.constants import DataCategory
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
@@ -18,7 +17,6 @@ from sentry.models.project import Project
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
-from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -134,7 +132,6 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
-    detection_time = ensure_aware(datetime.fromtimestamp(event["timestamp"]))
     evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], source)
     occurrence = IssueOccurrence(
         id=uuid4().hex,
@@ -149,7 +146,7 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
         evidence_data=evidence_data,
         evidence_display=evidence_display,
         type=FeedbackGroup,
-        detection_time=detection_time,
+        detection_time=ensure_aware(datetime.fromtimestamp(event["timestamp"])),
         culprit="user",  # TODO: fill in culprit correctly -- URL or paramaterized route/tx name?
         level=event.get("level", "info"),
     )
@@ -183,18 +180,6 @@ def create_feedback_issue(event, project_id, source: FeedbackCreationSource):
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE, occurrence=occurrence, event_data=event_fixed
-    )
-
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project_id,
-        key_id=None,
-        outcome=Outcome.ACCEPTED,
-        reason=None,
-        timestamp=detection_time,
-        event_id=event["event_id"],
-        category=DataCategory.USER_REPORT_V2,
-        quantity=1,
     )
 
 
