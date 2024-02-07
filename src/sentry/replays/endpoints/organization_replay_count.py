@@ -33,7 +33,6 @@ FILTER_HAS_A_REPLAY = "AND !replayId:''"
 RESPONSE_EXAMPLES = [
     OpenApiExample(
         "Query replay count by issue or transaction id",
-        description="Returns an object of id, count pairs.",
         value={
             1: 9,
             2: 0,
