@@ -43,7 +43,10 @@ import {
   PLATFORM_LOCAL_STORAGE_KEY,
   PLATFORM_QUERY_PARAM,
 } from 'sentry/views/starfish/views/screens/platformSelector';
-import {SpanOpSelector} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
+import {
+  SpanOpSelector,
+  TTID_CONTRIBUTING_SPAN_OPS,
+} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 import {isCrossPlatform} from 'sentry/views/starfish/views/screens/utils';
 
@@ -88,9 +91,7 @@ export function ScreenLoadSpansTable({
       'has:span.description',
       ...(spanOp
         ? [`${SpanMetricsField.SPAN_OP}:${spanOp}`]
-        : [
-            'span.op:[file.read,file.write,ui.load,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]',
-          ]),
+        : [`span.op:[${TTID_CONTRIBUTING_SPAN_OPS.join(',')}]`]),
     ]);
 
     if (project && isCrossPlatform(project) && hasPlatformSelectFeature) {

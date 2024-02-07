@@ -12,7 +12,17 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 import {MobileCursors} from 'sentry/views/starfish/views/screens/constants';
+import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/starfish/views/screens/screenLoadSpans/spanOpSelector';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
+
+export const APP_START_SPANS = [
+  ...TTID_CONTRIBUTING_SPAN_OPS,
+  'app.start.cold',
+  'app.start.warm',
+  'contentprovider.load',
+  'application.load',
+  'activity.load',
+];
 
 type Props = {
   primaryRelease?: string;
@@ -36,6 +46,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     'transaction.op:ui.load',
     `transaction:${transaction}`,
     `has:ttid`,
+    `span.op:[${APP_START_SPANS.join(',')}]`,
   ]);
   const queryStringPrimary = appendReleaseFilters(
     searchQuery,
