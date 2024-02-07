@@ -179,7 +179,7 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Once the SDK is installed or updated, you can enable code locations being emitted with your metricsin your [code:config/sentry.php] file:',
+        'Once the SDK is installed or updated, you can enable code locations being emitted with your metrics in your [code:config/sentry.php] file:',
         {
           code: <code />,
         }
@@ -191,7 +191,7 @@ const customMetricsOnboarding: OnboardingConfig = {
               label: 'PHP',
               value: 'php',
               language: 'php',
-              code: `'metric_code_locations' => true,`,
+              code: `'attach_metric_code_locations' => true,`,
             },
           ],
         },
