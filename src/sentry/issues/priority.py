@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum, IntEnum
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from sentry import features
@@ -10,15 +10,10 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-
-
-class PriorityLevel(IntEnum):
-    LOW = 25
-    MEDIUM = 50
-    HIGH = 75
 
 
 PRIORITY_LEVEL_TO_STR: dict[int, str] = {

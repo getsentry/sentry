@@ -1,12 +1,13 @@
 import logging
 
 from sentry.event_manager import EventManager
-from sentry.issues.priority import PRIORITY_LEVEL_TO_STR, PriorityLevel
+from sentry.issues.priority import PRIORITY_LEVEL_TO_STR
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 from sentry.utils.iterators import chunked
 from tests.sentry.event_manager.test_event_manager import make_event
 

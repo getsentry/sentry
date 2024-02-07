@@ -7,7 +7,6 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
-from sentry.issues.priority import PriorityLevel
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouplink import GroupLink
@@ -23,6 +22,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
