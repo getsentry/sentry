@@ -136,7 +136,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
   ): [string, string | React.ReactElement][] {
     const customizedAlertOption: [string, React.ReactNode] = [
       RuleAction.CUSTOMIZED_ALERTS.toString(),
-      <CustomizeAlertsGrid
+      <CustomizeAlert
         key={RuleAction.CUSTOMIZED_ALERTS}
         onClick={e => {
           // XXX(epurkhiser): The `e.preventDefault` here is needed to stop
@@ -173,7 +173,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
           }))}
           onChange={interval => this.setStateAndUpdateParents({interval: interval.value})}
         />
-      </CustomizeAlertsGrid>,
+      </CustomizeAlert>,
     ];
 
     const default_label = this.shouldUseNewDefaultSetting()
@@ -331,10 +331,10 @@ const Content = styled('div')`
   padding-bottom: ${space(4)};
 `;
 
-const CustomizeAlertsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(5, max-content);
+const CustomizeAlert = styled('div')`
+  display: flex;
   gap: ${space(1)};
+  flex-wrap: wrap;
   align-items: center;
 `;
 

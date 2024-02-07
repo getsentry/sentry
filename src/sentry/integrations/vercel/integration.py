@@ -65,7 +65,6 @@ external_install = {
 
 
 configure_integration = {"title": _("Connect Your Projects")}
-create_project_instruction = _("Don't have a project yet? Click [here]({}) to create one.")
 install_source_code_integration = _(
     "Install a [source code integration]({}) and configure your repositories."
 )
@@ -98,11 +97,9 @@ class VercelIntegration(IntegrationInstallation):
     def get_dynamic_display_information(self):
         qs = urlencode({"category": "source code management"})
         source_code_link = absolute_uri(f"/settings/{self.organization.slug}/integrations/?{qs}")
-        add_project_link = absolute_uri(f"/organizations/{self.organization.slug}/projects/new/")
         return {
             "configure_integration": {
                 "instructions": [
-                    create_project_instruction.format(add_project_link),
                     install_source_code_integration.format(source_code_link),
                 ]
             }

@@ -327,7 +327,7 @@ const StyledSidebarItem = styled(Link, {
   }
 
   &:hover,
-  &.focus-visible {
+  &:focus-visible {
     color: ${p => p.theme.white};
   }
 
@@ -335,7 +335,7 @@ const StyledSidebarItem = styled(Link, {
     outline: none;
   }
 
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     box-shadow: 0 0 0 2px ${p => p.theme.purple300};
   }

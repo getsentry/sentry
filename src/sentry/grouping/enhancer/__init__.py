@@ -440,18 +440,7 @@ class Enhancements:
     @sentry_sdk.tracing.trace
     def dumps(self) -> str:
         encoded = msgpack.dumps(self._to_config_structure())
-
-        try:
-            # I don’t want to put DB access into all of the tests ;-)
-            use_zstd = options.get("enhancers.use-zstd")
-        except Exception:
-            use_zstd = False
-
-        if use_zstd:
-            compressed = zstandard.compress(encoded)
-        else:
-            compressed = zlib.compress(encoded)
-
+        compressed = zstandard.compress(encoded)
         return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
 
     @classmethod

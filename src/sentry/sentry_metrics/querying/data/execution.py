@@ -5,16 +5,19 @@ from datetime import datetime
 from typing import Any, Optional, cast
 
 import sentry_sdk
-from snuba_sdk import Column, Direction, MetricsQuery, Request
+from snuba_sdk import Column, Direction, MetricsQuery, MetricsScope, Request
 from snuba_sdk.conditions import BooleanCondition, BooleanOp, Condition, Op
 
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.sentry_metrics.querying.common import DEFAULT_QUERY_INTERVALS, SNUBA_QUERY_LIMIT
 from sentry.sentry_metrics.querying.errors import (
     InvalidMetricsQueryError,
     MetricsQueryExecutionError,
 )
 from sentry.sentry_metrics.querying.types import GroupKey, GroupsCollection
+from sentry.sentry_metrics.querying.visitors import QueriedMetricsVisitor
+from sentry.sentry_metrics.visibility import get_metrics_blocking_state
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics import to_intervals
 from sentry.snuba.metrics_layer.query import run_query
@@ -103,6 +106,9 @@ class ExecutableQuery:
     order_by: str | None
     limit: int | None
 
+    def is_empty(self) -> bool:
+        return not self.metrics_query.scope.org_ids or not self.metrics_query.scope.project_ids
+
     def replace_date_range(self, start: datetime, end: datetime) -> "ExecutableQuery":
         return replace(
             self,
@@ -145,8 +151,10 @@ class ExecutableQuery:
         groups_collection: GroupsCollection | None,
     ) -> "ExecutableQuery":
         """
-        Adds a series of filters to the query which will make sure that the results returned only belong to the supplied
-        groups.
+        Returns a new `ExecutableQuery` with a series of filters that ensure that the new query will have the same
+        groups returned. Keep in mind that there is no guarantee that all the groups will be returned, since data might
+        change in the meanwhile, so the guarantee of this method is that the returned groups will all be belonging to
+        `groups_collection`.
 
         The need for this filter arises because when executing multiple queries, we want to have the same groups
         returned, in order to make results consistent. Note that in case queries have different groups, some results
@@ -180,6 +188,34 @@ class ExecutableQuery:
             ),
         )
 
+    def filter_blocked_projects(
+        self,
+        organization: Organization,
+        projects: set[Project],
+        blocked_metrics_for_projects: Mapping[str, set[int]],
+    ) -> "ExecutableQuery":
+        """
+        Returns a new `ExecutableQuery` with the projects for which all the queries are not blocked. In case no projects
+        exist, the query will be returned with empty projects, signaling the executor to not run the query.
+        """
+        intersected_projects: set[int] = {project.id for project in projects}
+
+        for queried_metric in QueriedMetricsVisitor().visit(self.metrics_query.query):
+            blocked_for_projects = blocked_metrics_for_projects.get(queried_metric)
+            if blocked_for_projects:
+                metrics.incr(key="ddm.metrics_api.blocked_metric_queried", amount=1)
+                intersected_projects -= blocked_for_projects
+
+        return replace(
+            self,
+            metrics_query=self.metrics_query.set_scope(
+                MetricsScope(
+                    org_ids=[organization.id],
+                    project_ids=list(intersected_projects),
+                )
+            ),
+        )
+
 
 @dataclass(frozen=True)
 class QueryResult:
@@ -189,6 +225,20 @@ class QueryResult:
 
     def __post_init__(self):
         assert self.series_executable_query or self.totals_executable_query
+
+    @classmethod
+    def empty_from(cls, executable_query: ExecutableQuery) -> "QueryResult":
+        return QueryResult(
+            series_executable_query=executable_query,
+            totals_executable_query=executable_query,
+            result={
+                "series": {"data": {}, "meta": {}},
+                "totals": {"data": {}, "meta": {}},
+                # We want to honor the date ranges of the supplied query.
+                "modified_start": executable_query.metrics_query.start,
+                "modified_end": executable_query.metrics_query.end,
+            },
+        )
 
     @property
     def query_name(self) -> str:
@@ -287,6 +337,8 @@ class QueryResult:
             self.totals, reference_query_result.totals, alignment_keys, indexed_totals
         )
 
+        # We only mutate with the aligned data, only if we have data, since if it's empty it could be that we are
+        # trying to align on a query that has no data, and we want to avoid deleting the data of this query.
         if aligned_series:
             self.result["series"]["data"] = aligned_series
         if aligned_totals:
@@ -325,9 +377,11 @@ class QueryResult:
 
 
 class QueryExecutor:
-    def __init__(self, organization: Organization, referrer: str):
+    def __init__(self, organization: Organization, projects: Sequence[Project], referrer: str):
         self._organization = organization
+        self._projects = projects
         self._referrer = referrer
+
         # Ordered list of the intervals that can be chosen by the executor. They are removed when tried, in order
         # to avoid an infinite recursion.
         self._interval_choices = sorted(DEFAULT_QUERY_INTERVALS)
@@ -335,6 +389,26 @@ class QueryExecutor:
         self._scheduled_queries: list[ExecutableQuery] = []
         # Tracks the number of queries that have been executed (for measuring purposes).
         self._number_of_executed_queries = 0
+
+        # We load the blocked metrics for the supplied projects.
+        self._blocked_metrics_for_projects = self._load_blocked_metrics_for_projects()
+
+    def _load_blocked_metrics_for_projects(self) -> Mapping[str, set[int]]:
+        """
+        Load the blocked metrics for the supplied projects and stores them in the executor in an efficient way that
+        speeds up the determining of the projects to exclude from the query.
+        """
+        blocked_metrics_for_projects: dict[str, set[int]] = {}
+
+        for project_id, metrics_blocking_state in get_metrics_blocking_state(
+            self._projects
+        ).items():
+            for metric_blocking in metrics_blocking_state.metrics.values():
+                blocked_metrics_for_projects.setdefault(metric_blocking.metric_mri, set()).add(
+                    project_id
+                )
+
+        return blocked_metrics_for_projects
 
     def _build_request(self, query: MetricsQuery) -> Request:
         """
@@ -355,10 +429,16 @@ class QueryExecutor:
         Executes a query as series and/or totals and returns the result.
         """
         try:
+            # We merge the query with the blocked projects, in order to obtain a new query with only the projects that
+            # all have the queried metrics unblocked.
+            executable_query = executable_query.filter_blocked_projects(
+                organization=self._organization,
+                projects=set(self._projects),
+                blocked_metrics_for_projects=self._blocked_metrics_for_projects,
+            )
+
             # We try to determine the interval of the query, which will be used to define clear time bounds for both
             # queries. This is done here since the metrics layer doesn't adjust the time for totals queries.
-            # TODO: maybe we can find a way to tell the layer to use the interval in totals but just to honor the same
-            #   time interval as used in the series query.
             interval = executable_query.metrics_query.rollup.interval
             if interval:
                 modified_start, modified_end, _ = to_intervals(
@@ -370,6 +450,11 @@ class QueryExecutor:
                     executable_query = executable_query.replace_date_range(
                         modified_start, modified_end
                     )
+
+            # If, after merging the query with the blocked projects, the query becomes empty, we will return an empty
+            # result.
+            if executable_query.is_empty():
+                return QueryResult.empty_from(executable_query)
 
             totals_executable_query = executable_query
             totals_result = None

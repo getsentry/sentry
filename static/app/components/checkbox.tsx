@@ -124,7 +124,7 @@ const HiddenInput = styled('input')`
   padding: 0;
   cursor: pointer;
 
-  &.focus-visible + * {
+  &:focus-visible + * {
     ${p =>
       p.checked
         ? `

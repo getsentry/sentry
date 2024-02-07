@@ -10,6 +10,7 @@ from sentry.sentry_metrics.querying.errors import (
     MetricsQueryExecutionError,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.visibility import block_metric
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -737,3 +738,115 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert len(groups) == 1
         assert groups[0]["by"] == {}
         assert groups[0]["series"] == {field: [60.0]}
+
+    def test_query_with_one_metric_blocked_for_one_project(self):
+        mri = "d:custom/page_load@millisecond"
+
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        block_metric(mri, [project_1])
+
+        for project, value in ((project_1, 10.0), (project_2, 15.0)):
+            self.store_metric(
+                self.project.organization.id,
+                project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        field = f"sum({mri})"
+        results = run_metrics_query(
+            fields=[field],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[project_1, project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {field: [0.0, 15.0, 0.0]}
+        assert groups[0]["totals"] == {field: 15.0}
+
+    def test_query_with_one_metric_blocked_for_all_projects(self):
+        mri = "d:custom/page_load@millisecond"
+
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        block_metric(mri, [project_1, project_2])
+
+        for project, value in ((project_1, 10.0), (project_2, 15.0)):
+            self.store_metric(
+                self.project.organization.id,
+                project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        field = f"sum({mri})"
+        results = run_metrics_query(
+            fields=[field],
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[project_1, project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 0
+
+    def test_query_with_two_metrics_and_one_blocked_for_a_project(self):
+        mri_1 = "d:custom/page_load@millisecond"
+        mri_2 = "d:custom/app_load@millisecond"
+
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        block_metric(mri_1, [project_1, project_2])
+
+        for project, mri in ((project_1, mri_1), (project_2, mri_2)):
+            self.store_metric(
+                self.project.organization.id,
+                project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                10.0,
+                UseCaseID.CUSTOM,
+            )
+
+        field_1 = f"sum({mri_1})"
+        field_2 = f"sum({mri_2})"
+        results = run_metrics_query(
+            fields=[field_1, field_2],
+            # We test with the order by to make sure alignment doesn't remove data.
+            order_by=field_1,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[project_1, project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        groups = results["groups"]
+        assert len(groups) == 1
+        assert groups[0]["by"] == {}
+        assert groups[0]["series"] == {field_2: [0.0, 10.0, 0.0]}
+        assert groups[0]["totals"] == {field_2: 10.0}

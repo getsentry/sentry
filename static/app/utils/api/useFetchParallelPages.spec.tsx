@@ -224,4 +224,42 @@ describe('useFetchParallelPages', () => {
     expect(result.current.getLastResponseHeader).toStrictEqual(expect.any(Function));
     expect(result.current.getLastResponseHeader?.('Link')).toBe('next: 0:20:0');
   });
+
+  it('should have isFetching=true as long as something is outstanding', async () => {
+    MockApiClient.addMockResponse({
+      url: MOCK_API_ENDPOINT,
+      body: 'results starting at 0',
+      match: [MockApiClient.matchQuery({cursor: '0:0:0', per_page: 10})],
+      asyncDelay: 200,
+    });
+    MockApiClient.addMockResponse({
+      url: MOCK_API_ENDPOINT,
+      body: 'results starting at 10',
+      match: [MockApiClient.matchQuery({cursor: '0:10:0', per_page: 10})],
+      asyncDelay: 500,
+    });
+
+    const getQueryKey = queryKeyFactory();
+
+    const {result, waitForNextUpdate} = reactHooks.renderHook(useFetchParallelPages, {
+      wrapper: makeWrapper(makeTestQueryClient()),
+      initialProps: {
+        enabled: true,
+        getQueryKey,
+        hits: 13,
+        perPage: 10,
+      },
+    });
+
+    // No responses have resolved
+    expect(result.current.isFetching).toBeTruthy();
+    await waitForNextUpdate();
+
+    // Only 1 response has resolved
+    expect(result.current.isFetching).toBeTruthy();
+    await waitForNextUpdate();
+
+    // Both responses have resolved
+    expect(result.current.isFetching).toBeFalsy();
+  });
 });

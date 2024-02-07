@@ -107,13 +107,14 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   );
 }
 
+// 0 padding-bottom because <ActivitySection> has space(2) built-in.
 const OverflowPanelItem = styled(PanelItem)`
   overflow: scroll;
 
   flex-direction: column;
   flex-grow: 1;
   gap: ${space(4)};
-  padding: ${space(2)} ${space(3)} 50px ${space(3)};
+  padding: ${space(2)} ${space(3)} 0 ${space(3)};
 `;
 
 const SmallTitle = styled('span')`

@@ -22,7 +22,7 @@ def _fix_label(label):
 @region_silo_endpoint
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, group) -> Response:

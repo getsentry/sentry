@@ -67,7 +67,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
   const {
     data: {blockingStatus},
   } = useProjectMetric(mri, projectId);
-  const {data: tagsData = []} = useMetricsTags(mri, projectIds);
+  const {data: tagsData = []} = useMetricsTags(mri, {projects: projectIds}, false);
 
   const isBlockedMetric = blockingStatus?.isBlocked ?? false;
   const blockMetricMutation = useBlockMetric(project);
@@ -98,7 +98,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
       data:
         metricsData?.intervals.map((interval, index) => ({
           name: interval,
-          value: metricsData.groups[0].series[field][index] ?? 0,
+          value: metricsData.groups[0]?.series[field][index] ?? 0,
         })) ?? [],
     },
   ];

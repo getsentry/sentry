@@ -36,6 +36,7 @@ class AccessService(abc.ABC):
         """If an owner is trying to gain access, allow bypassing SSO if there are no
         other owners with SSO enabled.
         """
+        pass
 
     @abc.abstractmethod
     def get_all_org_roles(self, member_id: int, organization_id: int) -> list[str]:
@@ -108,6 +109,7 @@ class AccessService(abc.ABC):
         *,
         user_id: int,
         is_superuser: bool,
+        is_staff: bool,
         organization_id: int | None,
         org_member: RpcOrganizationMemberSummary | None,
     ) -> RpcAuthState:
@@ -115,9 +117,11 @@ class AccessService(abc.ABC):
             organization_id=organization_id, is_super_user=is_superuser, member=org_member
         )
 
-        if is_superuser:
+        # Unfortunately we are unable to combine the is_superuser and is_staff
+        # into a single argument b/c query_sso_state specifically needs is_superuser
+        if is_superuser or is_staff:
             # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
-            # have them, you can only use them when you are acting, as a superuser.  This is intentional.
+            # have them, you can only use them when you are acting, as a superuser or staff.  This is intentional.
             permissions = list(self.get_permissions_for_user(user_id))
         else:
             permissions = []

@@ -117,6 +117,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
             'measurements.cls': toNumber(row['measurements.cls']),
             'measurements.ttfb': toNumber(row['measurements.ttfb']),
             'measurements.fid': toNumber(row['measurements.fid']),
+            'measurements.inp': toNumber(row['measurements.fid']),
             'transaction.duration': toNumber(row['transaction.duration']),
             replayId: row.replayId?.toString(),
             'profile.id': row['profile.id']?.toString(),
@@ -140,7 +141,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           })
           // TODO: Discover doesn't let us query more than 20 fields and we're hitting that limit.
           // Clean up the types to account for this so we don't need to do this casting.
-        ) as TransactionSampleRowWithScore[])
+        ) as unknown as TransactionSampleRowWithScore[])
       : [];
 
   return {

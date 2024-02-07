@@ -23,6 +23,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features, roles
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
 from sentry.models.apikey import ApiKey
@@ -634,6 +635,7 @@ class OrganizationMemberAccess(DbAccess):
         auth_state = access_service.get_user_auth_state(
             organization_id=member.organization_id,
             is_superuser=False,
+            is_staff=False,
             org_member=summarize_member(member),
             user_id=member.user_id,
         )
@@ -934,12 +936,14 @@ def from_request_org_and_scopes(
     scopes: Iterable[str] | None = None,
 ) -> Access:
     is_superuser = is_active_superuser(request)
+    is_staff = is_active_staff(request)
 
     if not rpc_user_org_context:
         return from_user_and_rpc_user_org_context(
             user=request.user,
             rpc_user_org_context=rpc_user_org_context,
             is_superuser=is_superuser,
+            is_staff=is_staff,
             scopes=scopes,
         )
 
@@ -952,6 +956,7 @@ def from_request_org_and_scopes(
             user_id=request.user.id,
             organization_id=rpc_user_org_context.organization.id,
             is_superuser=is_superuser,
+            is_staff=is_staff,
             org_member=member,
         )
 
@@ -970,15 +975,19 @@ def from_request_org_and_scopes(
         user=request.user,
         rpc_user_org_context=rpc_user_org_context,
         is_superuser=False,
+        is_staff=is_staff,
         scopes=scopes,
     )
 
 
-def organizationless_access(user: User | RpcUser | AnonymousUser, is_superuser: bool) -> Access:
+def organizationless_access(
+    user: User | RpcUser | AnonymousUser, is_superuser: bool, is_staff: bool
+) -> Access:
     return OrganizationlessAccess(
         auth_state=access_service.get_user_auth_state(
             user_id=user.id,
             is_superuser=is_superuser,
+            is_staff=is_staff,
             organization_id=None,
             org_member=None,
         )
@@ -996,6 +1005,7 @@ def from_user_and_rpc_user_org_context(
     user: User | RpcUser | None,
     rpc_user_org_context: RpcUserOrganizationContext | None = None,
     is_superuser: bool = False,
+    is_staff: bool = False,
     scopes: Iterable[str] | None = None,
     auth_state: RpcAuthState | None = None,
 ) -> Access:
@@ -1003,12 +1013,13 @@ def from_user_and_rpc_user_org_context(
         return DEFAULT
 
     if not rpc_user_org_context or not rpc_user_org_context.member:
-        return organizationless_access(user, is_superuser)
+        return organizationless_access(user, is_superuser, is_staff)
 
     return from_rpc_member(
         rpc_user_organization_context=rpc_user_org_context,
         scopes=scopes,
         is_superuser=is_superuser,
+        is_staff=is_staff,
         auth_state=auth_state,
     )
 
@@ -1020,10 +1031,15 @@ def from_request(
     request: Any, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
     is_superuser = is_active_superuser(request)
+    is_staff = is_active_staff(request)
 
     if not organization:
         return from_user(
-            request.user, organization=organization, scopes=scopes, is_superuser=is_superuser
+            request.user,
+            organization=organization,
+            scopes=scopes,
+            is_superuser=is_superuser,
+            is_staff=is_staff,
         )
 
     if getattr(request.user, "is_sentry_app", False):
@@ -1041,6 +1057,7 @@ def from_request(
             user_id=request.user.id,
             organization_id=organization.id,
             is_superuser=is_superuser,
+            is_staff=is_staff,
             org_member=(summarize_member(member) if member is not None else None),
         )
         sso_state = auth_state.sso_state
@@ -1059,7 +1076,7 @@ def from_request(
     if hasattr(request, "auth") and not request.user.is_authenticated:
         return from_auth(request.auth, organization)
 
-    return from_user(request.user, organization, scopes=scopes)
+    return from_user(user=request.user, organization=organization, scopes=scopes, is_staff=is_staff)
 
 
 # only used internally
@@ -1112,37 +1129,42 @@ def from_user(
     organization: Organization | None = None,
     scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
+    is_staff: bool = False,
 ) -> Access:
     if (user := normalize_valid_user(user)) is None:
         return DEFAULT
 
     if not organization:
-        return organizationless_access(user, is_superuser)
+        return organizationless_access(user, is_superuser, is_staff)
 
     try:
         om = OrganizationMember.objects.get(user_id=user.id, organization_id=organization.id)
     except OrganizationMember.DoesNotExist:
-        return organizationless_access(user, is_superuser)
+        return organizationless_access(user, is_superuser, is_staff)
 
     # ensure cached relation
     om.organization = organization
 
-    return from_member(om, scopes=scopes, is_superuser=is_superuser)
+    return from_member(om, scopes=scopes, is_superuser=is_superuser, is_staff=is_staff)
 
 
 def from_member(
     member: OrganizationMember,
     scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
+    is_staff: bool = False,
 ) -> Access:
     if scopes is not None:
         scope_intersection = frozenset(scopes) & member.get_scopes()
     else:
         scope_intersection = member.get_scopes()
 
-    permissions = (
-        access_service.get_permissions_for_user(member.user_id) if is_superuser else frozenset()
-    )
+    if is_superuser or is_staff:
+        # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
+        # have them, you can only use them when you are acting, as a superuser or staff. This is intentional.
+        permissions = access_service.get_permissions_for_user(member.user_id)
+    else:
+        permissions = frozenset()
 
     return OrganizationMemberAccess(member, scope_intersection, permissions, scopes)
 
@@ -1151,6 +1173,7 @@ def from_rpc_member(
     rpc_user_organization_context: RpcUserOrganizationContext,
     scopes: Iterable[str] | None = None,
     is_superuser: bool = False,
+    is_staff: bool = False,
     auth_state: RpcAuthState | None = None,
 ) -> Access:
     if rpc_user_organization_context.user_id is None:
@@ -1164,6 +1187,7 @@ def from_rpc_member(
             user_id=rpc_user_organization_context.user_id,
             organization_id=rpc_user_organization_context.organization.id,
             is_superuser=is_superuser,
+            is_staff=is_staff,
             org_member=rpc_user_organization_context.member,
         ),
     )

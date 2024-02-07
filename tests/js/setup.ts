@@ -1,10 +1,8 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-import {TextDecoder, TextEncoder} from 'util';
-
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
+import {TextDecoder, TextEncoder} from 'node:util';
 import {ConfigFixture} from 'sentry-fixture/config';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -109,6 +107,7 @@ jest.mock('@sentry/react', function sentryReact() {
     startSpan: jest.spyOn(SentryReact, 'startSpan'),
     finishSpan: jest.fn(),
     lastEventId: jest.fn(),
+    getClient: jest.spyOn(SentryReact, 'getClient'),
     getCurrentHub: jest.spyOn(SentryReact, 'getCurrentHub'),
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Hub: SentryReact.Hub,

@@ -383,6 +383,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         Remove an organization member.
         """
 
+        # with superuser read write separation, superuser read cannot hit this endpoint
+        # so we can keep this as is_active_superuser
         if request.user.is_authenticated and not is_active_superuser(request):
             try:
                 acting_member = OrganizationMember.objects.get(

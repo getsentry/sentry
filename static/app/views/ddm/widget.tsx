@@ -19,7 +19,7 @@ import type {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getDefaultMetricDisplayType,
-  getSeriesName,
+  getMetricsSeriesName,
   stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
@@ -38,7 +38,7 @@ import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
 
-import {MIN_WIDGET_WIDTH} from './constants';
+import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
 type MetricWidgetProps = {
   datetime: PageFilters['datetime'];
@@ -190,6 +190,7 @@ export const MetricWidget = memo(
                 focusArea={focusArea}
                 samples={samples}
                 chartHeight={300}
+                chartGroup={DDM_CHART_GROUP}
                 {...widget}
               />
             ) : (
@@ -210,6 +211,7 @@ export const MetricWidget = memo(
 
 interface MetricWidgetBodyProps extends MetricWidgetQueryParams {
   widgetIndex: number;
+  chartGroup?: string;
   chartHeight?: number;
   focusArea?: FocusAreaProps;
   getChartPalette?: (seriesNames: string[]) => Record<string, string>;
@@ -223,7 +225,7 @@ export interface SamplesProps {
   onClick?: (sample: Sample) => void;
 }
 
-export const MetricWidgetBody = memo(
+const MetricWidgetBody = memo(
   ({
     onChange,
     displayType,
@@ -233,6 +235,7 @@ export const MetricWidgetBody = memo(
     getChartPalette = createChartPalette,
     focusArea,
     chartHeight,
+    chartGroup,
     samples,
     ...metricsQuery
   }: MetricWidgetBodyProps & PageFilters) => {
@@ -286,16 +289,9 @@ export const MetricWidgetBody = memo(
             getChartPalette,
             mri,
             focusedSeries: focusedSeries?.seriesName,
-            groupBy: metricsQuery.groupBy,
           })
         : [];
-    }, [
-      timeseriesData,
-      getChartPalette,
-      mri,
-      focusedSeries?.seriesName,
-      metricsQuery.groupBy,
-    ]);
+    }, [timeseriesData, getChartPalette, mri, focusedSeries?.seriesName]);
 
     const handleSortChange = useCallback(
       newSort => {
@@ -341,6 +337,7 @@ export const MetricWidgetBody = memo(
           height={chartHeight}
           scatter={samples}
           focusArea={focusArea}
+          group={chartGroup}
         />
         {metricsQuery.showSummaryTable && (
           <SummaryTable
@@ -363,12 +360,10 @@ export function getChartTimeseries(
     getChartPalette,
     mri,
     focusedSeries,
-    groupBy,
   }: {
     getChartPalette: (seriesNames: string[]) => Record<string, string>;
     mri: MRI;
     focusedSeries?: string;
-    groupBy?: string[];
   }
 ) {
   // this assumes that all series have the same unit
@@ -378,7 +373,7 @@ export function getChartTimeseries(
   const series = data.groups.map(g => {
     return {
       values: Object.values(g.series)[0],
-      name: getSeriesName(g, data.groups.length === 1, groupBy),
+      name: getMetricsSeriesName(g),
       groupBy: g.by,
       transaction: g.by.transaction,
       release: g.by.release,

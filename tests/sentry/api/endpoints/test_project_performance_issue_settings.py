@@ -1,17 +1,15 @@
 from unittest.mock import MagicMock, patch
 
-from django.urls import reverse
+from django.test import override_settings
+from rest_framework import status
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PROJECT_OPTION_KEY
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.performance_detection import get_merged_settings
-
-PERFORMANCE_ISSUE_FEATURES = {
-    "organizations:performance-view": True,
-}
 
 
 @region_silo_test
@@ -23,20 +21,12 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         self.login_as(user=self.user, superuser=True)
         self.project = self.create_project()
 
-        self.url = reverse(
-            self.endpoint,
-            kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
-            },
-        )
-
     @patch("sentry.models.ProjectOption.objects.get_value")
+    @with_feature("organizations:performance-view")
     def test_get_project_options_overrides_detection_defaults(self, get_value):
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.get(self.url, format="json")
-
-        assert response.status_code == 200, response.content
+        response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, format="json"
+        )
 
         assert response.data["n_plus_one_db_queries_detection_enabled"]
         assert response.data["slow_db_queries_detection_enabled"]
@@ -62,10 +52,9 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             "large_render_blocking_asset_detection_enabled": False,
         }
 
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.get(self.url, format="json")
-
-        assert response.status_code == 200, response.content
+        response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, format="json"
+        )
 
         assert not response.data["n_plus_one_db_queries_detection_enabled"]
         assert not response.data["slow_db_queries_detection_enabled"]
@@ -79,6 +68,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert not response.data["large_render_blocking_asset_detection_enabled"]
 
     @patch("sentry.models.ProjectOption.objects.get_value")
+    @with_feature("organizations:performance-view")
     def test_get_project_options_overrides_threshold_defaults(self, get_value):
         with override_options(
             {
@@ -95,10 +85,9 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
                 "performance.issues.consecutive_http.min_time_saved_threshold": 2000,
             }
         ):
-            with self.feature(PERFORMANCE_ISSUE_FEATURES):
-                response = self.client.get(self.url, format="json")
-
-            assert response.status_code == 200, response.content
+            response = self.get_success_response(
+                self.project.organization.slug, self.project.slug, format="json"
+            )
 
             # System and project defaults
             assert response.data["slow_db_query_duration_threshold"] == 1000
@@ -127,10 +116,9 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
                 "consecutive_http_spans_min_time_saved_threshold": 1000,
             }
 
-            with self.feature(PERFORMANCE_ISSUE_FEATURES):
-                response = self.client.get(self.url, format="json")
-
-            assert response.status_code == 200, response.content
+            response = self.get_success_response(
+                self.project.organization.slug, self.project.slug, format="json"
+            )
 
             # Updated project settings
             assert response.data["slow_db_query_duration_threshold"] == 5000
@@ -146,21 +134,24 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             assert response.data["consecutive_http_spans_min_time_saved_threshold"] == 1000
 
     def test_get_returns_error_without_feature_enabled(self):
-        with self.feature({}):
-            response = self.client.get(self.url, format="json")
-            assert response.status_code == 404
+        self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            format="json",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
 
+    @with_feature("organizations:performance-view")
     def test_put_non_super_user_updates_detection_setting(self):
         self.login_as(user=self.user, superuser=False)
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.put(
-                self.url,
-                data={
-                    "n_plus_one_db_queries_detection_enabled": False,
-                },
-            )
+        response = self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled=False,
+            method="put",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
 
-        assert response.status_code == 403, response.content
         assert response.data == {
             "detail": {
                 "message": "Passed options are only modifiable internally",
@@ -168,109 +159,140 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             },
         }
 
+    @with_feature("organizations:performance-view")
     def test_put_super_user_updates_detection_setting(self):
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.put(
-                self.url,
-                data={
-                    "n_plus_one_db_queries_detection_enabled": False,
-                },
-            )
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled=False,
+            method="put",
+            status_code=status.HTTP_200_OK,
+        )
 
-        assert response.status_code == 200, response.content
         assert not response.data["n_plus_one_db_queries_detection_enabled"]
 
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            get_response = self.client.get(self.url, format="json")
+        get_response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, format="json"
+        )
 
-        assert get_response.status_code == 200, response.content
         assert not get_response.data["n_plus_one_db_queries_detection_enabled"]
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature(
+        {"organizations:performance-view": True, "auth:enterprise-superuser-read-write": True}
+    )
+    def test_put_superuser_read_write_updates_detection_setting(self):
+        # superuser read-only cannot hit put
+        self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled=False,
+            method="put",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+        # superuser with write can hit put
+        self.add_user_permission(self.user, "superuser.write")
+
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled=False,
+            method="put",
+            status_code=status.HTTP_200_OK,
+        )
+
+        assert not response.data["n_plus_one_db_queries_detection_enabled"]
+
+        get_response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, format="json"
+        )
+
+        assert not get_response.data["n_plus_one_db_queries_detection_enabled"]
+
+    @with_feature("organizations:performance-view")
     def test_put_update_non_super_user_option(self):
         self.login_as(user=self.user, superuser=False)
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.put(
-                self.url,
-                data={
-                    "n_plus_one_db_duration_threshold": 3000,
-                },
-            )
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_duration_threshold=3000,
+            method="put",
+            status_code=status.HTTP_200_OK,
+        )
 
-        assert response.status_code == 200, response.content
         assert response.data["n_plus_one_db_duration_threshold"] == 3000
 
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            get_response = self.client.get(self.url, format="json")
+        get_response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, format="json"
+        )
 
-        assert get_response.status_code == 200, response.content
         assert get_response.data["n_plus_one_db_duration_threshold"] == 3000
 
     @patch("sentry.models.ProjectOption.objects.get_value")
+    @with_feature("organizations:performance-view")
     def test_put_does_not_update_disabled_option(self, get_value):
         self.login_as(user=self.user, superuser=False)
         get_value.return_value = {
             "n_plus_one_db_queries_detection_enabled": False,
         }
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.put(
-                self.url,
-                data={
-                    "n_plus_one_db_duration_threshold": 3000,
-                },
-            )
+        response = self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_duration_threshold=3000,
+            method="put",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
 
-        assert response.status_code == 403, response.content
         assert response.data == {"detail": "Disabled options can not be modified"}
 
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            get_response = self.client.get(self.url, format="json")
+        get_response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, format="json"
+        )
 
-        assert get_response.status_code == 200, response.content
         assert (
             get_response.data["n_plus_one_db_duration_threshold"]
             == get_merged_settings(self.project)["n_plus_one_db_duration_threshold"]
         )
 
+    @with_feature("organizations:performance-view")
     def test_update_project_setting_check_validation(self):
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.put(
-                self.url,
-                data={
-                    "n_plus_one_db_queries_detection_enabled": -1,
-                },
-            )
+        response = self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled=-1,
+            method="put",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
-        assert response.status_code == 400, response.content
         assert response.data == {
             "n_plus_one_db_queries_detection_enabled": [
                 ErrorDetail(string="Must be a valid boolean.", code="invalid")
             ]
         }
 
+    @with_feature("organizations:performance-view")
     def test_update_project_setting_invalid_option(self):
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.put(
-                self.url,
-                data={
-                    "n_plus_one_db_queries_detection_enabled_invalid": 500,
-                },
-            )
+        response = self.get_error_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled_invalid=500,
+            method="put",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
-        assert response.status_code == 400, response.content
         assert response.data == {"detail": "Invalid settings option"}
 
     @patch("sentry.api.base.create_audit_entry")
+    @with_feature("organizations:performance-view")
     def test_changing_admin_settings_creates_audit_log(self, create_audit_entry: MagicMock):
-
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.put(
-                self.url,
-                data={
-                    "n_plus_one_db_queries_detection_enabled": False,
-                },
-            )
-
-        assert response.status_code == 200, response.content
+        self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            n_plus_one_db_queries_detection_enabled=False,
+            method="put",
+            status_code=status.HTTP_200_OK,
+        )
 
         assert create_audit_entry.called
         ((_, kwargs),) = create_audit_entry.call_args_list
@@ -283,6 +305,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             "public": self.project.public,
         }
 
+    @with_feature("organizations:performance-view")
     def test_delete_resets_enabled_project_settings(self):
         self.project.update_option(
             SETTINGS_PROJECT_OPTION_KEY,
@@ -304,13 +327,13 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             == 5000
         )
 
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.delete(
-                self.url,
-                data={},
-            )
+        self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            method="delete",
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
 
-        assert response.status_code == 204, response.content
         assert not self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
             "n_plus_one_db_queries_detection_enabled"
         ]  # admin option should persist
@@ -321,6 +344,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             SETTINGS_PROJECT_OPTION_KEY
         )  # removes enabled threshold settings
 
+    @with_feature("organizations:performance-view")
     def test_delete_does_not_resets_enabled_project_settings(self):
         self.project.update_option(
             SETTINGS_PROJECT_OPTION_KEY,
@@ -342,13 +366,13 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             == 5000
         )
 
-        with self.feature(PERFORMANCE_ISSUE_FEATURES):
-            response = self.client.delete(
-                self.url,
-                data={},
-            )
+        self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            method="delete",
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
 
-        assert response.status_code == 204, response.content
         assert not self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
             "n_plus_one_db_queries_detection_enabled"
         ]  # admin option should persist
