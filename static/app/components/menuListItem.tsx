@@ -358,7 +358,7 @@ const LabelWrap = styled('div')`
   min-width: 0;
 `;
 
-const Label = styled('p')`
+const Label = styled('div')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
@@ -366,7 +366,7 @@ const Label = styled('p')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const Details = styled('p')<{disabled: boolean; priority: Priority}>`
+const Details = styled('div')<{disabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   line-height: 1.2;
