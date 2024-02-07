@@ -51,10 +51,10 @@ describe('Project Ownership Input', () => {
     expect(screen.getByText('Globbing Syntax')).toBeInTheDocument();
   });
 
-  it('renders with streamline-targeting-context', () => {
+  it('renders with custom rules', () => {
     render(
       <EditOwnershipRules
-        organization={{...org, features: ['streamline-targeting-context']}}
+        organization={org}
         ownership={ownership}
         project={project}
         onCancel={() => {}}
