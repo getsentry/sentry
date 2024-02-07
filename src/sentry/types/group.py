@@ -1,5 +1,4 @@
 from collections.abc import Mapping
-from enum import IntEnum
 
 
 class GroupSubStatus:
@@ -66,9 +65,3 @@ GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS = {
     GroupSubStatus.FOREVER: "archived_forever",
     GroupSubStatus.UNTIL_CONDITION_MET: "archived_until_condition_met",
 }
-
-
-class PriorityLevel(IntEnum):
-    LOW = 25
-    MEDIUM = 50
-    HIGH = 75
