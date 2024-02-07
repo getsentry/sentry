@@ -61,18 +61,14 @@ export class RenderField extends Component<RenderProps, State> {
   };
 
   componentDidUpdate(prevProps: RenderProps) {
-    const prevProjects = prevProps.sentryProjects;
-    const projects = this.props.sentryProjects;
+    const projectIds = this.props.sentryProjects.map(project => project.id);
+    const prevProjectIds = prevProps.sentryProjects.map(project => project.id);
+    const newProjects = difference(projectIds, prevProjectIds);
 
-    if (JSON.stringify(projects) !== JSON.stringify(prevProjects)) {
-      const projectIds = projects.map(project => project.id);
-      const prevProjectIds = prevProjects.map(project => project.id);
-      const newProjects = difference(projectIds, prevProjectIds);
-      if (newProjects.length === 1) {
-        this.setState({
-          selectedSentryProjectId: newProjects[0],
-        });
-      }
+    if (newProjects.length === 1) {
+      this.setState({
+        selectedSentryProjectId: newProjects[0],
+      });
     }
   }
 
