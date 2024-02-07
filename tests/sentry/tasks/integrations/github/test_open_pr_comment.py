@@ -102,6 +102,7 @@ class TestSafeForComment(GithubCommentTestCase):
             {"filename": "bar.js", "changes": 100, "status": "modified"},
             {"filename": "baz.py", "changes": 100, "status": "added"},
             {"filename": "bee.py", "changes": 100, "status": "deleted"},
+            {"filename": "hi.py", "changes": 100, "status": "removed"},
             {"filename": "boo.py", "changes": 0, "status": "renamed"},
         ]
         responses.add(
