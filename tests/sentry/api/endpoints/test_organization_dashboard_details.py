@@ -10,6 +10,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
 from sentry.models.project import Project
@@ -211,6 +212,43 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert iso_format(response.data["start"].replace(second=0)) == iso_format(
             expected_adjusted_retention_start.replace(second=0)
         )
+
+    def test_ondemand_dashboard_widget(self):
+        spec1_date = before_now(days=3)
+        spec2_date = before_now(days=2)
+        DashboardWidgetQueryOnDemand.objects.create(
+            spec_version=1,
+            extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_PREROLLOUT,
+            dashboard_widget_query=self.widget_1_data_1,
+            date_added=spec1_date,
+        )
+        DashboardWidgetQueryOnDemand.objects.create(
+            spec_version=4,
+            extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_MANUAL,
+            dashboard_widget_query=self.widget_1_data_1,
+            date_added=spec2_date,
+        )
+        response = self.do_request("get", self.url(self.dashboard.id))
+        assert response.status_code == 200, response.content
+
+        widgets = response.data["widgets"]
+        widget_queries = widgets[0]["queries"]
+        assert len(widget_queries) == 2
+        self.assert_serialized_widget_query(widget_queries[0], self.widget_1_data_1)
+
+        onDemand = widget_queries[0]["onDemand"]
+        assert len(onDemand) == 2
+        assert (
+            onDemand[0]["extractionState"]
+            == DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_PREROLLOUT
+        )
+        assert onDemand[0]["specVersion"] == 1
+
+        assert (
+            onDemand[1]["extractionState"]
+            == DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_MANUAL
+        )
+        assert onDemand[1]["specVersion"] == 4
 
 
 @region_silo_test

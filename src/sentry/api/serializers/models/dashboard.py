@@ -60,6 +60,7 @@ class DashboardWidgetQueryOnDemandSerializer(Serializer):
             "enabled": obj.extraction_enabled(),
             "extractionState": obj.extraction_state,
             "dashboardWidgetQueryId": obj.dashboard_widget_query_id,
+            "specVersion": obj.spec_version,
         }
 
 
@@ -72,7 +73,7 @@ class DashboardWidgetQuerySerializer(Serializer):
             list(
                 DashboardWidgetQueryOnDemand.objects.filter(
                     dashboard_widget_query_id__in=[i.id for i in item_list]
-                )
+                ).order_by("date_added")
             )
         )
 
