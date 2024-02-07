@@ -31,6 +31,7 @@ import type {
   MRI,
   UseCase,
 } from 'sentry/types/metrics';
+import {statsPeriodToDays} from 'sentry/utils/dates';
 import {isMeasurement as isMeasurementName} from 'sentry/utils/discover/fields';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
@@ -422,4 +423,21 @@ export function getMetricsCorrelationSpanUrl(
     {referrer: 'metrics', openPanel: 'open'},
     isTransaction ? undefined : spanId
   );
+}
+
+export function getMetaDateTimeParams(datetime?: PageFilters['datetime']) {
+  if (datetime?.period) {
+    if (statsPeriodToDays(datetime.period) < 14) {
+      return {statsPeriod: '14d'};
+    }
+    return {statsPeriod: datetime.period};
+  }
+  if (datetime?.start && datetime?.end) {
+    return {
+      start: moment(datetime.start).toISOString(),
+      end: moment(datetime.end).toISOString(),
+    };
+  }
+
+  return {statsPeriod: '14d'};
 }

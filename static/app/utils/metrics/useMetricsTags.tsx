@@ -5,6 +5,8 @@ import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {getMetaDateTimeParams} from './index';
+
 export function useMetricsTags(
   mri: MRI | undefined,
   pageFilters: Partial<PageFilters>,
@@ -13,16 +15,24 @@ export function useMetricsTags(
   const {slug} = useOrganization();
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
 
+  const queryParams = pageFilters.projects?.length
+    ? {
+        metric: mri,
+        useCase,
+        projects: pageFilters.projects,
+        ...getMetaDateTimeParams(pageFilters.datetime),
+      }
+    : {
+        metric: mri,
+        useCase,
+        ...getMetaDateTimeParams(pageFilters.datetime),
+      };
+
   const tagsQuery = useApiQuery<MetricTag[]>(
     [
       `/organizations/${slug}/metrics/tags/`,
       {
-        query: {
-          metric: mri,
-          useCase,
-          projects: pageFilters.projects,
-          ...pageFilters.datetime,
-        },
+        query: queryParams,
       },
     ],
     {

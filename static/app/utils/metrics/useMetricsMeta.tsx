@@ -6,6 +6,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
 
+import {getMetaDateTimeParams} from './index';
+
 const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
 
 export function getMetricsMetaQueryKeys(
@@ -20,13 +22,13 @@ export function getMetricsMetaQueryKeys(
 
 export function getMetricsMetaQueryKey(
   orgSlug: string,
-  pageFilters: Partial<PageFilters>,
+  {projects, datetime}: Partial<PageFilters>,
   useCase: UseCase
 ): ApiQueryKey {
-  return [
-    `/organizations/${orgSlug}/metrics/meta/`,
-    {query: {useCase, projects: pageFilters.projects, ...pageFilters.datetime}},
-  ];
+  const queryParams = projects?.length
+    ? {useCase, projects, ...getMetaDateTimeParams(datetime)}
+    : {useCase, ...getMetaDateTimeParams(datetime)};
+  return [`/organizations/${orgSlug}/metrics/meta/`, {query: queryParams}];
 }
 
 function useMetaUseCase(
