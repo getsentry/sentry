@@ -1,17 +1,21 @@
 import {Entries123Base, Entries123Target} from 'sentry-fixture/entries';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueDiff} from 'sentry/components/issueDiff';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/api');
+jest.mock('sentry/utils/analytics');
 
 describe('IssueDiff', function () {
   const entries123Target = Entries123Target();
   const entries123Base = Entries123Base();
   const api = new MockApiClient();
-  const project = ProjectFixture();
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({features: ['similarity-embeddings']});
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -67,10 +71,12 @@ describe('IssueDiff', function () {
         targetIssueId="target"
         orgId="org-slug"
         project={project}
+        organization={organization}
       />
     );
 
     expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalled();
   });
 
   it('can diff message', async function () {

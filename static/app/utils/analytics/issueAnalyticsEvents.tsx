@@ -89,6 +89,17 @@ export type IssueEventParameters = {
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.set_priority': SetPriorityParams;
+  'issue_details.similar_issues.diff_clicked': {
+    error_message?: string;
+    group_id?: string;
+    parent_error_message?: string;
+    parent_group_id?: string;
+    parent_stacktrace?: string;
+    parent_transaction?: string;
+    project_id?: string;
+    stacktrace?: string;
+    transaction?: string;
+  };
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
     groupId: string;
     parentGroupId: string;
@@ -261,6 +272,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':
     'Issue Details: Escalating Issues Banner Feedback Received',
+  'issue_details.similar_issues.diff_clicked':
+    'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
     'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
   'issue_details.view_hierarchy.hover_rendering_system':
