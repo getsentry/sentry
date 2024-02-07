@@ -46,6 +46,9 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
 
   // If the duration is less than 2 minutes, show seconds
   const showTimelineSeconds = durationMs < 120 * 1000;
+  const middleTimestamp = paddedStartTime + Math.floor(durationMs / 2);
+  const leftMiddleTimestamp = paddedStartTime + Math.floor(durationMs / 4);
+  const rightMiddleTimestamp = paddedStartTime + Math.floor((durationMs / 4) * 3);
 
   return (
     <Fragment>
@@ -81,17 +84,13 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
           <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
         </TimestampItem>
         <TimestampItem>
-          <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
+          <DateTime date={leftMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
         </TimestampItem>
         <TimestampItem>
-          <DateTime
-            date={paddedStartTime + Math.floor(durationMs / 2)}
-            seconds={showTimelineSeconds}
-            timeOnly
-          />
+          <DateTime date={middleTimestamp} seconds={showTimelineSeconds} timeOnly />
         </TimestampItem>
         <TimestampItem>
-          <DateTime date={paddedStartTime} seconds={showTimelineSeconds} timeOnly />
+          <DateTime date={rightMiddleTimestamp} seconds={showTimelineSeconds} timeOnly />
         </TimestampItem>
         <TimestampItem>
           <DateTime date={paddedEndTime} seconds={showTimelineSeconds} timeOnly />
@@ -124,8 +123,9 @@ const TimelineColumns = styled('div')`
 `;
 
 const TimestampColumns = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: ${space(1)};
 `;
 
