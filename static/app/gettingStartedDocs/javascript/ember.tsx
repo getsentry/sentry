@@ -26,14 +26,6 @@ import * as Sentry from "@sentry/ember";
 Sentry.init({
   dsn: "${params.dsn}",
   integrations: [${
-    params.isPerformanceSelected
-      ? `
-        new Sentry.BrowserTracing({
-          // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-          tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-        }),`
-      : ''
-  }${
     params.isReplaySelected
       ? `
         Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
@@ -43,7 +35,9 @@ Sentry.init({
   params.isPerformanceSelected
     ? `
       // Performance Monitoring
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions`
+      tracesSampleRate: 1.0, //  Capture 100% of the transactions
+      // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
     : ''
 }${
   params.isReplaySelected
