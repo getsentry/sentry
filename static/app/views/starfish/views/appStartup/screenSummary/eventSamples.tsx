@@ -13,10 +13,7 @@ import {
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {
-  COLD_START_TYPE,
-  WARM_START_TYPE,
-} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
+import {COLD_START_TYPE} from 'sentry/views/starfish/views/appStartup/screenSummary/startTypeSelector';
 import {EventSamplesTable} from 'sentry/views/starfish/views/screens/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/starfish/views/screens/screensTable';
 
@@ -53,15 +50,20 @@ export function EventSamples({
   const searchQuery = new MutableSearch([
     `transaction:${transaction}`,
     `release:${release}`,
-    'span.op:[app.start.cold,app.start.warm]',
+    startType
+      ? `${SpanMetricsField.SPAN_OP}:${
+          startType === COLD_START_TYPE ? 'app.start.cold' : 'app.start.warm'
+        }`
+      : 'span.op:[app.start.cold,app.start.warm]',
     '(',
     'span.description:"Cold Start"',
     'OR',
     'span.description:"Warm Start"',
     ')',
-    `${SpanMetricsField.APP_START_TYPE}:${
-      startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
-    }`,
+    // TODO: Add this back in once we have the ability to filter by start type
+    // `${SpanMetricsField.APP_START_TYPE}:${
+    //   startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
+    // }`,
   ]);
 
   if (deviceClass) {
