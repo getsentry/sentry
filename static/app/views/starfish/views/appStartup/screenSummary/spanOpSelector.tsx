@@ -1,9 +1,7 @@
 import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -73,8 +71,8 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
   ];
 
   return (
-    <StyledCompactSelect
-      triggerProps={{prefix: t('Operation'), size: 'xs'}}
+    <CompactSelect
+      triggerProps={{prefix: t('Operation')}}
       value={value}
       options={options ?? []}
       onChange={newValue => {
@@ -90,7 +88,3 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
     />
   );
 }
-
-const StyledCompactSelect = styled(CompactSelect)`
-  margin-bottom: ${space(1)};
-`;
