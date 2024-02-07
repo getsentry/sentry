@@ -208,12 +208,9 @@ def safe_for_comment(
 
     for file in pr_files:
         filename = file["filename"]
-        # don't count the file if it was added or is not a Python file
-        if (
-            file["status"] == "added"
-            or file["status"] == "renamed"
-            or filename.split(".")[-1] not in patch_parsers
-        ):
+        # we only count the file if it's modified and if the file extension is in the list of supported file extensions
+        # we cannot look at deleted or newly added files because we cannot extract functions from the diffs
+        if file["status"] != "modified" or filename.split(".")[-1] not in patch_parsers:
             continue
 
         changed_file_count += 1
@@ -240,7 +237,9 @@ def get_pr_files(pr_files: list[dict[str, str]]) -> list[PullRequestFile]:
     # new files will not have sentry issues associated with them
     # only fetch Python files
     pullrequest_files = [
-        PullRequestFile(filename=file["filename"], patch=file["patch"]) for file in pr_files
+        PullRequestFile(filename=file["filename"], patch=file["patch"])
+        for file in pr_files
+        if "patch" in file
     ]
 
     logger.info("github.open_pr_comment.pr_filenames", extra={"count": len(pullrequest_files)})
