@@ -227,6 +227,34 @@ function RenderRow(props: {
     );
   }
 
+  if ('title' in props.node.value && 'level' in props.node.value) {
+    <div
+      className="TraceRow"
+      // @TODO check if we can just mutate style
+      style={{
+        top: props.style.top,
+        height: props.style.height,
+        paddingLeft: props.node.depth * 23,
+      }}
+    >
+      <div className="TraceChildrenCountWrapper Root">
+        <Connectors node={props.node} />
+        {props.node.children.length > 0 ? (
+          <ChildrenCountButton
+            expanded={props.node.expanded || props.node.zoomedIn}
+            onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+          >
+            {props.node.children.length}{' '}
+          </ChildrenCountButton>
+        ) : null}
+      </div>
+
+      <span className="TraceOperation">{t('Error')}</span>
+      <strong className="TraceEmDash"> — </strong>
+      <span className="TraceDescription">{props.node.value.title}</span>
+    </div>;
+  }
+
   return null;
 }
 

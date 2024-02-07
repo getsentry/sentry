@@ -3,6 +3,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {
+  TraceError as TraceErrorType,
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
@@ -33,12 +34,16 @@ import type {
  * Notes:
  * - collecting children should be O(n), it is currently O(n^2) as we are missing a proper queue implementation
  * - the notion of expanded and zoomed is confusing, they stand for the same idea from a UI pov
+ * - there is an annoying thing wrt span and transaction nodes where we either store data on _children or _spanChildren
+ *   this is because we want to be able to store both transaction and span nodes in the same tree, but it makes for an
+ *   annoying API. A better design would have been to create an invisible meta node that just points to the correct children
  */
 
 export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
   type Span = RawSpanType;
   type Trace = TraceSplitResults<Transaction>;
+  type TraceError = TraceErrorType;
   interface AutoGroup extends RawSpanType {
     autogroup: {
       description: string;
@@ -46,7 +51,7 @@ export declare namespace TraceTree {
     };
   }
 
-  type NodeValue = Trace | Transaction | Span | AutoGroup | null;
+  type NodeValue = Trace | Transaction | Span | AutoGroup | TraceError | null;
 
   type Metadata = {
     event_id: string | undefined;
@@ -86,20 +91,22 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceTree.Transaction,
+      value: TraceTree.NodeValue,
       depth: number
     ) {
       const node = new TraceTreeNode(parent, value, depth, {
-        project_slug: value.project_slug,
-        event_id: value.event_id,
+        project_slug: value?.project_slug,
+        event_id: value?.event_id,
       });
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
       }
 
-      for (const child of value.children) {
-        visit(node, child, depth + 1);
+      if (value && 'children' in value) {
+        for (const child of value.children) {
+          visit(node, child, depth + 1);
+        }
       }
 
       return node;
@@ -112,11 +119,14 @@ export class TraceTree {
 
     // Trace is always expanded by default
     traceNode.expanded = true;
-
     tree.root.children.push(traceNode);
 
     for (const transaction of trace.transactions) {
       visit(traceNode, transaction, traceNode.depth + 1);
+    }
+
+    for (const trace_error of trace.orphan_errors) {
+      visit(traceNode, trace_error, traceNode.depth + 1);
     }
 
     return tree.build();
