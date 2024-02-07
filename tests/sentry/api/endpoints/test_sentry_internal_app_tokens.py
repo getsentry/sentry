@@ -113,3 +113,13 @@ class GetSentryInternalAppTokenTest(SentryInternalAppTokenTest):
 
         assert response_content[0]["token"] == MASKED_VALUE
         assert response_content[0]["refreshToken"] == MASKED_VALUE
+
+    def test_deny_token_access(self):
+        self.login_as(self.user)
+        token = ApiToken.objects.create(user=self.user, scope_list=["org:write"])
+
+        sentry_app = self.create_internal_integration(name="OtherInternal", organization=self.org)
+
+        url = reverse("sentry-api-0-sentry-internal-app-tokens", args=[sentry_app.slug])
+        response = self.client.get(url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        assert response.status_code == 403, response.content
