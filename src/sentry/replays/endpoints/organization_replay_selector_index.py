@@ -59,12 +59,16 @@ ElementResponseType = TypedDict(
 )
 
 
-class ReplaySelectorResponse(TypedDict, total=False):
+class ReplaySelectorResponseData(TypedDict, total=False):
     count_dead_clicks: int
     count_rage_clicks: int
     dom_element: str
     element: ElementResponseType
     project_id: str
+
+
+class ReplaySelectorResponse(TypedDict):
+    data: list[ReplaySelectorResponseData]
 
 
 @region_silo_endpoint
@@ -91,18 +95,20 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationEndpoint):
         operation_id="List an Organization's Selectors",
         parameters=[
             GlobalParams.ORG_SLUG,
+            GlobalParams.ENVIRONMENT,
             ReplaySelectorValidator,
             CursorQueryParam,
             VisibilityParams.PER_PAGE,
+            VisibilityParams.QUERY,
         ],
         responses={
-            200: inline_sentry_response_serializer("ListSelectors", list[ReplaySelectorResponse]),
+            200: inline_sentry_response_serializer("ListSelectors", ReplaySelectorResponse),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
         examples=ReplayExamples.GET_SELECTORS,
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> ReplaySelectorResponse:
         """Return a list of selectors for a given organization."""
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
