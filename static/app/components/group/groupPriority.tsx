@@ -62,6 +62,8 @@ export function GroupPriorityDropdown({value, onChange}: GroupPriorityDropdownPr
   return (
     <DropdownMenu
       size="sm"
+      menuTitle={t('Set Priority To...')}
+      minMenuWidth={160}
       trigger={triggerProps => (
         <DropdownButton
           {...triggerProps}
