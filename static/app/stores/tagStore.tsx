@@ -85,10 +85,8 @@ const storeConfig: TagStoreDefinition = {
         values: [
           IssueCategory.ERROR,
           IssueCategory.PERFORMANCE,
+          IssueCategory.REPLAY,
           ...(org.features.includes('issue-platform') ? [IssueCategory.CRON] : []),
-          ...(org.features.includes('session-replay-rage-click-issue-creation')
-            ? [IssueCategory.REPLAY]
-            : []),
         ],
         predefined: true,
       },
