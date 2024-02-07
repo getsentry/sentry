@@ -89,6 +89,12 @@ export type IssueEventParameters = {
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.set_priority': SetPriorityParams;
+  'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
+    groupId: string;
+    parentGroupId: string;
+    value: string;
+    projectId?: string;
+  };
   'issue_details.sourcemap_wizard_copy': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
@@ -255,6 +261,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':
     'Issue Details: Escalating Issues Banner Feedback Received',
+  'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
+    'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
