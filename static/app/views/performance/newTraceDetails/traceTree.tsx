@@ -37,6 +37,8 @@ import type {
  * - there is an annoying thing wrt span and transaction nodes where we either store data on _children or _spanChildren
  *   this is because we want to be able to store both transaction and span nodes in the same tree, but it makes for an
  *   annoying API. A better design would have been to create an invisible meta node that just points to the correct children
+ * - connector generation should live in the UI layer, not in the tree. Same with depth calculation. It is more convenient
+ *   to calculate this when rendering the tree, as we can only calculate it only for the visible nodes and avoid an extra tree pass
  */
 
 export declare namespace TraceTree {
@@ -95,8 +97,8 @@ export class TraceTree {
       depth: number
     ) {
       const node = new TraceTreeNode(parent, value, depth, {
-        project_slug: value?.project_slug,
-        event_id: value?.event_id,
+        project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
+        event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
 
       if (parent) {
@@ -158,6 +160,10 @@ export class TraceTree {
       }
       continue;
     }
+
+    // !!Warning!! this mutates spans
+    // @TODO this should be done by the API.
+    spans.sort((a, b) => a.start_timestamp - b.start_timestamp);
 
     for (const span of spans) {
       const node = new TraceTreeNode(null, span, parent.depth, {
