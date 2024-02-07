@@ -23,14 +23,12 @@ Sentry.init(
     // We recommend adjusting this value in production.
     tracesSampleRate: 1.0,
     integrations: [
-      new SentrySibling.BrowserTracing({
-        // Set "tracePropagationTargets" to control for which URLs distributed tracing should be enabled
-        tracePropagationTargets: [
-          "localhost",
-          /^https:\/\/yourserver\.io\/api/,
-        ],
-        routingInstrumentation: SentrySibling.routingInstrumentation,
-      }),
+      SentrySibling.browserTracingIntegration(),
+    ],
+    // Set "tracePropagationTargets" to control for which URLs distributed tracing should be enabled
+    tracePropagationTargets: [
+      "localhost",
+      /^https:\/\/yourserver\.io\/api/,
     ],
   },
   // Forward the init method to the sibling Framework.
