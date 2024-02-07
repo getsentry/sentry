@@ -208,7 +208,8 @@ def safe_for_comment(
 
     for file in pr_files:
         filename = file["filename"]
-        # don't count the file if it was added or is not a Python file
+        # don't count the file if it was anything but modified or is not a Python file
+        # we cannot look at deleted files because we cannot extract functions from them
         if file["status"] != "modified" or filename.split(".")[-1] not in patch_parsers:
             continue
 
