@@ -32,7 +32,7 @@ from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
-from sentry.roles import team_roles
+from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
 from sentry.utils import metrics
 from sentry.utils.json import JSONData
@@ -288,6 +288,14 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             team = Team.objects.get(organization=organization, slug=team_slug)
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not organization_roles.get(member.role).is_team_roles_allowed:
+            return Response(
+                {
+                    "detail": f"The user with a '{member.role}' role cannot have team-level permissions."
+                },
+                status=403,
+            )
 
         if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
             return Response(status=204)

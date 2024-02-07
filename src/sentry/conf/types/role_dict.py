@@ -13,3 +13,4 @@ class RoleDict(TypedDict):
     is_retired: NotRequired[bool]
     is_global: NotRequired[bool]
     is_minimum_role_for: NotRequired[str]
+    is_team_roles_allowed: NotRequired[bool]

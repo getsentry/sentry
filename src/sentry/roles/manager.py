@@ -25,6 +25,7 @@ class Role(abc.ABC):
     desc: str
     scopes: frozenset[str]
     is_retired: bool = False
+    is_team_roles_allowed: bool = True
 
     def __post_init__(self) -> None:
         assert len(self.id) <= 32, "Role id must be no more than 32 characters"
