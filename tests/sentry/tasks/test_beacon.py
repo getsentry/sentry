@@ -33,6 +33,39 @@ class SendBeaconTest(OutcomesSnubaTest):
             },
             5,  # Num of outcomes to be stored
         )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": timezone.now() - timedelta(hours=1),
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.REPLAY,
+                "quantity": 1,
+            },
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": timezone.now() - timedelta(hours=1),
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.TRANSACTION,
+                "quantity": 2,
+            },
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": timezone.now() - timedelta(hours=1),
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.PROFILE,
+                "quantity": 3,
+            },
+        )
         self.org2 = self.create_organization()
         self.project2 = self.create_project(
             name="bar", teams=[self.create_team(organization=self.org2, members=[self.user])]
@@ -81,6 +114,11 @@ class SendBeaconTest(OutcomesSnubaTest):
                     "projects": 2,
                     "teams": 2,
                     "events.24h": 8,  # We expect the number of events to be the sum of events from two orgs. First org has 5 events while the second org has 3 events.
+                    "errors.24h": 8,
+                    "transactions.24h": 2,
+                    "replays.24h": 1,
+                    "profiles.24h": 3,
+                    "monitors.24h": 0,
                 },
                 "anonymous": False,
                 "admin_email": "foo@example.com",
@@ -123,6 +161,11 @@ class SendBeaconTest(OutcomesSnubaTest):
                     "projects": 2,
                     "teams": 2,
                     "events.24h": 8,  # We expect the number of events to be the sum of events from two orgs. First org has 5 events while the second org has 3 events.
+                    "errors.24h": 8,
+                    "transactions.24h": 2,
+                    "replays.24h": 1,
+                    "profiles.24h": 3,
+                    "monitors.24h": 0,
                 },
                 "anonymous": True,
                 "packages": mock_get_all_package_versions.return_value,
