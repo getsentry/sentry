@@ -221,6 +221,18 @@
       ]
     ]
   },
+  "hybridcloud.webhookpayload": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "hybridcloud.webhookpayload",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Control"
+    ],
+    "table_name": "hybridcloud_webhookpayload",
+    "uniques": []
+  },
   "nodestore.node": {
     "dangling": false,
     "foreign_keys": {},

@@ -85,6 +85,7 @@ const storeConfig: TagStoreDefinition = {
         values: [
           IssueCategory.ERROR,
           IssueCategory.PERFORMANCE,
+          IssueCategory.REPLAY,
           ...(org.features.includes('issue-platform') ? [IssueCategory.CRON] : []),
         ],
         predefined: true,
