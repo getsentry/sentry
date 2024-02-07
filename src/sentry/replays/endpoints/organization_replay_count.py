@@ -77,7 +77,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
     }
 
     @extend_schema(
-        operation_id="Return a count of replays for a given issue or transaction id.",
+        operation_id="Return a Count of Replays",
         parameters=[
             GlobalParams.END,
             GlobalParams.ENVIRONMENT,
