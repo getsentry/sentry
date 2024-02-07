@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team} from 'sentry/types';
 import {useTeams} from 'sentry/utils/useTeams';
+import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 import type {TeamSelectProps} from './utils';
@@ -54,6 +55,7 @@ function TeamSelect({
   onChangeTeamRole,
 }: Props) {
   const {teams, onSearch, fetching: isLoadingTeams} = useTeams();
+  const {orgRoleList, teamRoleList} = organization;
 
   const selectedTeamSlugs = new Set(selectedTeamRoles.map(tm => tm.teamSlug));
   const selectedTeams = teams.filter(tm => selectedTeamSlugs.has(tm.slug));
@@ -65,6 +67,14 @@ function TeamSelect({
 
     return (
       <Fragment>
+        {selectedOrgRole && (
+          <RoleOverwritePanelAlert
+            orgRole={selectedOrgRole}
+            orgRoleList={orgRoleList}
+            teamRoleList={teamRoleList}
+          />
+        )}
+
         {selectedTeams.map(team => (
           <TeamRow
             key={team.slug}
