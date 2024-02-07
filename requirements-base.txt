@@ -91,7 +91,7 @@ cryptography>=38.0.3
 grpcio>=1.59.0
 
 # not directly used, but provides a speedup for redis
-hiredis>=0.3.1
+hiredis>=2.3.2
 
 # sentry-plugins specific dependencies
 phabricator>=0.7.0
