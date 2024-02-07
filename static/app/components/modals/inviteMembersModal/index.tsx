@@ -10,6 +10,7 @@ import useInviteModal from 'sentry/components/modals/inviteMembersModal/useInvit
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface InviteMembersModalProps extends ModalRenderProps {
@@ -51,7 +52,7 @@ function InviteMembersModal({
     return <LoadingIndicator />;
   }
 
-  if (memberResult.isError) {
+  if (memberResult.isError && !isActiveSuperuser()) {
     return (
       <LoadingError
         message={t('Failed to load members')}

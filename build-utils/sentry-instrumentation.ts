@@ -1,9 +1,7 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
-
-import crypto from 'crypto';
-import https from 'https';
-import os from 'os';
+import crypto from 'node:crypto';
+import https from 'node:https';
+import os from 'node:os';
 
 import type Sentry from '@sentry/node';
 import type {Transaction} from '@sentry/types';

@@ -8,7 +8,9 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
+from django.contrib.sessions.backends.base import SessionBase
 from django.core.cache import cache
+from django.http import HttpRequest
 from packaging.version import parse as parse_version
 
 import sentry
@@ -17,10 +19,15 @@ from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken, AuthenticationContext
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization import (
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
 from sentry.services.hybrid_cloud.user import UserSerializeType
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
@@ -115,13 +122,22 @@ def _delete_activeorg(session):
         del session["activeorg"]
 
 
-def _resolve_last_org(session, user, org_context=None):
+def _resolve_last_org(
+    request: HttpRequest | None,
+    session: SessionBase | None,
+    user: RpcUser | User | None,
+    org_context: RpcUserOrganizationContext | None = None,
+):
+    user_is_authenticated = (
+        user is not None and not isinstance(user, AnonymousUser) and user.is_authenticated
+    )
+
     if org_context is None:
         last_org_slug = session["activeorg"] if session and "activeorg" in session else None
         if not last_org_slug:
             return None
 
-        if user is not None and not isinstance(user, AnonymousUser):
+        if user_is_authenticated:
             org_context = organization_service.get_organization_by_slug(
                 slug=last_org_slug,
                 only_visible=False,
@@ -130,14 +146,23 @@ def _resolve_last_org(session, user, org_context=None):
                 include_teams=False,
             )
 
-    if org_context and org_context.member:
+    has_org_access = bool(org_context and org_context.member)
+
+    if not has_org_access and user_is_authenticated:
+        has_org_access = superuser.is_active_superuser(request)
+
+    if org_context and has_org_access:
         return org_context.organization
 
     return None
 
 
 class _ClientConfig:
-    def __init__(self, request=None, org_context=None) -> None:
+    def __init__(
+        self,
+        request: HttpRequest | None = None,
+        org_context: RpcUserOrganizationContext | None = None,
+    ) -> None:
         self.request = request
         if request is not None:
             self.user = getattr(request, "user", None) or AnonymousUser()
@@ -146,7 +171,7 @@ class _ClientConfig:
             self.user = None
             self.session = None
 
-        self.last_org = _resolve_last_org(self.session, self.user, org_context)
+        self.last_org = _resolve_last_org(request, self.session, self.user, org_context)
 
     @property
     def last_org_slug(self) -> str | None:
@@ -374,7 +399,9 @@ class _ClientConfig:
         }
 
 
-def get_client_config(request=None, org_context=None) -> MutableMapping[str, Any]:
+def get_client_config(
+    request=None, org_context: RpcUserOrganizationContext | None = None
+) -> MutableMapping[str, Any]:
     """
     Provides initial bootstrap data needed to boot the frontend application.
     """

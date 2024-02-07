@@ -48,7 +48,7 @@ describe('SpanOpSelector', function () {
             'span.description': 'string',
             'span.group': 'string',
             'avg_if(span.self_time,release,release1)': 'duration',
-            'time_spent_percentage()': 'percentage',
+            'avg_compare(span.self_time,release,release1,release2)': 'percent_change',
             'count()': 'integer',
             'avg_if(span.self_time,release,release2)': 'duration',
             'sum(span.self_time)': 'duration',
@@ -61,7 +61,7 @@ describe('SpanOpSelector', function () {
             'span.description': 'Application Init',
             'span.group': '7f4be68f08c0455f',
             'avg_if(span.self_time,release,release1)': 22.549867,
-            'time_spent_percentage()': 0.003017625053431528,
+            'avg_compare(span.self_time,release,release1,release2)': 0.5,
             'count()': 14,
             'avg_if(span.self_time,release,release2)': 12504.931908384617,
             'sum(span.self_time)': 162586.66467600001,
@@ -82,17 +82,15 @@ describe('SpanOpSelector', function () {
 
     expect(await screen.findByRole('link', {name: 'Operation'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Span Description'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Duration (R1)'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Duration (R2)'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Total Count'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Total Time Spent'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Avg Duration (R1)'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Avg Duration (R2)'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Change'})).toBeInTheDocument();
 
     expect(await screen.findByRole('cell', {name: 'app.start.warm'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Application Init'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '22.55ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '12.50s'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '14'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '2.71min'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '+50%'})).toBeInTheDocument();
 
     expect(screen.getByRole('link', {name: 'Application Init'})).toHaveAttribute(
       'href',

@@ -10,7 +10,7 @@ from typing import Any, Generic, TypeVar, overload
 import rb
 from django.utils.functional import SimpleLazyObject
 from redis.client import Script
-from redis.connection import ConnectionPool, Encoder
+from redis.connection import ConnectionPool
 from redis.exceptions import BusyLoadingError, ConnectionError
 from rediscluster import RedisCluster
 from rediscluster.exceptions import ClusterError
@@ -314,36 +314,3 @@ def load_script(path):
         return script[0](keys, args, client)
 
     return call_script
-
-
-class SentryScript(Script):
-    """
-    XXX: This is a gross workaround to fix a breaking api change in redis-py. When we
-    instantiate a script, we've historically been passing `None` as the client. Then
-    when we call the script we pass the actual client, which Redis uses as an override.
-    The breaking changes relies on there being a client passed in the constructor to
-    determine the encoding of the script before generating the sha.
-
-    To work around this, we create a fake client with a fake connection pool that just
-    returns an encoder that will work. Once this has been done we then set the
-    `registered_client` back to None, so that the behaviour is the same as before.
-
-    This is only needed when we can't use `load_script`, since we have the client
-    available there and can pass it through. So once we remove `RedisTSDB` we can also
-    kill this hack.
-    """
-
-    class FakeConnectionPool:
-        def get_encoder(self):
-            return Encoder(encoding="utf-8", encoding_errors="strict", decode_responses=False)
-
-    class FakeEncoderClient:
-        def __init__(self):
-            self.connection_pool = SentryScript.FakeConnectionPool()
-
-    def __init__(self, registered_client, script):
-        if registered_client is None:
-            registered_client = self.FakeEncoderClient()
-        super().__init__(registered_client, script)
-        if isinstance(self.registered_client, self.FakeEncoderClient):
-            self.registered_client = None

@@ -40,7 +40,18 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                                     "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
                                     "lineno": 20,
                                     "context_line": " divide_by_zero_another()",
-                                }
+                                    "in_app": True,
+                                },
+                                # The non-in-app frame should not be included in the stacktrace
+                                {
+                                    "function": "another_function",
+                                    "module": "__main__",
+                                    "filename": "python_onboarding.py",
+                                    "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
+                                    "lineno": 40,
+                                    "context_line": " another_function()",
+                                    "in_app": False,
+                                },
                             ]
                         },
                         "type": "ZeroDivisionError",
@@ -155,6 +166,61 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
+    def test_multiple(self, mock_seer_request, mock_record):
+        similar_group_over_threshold = self.create_group(project=self.project)
+        similar_group_under_threshold = self.create_group(project=self.project)
+        seer_return_value: SimilarIssuesEmbeddingsResponse = {
+            "responses": [
+                {
+                    "message_similarity": 0.95,
+                    "parent_group_id": self.similar_group.id,
+                    "should_group": True,
+                    "stacktrace_similarity": 0.998,  # Over threshold
+                },
+                {
+                    "message_similarity": 0.95,
+                    "parent_group_id": similar_group_over_threshold.id,
+                    "should_group": True,
+                    "stacktrace_similarity": 0.998,
+                },
+                {
+                    "message_similarity": 0.95,
+                    "parent_group_id": similar_group_under_threshold.id,
+                    "should_group": False,
+                    "stacktrace_similarity": 0.95,
+                },
+            ]
+        }
+        mock_seer_request.return_value = HTTPResponse(json.dumps(seer_return_value).encode("utf-8"))
+
+        response = self.client.get(
+            self.path,
+            data={"k": "1", "threshold": "0.99"},
+        )
+
+        assert response.data == self.get_expected_response(
+            [
+                self.similar_group.id,
+                similar_group_over_threshold.id,
+                similar_group_under_threshold.id,
+            ],
+            [0.95, 0.95, 0.95],
+            [0.998, 0.998, 0.95],
+            ["Yes", "Yes", "No"],
+        )
+
+        mock_record.assert_called_with(
+            "group_similar_issues_embeddings.count",
+            organization_id=self.org.id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            count_over_threshold=2,
+            user_id=self.user.id,
+        )
+
+    @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
     def test_invalid_return(self, mock_seer_request):
         """
@@ -184,11 +250,21 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @with_feature("projects:similarity-embeddings")
+    @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
-    def test_empty_return(self, mock_seer_request):
+    def test_empty_return(self, mock_seer_request, mock_record):
         mock_seer_request.return_value = HTTPResponse([])
         response = self.client.get(self.path)
         assert response.data == []
+
+        mock_record.assert_called_with(
+            "group_similar_issues_embeddings.count",
+            organization_id=self.org.id,
+            project_id=self.project.id,
+            group_id=self.group.id,
+            count_over_threshold=0,
+            user_id=self.user.id,
+        )
 
     @with_feature("projects:similarity-embeddings")
     @mock.patch("sentry.seer.utils.seer_connection_pool.urlopen")
