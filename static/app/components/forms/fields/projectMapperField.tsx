@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
+import difference from 'lodash/difference';
 
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -60,11 +61,13 @@ export class RenderField extends Component<RenderProps, State> {
   };
 
   componentDidUpdate(prevProps: RenderProps) {
-    const prevProjectIds = prevProps.sentryProjects.map(proj => proj.id);
-    const projectIds = this.props.sentryProjects.map(proj => proj.id);
+    const prevProjects = prevProps.sentryProjects;
+    const projects = this.props.sentryProjects;
 
-    if (prevProjectIds !== projectIds) {
-      const newProjects = projectIds.filter(x => !prevProjectIds.includes(x));
+    if (JSON.stringify(projects) !== JSON.stringify(prevProjects)) {
+      const projectIds = projects.map(project => project.id);
+      const prevProjectIds = prevProjects.map(project => project.id);
+      const newProjects = difference(projectIds, prevProjectIds);
       if (newProjects.length === 1) {
         this.setState({
           selectedSentryProjectId: newProjects[0],
