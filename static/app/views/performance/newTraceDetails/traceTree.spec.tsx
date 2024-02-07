@@ -110,10 +110,10 @@ describe('TraceTree', () => {
     );
 
     const node = TraceTree.FromSpans(root, [
-      makeRawSpan({start_timestamp: 0, span_id: '1'}),
-      makeRawSpan({start_timestamp: 1, span_id: '2', parent_span_id: '1'}),
-      makeRawSpan({start_timestamp: 2, parent_span_id: '2'}),
-      makeRawSpan({start_timestamp: 3, parent_span_id: '1'}),
+      makeRawSpan({start_timestamp: 0, op: '1', span_id: '1'}),
+      makeRawSpan({start_timestamp: 1, op: '2', span_id: '2', parent_span_id: '1'}),
+      makeRawSpan({start_timestamp: 2, op: '3', parent_span_id: '2'}),
+      makeRawSpan({start_timestamp: 3, op: '4', parent_span_id: '1'}),
     ]);
 
     // @ts-expect-error ignore type guard
@@ -145,10 +145,10 @@ describe('TraceTree', () => {
       url: '/organizations/org-slug/events/undefined:undefined/',
       method: 'GET',
       body: makeEvent({startTimestamp: 0}, [
-        makeRawSpan({start_timestamp: 1, span_id: '1'}),
-        makeRawSpan({start_timestamp: 2, span_id: '2', parent_span_id: '1'}),
-        makeRawSpan({start_timestamp: 3, parent_span_id: '2'}),
-        makeRawSpan({start_timestamp: 4, parent_span_id: '1'}),
+        makeRawSpan({start_timestamp: 1, op: '1', span_id: '1'}),
+        makeRawSpan({start_timestamp: 2, op: '2', span_id: '2', parent_span_id: '1'}),
+        makeRawSpan({start_timestamp: 3, op: '3', parent_span_id: '2'}),
+        makeRawSpan({start_timestamp: 4, op: '4', parent_span_id: '1'}),
       ]),
     });
 
@@ -288,8 +288,8 @@ describe('TraceTree', () => {
 
     expect(tree.list[1].connectors.length).toBe(0);
     expect(tree.list[2].connectors.length).toBe(1);
-    expect(tree.list[2].connectors[0]).toBe(2);
-    expect(tree.list[3].connectors[0]).toBe(2);
+    expect(tree.list[2].connectors[0]).toBe(-2);
+    expect(tree.list[3].connectors[0]).toBe(-2);
     expect(tree.list[4].connectors.length).toBe(0);
   });
 
@@ -690,7 +690,7 @@ describe('TraceTree', () => {
     it('autogroups children case', () => {
       // span1 : db
       // ---span2 : http
-      // ------ span2 : http
+      // ------ span3 : http
 
       // to
 
@@ -734,12 +734,15 @@ describe('TraceTree', () => {
       expect(root.children.length).toBe(1);
       expect(root.children[0].children.length).toBe(1);
 
-      TraceTree.AutogroupChildrenSpanNodes(root);
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
 
       expect(root.children.length).toBe(1);
 
       const autoGroupedNode = root.children[0];
-      expect(autoGroupedNode.children.length).toBe(1);
+      expect(autoGroupedNode.children.length).toBe(0);
+
+      autoGroupedNode.expanded = true;
+
       expect((autoGroupedNode.children[0].value as RawSpanType).description).toBe(
         'span2'
       );
