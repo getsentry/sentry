@@ -548,7 +548,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 text = escape_slack_text(text)
 
         # This link does not contain user input (it's a static label and a url), must not escape it.
-        text += build_attachment_replay_link(self.group, self.event) or ""
+        replay_link = build_attachment_replay_link(self.group, self.event)
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
@@ -589,6 +589,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title = build_attachment_title(obj)
 
         if not features.has("organizations:slack-block-kit", self.group.project.organization):
+            if replay_link:
+                text += f"\n\n{replay_link}"
             if action_text and self.identity:
                 text += "\n" + action_text
 
@@ -713,7 +715,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             for k, v in footer_data.items():
                 footer_text += f"{k}: {v}    "
 
-            footer_text = footer_text[:-4]  # chop off the empty space
+            if replay_link:
+                footer_text += replay_link
+            else:
+                footer_text = footer_text[:-4]  # chop off the empty space
             blocks.append(self.get_context_block(text=footer_text))
         else:
             blocks.append(self.get_context_block(text=footer, timestamp=timestamp))
