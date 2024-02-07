@@ -91,6 +91,41 @@ class ScheduleWebhooksTest(TestCase):
         assert mock_deliver.delay.call_count == 1
         mock_deliver.delay.assert_called_with(webhook_one.id)
 
+    @responses.activate
+    @override_regions(region_config)
+    def test_schedule_mailbox_with_more_than_batch_size_records(self):
+        responses.add(
+            responses.POST, "http://us.testserver/extensions/github/webhook/", body=ReadTimeout()
+        )
+        num_records = 55
+        for _ in range(0, num_records):
+            self.create_webhook_payload(
+                mailbox_name="github:123",
+                region_name="us",
+            )
+        # Run the task that is spawned to provide some integration test coverage.
+        with self.tasks():
+            schedule_webhook_delivery()
+
+        # First attempt will fail rescheduling messages.
+        assert len(responses.calls) == 1
+        assert WebhookPayload.objects.count() == num_records
+        head = WebhookPayload.objects.all().order_by("id").first()
+        assert head
+        assert head.schedule_for > timezone.now()
+
+        # Do another scheduled run. This should not make any forwarding requests
+        with self.tasks():
+            schedule_webhook_delivery()
+        assert len(responses.calls) == 1
+        # Head doesn't move.
+        new_head = WebhookPayload.objects.all().order_by("id").first()
+        assert new_head
+        assert head.schedule_for == new_head.schedule_for
+
+        # No messages delivered
+        assert WebhookPayload.objects.count() == num_records
+
 
 @control_silo_test
 class DrainMailboxTest(TestCase):
