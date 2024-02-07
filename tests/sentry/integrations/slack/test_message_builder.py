@@ -948,8 +948,8 @@ class BuildGroupAttachmentReplaysTest(TestCase):
             blocks = SlackIssuesMessageBuilder(event.group, event.for_group(event.group)).build()
         assert isinstance(blocks, dict)
         assert (
-            f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
-            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
+            f"<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
+            in blocks["blocks"][4]["elements"][0]["text"]
         )
 
 
