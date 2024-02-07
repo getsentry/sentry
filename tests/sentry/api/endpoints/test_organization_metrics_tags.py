@@ -1,5 +1,6 @@
 import time
 from collections.abc import Collection
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -9,7 +10,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
-from sentry.testutils.cases import OrganizationMetricsIntegrationTestCase
+from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.api.endpoints.test_organization_metrics import (
     MOCKED_DERIVED_METRICS,
@@ -24,9 +25,13 @@ def mocked_bulk_reverse_resolve(use_case_id, org_id: int, ids: Collection[int]):
 
 
 @region_silo_test
-class OrganizationMetricsTagsIntegrationTest(OrganizationMetricsIntegrationTestCase):
+class OrganizationMetricsTagsTest(OrganizationMetricsIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tags"
+
+    @property
+    def now(self):
+        return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     @patch(
         "sentry.snuba.metrics.datasource.get_mri",
@@ -223,3 +228,32 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricsIntegrationTestC
             "The following metrics {'crash_free_fake'} cannot be computed from single entities. "
             "Please revise the definition of these singular entity derived metrics"
         )
+
+    def test_metric_tags_with_date_range(self):
+        mri = "c:custom/clicks@none"
+        tags = (
+            ("transaction", "/hello", 0),
+            ("release", "1.0", 1),
+            ("environment", "prod", 7),
+        )
+        for tag_name, tag_value, days in tags:
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "counter",
+                mri,
+                {tag_name: tag_value},
+                int((self.now - timedelta(days=days)).timestamp()),
+                10,
+                UseCaseID.CUSTOM,
+            )
+
+        for stats_period, expected_count in (("1d", 1), ("2d", 2), ("2w", 3)):
+            response = self.get_success_response(
+                self.organization.slug,
+                metric=[mri],
+                project=self.project.id,
+                useCase="custom",
+                statsPeriod=stats_period,
+            )
+            assert len(response.data) == expected_count
