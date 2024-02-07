@@ -118,6 +118,38 @@ function RenderRow(props: {
     return null;
   }
 
+  if ('autogrouped_by' in props.node.value) {
+    // console.log('Autogrouped', props.node.value.autogrouped_by, props.node);
+    return (
+      <div
+        className="TraceRow"
+        // @TODO check if we can just mutate style
+        style={{
+          top: props.style.top,
+          height: props.style.height,
+          paddingLeft: props.node.depth * 23,
+        }}
+      >
+        <div className="TraceChildrenCountWrapper Root">
+          <Connectors node={props.node} />
+          {props.node.children.length > 0 ? (
+            <ChildrenCountButton
+              expanded={props.node.expanded || props.node.zoomedIn}
+              onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+            >
+              {props.node.children.length}{' '}
+            </ChildrenCountButton>
+          ) : null}
+        </div>
+
+        <span className="TraceOperation">{t('Autogrouped')}</span>
+        <strong className="TraceEmDash"> — </strong>
+        {/* @ts-ignore */}
+        <span className="TraceDescription">{props.node.value.op}</span>
+      </div>
+    );
+  }
+
   if (isTransactionNode(props.node)) {
     const transaction = props.node.value as TraceFullDetailed;
 
@@ -237,7 +269,7 @@ function RenderRow(props: {
         paddingLeft: props.node.depth * 23,
       }}
     >
-      <div className="TraceChildrenCountWrapper Root">
+      <div className="TraceChildrenCountWrapper">
         <Connectors node={props.node} />
         {props.node.children.length > 0 ? (
           <ChildrenCountButton
