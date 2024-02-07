@@ -1498,6 +1498,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:ddm-dashboard-import": False,
     # Enable the default alert at project creation to be the high priority alert
     "organizations:default-high-priority-alerts": False,
+    # Enable setting priority for new groups on ingest
+    "organizations:issue-priority-new-groups": False,
     # Enable inbound filters to be turned on by default for new Javascript Projects
     "organizations:default-inbound-filters": False,
     # Enables automatically deriving of code mappings
@@ -1976,8 +1978,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:high-priority-alerts": False,
     # Enable priority for issues
     "projects:issue-priority": False,
-    # Enable setting priority for new groups on ingest
-    "projects:issue-priority-new-groups": False,
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     "projects:minidump": True,

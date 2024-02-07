@@ -39,7 +39,7 @@ class ActivityManager(BaseManager["Activity"]):
         activity_qs = self.filter(group=group).order_by("-datetime")
         initial_priority = None
 
-        if not features.has("projects:issue-priority-new-groups", group.project):
+        if not features.has("projects:issue-priority", group.project):
             activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
         else:
             event_metadata = group.get_event_metadata()

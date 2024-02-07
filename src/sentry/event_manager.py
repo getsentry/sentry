@@ -1623,7 +1623,7 @@ def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
     severity = _get_severity_metadata_for_group(event)
     group_data["metadata"].update(severity)
 
-    if features.has("projects:issue-priority", project, actor=None):
+    if features.has("organizations:issue-priority-new-groups", project.organization, actor=None):
         priority = _get_priority_for_group(severity, kwargs)
         kwargs["priority"] = priority
         group_data["metadata"]["initial_priority"] = priority
