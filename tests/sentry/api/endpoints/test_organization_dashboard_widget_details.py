@@ -697,7 +697,9 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
     @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
     def test_dashboard_widget_ondemand_multiple_fields(self, mock_query):
-        mock_query.return_value = {"data": [{"sometag": 1_000_000, "someothertag": 1}]}, [
+        mock_query.return_value = {
+            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
+        }, [
             "sometag",
             "someothertag",
         ]
@@ -718,7 +720,14 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 }
             ],
         }
+
         response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
-        print(response.data)
-        assert False
+        warnings = response.data["warnings"]
+        assert len(warnings) == 1
+        assert warnings[0]["sometag"] == "disabled:cardinality-limit"
+
+        # We queried sometag already, we shouldn't call the cardinality query again
+        data["queries"][0]["fields"] = ["sometag"]
+        self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert len(mock_query.mock_calls) == 1

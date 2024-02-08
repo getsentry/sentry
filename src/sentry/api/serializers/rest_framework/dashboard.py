@@ -5,7 +5,7 @@ from enum import Enum
 from django.db.models import Max
 from rest_framework import serializers
 
-from sentry import features
+from sentry import features, options
 from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
@@ -289,17 +289,14 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     def validate(self, data):
         query_errors = []
         self.query_warnings = []
+        all_fields = set()
         has_query_error = False
+        max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query.count")
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
                 if query.get("fields"):
-                    field_cardinality = check_field_cardinality(
-                        query.get("fields"), self.context["organization"]
-                    )
-                    for field, low_cardinality in field_cardinality.items():
-                        if not low_cardinality:
-                            self.query_warnings.append({field: "disabled:cardinality-limit"})
+                    all_fields = all_fields.union(query.get("fields"))
                 if (
                     data.get("widget_type") == DashboardWidgetTypes.ISSUE
                     and "issue_query_error" in query
@@ -370,6 +367,13 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                                     }
                                 }
                             )
+        if len(all_fields) > 0:
+            field_cardinality = check_field_cardinality(
+                all_fields, self.context["organization"], max_cardinality_allowed
+            )
+            for field, low_cardinality in field_cardinality.items():
+                if not low_cardinality:
+                    self.query_warnings.append({field: "disabled:cardinality-limit"})
         return data
 
 

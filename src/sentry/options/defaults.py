@@ -1723,6 +1723,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "on_demand.max_widget_cardinality.on_query_count",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "on_demand.max_widget_cardinality.killswitch",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

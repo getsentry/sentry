@@ -337,20 +337,24 @@ def _get_widget_query_low_cardinality(
 
     cache_key = _get_widget_query_cardinality_cache_key(widget_query)
     query_columns = widget_query.columns
+    max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
 
-    return all(check_field_cardinality(query_columns, organization, cache_key).values())
+    return all(
+        check_field_cardinality(
+            query_columns, organization, max_cardinality_allowed, cache_key
+        ).values()
+    )
 
 
 def check_field_cardinality(
     query_columns: list[str],
     organization: Organization,
+    max_cardinality: int,
     widget_cache_key: str | None = None,
     widget_query: DashboardWidgetQuery | None = None,
 ) -> dict[str, str]:
     if not query_columns:
         return None
-
-    max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.count")
 
     # We cache each key individually to query less
     cache_keys: dict[str, str] = {}
@@ -372,10 +376,9 @@ def check_field_cardinality(
 
         try:
             processed_results, columns_to_check = _query_cardinality(query_columns, organization)
-            print(processed_results)
             for column in columns_to_check:
                 count = processed_results["data"][0][f"count_unique({column})"]
-                column_low_cardinality = count <= max_cardinality_allowed
+                column_low_cardinality = count <= max_cardinality
                 cardinality_map[cache_keys[column]] = column_low_cardinality
 
                 if not column_low_cardinality:
