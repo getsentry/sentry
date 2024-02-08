@@ -30,7 +30,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a replay recording segment",
+        operation_id="Fetch Recording Segment",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         responses={
             200: inline_sentry_response_serializer("ListReplayRecordingSegments", list[dict]),
@@ -38,7 +38,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ReplayExamples.GET_REPLAY_SEGMENTS,
+        examples=ReplayExamples.GET_REPLAY_SEGMENT,
     )
     def get(self, request: Request, project, replay_id, segment_id) -> HttpResponseBase:
         """Return a replay recording segment."""

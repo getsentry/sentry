@@ -13,7 +13,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.lib.storage import storage
 from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata
@@ -32,8 +32,13 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
         super().__init__(**options)
 
     @extend_schema(
-        operation_id="List the recording segments for a replay",
-        parameters=[CursorQueryParam, GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        operation_id="List Recording Segments",
+        parameters=[
+            CursorQueryParam,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            VisibilityParams.PER_PAGE,
+        ],
         responses={
             200: inline_sentry_response_serializer("ListReplayRecordingSegments", list[list[dict]]),
             400: RESPONSE_BAD_REQUEST,
