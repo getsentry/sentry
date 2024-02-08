@@ -120,6 +120,7 @@ export class TraceTree {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
+      node.canFetchData = true;
 
       if (parent) {
         parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
@@ -160,6 +161,11 @@ export class TraceTree {
   ): TraceTreeNode<TraceTree.NodeValue> {
     const parentIsSpan = !isTransactionNode(parent);
     const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<TraceTree.Span>> = {};
+
+    if (parent.spanChildren.length > 0) {
+      parent.zoomedIn = true;
+      return parent;
+    }
 
     if (parentIsSpan) {
       if (parent.value && 'span_id' in parent.value) {
@@ -445,7 +451,6 @@ export class TraceTree {
       this._list.splice(index + 1, childrenCount);
 
       node.zoomedIn = zoomedIn;
-      node.setSpanChildren([]);
 
       if (node.expanded) {
         this._list.splice(index + 1, 0, ...node.getVisibleChildren());
@@ -525,7 +530,7 @@ export class TraceTreeNode<T> {
   value: T;
   expanded: boolean = false;
   zoomedIn: boolean = false;
-  canFetchData: boolean = true;
+  canFetchData: boolean = false;
   metadata: TraceTree.Metadata = {
     project_slug: undefined,
     event_id: undefined,
@@ -619,11 +624,13 @@ export class TraceTreeNode<T> {
     if (this.value && 'autogrouped_by' in this.value) {
       return this._children;
     }
-    // if node is not a transaction node, return span children
+
+    // Node is a span
     // @ts-expect-error ignore primitive type
-    if (this.value && !('event_id' in this.value)) {
-      return this.spanChildren;
+    if (this.value && 'description' in this.value) {
+      return this.canFetchData && !this.zoomedIn ? [] : this.spanChildren;
     }
+
     // if a node is zoomed in, return span children, else return transaction children
     return this.zoomedIn ? this._spanChildren : this._children;
   }
