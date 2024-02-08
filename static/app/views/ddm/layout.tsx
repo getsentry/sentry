@@ -88,7 +88,7 @@ export const DDMLayout = memo(() => {
               <DatePageFilter />
             </PageFilterBar>
           </PaddedContainer>
-          {true ? (
+          {hasMetrics ? (
             <Fragment>
               <Queries />
               <MetricScratchpad />
