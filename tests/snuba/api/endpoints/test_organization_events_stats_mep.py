@@ -1460,26 +1460,44 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         ]
 
     def test_on_demand_chart_user_misery(self):
-        resp = self._on_demand_query_check(
-            {
-                "dataset": "metricsEnhanced",
-                "environment": "production",
-                "interval": "30m",
-                "onDemandType": "dynamic_query",
-                "orderby": "",
-                "partial": 1,
+        field = "user_misery(3000)"
+        query = ""
+        environment = "production"
+        spec = OnDemandMetricSpec(
+            field=field,
+            query=query,
+            environment="production",
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+        for hour in range(0, 2):
+            self.store_on_demand_metric(
+                (hour + 1) * 5,
+                spec=spec,
+                additional_tags={"satisfaction": "frustrated"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                (hour + 1) * 5,
+                spec=spec,
+                additional_tags={"satisfaction": "tolerable"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+        resp = self.do_request(
+            data={
+                "environment": environment,
+                "yAxis": field,
                 "project": self.project.id,
-                "query": "",
-                "referrer": "api.dashboards.widget.line-chart",
-                "statsPeriod": "7d",
+                "query": query,
+                "onDemandType": "dynamic_query",
+                "dataset": "metricsEnhanced",
                 "useOnDemandMetrics": "true",
-                # Not supported by MEP when it's custom
-                "yAxis": "user_misery(3000)",
-            },
+                "referrer": "api.dashboards.widget.line-chart",
+            }
         )
         for datum in resp.data["data"]:
             # XXX: Find a way to have some user misery data
             assert datum[1] == [{"count": 0}]
+
         assert resp.data["meta"] == {
             "fields": {"time": "date", "user_misery_3000": "number"},
             "units": {"time": None, "user_misery_3000": None},
