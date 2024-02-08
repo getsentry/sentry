@@ -286,6 +286,7 @@ const MetricWidgetBody = memo(
       (series: FocusedMetricsSeries) => {
         setHoveredSeries('');
 
+        // The focused series array is not populated yet, so we can add all series except the one that was de-selected
         if (!focusedSeries || focusedSeries.length === 0) {
           onChange?.({
             focusedSeries: chartSeries
@@ -298,19 +299,17 @@ const MetricWidgetBody = memo(
           return;
         }
 
-        const isAlreadyFocused = focusedSeries?.find(
-          s => s.seriesName === series.seriesName
+        const filteredSeries = focusedSeries.filter(
+          s => s.seriesName !== series.seriesName
         );
 
-        if (isAlreadyFocused) {
-          onChange?.({
-            focusedSeries: focusedSeries?.filter(s => s.seriesName !== series.seriesName),
-          });
-          return;
+        if (filteredSeries.length === focusedSeries.length) {
+          // The series was not focused before so we can add it
+          filteredSeries.push(series);
         }
 
         onChange?.({
-          focusedSeries: [...(focusedSeries || []), series],
+          focusedSeries: filteredSeries,
         });
       },
       [chartSeries, focusedSeries, onChange, setHoveredSeries]
