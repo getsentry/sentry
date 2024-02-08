@@ -244,7 +244,7 @@ describe('RuleNode', () => {
     renderRuleNode(formNode(label), {targetType: 'IssueOwners'});
 
     expect(screen.getByText('Send a notification to')).toBeInTheDocument();
-    await selectEvent.select(screen.getByText('Issue Owners'), 'Team');
+    await selectEvent.select(screen.getByText('Suggested Assignees'), 'Team');
     expect(onPropertyChange).toHaveBeenCalledTimes(2);
     expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetType', 'Team');
     expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetIdentifier', '');
