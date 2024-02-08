@@ -140,45 +140,7 @@ def run_query(request: Request) -> Mapping[str, Any]:
     """
     Entrypoint for executing a metrics query in Snuba.
     """
-    request, start, end = _setup_metrics_query(request)
-
-    logging_tags = {"referrer": request.tenant_ids["referrer"] or "unknown", "lang": "mql"}
-    request, reverse_mappings, mappings = _resolve_metrics_query(request, logging_tags)
-    metrics_query = request.query
-
-    try:
-        snuba_result = bulk_snuba_queries(
-            [request],
-            request.tenant_ids["referrer"],
-            use_cache=True,
-        )[0]
-    except Exception:
-        metrics.incr(
-            "metrics_layer.query",
-            tags={**logging_tags, "status": "query_error"},
-        )
-        raise
-
-    snuba_result = convert_snuba_result(
-        snuba_result,
-        reverse_mappings,
-        request.dataset,
-        metrics_query.scope.use_case_id,
-        metrics_query.scope.org_ids[0],
-    )
-
-    # If we normalized the start/end, return those values in the response so the caller is aware
-    results = {
-        **snuba_result,
-        "modified_start": start,
-        "modified_end": end,
-        "indexer_mappings": mappings,
-    }
-    metrics.incr(
-        "metrics_layer.query",
-        tags={**logging_tags, "status": "success"},
-    )
-    return results
+    return bulk_run_query([request])[0]
 
 
 def _setup_metrics_query(request: Request) -> tuple[Request, datetime, datetime]:
