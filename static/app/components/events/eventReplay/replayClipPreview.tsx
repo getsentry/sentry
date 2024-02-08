@@ -6,6 +6,7 @@ import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -187,6 +188,19 @@ function ReplayClipPreview({
         testId="replay-loading-placeholder"
         height="400px"
         width="100%"
+      />
+    );
+  }
+
+  if (replay.getDurationMs() <= 0) {
+    return (
+      <StaticReplayPreview
+        analyticsContext={analyticsContext}
+        isFetching={false}
+        replay={replay}
+        replayId={replayId}
+        fullReplayButtonProps={fullReplayButtonProps}
+        initialTimeOffsetMs={0}
       />
     );
   }
