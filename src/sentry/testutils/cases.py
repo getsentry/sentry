@@ -2140,10 +2140,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             # Additional tags might be needed to override field values from the spec.
             tags.update(additional_tags)
 
-        # This helps creating an environment when a spec expects it
-        if spec.environment:
-            self.create_environment(name=spec.environment)
-
         self.store_transaction_metric(
             value,
             metric=self.ON_DEMAND_KEY_MAP[metric_type],
