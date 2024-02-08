@@ -57,6 +57,7 @@ class ReplayClickResponse(TypedDict):
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Replays"])
 class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
@@ -82,6 +83,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
         examples=ReplayExamples.GET_REPLAY_CLIKS,
     )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
+        """Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked."""
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
