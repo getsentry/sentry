@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, NotRequired
 
 from django.db.models import Max, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema_serializer
@@ -31,24 +31,6 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 
 
-class AlertRuleSerializerResponseOptional(TypedDict, total=False):
-    environment: str | None
-    projects: list[str] | None
-    excludedProjects: list[dict] | None
-    queryType: int | None
-    resolveThreshold: float | None
-    dataset: str | None
-    thresholdType: int | None
-    eventTypes: list[str] | None
-    owner: str | None
-    originalAlertRuleId: str | None
-    comparisonDelta: float | None
-    weeklyAvg: float | None
-    totalThisWeek: int | None
-    snooze: bool | None
-    latestIncident: datetime | None
-
-
 @extend_schema_serializer(
     exclude_fields=[
         "status",
@@ -61,7 +43,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "latestIncident",
     ]
 )
-class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
+class AlertRuleSerializerResponse(TypedDict):
     """
     This represents a Sentry Metric Alert Rule.
     """
@@ -80,6 +62,21 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     dateModified: datetime
     dateCreated: datetime
     createdBy: dict
+    environment: NotRequired[str | None]
+    projects: NotRequired[list[str] | None]
+    excludedProjects: NotRequired[list[dict] | None]
+    queryType: NotRequired[int | None]
+    resolveThreshold: NotRequired[float | None]
+    dataset: NotRequired[str | None]
+    thresholdType: NotRequired[int | None]
+    eventTypes: NotRequired[list[str] | None]
+    owner: NotRequired[str | None]
+    originalAlertRuleId: NotRequired[str | None]
+    comparisonDelta: NotRequired[float | None]
+    weeklyAvg: NotRequired[float | None]
+    totalThisWeek: NotRequired[int | None]
+    snooze: NotRequired[bool | None]
+    latestIncident: NotRequired[datetime | None]
 
 
 @register(AlertRule)

@@ -410,6 +410,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         else:
             # For first time users that have not yet set system url prefix, let's default to localhost url
             settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000"]
+    settings.CSRF_TRUSTED_ORIGINS = []
 
     env.data["config"] = get_sentry_conf()
     env.data["start_date"] = timezone.now()

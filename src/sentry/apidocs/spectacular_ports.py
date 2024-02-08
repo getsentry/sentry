@@ -34,7 +34,7 @@ import typing
 from collections import defaultdict
 from enum import Enum
 from types import UnionType
-from typing import Any, Literal, Union
+from typing import Any, Literal, Optional, Union
 from typing import get_type_hints as _get_type_hints
 from typing import is_typeddict
 
@@ -65,11 +65,11 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 def get_type_hints(hint, **kwargs):
     try:
-        return _get_type_hints(hint, **kwargs)
+        return _get_type_hints(hint, **kwargs, include_extras=True)
     except NameError:
         # try to resolve a circular import from TYPE_CHECKING imports
         reload_module_with_type_checking_enabled(hint.__module__)
-        return _get_type_hints(hint, **kwargs)
+        return _get_type_hints(hint, **kwargs, include_extras=True)
     except TypeError:
         raise UnableToProceedError(
             f"""Unable to resolve type hints for {hint}.
@@ -86,6 +86,7 @@ def _get_type_hint_origin(hint):
 def resolve_type_hint(hint) -> Any:
     """drf-spectacular library method modified as described above"""
     origin, args = _get_type_hint_origin(hint)
+    print(origin, args)
     excluded_fields = get_override(hint, "exclude_fields", [])
 
     if origin is None and is_basic_type(hint, allow_none=False):
