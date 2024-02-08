@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
 
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
@@ -103,8 +102,7 @@ function ActionSet({
 
   // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
   // the dropdown menu based on the current screen size
-  const theme = useTheme();
-  const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
+  const nestMergeAndReview = useMedia(`(max-width: 1700px`);
 
   const menuItems: MenuItemProps[] = [
     {
