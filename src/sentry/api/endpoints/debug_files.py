@@ -180,9 +180,9 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
 class DebugFilesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.UNKNOWN,
     }
     permission_classes = (ProjectReleasePermission,)
 
