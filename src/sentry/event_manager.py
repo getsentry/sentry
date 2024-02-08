@@ -1669,18 +1669,6 @@ def _save_aggregate_new(
             if existing_grouphash is None:
                 group = _create_group(project, event, **group_processing_kwargs)
 
-                if (
-                    features.has("projects:first-event-severity-calculation", event.project)
-                    and group.data.get("metadata", {}).get("severity") is None
-                ):
-                    logger.error(
-                        "Group created without severity score",
-                        extra={
-                            "event_id": event.data["event_id"],
-                            "group_id": group.id,
-                        },
-                    )
-
                 add_group_id_to_grouphashes(group, grouphashes)
 
                 is_new = True
