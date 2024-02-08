@@ -32,7 +32,7 @@ from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
@@ -65,12 +65,13 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked.",
+        operation_id="List Clicked Nodes",
         parameters=[
             CursorQueryParam,
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
             GlobalParams.ENVIRONMENT,
+            ReplayParams.REPLAY_ID,
             VisibilityParams.PER_PAGE,
             VisibilityParams.QUERY,
         ],
