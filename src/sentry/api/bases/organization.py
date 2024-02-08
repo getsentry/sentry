@@ -201,6 +201,15 @@ class OrgAuthTokenPermission(OrganizationPermission):
     }
 
 
+class OrganizationMetricsPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
+        "DELETE": ["org:admin"],
+    }
+
+
 class ControlSiloOrganizationEndpoint(Endpoint):
     """
     A base class for endpoints that use an organization scoping but lives in the control silo
