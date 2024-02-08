@@ -154,12 +154,6 @@ export class TraceTree {
     return tree.build();
   }
 
-  /**
-   * WARNING: Mutates the spans array
-   * @param parent
-   * @param spans
-   * @returns
-   */
   static FromSpans(
     parent: TraceTreeNode<TraceTree.NodeValue>,
     spans: RawSpanType[]
@@ -186,8 +180,6 @@ export class TraceTree {
       }
       continue;
     }
-
-    spans.sort((a, b) => a.start_timestamp - b.start_timestamp);
 
     for (const span of spans) {
       const node = new TraceTreeNode(null, span, {
@@ -235,65 +227,64 @@ export class TraceTree {
   ): void {
     const queue = [root];
 
-    let startNode: TraceTreeNode<TraceTree.Span> | null = null;
-    let lastMatch: TraceTreeNode<TraceTree.Span> | null = null;
-    let chainLength = 1;
-
     while (queue.length > 0) {
       const node = queue.pop()!;
 
-      if (node.children.length !== 1) {
-        if (lastMatch && startNode && startNode.parent) {
-          const autoGroupedNode = new ParentAutogroupNode(
-            startNode.parent,
-            {
-              ...startNode.value,
-              autogrouped_by: {
-                op: startNode.value.op ?? '',
-              },
-            },
-            {
-              event_id: undefined,
-              project_slug: undefined,
-            },
-            startNode,
-            lastMatch
-          );
-
-          autoGroupedNode.groupCount = chainLength;
-          // @ts-expect-error ignore readonly assignment
-          autoGroupedNode._children = [startNode];
-          for (const c of lastMatch.children) {
-            c.parent = autoGroupedNode;
-          }
-          startNode.parent.children.splice(0, 1, autoGroupedNode);
-        }
-
-        startNode = null;
-        lastMatch = null;
-        chainLength = 1;
-
-        // If there is no match, we still want to check the children
-        // of the node for possible chaining
+      if (node.children.length > 1 || !node.value) {
         for (const child of node.children) {
           queue.push(child);
         }
         continue;
       }
 
-      const parent = node as TraceTreeNode<TraceTree.Span>;
-      const child = node.children[0] as TraceTreeNode<TraceTree.Span>;
+      const head = node;
+      let tail = node;
+      let groupMatchCount = 0;
 
-      if (child.children.length <= 1 && parent.value.op === child.value.op) {
-        chainLength++;
-        if (!startNode) {
-          startNode = parent;
-        }
-        const grandChild = child.children[0] as TraceTreeNode<TraceTree.Span>;
-        lastMatch = grandChild?.value.op === child.value.op ? grandChild : child;
+      while (
+        tail &&
+        tail.children.length === 1 &&
+        // @ts-ignore this is a span node
+        tail.children[0].value?.op === head.value?.op
+      ) {
+        groupMatchCount++;
+        tail = tail.children[0];
       }
 
-      queue.push(child);
+      if (groupMatchCount < 1) {
+        for (const child of head.children) {
+          queue.push(child);
+        }
+        continue;
+      }
+
+      const autoGroupedNode = new ParentAutogroupNode(
+        node.parent,
+        {
+          ...head.value,
+          autogrouped_by: {
+            op: head.value && 'op' in head.value ? head.value.op ?? '' : '',
+          },
+        },
+        {
+          event_id: undefined,
+          project_slug: undefined,
+        },
+        head as TraceTreeNode<TraceTree.Span>,
+        tail as TraceTreeNode<TraceTree.Span>
+      );
+
+      if (!node.parent) {
+        throw new Error('Parent node is missing, this should be unreachable code');
+      }
+
+      // Match count is 1 indexed
+      autoGroupedNode.groupCount = groupMatchCount + 1;
+      // Tail points to autogrouped node
+      tail.parent = autoGroupedNode;
+
+      const index = node.parent.children.indexOf(node);
+      node.parent.children[index] = autoGroupedNode;
     }
   }
 
@@ -383,23 +374,15 @@ export class TraceTree {
     }
 
     if (node instanceof ParentAutogroupNode) {
-      // if the node is expanded we take the head child count
-      //
+      // In parent autogrouping, we perform a node swap and either point the
+      // head or tails of the autogrouped sequence to the autogrouped node
       if (node.expanded) {
-        // rendering the head->tail children
         const index = this._list.indexOf(node);
-        this._list.splice(index + 1, node.getVisibleChildrenCount());
 
-        const autogroupedChildren = node.getVisibleChildren();
-        const newChildren = node.tail.getVisibleChildren();
+        const autogroupedChildren = node.getAndInvalidateVisibleChildren();
+        this._list.splice(index + 1, autogroupedChildren.length);
 
-        for (const c of newChildren) {
-          c.invalidate();
-        }
-
-        for (const c of autogroupedChildren) {
-          c.invalidate();
-        }
+        const newChildren = node.tail.getAndInvalidateVisibleChildren();
 
         for (const c of node.tail.children) {
           c.parent = node;
@@ -409,25 +392,17 @@ export class TraceTree {
       } else {
         node.head.parent = node;
         const index = this._list.indexOf(node);
-        const childrenCount = node.getVisibleChildrenCount();
+        const childrenCount = node.getAndInvalidateVisibleChildrenCount();
 
         this._list.splice(index + 1, childrenCount);
 
-        const autogroupedChildren = node.getVisibleChildren();
+        node.getAndInvalidateVisibleChildrenCount();
         const newChildren = [node.head].concat(
-          node.head.getVisibleChildren() as TraceTreeNode<TraceTree.Span>[]
+          node.head.getAndInvalidateVisibleChildren() as TraceTreeNode<TraceTree.Span>[]
         );
 
         for (const c of node.children) {
           c.parent = node.tail;
-        }
-
-        for (const c of newChildren) {
-          c.invalidate();
-        }
-
-        for (const c of autogroupedChildren) {
-          c.invalidate();
         }
 
         this._list.splice(index + 1, 0, ...newChildren);
@@ -496,8 +471,11 @@ export class TraceTree {
         this._list.splice(index + 1, childrenCount);
       }
 
-      // Create a new tree and update the list
-      const root = TraceTree.FromSpans(node, (spans?.data ?? []) as RawSpanType[]);
+      // Api response is not sorted
+      if (spans.data) {
+        spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
+      }
+      const root = TraceTree.FromSpans(node, spans.data);
       node.setSpanChildren(root.spanChildren);
       node.zoomedIn = zoomedIn;
       root.parent = node.parent;
@@ -648,9 +626,21 @@ export class TraceTreeNode<T> {
     return this.parent?.children[this.parent.children.length - 1] === this;
   }
 
-  invalidate() {
+  invalidate(root?: TraceTreeNode<TraceTree.NodeValue>) {
     this._connectors = undefined;
     this._depth = undefined;
+
+    if (root) {
+      const queue = [...this.children];
+
+      while (queue.length > 0) {
+        const next = queue.pop()!;
+        next.invalidate();
+        for (let i = 0; i < next.children.length; i++) {
+          queue.push(next.children[i]);
+        }
+      }
+    }
   }
 
   setSpanChildren(children: TraceTreeNode<TraceTree.Span>[]) {
@@ -677,6 +667,55 @@ export class TraceTreeNode<T> {
     }
 
     return count;
+  }
+
+  getAndInvalidateVisibleChildrenCount(): number {
+    if (!this.children.length) {
+      return 0;
+    }
+
+    let count = 0;
+    const queue = [...this.children];
+
+    while (queue.length > 0) {
+      count++;
+      const next = queue.pop()!;
+      next.invalidate();
+
+      if (next.expanded || isAutogroupedNode(next)) {
+        for (let i = 0; i < next.children.length; i++) {
+          queue.push(next.children[i]);
+        }
+      }
+    }
+
+    return count;
+  }
+
+  getAndInvalidateVisibleChildren(): TraceTreeNode<TraceTree.NodeValue>[] {
+    if (!this.children.length) {
+      return [];
+    }
+
+    const visibleChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    // @TODO: should be a proper FIFO queue as shift is O(n)
+
+    function visit(node) {
+      visibleChildren.push(node);
+      node.invalidate();
+
+      if (node.expanded || isAutogroupedNode(node)) {
+        for (let i = 0; i < node.children.length; i++) {
+          visit(node.children[i]);
+        }
+      }
+    }
+
+    for (const child of this.children) {
+      visit(child);
+    }
+
+    return visibleChildren;
   }
 
   getVisibleChildren(): TraceTreeNode<TraceTree.NodeValue>[] {

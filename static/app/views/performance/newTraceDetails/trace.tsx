@@ -85,7 +85,7 @@ export function Trace(props: TraceProps) {
             rowHeight={24}
             height={height}
             width={width}
-            overscanRowCount={20}
+            overscanRowCount={10}
             rowCount={treeRef.current.list.length ?? 0}
             rowRenderer={p => (
               <RenderRow
