@@ -3134,15 +3134,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
     def setUp(self) -> None:
         super().setUp()
-
-    def do_request(self, query: Any) -> Any:
-        self.login_as(user=self.user)
-        url = reverse(
-            self.viewname,
-            kwargs={"organization_slug": self.organization.slug},
-        )
-        with self.feature({"organizations:on-demand-metrics-extraction-widgets": True}):
-            return self.client.get(url, query, format="json")
+        self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
     def _on_demand_query_check(
         self,

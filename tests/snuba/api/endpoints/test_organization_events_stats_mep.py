@@ -43,13 +43,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         self.additional_params = dict()
 
-    def do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
-
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     def test_throughput_epm_hour_rollup(self):
         # Each of these denotes how many events to create in each hour
@@ -977,13 +970,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             kwargs={"organization_slug": self.project.organization.slug},
         )
         self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
-
-    def do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
 
     def test_top_events_wrong_on_demand_type(self):
         query = "transaction.duration:>=100"
