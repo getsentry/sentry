@@ -19,6 +19,6 @@ export function getQueryWithFocusedSeries(widget: MetricWidgetQueryParams) {
     .join(` ${BooleanOperator.OR} `);
 
   return focusedSeriesQuery
-    ? `${widget.query} ${BooleanOperator.AND} (${focusedSeriesQuery})`
+    ? `${widget.query} (${focusedSeriesQuery})`.trim()
     : widget.query;
 }
