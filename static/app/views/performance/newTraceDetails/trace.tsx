@@ -121,7 +121,7 @@ function RenderRow(props: {
   if ('autogrouped_by' in props.node.value) {
     return (
       <div
-        className="TraceRow"
+        className="TraceRow Autogrouped"
         // @TODO check if we can just mutate style
         style={{
           top: props.style.top,
@@ -347,7 +347,25 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
     align-items: center;
     position: absolute;
-    font-size: ${p => p.theme.fontSizeSmall}
+    width: 100%;
+    font-size: ${p => p.theme.fontSizeSmall};
+
+    &:hover {
+      background-color: ${p => p.theme.backgroundSecondary};
+    }
+
+    &.Autogrouped {
+      color: ${p => p.theme.blue300};
+      .TraceDescription {
+        font-weight: bold;
+      }
+      .TraceChildrenCountWrapper {
+        button {
+          color: ${p => p.theme.white};
+          background-color: ${p => p.theme.blue300};
+        }
+      }
+    }
   }
 
   .TraceChildrenCount {
@@ -370,6 +388,7 @@ const TraceStylingWrapper = styled('div')`
 
     svg {
       width: 7px;
+      transition: none;
     }
   }
 
