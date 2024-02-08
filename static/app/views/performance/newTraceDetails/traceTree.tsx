@@ -383,10 +383,10 @@ export class TraceTree {
       if (node.expanded) {
         const index = this._list.indexOf(node);
 
-        const autogroupedChildren = node.getAndInvalidateVisibleChildren();
+        const autogroupedChildren = node.getVisibleChildren();
         this._list.splice(index + 1, autogroupedChildren.length);
 
-        const newChildren = node.tail.getAndInvalidateVisibleChildren();
+        const newChildren = node.tail.getVisibleChildren();
 
         for (const c of node.tail.children) {
           c.parent = node;
@@ -396,13 +396,13 @@ export class TraceTree {
       } else {
         node.head.parent = node;
         const index = this._list.indexOf(node);
-        const childrenCount = node.getAndInvalidateVisibleChildrenCount();
+        const childrenCount = node.getVisibleChildrenCount();
 
         this._list.splice(index + 1, childrenCount);
 
-        node.getAndInvalidateVisibleChildrenCount();
+        node.getVisibleChildrenCount();
         const newChildren = [node.head].concat(
-          node.head.getAndInvalidateVisibleChildren() as TraceTreeNode<TraceTree.Span>[]
+          node.head.getVisibleChildren() as TraceTreeNode<TraceTree.Span>[]
         );
 
         for (const c of node.children) {
@@ -412,6 +412,7 @@ export class TraceTree {
         this._list.splice(index + 1, 0, ...newChildren);
       }
 
+      node.invalidate(node);
       node.expanded = expanded;
       return true;
     }
@@ -671,55 +672,6 @@ export class TraceTreeNode<T> {
     }
 
     return count;
-  }
-
-  getAndInvalidateVisibleChildrenCount(): number {
-    if (!this.children.length) {
-      return 0;
-    }
-
-    let count = 0;
-    const queue = [...this.children];
-
-    while (queue.length > 0) {
-      count++;
-      const next = queue.pop()!;
-      next.invalidate();
-
-      if (next.expanded || isAutogroupedNode(next)) {
-        for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]);
-        }
-      }
-    }
-
-    return count;
-  }
-
-  getAndInvalidateVisibleChildren(): TraceTreeNode<TraceTree.NodeValue>[] {
-    if (!this.children.length) {
-      return [];
-    }
-
-    const visibleChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
-    // @TODO: should be a proper FIFO queue as shift is O(n)
-
-    function visit(node) {
-      visibleChildren.push(node);
-      node.invalidate();
-
-      if (node.expanded || isAutogroupedNode(node)) {
-        for (let i = 0; i < node.children.length; i++) {
-          visit(node.children[i]);
-        }
-      }
-    }
-
-    for (const child of this.children) {
-      visit(child);
-    }
-
-    return visibleChildren;
   }
 
   getVisibleChildren(): TraceTreeNode<TraceTree.NodeValue>[] {
