@@ -1,6 +1,8 @@
 import {useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {replayPlatforms} from 'sentry/data/platformCategories';
 import type {Organization, PlatformIntegration, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -13,9 +15,13 @@ function useLoadOnboardingDoc({
   platform: PlatformIntegration;
   projectSlug: string;
 }) {
-  const [module, setModule] = useState<null | {
-    default: Docs<any>;
-  }>(null);
+  const [module, setModule] = useState<
+    | null
+    | {
+        default: Docs<any>;
+      }
+    | 'none'
+  >(null);
 
   const platformPath =
     platform?.type === 'framework'
@@ -34,17 +40,31 @@ function useLoadOnboardingDoc({
 
   useEffect(() => {
     async function getGettingStartedDoc() {
-      const mod = await import(
-        /* webpackExclude: /.spec/ */
-        `sentry/gettingStartedDocs/${platformPath}`
-      );
-      setModule(mod);
+      if (!replayPlatforms.includes(platform.id)) {
+        setModule('none');
+        return;
+      }
+      try {
+        const mod = await import(
+          /* webpackExclude: /.spec/ */
+          `sentry/gettingStartedDocs/${platformPath}`
+        );
+        setModule(mod);
+      } catch (err) {
+        Sentry.captureException(err);
+      }
     }
     getGettingStartedDoc();
     return () => {
       setModule(null);
     };
-  }, [platformPath]);
+  }, [platformPath, platform.id]);
+
+  if (module === 'none') {
+    return {
+      docs: null,
+    };
+  }
 
   if (!module || projectKeysIsLoading) {
     return {
