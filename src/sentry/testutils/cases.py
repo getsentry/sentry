@@ -2013,11 +2013,11 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def setUp(self):
         super().setUp()
+        self.login_as(user=self.user)
         self._index_metric_strings()
 
     def do_request(self, data: dict[str, Any]) -> Response:
         """Set up self.features and self.url in the inheriting classes."""
-        self.login_as(user=self.user)
         with self.feature(self.features):
             return self.client.get(self.url, data=data, format="json")
 
