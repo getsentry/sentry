@@ -131,14 +131,12 @@ function RenderRow(props: {
       >
         <div className="TraceChildrenCountWrapper">
           <Connectors node={props.node} />
-          {props.node.children.length > 0 ? (
-            <ChildrenCountButton
-              expanded={props.node.expanded || props.node.zoomedIn}
-              onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
-            >
-              {props.node.groupCount}{' '}
-            </ChildrenCountButton>
-          ) : null}
+          <ChildrenCountButton
+            expanded={!props.node.expanded}
+            onClick={() => props.onExpandNode(props.node, !props.node.expanded)}
+          >
+            {props.node.groupCount}{' '}
+          </ChildrenCountButton>
         </div>
 
         <span className="TraceOperation">{t('Autogrouped')}</span>
@@ -294,8 +292,22 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
     ((props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0) ||
     (props.node.value && 'autogrouped_by' in props.node.value);
 
+  // If the tail node of the collapsed node has no children,
+  // we don't want to render the vertical connector as no children
+  // are being rendered as the chain is entirely collapsed
+  const hideVerticalConnector =
+    showVerticalConnector &&
+    props.node.value &&
+    'autogrouped_by' in props.node.value &&
+    'tail' in props.node &&
+    !props.node.tail.children.length;
+
   return (
     <Fragment>
+      {/*
+        @TODO count of rendered connectors could be % 3 as we can
+        have up to 3 connectors per node, 1 div, 1 before and 1 after
+      */}
       {props.node.connectors.map((c, i) => {
         return (
           <div
@@ -305,7 +317,9 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
           />
         );
       })}
-      {showVerticalConnector ? <div className="TraceExpandedVerticalConnector" /> : null}
+      {showVerticalConnector && !hideVerticalConnector ? (
+        <div className="TraceExpandedVerticalConnector" />
+      ) : null}
       {props.node.isLastChild ? (
         <div className="TraceVerticalLastChildConnector" />
       ) : (
@@ -399,6 +413,10 @@ const TraceStylingWrapper = styled('div')`
     min-width: 46px;
     height: 100%;
     position: relative;
+
+    button {
+      transition: none;
+    }
 
     &.Orphaned {
       .TraceVerticalConnector,
