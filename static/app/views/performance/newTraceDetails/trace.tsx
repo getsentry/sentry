@@ -16,7 +16,13 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {isTransactionNode, TraceTree, type TraceTreeNode} from './traceTree';
+import {
+  isAutogroupedNode,
+  isTransactionNode,
+  ParentAutoGroupNode,
+  TraceTree,
+  type TraceTreeNode,
+} from './traceTree';
 
 interface TraceProps {
   trace: TraceSplitResults<TraceFullDetailed> | null;
@@ -118,7 +124,7 @@ function RenderRow(props: {
     return null;
   }
 
-  if ('autogrouped_by' in props.node.value) {
+  if (isAutogroupedNode(props.node)) {
     return (
       <div
         className="TraceRow Autogrouped"
@@ -298,8 +304,7 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const hideVerticalConnector =
     showVerticalConnector &&
     props.node.value &&
-    'autogrouped_by' in props.node.value &&
-    'tail' in props.node &&
+    props.node instanceof ParentAutoGroupNode &&
     !props.node.tail.children.length;
 
   return (
@@ -312,8 +317,8 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
         return (
           <div
             key={i}
-            style={{left: (Math.abs(c) - props.node.depth) * 23}}
-            className={`TraceVerticalConnector ${c - 1 < 0 ? 'Orphaned' : ''}`}
+            style={{left: -(Math.abs(Math.abs(c) - props.node.depth) * 23)}}
+            className={`TraceVerticalConnector ${c < 0 ? 'Orphaned' : ''}`}
           />
         );
       })}
