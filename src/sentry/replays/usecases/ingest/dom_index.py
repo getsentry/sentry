@@ -173,6 +173,8 @@ def get_user_actions(
 
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "breadcrumb":
             payload = event["data"].get("payload", {})
+            if not isinstance(payload.get("data", {}), dict):  # Add this line
+                continue  # Add this line
             category = payload.get("category")
             if category == "ui.slowClickDetected":
                 is_timeout_reason = payload["data"].get("endReason") == "timeout"
