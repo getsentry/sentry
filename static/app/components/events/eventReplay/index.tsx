@@ -2,11 +2,14 @@ import {useCallback} from 'react';
 import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
+import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
 import LazyLoad from 'sentry/components/lazyLoad';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
 import {replayBackendPlatforms} from 'sentry/data/platformCategories';
+import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -84,6 +87,11 @@ function EventReplayContent({
         organization,
       },
     },
+    loadingFallback: (
+      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+        <LoadingIndicator />
+      </StyledNegativeSpaceContainer>
+    ),
   };
 
   return (
@@ -128,4 +136,9 @@ export default function EventReplay({event, group, projectSlug}: Props) {
 // The min-height here is due to max-height that is set in replayPreview.tsx
 const ReplaySectionMinHeight = styled(EventReplaySection)`
   min-height: 508px;
+`;
+
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: 400px;
+  margin-bottom: ${space(2)};
 `;

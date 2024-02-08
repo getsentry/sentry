@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const NegativeSpaceContainer = styled('div')`
+const NegativeSpaceContainer = styled('div')<{testId?: string}>`
   width: 100%;
   display: flex;
   flex-grow: 1;
