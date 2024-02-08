@@ -3,7 +3,7 @@ from urllib.parse import parse_qs
 
 import responses
 
-from sentry.integrations.slack.notifications import send_notification_as_slack
+from sentry.integrations.slack.notifications import _get_attachments, send_notification_as_slack
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import DummyNotification
@@ -58,3 +58,26 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
         assert len(attachments) == 1
 
         assert attachments[0]["title"] == "My Title"
+
+    @responses.activate
+    @mock.patch("sentry.integrations.slack.notifications._get_attachments")
+    def test_attachment_with_block_kit_flag(self, mock_attachment):
+        """
+        Tests that notifications built with the legacy system can still send successfully with
+        the block kit flag enabled.
+        """
+        mock_attachment.return_value = _get_attachments(self.notification, self.user, {}, {})
+
+        with self.feature("organizations:slack-block-kit"):
+            with self.tasks():
+                send_notification_as_slack(self.notification, [self.user], {}, {})
+
+            data = parse_qs(responses.calls[0].request.body)
+
+            assert "attachments" in data
+            assert data["text"][0] == "Notification Title"
+
+            attachments = json.loads(data["attachments"][0])
+            assert len(attachments) == 1
+
+            assert attachments[0]["title"] == "My Title"
