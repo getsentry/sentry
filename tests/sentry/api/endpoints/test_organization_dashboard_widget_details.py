@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.urls import reverse
 
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
@@ -658,6 +660,52 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "name": "",
                     "conditions": "release.stage:adopted",
                     "fields": [],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+
+    def test_dashboard_widget_ondemand_one_field(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "fields": ["sometag"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        # We cache so we shouldn't call query cardinality again
+        with mock.patch("sentry.tasks.on_demand_metrics._query_cardinality") as mock_query:
+            self.client.post(f"{self.url()}?environment=mock_env", data)
+            assert len(mock_query.mock_calls) == 0
+
+    def test_dashboard_widget_ondemand_multiple_fields(self):
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "fields": ["sometag", "someothertag"],
                     "columns": [],
                     "aggregates": ["count()"],
                 }

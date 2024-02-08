@@ -23,6 +23,7 @@ from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.tasks.on_demand_metrics import check_field_cardinality
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
 
@@ -287,10 +288,18 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
     def validate(self, data):
         query_errors = []
+        self.query_warnings = []
         has_query_error = False
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
+                if query.get("fields"):
+                    field_cardinality = check_field_cardinality(
+                        query.get("fields"), self.context["organization"]
+                    )
+                    for field, low_cardinality in field_cardinality.items():
+                        if not low_cardinality:
+                            self.query_warnings.append({field: "disabled:cardinality-limit"})
                 if (
                     data.get("widget_type") == DashboardWidgetTypes.ISSUE
                     and "issue_query_error" in query
