@@ -88,7 +88,13 @@ export function useMetricWidgets() {
           groupBy: decodeList(widget.groupBy),
           displayType:
             widget.displayType ?? getDefaultMetricDisplayType(widget.mri, widget.op),
-          focusedSeries: widget.focusedSeries,
+          focusedSeries:
+            widget.focusedSeries &&
+            // Switch existing focused series to array (it was once a string)
+            // TODO: remove this after some time (added 08.02.2024)
+            (Array.isArray(widget.focusedSeries)
+              ? widget.focusedSeries
+              : [widget.focusedSeries]),
           showSummaryTable: widget.showSummaryTable ?? true, // temporary default
           powerUserMode: widget.powerUserMode,
           sort: widget.sort ?? DEFAULT_SORT_STATE,
