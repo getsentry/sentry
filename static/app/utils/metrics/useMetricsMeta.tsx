@@ -8,6 +8,7 @@ import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
 
 import {getMetaDateTimeParams} from './index';
 
+const EMPTY_ARRAY: MetricMeta[] = [];
 const DEFAULT_USE_CASES = ['sessions', 'transactions', 'custom', 'spans'];
 
 export function getMetricsMetaQueryKeys(
@@ -91,9 +92,11 @@ export function useMetricsMeta(
   }
 
   return {
-    data: data.filter(meta => {
-      return meta.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
-    }),
+    data: isLoading
+      ? EMPTY_ARRAY
+      : data.filter(meta => {
+          return meta.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
+        }),
     isLoading,
   };
 }
