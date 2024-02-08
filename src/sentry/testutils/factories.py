@@ -1570,8 +1570,8 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_slack_integration(
         organization: Organization,
+        user: User | RpcUser | None = None,
         external_id: str = "TXXXXXXX1",
-        user: User | None = None,
     ) -> Integration:
         integration_params = {
             "provider": "slack",
@@ -1582,19 +1582,12 @@ class Factories:
                 "installation_type": "born_as_bot",
             },
         }
-        if user:
-            integration, _, _, _ = Factories.create_identity_integration(
-                user=user,
-                organization=organization,
-                integration_params=integration_params,
-                identity_params={"external_id": "UXXXXXXX1"},
-            )
-        else:
-            integration, _ = Factories.create_provider_integration_for(
-                user=user,
-                organization=organization,
-                **integration_params,
-            )
+        integration, _, _, _ = Factories.create_identity_integration(
+            user=user,
+            organization=organization,
+            integration_params=integration_params,
+            identity_params={"external_id": "UXXXXXXX1"},
+        )
         return integration
 
     @staticmethod

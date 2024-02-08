@@ -460,22 +460,18 @@ class Fixtures:
     def create_slack_integration(
         self,
         organization: Organization,
-        external_id: str = "TXXXXXXX1",
         user: RpcUser | None = None,
-        identity_external_id: str = "UXXXXXXX1",
-        **kwargs: Any,
+        external_id: str = "TXXXXXXX1",
     ):
         if user is None:
             with assume_test_silo_mode(SiloMode.REGION):
                 user = organization.get_default_owner()
 
-        integration = Factories.create_slack_integration(
-            organization=organization, external_id=external_id, **kwargs
+        return Factories.create_slack_integration(
+            organization=organization,
+            user=user,
+            external_id=external_id,
         )
-        idp = Factories.create_identity_provider(integration=integration)
-        Factories.create_identity(user, idp, identity_external_id)
-
-        return integration
 
     def create_integration(
         self,
