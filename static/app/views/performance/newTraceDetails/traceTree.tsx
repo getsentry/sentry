@@ -41,13 +41,17 @@ import type {
  *   to calculate this when rendering the tree, as we can only calculate it only for the visible nodes and avoid an extra tree pass
  */
 
-// Last connector is rendered wrongly
-
 export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
   type Span = RawSpanType;
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
+
+  interface MissingInstrumentationSpan {
+    start_timestamp: number;
+    timestamp: number;
+    type: 'missing_instrumentation';
+  }
   interface SiblingAutoGroup extends RawSpanType {
     autogrouped_by: {
       description: string;
@@ -66,6 +70,7 @@ export declare namespace TraceTree {
     | Transaction
     | TraceError
     | Span
+    | MissingInstrumentationSpan
     | SiblingAutoGroup
     | ChildrenAutoGroup
     | null;
@@ -87,6 +92,22 @@ function fetchTransactionSpans(
   );
 }
 
+export function isMissingInstrumentationNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {
+  return !!(
+    node.value &&
+    'type' in node.value &&
+    node.value.type === 'missing_instrumentation'
+  );
+}
+
+export function isSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.Span> {
+  return !!(node.value && 'description' in node.value);
+}
+
 export function isTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.Transaction> {
@@ -99,6 +120,35 @@ export function isAutogroupedNode(
   return node instanceof ParentAutoGroupNode;
 }
 
+function maybeInsertMissingInstrumentationSpan(
+  parent: TraceTreeNode<TraceTree.NodeValue>,
+  node: TraceTreeNode<TraceTree.Span>
+) {
+  const lastInsertedSpan = parent.spanChildren[parent.spanChildren.length - 1];
+  if (!lastInsertedSpan) {
+    return;
+  }
+
+  if (node.value.start_timestamp - lastInsertedSpan.value.timestamp < 100) {
+    return;
+  }
+
+  const missingInstrumentationSpan =
+    new TraceTreeNode<TraceTree.MissingInstrumentationSpan>(
+      parent,
+      {
+        type: 'missing_instrumentation',
+        start_timestamp: lastInsertedSpan.value.timestamp,
+        timestamp: node.value.start_timestamp,
+      },
+      {
+        event_id: undefined,
+        project_slug: undefined,
+      }
+    );
+
+  parent.spanChildren.push(missingInstrumentationSpan);
+}
 export class TraceTree {
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   private _spanPromises: Map<TraceTreeNode<TraceTree.NodeValue>, Promise<Event>> =
@@ -159,7 +209,7 @@ export class TraceTree {
     parent: TraceTreeNode<TraceTree.NodeValue>,
     spans: RawSpanType[]
   ): TraceTreeNode<TraceTree.NodeValue> {
-    const parentIsSpan = !isTransactionNode(parent);
+    const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<TraceTree.Span>> = {};
 
     if (parent.spanChildren.length > 0) {
@@ -203,14 +253,17 @@ export class TraceTree {
 
       if (span.parent_span_id) {
         const parentNode = lookuptable[span.parent_span_id];
+
         if (parentNode) {
           node.parent = parentNode;
+          maybeInsertMissingInstrumentationSpan(parentNode, node);
           parentNode.spanChildren.push(node);
           continue;
         }
       }
 
       // Orphaned span
+      maybeInsertMissingInstrumentationSpan(parent, node);
       parent.spanChildren.push(node);
       node.parent = parent as TraceTreeNode<TraceTree.Span>;
     }
@@ -538,7 +591,9 @@ export class TraceTreeNode<T> {
 
   private _depth: number | undefined;
   private _children: TraceTreeNode<TraceTree.Transaction>[] = [];
-  private _spanChildren: TraceTreeNode<TraceTree.Span>[] = [];
+  private _spanChildren: TraceTreeNode<
+    TraceTree.Span | TraceTree.MissingInstrumentationSpan
+  >[] = [];
   private _connectors: number[] | undefined = undefined;
 
   constructor(
@@ -635,7 +690,9 @@ export class TraceTreeNode<T> {
     return this.zoomedIn ? this._spanChildren : this._children;
   }
 
-  get spanChildren(): TraceTreeNode<TraceTree.Span>[] {
+  get spanChildren(): TraceTreeNode<
+    TraceTree.Span | TraceTree.MissingInstrumentationSpan
+  >[] {
     return this._spanChildren;
   }
 
@@ -662,10 +719,6 @@ export class TraceTreeNode<T> {
         }
       }
     }
-  }
-
-  setSpanChildren(children: TraceTreeNode<TraceTree.Span>[]) {
-    this._spanChildren = children;
   }
 
   getVisibleChildrenCount(): number {

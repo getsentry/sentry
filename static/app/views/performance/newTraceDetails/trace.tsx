@@ -3,7 +3,6 @@ import {AutoSizer, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +15,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
+import {isMissingInstrumentationNode, isSpanNode} from './traceTree';
 import {
   isAutogroupedNode,
   isTransactionNode,
@@ -193,8 +193,7 @@ function RenderRow(props: {
     );
   }
 
-  if ('span_id' in props.node.value) {
-    const span = props.node.value as RawSpanType;
+  if (isSpanNode(props.node)) {
     return (
       <div
         className="TraceRow"
@@ -220,14 +219,35 @@ function RenderRow(props: {
             </ChildrenCountButton>
           ) : null}
         </div>
-        <span className="TraceOperation">{span.op ?? '<unknown>'}</span>
+        <span className="TraceOperation">{props.node.value.op ?? '<unknown>'}</span>
         <strong className="TraceEmDash"> — </strong>
-        <span className="TraceDescription">{span.description ?? '<unknown>'}</span>
+        <span className="TraceDescription">
+          {props.node.value.description ?? '<unknown>'}
+        </span>
         {props.node.canFetchData ? (
           <button onClick={() => props.onFetchChildren(props.node, !props.node.zoomedIn)}>
             {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
           </button>
         ) : null}
+      </div>
+    );
+  }
+
+  if (isMissingInstrumentationNode(props.node)) {
+    return (
+      <div
+        className="TraceRow"
+        // @TODO check if we can just mutate style
+        style={{
+          top: props.style.top,
+          height: props.style.height,
+          paddingLeft: props.node.depth * 23,
+        }}
+      >
+        <div className="TraceChildrenCountWrapper">
+          <Connectors node={props.node} />
+        </div>
+        <span className="TraceOperation">{t('Missing instrumentation')}</span>
       </div>
     );
   }

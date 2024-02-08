@@ -129,6 +129,35 @@ describe('TraceTree', () => {
     expect(node.children[0].children[1].value.start_timestamp).toBe(3);
   });
 
+  it('injects missing spans', () => {
+    const root = new TraceTreeNode(
+      null,
+      makeTransaction({
+        children: [],
+      }),
+      {project_slug: '', event_id: ''}
+    );
+
+    const date = new Date().getTime();
+
+    const node = TraceTree.FromSpans(root, [
+      makeRawSpan({start_timestamp: date, timestamp: date + 100, op: 'span 1'}),
+      makeRawSpan({
+        start_timestamp: date + 200,
+        timestamp: date + 400,
+        op: 'span 2',
+      }),
+    ]);
+
+    expect(node.children.length).toBe(3);
+    // @ts-expect-error ignore type guard
+    expect(node.children[0].value.op).toBe('span 1');
+    // @ts-expect-error ignore type guard
+    expect(node.children[1].value.type).toBe('missing_instrumentation');
+    // @ts-expect-error ignore type guard
+    expect(node.children[2].value.op).toBe('span 2');
+  });
+
   it('builds and preserves list order', async () => {
     const organization = OrganizationFixture();
     const api = new MockApiClient();
