@@ -1,4 +1,5 @@
 import uuid
+from contextlib import contextmanager
 from unittest import mock
 
 import pytest
@@ -66,9 +67,13 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
         yield inner
 
 
-@no_silo_test
-@override_settings(SENTRY_PROJECT=1)
-@django_db_all
+@contextmanager
+def sdk_test_context():
+    with override_settings(SENTRY_PROJECT=1), django_db_all, no_silo_test:
+        yield
+
+
+@sdk_test_context()
 def test_simple(settings, post_event_with_sdk):
     event = post_event_with_sdk({"message": "internal client test"})
 
@@ -77,9 +82,7 @@ def test_simple(settings, post_event_with_sdk):
     assert event.data["logentry"]["formatted"] == "internal client test"
 
 
-@no_silo_test
-@override_settings(SENTRY_PROJECT=1)
-@django_db_all
+@sdk_test_context()
 def test_recursion_breaker(settings, post_event_with_sdk):
     # If this test terminates at all then we avoided recursion.
     settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1.0
@@ -95,9 +98,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
     assert_mock_called_once_with_partial(save, settings.SENTRY_PROJECT, cache_key=f"e:{event_id}:1")
 
 
-@no_silo_test
-@django_db_all
-@override_settings(SENTRY_PROJECT=1)
+@sdk_test_context()
 def test_encoding(settings, post_event_with_sdk):
     class NotJSONSerializable:
         pass
@@ -111,9 +112,7 @@ def test_encoding(settings, post_event_with_sdk):
     assert "NotJSONSerializable" in event.data["extra"]["request"]
 
 
-@no_silo_test
-@override_settings(SENTRY_PROJECT=1)
-@django_db_all
+@sdk_test_context()
 def test_bind_organization_context(default_organization):
     configure_sdk()
 
@@ -127,9 +126,7 @@ def test_bind_organization_context(default_organization):
     }
 
 
-@no_silo_test
-@override_settings(SENTRY_PROJECT=1)
-@django_db_all
+@sdk_test_context()
 def test_bind_organization_context_with_callback(settings, default_organization):
     create_default_projects()
     configure_sdk()
@@ -143,9 +140,7 @@ def test_bind_organization_context_with_callback(settings, default_organization)
     assert Hub.current.scope._tags["organization.test"] == "1"
 
 
-@no_silo_test
-@override_settings(SENTRY_PROJECT=1)
-@django_db_all
+@sdk_test_context()
 def test_bind_organization_context_with_callback_error(settings, default_organization):
     configure_sdk()
 
