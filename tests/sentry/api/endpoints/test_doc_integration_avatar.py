@@ -19,6 +19,7 @@ class DocIntegrationAvatarTest(APITestCase):
     def setUp(self):
         self.user = self.create_user(email="peter@marvel.com", is_superuser=True)
         self.superuser = self.create_user(email="gwen@marvel.com", is_superuser=True)
+        self.staff_user = self.create_user(is_staff=True)
         self.draft_doc = self.create_doc_integration(
             name="spiderman", is_draft=True, has_avatar=True
         )
@@ -35,7 +36,7 @@ class DocIntegrationAvatarTest(APITestCase):
 class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
     method = "GET"
 
-    def test_view_avatar_for_user(self):
+    def test_user_view_avatar(self):
         """
         Tests that regular users can see only published doc integration avatars
         """
@@ -49,11 +50,22 @@ class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
             self.draft_doc.slug, status_code=status.HTTP_403_FORBIDDEN
         )
 
-    def test_view_avatar_for_superuser(self):
+    # TODO(schew2381): Change test to check that superusers can only see published doc integration avatars
+    def test_superuser_view_avatar(self):
         """
         Tests that superusers can see all doc integration avatars
         """
         self.login_as(user=self.superuser, superuser=True)
+        for doc in [self.published_doc, self.draft_doc]:
+            response = self.get_success_response(doc.slug, status_code=status.HTTP_200_OK)
+            assert serialize(doc) == response.data
+            assert serialize(doc.avatar.get()) == response.data["avatar"]
+
+    def test_staff_view_avatar(self):
+        """
+        Tests that staff can see all doc integration avatars
+        """
+        self.login_as(user=self.staff_user, staff=True)
         for doc in [self.published_doc, self.draft_doc]:
             response = self.get_success_response(doc.slug, status_code=status.HTTP_200_OK)
             assert serialize(doc) == response.data
@@ -64,7 +76,7 @@ class GetDocIntegrationAvatarTest(DocIntegrationAvatarTest):
 class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
     method = "PUT"
 
-    def test_upload_avatar_for_user(self):
+    def test_user_upload_avatar(self):
         """
         Tests that regular users cannot upload doc integration avatars
         """
@@ -72,7 +84,8 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
         self.get_error_response(self.published_doc.slug, status_code=status.HTTP_403_FORBIDDEN)
         self.get_error_response(self.draft_doc.slug, status_code=status.HTTP_403_FORBIDDEN)
 
-    def test_upload_avatar_for_superuser(self):
+    # TODO(schew2381): Change test to check that superusers cannot upload doc integration avatars
+    def test_superuser_upload_avatar(self):
         """
         Tests that superusers can upload avatars
         """
@@ -97,11 +110,36 @@ class PutDocIntegrationAvatarTest(DocIntegrationAvatarTest):
                     assert serialize(prev_avatar) != response.data["avatar"]
                     assert prev_avatar.control_file_id != doc.avatar.get().control_file_id
 
+    def test_staff_upload_avatar(self):
+        """
+        Tests that superusers can upload avatars
+        """
+        with self.options(
+            {
+                "filestore.control.backend": options_store.get("filestore.backend"),
+                "filestore.control.options": options_store.get("filestore.options"),
+            }
+        ):
+            self.login_as(user=self.staff_user, staff=True)
+
+            with assume_test_silo_mode(SiloMode.CONTROL), override_settings(
+                SILO_MODE=SiloMode.CONTROL
+            ):
+                for doc in [self.published_doc, self.draft_doc]:
+                    prev_avatar = doc.avatar.get()
+                    response = self.get_success_response(
+                        doc.slug, status_code=status.HTTP_200_OK, **self.avatar_payload
+                    )
+                    assert serialize(doc) == response.data
+                    assert serialize(doc.avatar.get()) == response.data["avatar"]
+                    assert serialize(prev_avatar) != response.data["avatar"]
+                    assert prev_avatar.control_file_id != doc.avatar.get().control_file_id
+
     def test_upload_avatar_payload_structure(self):
         """
         Tests that errors are thrown on malformed upload payloads
         """
-        self.login_as(user=self.superuser, superuser=True)
+        self.login_as(user=self.staff_user, staff=True)
         # Structured as 'error-description' : (malformed-payload, erroring-fields)
         invalid_payloads: dict[str, tuple[dict[str, Any], list[str]]] = {
             "empty_payload": ({}, ["avatar_photo", "avatar_type"]),
