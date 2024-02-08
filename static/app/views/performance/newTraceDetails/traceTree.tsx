@@ -582,6 +582,18 @@ export class TraceTreeNode<T> {
     }
 
     this._connectors = [];
+
+    if (this.parent?.connectors !== undefined) {
+      this._connectors = [...this.parent.connectors];
+
+      if (this.isLastChild || this.value === null) {
+        return this._connectors;
+      }
+
+      this.connectors.push(this.isOrphaned ? -this.depth : this.depth);
+      return this._connectors;
+    }
+
     let node: TraceTreeNode<T> | TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
 
     while (node) {
@@ -621,8 +633,7 @@ export class TraceTreeNode<T> {
   }
 
   get isOrphaned() {
-    // We should check that parent is trace root
-    return this.parent?.value && !!this.parent.value.orphan_errors;
+    return this.parent?.value && 'orphan_errors' in this.parent.value;
   }
 
   get isLastChild() {

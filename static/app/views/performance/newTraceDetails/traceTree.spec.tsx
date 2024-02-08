@@ -301,7 +301,7 @@ describe('TraceTree', () => {
       // ------ list begins here
       //    0 transaction
       //      0 |- sibling
-      //      -1|  | - child
+      //   -1, 2|  | - child
       //      -1|  | - child
       //      0 |- sibling
 
@@ -310,8 +310,12 @@ describe('TraceTree', () => {
 
       expect(tree.list[0].connectors.length).toBe(0);
 
+      expect(tree.list[1].connectors.length).toBe(1);
+      expect(tree.list[1].connectors[0]).toBe(-1);
+
       expect(tree.list[2].connectors[0]).toBe(-1);
-      expect(tree.list[2].connectors.length).toBe(1);
+      expect(tree.list[2].connectors[1]).toBe(2);
+      expect(tree.list[2].connectors.length).toBe(2);
 
       expect(tree.list[3].connectors[0]).toBe(-1);
       expect(tree.list[3].connectors.length).toBe(1);
