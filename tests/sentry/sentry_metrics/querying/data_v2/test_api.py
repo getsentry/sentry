@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import pytest
 from django.utils import timezone as django_timezone
 
+from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
+from sentry.sentry_metrics.querying.data_v2.api import MetricsQueriesPlan
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
@@ -68,3 +70,23 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         return int(dt.timestamp())
 
     # TODO: add tests once the code is implemented.
+
+    def test_query_with_one_aggregation(self) -> None:
+        query_1 = f"sum({TransactionMRI.DURATION.value})"
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [0.0, 12.0, 9.0]
+        assert data[0][0]["totals"] == 21.0

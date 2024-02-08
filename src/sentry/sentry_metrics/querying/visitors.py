@@ -2,7 +2,16 @@ from abc import ABC
 from collections.abc import Mapping, Sequence
 from typing import Generic, TypeVar
 
-from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Formula, Op, Timeseries
+from snuba_sdk import (
+    AliasedExpression,
+    BooleanCondition,
+    BooleanOp,
+    Column,
+    Condition,
+    Formula,
+    Op,
+    Timeseries,
+)
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
@@ -27,6 +36,10 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
             return self._visit_formula(query_expression)
         elif isinstance(query_expression, Timeseries):
             return self._visit_timeseries(query_expression)
+        elif isinstance(query_expression, float):
+            return self._visit_number(query_expression)
+        elif isinstance(query_expression, str):
+            return self._visit_string(query_expression)
 
         raise AssertionError(f"Unhandled query expression {query_expression}")
 
@@ -39,7 +52,13 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
         return formula.set_parameters(parameters)
 
     def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
-        raise NotImplementedError
+        raise timeseries
+
+    def _visit_number(self, number: float):
+        return number
+
+    def _visit_string(self, string: str):
+        return string
 
 
 class QueryConditionVisitor(ABC, Generic[TVisited]):
@@ -74,7 +93,7 @@ class QueryConditionVisitor(ABC, Generic[TVisited]):
         return BooleanCondition(op=boolean_condition.op, conditions=conditions)
 
     def _visit_condition(self, condition: Condition) -> TVisited:
-        raise NotImplementedError
+        raise condition
 
 
 class EnvironmentsInjectionVisitor(QueryExpressionVisitor[QueryExpression]):
@@ -91,6 +110,24 @@ class EnvironmentsInjectionVisitor(QueryExpressionVisitor[QueryExpression]):
             current_filters.extend(
                 [Condition(Column("environment"), Op.IN, self._environment_names)]
             )
+
+            return timeseries.set_filters(current_filters)
+
+        return timeseries
+
+
+class TimeseriesConditionInjectionVisitor(QueryExpressionVisitor[QueryExpression]):
+    """
+    Visitor that recursively injects a `ConditionGroup` into all `Timeseries`.
+    """
+
+    def __init__(self, condition_group: ConditionGroup):
+        self._condition_group = condition_group
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
+        if self._condition_group:
+            current_filters = timeseries.filters if timeseries.filters else []
+            current_filters.extend(self._condition_group)
 
             return timeseries.set_filters(current_filters)
 
@@ -236,7 +273,7 @@ class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
 
 class QueriedMetricsVisitor(QueryExpressionVisitor[set[str]]):
     """
-    Visitor that recursively computes all the metrics MRI that have been queried.
+    Visitor that recursively computes all the metrics MRI of the `QueryExpression`.
     """
 
     def _visit_formula(self, formula: Formula) -> set[str]:
@@ -252,3 +289,45 @@ class QueriedMetricsVisitor(QueryExpressionVisitor[set[str]]):
             raise InvalidMetricsQueryError("Can't determine queried metrics without a MRI")
 
         return {timeseries.metric.mri}
+
+    def _visit_number(self, number: float) -> set[str]:
+        return set()
+
+    def _visit_string(self, string: str) -> set[str]:
+        return set()
+
+
+class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
+    """
+    Visitor that recursively computes all the groups of the `QueryExpression`.
+    """
+
+    def _visit_formula(self, formula: Formula) -> set[str]:
+        group_bys: set[str] = set()
+
+        for parameter in formula.parameters:
+            group_bys.union(self.visit(parameter))
+
+        return group_bys.union(self._group_bys_as_string(formula.groupby))
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> set[str]:
+        return self._group_bys_as_string(timeseries.groupby)
+
+    def _visit_number(self, number: float) -> set[str]:
+        return set()
+
+    def _visit_string(self, string: str) -> set[str]:
+        return set()
+
+    def _group_bys_as_string(self, group_bys: list[Column | AliasedExpression] | None) -> set[str]:
+        if not group_bys:
+            return set()
+
+        string_group_bys = set()
+        for group_by in group_bys:
+            if isinstance(group_by, AliasedExpression):
+                string_group_bys.add(group_by.exp.name)
+            elif isinstance(group_by, Column):
+                string_group_bys.add(group_by.name)
+
+        return string_group_bys
