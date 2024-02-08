@@ -40,6 +40,7 @@ from django.utils.functional import cached_property
 from requests.utils import CaseInsensitiveDict, get_encoding_from_headers
 from rest_framework import status
 from rest_framework.request import Request
+from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from snuba_sdk import Granularity, Limit, Offset
@@ -119,7 +120,7 @@ from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseC
 from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
-from sentry.snuba.metrics.extraction import OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
@@ -2014,6 +2015,55 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         super().setUp()
         self._index_metric_strings()
 
+    def do_request(self, data: Any, url: str = None, features: dict[str, bool] = None) -> Response:
+        if features is None:
+            features = {"organizations:discover-basic": True}
+        features.update(self.features)
+        with self.feature(features):
+            return self.client.get(self.url if url is None else url, data=data, format="json")
+
+    def _on_demand_query_check(
+        self,
+        params: dict[str, Any],
+        groupbys: list[str] | None = None,
+        expected_on_demand_query: bool | None = True,
+        expected_dataset: str | None = "metricsEnhanced",
+    ) -> Response:
+        """Do a request to the events endpoint with metrics enhanced and on-demand enabled."""
+        if params.get("field"):
+            for field in params.get("field"):
+                spec = OnDemandMetricSpec(
+                    field=field,
+                    query=params["query"],
+                    environment=params.get("environment"),
+                    groupbys=groupbys,
+                    spec_type=MetricSpecType.DYNAMIC_QUERY,
+                )
+        elif params.get("yAxis"):
+            spec = OnDemandMetricSpec(
+                field=params["yAxis"],
+                query=params["query"],
+                environment=params.get("environment"),
+                groupbys=groupbys,
+                spec_type=MetricSpecType.DYNAMIC_QUERY,
+            )
+        else:
+            raise ValueError("Either field or yAxis must be present in the params")
+        # Expected parameters for this helper function
+        params["dataset"] = "metricsEnhanced"
+        params["useOnDemandMetrics"] = "true"
+        params["onDemandType"] = "dynamic_query"
+
+        self.store_on_demand_metric(1, spec=spec)
+        response = self.do_request(params)
+
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
+        assert meta["dataset"] == expected_dataset
+
+        return response
+
     def _index_metric_strings(self):
         strings = [
             "transaction",
@@ -2089,6 +2139,10 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if additional_tags:
             # Additional tags might be needed to override field values from the spec.
             tags.update(additional_tags)
+
+        # This helps creating an environment when a spec expects it
+        if spec.environment:
+            self.create_environment(name=spec.environment)
 
         self.store_transaction_metric(
             value,
