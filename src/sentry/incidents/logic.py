@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from django.db import router, transaction
@@ -38,6 +38,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
@@ -1400,26 +1401,24 @@ def get_alert_rule_trigger_action_opsgenie_team(
     input_channel_id=None,
     integrations=None,
 ) -> tuple[str, str]:
-    from sentry.integrations.opsgenie.client import OpsgenieClient
     from sentry.integrations.opsgenie.utils import get_team
 
-    oi = integration_service.get_organization_integration(
-        integration_id=integration_id, organization_id=organization.id
+    integration, oi = integration_service.get_organization_context(
+        organization_id=organization.id, integration_id=integration_id
     )
+    if integration is None or oi is None:
+        raise InvalidTriggerActionError("Opsgenie integration not found.")
+
     team = get_team(target_value, oi)
     if not team:
         raise InvalidTriggerActionError("No Opsgenie team found.")
 
-    integration_key = team["integration_key"]
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if integration is None:
-        raise InvalidTriggerActionError("Opsgenie integration not found.")
-    client = OpsgenieClient(
-        integration=integration,
-        integration_key=integration_key,
-        org_integration_id=oi.id,
-        keyid=team["id"],
+    install = cast(
+        "OpsgenieIntegration",
+        integration.get_installation(organization_id=organization.id),
     )
+    client = install.get_keyring_client(keyid=team["id"])
+
     try:
         client.authorize_integration(type="sentry")
     except ApiError as e:
