@@ -11,6 +11,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.utils import json
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -68,10 +69,14 @@ class DashboardWidgetQuerySerializer(Serializer):
     def get_attrs(self, item_list, user):
         result = {}
 
+        stateful_extraction_version = (
+            OnDemandMetricSpecVersioning.get_default_spec_version().version
+        )
         data_sources = serialize(
             list(
                 DashboardWidgetQueryOnDemand.objects.filter(
-                    dashboard_widget_query_id__in=[i.id for i in item_list]
+                    dashboard_widget_query_id__in=[i.id for i in item_list],
+                    spec_version=stateful_extraction_version,
                 )
             )
         )
