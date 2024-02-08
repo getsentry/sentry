@@ -26,7 +26,7 @@ export function getMetricsMetaQueryKey(
   useCase: UseCase
 ): ApiQueryKey {
   const queryParams = projects?.length
-    ? {useCase, projects, ...getMetaDateTimeParams(datetime)}
+    ? {useCase, project: projects, ...getMetaDateTimeParams(datetime)}
     : {useCase, ...getMetaDateTimeParams(datetime)};
   return [`/organizations/${orgSlug}/metrics/meta/`, {query: queryParams}];
 }
