@@ -134,7 +134,15 @@ describe('TraceTree', () => {
     const api = new MockApiClient();
 
     const tree = TraceTree.FromTrace(
-      makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]})
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            transaction: 'txn 1',
+            start_timestamp: 0,
+            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
+          }),
+        ],
+      })
     );
 
     tree.expand(tree.list[0], true);
@@ -144,10 +152,15 @@ describe('TraceTree', () => {
       url: '/organizations/org-slug/events/undefined:undefined/',
       method: 'GET',
       body: makeEvent({startTimestamp: 0}, [
-        makeRawSpan({start_timestamp: 1, op: '1', span_id: '1'}),
-        makeRawSpan({start_timestamp: 2, op: '2', span_id: '2', parent_span_id: '1'}),
-        makeRawSpan({start_timestamp: 3, op: '3', parent_span_id: '2'}),
-        makeRawSpan({start_timestamp: 4, op: '4', parent_span_id: '1'}),
+        makeRawSpan({start_timestamp: 1, op: 'span 1', span_id: '1'}),
+        makeRawSpan({
+          start_timestamp: 2,
+          op: 'span 2',
+          span_id: '2',
+          parent_span_id: '1',
+        }),
+        makeRawSpan({start_timestamp: 3, op: 'span 3', parent_span_id: '2'}),
+        makeRawSpan({start_timestamp: 4, op: 'span 4', parent_span_id: '1'}),
       ]),
     });
 
@@ -162,13 +175,13 @@ describe('TraceTree', () => {
     });
     expect(request).toHaveBeenCalled();
 
-    expect(tree.list.length).toBe(6);
+    expect(tree.list.length).toBe(7);
     // @ts-expect-error ignore type guard
     expect(tree.list[1].value.start_timestamp).toBe(0);
     // @ts-expect-error ignore type guard
     expect(tree.list[2].value.start_timestamp).toBe(1);
     // @ts-expect-error ignore type guard
-    expect(tree.list[3].value.start_timestamp).toBe(2);
+    expect(tree.list[3].value.start_timestamp).toBe(1);
   });
 
   it('preserves input order', () => {
@@ -349,8 +362,7 @@ describe('TraceTree', () => {
       //   |- span1 []
 
       const span = tree.list[tree.list.length - 1];
-      // expect(span.connectors.length).toBe(1);
-      expect(span.connectors[0]).toBe(-1);
+      expect(span.connectors.length).toBe(0);
     });
   });
 
@@ -977,7 +989,9 @@ function printTree(tree) {
         ((t.value?.autogrouped_by?.op && 'autogroup') ||
           t.value.transaction ||
           t.value.op ||
-          'root')
+          'root') +
+        ' at: ' +
+        t.value.start_timestamp
       );
     })
     .filter(Boolean)

@@ -41,7 +41,6 @@ import type {
  *   to calculate this when rendering the tree, as we can only calculate it only for the visible nodes and avoid an extra tree pass
  */
 
-// Zooming out of spans doesnt work
 // Last connector is rendered wrongly
 
 export declare namespace TraceTree {
@@ -160,13 +159,11 @@ export class TraceTree {
     spans: RawSpanType[]
   ): TraceTreeNode<TraceTree.NodeValue> {
     const parentIsSpan = !isTransactionNode(parent);
-    const root = new TraceTreeNode(parent, parent.value, parent.metadata);
-    root.zoomedIn = true;
     const lookuptable: Record<RawSpanType['span_id'], TraceTreeNode<TraceTree.Span>> = {};
 
     if (parentIsSpan) {
-      if (root.value && 'span_id' in root.value) {
-        lookuptable[root.value.span_id] = root as TraceTreeNode<TraceTree.Span>;
+      if (parent.value && 'span_id' in parent.value) {
+        lookuptable[parent.value.span_id] = parent as TraceTreeNode<TraceTree.Span>;
       }
     }
 
@@ -208,13 +205,14 @@ export class TraceTree {
       }
 
       // Orphaned span
-      root.spanChildren.push(node);
-      node.parent = root as TraceTreeNode<TraceTree.Span>;
+      parent.spanChildren.push(node);
+      node.parent = parent as TraceTreeNode<TraceTree.Span>;
     }
 
-    TraceTree.AutogroupSiblingSpanNodes(root);
-    TraceTree.AutogroupDirectChildrenSpanNodes(root);
-    return root;
+    parent.zoomedIn = true;
+    TraceTree.AutogroupSiblingSpanNodes(parent);
+    TraceTree.AutogroupDirectChildrenSpanNodes(parent);
+    return parent;
   }
 
   get list(): ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>> {
@@ -447,8 +445,8 @@ export class TraceTree {
       this._list.splice(index + 1, childrenCount);
 
       node.zoomedIn = zoomedIn;
-
       node.setSpanChildren([]);
+
       if (node.expanded) {
         this._list.splice(index + 1, 0, ...node.getVisibleChildren());
       }
@@ -482,10 +480,8 @@ export class TraceTree {
       if (spans.data) {
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
       }
-      const root = TraceTree.FromSpans(node, spans.data);
-      node.setSpanChildren(root.spanChildren);
-      node.zoomedIn = zoomedIn;
-      root.parent = node.parent;
+
+      TraceTree.FromSpans(node, spans.data);
 
       const spanChildren = node.getVisibleChildren();
       this._list.splice(index + 1, 0, ...spanChildren);
