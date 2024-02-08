@@ -48,20 +48,6 @@ describe('Project Ownership Input', () => {
       />
     );
 
-    expect(screen.getByText('Globbing Syntax')).toBeInTheDocument();
-  });
-
-  it('renders with custom rules', () => {
-    render(
-      <EditOwnershipRules
-        organization={org}
-        ownership={ownership}
-        project={project}
-        onCancel={() => {}}
-        onSave={() => {}}
-      />
-    );
-
     expect(screen.getByText(/Assign issues based on custom rules/)).toBeInTheDocument();
   });
 });

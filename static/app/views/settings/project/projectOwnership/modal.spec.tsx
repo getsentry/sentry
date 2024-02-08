@@ -74,26 +74,6 @@ describe('Project Ownership', () => {
       />
     );
 
-    // Rule builder
-    expect(screen.getByLabelText('Rule pattern')).toBeInTheDocument();
-
-    expect(screen.getByText(/Match against Issue Data/)).toBeInTheDocument();
-    // First in-app (default reverse order) frame is suggested
-    expect(screen.getByText('raven/base.py')).toBeInTheDocument();
-    expect(screen.getByText('https://example.com/path')).toBeInTheDocument();
-  });
-
-  it('renders assignment suggestions', () => {
-    render(
-      <ProjectOwnershipModal
-        issueId={issueId}
-        organization={org}
-        project={project}
-        eventData={event}
-        onCancel={() => {}}
-      />
-    );
-
     // Description
     expect(screen.getByText(/Assign issues based on custom rules/)).toBeInTheDocument();
 
@@ -107,8 +87,6 @@ describe('Project Ownership', () => {
     expect(
       screen.getByText(`url:*/path ${user.email}`, {exact: false})
     ).toBeInTheDocument();
-
-    expect(screen.queryByLabelText('Rule pattern')).toBeInTheDocument();
   });
 
   it('can cancel', async () => {

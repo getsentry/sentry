@@ -21,7 +21,6 @@ import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/ad
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
 import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
 import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownershipRulesTable';
-import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
 type Props = {
   organization: Organization;
@@ -191,32 +190,6 @@ tags.sku_class:enterprise #enterprise`;
               codeowners={codeowners ?? []}
             />
           </ErrorBoundary>
-        )}
-        {ownership && (
-          <RulesPanel
-            data-test-id="issueowners-panel"
-            type="issueowners"
-            raw={ownership.raw || ''}
-            dateUpdated={ownership.lastUpdated}
-            placeholder={this.getPlaceholder()}
-            controls={[
-              <Button
-                key="edit"
-                size="xs"
-                onClick={() =>
-                  openEditOwnershipRules({
-                    organization,
-                    project,
-                    ownership,
-                    onSave: this.handleOwnershipSave,
-                  })
-                }
-                disabled={editOwnershipRulesDisabled}
-              >
-                {t('Edit')}
-              </Button>,
-            ]}
-          />
         )}
         <PermissionAlert project={project} />
         {hasCodeowners && (
