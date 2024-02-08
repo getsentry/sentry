@@ -25,11 +25,9 @@ Notification Actions all rely on a few things:
 
 ## Setting up new triggers, services, or targets
 
-If you need to setup new types of triggers, services or targets, you can do so by extending the relevant enums in the `notificationaction.py`.
-Services and Targets can only be extended by modifying these enums. There are a few triggers that exist in getsentry, which require modifying the
-`GetsentryTriggerAction` enum in that repository.
+If you need to setup new types of triggers, services or targets, you can do so by extending the relevant enums in the `notificationaction.py`. These enums are used by Django when validating new Notification Actions before saving, meaning this step cannot be skipped.
 
-## Setting up new registrations
+## Setting up new action registrations
 
 The registration classes can be set up via the decorator:
 

@@ -10,10 +10,7 @@ from .installation.external_issue.index import SentryAppInstallationExternalIssu
 from .installation.external_requests import SentryAppInstallationExternalRequestsEndpoint
 from .installation.index import SentryAppInstallationsEndpoint
 from .interaction import SentryAppInteractionEndpoint
-from .internal_app_token.details import (
-    NewSentryInternalAppTokenDetailsEndpoint,
-    SentryInternalAppTokenDetailsEndpoint,
-)
+from .internal_app_token.details import SentryInternalAppTokenDetailsEndpoint
 from .internal_app_token.index import SentryInternalAppTokensEndpoint
 from .organization_sentry_apps import OrganizationSentryAppsEndpoint
 from .publish_request import SentryAppPublishRequestEndpoint
@@ -41,6 +38,5 @@ __all__ = (
     "SentryAppsStatsEndpoint",
     "SentryAppStatsEndpoint",
     "SentryInternalAppTokenDetailsEndpoint",
-    "NewSentryInternalAppTokenDetailsEndpoint",
     "SentryInternalAppTokensEndpoint",
 )

@@ -604,7 +604,9 @@ function getNearestElementName(node: HTMLElement | undefined | null): string | u
   let current: HTMLElement | null = node;
   while (current && current !== document.body) {
     const elementName =
-      current.dataset?.testId ?? current.dataset?.component ?? current.dataset?.element;
+      current.dataset?.testId ??
+      current.dataset?.sentryComponent ??
+      current.dataset?.element;
 
     if (elementName) {
       return elementName;

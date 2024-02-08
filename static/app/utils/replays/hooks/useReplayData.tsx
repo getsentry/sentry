@@ -89,6 +89,7 @@ function useReplayData({
     error: fetchReplayError,
   } = useApiQuery<{data: unknown}>([`/organizations/${orgSlug}/replays/${replayId}/`], {
     staleTime: Infinity,
+    retry: false,
   });
   const replayRecord = useMemo(
     () => (replayData?.data ? mapResponseToReplayRecord(replayData.data) : undefined),

@@ -8,6 +8,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
+import OpenFeedbackButton from 'sentry/components/replays/breadcrumbs/openFeedbackButton';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
@@ -27,7 +28,7 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
 
-const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
+const FRAMES_WITH_BUTTONS = ['replay.hydrate-error', 'sentry.feedback'];
 
 interface Props {
   extraction: Extraction | undefined;
@@ -41,18 +42,12 @@ interface Props {
   ) => void;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
+  projectSlug: string | undefined;
   startTimestampMs: number;
   traces: ReplayTraceRow | undefined;
   className?: string;
   expandPaths?: string[];
   style?: CSSProperties;
-}
-
-function getCrumbOrFrameData(frame: ReplayFrame) {
-  return {
-    ...getFrameDetails(frame),
-    timestampMs: frame.timestampMs,
-  };
 }
 
 function BreadcrumbItem({
@@ -65,12 +60,13 @@ function BreadcrumbItem({
   onInspectorExpanded,
   onMouseEnter,
   onMouseLeave,
+  projectSlug,
   startTimestampMs,
   style,
   traces,
 }: Props) {
-  const {color, description, title, icon, timestampMs} = getCrumbOrFrameData(frame);
-  const {replay, startTimeOffsetMs} = useReplayContext();
+  const {color, description, title, icon} = getFrameDetails(frame);
+  const {replay} = useReplayContext();
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
 
@@ -96,12 +92,13 @@ function BreadcrumbItem({
           {onClick ? (
             <TimestampButton
               startTimestampMs={startTimestampMs}
-              timestampMs={timestampMs - startTimeOffsetMs}
+              timestampMs={frame.timestampMs}
             />
           ) : null}
         </TitleContainer>
 
-        {typeof description === 'string' || isValidElement(description) ? (
+        {typeof description === 'string' ||
+        (description !== undefined && isValidElement(description)) ? (
           <Description title={description} showOnlyOnOverflow isHoverable>
             {description}
           </Description>
@@ -123,11 +120,20 @@ function BreadcrumbItem({
           <div>
             <OpenReplayComparisonButton
               replay={replay}
-              leftTimestamp={frame.offsetMs - startTimeOffsetMs}
+              leftTimestamp={frame.offsetMs}
               rightTimestamp={
                 (frame.data.mutations.next.timestamp as number) -
                 (replay?.getReplay().started_at.getTime() ?? 0)
               }
+            />
+          </div>
+        ) : null}
+
+        {projectSlug && 'data' in frame && frame.data && 'feedbackId' in frame.data ? (
+          <div>
+            <OpenFeedbackButton
+              projectSlug={projectSlug}
+              eventId={frame.data.feedbackId}
             />
           </div>
         ) : null}

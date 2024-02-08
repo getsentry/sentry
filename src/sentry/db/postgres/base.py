@@ -7,7 +7,6 @@ from django.db.backends.postgresql.operations import DatabaseOperations
 
 from sentry.utils.strings import strip_lone_surrogates
 
-from .creation import SentryDatabaseCreation
 from .decorators import (
     auto_reconnect_connection,
     auto_reconnect_cursor,
@@ -93,7 +92,6 @@ class CursorWrapper:
 
 
 class DatabaseWrapper(DjangoDatabaseWrapper):
-    creation_class = SentryDatabaseCreation
     SchemaEditorClass = DatabaseSchemaEditorProxy
 
     def __init__(self, *args, **kwargs):

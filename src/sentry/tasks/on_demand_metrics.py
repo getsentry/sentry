@@ -6,6 +6,7 @@ from typing import Any
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
+from django.utils import timezone
 
 from sentry import options
 from sentry.api.utils import get_date_range_from_params
@@ -116,9 +117,9 @@ def schedule_on_demand_check() -> None:
     dashboard_widget_count = 0
 
     for (widget_query_id,) in RangeQuerySetWrapper(
-        DashboardWidgetQuery.objects.filter(widget__widget_type=DashboardWidgetTypes.DISCOVER)
-        .exclude(conditions__contains="event.type:error")
-        .values_list("id"),
+        DashboardWidgetQuery.objects.filter(
+            widget__widget_type=DashboardWidgetTypes.DISCOVER
+        ).values_list("id"),
         result_value_getter=lambda item: item[0],
     ):
         dashboard_widget_pre_rollout_count += 1
@@ -294,6 +295,11 @@ def _set_widget_on_demand_state(
 
         if on_demand.can_extraction_be_auto_overridden():
             on_demand.extraction_state = extraction_state
+
+        if options.get("on_demand.update_on_demand_modified"):
+            # Only temporarily required to check we've updated data on rows the task has passed
+            # Or updated to pass the check against widget query date_modified.
+            on_demand.date_modified = timezone.now()
 
         on_demand.spec_hashes = spec_hashes
         on_demand.save()

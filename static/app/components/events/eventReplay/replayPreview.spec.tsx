@@ -9,8 +9,6 @@ import {render as baseRender, screen} from 'sentry-test/reactTestingLibrary';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
 
 import ReplayPreview from './replayPreview';
 
@@ -65,7 +63,7 @@ mockUseReplayReader.mockImplementation(() => {
 });
 
 const render: typeof baseRender = children => {
-  const {router, routerContext} = initializeOrg({
+  const {routerContext} = initializeOrg({
     router: {
       routes: [
         {path: '/'},
@@ -79,21 +77,10 @@ const render: typeof baseRender = children => {
     },
   });
 
-  return baseRender(
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: router.params,
-        routes: router.routes,
-      }}
-    >
-      <OrganizationContext.Provider value={OrganizationFixture()}>
-        {children}
-      </OrganizationContext.Provider>
-    </RouteContext.Provider>,
-    {context: routerContext}
-  );
+  return baseRender(children, {
+    context: routerContext,
+    organization: OrganizationFixture({slug: mockOrgSlug}),
+  });
 };
 
 const defaultProps = {

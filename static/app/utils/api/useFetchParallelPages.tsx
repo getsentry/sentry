@@ -153,7 +153,7 @@ export default function useFetchParallelPages<Data>({
               error: values.map(value => value.error),
               getLastResponseHeader: values.slice(-1)[0]?.getResponseHeader,
               isError: values.map(value => value.isError).some(Boolean),
-              isFetching: values.map(value => value.isFetching).every(Boolean),
+              isFetching: values.map(value => value.isFetching).some(Boolean),
             });
           }
         })

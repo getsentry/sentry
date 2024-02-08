@@ -38,6 +38,7 @@ class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
             attrs={"class": "span6", "placeholder": "e.g. https://api.opsgenie.com/v2/alerts"}
         ),
         help_text="It must be visible to the Sentry server",
+        assume_scheme="https",
         required=True,
     )
 

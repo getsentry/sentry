@@ -1,7 +1,9 @@
 import {Component, Fragment} from 'react';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
+import difference from 'lodash/difference';
 
+import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
@@ -58,6 +60,18 @@ export class RenderField extends Component<RenderProps, State> {
     selectedMappedValue: null,
   };
 
+  componentDidUpdate(prevProps: RenderProps) {
+    const projectIds = this.props.sentryProjects.map(project => project.id);
+    const prevProjectIds = prevProps.sentryProjects.map(project => project.id);
+    const newProjects = difference(projectIds, prevProjectIds);
+
+    if (newProjects.length === 1) {
+      this.setState({
+        selectedSentryProjectId: newProjects[0],
+      });
+    }
+  }
+
   render() {
     const {
       onChange,
@@ -108,11 +122,16 @@ export class RenderField extends Component<RenderProps, State> {
       );
     };
 
-    const projectOptions = sentryProjects.map(({slug, id}) => ({
+    const sentryProjectOptions = sentryProjects.map(({slug, id}) => ({
       label: slug,
       value: id,
       leadingItems: renderIdBadge({id, hideName: true}),
     }));
+
+    const projectOptions = [
+      {label: t('Create a Project'), value: -1, leadingItems: <IconAdd isCircled />},
+      ...sentryProjectOptions,
+    ];
 
     const mappedItemsToShow = mappedDropdownItems.filter(
       item => !mappedValuesUsed.has(item.value)
@@ -123,7 +142,13 @@ export class RenderField extends Component<RenderProps, State> {
     }));
 
     const handleSelectProject = ({value}: {value: number}) => {
-      this.setState({selectedSentryProjectId: value});
+      if (value === -1) {
+        openProjectCreationModal({
+          defaultCategory: iconType === 'vercel' ? 'browser' : 'popular',
+        });
+      } else {
+        this.setState({selectedSentryProjectId: value});
+      }
     };
 
     const handleSelectMappedValue = ({value}: {value: MappedValue}) => {

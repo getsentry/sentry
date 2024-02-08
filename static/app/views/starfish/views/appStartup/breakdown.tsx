@@ -33,6 +33,7 @@ export function TooltipContents({
             <StartupDot style={{backgroundColor: color}} />
             <StartupName>{name}</StartupName>
           </StartupNameContainer>
+          <StartupCount>{row[key] ?? 0}</StartupCount>
           {toRoundedPercent((row[key] ?? 0) / total)}
         </StartupType>
       ))}
@@ -115,7 +116,11 @@ const StartupNameContainer = styled(OpsContent)`
 const StartupType = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(4)};
+  gap: ${space(2)};
+`;
+
+const StartupCount = styled('div')`
+  color: ${p => p.theme.gray300};
 `;
 
 const StartupName = styled('div')`

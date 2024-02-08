@@ -13,7 +13,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import configure_scope
 
-from sentry import VERSION, audit_log, http, options
+from sentry import VERSION, audit_log, features, http, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
@@ -186,46 +186,45 @@ class VercelWebhookEndpoint(Endpoint):
             except KeyError:
                 return self.respond({"detail": "Missing event type."}, status=400)
 
-            # Try the new Vercel request. If it fails, try the old Vercel request
             try:
-                payload = request.data["payload"]
                 external_id = self.parse_new_external_id(request)
-                scope.set_tag("vercel_webhook.type", "new")
-
-                if event_type == "integration-configuration.removed":
-                    configuration_id = payload["configuration"]["id"]
-                    return self._delete(external_id, configuration_id, request)
-                if event_type == "deployment.created":
-                    return self._deployment_created(external_id, request)
-            except Exception:
+                new_webhook = True
+                tag_type_string = "new"
+            except KeyError:
                 external_id = self.parse_old_external_id(request)
-                scope.set_tag("vercel_webhook.type", "old")
+                new_webhook = False
+                tag_type_string = "old"
 
-                if event_type == "integration-configuration-removed":
-                    configuration_id = request.data["payload"]["configuration"]["id"]
-                    return self._delete(external_id, configuration_id, request)
+            scope.set_tag("vercel_webhook.type", tag_type_string)
 
-                if event_type == "deployment":
-                    return self._deployment_created(external_id, request)
-
+            if event_type in (
+                "integration-configuration.removed",
+                "integration-configuration-removed",
+            ):
+                configuration_id = request.data["payload"]["configuration"]["id"]
+                return self._delete(external_id, configuration_id, request, new_webhook)
+            if event_type in ("deployment.created", "deployment"):
+                return self._deployment_created(external_id, request, new_webhook)
         return None
 
     def delete(self, request: Request):
         with configure_scope() as scope:
             # Try the new Vercel request. If it fails, try the old Vercel request
             try:
-                payload = request.data["payload"]
                 external_id = self.parse_new_external_id(request)
-                scope.set_tag("vercel_webhook.type", "new")
-                configuration_id = payload["configuration"]["id"]
-            except Exception:
+                configuration_id = request.data["payload"]["configuration"]["id"]
+                new_webhook = True
+                tag_type_string = "new"
+            except KeyError:
                 external_id = self.parse_old_external_id(request)
-                scope.set_tag("vercel_webhook.type", "old")
                 configuration_id = request.data.get("configurationId")
+                new_webhook = False
+                tag_type_string = "old"
 
-        return self._delete(external_id, configuration_id, request)
+        scope.set_tag("vercel_webhook.type", tag_type_string)
+        return self._delete(external_id, configuration_id, request, new_webhook)
 
-    def _delete(self, external_id, configuration_id, request):
+    def _delete(self, external_id, configuration_id, request, new_webhook):
         try:
             integration = Integration.objects.get(provider="vercel", external_id=external_id)
         except Integration.DoesNotExist:
@@ -240,6 +239,7 @@ class VercelWebhookEndpoint(Endpoint):
         if len(orgs) == 0:
             # we already deleted the organization integration and
             # there was only one to begin with
+
             integration.delete()
             return self.respond(status=204)
 
@@ -255,7 +255,10 @@ class VercelWebhookEndpoint(Endpoint):
         #      organization integration AND the integration (since there is only one)
         #  2.) we already deleted the organization integration tied to this configuration
         #      and the remaining one is for a different org (and configuration)
-        if len(orgs) == 1:
+        if (
+            len(orgs) == 1
+            and features.has("organizations:vercel-integration-webhooks", orgs[0]) == new_webhook
+        ):
             try:
                 # Case no. 1: do the deleting and return
                 OrganizationIntegration.objects.get(
@@ -283,7 +286,10 @@ class VercelWebhookEndpoint(Endpoint):
                     },
                 )
 
-        if configuration_id == integration.metadata["installation_id"]:
+        if (
+            configuration_id == integration.metadata["installation_id"]
+            and features.has("organizations:vercel-integration-webhooks", orgs[0]) == new_webhook
+        ):
             # if we are uninstalling a primary configuration, and there are
             # multiple orgs connected to this integration we must update
             # the credentials (access_token, webhook_id etc).
@@ -323,7 +329,7 @@ class VercelWebhookEndpoint(Endpoint):
 
         return self.respond(status=204)
 
-    def _deployment_created(self, external_id, request):
+    def _deployment_created(self, external_id, request, new_webhook):
         payload = request.data["payload"]
         vercel_project_id = (
             payload["projectId"] if payload.get("projectId") else payload["project"]["id"]
@@ -372,7 +378,11 @@ class VercelWebhookEndpoint(Endpoint):
             matched_mappings = list(filter(lambda x: x[1] == vercel_project_id, project_mappings))
             if matched_mappings:
                 organization = orgs.get(org_integration.organization_id)
-                if organization is None:
+                if (
+                    organization is None
+                    or features.has("organizations:vercel-integration-webhooks", organization)
+                    != new_webhook
+                ):
                     continue
                 sentry_project_id = matched_mappings[0][0]
 

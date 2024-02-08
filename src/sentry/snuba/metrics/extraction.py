@@ -95,6 +95,10 @@ QUERY_HASH_KEY = "query_hash"
 # TODO: Streamline with dynamic sampling.
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
+# There are some search tokens that are exclusive to searching errors, thus, we need
+# to treat the query as not on-demand.
+ERROR_RELATED_TOKENS = ["level", "assignee", "issue", "culprit"]
+
 # Maps from Discover's field names to event protocol paths. See Relay's
 # ``Getter`` implementation for ``Event`` for supported fields. All fields need to be prefixed
 # with "event.".
@@ -779,7 +783,7 @@ def _is_standard_metrics_field(field: str) -> bool:
 
 
 def _is_error_field(token: str) -> bool:
-    return token.startswith("error.")
+    return token.startswith("error.") or token in ERROR_RELATED_TOKENS
 
 
 def _is_standard_metrics_search_term(field: str) -> bool:
@@ -1527,6 +1531,29 @@ def _get_satisfactory_threshold_and_metric(project: Project) -> tuple[int, str]:
     return threshold, metric_field
 
 
+def _escape_wildcard(value: str) -> str:
+    """
+    Escapes all characters in the wildcard which are considered as meta characters in the glob
+    implementation in Relay, which can be found at: https://docs.rs/globset/latest/globset/#syntax.
+
+    The goal of this function is to only preserve the `*` character as it is the only character that Sentry's
+    product offers to users to perform wildcard matching.
+    """
+    i, n = 0, len(value)
+    escaped = ""
+
+    while i < n:
+        c = value[i]
+        i = i + 1
+
+        if c in "[]{}?":
+            escaped += rf"\{c}"
+        else:
+            escaped += c
+
+    return escaped
+
+
 T = TypeVar("T")
 
 
@@ -1629,7 +1656,7 @@ class SearchQueryConverter:
             condition: RuleCondition = {
                 "op": "glob",
                 "name": _map_field_name(key),
-                "value": [value],
+                "value": [_escape_wildcard(value)],
             }
         else:
             # Special case for the `has` and `!has` operators which are parsed as follows:

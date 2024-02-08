@@ -5,6 +5,8 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework.response import Response
 
@@ -171,6 +173,17 @@ class SuperUserGetSentryAppsTest(SentryAppsTest):
         assert self.unpublished_app.uuid in response_uuids
         assert self.unowned_unpublished_app.uuid in response_uuids
 
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            self.get_success_response()
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_write_sees_all_apps(self):
+        self.get_success_response()
+
+        self.add_user_permission(self.superuser, "superuser.write")
+        self.get_success_response()
+
     def test_superusers_filter_on_internal_apps(self):
         self.set_up_internal_app()
         new_org = self.create_organization()
@@ -315,6 +328,20 @@ class SuperUserPostSentryAppsTest(SentryAppsTest):
         response = self.get_success_response(**self.get_data(popularity=POPULARITY))
         assert {"popularity": POPULARITY}.items() <= json.loads(response.content).items()
 
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            self.get_success_response(**self.get_data(popularity=25, name="myApp 2"))
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_cannot_create(self):
+        self.get_error_response(**self.get_data(name="POPULARITY"))
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @with_feature("auth:enterprise-superuser-read-write")
+    def test_superuser_read_can_create(self):
+        self.add_user_permission(self.superuser, "superuser.write")
+        self.get_success_response(**self.get_data(popularity=POPULARITY))
+
 
 @control_silo_test
 class PostWithTokenSentryAppsTest(SentryAppsTest):
@@ -372,8 +399,13 @@ class PostSentryAppsTest(SentryAppsTest):
         super().setUp()
         self.login_as(self.user)
 
-    def assert_sentry_app_status_code(self, sentry_app: SentryApp, status_code: int):
-        token = ApiToken.objects.get(application=sentry_app.application)
+    def assert_sentry_app_status_code(self, sentry_app: SentryApp, status_code: int) -> None:
+        token = ApiToken.objects.create(
+            application=sentry_app.application,
+            user_id=self.user.id,
+            refresh_token=None,
+            scope_list=["project:read", "event:read", "org:read"],
+        )
 
         with assume_test_silo_mode(SiloMode.REGION):
             url = reverse("sentry-api-0-organization-projects", args=[self.organization.slug])
@@ -577,16 +609,12 @@ class PostSentryAppsTest(SentryAppsTest):
         assert response.data["status"] == SentryAppStatus.as_str(SentryAppStatus.INTERNAL)
         assert not response.data["verifyInstall"]
 
-        # Verify tokens are created properly.
+        # Verify no tokens are created.
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
 
-        sentry_app_installation_token = SentryAppInstallationToken.objects.get(
-            sentry_app_installation=sentry_app_installation
-        )
-
-        # Below line will fail once we stop assigning api_token on the sentry_app_installation.
-        assert sentry_app_installation_token.api_token == sentry_app_installation.api_token
+        with pytest.raises(SentryAppInstallationToken.DoesNotExist):
+            SentryAppInstallationToken.objects.get(sentry_app_installation=sentry_app_installation)
 
     def test_no_author_public_integration(self):
         response = self.get_error_response(**self.get_data(author=None), status_code=400)

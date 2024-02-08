@@ -192,6 +192,59 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert "latestIncident" not in no_expand_resp.data
 
     @responses.activate
+    def test_with_sentryapp_success(self):
+        self.superuser = self.create_user("admin@localhost", is_superuser=True)
+        self.login_as(user=self.superuser)
+        self.create_team(organization=self.organization, members=[self.superuser])
+
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            published=True,
+            verify_install=False,
+            name="Super Awesome App",
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.superuser
+        )
+        rule = self.create_alert_rule()
+        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            target_identifier=sentry_app.id,
+            type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
+            sentry_app=sentry_app,
+            sentry_app_config=[
+                {"name": "title", "value": "An alert"},
+                {"summary": "Something happened here..."},
+                {"name": "points", "value": "3"},
+                {"name": "assignee", "value": "Nisanthan"},
+            ],
+        )
+
+        responses.add(
+            responses.GET,
+            "https://example.com/sentry/members",
+            json=[
+                {"value": "bob", "label": "Bob"},
+                {"value": "jess", "label": "Jess"},
+            ],
+            status=200,
+        )
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, rule.id)
+
+        assert resp.status_code == 200
+        assert len(responses.calls) == 1
+        assert "errors" not in resp.data
+
+        action = resp.data["triggers"][0]["actions"][0]
+        assert "select" == action["formFields"]["optional_fields"][-1]["type"]
+        assert "sentry/members" in action["formFields"]["optional_fields"][-1]["uri"]
+        assert "bob" == action["formFields"]["optional_fields"][-1]["choices"][0][0]
+
+    @responses.activate
     def test_with_unresponsive_sentryapp(self):
         self.superuser = self.create_user("admin@localhost", is_superuser=True)
         self.login_as(user=self.superuser)

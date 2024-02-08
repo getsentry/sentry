@@ -11,7 +11,7 @@ from .client import RedmineClient
 
 
 class RedmineOptionsForm(forms.Form):
-    host = forms.URLField(help_text=_("e.g. http://bugs.redmine.org"))
+    host = forms.URLField(help_text=_("e.g. http://bugs.redmine.org"), assume_scheme="https")
     key = forms.CharField(
         widget=forms.TextInput(attrs={"class": "span9"}),
         help_text="Your API key is available on your account page after enabling the Rest API (Administration -> Settings -> Authentication)",
