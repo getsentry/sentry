@@ -15,7 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_filename
 from sentry.replays.types import ReplayRecordingSegment
@@ -32,7 +32,12 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="Fetch Recording Segment",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            ReplayParams.REPLAY_ID,
+            ReplayParams.SEGMENT_ID,
+        ],
         responses={
             200: inline_sentry_response_serializer(
                 "ListReplayRecordingSegments", ReplayRecordingSegment
