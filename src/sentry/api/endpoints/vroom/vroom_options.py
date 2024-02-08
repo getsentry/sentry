@@ -3,12 +3,13 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.utils import metrics
 
 from .options import get_vroom_options
 
 
+@region_silo_endpoint
 class VroomOptionsEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
