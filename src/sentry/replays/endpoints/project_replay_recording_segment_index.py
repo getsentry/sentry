@@ -16,6 +16,7 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.lib.storage import storage
+from sentry.replays.types import ReplayRecordingSegment
 from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata
 
 
@@ -40,7 +41,9 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectEndpoint):
             VisibilityParams.PER_PAGE,
         ],
         responses={
-            200: inline_sentry_response_serializer("ListReplayRecordingSegments", list[list[dict]]),
+            200: inline_sentry_response_serializer(
+                "ListReplayRecordingSegments", list[ReplayRecordingSegment]
+            ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

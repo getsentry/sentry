@@ -18,6 +18,7 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_filename
+from sentry.replays.types import ReplayRecordingSegment
 from sentry.replays.usecases.reader import download_segment, fetch_segment_metadata
 
 
@@ -33,7 +34,9 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
         operation_id="Fetch Recording Segment",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
         responses={
-            200: inline_sentry_response_serializer("ListReplayRecordingSegments", list[dict]),
+            200: inline_sentry_response_serializer(
+                "ListReplayRecordingSegments", ReplayRecordingSegment
+            ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
