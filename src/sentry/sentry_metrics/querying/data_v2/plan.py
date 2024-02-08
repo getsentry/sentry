@@ -48,6 +48,9 @@ class FormulaDefinition:
         return replace(self, mql=replaced_mql_formula)
 
 
+# TODO: maybe we want to evaluate a form of builder pattern where we can control the
+#  chaining of methods, so that we make sure that declaration strictly happens before formula
+#  definition.
 class MetricsQueriesPlan:
     def __init__(self):
         self._queries: dict[str, str] = {}
