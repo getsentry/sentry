@@ -1772,22 +1772,14 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable profiling battery usage chart
-    "organizations:profiling-battery-usage-chart": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
     # Enables production profiling in sentry browser application
     "organizations:profiling-browser": False,
-    # Enable profiling CPU chart
-    "organizations:profiling-cpu-chart": False,
-    # Enables differential flamegraph in profiling
-    "organizations:profiling-differential-flamegraph": False,
     # Enables separate differential flamegraph page
     "organizations:profiling-differential-flamegraph-page": False,
     # Enable global suspect functions in profiling
     "organizations:profiling-global-suspect-functions": False,
-    # Enable profiling Memory chart
-    "organizations:profiling-memory-chart": False,
     # Enable stacktrace linking of multiple frames in profiles
     "organizations:profiling-stacktrace-links": False,
     # Enable profiling statistical detectors breakpoint detection
@@ -1796,8 +1788,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-statistical-detectors-ema": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
-    # Enable ui frames in flamecharts
-    "organizations:profiling-ui-frames": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
     # Enable profiling view
