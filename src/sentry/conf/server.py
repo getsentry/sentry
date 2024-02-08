@@ -1780,8 +1780,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-differential-flamegraph-page": False,
     # Enable global suspect functions in profiling
     "organizations:profiling-global-suspect-functions": False,
-    # Enable stacktrace linking of multiple frames in profiles
-    "organizations:profiling-stacktrace-links": False,
     # Enable profiling statistical detectors breakpoint detection
     "organizations:profiling-statistical-detectors-breakpoint": False,
     # Enable profiling statistical detectors ema detection
