@@ -111,12 +111,10 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             ReplayValidator,
         ],
         responses={
-            202: RESPONSE_NO_CONTENT,
-            400: RESPONSE_BAD_REQUEST,
-            403: RESPONSE_FORBIDDEN,
+            204: RESPONSE_NO_CONTENT,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ReplayExamples.GET_REPLAY_DETAILS,
+        examples=None,
     )
     def delete(self, request: Request, project: Project, replay_id: str) -> Response:
         """
