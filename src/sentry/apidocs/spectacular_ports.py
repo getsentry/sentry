@@ -145,9 +145,20 @@ def resolve_type_hint(hint) -> Any:
             schema = {"oneOf": [resolve_type_hint(arg) for arg in type_args]}
         else:
             schema = resolve_type_hint(type_args[0])
+
         if type(None) in args:
-            schema["nullable"] = True
+            # There's an issue where if 3 types are OR'd together and one of
+            # them is None, validating the schema will fail because "nullable:
+            # true" with "anyOf" raises an error because there is no "type" key
+            # on the schema. This works around it by including a proxy null
+            # object in the "anyOf".
+            # See https://github.com/OAI/OpenAPI-Specification/issues/1368.
+            if len(args) > 2:
+                schema["oneOf"].append({"type": "object", "nullable": True})
+            else:
+                schema["nullable"] = True
         return schema
+
     elif origin is collections.abc.Iterable:
         return build_array_type(resolve_type_hint(args[0]))
     else:
