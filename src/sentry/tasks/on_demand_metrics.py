@@ -372,12 +372,13 @@ def check_field_cardinality(
 
         try:
             processed_results, columns_to_check = _query_cardinality(query_columns, organization)
+            print(processed_results)
             for column in columns_to_check:
                 count = processed_results["data"][0][f"count_unique({column})"]
-                column_high_cardinality = count > max_cardinality_allowed
-                cardinality_map[cache_keys[column]] = not column_high_cardinality
+                column_low_cardinality = count <= max_cardinality_allowed
+                cardinality_map[cache_keys[column]] = column_low_cardinality
 
-                if column_high_cardinality:
+                if not column_low_cardinality:
                     cache.set(widget_cache_key, False, timeout=_WIDGET_QUERY_CARDINALITY_TTL)
                     scope.set_tag("widget_query.column_name", column)
                     if widget_query:
@@ -386,8 +387,6 @@ def check_field_cardinality(
                                 f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
                             )
                         )
-        except HighCardinalityWidgetException as error:
-            sentry_sdk.capture_exception(error)
         except SoftTimeLimitExceeded as error:
             scope.set_tag("widget_soft_deadline", True)
             sentry_sdk.capture_exception(error)
@@ -395,7 +394,8 @@ def check_field_cardinality(
             sentry_sdk.capture_exception(error)
 
     cache.set_many(cardinality_map, timeout=_COLUMN_CARDINALITY_TTL)
-    return {key: cardinality_map[value] for key, value in cache_keys.items()}
+    # assume that columns are low cardinality if we fail to retrieve it for some reason
+    return {key: cardinality_map.get(value, True) for key, value in cache_keys.items()}
 
 
 def _query_cardinality(

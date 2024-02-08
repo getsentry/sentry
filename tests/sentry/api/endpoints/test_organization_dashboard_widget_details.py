@@ -688,12 +688,19 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         }
         response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
+        # There's no data, so `sometag` should be low cardinality
+        assert len(response.data["warnings"]) == 0
         # We cache so we shouldn't call query cardinality again
         with mock.patch("sentry.tasks.on_demand_metrics._query_cardinality") as mock_query:
             self.client.post(f"{self.url()}?environment=mock_env", data)
             assert len(mock_query.mock_calls) == 0
 
-    def test_dashboard_widget_ondemand_multiple_fields(self):
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_dashboard_widget_ondemand_multiple_fields(self, mock_query):
+        mock_query.return_value = {"data": [{"sometag": 1_000_000, "someothertag": 1}]}, [
+            "sometag",
+            "someothertag",
+        ]
         mock_project = self.create_project()
         self.create_environment(project=mock_project, name="mock_env")
         data = {
@@ -713,3 +720,5 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         }
         response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
+        print(response.data)
+        assert False
