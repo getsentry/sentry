@@ -536,6 +536,7 @@ def process_event_from_reprocessing(
     )
 
 
+@sentry_sdk.tracing.trace
 def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bool = False) -> None:
     set_current_event_project(project_id)
 

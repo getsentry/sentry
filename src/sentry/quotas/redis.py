@@ -160,6 +160,7 @@ class RedisQuota(Quota):
     def get_refunded_quota_key(self, key):
         return f"r:{key}"
 
+    @sentry_sdk.tracing.trace
     def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
         if timestamp is None:
             timestamp = time()
