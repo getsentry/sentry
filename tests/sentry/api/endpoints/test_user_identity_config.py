@@ -197,32 +197,44 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config-details"
     method = "get"
 
+    def _verify_identities(
+        self,
+        social_ident: UserSocialAuth,
+        global_ident: Identity,
+        org_ident: AuthIdentity,
+    ) -> None:
+        # Verify social identity
+        assert social_ident["category"] == "social-identity"
+        assert social_ident["status"] == "can_disconnect"
+        assert social_ident["organization"] is None
+
+        # Verify global identity
+        assert global_ident["category"] == "global-identity"
+        assert global_ident["status"] == "can_disconnect"
+        assert global_ident["organization"] is None
+
+        # Verify org identity
+        assert org_ident["category"] == "org-identity"
+        assert org_ident["status"] == "needed_for_org_auth"
+        assert org_ident["organization"]["id"] == str(self.organization.id)
+
     def test_get(self):
         social_obj, global_obj, org_obj = self._setup_identities()
 
         social_ident = self.get_success_response(
             self.user.id, "social-identity", str(social_obj.id), status_code=200
         ).data
-        assert social_ident["id"] == str(social_obj.id)
-        assert social_ident["category"] == "social-identity"
-        assert social_ident["status"] == "can_disconnect"
-        assert social_ident["organization"] is None
-
         global_ident = self.get_success_response(
             self.user.id, "global-identity", str(global_obj.id), status_code=200
         ).data
-        assert global_ident["id"] == str(global_obj.id)
-        assert global_ident["category"] == "global-identity"
-        assert global_ident["status"] == "can_disconnect"
-        assert global_ident["organization"] is None
-
         org_ident = self.get_success_response(
             self.user.id, "org-identity", str(org_obj.id), status_code=200
         ).data
+
+        assert social_ident["id"] == str(social_obj.id)
+        assert global_ident["id"] == str(global_obj.id)
         assert org_ident["id"] == str(org_obj.id)
-        assert org_ident["category"] == "org-identity"
-        assert org_ident["status"] == "needed_for_org_auth"
-        assert org_ident["organization"]["id"] == str(self.organization.id)
+        self._verify_identities(social_ident, global_ident, org_ident)
 
     def test_superuser_can_fetch_other_users_identity(self):
         self.login_as(self.superuser, superuser=True)
@@ -231,26 +243,17 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
         social_ident = self.get_success_response(
             self.user.id, "social-identity", str(social_obj.id), status_code=200
         ).data
-        assert social_ident["id"] == str(social_obj.id)
-        assert social_ident["category"] == "social-identity"
-        assert social_ident["status"] == "can_disconnect"
-        assert social_ident["organization"] is None
-
         global_ident = self.get_success_response(
             self.user.id, "global-identity", str(global_obj.id), status_code=200
         ).data
-        assert global_ident["id"] == str(global_obj.id)
-        assert global_ident["category"] == "global-identity"
-        assert global_ident["status"] == "can_disconnect"
-        assert global_ident["organization"] is None
-
         org_ident = self.get_success_response(
             self.user.id, "org-identity", str(org_obj.id), status_code=200
         ).data
+
+        assert social_ident["id"] == str(social_obj.id)
+        assert global_ident["id"] == str(global_obj.id)
         assert org_ident["id"] == str(org_obj.id)
-        assert org_ident["category"] == "org-identity"
-        assert org_ident["status"] == "needed_for_org_auth"
-        assert org_ident["organization"]["id"] == str(self.organization.id)
+        self._verify_identities(social_ident, global_ident, org_ident)
 
     def test_staff_can_fetch_other_users_identity(self):
         self.login_as(self.staff_user, staff=True)
@@ -259,26 +262,17 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
         social_ident = self.get_success_response(
             self.user.id, "social-identity", str(social_obj.id), status_code=200
         ).data
-        assert social_ident["id"] == str(social_obj.id)
-        assert social_ident["category"] == "social-identity"
-        assert social_ident["status"] == "can_disconnect"
-        assert social_ident["organization"] is None
-
         global_ident = self.get_success_response(
             self.user.id, "global-identity", str(global_obj.id), status_code=200
         ).data
-        assert global_ident["id"] == str(global_obj.id)
-        assert global_ident["category"] == "global-identity"
-        assert global_ident["status"] == "can_disconnect"
-        assert global_ident["organization"] is None
-
         org_ident = self.get_success_response(
             self.user.id, "org-identity", str(org_obj.id), status_code=200
         ).data
+
+        assert social_ident["id"] == str(social_obj.id)
+        assert global_ident["id"] == str(global_obj.id)
         assert org_ident["id"] == str(org_obj.id)
-        assert org_ident["category"] == "org-identity"
-        assert org_ident["status"] == "needed_for_org_auth"
-        assert org_ident["organization"]["id"] == str(self.organization.id)
+        self._verify_identities(social_ident, global_ident, org_ident)
 
     def test_enforces_ownership_by_user(self):
         another_user = self.create_user()
