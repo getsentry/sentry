@@ -1788,8 +1788,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:profiling-global-suspect-functions": False,
     # Enable profiling Memory chart
     "organizations:profiling-memory-chart": False,
-    # Enable stacktrace linking of multiple frames in profiles
-    "organizations:profiling-stacktrace-links": False,
     # Enable profiling statistical detectors breakpoint detection
     "organizations:profiling-statistical-detectors-breakpoint": False,
     # Enable profiling statistical detectors ema detection
