@@ -47,7 +47,7 @@ from sentry.utils.snuba import raw_snql_query
 REFERRER = "replays.query.query_replay_clicks_dataset"
 
 
-class ReplayClickResponseData(TypedDict):
+class ReplayClickResponseData(TypedDict, total=False):
     node_id: int
     timestamp: str
 
