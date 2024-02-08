@@ -680,8 +680,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {
                     "name": "",
                     "conditions": "release.stage:adopted",
-                    "fields": ["sometag"],
-                    "columns": [],
+                    "columns": ["sometag"],
+                    "fields": [],
                     "aggregates": ["count()"],
                 }
             ],
@@ -714,8 +714,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {
                     "name": "",
                     "conditions": "release.stage:adopted",
-                    "fields": ["sometag", "someothertag"],
-                    "columns": [],
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
                     "aggregates": ["count()"],
                 }
             ],

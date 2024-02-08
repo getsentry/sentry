@@ -289,14 +289,14 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     def validate(self, data):
         query_errors = []
         self.query_warnings = []
-        all_fields = set()
+        all_columns = set()
         has_query_error = False
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
-                if query.get("fields"):
-                    all_fields = all_fields.union(query.get("fields"))
+                if query.get("columns"):
+                    all_columns = all_columns.union(query.get("columns"))
                 if (
                     data.get("widget_type") == DashboardWidgetTypes.ISSUE
                     and "issue_query_error" in query
@@ -367,9 +367,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                                     }
                                 }
                             )
-        if len(all_fields) > 0:
+        if len(all_columns) > 0:
             field_cardinality = check_field_cardinality(
-                all_fields, self.context["organization"], max_cardinality_allowed
+                all_columns, self.context["organization"], max_cardinality_allowed
             )
             for field, low_cardinality in field_cardinality.items():
                 if not low_cardinality:
