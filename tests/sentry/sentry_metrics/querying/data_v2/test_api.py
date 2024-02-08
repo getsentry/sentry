@@ -69,10 +69,42 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def ts(self, dt: datetime) -> int:
         return int(dt.timestamp())
 
-    # TODO: add tests once the code is implemented.
+    def mql(self, aggregate: str, metric_mri: str, filters: str = "", group_by: str = "") -> str:
+        query = aggregate + f"({metric_mri})"
+        if filters:
+            query += "{" + filters + "}"
+        if group_by:
+            query += " by" + f"({group_by})"
+
+        return query
+
+    def test_query_with_empty_results(self) -> None:
+        for aggregate, expected_identity in (
+            ("count", 0.0),
+            ("avg", None),
+            ("sum", 0.0),
+            ("min", 0.0),
+        ):
+            query_1 = self.mql(aggregate, TransactionMRI.DURATION.value, "transaction:/bar")
+            plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+            results = run_metrics_queries_plan(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+            data = results["data"]
+            assert len(data) == 1
+            assert data[0][0]["by"] == {}
+            assert data[0][0]["series"] == [expected_identity, expected_identity, expected_identity]
+            assert data[0][0]["totals"] == expected_identity
 
     def test_query_with_one_aggregation(self) -> None:
-        query_1 = f"sum({TransactionMRI.DURATION.value})"
+        query_1 = self.mql("sum", TransactionMRI.DURATION.value)
         plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
 
         results = run_metrics_queries_plan(
