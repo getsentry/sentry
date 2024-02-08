@@ -14,7 +14,7 @@ import {space} from 'sentry/styles/space';
 import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import type {SelectionRange} from 'sentry/utils/metrics/types';
 import type {ValueRect} from 'sentry/views/ddm/chartUtils';
-import {getValueRect, isInRect} from 'sentry/views/ddm/chartUtils';
+import {getValueRect} from 'sentry/views/ddm/chartUtils';
 import {CHART_HEIGHT} from 'sentry/views/ddm/constants';
 import type {FocusAreaProps} from 'sentry/views/ddm/context';
 
@@ -76,22 +76,27 @@ export function useFocusArea({
         brushType: 'rect',
       },
     });
-    isDrawingRef.current = true;
   }, [chartRef, hasFocusArea, isDisabled, onDraw]);
 
   useEffect(() => {
-    const handleMouseDown = event => {
-      const rect = chartRef.current?.ele.getBoundingClientRect();
-
-      if (isInRect(event.clientX, event.clientY, rect)) {
-        startBrush();
-      }
+    const chartElement = chartRef.current?.ele;
+    const handleMouseDown = () => {
+      isDrawingRef.current = true;
+      startBrush();
     };
 
-    window.addEventListener('mousedown', handleMouseDown, {capture: true});
+    // Handle mouse up is called after onBrushEnd
+    // We can use it for a final reliable cleanup as onBrushEnd is not always called (e.g. when simply clicking the chart)
+    const handleMouseUp = () => {
+      isDrawingRef.current = false;
+    };
+
+    chartElement?.addEventListener('mousedown', handleMouseDown, {capture: true});
+    window.addEventListener('mouseup', handleMouseUp);
 
     return () => {
-      window.removeEventListener('mousedown', handleMouseDown, {capture: true});
+      chartElement?.removeEventListener('mousedown', handleMouseDown, {capture: true});
+      window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [chartRef, startBrush]);
 

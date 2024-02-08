@@ -1,35 +1,4 @@
-import {fitToValueRect, isInRect} from 'sentry/views/ddm/chartUtils';
-
-describe('isInRect', () => {
-  const rect = {
-    top: 0,
-    left: 0,
-    right: 10,
-    bottom: 10,
-    x: 0,
-    y: 0,
-    width: 10,
-    height: 10,
-    toJSON: () => {},
-  };
-
-  it('should return false if rect is undefined', () => {
-    expect(isInRect(1, 2, undefined)).toBe(false);
-  });
-
-  it('should return true if point is within the rect', () => {
-    expect(isInRect(5, 5, rect)).toBe(true);
-  });
-
-  it('should return false if point is outside the rect', () => {
-    expect(isInRect(11, 11, rect)).toBe(false);
-  });
-
-  it('should return true if point is exactly on the border of the rect', () => {
-    expect(isInRect(0, 0, rect)).toBe(true);
-    expect(isInRect(10, 10, rect)).toBe(true);
-  });
-});
+import {fitToValueRect} from 'sentry/views/ddm/chartUtils';
 
 describe('fitToValueRect', () => {
   it('should return original x and y if rect is undefined', () => {
