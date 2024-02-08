@@ -133,7 +133,6 @@ default_manager.add("organizations:issue-search-group-attributes-side-query", Or
 default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-search-use-cdc-secondary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:issues-similarity-embeddings", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:issues-trace-timeline", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:latest-adopted-release-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
