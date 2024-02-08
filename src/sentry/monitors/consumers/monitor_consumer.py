@@ -269,7 +269,13 @@ def update_existing_check_in(
         return
 
     if updated_duration is None:
-        updated_duration = int((start_time - existing_check_in.date_added).total_seconds() * 1000)
+        # We use abs here because in some cases we might end up having checkins arrive
+        # slightly out of order due to race conditions in relay. In cases like this,
+        # we're happy to just assume that the duration is the absolute different between
+        # the two dates.
+        updated_duration = abs(
+            int((start_time - existing_check_in.date_added).total_seconds() * 1000)
+        )
 
     if not valid_duration(updated_duration):
         metrics.incr(
@@ -760,6 +766,7 @@ def process_checkin(item: CheckinItem):
         ) as txn:
             _process_checkin(item, txn)
     except Exception:
+        metrics.incr("")
         logger.exception("Failed to process check-in")
 
 
