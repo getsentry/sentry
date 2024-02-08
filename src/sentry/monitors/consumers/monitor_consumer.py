@@ -766,7 +766,6 @@ def process_checkin(item: CheckinItem):
         ) as txn:
             _process_checkin(item, txn)
     except Exception:
-        metrics.incr("")
         logger.exception("Failed to process check-in")
 
 
