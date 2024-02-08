@@ -41,9 +41,8 @@ import type {
  *   to calculate this when rendering the tree, as we can only calculate it only for the visible nodes and avoid an extra tree pass
  */
 
-// Autogrouping TOOD
-// autogrouping connector is wrong
-// last child check fails for trace root
+// Zooming out of spans doesnt work
+// Last connector is rendered wrongly
 
 export declare namespace TraceTree {
   type Transaction = TraceFullDetailed;
@@ -95,8 +94,10 @@ export function isTransactionNode(
   return !!(node.value && 'transaction' in node.value);
 }
 
-export function isAutogroupedNode(node: TraceTreeNode<TraceTree.NodeValue>): boolean {
-  return node instanceof ParentAutogroupNode;
+export function isAutogroupedNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is ParentAutoGroupNode {
+  return node instanceof ParentAutoGroupNode;
 }
 
 export class TraceTree {
@@ -258,7 +259,7 @@ export class TraceTree {
         continue;
       }
 
-      const autoGroupedNode = new ParentAutogroupNode(
+      const autoGroupedNode = new ParentAutoGroupNode(
         node.parent,
         {
           ...head.value,
@@ -377,7 +378,7 @@ export class TraceTree {
       return false;
     }
 
-    if (node instanceof ParentAutogroupNode) {
+    if (node instanceof ParentAutoGroupNode) {
       // In parent autogrouping, we perform a node swap and either point the
       // head or tails of the autogrouped sequence to the autogrouped node
       if (node.expanded) {
@@ -585,7 +586,7 @@ export class TraceTreeNode<T> {
     }
 
     this._connectors = [];
-    let node: TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
+    let node: TraceTreeNode<T> | TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
 
     while (node) {
       if (node.value === null) {
@@ -597,7 +598,7 @@ export class TraceTreeNode<T> {
         continue;
       }
 
-      this._connectors.push(node.depth * (node.isOrphaned ? -1 : 1));
+      this._connectors.push(node.isOrphaned ? -node.depth : node.depth);
       node = node.parent;
     }
 
@@ -625,7 +626,7 @@ export class TraceTreeNode<T> {
 
   get isOrphaned() {
     // We should check that parent is trace root
-    return this.parent?.value && 'orphan_errors' in this.parent.value;
+    return this.parent?.value && !!this.parent.value.orphan_errors;
   }
 
   get isLastChild() {
@@ -708,7 +709,7 @@ export class TraceTreeNode<T> {
   }
 }
 
-class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutoGroup> {
+export class ParentAutoGroupNode extends TraceTreeNode<TraceTree.ChildrenAutoGroup> {
   head: TraceTreeNode<TraceTree.Span>;
   tail: TraceTreeNode<TraceTree.Span>;
   groupCount: number = 0;
@@ -734,7 +735,7 @@ class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutoGroup> {
   }
 }
 
-class SiblingAutoGroupNode extends TraceTreeNode<TraceTree.SiblingAutoGroup> {
+export class SiblingAutoGroupNode extends TraceTreeNode<TraceTree.SiblingAutoGroup> {
   constructor(
     parent: TraceTreeNode<TraceTree.NodeValue> | null,
     node: TraceTree.SiblingAutoGroup,

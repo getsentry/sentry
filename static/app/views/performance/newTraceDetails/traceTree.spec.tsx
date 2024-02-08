@@ -254,6 +254,7 @@ describe('TraceTree', () => {
           }),
           makeTransaction(),
         ],
+        orphan_errors: [],
       })
     );
 
@@ -266,31 +267,91 @@ describe('TraceTree', () => {
     expect(tree.list[4].isLastChild).toBe(true);
   });
 
-  it('computes connectors', () => {
-    const tree = TraceTree.FromTrace(
-      makeTrace({
-        transactions: [
-          makeTransaction({
-            children: [makeTransaction(), makeTransaction()],
-          }),
-          makeTransaction(),
-        ],
-      })
-    );
+  describe('connectors', () => {
+    it('computes transaction connectors', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'sibling',
+              children: [
+                makeTransaction({transaction: 'child'}),
+                makeTransaction({transaction: 'child'}),
+              ],
+            }),
+            makeTransaction({transaction: 'sibling'}),
+          ],
+        })
+      );
 
-    // - node1 []
-    // | - child1 [0]
-    // | - child2 [0]
-    // - node2 []
+      // -1  root
+      // ------ list begins here
+      //    0 transaction
+      //      0 |- sibling
+      //      -1|  | - child
+      //      -1|  | - child
+      //      0 |- sibling
 
-    tree.expand(tree.list[1], true);
-    expect(tree.list.length).toBe(5);
+      tree.expand(tree.list[1], true);
+      expect(tree.list.length).toBe(5);
 
-    expect(tree.list[1].connectors.length).toBe(0);
-    expect(tree.list[2].connectors.length).toBe(1);
-    expect(tree.list[2].connectors[0]).toBe(-1);
-    expect(tree.list[3].connectors[0]).toBe(-1);
-    expect(tree.list[4].connectors.length).toBe(0);
+      expect(tree.list[0].connectors.length).toBe(0);
+
+      expect(tree.list[2].connectors[0]).toBe(-1);
+      expect(tree.list[2].connectors.length).toBe(1);
+
+      expect(tree.list[3].connectors[0]).toBe(-1);
+      expect(tree.list[3].connectors.length).toBe(1);
+
+      expect(tree.list[4].connectors.length).toBe(0);
+    });
+
+    it('computes span connectors', async () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              project_slug: 'project',
+              event_id: 'event_id',
+              transaction: 'transaction',
+              children: [],
+            }),
+          ],
+        })
+      );
+
+      // root
+      //  |- node1 []
+      //  |- node2 []
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/project:event_id/',
+        method: 'GET',
+        body: makeEvent({}, [
+          makeRawSpan({start_timestamp: 0, op: 'span', span_id: '1'}),
+        ]),
+      });
+
+      expect(tree.list.length).toBe(2);
+
+      tree.zoomIn(tree.list[1], true, {
+        api: new MockApiClient(),
+        organization: OrganizationFixture(),
+      });
+
+      await waitFor(() => {
+        expect(tree.list.length).toBe(3);
+      });
+
+      // root
+      //  |- node1 []
+      //  |- node2 []
+      //   |- span1 []
+
+      const span = tree.list[tree.list.length - 1];
+      // expect(span.connectors.length).toBe(1);
+      expect(span.connectors[0]).toBe(-1);
+    });
   });
 
   describe('expanding', () => {
@@ -915,7 +976,8 @@ function printTree(tree) {
         ' '.repeat(t.depth) +
         ((t.value?.autogrouped_by?.op && 'autogroup') ||
           t.value.transaction ||
-          t.value.op)
+          t.value.op ||
+          'root')
       );
     })
     .filter(Boolean)
