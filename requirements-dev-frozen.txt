@@ -72,7 +72,7 @@ grpc-google-iam-v1==0.12.4
 grpcio==1.60.1
 grpcio-status==1.60.1
 h11==0.13.0
-hiredis==0.3.1
+hiredis==2.3.2
 honcho==1.1.0
 httpcore==1.0.2
 httpx==0.25.2
@@ -128,7 +128,7 @@ prompt-toolkit==3.0.41
 proto-plus==1.23.0
 protobuf==4.21.6
 psutil==5.9.2
-psycopg2-binary==2.9.7
+psycopg2-binary==2.9.9
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pycodestyle==2.11.0

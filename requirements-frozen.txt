@@ -58,7 +58,7 @@ grpc-google-iam-v1==0.12.4
 grpcio==1.60.1
 grpcio-status==1.60.1
 h11==0.14.0
-hiredis==0.3.1
+hiredis==2.3.2
 httpcore==1.0.2
 httpx==0.25.2
 idna==2.10
@@ -86,7 +86,7 @@ progressbar2==3.41.0
 prompt-toolkit==3.0.41
 proto-plus==1.23.0
 protobuf==4.21.6
-psycopg2-binary==2.9.7
+psycopg2-binary==2.9.9
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pycountry==17.5.14
