@@ -1,6 +1,5 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -25,11 +24,7 @@ export default function ReplayTabs({selected}: Props) {
       },
       {
         key: 'selectors',
-        label: (
-          <Fragment>
-            {t('Selectors')} <FeatureBadge type="new" />
-          </Fragment>
-        ),
+        label: t('Selectors'),
         pathname: normalizeUrl(`/organizations/${organization.slug}/replays/selectors/`),
         query: {...location.query, sort: '-count_dead_clicks'},
       },
