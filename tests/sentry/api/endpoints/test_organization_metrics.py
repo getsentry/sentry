@@ -57,29 +57,43 @@ rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
-        ("sentry-api-0-organization-metrics-details",),
-        ("sentry-api-0-organization-metric-details", "foo"),
-        ("sentry-api-0-organization-metrics-tags",),
-        ("sentry-api-0-organization-metrics-tag-details", "foo"),
-        ("sentry-api-0-organization-metrics-data",),
-        ("sentry-api-0-organization-metrics-query",),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-details",
+        ),
+        ("get", "sentry-api-0-organization-metric-details", "foo"),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-tags",
+        ),
+        ("get", "sentry-api-0-organization-metrics-tag-details", "foo"),
+        (
+            "get",
+            "sentry-api-0-organization-metrics-data",
+        ),
+        (
+            "post",
+            "sentry-api-0-organization-metrics-query",
+        ),
     )
 
-    def send_get_request(self, token, endpoint, *args):
+    def send_request(self, token, method, endpoint, *args):
         url = reverse(endpoint, args=(self.project.organization.slug,) + args)
-        return self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
+        return getattr(self.client, method)(
+            url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+        )
 
     def test_permissions(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=[])
 
-        for endpoint in self.endpoints:
-            response = self.send_get_request(token, *endpoint)
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(token, method, endpoint, *rest)
             assert response.status_code == 403
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
 
-        for endpoint in self.endpoints:
-            response = self.send_get_request(token, *endpoint)
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(token, method, endpoint, *rest)
             assert response.status_code in (200, 400, 404)
