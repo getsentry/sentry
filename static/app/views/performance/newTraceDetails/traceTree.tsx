@@ -281,7 +281,11 @@ export class TraceTree {
       // Match count is 1 indexed
       autoGroupedNode.groupCount = groupMatchCount + 1;
       // Tail points to autogrouped node
-      tail.parent = autoGroupedNode;
+      // tail.parent = autoGroupedNode;
+
+      for (const c of tail.children) {
+        c.parent = autoGroupedNode;
+      }
 
       const index = node.parent.children.indexOf(node);
       node.parent.children[index] = autoGroupedNode;
