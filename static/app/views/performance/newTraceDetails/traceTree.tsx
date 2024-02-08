@@ -447,6 +447,7 @@ export class TraceTree {
 
       node.zoomedIn = zoomedIn;
 
+      node.setSpanChildren([]);
       if (node.expanded) {
         this._list.splice(index + 1, 0, ...node.getVisibleChildren());
       }
