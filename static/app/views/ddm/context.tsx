@@ -229,10 +229,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
     () =>
       selectedProjects.some(
         project =>
-          true ||
-          project.hasCustomMetrics ||
-          project.hasSessions ||
-          project.firstTransactionEvent
+          project.hasCustomMetrics || project.hasSessions || project.firstTransactionEvent
       ),
     [selectedProjects]
   );
