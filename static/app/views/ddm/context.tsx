@@ -17,10 +17,10 @@ import {
 } from 'sentry/utils/metrics';
 import {DEFAULT_SORT_STATE, emptyWidget} from 'sentry/utils/metrics/constants';
 import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
-import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaSelection} from 'sentry/views/ddm/focusArea';
 import {useStructuralSharing} from 'sentry/views/ddm/useStructuralSharing';
@@ -35,9 +35,8 @@ export type FocusAreaProps = {
 interface DDMContextValue {
   addWidget: () => void;
   duplicateWidget: (index: number) => void;
+  hasMetrics: boolean;
   isDefaultQuery: boolean;
-  isLoading: boolean;
-  metricsMeta: ReturnType<typeof useMetricsMeta>['data'];
   removeWidget: (index: number) => void;
   selectedWidgetIndex: number;
   setDefaultQuery: (query: Record<string, any> | null) => void;
@@ -54,8 +53,7 @@ export const DDMContext = createContext<DDMContextValue>({
   addWidget: () => {},
   duplicateWidget: () => {},
   isDefaultQuery: false,
-  isLoading: false,
-  metricsMeta: [],
+  hasMetrics: false,
   removeWidget: () => {},
   selectedWidgetIndex: 0,
   setDefaultQuery: () => {},
@@ -198,6 +196,15 @@ const useDefaultQuery = () => {
   );
 };
 
+function useSelectedProjects() {
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
+  return useMemo(() => {
+    return projects.filter(project => selection.projects.includes(Number(project.id)));
+  }, [selection.projects, projects]);
+}
+
 export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
@@ -210,7 +217,16 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
   const [highlightedSampleId, setHighlightedSampleId] = useState<string | undefined>();
 
   const pageFilters = usePageFilters().selection;
-  const {data: metricsMeta, isLoading} = useMetricsMeta(pageFilters);
+
+  const selectedProjects = useSelectedProjects();
+  const hasMetrics = useMemo(
+    () =>
+      selectedProjects.some(
+        project =>
+          project.hasCustomMetrics || project.hasSessions || project.firstTransactionEvent
+      ),
+    [selectedProjects]
+  );
 
   const focusAreaSelection = useMemo<FocusAreaSelection | undefined>(
     () => router.location.query.focusArea && JSON.parse(router.location.query.focusArea),
@@ -284,8 +300,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       removeWidget,
       duplicateWidget: handleDuplicate,
       widgets,
-      isLoading,
-      metricsMeta,
+      hasMetrics,
       focusArea,
       setDefaultQuery,
       isDefaultQuery,
@@ -300,8 +315,7 @@ export function DDMContextProvider({children}: {children: React.ReactNode}) {
       handleUpdateWidget,
       removeWidget,
       handleDuplicate,
-      isLoading,
-      metricsMeta,
+      hasMetrics,
       focusArea,
       setDefaultQuery,
       isDefaultQuery,
