@@ -98,7 +98,11 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
 
     @with_feature("projects:issue-priority")
     def test_valid_payload_unresolved_escalating(self) -> None:
-        self.group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING)
+        self.group.update(
+            status=GroupStatus.IGNORED,
+            substatus=GroupSubStatus.UNTIL_ESCALATING,
+            priority=PriorityLevel.MEDIUM,
+        )
         message = get_test_message_status_change(
             self.project.id,
             fingerprint=self.fingerprint,

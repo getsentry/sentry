@@ -4,7 +4,7 @@ import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.utils.timezone import is_aware
 
@@ -35,6 +35,7 @@ class IssueOccurrenceData(TypedDict):
     detection_time: float
     level: str | None
     culprit: str | None
+    initial_issue_priority: NotRequired[int]
 
 
 @dataclass(frozen=True)
@@ -86,6 +87,7 @@ class IssueOccurrence:
     detection_time: datetime
     level: str
     culprit: str
+    initial_issue_priority: int | None = None
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -108,6 +110,7 @@ class IssueOccurrence:
             "detection_time": self.detection_time.timestamp(),
             "level": self.level,
             "culprit": self.culprit,
+            "initial_issue_priority": self.initial_issue_priority,
         }
 
     @classmethod
@@ -137,6 +140,7 @@ class IssueOccurrence:
             cast(datetime, parse_timestamp(data["detection_time"])),
             level,
             culprit,
+            data.get("initial_issue_priority"),
         )
 
     @property

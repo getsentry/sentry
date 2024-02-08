@@ -325,6 +325,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
             "type": occurrence.type.type_id,
             "first_release": None,
             "data": materialize_metadata(occurrence, event),
+            "priority": occurrence.initial_issue_priority,
         }
 
 
@@ -339,6 +340,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
             "title": occurrence.issue_title,
             "location": event.location,
             "last_received": json.datetime_to_str(event.datetime),
+            "initial_priority": occurrence.initial_issue_priority,
         }
 
     def test_preserves_existing_metadata(self) -> None:
