@@ -38,7 +38,6 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 from sentry.models.actor import Actor
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
@@ -1401,6 +1400,7 @@ def get_alert_rule_trigger_action_opsgenie_team(
     input_channel_id=None,
     integrations=None,
 ) -> tuple[str, str]:
+    from sentry.integrations.opsgenie.integration import OpsgenieIntegration
     from sentry.integrations.opsgenie.utils import get_team
 
     integration, oi = integration_service.get_organization_context(

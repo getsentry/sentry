@@ -6,7 +6,6 @@ from typing import Any, cast
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
@@ -63,6 +62,8 @@ def send_incident_alert_notification(
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:
+    from sentry.integrations.opsgenie.integration import OpsgenieIntegration
+
     integration, org_integration = integration_service.get_organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
