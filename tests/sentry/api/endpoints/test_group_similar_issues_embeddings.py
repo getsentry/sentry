@@ -73,7 +73,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         num_frames_per_value: int,
         starting_frame_number: int = 1,
         in_app: bool = True,
-    ) -> Sequence[dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Return an exception value dictionary, where the line number corresponds to the total frame
         number
