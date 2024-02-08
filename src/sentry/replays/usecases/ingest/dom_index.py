@@ -315,7 +315,8 @@ def create_click_event(
     is_dead: bool,
     is_rage: bool,
 ) -> ReplayActionsEventPayloadClick | None:
-    node = payload.get("data", {}).get("node")
+    payload_data = payload.get("data", {}) if isinstance(payload.get("data"), dict) else {}
+    node = payload_data.get("node")
     if node is None:
         return None
 
