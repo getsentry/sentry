@@ -616,6 +616,7 @@ from .endpoints.user_social_identity_details import UserSocialIdentityDetailsEnd
 from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.userroles_details import UserRoleDetailsEndpoint
 from .endpoints.userroles_index import UserRolesEndpoint
+from .endpoints.vroom import VroomOptionsEndpoint
 
 __all__ = ("urlpatterns",)
 
@@ -2908,11 +2909,24 @@ INTERNAL_URLS = [
     ),
 ]
 
+VROOM_URLS = [
+    re_path(
+        r"^options/$",
+        VroomOptionsEndpoint.as_view(),
+        name="sentry-api-0-vroom-options",
+    ),
+]
+
 urlpatterns = [
     # Relay
     re_path(
         r"^relays/",
         include(RELAY_URLS),
+    ),
+    # Vroom
+    re_path(
+        r"^vrooms/",
+        include(VROOM_URLS),
     ),
     # Groups / Issues
     re_path(
