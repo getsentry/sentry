@@ -2015,12 +2015,9 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         super().setUp()
         self._index_metric_strings()
 
-    def do_request(self, data: Any, url: str = None, features: dict[str, bool] = None) -> Response:
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+    def do_request(self, data: dict[str, Any]) -> Response:
+        with self.feature(self.features):
+            return self.client.get(self.url, data=data, format="json")
 
     def _on_demand_query_check(
         self,
