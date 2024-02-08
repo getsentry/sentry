@@ -1759,7 +1759,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
             data={"event_id": event.event_id, "forecast": 0},
         ).exists()
 
-    @with_feature("projects:first-event-severity-new-escalation")
+    @with_feature("projects:high-priority-alerts")
     @patch("sentry.issues.escalating.is_escalating")
     def test_skip_escalation_logic_for_new_groups(self, mock_is_escalating):
         """
@@ -2032,7 +2032,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         )
         event.group = Group.objects.get(id=group.id)
 
-        with self.feature("projects:first-event-severity-new-escalation"):
+        with self.feature("projects:high-priority-alerts"):
             with patch("sentry.issues.issue_velocity.calculate_threshold", return_value=9):
                 self.call_post_process_group(
                     is_new=True,
@@ -2074,7 +2074,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group = event.group
         group.update(first_seen=django_timezone.now() - timedelta(days=2), times_seen=10000)
 
-        with self.feature("projects:first-event-severity-new-escalation"):
+        with self.feature("projects:high-priority-alerts"):
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -2100,7 +2100,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             priority=PriorityLevel.LOW,
         )
 
-        with self.feature("projects:first-event-severity-new-escalation"):
+        with self.feature("projects:high-priority-alerts"):
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -2121,7 +2121,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group = event.group
         group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10000)
         lock = locks.get(f"detect_escalation:{group.id}", duration=10, name="detect_escalation")
-        with self.feature("projects:first-event-severity-new-escalation"), lock.acquire():
+        with self.feature("projects:high-priority-alerts"), lock.acquire():
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -2151,7 +2151,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             substatus=GroupSubStatus.ESCALATING,
             priority=PriorityLevel.MEDIUM,
         )
-        with self.feature("projects:first-event-severity-new-escalation"):
+        with self.feature("projects:high-priority-alerts"):
             self.call_post_process_group(
                 is_new=False,
                 is_regression=False,
@@ -2181,7 +2181,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
             )
             group.save()
 
-            with self.feature("projects:first-event-severity-new-escalation"):
+            with self.feature("projects:high-priority-alerts"):
                 self.call_post_process_group(
                     is_new=False,  # when true, post_process sets the substatus to NEW
                     is_regression=False,
@@ -2202,7 +2202,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=9)
         event.group = Group.objects.get(id=group.id)
 
-        with self.feature("projects:first-event-severity-new-escalation"):
+        with self.feature("projects:high-priority-alerts"):
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -2224,7 +2224,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         group.update(first_seen=django_timezone.now() - timedelta(minutes=1), times_seen=10)
         event.group = Group.objects.get(id=group.id)
 
-        with self.feature("projects:first-event-severity-new-escalation"):
+        with self.feature("projects:high-priority-alerts"):
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -2242,7 +2242,7 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
         group.update(first_seen=django_timezone.now() - timedelta(hours=1), times_seen=10000)
-        with self.feature("projects:first-event-severity-new-escalation"):
+        with self.feature("projects:high-priority-alerts"):
             self.call_post_process_group(
                 is_new=True,
                 is_regression=False,

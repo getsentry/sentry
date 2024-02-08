@@ -309,7 +309,6 @@ default_manager.add("projects:ai-autofix", ProjectFeature, FeatureHandlerStrateg
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:first-event-severity-alerting", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:high-priority-alerts", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:issue-priority", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("projects:minidump", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

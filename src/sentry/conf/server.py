@@ -1975,8 +1975,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "projects:first-event-severity-alerting": False,
     # Enable calculating a severity score for events which create a new group
     "projects:first-event-severity-calculation": False,
-    # Enable escalation detection for new issues
-    "projects:first-event-severity-new-escalation": False,
     # Enable severity alerts for new issues based on severity and escalation
     "projects:high-priority-alerts": False,
     # Enable setting priority for issues

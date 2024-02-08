@@ -244,9 +244,11 @@ def handle_owner_assignment(job):
                         cache.set(
                             assignee_key,
                             assignees_exists,
-                            ASSIGNEE_EXISTS_DURATION
-                            if assignees_exists
-                            else ASSIGNEE_DOES_NOT_EXIST_DURATION,
+                            (
+                                ASSIGNEE_EXISTS_DURATION
+                                if assignees_exists
+                                else ASSIGNEE_DOES_NOT_EXIST_DURATION
+                            ),
                         )
 
                     if assignees_exists:
@@ -904,7 +906,7 @@ def process_snoozes(job: PostProcessJob) -> None:
     group_age_hours = (timezone.now() - group.first_seen).total_seconds() / 3600
     should_use_new_escalation_logic = (
         group_age_hours < MAX_NEW_ESCALATION_AGE_HOURS
-        and features.has("projects:first-event-severity-new-escalation", group.project)
+        and features.has("projects:high-priority-alerts", group.project)
     )
     # Check if group is escalating
     if (
@@ -1400,9 +1402,7 @@ def detect_new_escalation(job: PostProcessJob):
     from sentry.types.activity import ActivityType
 
     group = job["event"].group
-    if not group or not features.has(
-        "projects:first-event-severity-new-escalation", job["event"].project
-    ):
+    if not group or not features.has("projects:high-priority-alerts", job["event"].project):
         return
     extra = {
         "org_id": group.organization.id,
