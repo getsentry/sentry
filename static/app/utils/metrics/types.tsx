@@ -15,12 +15,14 @@ export type SortState = {
   order: 'asc' | 'desc';
 };
 
+export interface FocusedMetricsSeries {
+  seriesName: string;
+  groupBy?: Record<string, string>;
+}
+
 export interface MetricWidgetQueryParams extends MetricsQuerySubject {
   displayType: MetricDisplayType;
-  focusedSeries?: {
-    seriesName: string;
-    groupBy?: Record<string, string>;
-  };
+  focusedSeries?: FocusedMetricsSeries[];
   highlightedSample?: string | null;
   powerUserMode?: boolean;
   showSummaryTable?: boolean;
