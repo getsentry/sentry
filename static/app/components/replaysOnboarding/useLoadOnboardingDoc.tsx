@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {replayPlatforms} from 'sentry/data/platformCategories';
@@ -39,12 +40,15 @@ function useLoadOnboardingDoc({
         setModule(null);
         return;
       }
-
-      const mod = await import(
-        /* webpackExclude: /.spec/ */
-        `sentry/gettingStartedDocs/${platformPath}`
-      );
-      setModule(mod);
+      try {
+        const mod = await import(
+          /* webpackExclude: /.spec/ */
+          `sentry/gettingStartedDocs/${platformPath}`
+        );
+        setModule(mod);
+      } catch (err) {
+        Sentry.captureException(err);
+      }
     }
     getGettingStartedDoc();
     return () => {
