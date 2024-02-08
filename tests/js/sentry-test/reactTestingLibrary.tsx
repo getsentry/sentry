@@ -3,7 +3,6 @@ import type {InjectedRouter} from 'react-router';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
-import * as reactHooks from '@testing-library/react-hooks'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -157,4 +156,4 @@ instrumentUserEvent(globalSentry?.getCurrentHub.bind(globalSentry));
 export * from '@testing-library/react';
 
 // eslint-disable-next-line import/export
-export {render, renderGlobalModal, userEvent, reactHooks, fireEvent};
+export {render, renderGlobalModal, userEvent, fireEvent};
