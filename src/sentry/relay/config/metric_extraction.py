@@ -467,7 +467,11 @@ def _can_widget_query_use_stateful_extraction(
     default_version_specs = specs_per_version.get(stateful_extraction_version, [])
     spec_hashes = [hashed_spec[0] for hashed_spec in default_version_specs]
 
-    on_demand_entries = [entry for entry in widget_query.dashboardwidgetqueryondemand_set.all() if entry.spec_version == stateful_extraction_version]
+    on_demand_entries = [
+        entry
+        for entry in widget_query.dashboardwidgetqueryondemand_set.all()
+        if entry.spec_version == stateful_extraction_version
+    ]
 
     if len(on_demand_entries) == 0:
         # 0 on-demand entries is expected, and happens when the on-demand task hasn't caught up yet for newly created widgets or widgets recently modified to have on-demand state.
