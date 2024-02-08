@@ -360,7 +360,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -374,7 +374,7 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -387,7 +387,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
 class DifAssembleEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_NATIVE
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
