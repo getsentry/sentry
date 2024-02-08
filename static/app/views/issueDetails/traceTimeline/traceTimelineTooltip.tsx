@@ -40,6 +40,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
     <UnstyledUnorderedList>
       {displayYouAreHere && <YouAreHereItem>{t('You are here')}</YouAreHereItem>}
       <EventItemsWrapper>
+        <EventItemsTitle>{t('Around the same time')}</EventItemsTitle>
         {filteredTimelineEvents.slice(0, 3).map(timelineEvent => {
           const project = projects.find(p => p.slug === timelineEvent.project);
           return (
@@ -115,7 +116,15 @@ const UnstyledUnorderedList = styled('div')`
 const EventItemsWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(0.5)};
+  padding: ${space(1)} ${space(0.5)} ${space(0.5)} ${space(0.5)};
+`;
+
+const EventItemsTitle = styled('div')`
+  padding-left: ${space(1)};
+  text-transform: uppercase;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: 600;
+  color: ${p => p.theme.subText};
 `;
 
 const YouAreHere = styled('div')`
