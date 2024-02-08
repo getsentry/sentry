@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from sentry.api.serializers.rest_framework.rule import (
     ACTION_UUID_KEY,
@@ -47,7 +48,7 @@ class TestEnsureActionUuid:
         assert uuid.UUID(action[ACTION_UUID_KEY])
 
     def test_adds_uuid_key_when_not_found(self) -> None:
-        action = {}
+        action: dict[Any, Any] = {}
 
         _ensure_action_uuid(action)
 
