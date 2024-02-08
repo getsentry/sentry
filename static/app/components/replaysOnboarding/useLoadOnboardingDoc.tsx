@@ -37,6 +37,7 @@ function useLoadOnboardingDoc({
     async function getGettingStartedDoc() {
       if (!replayPlatforms.includes(platform.id)) {
         setModule(null);
+        return;
       }
 
       const mod = await import(
