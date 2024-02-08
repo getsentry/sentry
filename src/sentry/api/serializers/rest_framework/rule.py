@@ -8,6 +8,7 @@ from rest_framework import serializers
 from sentry import features
 from sentry.api.fields.actor import ActorField
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
+from sentry.db.models.fields import uuid
 from sentry.models.environment import Environment
 from sentry.rules import rules
 from sentry.utils import json
