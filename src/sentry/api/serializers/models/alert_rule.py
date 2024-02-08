@@ -62,7 +62,7 @@ class AlertRuleSerializerResponse(TypedDict):
     dateModified: datetime
     dateCreated: datetime
     createdBy: dict
-    environment: NotRequired[str | None]
+    environment: NotRequired[str | float | None]
     projects: NotRequired[list[str] | None]
     excludedProjects: NotRequired[list[dict] | None]
     queryType: NotRequired[int | None]
@@ -77,6 +77,10 @@ class AlertRuleSerializerResponse(TypedDict):
     totalThisWeek: NotRequired[int | None]
     snooze: NotRequired[bool | None]
     latestIncident: NotRequired[datetime | None]
+
+
+print(AlertRuleSerializerResponse.__required_keys__)
+print(AlertRuleSerializerResponse.__optional_keys__)
 
 
 @register(AlertRule)

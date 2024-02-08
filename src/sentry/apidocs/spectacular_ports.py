@@ -30,11 +30,12 @@
 
 import collections
 import inspect
+import json
 import typing
 from collections import defaultdict
 from enum import Enum
 from types import UnionType
-from typing import Any, Literal, NotRequired, Optional, Union
+from typing import Any, Literal, NotRequired, Optional, TypedDict, Union
 from typing import get_type_hints as _get_type_hints
 from typing import is_typeddict
 
@@ -49,7 +50,6 @@ from drf_spectacular.plumbing import (
 from drf_spectacular.types import OpenApiTypes
 
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializerResponse
-from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
@@ -67,11 +67,11 @@ from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 def get_type_hints(hint, **kwargs):
     try:
-        return _get_type_hints(hint, **kwargs, include_extras=True)
+        return _get_type_hints(hint, **kwargs)
     except NameError:
         # try to resolve a circular import from TYPE_CHECKING imports
         reload_module_with_type_checking_enabled(hint.__module__)
-        return _get_type_hints(hint, **kwargs, include_extras=True)
+        return _get_type_hints(hint, **kwargs)
     except TypeError:
         raise UnableToProceedError(
             f"""Unable to resolve type hints for {hint}.
@@ -85,16 +85,23 @@ def _get_type_hint_origin(hint):
     return typing.get_origin(hint), typing.get_args(hint)
 
 
+class ThingBase(TypedDict, total=False):
+    b: int
+
+
+class Thing(ThingBase):
+    a: int
+    c: NotRequired[int]
+
+
 def resolve_type_hint(hint) -> Any:
     """drf-spectacular library method modified as described above"""
     origin, args = _get_type_hint_origin(hint)
     excluded_fields = get_override(hint, "exclude_fields", [])
 
-    if origin is NotRequired:
-        a = [resolve_type_hint(arg) for arg in args]
-        print(a)
-        return a
-    elif origin is None and is_basic_type(hint, allow_none=False):
+    # if origin is NotRequired:
+    #     return resolve_type_hint(args[0])
+    if origin is None and is_basic_type(hint, allow_none=False):
         return build_basic_type(hint)
     elif origin is None and inspect.isclass(hint) and issubclass(hint, tuple):
         # a convoluted way to catch NamedTuple. suggestions welcome.
@@ -136,12 +143,13 @@ def resolve_type_hint(hint) -> Any:
             schema.update(build_basic_type(mixin_base_types[0]))
         return schema
     elif is_typeddict(hint):
-        # print(hint, hint.__required_keys__)
         if hint == AlertRuleSerializerResponse:
-            print(origin, args)
-            print(hint, hint.__required_keys__)
-            # if "snooze" in hint.__required_keys__:
-            #     raise Exception
+            print(hint, json.dumps(list(hint.__required_keys__), indent=4))
+            if "snooze" in hint.__required_keys__:
+                print(Thing.__required_keys__)
+                print(Thing.__optional_keys__)
+                print(hint.__optional_keys__)
+                # raise Exception
         return build_object_type(
             properties={
                 k: resolve_type_hint(v)
@@ -158,10 +166,20 @@ def resolve_type_hint(hint) -> Any:
         else:
             schema = resolve_type_hint(type_args[0])
         if type(None) in args:
-            schema["nullable"] = True
+            # There's an issue where if 3 or more types are OR'd together and one of
+            # them is None, validating the schema will fail because "nullable: true"
+            # with "anyOf" raises an error because there is no "type" key on the
+            # schema. This works around it by including a proxy null object in
+            # the "anyOf".
+            # See:
+            #   - https://github.com/tfranzel/drf-spectacular/issues/925
+            #   - https://github.com/OAI/OpenAPI-Specification/issues/1368.
+            if len(args) > 2:
+                schema["oneOf"].append({"type": "object", "nullable": True})
+            else:
+                schema["nullable"] = True
         return schema
     elif origin is collections.abc.Iterable:
         return build_array_type(resolve_type_hint(args[0]))
     else:
-        print(origin, args)
         raise UnableToProceedError(hint)

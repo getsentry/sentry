@@ -68,6 +68,7 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
         return self.target.__name__
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
+        print(self.target.typeSchema)
         return resolve_type_hint(self.target.typeSchema)
 
 
