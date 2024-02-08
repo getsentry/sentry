@@ -50,6 +50,7 @@ from sentry.grouping.ingest import (
     find_existing_grouphash,
     find_existing_grouphash_new,
     get_hash_values,
+    record_new_group_metrics,
     update_grouping_config_if_needed,
 )
 from sentry.ingest.inbound_filters import FilterStatKeys
@@ -1676,27 +1677,7 @@ def _save_aggregate_new(
                 span.set_tag("create_group_transaction.outcome", "new_group")
                 metric_tags["create_group_transaction.outcome"] = "new_group"
 
-                metrics.incr(
-                    "group.created",
-                    skip_internal=True,
-                    tags={
-                        "platform": event.platform or "unknown",
-                        "sdk": normalized_sdk_tag_from_event(event),
-                    },
-                )
-
-                # This only applies to events with stacktraces
-                frame_mix = event.get_event_metadata().get("in_app_frame_mix")
-                if frame_mix:
-                    metrics.incr(
-                        "grouping.in_app_frame_mix",
-                        sample_rate=1.0,
-                        tags={
-                            "platform": event.platform or "unknown",
-                            "sdk": normalized_sdk_tag_from_event(event),
-                            "frame_mix": frame_mix,
-                        },
-                    )
+                record_new_group_metrics(event)
 
                 return GroupInfo(group, is_new, is_regression)
 

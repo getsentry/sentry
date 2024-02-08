@@ -403,3 +403,27 @@ def get_hash_values(
         job["finest_tree_label"] = all_hashes.finest_tree_label
 
     return (primary_hashes, secondary_hashes, all_hashes)
+
+
+def record_new_group_metrics(event: Event):
+    metrics.incr(
+        "group.created",
+        skip_internal=True,
+        tags={
+            "platform": event.platform or "unknown",
+            "sdk": normalized_sdk_tag_from_event(event),
+        },
+    )
+
+    # This only applies to events with stacktraces
+    frame_mix = event.get_event_metadata().get("in_app_frame_mix")
+    if frame_mix:
+        metrics.incr(
+            "grouping.in_app_frame_mix",
+            sample_rate=1.0,
+            tags={
+                "platform": event.platform or "unknown",
+                "sdk": normalized_sdk_tag_from_event(event),
+                "frame_mix": frame_mix,
+            },
+        )
