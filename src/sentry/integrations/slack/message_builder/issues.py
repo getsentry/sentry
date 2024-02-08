@@ -629,7 +629,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # build up text block
         if text:
             text = text.lstrip(" ")
-            blocks.append(self.get_rich_text_preformatted_block(text))
+            if text:
+                blocks.append(self.get_rich_text_preformatted_block(text))
 
         # build up actions text
         if self.actions and self.identity and not action_text:
