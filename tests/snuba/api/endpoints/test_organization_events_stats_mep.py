@@ -1458,3 +1458,33 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             [{"count": 5.0}],
             [{"count": 10.0}],
         ]
+
+    def test_on_demand_table_user_misery(self):
+        resp = self._on_demand_query_check(
+            {
+                "dataset": "metricsEnhanced",
+                "environment": "prod",
+                "interval": "30m",
+                "onDemandType": "dynamic_query",
+                "orderby": "",
+                "partial": 1,
+                "project": self.project.id,
+                "query": "",
+                "referrer": "api.dashboards.widget.line-chart",
+                "statsPeriod": "7d",
+                "useOnDemandMetrics": "true",
+                "yAxis": "user_misery(300)",
+            },
+        )
+        for datum in resp.data["data"]:
+            # XXX: Find a way to have some user misery data
+            assert datum[1] == [{"count": 0}]
+        assert resp.data["meta"] == {
+            "fields": {"time": "date", "user_misery_300": "number"},
+            "units": {"time": None, "user_misery_300": None},
+            "isMetricsData": True,
+            "isMetricsExtractedData": True,
+            "tips": {},
+            "datasetReason": "unchanged",
+            "dataset": "metricsEnhanced",
+        }

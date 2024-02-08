@@ -3198,6 +3198,28 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
         }
 
+    def test_on_demand_big_number_user_misery(self):
+        resp = self._on_demand_query_check(
+            {
+                "field": ["user_misery(300)"],
+                "project": self.project.id,
+                "query": "",
+                "environment": "prod",
+            },
+        )
+        assert resp.data == {
+            "data": [{"user_misery(300)": 0.05}],
+            "meta": {
+                "fields": {"user_misery(300)": "number"},
+                "units": {"user_misery(300)": None},
+                "isMetricsData": True,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "datasetReason": "unchanged",
+                "dataset": "metricsEnhanced",
+            },
+        }
+
 
 @region_silo_test
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
