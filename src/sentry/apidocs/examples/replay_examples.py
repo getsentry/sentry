@@ -50,6 +50,20 @@ class ReplayExamples:
         )
     ]
 
+    GET_REPLAY_CLIKS = [
+        OpenApiExample(
+            "Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked.",
+            value={
+                "data": [
+                    {"node_id": 1, "timestamp": "2024-02-08T15:52:25+00:00"},
+                    {"node_id": 2, "timestamp": "2024-02-08T15:52:30+00:00"},
+                ]
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
     GET_REPLAY_DETAILS = [
         OpenApiExample(
             "Get single replay details",
