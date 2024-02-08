@@ -199,9 +199,9 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
 
     def _verify_identities(
         self,
-        social_ident: UserSocialAuth,
-        global_ident: Identity,
-        org_ident: AuthIdentity,
+        social_ident,
+        global_ident,
+        org_ident,
     ) -> None:
         # Verify social identity
         assert social_ident["category"] == "social-identity"
