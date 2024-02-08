@@ -106,7 +106,7 @@ def process_event(message: IngestMessage, project: Project) -> None:
     # serializing it again.
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
-    data = json.loads(payload, use_rapid_json=True)
+    data = json.loads(payload, use_rapid_json=True, skip_trace=True)
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
             "internal.captured.ingest_consumer.parsed",

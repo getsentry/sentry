@@ -85,7 +85,9 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__next_step.submit(message)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> GenericMetric:
-        payload = json.loads(message.payload.value.decode("utf-8"), use_rapid_json=True)
+        payload = json.loads(
+            message.payload.value.decode("utf-8"), use_rapid_json=True, skip_trace=True
+        )
         return cast(GenericMetric, payload)
 
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
