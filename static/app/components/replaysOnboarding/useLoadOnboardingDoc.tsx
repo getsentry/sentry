@@ -15,9 +15,13 @@ function useLoadOnboardingDoc({
   platform: PlatformIntegration;
   projectSlug: string;
 }) {
-  const [module, setModule] = useState<null | {
-    default: Docs<any>;
-  }>(null);
+  const [module, setModule] = useState<
+    | null
+    | {
+        default: Docs<any>;
+      }
+    | 'none'
+  >(null);
 
   const platformPath =
     platform?.type === 'framework'
@@ -37,7 +41,7 @@ function useLoadOnboardingDoc({
   useEffect(() => {
     async function getGettingStartedDoc() {
       if (!replayPlatforms.includes(platform.id)) {
-        setModule(null);
+        setModule('none');
         return;
       }
       try {
@@ -55,6 +59,12 @@ function useLoadOnboardingDoc({
       setModule(null);
     };
   }, [platformPath, platform.id]);
+
+  if (module === 'none') {
+    return {
+      docs: null,
+    };
+  }
 
   if (!module || projectKeysIsLoading) {
     return {
