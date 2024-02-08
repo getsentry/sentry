@@ -75,7 +75,7 @@ function IssueListActions({
 
   const disableActions = useMedia(
     `(max-width: ${
-      isSavedSearchesOpen ? theme.breakpoints.large : theme.breakpoints.small
+      isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
     })`
   );
 

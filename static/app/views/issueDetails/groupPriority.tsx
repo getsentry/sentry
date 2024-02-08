@@ -30,6 +30,7 @@ function GroupPriority({group}: GroupDetailsPriorityProps) {
     });
 
     addLoadingMessage(t('Saving changes\u2026'));
+    IssueListCacheStore.reset();
 
     bulkUpdate(
       api,
@@ -41,8 +42,6 @@ function GroupPriority({group}: GroupDetailsPriorityProps) {
       },
       {complete: clearIndicators}
     );
-
-    IssueListCacheStore.reset();
   };
 
   return (
