@@ -880,6 +880,7 @@ describe('TraceTree', () => {
       });
 
       await waitFor(() => {
+        printTree(tree);
         expect(tree.list.length).toBe(6);
       });
 
@@ -893,7 +894,7 @@ describe('TraceTree', () => {
       expect(autogroupedNode.head.value.span_id).toBe('2');
       // @ts-expect-error dont care about type guards
       expect(autogroupedNode.tail.value.span_id).toBe('5');
-
+      printTree(tree);
       // Expand autogrouped node
       expect(tree.expand(autogroupedNode, true)).toBe(true);
       expect(tree.list.length).toBe(10);
