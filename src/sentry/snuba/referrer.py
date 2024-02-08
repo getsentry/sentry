@@ -69,6 +69,7 @@ class Referrer(Enum):
     API_DDM_FETCH_SPANS = "api.ddm.fetch.spans"
     API_DDM_FETCH_METRICS_SUMMARIES = "api.ddm.fetch.metrics_summaries"
     API_DDM_METRICS_DATA = "api.ddm.metrics.data"
+    API_DDM_METRICS_QUERY = "api.ddm.metrics.query"
 
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (

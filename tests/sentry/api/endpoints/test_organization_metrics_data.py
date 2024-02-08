@@ -657,8 +657,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             {
                 "by": {},
                 "totals": {
-                    "max(transaction.measurements.lcp)": 3 * 123.4,
-                    "min(transaction.measurements.lcp)": 1 * 123.4,
+                    "max(transaction.measurements.lcp)": pytest.approx(3 * 123.4),
+                    "min(transaction.measurements.lcp)": pytest.approx(1 * 123.4),
                 },
             }
         ]
