@@ -22,6 +22,7 @@ from sentry.replays.usecases.reader import download_segment, fetch_segment_metad
 
 
 @region_silo_endpoint
+@extend_schema(tags=["Replays"])
 class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
@@ -40,6 +41,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
         examples=ReplayExamples.GET_REPLAY_SEGMENTS,
     )
     def get(self, request: Request, project, replay_id, segment_id) -> HttpResponseBase:
+        """Return a replay recording segment."""
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
