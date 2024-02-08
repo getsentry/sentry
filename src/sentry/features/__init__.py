@@ -219,7 +219,6 @@ default_manager.add("organizations:profiling-differential-flamegraph-page", Orga
 default_manager.add("organizations:profiling-differential-flamegraph", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-global-suspect-functions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-memory-chart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:profiling-stacktrace-links", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:profiling-statistical-detectors-breakpoint", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:profiling-statistical-detectors-ema", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:profiling-summary-redesign", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
