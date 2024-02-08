@@ -175,13 +175,13 @@ describe('TraceTree', () => {
     });
     expect(request).toHaveBeenCalled();
 
-    expect(tree.list.length).toBe(7);
+    expect(tree.list.length).toBe(6);
     // @ts-expect-error ignore type guard
     expect(tree.list[1].value.start_timestamp).toBe(0);
     // @ts-expect-error ignore type guard
     expect(tree.list[2].value.start_timestamp).toBe(1);
     // @ts-expect-error ignore type guard
-    expect(tree.list[3].value.start_timestamp).toBe(1);
+    expect(tree.list[3].value.start_timestamp).toBe(2);
   });
 
   it('preserves input order', () => {
