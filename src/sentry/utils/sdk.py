@@ -474,7 +474,7 @@ def configure_sdk():
             ThreadingIntegration(propagate_hub=True),
             OpenAiIntegration(capture_prompts=True),
         ],
-        spotlight=settings.IS_DEV,
+        spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,
     )
 
