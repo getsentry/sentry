@@ -6,6 +6,7 @@ import hashlib
 import logging
 import os
 import os.path
+import random
 import re
 import shutil
 import tempfile
@@ -631,6 +632,15 @@ class DIFCache:
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
+
+        # If this call is for proguard purposes, we probabilistically cut this function short
+        # right here so we don't overload filestore.
+        if features is not None:
+            if "mapping" in features and random.random() >= options.get(
+                "filestore.proguard-throttle"
+            ):
+                return {}
+
         debug_ids = [str(debug_id).lower() for debug_id in debug_ids]
         difs = ProjectDebugFile.objects.find_by_debug_ids(project, debug_ids, features)
 
