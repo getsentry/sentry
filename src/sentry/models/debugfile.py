@@ -636,7 +636,9 @@ class DIFCache:
         # If this call is for proguard purposes, we probabilistically cut this function short
         # right here so we don't overload filestore.
         if features is not None:
-            if "mapping" in features and random.random() >= options("filestore.proguard-throttle"):
+            if "mapping" in features and random.random() >= options.get(
+                "filestore.proguard-throttle"
+            ):
                 return {}
 
         debug_ids = [str(debug_id).lower() for debug_id in debug_ids]
