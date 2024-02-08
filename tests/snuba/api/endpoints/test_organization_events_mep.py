@@ -3134,6 +3134,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
     def setUp(self) -> None:
         super().setUp()
+        self.url = reverse(self.viewname, kwargs={"organization_slug": self.organization.slug})
         self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
     def _on_demand_query_check(
