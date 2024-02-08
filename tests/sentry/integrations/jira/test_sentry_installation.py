@@ -24,6 +24,7 @@ class JiraSentryInstallationViewTestCase(APITestCase):
         self.integration = self.create_provider_integration(provider="jira", name="Example Jira")
 
 
+@control_silo_test
 class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):
     @patch(
         "sentry.integrations.jira.views.sentry_installation.get_integration_from_request",
@@ -44,6 +45,7 @@ class JiraSentryInstallationViewErrorsTest(JiraSentryInstallationViewTestCase):
         assert UNABLE_TO_VERIFY_INSTALLATION.encode() in response.content
 
 
+@control_silo_test
 class JiraSentryInstallationViewTest(JiraSentryInstallationViewTestCase):
     def setUp(self):
         super().setUp()

@@ -766,6 +766,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert data["order"] == 0
 
 
+@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest
 ):

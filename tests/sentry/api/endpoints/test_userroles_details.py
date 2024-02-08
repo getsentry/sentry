@@ -31,6 +31,7 @@ class UserRolesDetailsTest(APITestCase):
         assert resp.status_code == 403
 
 
+@control_silo_test
 class UserRolesDetailsGetTest(UserRolesDetailsTest):
     def test_simple(self):
         self.create_user_role(name="test-role")
@@ -40,6 +41,7 @@ class UserRolesDetailsGetTest(UserRolesDetailsTest):
         assert resp.data["name"] == "test-role"
 
 
+@control_silo_test
 class UserRolesDetailsPutTest(UserRolesDetailsTest):
     method = "PUT"
 
@@ -55,6 +57,7 @@ class UserRolesDetailsPutTest(UserRolesDetailsTest):
         assert role2.permissions == ["users.edit"]
 
 
+@control_silo_test
 class UserRolesDetailsDeleteTest(UserRolesDetailsTest):
     method = "DELETE"
 
