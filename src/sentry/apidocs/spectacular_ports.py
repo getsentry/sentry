@@ -150,7 +150,10 @@ def resolve_type_hint(hint) -> Any:
             # them is None, validating the schema will fail because "nullable: true"
             # with "anyOf" raises an error because there is no "type" key on the
             # schema. This works around it by including a proxy null object in
-            # the "anyOf". See https://github.com/OAI/OpenAPI-Specification/issues/1368.
+            # the "anyOf".
+            # See:
+            #   - https://github.com/tfranzel/drf-spectacular/issues/925
+            #   - https://github.com/OAI/OpenAPI-Specification/issues/1368.
             if len(args) > 2:
                 schema["oneOf"].append({"type": "object", "nullable": True})
             else:
