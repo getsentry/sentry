@@ -34,7 +34,7 @@ import typing
 from collections import defaultdict
 from enum import Enum
 from types import UnionType
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, NotRequired, Optional, Union
 from typing import get_type_hints as _get_type_hints
 from typing import is_typeddict
 
@@ -48,6 +48,8 @@ from drf_spectacular.plumbing import (
 )
 from drf_spectacular.types import OpenApiTypes
 
+from sentry.api.serializers.models.alert_rule import AlertRuleSerializerResponse
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
@@ -86,10 +88,13 @@ def _get_type_hint_origin(hint):
 def resolve_type_hint(hint) -> Any:
     """drf-spectacular library method modified as described above"""
     origin, args = _get_type_hint_origin(hint)
-    print(origin, args)
     excluded_fields = get_override(hint, "exclude_fields", [])
 
-    if origin is None and is_basic_type(hint, allow_none=False):
+    if origin is NotRequired:
+        a = [resolve_type_hint(arg) for arg in args]
+        print(a)
+        return a
+    elif origin is None and is_basic_type(hint, allow_none=False):
         return build_basic_type(hint)
     elif origin is None and inspect.isclass(hint) and issubclass(hint, tuple):
         # a convoluted way to catch NamedTuple. suggestions welcome.
@@ -131,6 +136,12 @@ def resolve_type_hint(hint) -> Any:
             schema.update(build_basic_type(mixin_base_types[0]))
         return schema
     elif is_typeddict(hint):
+        # print(hint, hint.__required_keys__)
+        if hint == AlertRuleSerializerResponse:
+            print(origin, args)
+            print(hint, hint.__required_keys__)
+            # if "snooze" in hint.__required_keys__:
+            #     raise Exception
         return build_object_type(
             properties={
                 k: resolve_type_hint(v)
@@ -152,4 +163,5 @@ def resolve_type_hint(hint) -> Any:
     elif origin is collections.abc.Iterable:
         return build_array_type(resolve_type_hint(args[0]))
     else:
+        print(origin, args)
         raise UnableToProceedError(hint)
