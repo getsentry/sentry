@@ -25,6 +25,12 @@ class UserIdentityConfigTest(APITestCase):
 
         self.login_as(self.user)
 
+    def _setup_identities(self) -> tuple[UserSocialAuth, Identity, AuthIdentity]:
+        social_obj = UserSocialAuth.objects.create(provider="github", user=self.user)
+        global_obj = Identity.objects.create(user=self.user, idp=self.github_idp)
+        org_obj = AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        return (social_obj, global_obj, org_obj)
+
 
 def mock_is_login_provider_effect(provider_key: str) -> bool:
     # Mimics behavior from getsentry repo
@@ -36,15 +42,16 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
     endpoint = "sentry-api-0-user-identity-config"
     method = "get"
 
+    def _setup_identities(self):
+        super()._setup_identities()
+        Identity.objects.create(user=self.user, idp=self.slack_idp)
+
     @patch(
         "sentry.api.serializers.models.user_identity_config.is_login_provider",
         side_effect=mock_is_login_provider_effect,
     )
     def test_simple(self, mock_is_login_provider):
-        UserSocialAuth.objects.create(provider="github", user=self.user)
-        Identity.objects.create(user=self.user, idp=self.github_idp)
-        Identity.objects.create(user=self.user, idp=self.slack_idp)
-        AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        self._setup_identities()
 
         response = self.get_success_response(self.user.id, status_code=200)
 
@@ -78,10 +85,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
     def test_superuser_can_fetch_other_users_identities(self, mock_is_login_provider):
         self.login_as(self.superuser, superuser=True)
 
-        UserSocialAuth.objects.create(provider="github", user=self.user)
-        Identity.objects.create(user=self.user, idp=self.github_idp)
-        Identity.objects.create(user=self.user, idp=self.slack_idp)
-        AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        self._setup_identities()
 
         response = self.get_success_response(self.user.id, status_code=200)
 
@@ -95,10 +99,7 @@ class UserIdentityConfigEndpointTest(UserIdentityConfigTest):
     def test_staff_can_fetch_other_users_identities(self, mock_is_login_provider):
         self.login_as(self.staff_user, staff=True)
 
-        UserSocialAuth.objects.create(provider="github", user=self.user)
-        Identity.objects.create(user=self.user, idp=self.github_idp)
-        Identity.objects.create(user=self.user, idp=self.slack_idp)
-        AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        self._setup_identities()
 
         response = self.get_success_response(self.user.id, status_code=200)
 
@@ -197,9 +198,7 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
     method = "get"
 
     def test_get(self):
-        social_obj = UserSocialAuth.objects.create(provider="github", user=self.user)
-        global_obj = Identity.objects.create(user=self.user, idp=self.github_idp)
-        org_obj = AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        social_obj, global_obj, org_obj = self._setup_identities()
 
         social_ident = self.get_success_response(
             self.user.id, "social-identity", str(social_obj.id), status_code=200
@@ -227,9 +226,7 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
 
     def test_superuser_can_fetch_other_users_identity(self):
         self.login_as(self.superuser, superuser=True)
-        social_obj = UserSocialAuth.objects.create(provider="github", user=self.user)
-        global_obj = Identity.objects.create(user=self.user, idp=self.github_idp)
-        org_obj = AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        social_obj, global_obj, org_obj = self._setup_identities()
 
         social_ident = self.get_success_response(
             self.user.id, "social-identity", str(social_obj.id), status_code=200
@@ -257,9 +254,7 @@ class UserIdentityConfigDetailsEndpointGetTest(UserIdentityConfigTest):
 
     def test_staff_can_fetch_other_users_identity(self):
         self.login_as(self.staff_user, staff=True)
-        social_obj = UserSocialAuth.objects.create(provider="github", user=self.user)
-        global_obj = Identity.objects.create(user=self.user, idp=self.github_idp)
-        org_obj = AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        social_obj, global_obj, org_obj = self._setup_identities()
 
         social_ident = self.get_success_response(
             self.user.id, "social-identity", str(social_obj.id), status_code=200
@@ -303,9 +298,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         self.org_provider.flags.allow_unlinked = True
         self.org_provider.save()
 
-        social_obj = UserSocialAuth.objects.create(provider="github", user=self.user)
-        global_obj = Identity.objects.create(user=self.user, idp=self.github_idp)
-        org_obj = AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        social_obj, global_obj, org_obj = self._setup_identities()
 
         self.get_success_response(
             self.user.id, "social-identity", str(social_obj.id), status_code=204
@@ -325,9 +318,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         self.org_provider.flags.allow_unlinked = True
         self.org_provider.save()
 
-        social_obj = UserSocialAuth.objects.create(provider="github", user=self.user)
-        global_obj = Identity.objects.create(user=self.user, idp=self.github_idp)
-        org_obj = AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        social_obj, global_obj, org_obj = self._setup_identities()
 
         self.get_success_response(
             self.user.id, "social-identity", str(social_obj.id), status_code=204
@@ -347,9 +338,7 @@ class UserIdentityConfigDetailsEndpointDeleteTest(UserIdentityConfigTest):
         self.org_provider.flags.allow_unlinked = True
         self.org_provider.save()
 
-        social_obj = UserSocialAuth.objects.create(provider="github", user=self.user)
-        global_obj = Identity.objects.create(user=self.user, idp=self.github_idp)
-        org_obj = AuthIdentity.objects.create(user=self.user, auth_provider=self.org_provider)
+        social_obj, global_obj, org_obj = self._setup_identities()
 
         self.get_success_response(
             self.user.id, "social-identity", str(social_obj.id), status_code=204
