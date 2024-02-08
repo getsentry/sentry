@@ -9,21 +9,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.apidocs.constants import (
-    RESPONSE_BAD_REQUEST,
-    RESPONSE_FORBIDDEN,
-    RESPONSE_NO_CONTENT,
-    RESPONSE_NOT_FOUND,
-)
-from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
-from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
+from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_recording_segments
 from sentry.replays.usecases.reader import has_archived_segment
-from sentry.replays.validators import ReplayValidator
 
 
 class ReplayDetailsPermission(ProjectPermission):
@@ -38,40 +30,15 @@ class ReplayDetailsPermission(ProjectPermission):
 @region_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplayDetailsEndpoint(ProjectEndpoint):
-    """
-    The same data as OrganizationReplayDetailsEndpoint, except project is required.
-    Query for a specific replay to fetch or to deleted.
-    """
-
     owner = ApiOwner.REPLAY
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     permission_classes = (ReplayDetailsPermission,)
 
-    @extend_schema(
-        operation_id="Retrieve a Replay Instance",
-        parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
-            ReplayParams.REPLAY_ID,
-            ReplayValidator,
-        ],
-        responses={
-            200: inline_sentry_response_serializer("GetReplay", ReplayDetailsResponse),
-            400: RESPONSE_BAD_REQUEST,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=ReplayExamples.GET_REPLAY_DETAILS,
-    )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
-        """
-        Return details on an individual replay within a project.
-        """
-
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
@@ -103,12 +70,11 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             return Response({"data": response[0]}, status=200)
 
     @extend_schema(
-        operation_id="Retrieve a Replay Instance",
+        operation_id="Delete a Replay Instance",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
             ReplayParams.REPLAY_ID,
-            ReplayValidator,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
