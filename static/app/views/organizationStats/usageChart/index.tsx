@@ -89,6 +89,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     disabled: false,
     yAxisMinInterval: 100,
   },
+  {
+    label: DATA_CATEGORY_INFO.metric_bucket.titleName,
+    value: DATA_CATEGORY_INFO.metric_bucket.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
 ];
 
 export enum ChartDataTransform {
@@ -384,6 +390,7 @@ export class UsageChart extends Component<UsageChartProps, State> {
   get chartLegendData() {
     const {chartSeries} = this.props;
     const {chartData} = this.chartMetadata;
+
     const legend: LegendComponentOption['data'] = [
       {
         name: SeriesTypes.ACCEPTED,

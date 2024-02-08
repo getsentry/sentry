@@ -238,7 +238,7 @@ export const DEFAULT_RELATIVE_PERIODS_PAGE_FILTER = {
   '30d': t('30D'),
 };
 
-// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+// https://github.com/getsentry/relay/blob/master/relay-base-schema/src/data_category.rs
 export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.ERROR]: {
     name: DataCategoryExact.ERROR,
@@ -311,6 +311,14 @@ export const DATA_CATEGORY_INFO = {
     displayName: 'cron monitors',
     titleName: t('Cron Monitors'),
     uid: 13,
+  },
+  [DataCategoryExact.METRICS]: {
+    name: DataCategoryExact.METRICS,
+    apiName: 'metric_bucket',
+    plural: 'metric_buckets',
+    displayName: 'metrics',
+    titleName: t('Metrics'),
+    uid: 15,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
