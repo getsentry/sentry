@@ -145,7 +145,6 @@ def resolve_type_hint(hint) -> Any:
             schema = {"oneOf": [resolve_type_hint(arg) for arg in type_args]}
         else:
             schema = resolve_type_hint(type_args[0])
-
         if type(None) in args:
             # There's an issue where if 3 types are OR'd together and one of
             # them is None, validating the schema will fail because "nullable:
@@ -158,7 +157,6 @@ def resolve_type_hint(hint) -> Any:
             else:
                 schema["nullable"] = True
         return schema
-
     elif origin is collections.abc.Iterable:
         return build_array_type(resolve_type_hint(args[0]))
     else:
