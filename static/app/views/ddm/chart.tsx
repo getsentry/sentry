@@ -86,10 +86,12 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
     const isSubMinuteBucket = bucketSize < 60_000;
 
     const unit = series[0]?.unit;
-    const fogOfWarBuckets = getWidthFactor(bucketSize);
 
-    const seriesToShow = useMemo(
-      () =>
+    const seriesToShow = useMemo(() => {
+      const lastBucketTimestamp = series[0]?.data[series[0]?.data.length - 1]?.name;
+      const fogOfWarBuckets = getWidthFactor(bucketSize, lastBucketTimestamp);
+
+      return (
         series
           .filter(s => !s.hidden)
           // Split series in two parts, one for the main chart and one for the fog of war
@@ -98,16 +100,16 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             {
               ...s,
               silent: true,
-              data: s.data.slice(0, -fogOfWarBuckets),
+              data: fogOfWarBuckets === 0 ? s.data : s.data.slice(0, -fogOfWarBuckets),
             },
             displayType === MetricDisplayType.BAR
               ? createFogOfWarBarSeries(s, fogOfWarBuckets)
               : displayType === MetricDisplayType.LINE
                 ? createFogOfWarLineSeries(s, fogOfWarBuckets)
                 : createFogOfWarAreaSeries(s, fogOfWarBuckets),
-          ]),
-      [series, fogOfWarBuckets, displayType]
-    );
+          ])
+      );
+    }, [series, bucketSize, displayType]);
 
     const valueFormatter = useCallback(
       (value: number) => {
@@ -343,7 +345,17 @@ const createFogOfWarAreaSeries = (series: Series, fogBucketCnt = 0) => ({
   },
 });
 
-function getWidthFactor(bucketSize: number) {
+function getWidthFactor(bucketSize: number, lastBucketTimestamp?: number) {
+  const now = Date.now();
+  const lastTimestamp = lastBucketTimestamp ?? now;
+
+  const diff = now - lastTimestamp + bucketSize;
+
+  // If the last bucket is older than 100 seconds, we don't want to show a fog of war
+  if (diff > 100_000) {
+    return 0;
+  }
+
   // In general, fog of war should cover the last bucket
   if (bucketSize > 30 * 60_000) {
     return 1;
@@ -352,7 +364,7 @@ function getWidthFactor(bucketSize: number) {
   // for 10s timeframe we want to show a fog of war that spans last 10 buckets
   // because on average, we are missing last 90 seconds of data
   if (bucketSize <= 10_000) {
-    return 10;
+    return 10 - Math.floor(diff / 10_000);
   }
 
   // For smaller time frames we want to show a wider fog of war
