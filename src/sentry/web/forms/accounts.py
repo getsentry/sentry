@@ -113,7 +113,7 @@ class AuthenticationForm(forms.Form):
 
         return ratelimiter.is_limited(f"auth:username:{username}", limit)
 
-    def clean(self) -> dict[str, Any] | None:
+def clean(self) -&gt; dict[str, Any]: 
         username = self.cleaned_data.get("username")
         password = self.cleaned_data.get("password")
 
