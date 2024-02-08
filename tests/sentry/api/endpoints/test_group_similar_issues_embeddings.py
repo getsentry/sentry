@@ -68,14 +68,18 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         self.similar_group = self.create_group(project=self.project)
 
     def create_exception_values(
-        self, num_values: int, num_frames_per_value: int
+        self,
+        num_values: int,
+        num_frames_per_value: int,
+        starting_frame_number: int = 1,
+        in_app: bool = True,
     ) -> Sequence[dict[str, Any]]:
         """
         Return an exception value dictionary, where the line number corresponds to the total frame
         number
         """
         exception_values = []
-        frame_count = 1
+        frame_count = starting_frame_number
         for _ in range(num_values):
             value: dict[str, Any] = {"type": "Error", "value": "this is an error"}
             frames = []
@@ -87,7 +91,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "abs_path": "/Users/jodi/python_onboarding/python_onboarding.py",
                     "lineno": frame_count,
                     "context_line": "function()",
-                    "in_app": True,
+                    "in_app": in_app,
                 }
                 frames.append(frame)
                 frame_count += 1
@@ -140,7 +144,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         stacktrace_string = get_stacktrace_string(large_error_trace["exception"], event)  # type: ignore
 
         # Assert that we take all exception frames
-        for line_no in range(1, 50):
+        for line_no in range(1, 51):
             assert str(line_no) in stacktrace_string
 
     def test_get_stacktrace_string_over_50_frames(self):
@@ -159,6 +163,42 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         for line_no in range(46, 56):
             assert str(line_no) not in stacktrace_string
         for line_no in range(56, 61):
+            assert str(line_no) in stacktrace_string
+
+    def test_get_stacktrace_string_non_in_app_frames(self):
+        """Test that only in-app frames are included and count towards the frame count limit of 50"""
+        # Make 20 in-app frames
+        exception_values_in_app_start = self.create_exception_values(
+            num_values=2, num_frames_per_value=10
+        )
+        # Make 10 non in-app frames
+        exception_values_non_in_app = self.create_exception_values(
+            num_values=1, num_frames_per_value=10, starting_frame_number=21, in_app=False
+        )
+        # Make 30 in-app frames
+        exception_values_in_app_end = self.create_exception_values(
+            num_values=3, num_frames_per_value=10, starting_frame_number=31
+        )
+
+        exception_values = (
+            exception_values_in_app_start
+            + exception_values_non_in_app
+            + exception_values_in_app_end
+        )
+
+        large_error_trace = {
+            "exception": {"values": exception_values},
+            "platform": "python",
+        }
+        event = self.store_event(data=large_error_trace, project_id=self.project)
+        stacktrace_string = get_stacktrace_string(large_error_trace["exception"], event)  # type: ignore
+
+        # Assert that the only the in-app frames are taken
+        for line_no in range(1, 21):
+            assert str(line_no) in stacktrace_string
+        for line_no in range(21, 31):
+            assert str(line_no) not in stacktrace_string
+        for line_no in range(31, 61):
             assert str(line_no) in stacktrace_string
 
     def test_get_formatted_results(self):
