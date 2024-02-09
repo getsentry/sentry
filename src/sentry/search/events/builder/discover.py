@@ -209,6 +209,7 @@ class BaseQueryBuilder:
             org_id if org_id is not None and isinstance(org_id, int) else None
         )
         self.raw_equations = equations
+        self.raw_orderby = orderby
         self.query = query
         self.selected_columns = selected_columns
         self.groupby_columns = groupby_columns

@@ -879,7 +879,7 @@ class SnubaQueryBuilder:
                 action_by_name = "order by"
 
             raise NotImplementedError(
-                f"Unsupported {action_by_name} field: {metric_action_by_field.field}"
+                f"Unsupported {action_by_name} field: {metric_action_by_field.field} needs to be either a MetricField or a string"
             )
 
     def _build_where(self) -> list[BooleanCondition | Condition]:
