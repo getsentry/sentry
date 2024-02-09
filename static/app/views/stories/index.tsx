@@ -30,7 +30,7 @@ export default function Stories({location}: Props) {
           <StoryTree
             files={storiesContext()
               .files()
-              .filter(s => s.includes(searchTerm))}
+              .filter(s => s.toLowerCase().includes(searchTerm))}
           />
         </Sidebar>
       </div>
