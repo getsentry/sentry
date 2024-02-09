@@ -421,9 +421,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       tooltip: {
         trigger: 'axis',
         formatter: (params, asyncTicket) => {
+          const {chartGroup} = this.props;
+          const isInGroup =
+            chartGroup && chartGroup === this.chartRef?.getEchartsInstance().group;
+
           // tooltip is triggered whenever any chart in the group is hovered,
           // so we need to check if the mouse is actually over this chart
-          if (!isChartHovered(this.chartRef)) {
+          if (isInGroup && !isChartHovered(this.chartRef)) {
             return '';
           }
 
