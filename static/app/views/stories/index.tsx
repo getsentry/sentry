@@ -1,6 +1,8 @@
+import {useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import Input from 'sentry/components/input';
 import {space} from 'sentry/styles/space';
 import EmptyStory from 'sentry/views/stories/emptyStory';
 import ErrorStory from 'sentry/views/stories/errorStory';
@@ -15,13 +17,24 @@ type Props = RouteComponentProps<{}, {}, any, StoriesQuery>;
 
 export default function Stories({location}: Props) {
   const story = useStoriesLoader({filename: location.query.name});
+  const [searchTerm, setSearchTerm] = useState('');
 
   return (
     <Layout>
+      <div style={{gridArea: 'aside'}}>
+        <StyledInput
+          placeholder="Search files by name"
+          onChange={e => setSearchTerm(e.target.value.toLowerCase())}
+        />
+        <Sidebar>
+          <StoryTree
+            files={storiesContext()
+              .files()
+              .filter(s => s.includes(searchTerm))}
+          />
+        </Sidebar>
+      </div>
       <StoryHeader style={{gridArea: 'head'}} />
-      <Sidebar style={{gridArea: 'aside'}}>
-        <StoryTree files={storiesContext().files()} />
-      </Sidebar>
 
       {story.error ? (
         <VerticalScroll style={{gridArea: 'body'}}>
@@ -78,3 +91,6 @@ const Main = styled(VerticalScroll)`
 
   position: relative;
 `;
+
+const StyledInput = styled(Input)`
+  margin-bottom: ${space(2)};`;
