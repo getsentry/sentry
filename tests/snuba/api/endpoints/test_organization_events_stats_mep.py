@@ -758,6 +758,57 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         data = response.data[f"{self.project.slug}"]
         assert data["order"] == 0
 
+    def test_user_misery_chart(self):
+        # 3000 is not a default threshold, thus, TBD
+        field = "user_misery(3000)"
+        query = ""
+        environment = "production"
+        for hour in range(0, 2):
+            self.store_transaction_metric(
+                (hour + 1) * 5,
+                metric="measurements.datacenter_memory",
+                internal_metric="e:transactions/user_misery@ratio",
+                entity="metrics_distributions",
+                tags={"satisfaction": "frustrated", "environment": environment},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_transaction_metric(
+                (hour + 1) * 5,
+                metric="measurements.datacenter_memory",
+                internal_metric="e:transactions/user_misery@ratio",
+                entity="metrics_distributions",
+                tags={"satisfaction": "frustrated", "environment": environment},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+        resp = self.do_request(
+            data={
+                "environment": environment,
+                "yAxis": field,
+                "project": self.project.id,
+                "query": query,
+                "onDemandType": "dynamic_query",
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "referrer": "api.dashboards.widget.line-chart",
+            }
+        )
+        num_items = len(resp.data["data"])
+        for index, value in enumerate(resp.data["data"]):
+            if index == num_items - 1:
+                assert value[1] == [{"count": 0.06586638830897704}]
+            else:
+                assert value[1] == [{"count": 0}]
+
+        assert resp.data["meta"] == {
+            "fields": {"time": "date", "user_misery_3000": "number"},
+            "units": {"time": None, "user_misery_3000": None},
+            "isMetricsData": True,
+            "isMetricsExtractedData": True,
+            "tips": {},
+            "datasetReason": "unchanged",
+            "dataset": "metricsEnhanced",
+        }
+
 
 @region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
@@ -1459,7 +1510,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             [{"count": 10.0}],
         ]
 
-    def test_on_demand_chart_user_misery(self):
+    def test_on_demand_user_misery_chart(self):
         field = "user_misery(3000)"
         query = ""
         environment = "production"
