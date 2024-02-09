@@ -15,7 +15,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.staff import is_active_staff
 from sentry.testutils.cases import DRFPermissionTestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import all_silo_test, control_silo_test, region_silo_test
+from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test, region_silo_test
 
 
 @all_silo_test
@@ -107,7 +107,7 @@ class UserAndStaffPermissionTest(DRFPermissionTestCase):
 
 
 class BaseUserEndpointTest(DRFPermissionTestCase):
-    endpoint: RegionSiloUserEndpoint | UserEndpoint = UserEndpoint()
+    endpoint: RegionSiloUserEndpoint | UserEndpoint = RegionSiloUserEndpoint()
 
     def test_retrieves_me_anonymous(self):
         with pytest.raises(ResourceDoesNotExist):
@@ -124,11 +124,17 @@ class BaseUserEndpointTest(DRFPermissionTestCase):
         assert kwargs["user"].id == user.id
 
 
-@control_silo_test
-class UserEndpointTest(BaseUserEndpointTest):
+@no_silo_test
+class MonolithUserEndpoint(BaseUserEndpointTest):
     endpoint = UserEndpoint()
 
 
+@control_silo_test
+class ControlUserEndpointTest(BaseUserEndpointTest):
+    endpoint = UserEndpoint()
+
+
+# TODO(HC): Delete this once region silo by default changes land
 @region_silo_test
 class RegionSiloUserEndpointTest(BaseUserEndpointTest):
     endpoint = RegionSiloUserEndpoint()
