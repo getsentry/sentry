@@ -76,7 +76,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
             VisibilityParams.QUERY,
         ],
         responses={
-            200: inline_sentry_response_serializer("ListSelectors", ReplayClickResponse),
+            200: inline_sentry_response_serializer("ListReplayClicks", ReplayClickResponse),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
