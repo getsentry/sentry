@@ -53,6 +53,9 @@ def test_get_from_old():
     old_cluster = redis_clusters.get("old")
     old_cluster.set(key, json.dumps(event))
 
+    new_cluster = redis_clusters.get("new")
+    assert not new_cluster.get(key)
+
     result = adapter.get(key)
     assert result == event
 
