@@ -573,6 +573,14 @@ register("store.lie-about-filter-status", default=False, flags=FLAG_AUTOMATOR_MO
 # (``False``) and spawning a save_event task (``True``).
 register("store.transactions-celery", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
 
+# The fraction of prooguard events that will be routed to the
+# separate `store.process_event_proguard` queue
+register(
+    "store.separate-proguard-queue-rate",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
 # Symbolicator refactors
 # - Disabling minidump stackwalking in endpoints
 register(

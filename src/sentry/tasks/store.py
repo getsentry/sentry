@@ -1,4 +1,5 @@
 import logging
+import random
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from time import time
@@ -16,7 +17,6 @@ from sentry.eventstore import processing
 from sentry.eventstore.processing.base import Event
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.killswitches import killswitch_matches_context
-from sentry.lang.java.utils import has_proguard_file
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
 from sentry.models.activity import Activity
 from sentry.models.options.project_option import ProjectOption
@@ -76,7 +76,8 @@ def submit_process(
 ) -> None:
     if from_reprocessing:
         task = process_event_from_reprocessing
-    elif is_proguard:
+    elif is_proguard and random.random() < options.get("store.separate-proguard-queue-rate"):
+        # route *some* proguard events to a separate queue
         task = process_event_proguard
     else:
         task = process_event
@@ -136,6 +137,7 @@ def _do_preprocess_event(
     project: Project | None,
     has_attachments: bool = False,
 ) -> None:
+    from sentry.lang.java.utils import has_proguard_file
     from sentry.tasks.symbolication import (
         get_symbolication_function,
         should_demote_symbolication,
