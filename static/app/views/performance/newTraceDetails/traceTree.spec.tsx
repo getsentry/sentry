@@ -170,8 +170,8 @@ describe('TraceTree', () => {
     const node = TraceTree.FromSpans(root, [
       makeRawSpan({start_timestamp: 0, op: '1', span_id: '1'}),
       makeRawSpan({start_timestamp: 1, op: '2', span_id: '2', parent_span_id: '1'}),
-      makeRawSpan({start_timestamp: 2, op: '3', parent_span_id: '2'}),
-      makeRawSpan({start_timestamp: 3, op: '4', parent_span_id: '1'}),
+      makeRawSpan({start_timestamp: 2, op: '3', span_id: '3', parent_span_id: '2'}),
+      makeRawSpan({start_timestamp: 3, op: '4', span_id: '4', parent_span_id: '1'}),
     ]);
 
     if (!isSpanNode(node.children[0])) {
@@ -202,11 +202,17 @@ describe('TraceTree', () => {
     const date = new Date().getTime();
 
     const node = TraceTree.FromSpans(root, [
-      makeRawSpan({start_timestamp: date, timestamp: date + 100, op: 'span 1'}),
+      makeRawSpan({
+        start_timestamp: date,
+        timestamp: date + 100,
+        span_id: '1',
+        op: 'span 1',
+      }),
       makeRawSpan({
         start_timestamp: date + 200,
         timestamp: date + 400,
         op: 'span 2',
+        span_id: '2',
       }),
     ]);
 
@@ -624,7 +630,7 @@ describe('TraceTree', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/project:event_id/',
         method: 'GET',
-        body: makeEvent({}, [makeRawSpan({description: 'span1'})]),
+        body: makeEvent({}, [makeRawSpan({span_id: 'span1', description: 'span1'})]),
       });
       tree.zoomIn(tree.list[1], true, {
         api: new MockApiClient(),
@@ -661,7 +667,7 @@ describe('TraceTree', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/project:event_id/',
         method: 'GET',
-        body: makeEvent({}, [makeRawSpan({description: 'span1'})]),
+        body: makeEvent({}, [makeRawSpan({span_id: 'span 1', description: 'span1'})]),
       });
       // Zoom in
       tree.zoomIn(tree.list[1], true, {
@@ -877,7 +883,7 @@ describe('TraceTree', () => {
 
       const root = new TraceTreeNode(
         null,
-        makeRawSpan({description: 'span1', op: 'db'}),
+        makeRawSpan({description: 'span1', span_id: '1', op: 'db'}),
         {
           project_slug: '',
           event_id: '',
@@ -886,7 +892,7 @@ describe('TraceTree', () => {
 
       const child = new TraceTreeNode(
         root,
-        makeRawSpan({description: 'span2', op: 'http'}),
+        makeRawSpan({description: 'span2', span_id: '2', op: 'http'}),
         {
           project_slug: '',
           event_id: '',
@@ -896,7 +902,7 @@ describe('TraceTree', () => {
 
       const grandChild = new TraceTreeNode(
         child,
-        makeRawSpan({description: 'span3', op: 'http'}),
+        makeRawSpan({description: 'span3', span_id: '3', op: 'http'}),
         {
           project_slug: '',
           event_id: '',
@@ -924,7 +930,7 @@ describe('TraceTree', () => {
     it('autogrouping direct children skips rendering intermediary nodes', () => {
       const root = new TraceTreeNode(
         null,
-        makeRawSpan({description: 'span1', op: 'db'}),
+        makeRawSpan({span_id: 'span1', description: 'span1', op: 'db'}),
         {
           project_slug: '',
           event_id: '',
@@ -933,7 +939,7 @@ describe('TraceTree', () => {
 
       const child = new TraceTreeNode(
         root,
-        makeRawSpan({description: 'span2', op: 'http'}),
+        makeRawSpan({span_id: 'span2', description: 'span2', op: 'http'}),
         {
           project_slug: '',
           event_id: '',
@@ -943,7 +949,7 @@ describe('TraceTree', () => {
 
       const grandChild = new TraceTreeNode(
         child,
-        makeRawSpan({description: 'span3', op: 'http'}),
+        makeRawSpan({span_id: 'span3', description: 'span3', op: 'http'}),
         {
           project_slug: '',
           event_id: '',
