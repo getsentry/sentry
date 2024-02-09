@@ -523,6 +523,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             suspect_commit_text=suspect_commit_text,
+            suggested_assignees=commit_author.email,
         )
 
     @patch(
@@ -594,6 +595,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
             event=event,
             suspect_commit_text=suspect_commit_text,
+            suggested_assignees=commit_author.email,
         )
 
     @with_feature("organizations:slack-block-kit")
