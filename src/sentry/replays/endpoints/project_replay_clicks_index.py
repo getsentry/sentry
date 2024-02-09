@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from typing import TypedDict
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from snuba_sdk import (
@@ -28,6 +30,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
@@ -41,14 +47,44 @@ from sentry.utils.snuba import raw_snql_query
 REFERRER = "replays.query.query_replay_clicks_dataset"
 
 
+class ReplayClickResponseData(TypedDict):
+    node_id: int
+    timestamp: datetime.datetime
+
+
+class ReplayClickResponse(TypedDict):
+    data: list[ReplayClickResponseData]
+
+
 @region_silo_endpoint
+@extend_schema(tags=["Replays"])
 class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
     owner = ApiOwner.REPLAY
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
 
+    @extend_schema(
+        operation_id="List Clicked Nodes",
+        parameters=[
+            CursorQueryParam,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ENVIRONMENT,
+            ReplayParams.REPLAY_ID,
+            VisibilityParams.PER_PAGE,
+            VisibilityParams.QUERY,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("ListReplayClicks", ReplayClickResponse),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ReplayExamples.GET_REPLAY_CLIKS,
+    )
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
+        """Retrieve a collection of RRWeb DOM node-ids and the timestamp they were clicked."""
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):
