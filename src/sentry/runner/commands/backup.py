@@ -29,9 +29,9 @@ DEFAULT_INDENT = 2
 
 DECRYPT_WITH_HELP = """A path to a file containing a private key with which to decrypt a tarball
                     previously encrypted using an `export ... --encrypt_with=<PUBLIC_KEY>` command.
-                    The private key provided via this flag should be the complement of the public
-                    key used to encrypt the tarball (this public key is included in the tarball
-                    itself).
+                    The private key provided via this flag should be the complement of the 2048-bit
+                    public RSA key used to encrypt the tarball (this public key is included in the
+                    tarball itself).
 
                     This flag is mutually exclusive with the `--decrypt-with-gcp-kms` flag."""
 
@@ -43,8 +43,9 @@ DECRYPT_WITH_GCP_KMS_HELP = """For users that want to avoid storing their own pr
                             This flag should point to a JSON file containing a single top-level
                             object storing the `project-id`, `location`, `keyring`, `key`, and
                             `version` of the desired asymmetric private key that pairs with the
-                            public key included in the tarball being imported (for more information
-                            on these resource identifiers and how to set up KMS to use the, see:
+                            2048-bit public RSA key in text (PEM) format included in the tarball
+                            being imported (for more information on these resource identifiers and
+                            how to set up KMS to use the, see:
                             https://cloud.google.com/kms/docs/getting-resource-ids). An example
                             version of this file might look like:
 
@@ -57,18 +58,18 @@ DECRYPT_WITH_GCP_KMS_HELP = """For users that want to avoid storing their own pr
                             }
                             ```
 
-                            Property names must be spelled exactly as above, and the `version`
-                            field in particular must be a string, not an integer."""
+                            Property names must be spelled exactly as above, and the `version` field
+                            in particular must be a string, not an integer."""
 
-ENCRYPT_WITH_HELP = """A path to the a public key with which to encrypt this export. If this flag is
-                       enabled and points to a valid key, the output file will be a tarball
-                       containing 3 constituent files: 1. An encrypted JSON file called
-                       `export.json`, which is encrypted using 2. An asymmetrically encrypted data
-                       encryption key (DEK) called `data.key`, which is itself encrypted by 3. The
-                       public key contained in the file supplied to this flag, called `key.pub`. To
-                       decrypt the exported JSON data, decryptors should use the private key paired
-                       with `key.pub` to decrypt the DEK, which can then be used to decrypt the
-                       export data in `export.json`."""
+ENCRYPT_WITH_HELP = """A path to the 2048-bit public RSA key in text (PEM) format with which to
+                       encrypt this export. If this flag is enabled and points to a valid key, the
+                       output file will be a tarball containing 3 constituent files: 1. An encrypted
+                       JSON file called `export.json`, which is encrypted using 2. An asymmetrically
+                       encrypted data encryption key (DEK) called `data.key`, which is itself
+                       encrypted by 3. The public key contained in the file supplied to this flag,
+                       called `key.pub`. To decrypt the exported JSON data, decryptors should use
+                       the private key paired with `key.pub` to decrypt the DEK, which can then be
+                       used to decrypt the export data in `export.json`."""
 
 ENCRYPT_WITH_GCP_KMS_HELP = """For users that want to avoid storing their own public keys, this
                             flag can be used in lieu of `--encrypt-with` to retrieve those keys from
