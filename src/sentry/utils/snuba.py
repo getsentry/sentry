@@ -130,6 +130,7 @@ SPAN_COLUMN_MAP = {
     "http.response_content_length": "sentry_tags[http.response_content_length]",
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
     "http.response_transfer_size": "sentry_tags[http.response_transfer_size]",
+    "app_start_type": "sentry_tags[app_start_type]",
 }
 
 SPAN_COLUMN_MAP.update(
