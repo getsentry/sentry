@@ -387,7 +387,7 @@ def _detect_transaction_change_points(
 
     for regression in regressions:
         breakpoint_count += 1
-        send_regression_to_platform(regression, True)
+        send_regression_to_platform(regression)
 
     metrics.incr(
         "statistical_detectors.breakpoint.emitted",
