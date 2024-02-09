@@ -28,7 +28,8 @@ export default class Subscriptions extends Component<Props> {
 
   constructor(props: Props, context) {
     super(props, context);
-    this.context.form.setValue('events', this.props.events);
+    // TODO(TS): Events type don't make sense here
+    this.context.form!.setValue('events', this.props.events as any);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -50,6 +51,7 @@ export default class Subscriptions extends Component<Props> {
   }
 
   static contextType = FormContext;
+  declare context: React.ContextType<typeof FormContext>;
 
   onChange = (resource: Resource, checked: boolean) => {
     const events = new Set(this.props.events);
@@ -59,7 +61,8 @@ export default class Subscriptions extends Component<Props> {
 
   save = (events: WebhookEvent[]) => {
     this.props.onChange(events);
-    this.context.form.setValue('events', events);
+    // TODO(TS): Events type don't make sense here
+    this.context.form!.setValue('events', events as any);
   };
 
   render() {
