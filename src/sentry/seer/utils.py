@@ -35,6 +35,15 @@ seer_connection_pool = connection_from_url(
     timeout=settings.ANOMALY_DETECTION_TIMEOUT,
 )
 
+seer_connection_pool_similarity = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+    retries=Retry(
+        total=5,
+        status_forcelist=[408, 429, 502, 503, 504],
+    ),
+    timeout=settings.ANOMALY_DETECTION_TIMEOUT,
+)
+
 
 def detect_breakpoints(breakpoint_request) -> BreakpointResponse:
     response = seer_connection_pool.urlopen(
