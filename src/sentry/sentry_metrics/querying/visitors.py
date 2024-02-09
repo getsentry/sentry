@@ -22,6 +22,7 @@ from sentry.sentry_metrics.querying.errors import (
     LatestReleaseNotFoundError,
 )
 from sentry.sentry_metrics.querying.types import QueryCondition, QueryExpression
+from sentry.snuba.metrics import parse_mri
 
 TVisited = TypeVar("TVisited")
 
@@ -136,12 +137,92 @@ class TimeseriesConditionInjectionVisitor(QueryExpressionVisitor[QueryExpression
 
 class ValidationVisitor(QueryExpressionVisitor[QueryExpression]):
     """
-    Visitor that recursively validates the query expression.
+    Visitor that recursively validates the `QueryExpression`.
     """
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
         # This visitor has been kept in case we need future validations.
         return timeseries
+
+
+class ValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
+    """
+    Visitor that recursively validates the `QueryExpression` of the new endpoint.
+    """
+
+    def __init__(self):
+        self._query_namespace = None
+        self._query_entity = None
+        self._query_group_bys = None
+
+    def _visit_formula(self, formula: Formula) -> QueryExpression:
+        visited_formula = super()._visit_formula(formula)
+
+        # Formulas can optionally not have group bys, since only leaf `Timeseries` nodes can have them,
+        # thus we do not perform any validation in case they are not set.
+        if formula.groupby is not None:
+            self._validate_group_bys(formula.groupby)
+
+        return visited_formula
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
+        if timeseries.metric.mri is None:
+            raise InvalidMetricsQueryError("You must supply a metric MRI when querying a metric")
+
+        parsed_mri = parse_mri(timeseries.metric.mri)
+        if parsed_mri is None:
+            raise InvalidMetricsQueryError(
+                f"The metric MRI {timeseries.metric.mri} couldn't be parsed"
+            )
+
+        namespace = parsed_mri.namespace
+        entity = parsed_mri.entity
+
+        if self._query_namespace is None:
+            self._query_namespace = namespace
+        elif self._query_namespace != namespace:
+            raise InvalidMetricsQueryError(
+                "Querying metrics belonging to different namespaces is not allowed"
+            )
+
+        if self._query_entity is None:
+            self._query_entity = parsed_mri.entity
+        elif self._query_entity != entity:
+            raise InvalidMetricsQueryError(
+                "Querying metrics with different metrics type is not currently supported"
+            )
+
+        # If group bys are `None` for a `Timeseries`, we treat them as an empty list of group bys.
+        self._validate_group_bys(timeseries.groupby or [])
+
+        return timeseries
+
+    def _validate_group_bys(self, group_bys: list[Column | AliasedExpression] | None):
+        # We use a deduplicated and sorted representation of the group by fields used in the query, since
+        # we need to understand whether the same groups are used even across `Column`(s) and `AliasedExpression`(s).
+        sorted_group_bys = self._sort_group_bys(group_bys)
+        if self._query_group_bys is None:
+            self._query_group_bys = sorted_group_bys
+        elif self._query_group_bys != sorted_group_bys:
+            raise InvalidMetricsQueryError(
+                "Querying metrics with different group bys is not allowed"
+            )
+
+    def _sort_group_bys(
+        self, group_bys: list[Column | AliasedExpression] | None
+    ) -> list[str] | None:
+        def _column_name(group_by: Column | AliasedExpression) -> str:
+            if isinstance(group_by, Column):
+                return group_by.name
+            elif isinstance(group_by, AliasedExpression):
+                return group_by.exp.name
+
+            return ""
+
+        if group_bys is None:
+            return None
+
+        return list(set(map(_column_name, group_bys)))
 
 
 class FiltersCompositeVisitor(QueryExpressionVisitor[QueryExpression]):

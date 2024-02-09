@@ -93,6 +93,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         ):
             query_1 = self.mql(aggregate, TransactionMRI.DURATION.value, "transaction:/bar")
             plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+
             results = run_metrics_queries_plan(
                 metrics_queries_plan=plan,
                 start=self.now() - timedelta(minutes=30),
@@ -567,28 +568,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert second_query[1]["series"] == [0.0, 5.0, 4.0]
         assert second_query[1]["totals"] == 5.0
 
-    def test_query_with_invalid_syntax(
-        self,
-    ) -> None:
-        query_1 = self.mql(
-            "min",
-            TransactionMRI.DURATION.value,
-            "transaction:/api/0/organizations/{organization_slug}/",
-        )
-        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
-
-        with pytest.raises(InvalidMetricsQueryError):
-            run_metrics_queries_plan(
-                metrics_queries_plan=plan,
-                start=self.now() - timedelta(minutes=30),
-                end=self.now() + timedelta(hours=1, minutes=30),
-                interval=3600,
-                organization=self.project.organization,
-                projects=[self.project],
-                environments=[],
-                referrer="metrics.data.api",
-            )
-
     def test_query_with_custom_set(self):
         mri = "s:custom/User.Click.2@none"
         for user in ("marco", "marco", "john"):
@@ -744,3 +723,97 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[1][0]["by"] == {}
         assert data[1][0]["series"] == [0.0, 10.0, 0.0]
         assert data[1][0]["totals"] == 10.0
+
+    def test_query_with_invalid_syntax(
+        self,
+    ) -> None:
+        query_1 = self.mql(
+            "min",
+            TransactionMRI.DURATION.value,
+            "transaction:/api/0/organizations/{organization_slug}/",
+        )
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_queries_plan(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+
+    # Different namespaces
+    # Different types
+    # Different group bys (at the formula level and also at the timeseries level)
+    def test_query_with_different_namespaces(self):
+        query_1 = self.mql(
+            "min",
+            TransactionMRI.DURATION.value,
+        )
+        query_2 = self.mql("max", "d:custom/app_load@millisecond")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1 / $query_2")
+        )
+
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_queries_plan(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+
+    def test_query_with_different_metric_types(self):
+        query_1 = self.mql("count", "c:custom/page_click@none")
+        query_2 = self.mql("max", "d:custom/app_load@millisecond")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1 * $query_2")
+        )
+
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_queries_plan(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+
+    def test_query_with_different_group_bys(self):
+        query_1 = self.mql("min", "d:custom/page_click@none", group_by="transaction, environment")
+        query_2 = self.mql("max", "d:custom/app_load@millisecond", group_by="transaction")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1 * $query_2 / $query_1")
+        )
+
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_queries_plan(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )

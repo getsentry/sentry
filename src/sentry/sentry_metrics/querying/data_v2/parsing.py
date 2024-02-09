@@ -14,7 +14,7 @@ from sentry.sentry_metrics.querying.visitors import (
     FiltersCompositeVisitor,
     LatestReleaseTransformationVisitor,
     QueryExpressionVisitor,
-    ValidationVisitor,
+    ValidationV2Visitor,
 )
 
 
@@ -91,11 +91,8 @@ class QueryParser:
         for formula_definition in self._metrics_queries_plan.get_replaced_formulas():
             query_expression = (
                 self._parse_mql(formula_definition.mql)
-                # TODO: implement advanced validation like:
-                #  * same groups across time series and formulas
-                #  * all components of a formula have the same entity type and namespace
                 # We validate the query.
-                .add_visitor(ValidationVisitor())
+                .add_visitor(ValidationV2Visitor())
                 # We inject the environment filter in each timeseries.
                 .add_visitor(EnvironmentsInjectionVisitor(self._environments))
                 # We transform all `release:latest` filters into the actual latest releases.
