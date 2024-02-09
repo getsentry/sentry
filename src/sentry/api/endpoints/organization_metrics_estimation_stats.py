@@ -53,7 +53,7 @@ class StatsQualityEstimation(Enum):
 @region_silo_endpoint
 class OrganizationMetricsEstimationStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     """Gets the estimated volume of an organization's metric events."""
