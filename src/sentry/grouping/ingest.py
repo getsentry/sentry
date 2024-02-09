@@ -27,6 +27,7 @@ from sentry.grouping.api import (
 from sentry.grouping.result import CalculatedHashes
 from sentry.killswitches import killswitch_matches_context
 from sentry.locks import locks
+from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
@@ -442,3 +443,18 @@ def check_for_group_creation_load_shed(project: Project, event: Event):
         },
     ):
         raise HashDiscarded("Load shedding group creation", reason="load_shed")
+
+
+def add_group_id_to_grouphashes(
+    group: Group,
+    grouphashes: list[GroupHash],
+) -> None:
+    """
+    Link the given group to any grouphash which doesn't yet have a group assigned.
+    """
+
+    new_grouphash_ids = [gh.id for gh in grouphashes if gh.group_id is None]
+
+    GroupHash.objects.filter(id__in=new_grouphash_ids).exclude(
+        state=GroupHash.State.LOCKED_IN_MIGRATION
+    ).update(group=group)

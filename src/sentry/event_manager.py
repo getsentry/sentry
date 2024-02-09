@@ -47,6 +47,7 @@ from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
 from sentry.grouping.ingest import (
+    add_group_id_to_grouphashes,
     check_for_group_creation_load_shed,
     find_existing_grouphash,
     find_existing_grouphash_new,
@@ -1681,11 +1682,7 @@ def _save_aggregate_new(
                         },
                     )
 
-                new_hashes = list(grouphashes)
-
-                GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
-                    state=GroupHash.State.LOCKED_IN_MIGRATION
-                ).update(group=group)
+                add_group_id_to_grouphashes(group, grouphashes)
 
                 is_new = True
                 is_regression = False
@@ -1710,36 +1707,31 @@ def _save_aggregate_new(
 
     is_new = False
 
-    new_hashes = [h for h in grouphashes if h.group_id is None]
-
-    if new_hashes:
-        # There may still be secondary hashes that we did not use to find an
-        # existing group. A classic example is when grouping makes changes to
-        # the app-hash (changes to in_app logic), but the system hash stays
-        # stable and is used to find an existing group. Associate any new
-        # hashes with the group such that event saving continues to be
-        # resilient against grouping algorithm changes.
-        #
-        # There is a race condition here where two processes could "steal"
-        # hashes from each other. In practice this should not be user-visible
-        # as group creation is synchronized. Meaning the only way hashes could
-        # jump between groups is if there were two processes that:
-        #
-        # 1) have BOTH found an existing group
-        #    (otherwise at least one of them would be in the group creation
-        #    codepath which has transaction isolation/acquires row locks)
-        # 2) AND are looking at the same set, or an overlapping set of hashes
-        #    (otherwise they would not operate on the same rows)
-        # 3) yet somehow also sort their event into two different groups each
-        #    (otherwise the update would not change anything)
-        #
-        # We think this is a very unlikely situation. A previous version of
-        # _save_aggregate had races around group creation which made this race
-        # more user visible. For more context, see 84c6f75a and d0e22787, as
-        # well as GH-5085.
-        GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
-            state=GroupHash.State.LOCKED_IN_MIGRATION
-        ).update(group=group)
+    # There may still be secondary hashes that we did not use to find an
+    # existing group. A classic example is when grouping makes changes to
+    # the app-hash (changes to in_app logic), but the system hash stays
+    # stable and is used to find an existing group. Associate any new
+    # hashes with the group such that event saving continues to be
+    # resilient against grouping algorithm changes.
+    #
+    # There is a race condition here where two processes could "steal"
+    # hashes from each other. In practice this should not be user-visible
+    # as group creation is synchronized, meaning the only way hashes could
+    # jump between groups is if there were two processes that:
+    #
+    # 1) have BOTH found an existing group
+    #    (otherwise at least one of them would be in the group creation
+    #    codepath which has transaction isolation/acquires row locks)
+    # 2) AND are looking at the same set, or an overlapping set of hashes
+    #    (otherwise they would not operate on the same rows)
+    # 3) yet somehow also sort their respective events into two different groups
+    #    (otherwise the update would not change anything)
+    #
+    # We think this is a very unlikely situation. A previous version of
+    # _save_aggregate had races around group creation which made this race
+    # more user visible. For more context, see 84c6f75a and d0e22787, as
+    # well as GH-5085.
+    add_group_id_to_grouphashes(group, grouphashes)
 
     is_regression = _process_existing_aggregate(
         group=group,
