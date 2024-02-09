@@ -220,6 +220,7 @@ class Contexts(Interface):
     def normalize_context(cls, alias, data):
         ctx_type = data.get("type", alias)
         ctx_cls = context_types.get(ctx_type, DefaultContextType)
+        # Ensure `data` is only used in a compatible manner with its nature as an unhashable type.
         return ctx_cls(alias, data)
 
     def iter_contexts(self):
