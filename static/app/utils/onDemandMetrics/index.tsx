@@ -1,5 +1,3 @@
-import type React from 'react';
-
 import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import type {FieldKey} from 'sentry/utils/fields';

@@ -1,4 +1,3 @@
-import type React from 'react';
 import {createContext, useContext} from 'react';
 
 import {RELATIVE_DAYS_WINDOW} from 'sentry/components/events/eventStatisticalDetector/consts';

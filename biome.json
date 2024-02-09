@@ -26,9 +26,7 @@
       },
       "nursery": {
         "noDuplicateJsonKeys": "error",
-        "noNodejsModules": "error",
-        "useExportType": "error",
-        "useImportType": "error"
+        "noNodejsModules": "error"
       },
       "suspicious": {
         "noDebugger": "error",

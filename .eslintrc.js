@@ -25,12 +25,22 @@ module.exports = {
     tick: true,
     jest: true,
   },
+  parserOptions: {
+    EXPERIMENTAL_useProjectService: true,
+  },
   rules: {
     'react-hooks/exhaustive-deps': [
       'warn',
       {additionalHooks: ADDITIONAL_HOOKS_TO_CHECK_DEPS_FOR},
     ],
     ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
+
+    // TODO(@anonrig): Move this to eslint-config-sentry-app
+    '@typescript-eslint/consistent-type-imports': [
+      'error',
+      {fixStyle: 'separate-type-imports', prefer: 'type-imports'},
+    ],
+    '@typescript-eslint/consistent-type-exports': ['error'],
 
     // TODO(@anonrig): Remove these rules from eslint-sentry-config.
     'import/no-nodejs-modules': 'off',

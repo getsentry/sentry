@@ -1,5 +1,4 @@
 import type {ReactElement} from 'react';
-import type React from 'react';
 import {Fragment, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';

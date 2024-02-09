@@ -1,4 +1,3 @@
-import type React from 'react';
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 

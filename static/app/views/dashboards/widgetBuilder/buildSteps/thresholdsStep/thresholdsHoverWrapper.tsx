@@ -1,4 +1,3 @@
-import type React from 'react';
 import styled from '@emotion/styled';
 
 import CircleIndicator from 'sentry/components/circleIndicator';
