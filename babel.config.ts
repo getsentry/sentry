@@ -18,14 +18,10 @@ const config: TransformOptions = {
         corejs: '3.27',
       },
     ],
-    '@babel/preset-typescript',
+    ['@babel/preset-typescript', {allowDeclareFields: true}],
   ],
   overrides: [],
-  plugins: [
-    '@emotion/babel-plugin',
-    '@babel/plugin-transform-runtime',
-    '@babel/plugin-transform-class-properties',
-  ],
+  plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-runtime'],
   env: {
     production: {
       plugins: [

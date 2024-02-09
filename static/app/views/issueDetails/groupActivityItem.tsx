@@ -260,7 +260,7 @@ function GroupActivityItem({
               <Link
                 to={`/settings/${organization.slug}/integrations/${activity.data.provider_key}/${activity.data.integration_id}/`}
               >
-                {activity.data.provider}
+                {activity.data.provider as string}
               </Link>
             ),
             author,
@@ -394,7 +394,7 @@ function GroupActivityItem({
             '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
             {
               author,
-              forecast: data.forecast,
+              forecast: data.forecast as number,
               event: data.forecast === 1 ? 'event' : 'events',
             }
           );
@@ -405,7 +405,7 @@ function GroupActivityItem({
               <Link
                 to={`/settings/${organization.slug}/integrations/${data.provider_key}/${data.integration_id}/`}
               >
-                {data.provider}
+                {data.provider as string}
               </Link>
             ),
             author,
