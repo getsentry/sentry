@@ -15,11 +15,11 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {isMissingInstrumentationNode, isSpanNode} from './traceTree';
+import {isMissingInstrumentationNode, isSpanNode, isTraceErrorNode} from './traceTree';
 import {
   isAutogroupedNode,
   isTransactionNode,
-  ParentAutoGroupNode,
+  ParentAutogroupNode,
   TraceTree,
   type TraceTreeNode,
 } from './traceTree';
@@ -131,7 +131,6 @@ function RenderRow(props: {
     return (
       <div
         className="TraceRow Autogrouped"
-        // @TODO check if we can just mutate style
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -150,15 +149,12 @@ function RenderRow(props: {
 
         <span className="TraceOperation">{t('Autogrouped')}</span>
         <strong className="TraceEmDash"> — </strong>
-        {/* @ts-ignore */}
-        <span className="TraceDescription">{props.node.value.op}</span>
+        <span className="TraceDescription">{props.node.value.autogrouped_by.op}</span>
       </div>
     );
   }
 
   if (isTransactionNode(props.node)) {
-    const transaction = props.node.value as TraceFullDetailed;
-
     return (
       <div
         className="TraceRow"
@@ -183,10 +179,10 @@ function RenderRow(props: {
             </ChildrenCountButton>
           ) : null}
         </div>
-        <ProjectBadge project={props.projects[transaction.project_slug]} />
-        <span className="TraceOperation">{transaction['transaction.op']}</span>
+        <ProjectBadge project={props.projects[props.node.value.project_slug]} />
+        <span className="TraceOperation">{props.node.value['transaction.op']}</span>
         <strong className="TraceEmDash"> — </strong>
-        <span>{transaction.transaction}</span>
+        <span>{props.node.value.transaction}</span>
         {props.node.canFetchData ? (
           <button onClick={() => props.onFetchChildren(props.node, !props.node.zoomedIn)}>
             {props.node.zoomedIn ? 'Zoom Out' : 'Zoom In'}
@@ -200,7 +196,6 @@ function RenderRow(props: {
     return (
       <div
         className="TraceRow"
-        // @TODO check if we can just mutate style
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -240,7 +235,6 @@ function RenderRow(props: {
     return (
       <div
         className="TraceRow"
-        // @TODO check if we can just mutate style
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -259,7 +253,6 @@ function RenderRow(props: {
     return (
       <div
         className="TraceRow"
-        // @TODO check if we can just mutate style
         style={{
           top: props.style.top,
           height: props.style.height,
@@ -285,10 +278,9 @@ function RenderRow(props: {
     );
   }
 
-  if ('title' in props.node.value && 'level' in props.node.value) {
+  if (isTraceErrorNode(props.node)) {
     <div
       className="TraceRow"
-      // @TODO check if we can just mutate style
       style={{
         top: props.style.top,
         height: props.style.height,
@@ -327,7 +319,7 @@ function Connectors(props: {node: TraceTreeNode<TraceTree.NodeValue>}) {
   const hideVerticalConnector =
     showVerticalConnector &&
     props.node.value &&
-    props.node instanceof ParentAutoGroupNode &&
+    props.node instanceof ParentAutogroupNode &&
     !props.node.tail.children.length;
 
   return (

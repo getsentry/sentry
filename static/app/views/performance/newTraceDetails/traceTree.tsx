@@ -54,14 +54,14 @@ export declare namespace TraceTree {
     timestamp: number;
     type: 'missing_instrumentation';
   }
-  interface SiblingAutoGroup extends RawSpanType {
+  interface SiblingAutogroup extends RawSpanType {
     autogrouped_by: {
       description: string;
       op: string;
     };
   }
 
-  interface ChildrenAutoGroup {
+  interface ChildrenAutogroup {
     autogrouped_by: {
       op: string;
     };
@@ -73,8 +73,8 @@ export declare namespace TraceTree {
     | TraceError
     | Span
     | MissingInstrumentationSpan
-    | SiblingAutoGroup
-    | ChildrenAutoGroup
+    | SiblingAutogroup
+    | ChildrenAutogroup
     | null;
 
   type Metadata = {
@@ -116,10 +116,22 @@ export function isTransactionNode(
   return !!(node.value && 'transaction' in node.value);
 }
 
+export function isParentAutogroupedNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is ParentAutogroupNode {
+  return node instanceof ParentAutogroupNode;
+}
+
 export function isAutogroupedNode(
   node: TraceTreeNode<TraceTree.NodeValue>
-): node is ParentAutoGroupNode {
-  return node instanceof ParentAutoGroupNode;
+): node is ParentAutogroupNode | SiblingAutogroupNode {
+  return !!(node.value && 'autogrouped_by' in node.value);
+}
+
+export function isTraceErrorNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.TraceError> {
+  return !!(node.value && 'level' in node.value);
 }
 
 function maybeInsertMissingInstrumentationSpan(
@@ -290,7 +302,7 @@ export class TraceTree {
     while (queue.length > 0) {
       const node = queue.pop()!;
 
-      if (node.children.length > 1 || !node.value) {
+      if (node.children.length > 1 || !isSpanNode(node)) {
         for (const child of node.children) {
           queue.push(child);
         }
@@ -304,8 +316,8 @@ export class TraceTree {
       while (
         tail &&
         tail.children.length === 1 &&
-        // @ts-ignore this is a span node
-        tail.children[0].value?.op === head.value?.op
+        isSpanNode(tail.children[0]) &&
+        tail.children[0].value.op === head.value.op
       ) {
         groupMatchCount++;
         tail = tail.children[0];
@@ -318,7 +330,7 @@ export class TraceTree {
         continue;
       }
 
-      const autoGroupedNode = new ParentAutoGroupNode(
+      const autoGroupedNode = new ParentAutogroupNode(
         node.parent,
         {
           ...head.value,
@@ -338,10 +350,7 @@ export class TraceTree {
         throw new Error('Parent node is missing, this should be unreachable code');
       }
 
-      // Match count is 1 indexed
       autoGroupedNode.groupCount = groupMatchCount + 1;
-      // Tail points to autogrouped node
-      // tail.parent = autoGroupedNode;
 
       for (const c of tail.children) {
         c.parent = autoGroupedNode;
@@ -390,8 +399,7 @@ export class TraceTree {
         }
 
         if (matchCount >= 4) {
-          const autoGroupedNode = new SiblingAutoGroupNode(
-            // @ts-ignore parent can be anything
+          const autoGroupedNode = new SiblingAutogroupNode(
             node,
             {
               ...current.value,
@@ -407,16 +415,14 @@ export class TraceTree {
           );
 
           // Copy the children under the new node.
-          // @ts-expect-error ignore readonly assignment
-          autoGroupedNode._children = node.children.slice(startIndex, matchCount + 1);
+          autoGroupedNode.children = node.children.slice(startIndex, matchCount + 1);
+          autoGroupedNode.groupCount = matchCount + 1;
 
           // Remove the old children from the parent and insert the new node.
           node.children.splice(startIndex, matchCount + 1, autoGroupedNode);
 
-          // @ts-expect-error ignore readonly assignment
-          for (let j = 0; j < autoGroupedNode._children.length; j++) {
-            // @ts-expect-error ignore readonly assignment
-            autoGroupedNode._children[j].parent = autoGroupedNode;
+          for (let j = 0; j < autoGroupedNode.children.length; j++) {
+            autoGroupedNode.children[j].parent = autoGroupedNode;
           }
         }
 
@@ -432,12 +438,12 @@ export class TraceTree {
       return false;
     }
 
+    // Expanding is not allowed for zoomed in nodes
     if (node.zoomedIn) {
-      // Expanding is not allowed for zoomed in nodes
       return false;
     }
 
-    if (node instanceof ParentAutoGroupNode) {
+    if (node instanceof ParentAutogroupNode) {
       // In parent autogrouping, we perform a node swap and either point the
       // head or tails of the autogrouped sequence to the autogrouped node
       if (node.expanded) {
@@ -580,7 +586,7 @@ export class TraceTree {
   }
 }
 
-export class TraceTreeNode<T> {
+export class TraceTreeNode<T extends TraceTree.NodeValue> {
   parent: TraceTreeNode<TraceTree.NodeValue> | null = null;
   value: T;
   expanded: boolean = false;
@@ -592,7 +598,7 @@ export class TraceTreeNode<T> {
   };
 
   private _depth: number | undefined;
-  private _children: TraceTreeNode<TraceTree.Transaction>[] = [];
+  private _children: TraceTreeNode<TraceTree.NodeValue>[] = [];
   private _spanChildren: TraceTreeNode<
     TraceTree.Span | TraceTree.MissingInstrumentationSpan
   >[] = [];
@@ -607,8 +613,7 @@ export class TraceTreeNode<T> {
     this.value = value;
     this.metadata = metadata;
 
-    // @ts-expect-error ignore in operator for primitive
-    if (value && 'transaction' in value) {
+    if (isTransactionNode(this)) {
       this.expanded = true;
     }
   }
@@ -677,19 +682,20 @@ export class TraceTreeNode<T> {
 
   get children(): TraceTreeNode<TraceTree.NodeValue>[] {
     // if node is not a autogrouped node, return children
-    // @ts-expect-error ignore primitive type
-    if (this.value && 'autogrouped_by' in this.value) {
+    if (isAutogroupedNode(this)) {
       return this._children;
     }
 
-    // Node is a span
-    // @ts-expect-error ignore primitive type
-    if (this.value && 'description' in this.value) {
+    if (isSpanNode(this)) {
       return this.canFetchData && !this.zoomedIn ? [] : this.spanChildren;
     }
 
     // if a node is zoomed in, return span children, else return transaction children
     return this.zoomedIn ? this._spanChildren : this._children;
+  }
+
+  set children(children: TraceTreeNode<TraceTree.NodeValue>[]) {
+    this._children = children;
   }
 
   get spanChildren(): TraceTreeNode<
@@ -735,7 +741,7 @@ export class TraceTreeNode<T> {
       count++;
       const next = queue.pop()!;
 
-      if (next.expanded || isAutogroupedNode(next)) {
+      if (next.expanded || isParentAutogroupedNode(next)) {
         for (let i = 0; i < next.children.length; i++) {
           queue.push(next.children[i]);
         }
@@ -750,13 +756,13 @@ export class TraceTreeNode<T> {
       return [];
     }
 
+    // @TODO: should be a proper FIFO queue as shift is O(n)
     const visibleChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
-    // @TODO: should be a proper FIFO queue as shift is O(n
 
     function visit(node) {
       visibleChildren.push(node);
 
-      if (node.expanded || isAutogroupedNode(node)) {
+      if (node.expanded || isParentAutogroupedNode(node)) {
         for (let i = 0; i < node.children.length; i++) {
           visit(node.children[i]);
         }
@@ -778,14 +784,14 @@ export class TraceTreeNode<T> {
   }
 }
 
-export class ParentAutoGroupNode extends TraceTreeNode<TraceTree.ChildrenAutoGroup> {
+export class ParentAutogroupNode extends TraceTreeNode<TraceTree.ChildrenAutogroup> {
   head: TraceTreeNode<TraceTree.Span>;
   tail: TraceTreeNode<TraceTree.Span>;
   groupCount: number = 0;
 
   constructor(
     parent: TraceTreeNode<TraceTree.NodeValue> | null,
-    node: TraceTree.ChildrenAutoGroup,
+    node: TraceTree.ChildrenAutogroup,
     metadata: TraceTree.Metadata,
     head: TraceTreeNode<TraceTree.Span>,
     tail: TraceTreeNode<TraceTree.Span>
@@ -804,10 +810,12 @@ export class ParentAutoGroupNode extends TraceTreeNode<TraceTree.ChildrenAutoGro
   }
 }
 
-export class SiblingAutoGroupNode extends TraceTreeNode<TraceTree.SiblingAutoGroup> {
+export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogroup> {
+  groupCount: number = 0;
+
   constructor(
     parent: TraceTreeNode<TraceTree.NodeValue> | null,
-    node: TraceTree.SiblingAutoGroup,
+    node: TraceTree.SiblingAutogroup,
     metadata: TraceTree.Metadata
   ) {
     super(parent, node, metadata);
