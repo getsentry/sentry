@@ -2,12 +2,24 @@ from unittest import mock
 
 from django.urls import reverse
 
+from sentry.models.dashboard_widget import (
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetQuery,
+    DashboardWidgetTypes,
+)
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
+ONDEMAND_FEATURES = [
+    "organizations:on-demand-metrics-extraction",
+    "organizations:on-demand-metrics-extraction-widgets",
+    "organizations:on-demand-metrics-extraction-experimental",
+    "organizations:on-demand-metrics-prefill",
+]
 
 
 @region_silo_test
@@ -717,6 +729,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "columns": ["sometag", "someothertag"],
                     "fields": [],
                     "aggregates": ["count()"],
+                    "onDemandExtractionEnabled": True,
                 }
             ],
         }
@@ -724,10 +737,160 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         response = self.client.post(f"{self.url()}?environment=mock_env", data)
         assert response.status_code == 200, response.data
         warnings = response.data["warnings"]
-        assert len(warnings) == 1
-        assert warnings[0]["sometag"] == "disabled:cardinality-limit"
+        assert "fields" in warnings
+        assert len(warnings["fields"]) == 1
+        assert warnings["fields"]["sometag"] == "disabled:cardinality-limit"
 
         # We queried sometag already, we shouldn't call the cardinality query again
         data["queries"][0]["fields"] = ["sometag"]
         self.client.post(f"{self.url()}?environment=mock_env", data)
         assert len(mock_query.mock_calls) == 1
+
+    @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
+    def test_dashboard_hits_max_specs(self, mock_max):
+        # create another widget so we already have a widget spec
+        self.widget_1 = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=1,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            limit=5,
+            detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        self.widget_1_data_1 = DashboardWidgetQuery.objects.create(
+            widget=self.widget_1,
+            name=self.anon_users_query["name"],
+            fields=self.anon_users_query["fields"],
+            columns=self.anon_users_query["columns"],
+            aggregates=self.anon_users_query["aggregates"],
+            field_aliases=self.anon_users_query["fieldAliases"],
+            conditions=self.anon_users_query["conditions"],
+            order=0,
+        )
+
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "onDemandExtractionEnabled": True,
+                }
+            ],
+        }
+
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        warnings = response.data["warnings"]
+        assert warnings["queries"][0] == "disabled:spec-limit"
+
+        mock_max.return_value = 100
+        # With higher max, we shouldn't hit the spec-limit
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        assert response.data == {}
+
+    @mock.patch("sentry.tasks.on_demand_metrics._query_cardinality")
+    def test_warnings_show_up_with_error(self, mock_query):
+        mock_query.return_value = {
+            "data": [{"count_unique(sometag)": 1_000_000, "count_unique(someothertag)": 1}]
+        }, [
+            "sometag",
+            "someothertag",
+        ]
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage: adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "onDemandExtractionEnabled": True,
+                }
+            ],
+        }
+
+        response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 400, response.data
+        warnings = response.data["warnings"]
+        assert "queries" in warnings
+        assert len(warnings["queries"]) == 1
+        assert warnings["queries"][0] == "disabled:query-error"
+        assert response.data["queries"][0]["conditions"], response.data
+
+    @mock.patch("sentry.relay.config.metric_extraction.get_max_widget_specs", return_value=1)
+    def test_first_query_without_ondemand_but_second_with(self, mock_max):
+        # create another widget so we already have a widget spec
+        self.widget_1 = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=1,
+            title="Widget 1",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            limit=5,
+            detail={"layout": {"x": 1, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+        self.widget_1_data_1 = DashboardWidgetQuery.objects.create(
+            widget=self.widget_1,
+            name=self.anon_users_query["name"],
+            fields=self.anon_users_query["fields"],
+            columns=self.anon_users_query["columns"],
+            aggregates=self.anon_users_query["aggregates"],
+            field_aliases=self.anon_users_query["fieldAliases"],
+            conditions=self.anon_users_query["conditions"],
+            order=0,
+        )
+
+        mock_project = self.create_project()
+        self.create_environment(project=mock_project, name="mock_env")
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                },
+                {
+                    "name": "",
+                    "conditions": "release.stage:adopted",
+                    "columns": ["sometag", "someothertag"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "onDemandExtractionEnabled": True,
+                },
+            ],
+        }
+
+        with self.feature(ONDEMAND_FEATURES):
+            response = self.client.post(f"{self.url()}?environment=mock_env", data)
+        assert response.status_code == 200, response.data
+        warnings = response.data["warnings"]
+        assert len(warnings["queries"]) == 2
+        assert warnings["queries"][0] is None
+        assert warnings["queries"][1] == "disabled:spec-limit"

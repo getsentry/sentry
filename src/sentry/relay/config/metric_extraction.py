@@ -1425,4 +1425,31 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
     return rules
 
 
+def get_current_widget_specs(organization):
+    # This can just be the first project we find, since spec hashes should not be project
+    # dependent. If spec hashes become project dependent then this may need to change.
+    project_for_query = Project.objects.filter(organization=organization).first()
+
+    enabled_features = on_demand_metrics_feature_flags(organization)
+    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
+
+    widget_specs = _get_widget_metric_specs(project_for_query, enabled_features, prefilling)
+    current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
+    return {
+        widget_hash
+        for widget_hash, _, spec_version in widget_specs
+        if spec_version == current_version
+    }
+
+
+def widget_exceeds_max_specs(new_specs, current_widget_specs, organization) -> bool:
+    current_version = OnDemandMetricSpecVersioning.get_query_spec_version(organization.id)
+    new_widget_specs = {
+        widget_hash for widget_hash, _, spec_version in new_specs if spec_version == current_version
+    }
+
+    max_widget_specs = get_max_widget_specs(organization)
+    return len(current_widget_specs.union(new_widget_specs)) > max_widget_specs
+
+
 HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)
