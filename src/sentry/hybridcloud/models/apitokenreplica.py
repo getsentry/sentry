@@ -25,6 +25,7 @@ class ApiTokenReplica(Model, HasApiScopes):
     class Meta:
         app_label = "hybridcloud"
         db_table = "hybridcloud_apitokenreplica"
+        indexes = (models.Index(fields=["token"]),)
 
     __repr__ = sane_repr("user_id", "token", "application_id")
 
