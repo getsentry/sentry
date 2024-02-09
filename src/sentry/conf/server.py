@@ -90,6 +90,8 @@ _env_cache: dict[str, object] = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
+NO_SPOTLIGHT = os.environ.get("NO_SPOTLIGHT", False)
+
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
