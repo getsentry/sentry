@@ -1473,13 +1473,13 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             self.store_on_demand_metric(
                 (hour + 1) * 5,
                 spec=spec,
-                additional_tags={"satisfaction": "frustrated"},
+                additional_tags={"satisfaction": "frustrated", "environment": environment},
                 timestamp=self.day_ago + timedelta(hours=hour),
             )
             self.store_on_demand_metric(
                 (hour + 1) * 5,
                 spec=spec,
-                additional_tags={"satisfaction": "tolerable"},
+                additional_tags={"environment": environment},
                 timestamp=self.day_ago + timedelta(hours=hour),
             )
         resp = self.do_request(
@@ -1494,9 +1494,12 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "referrer": "api.dashboards.widget.line-chart",
             }
         )
-        for datum in resp.data["data"]:
-            # XXX: Find a way to have some user misery data
-            assert datum[1] == [{"count": 0}]
+        num_items = len(resp.data["data"])
+        for index, value in enumerate(resp.data["data"]):
+            if index == num_items - 1:
+                assert value[1] == [{"count": 0.06586638830897704}]
+            else:
+                assert value[1] == [{"count": 0}]
 
         assert resp.data["meta"] == {
             "fields": {"time": "date", "user_misery_3000": "number"},
