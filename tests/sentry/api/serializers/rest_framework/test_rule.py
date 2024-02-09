@@ -48,13 +48,20 @@ class TestEnsureActionUuid:
         assert uuid.UUID(action[ACTION_UUID_KEY])
 
     def test_adds_uuid_key_when_not_found(self) -> None:
-        action: dict[Any, Any] = {}
+        action: dict[Any, Any] = {
+            "some_other_key": "foo",
+        }
 
         _ensure_action_uuid(action)
 
         assert ACTION_UUID_KEY in action
         assert action[ACTION_UUID_KEY] is not None
         assert uuid.UUID(action[ACTION_UUID_KEY])
+
+    def test_ignores_empty_dicts(self) -> None:
+        action: dict[Any, Any] = {}
+        _ensure_action_uuid(action)
+        assert ACTION_UUID_KEY not in action
 
 
 class TestValidateActions:

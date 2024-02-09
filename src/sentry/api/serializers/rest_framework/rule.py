@@ -196,7 +196,12 @@ def _ensure_action_uuid(action: dict[Any, Any]) -> None:
     Ensure that each action is uniquely identifiable.
     The function will check that a UUID key and value exists in the action.
     If the key does not exist, or it's not a valid UUID, it will create a new one and assign it to the action.
+
+    Does not add an uuid to the action if it is empty.
     """
+    if not action:
+        return
+
     if ACTION_UUID_KEY in action:
         existing_uuid = action[ACTION_UUID_KEY]
         try:
