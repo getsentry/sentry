@@ -36,7 +36,7 @@ class MultiRedisKVStorage(RedisKVStorage[T]):
     def use_new(self, key: bytes):
         rollout = options.get("eventstore.processing.rollout")
         intkey = int(hashlib.md5(key).hexdigest(), base=16)
-        return (intkey % 10000) / 10000 <= rollout
+        return (intkey % 10000) / 10000 < rollout
 
     def get(self, key: str) -> T | None:
         bkey = key.encode("utf8")

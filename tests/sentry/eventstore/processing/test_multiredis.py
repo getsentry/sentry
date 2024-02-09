@@ -39,6 +39,9 @@ class MultiRedisTest(TestCase):
         result = adapter.get(key)
         assert result == event
 
+        old_cluster = redis_clusters.get("old")
+        assert old_cluster.get(key) is None
+
     @override_options({"redis.clusters": cluster_config, "eventstore.processing.rollout": 0.0})
     def test_store_and_get_with_old(self):
         adapter = MultiRedisProcessingStore(
@@ -51,6 +54,12 @@ class MultiRedisTest(TestCase):
         key = adapter.store(event)
         result = adapter.get(key)
         assert result == event
+
+        old_cluster = redis_clusters.get("old")
+        assert old_cluster.get(key)
+
+        new_cluster = redis_clusters.get("new")
+        assert new_cluster.get(key) is None
 
     @override_options({"redis.clusters": cluster_config})
     def test_write_old_read_new(self):
@@ -87,6 +96,12 @@ class MultiRedisTest(TestCase):
         # Shift writes to old, can still read old
         with override_options({"eventstore.processing.rollout": 0.0}):
             assert adapter.get(key) == event
+
+        old_cluster = redis_clusters.get("old")
+        assert old_cluster.get(key) is None
+
+        new_cluster = redis_clusters.get("new")
+        assert new_cluster.get(key)
 
     @override_options({"redis.clusters": cluster_config})
     def test_store_new_no_old_read(self):
