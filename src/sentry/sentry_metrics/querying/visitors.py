@@ -160,6 +160,9 @@ class ValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
 
         # Formulas can optionally not have group bys, since only leaf `Timeseries` nodes can have them,
         # thus we do not perform any validation in case they are not set.
+        #
+        # We might need to rework this implementation in case the group bys in the `Formula` are merged
+        # to all the ones in the leafs.
         if formula.groupby is not None:
             self._validate_group_bys(formula.groupby)
 
@@ -234,15 +237,10 @@ class FiltersCompositeVisitor(QueryExpressionVisitor[QueryExpression]):
         self._visitors = list(visitors)
 
     def _visit_formula(self, formula: Formula) -> QueryExpression:
-        # We call the super method in order to recursively visit all the parameters of a formula and then apply the
-        # visitors on the filters of the formula itself.
-        visited_formula = super()._visit_formula(formula)
-        if not visited_formula.filters:
-            return visited_formula
+        if formula.filters:
+            formula = formula.set_filters(self._apply_visitors_on_condition_group(formula.filters))
 
-        return visited_formula.set_filters(
-            self._apply_visitors_on_condition_group(visited_formula.filters)
-        )
+        return super()._visit_formula(formula)
 
     def _visit_timeseries(self, timeseries: Timeseries) -> QueryExpression:
         if not timeseries.filters:

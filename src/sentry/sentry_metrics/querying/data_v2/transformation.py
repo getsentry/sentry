@@ -2,7 +2,7 @@ from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from sentry.search.utils import parse_datetime_string
 from sentry.sentry_metrics.querying.data_v2.execution import QueryResult
@@ -120,7 +120,8 @@ class QueryTransformer:
             for row in rows:
                 grouped_values = []
                 for group_by in group_bys:
-                    grouped_values.append((group_by, row.get(group_by)))
+                    # We can cast the group by to string because we know that tags must be strings.
+                    grouped_values.append((group_by, cast(str, row.get(group_by))))
 
                 group_value = query_groups.setdefault(tuple(grouped_values), GroupValue.empty())
                 block(row, group_value)
@@ -134,7 +135,7 @@ class QueryTransformer:
             if self._interval is None:
                 self._interval = query_result.interval
 
-            query_groups = OrderedDict()
+            query_groups: OrderedDict[GroupKey, GroupValue] = OrderedDict()
 
             # We obtain the group bys of the query.
             group_bys = query_result.group_bys
@@ -154,7 +155,7 @@ class QueryTransformer:
                 group_bys,
                 query_groups,
                 lambda value, group: group.add_series_entry(
-                    value.get("time"), value.get("aggregate_value")
+                    cast(str, value.get("time")), value.get("aggregate_value")
                 ),
             )
 
