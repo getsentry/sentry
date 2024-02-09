@@ -27,6 +27,7 @@ class TestSimilarIssuesEmbeddingsUtils(TestCase):
 
         params: SimilarIssuesEmbeddingsRequest = {
             "group_id": 1,
+            "project_id": 1,
             "stacktrace": "string",
             "message": "message",
         }
@@ -41,6 +42,7 @@ class TestSimilarIssuesEmbeddingsUtils(TestCase):
 
         params: SimilarIssuesEmbeddingsRequest = {
             "group_id": 1,
+            "project_id": 1,
             "stacktrace": "string",
             "message": "message",
         }

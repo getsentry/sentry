@@ -23,6 +23,7 @@ from sentry.seer.utils import (
 from sentry.web.helpers import render_to_string
 
 logger = logging.getLogger(__name__)
+MAX_FRAME_COUNT = 50
 
 
 def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> str:
@@ -30,31 +31,43 @@ def get_stacktrace_string(exception: Mapping[Any, Any], event: GroupEvent) -> st
     if not exception["values"]:
         return ""
 
+    frame_count = 0
     output = []
     for exc in exception["values"]:
         if not exc:
             continue
 
-        output.append(f'{exc["type"]}: {exc["value"]}')
         if exc["stacktrace"] and exc["stacktrace"].get("frames"):
+            # If the total number of frames exceeds 50, keep only the last in-app 50 frames
+            in_app_frames = [frame for frame in exc["stacktrace"]["frames"] if frame["in_app"]]
+            num_frames = len(in_app_frames)
+            if frame_count + num_frames > MAX_FRAME_COUNT:
+                remaining_frame_count = MAX_FRAME_COUNT - frame_count
+                in_app_frames = in_app_frames[-remaining_frame_count:]
+                frame_count += remaining_frame_count
+                num_frames = remaining_frame_count
+            frame_count += num_frames
+
+            if in_app_frames:
+                output.append(f'{exc["type"]}: {exc["value"]}')
+
             choices = [event.platform, "default"] if event.platform else ["default"]
             templates = [f"sentry/partial/frames/{choice}.txt" for choice in choices]
-            for frame in exc["stacktrace"]["frames"]:
-                if frame["in_app"]:
-                    output.append(
-                        render_to_string(
-                            templates,
-                            {
-                                "abs_path": frame.get("abs_path"),
-                                "filename": frame.get("filename"),
-                                "function": frame.get("function"),
-                                "module": frame.get("module"),
-                                "lineno": frame.get("lineno"),
-                                "colno": frame.get("colno"),
-                                "context_line": frame.get("context_line"),
-                            },
-                        ).strip("\n")
-                    )
+            for frame in in_app_frames:
+                output.append(
+                    render_to_string(
+                        templates,
+                        {
+                            "abs_path": frame.get("abs_path"),
+                            "filename": frame.get("filename"),
+                            "function": frame.get("function"),
+                            "module": frame.get("module"),
+                            "lineno": frame.get("lineno"),
+                            "colno": frame.get("colno"),
+                            "context_line": frame.get("context_line"),
+                        },
+                    ).strip("\n")
+                )
 
     return "\n".join(output)
 
@@ -111,6 +124,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "group_id": group.id,
+            "project_id": group.project.id,
             "stacktrace": stacktrace_string,
             "message": group.message,
         }
