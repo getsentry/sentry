@@ -34,73 +34,49 @@ def test_equality_of_specs(default_project) -> None:
     [
         ("count()", "release:a", False),  # supported by standard metrics
         ("failure_rate()", "release:a", False),  # supported by standard metrics
-        ("count_unique(geo.city)", "release:a", False),
         # geo.city not supported by standard metrics, but also not by on demand
-        (
-            "count()",
-            "transaction.duration:>1",
-            True,
-        ),  # transaction.duration not supported by standard metrics
+        ("count_unique(geo.city)", "release:a", False),
+        # transaction.duration not supported by standard metrics
+        ("count()", "transaction.duration:>1", True),
         ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
         ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
         ("apdex(10)", "", True),  # every apdex query is on-demand
         ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
-        (
-            "count_if(transaction.duration,equals,0)",
-            "release:a",
-            False,
-        ),  # count_if supported by standard metrics
+        # count_if supported by standard metrics
+        ("count_if(transaction.duration,equals,0)", "release:a", False),
         ("p75(transaction.duration)", "release:a", False),  # supported by standard metrics
-        (
-            "p75(transaction.duration)",
-            "transaction.duration:>1",
-            True,
-        ),  # transaction.duration query is on-demand
+        # transaction.duration query is on-demand
+        ("p75(transaction.duration)", "transaction.duration:>1", True),
         ("p90(transaction.duration)", "release:a", False),  # supported by standard metrics
-        (
-            "p90(transaction.duration)",
-            "transaction.duration:>1",
-            True,
-        ),  # transaction.duration query is on-demand
-        (
-            "percentile(transaction.duration, 0.9)",
-            "release:a",
-            False,
-        ),  # supported by standard metrics
-        (
-            "percentile(transaction.duration, 0.9)",
-            "transaction.duration:>1",
-            True,
-        ),  # transaction.duration query is on-demand
-        (
-            "percentile(transaction.duration, 0.90)",
-            "release:a",
-            False,
-        ),  # supported by standard metrics
-        (
-            "percentile(transaction.duration, 0.90)",
-            "transaction.duration:>1",
-            True,
-        ),
+        # transaction.duration query is on-demand
+        ("p90(transaction.duration)", "transaction.duration:>1", True),
+        # supported by standard metrics
+        ("percentile(transaction.duration, 0.9)", "release:a", False),
+        # transaction.duration query is on-demand
+        ("percentile(transaction.duration, 0.9)", "transaction.duration:>1", True),
+        # supported by standard metrics
+        ("percentile(transaction.duration, 0.90)", "release:a", False),
+        ("percentile(transaction.duration, 0.90)", "transaction.duration:>1", True),
         ("count()", "", False),  # Malformed aggregate should return false
-        (
-            "count()",
-            "event.type:error transaction.duration:>0",
-            False,
-        ),  # event.type:error not supported by metrics
-        (
-            "count()",
-            "event.type:default transaction.duration:>0",
-            False,
-        ),  # event.type:error not supported by metrics
-        (
-            "count()",
-            "error.handled:true transaction.duration:>0",
-            False,
-        ),  # error.handled is an error search term
+        # event.type:error not supported by metrics
+        ("count()", "event.type:error transaction.duration:>0", False),
+        # event.type:error not supported by metrics
+        ("count()", "event.type:default transaction.duration:>0", False),
+        # error.handled is an error search term
+        ("count()", "error.handled:true transaction.duration:>0", False),
+        # Configurable aggregates are supported by standard metrics
+        # if they use the default threshold
+        # XXX: For now, forcing it to be supported by on-demand
+        ("apdex(300)", "", True),
+        ("apdex(3000)", "", True),
+        ("user_misery(300)", "", False),
+        ("user_misery(3000)", "", True),
+        ("count_miserable(user,300)", "", False),
+        # XXX: We need to add support count_miserable in on-demand
+        ("count_miserable(user,3000)", "", False),
     ],
 )
-def test_should_use_on_demand(agg, query, result) -> None:
+def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
     assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
 
 
@@ -109,26 +85,10 @@ def test_should_use_on_demand(agg, query, result) -> None:
     [
         ("sum(c:custom/page_load@millisecond)", "release:a", False),
         ("sum(c:custom/page_load@millisecond)", "transaction.duration:>0", False),
-        (
-            "p75(d:transactions/measurements.fcp@millisecond)",
-            "release:a",
-            False,
-        ),
-        (
-            "p75(d:transactions/measurements.fcp@millisecond)",
-            "transaction.duration:>0",
-            False,
-        ),
-        (
-            "p95(d:spans/duration@millisecond)",
-            "release:a",
-            False,
-        ),
-        (
-            "p95(d:spans/duration@millisecond)",
-            "transaction.duration:>0",
-            False,
-        ),
+        ("p75(d:transactions/measurements.fcp@millisecond)", "release:a", False),
+        ("p75(d:transactions/measurements.fcp@millisecond)", "transaction.duration:>0", False),
+        ("p95(d:spans/duration@millisecond)", "release:a", False),
+        ("p95(d:spans/duration@millisecond)", "transaction.duration:>0", False),
     ],
 )
 def test_should_use_on_demand_with_mri(agg, query, result) -> None:

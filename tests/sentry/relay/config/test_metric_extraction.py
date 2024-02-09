@@ -1713,6 +1713,9 @@ def test_get_metric_extraction_config_with_transactions_dataset(default_project:
 
 @django_db_all
 def test_get_metric_extraction_config_with_no_spec(default_project: Project) -> None:
+    # XXX: This test requires apdex(300) to be supported by on-demand metrics.
+    # See _configurable_aggregates_supported_by function in src/sentry/snuba/metrics/extraction.py
+    # for details
     create_alert(
         "apdex(300)",
         "",
