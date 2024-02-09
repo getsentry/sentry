@@ -224,8 +224,8 @@ def before_send_transaction(event, _):
     # Discard generic redirects.
     # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
     if (
-        event.get("tags").get("http.status_code") == "301"
-        and event.get("transaction_info").get("source") == "url"
+        event.get("tags", {}).get("http.status_code") == "301"
+        and event.get("transaction_info", {}).get("source") == "url"
     ):
         return None
 
