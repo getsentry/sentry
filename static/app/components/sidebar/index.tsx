@@ -270,7 +270,7 @@ function Sidebar() {
               <Feature features="performance-screens-view" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  label={t('Mobile')}
+                  label={t('Screen Loads')}
                   to={`/organizations/${organization.slug}/performance/mobile/screens/`}
                   id="performance-mobile-screens"
                   icon={<SubitemDot collapsed />}
@@ -279,7 +279,7 @@ function Sidebar() {
               <Feature features="starfish-mobile-appstart" organization={organization}>
                 <SidebarItem
                   {...sidebarItemProps}
-                  label={t('App Startup')}
+                  label={t('App Starts')}
                   to={`/organizations/${organization.slug}/performance/mobile/app-startup`}
                   id="performance-mobile-app-startup"
                   icon={<SubitemDot collapsed />}

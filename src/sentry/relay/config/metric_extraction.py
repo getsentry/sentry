@@ -248,9 +248,15 @@ def _get_widget_metric_specs(
                     if not extraction_enabled:
                         # Return no specs if any extraction is blocked for a widget that should have specs.
                         ignored_widget_ids[widget_query.widget.id] = True
+                    metrics.incr(
+                        "on_demand_metrics.widgets.can_use_stateful_extraction", sample_rate=1.0
+                    )
                 else:
                     # Stateful extraction cannot be used in some cases (eg. newly created or recently modified widgets).
                     # We skip cardinality checks for those cases, however, and assume extraction is allowed temporarily.
+                    metrics.incr(
+                        "on_demand_metrics.widgets.cannot_use_stateful_extraction", sample_rate=1.0
+                    )
                     continue
             else:
                 # TODO: Remove this cardinality check after above option is enabled permanently.
@@ -461,9 +467,11 @@ def _can_widget_query_use_stateful_extraction(
     default_version_specs = specs_per_version.get(stateful_extraction_version, [])
     spec_hashes = [hashed_spec[0] for hashed_spec in default_version_specs]
 
-    on_demand_entries = widget_query.dashboardwidgetqueryondemand_set.filter(
-        spec_version=stateful_extraction_version
-    )
+    on_demand_entries = [
+        entry
+        for entry in widget_query.dashboardwidgetqueryondemand_set.all()
+        if entry.spec_version == stateful_extraction_version
+    ]
 
     if len(on_demand_entries) == 0:
         # 0 on-demand entries is expected, and happens when the on-demand task hasn't caught up yet for newly created widgets or widgets recently modified to have on-demand state.
@@ -540,7 +548,8 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
             sentry_sdk.capture_exception(
                 Exception("Skipped extraction due to mismatched on_demand entries")
             )
-        return False
+        # We default to allowed extraction if something unexpected occurs otherwise customers lose data.
+        return True
 
     on_demand_entry = on_demand_entries[0]
 

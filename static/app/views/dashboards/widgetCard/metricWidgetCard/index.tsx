@@ -232,7 +232,7 @@ export function MetricWidgetChartContainer({
       environments,
       datetime,
     },
-    {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
+    {intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'dashboard'}
   );
 
   const chartRef = useRef<ReactEchartsRef>(null);

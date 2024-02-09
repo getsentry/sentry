@@ -25,10 +25,11 @@ import type {
 } from 'sentry/utils/metrics/types';
 import {useBreakpoints} from 'sentry/utils/metrics/useBreakpoints';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
+import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {middleEllipsis} from 'sentry/utils/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
-import {useDDMContext} from 'sentry/views/ddm/context';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricSearchBar} from 'sentry/views/ddm/metricSearchBar';
 
 type QueryBuilderProps = {
@@ -58,7 +59,8 @@ export const QueryBuilder = memo(function QueryBuilder({
   powerUserMode,
   onChange,
 }: QueryBuilderProps) {
-  const {metricsMeta: meta} = useDDMContext();
+  const pageFilters = usePageFilters();
+  const {data: meta} = useMetricsMeta(pageFilters.selection);
   const mriModeKeyPressed = useKeyPress('`', undefined, true);
   const [mriMode, setMriMode] = useState(powerUserMode); // power user mode that shows raw MRI instead of metrics names
   const breakpoints = useBreakpoints();
@@ -70,7 +72,9 @@ export const QueryBuilder = memo(function QueryBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mriModeKeyPressed, powerUserMode]);
 
-  const {data: tags = []} = useMetricsTags(metricsQuery.mri, {projects});
+  const {data: tags = [], isLoading: tagsIsLoading} = useMetricsTags(metricsQuery.mri, {
+    projects,
+  });
 
   const displayedMetrics = useMemo(() => {
     if (mriMode) {
@@ -194,7 +198,7 @@ export const QueryBuilder = memo(function QueryBuilder({
                 </Fragment>
               ),
             }))}
-            disabled={!metricsQuery.mri}
+            disabled={!metricsQuery.mri || tagsIsLoading}
             value={metricsQuery.groupBy}
             onChange={handleGroupByChange}
           />

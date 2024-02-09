@@ -1,10 +1,12 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Hovercard} from 'sentry/components/hovercard';
 import {
   IconAdd,
   IconBookmark,
@@ -28,10 +30,15 @@ import {useCreateDashboard} from 'sentry/views/ddm/useCreateDashboard';
 
 interface Props {
   addCustomMetric: () => void;
+  hasDashboardFeature: boolean;
   showCustomMetricButton: boolean;
 }
 
-export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Props) {
+export function PageHeaderActions({
+  showCustomMetricButton,
+  addCustomMetric,
+  hasDashboardFeature,
+}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -62,7 +69,6 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       setDefaultQuery(router.location.query);
     }
   }, [isDefaultQuery, organization, router.location.query, setDefaultQuery]);
-
   const items = useMemo(
     () => [
       {
@@ -81,7 +87,22 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       {
         leadingItems: [<IconDashboard key="icon" />],
         key: 'add-dashboard',
-        label: t('Add to Dashboard'),
+        label: hasDashboardFeature ? (
+          <Fragment>{t('Add to Dashboard')}</Fragment>
+        ) : (
+          <Hovercard
+            body={
+              <FeatureDisabled
+                features="organizations:dashboards-edit1"
+                hideHelpToggle
+                featureName={t('Dashboard Editing')}
+              />
+            }
+          >
+            {t('Add to Dashboard')}
+          </Hovercard>
+        ),
+        disabled: !hasDashboardFeature,
         onAction: () => {
           trackAnalytics('ddm.add-to-dashboard', {
             organization,
@@ -97,7 +118,14 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
         onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
       },
     ],
-    [addWidget, createDashboard, hasEmptyWidget, organization, router]
+    [
+      addWidget,
+      createDashboard,
+      hasEmptyWidget,
+      organization,
+      router,
+      hasDashboardFeature,
+    ]
   );
 
   const alertItems = useMemo(

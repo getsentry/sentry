@@ -6,6 +6,8 @@ import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -18,6 +20,7 @@ interface TraceTimelineTooltipProps {
 
 export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineTooltipProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const {projects} = useProjects({
     slugs: [
       ...timelineEvents.reduce((acc, cur) => acc.add(cur.project), new Set<string>()),
@@ -37,12 +40,26 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
     <UnstyledUnorderedList>
       {displayYouAreHere && <YouAreHereItem>{t('You are here')}</YouAreHereItem>}
       <EventItemsWrapper>
+        <EventItemsTitle>{t('Around the same time')}</EventItemsTitle>
         {filteredTimelineEvents.slice(0, 3).map(timelineEvent => {
           const project = projects.find(p => p.slug === timelineEvent.project);
           return (
             <EventItem
               key={timelineEvent.id}
-              to={`/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`}
+              to={{
+                pathname: `/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`,
+                query: {
+                  ...location.query,
+                  referrer: 'issues_trace_timeline',
+                },
+              }}
+              onClick={() => {
+                trackAnalytics('issue_details.issue_tab.trace_timeline_clicked', {
+                  organization,
+                  event_id: timelineEvent.id,
+                  group_id: `${timelineEvent['issue.id']}`,
+                });
+              }}
             >
               <div>
                 {project && (
@@ -65,7 +82,18 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
       </EventItemsWrapper>
       {filteredTimelineEvents.length > 3 && (
         <TraceItem>
-          <Link to={generateTraceTarget(event, organization)}>
+          <Link
+            to={generateTraceTarget(event, organization)}
+            onClick={() => {
+              trackAnalytics(
+                'issue_details.issue_tab.trace_timeline_more_events_clicked',
+                {
+                  organization,
+                  num_hidden: filteredTimelineEvents.length - 3,
+                }
+              );
+            }}
+          >
             {tn(
               'View %s more event',
               'View %s more events',
@@ -88,7 +116,15 @@ const UnstyledUnorderedList = styled('div')`
 const EventItemsWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(0.5)};
+  padding: ${space(1)} ${space(0.5)} ${space(0.5)} ${space(0.5)};
+`;
+
+const EventItemsTitle = styled('div')`
+  padding-left: ${space(1)};
+  text-transform: uppercase;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: 600;
+  color: ${p => p.theme.subText};
 `;
 
 const YouAreHere = styled('div')`
