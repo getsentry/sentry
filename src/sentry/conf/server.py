@@ -1748,8 +1748,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
-    # Enable performance statistical detectors breakpoint lifecycles
-    "organizations:performance-statistical-detectors-lifecycles": False,
     # Enable trace details page with embedded spans
     "organizations:performance-trace-details": False,
     # Enable FE/BE for tracing without performance
