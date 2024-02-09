@@ -8,6 +8,7 @@ from typing import Any, Literal, Self, Union, overload
 import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Request, Response
+from requests.adapters import RetryError
 from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from sentry import audit_log, features
@@ -24,7 +25,13 @@ from sentry.utils import json, metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 
-from ..exceptions import ApiConnectionResetError, ApiError, ApiHostError, ApiTimeoutError
+from ..exceptions import (
+    ApiConnectionResetError,
+    ApiError,
+    ApiHostError,
+    ApiRetryError,
+    ApiTimeoutError,
+)
 from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
 
@@ -293,6 +300,10 @@ class BaseApiClient(TrackResponseMixin):
                 self.track_response_data("timeout", span, e, extra=extra)
                 self.record_error(e)
                 raise ApiTimeoutError.from_exception(e) from e
+            except RetryError as e:
+                self.track_response_data("max_retries", span, e, extra=extra)
+                self.record_error(e)
+                raise ApiRetryError.from_exception(e) from e
             except HTTPError as e:
                 error_resp = e.response
                 if error_resp is None:
