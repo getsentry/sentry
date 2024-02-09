@@ -17,6 +17,7 @@ from sentry.utils import json
     {
         "backpressure.checking.enabled": True,
         "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
     }
 )
@@ -31,6 +32,7 @@ def test_backpressure_unhealthy():
     {
         "backpressure.checking.enabled": True,
         "backpressure.checking.interval": 5,
+        "backpressure.monitoring.enabled": True,
         "backpressure.status_ttl": 60,
     }
 )
