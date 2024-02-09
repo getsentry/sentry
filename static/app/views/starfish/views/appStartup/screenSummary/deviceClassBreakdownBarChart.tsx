@@ -1,7 +1,6 @@
 import {BarChart} from 'sentry/components/charts/barChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
@@ -41,10 +40,6 @@ function DeviceClassBreakdownBarChart({
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
 
-  if (isReleasesLoading || isLoading) {
-    return <LoadingContainer isLoading />;
-  }
-
   return (
     <MiniChartPanel
       title={title}
@@ -59,8 +54,8 @@ function DeviceClassBreakdownBarChart({
       }
     >
       <TransitionChart
-        loading={Boolean(isLoading)}
-        reloading={Boolean(isLoading)}
+        loading={isLoading || isReleasesLoading}
+        reloading={isLoading || isReleasesLoading}
         height={`${CHART_HEIGHT}px`}
       >
         <LoadingScreen loading={Boolean(isLoading)} />
