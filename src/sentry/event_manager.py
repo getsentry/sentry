@@ -1687,22 +1687,17 @@ def _save_aggregate_new(
 
                 add_group_id_to_grouphashes(group, grouphashes)
 
-                is_new = True
-                is_regression = False
-
                 span.set_tag("create_group_transaction.outcome", "new_group")
                 metric_tags["create_group_transaction.outcome"] = "new_group"
 
                 record_new_group_metrics(event)
 
-                return GroupInfo(group, is_new, is_regression)
+                return GroupInfo(group=group, is_new=True, is_regression=False)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
 
     if check_for_category_mismatch(group):
         return None
-
-    is_new = False
 
     # There may still be secondary hashes that we did not use to find an
     # existing group. A classic example is when grouping makes changes to
@@ -1737,7 +1732,7 @@ def _save_aggregate_new(
         release=job["release"],
     )
 
-    return GroupInfo(group, is_new, is_regression)
+    return GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
 
 def _create_group(project: Project, event: Event, **kwargs: Any) -> Group:
