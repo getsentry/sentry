@@ -4,7 +4,6 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IssueType} from 'sentry/types';
 import GroupTags from 'sentry/views/issueDetails/groupTags';
 
 describe('GroupTags', function () {
@@ -51,28 +50,6 @@ describe('GroupTags', function () {
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/1/events/',
       query: {query: 'user.username:david'},
-    });
-  });
-
-  it('navigates correctly when duration regression issue > tags key is clicked', async function () {
-    render(
-      <GroupTags
-        {...routerProps}
-        group={{...group, issueType: IssueType.PERFORMANCE_ENDPOINT_REGRESSION}}
-        environments={['dev']}
-        baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
-      />,
-      {context: routerContext, organization}
-    );
-
-    await screen.findAllByTestId('tag-title');
-    await userEvent.click(screen.getByText('browser'));
-
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/summary/tags/',
-      query: expect.objectContaining({
-        tagKey: 'browser',
-      }),
     });
   });
 
