@@ -793,28 +793,13 @@ register(
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
-register(
-    "store.load-shed-group-creation-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register("store.load-shed-pipeline-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "store.load-shed-parsed-pipeline-projects",
-    type=Any,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "store.load-shed-save-event-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "store.load-shed-process-event-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "store.load-shed-symbolicate-event-projects",
-    type=Any,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
+register("store.load-shed-group-creation-projects", type=Any, default=[])
+register("store.load-shed-pipeline-projects", type=Any, default=[])
+register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
+register("store.load-shed-save-event-projects", type=Any, default=[])
+register("store.load-shed-process-event-projects", type=Any, default=[])
+register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
+
 register(
     "store.save-event-highcpu-platforms", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
