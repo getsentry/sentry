@@ -107,6 +107,8 @@ class OrganizationAuditPermission(OrganizationPermission):
         if super().has_object_permission(request, view, organization):
             return True
 
+        # the GET requires org:write, but we want both superuser read-only +
+        # write to be able to access this GET. read-only only has :read scopes
         return is_active_superuser(request)
 
 
