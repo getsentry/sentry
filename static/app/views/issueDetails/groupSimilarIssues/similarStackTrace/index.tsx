@@ -1,9 +1,10 @@
-import {useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
+import Alert from 'sentry/components/alert';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -155,54 +156,70 @@ function SimilarStackTrace({params, location, project}: Props) {
     (items.similar.length > 0 || items.filtered.length > 0);
 
   return (
-    <Layout.Body>
-      <Layout.Main fullWidth>
-        <HeaderWrapper>
-          <Title>{t('Issues with a similar stack trace')}</Title>
-          <small>
-            {t(
-              'This is an experimental feature. Data may not be immediately available while we process merges.'
-            )}
-          </small>
-        </HeaderWrapper>
-        {status === 'loading' && <LoadingIndicator />}
-        {status === 'error' && (
-          <LoadingError
-            message={t('Unable to load similar issues, please try again later')}
-            onRetry={fetchData}
-          />
-        )}
-        {status === 'ready' && !hasSimilarItems && (
-          <Panel>
-            <EmptyStateWarning>
-              <p>{t("There don't seem to be any similar issues.")}</p>
-            </EmptyStateWarning>
-          </Panel>
-        )}
-        {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
-          <List
-            items={items.similar}
-            filteredItems={items.filtered}
-            onMerge={handleMerge}
-            orgId={orgId}
-            project={project}
-            groupId={groupId}
-            pageLinks={items.pageLinks}
-          />
-        )}
-        {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
-          <List
-            items={items.similar.concat(items.filtered)}
-            filteredItems={[]}
-            onMerge={handleMerge}
-            orgId={orgId}
-            project={project}
-            groupId={groupId}
-            pageLinks={items.pageLinks}
-          />
-        )}
-      </Layout.Main>
-    </Layout.Body>
+    <Fragment>
+      {hasSimilarityEmbeddingsFeature && (
+        <Alert
+          type="info"
+          showIcon
+          defaultExpanded
+          expand={
+            'We\'d love to get your feedback on the accuracy of this score. You can check off individuals rows with "Agree" and "Disagree" to send us feedback on how you\'d classify each decision we\'ve made. If you have any questions, you can feel free to reach out to the team at #proj-ml-grouping.'
+          }
+        >
+          Hi there! We're running an internal POC to improve grouping with ML techniques.
+          Each similar issue has been scored as "Would Group: Yes" and "Would Group: No,"
+          which refers to whether or not we'd group the similar issue into the main issue.
+        </Alert>
+      )}
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <HeaderWrapper>
+            <Title>{t('Issues with a similar stack trace')}</Title>
+            <small>
+              {t(
+                'This is an experimental feature. Data may not be immediately available while we process merges.'
+              )}
+            </small>
+          </HeaderWrapper>
+          {status === 'loading' && <LoadingIndicator />}
+          {status === 'error' && (
+            <LoadingError
+              message={t('Unable to load similar issues, please try again later')}
+              onRetry={fetchData}
+            />
+          )}
+          {status === 'ready' && !hasSimilarItems && (
+            <Panel>
+              <EmptyStateWarning>
+                <p>{t("There don't seem to be any similar issues.")}</p>
+              </EmptyStateWarning>
+            </Panel>
+          )}
+          {status === 'ready' && hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
+            <List
+              items={items.similar}
+              filteredItems={items.filtered}
+              onMerge={handleMerge}
+              orgId={orgId}
+              project={project}
+              groupId={groupId}
+              pageLinks={items.pageLinks}
+            />
+          )}
+          {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
+            <List
+              items={items.similar.concat(items.filtered)}
+              filteredItems={[]}
+              onMerge={handleMerge}
+              orgId={orgId}
+              project={project}
+              groupId={groupId}
+              pageLinks={items.pageLinks}
+            />
+          )}
+        </Layout.Main>
+      </Layout.Body>
+    </Fragment>
   );
 }
 

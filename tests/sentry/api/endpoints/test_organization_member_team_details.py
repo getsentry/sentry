@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest.mock import patch
 
 from django.test import override_settings
 from rest_framework import status
@@ -9,9 +10,13 @@ from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
+from tests.sentry.api.endpoints.test_organization_member_index import (
+    mock_organization_roles_get_factory,
+)
 
 
 class OrganizationMemberTeamTestBase(APITestCase):
@@ -183,6 +188,20 @@ class CreateOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=self.team, organizationmember=target_owner
         ).exists()
 
+    @patch(
+        "sentry.roles.organization_roles.get",
+        wraps=mock_organization_roles_get_factory(organization_roles.get),
+    )
+    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get):
+        self.login_as(self.manager)
+        response = self.get_error_response(
+            self.org.slug, self.member.id, self.team.slug, status_code=403
+        )
+        assert (
+            response.data["detail"]
+            == "The user with a 'member' role cannot have team-level permissions."
+        )
+
 
 class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
     method = "post"
@@ -280,6 +299,7 @@ class CreateWithOpenMembershipTest(OrganizationMemberTeamTestBase):
         ).exists()
 
 
+@region_silo_test
 class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
     @cached_property
     def org(self):

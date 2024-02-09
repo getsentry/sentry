@@ -5,9 +5,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
 import {TraceTimeline} from './traceTimeline';
 import type {TraceEventResponse} from './useTraceTimelineEvents';
+
+jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
 
 describe('TraceTimeline', () => {
   const organization = OrganizationFixture({features: ['issues-trace-timeline']});
@@ -55,6 +58,7 @@ describe('TraceTimeline', () => {
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
+    jest.clearAllMocks();
   });
 
   it('renders items and highlights the current event', async () => {
@@ -73,6 +77,9 @@ describe('TraceTimeline', () => {
 
     await userEvent.hover(screen.getByTestId('trace-timeline-tooltip-1'));
     expect(await screen.findByText('You are here')).toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      trace_timeline_status: 'shown',
+    });
   });
 
   it('displays nothing if the only event is the current event', async () => {
@@ -91,6 +98,9 @@ describe('TraceTimeline', () => {
     });
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      trace_timeline_status: 'empty',
+    });
   });
 
   it('displays nothing if there are no events', async () => {
@@ -112,6 +122,9 @@ describe('TraceTimeline', () => {
     });
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByTestId('trace-timeline-empty')).toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      trace_timeline_status: 'empty',
+    });
   });
 
   it('shows seconds for very short timelines', async () => {
@@ -130,6 +143,6 @@ describe('TraceTimeline', () => {
     });
     render(<TraceTimeline event={event} />, {organization});
     // Checking for the presence of seconds
-    expect(await screen.findAllByText(/\d{1,2}:\d{2}:\d{2} (AM|PM)/)).toHaveLength(3);
+    expect(await screen.findAllByText(/\d{1,2}:\d{2}:\d{2} (AM|PM)/)).toHaveLength(5);
   });
 });

@@ -958,7 +958,7 @@ def _bulk_snuba_query(
     for index, item in enumerate(query_results):
         response, _, reverse = item
         try:
-            body = json.loads(response.data)
+            body = json.loads(response.data, skip_trace=True)
             if SNUBA_INFO:
                 if "sql" in body:
                     print(  # NOQA: only prints when an env variable is set

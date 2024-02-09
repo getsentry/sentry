@@ -19,7 +19,7 @@ export function useMetricsTags(
     ? {
         metric: mri,
         useCase,
-        projects: pageFilters.projects,
+        project: pageFilters.projects,
         ...getMetaDateTimeParams(pageFilters.datetime),
       }
     : {

@@ -54,7 +54,6 @@ from sentry.grouping.ingest import (
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.priority import PriorityLevel
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -97,7 +96,7 @@ from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -728,9 +727,9 @@ def _associate_commits_with_release(release: Release, project: Project) -> None:
                     "release_id": release.id,
                     "user_id": None,
                     "refs": [{"repository": target_repo.name, "commit": release.version}],
-                    "prev_release_id": previous_release.id
-                    if previous_release is not None
-                    else None,
+                    "prev_release_id": (
+                        previous_release.id if previous_release is not None else None
+                    ),
                 }
             )
 
@@ -2006,6 +2005,7 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
 Attachment = CachedAttachment
 
 
+@sentry_sdk.tracing.trace
 def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
     """
     Refunds consumed quotas for an event and its attachments.

@@ -39,7 +39,7 @@ cssutils==2.9.0
 datadog==0.44.0
 distlib==0.3.4
 distro==1.8.0
-django==5.0.1
+django==5.0.2
 django-crispy-forms==1.14.0
 django-csp==3.7
 django-pg-zero-downtime-migrations==0.13
@@ -98,7 +98,7 @@ milksnake==0.1.6
 mistune==2.0.4
 mmh3==4.0.0
 more-itertools==8.13.0
-msgpack==1.0.4
+msgpack==1.0.7
 msgpack-types==0.2.0
 mypy==1.8.0
 mypy-extensions==1.0.0
@@ -128,7 +128,7 @@ prompt-toolkit==3.0.41
 proto-plus==1.23.0
 protobuf==4.21.6
 psutil==5.9.2
-psycopg2-binary==2.9.7
+psycopg2-binary==2.9.9
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pycodestyle==2.11.0
@@ -175,7 +175,7 @@ selenium==4.16.0
 sentry-arroyo==2.16.0
 sentry-cli==2.16.0
 sentry-devenv==1.2.2
-sentry-forked-django-stubs==4.2.7.post2
+sentry-forked-django-stubs==4.2.7.post3
 sentry-forked-djangorestframework-stubs==3.14.5.post1
 sentry-kafka-schemas==0.1.38
 sentry-ophio==0.1.5

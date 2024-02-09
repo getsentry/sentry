@@ -47,8 +47,21 @@ class IssueListPage(BasePage):
         self.browser.click('[data-test-id="confirm-button"]')
 
     def merge_issues(self):
-        self.browser.click('[aria-label="Merge Selected Issues"]')
-        self.browser.click('[data-test-id="confirm-button"]')
+        # Merge button gets put into an overflow menu for small viewports
+        if self.browser.element_exists('[aria-label="Merge Selected Issues"]'):
+            self.browser.click('[aria-label="Merge Selected Issues"]')
+            self.browser.click('[data-test-id="confirm-button"]')
+        else:
+            self.browser.click('[aria-label="More issue actions"]')
+            self.browser.wait_until('[data-test-id="merge"]')
+            self.browser.click('[data-test-id="merge"]')
+            self.browser.click('[data-test-id="confirm-button"]')
 
     def mark_reviewed_issues(self):
-        self.browser.click('[aria-label="Mark Reviewed"]')
+        # Marked reviewed button gets put into an overflow menu for small viewports
+        if self.browser.element_exists('[aria-label="Mark Reviewed"]'):
+            self.browser.click('[aria-label="Mark Reviewed"]')
+        else:
+            self.browser.click('[aria-label="More issue actions"]')
+            self.browser.wait_until('[data-test-id="mark-reviewed"]')
+            self.browser.click('[data-test-id="mark-reviewed"]')

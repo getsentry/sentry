@@ -32,7 +32,7 @@ cssselect==1.0.3
 cssutils==2.9.0
 datadog==0.44.0
 distro==1.8.0
-django==5.0.1
+django==5.0.2
 django-crispy-forms==1.14.0
 django-csp==3.7
 django-pg-zero-downtime-migrations==0.13
@@ -73,7 +73,7 @@ maxminddb==2.3.0
 milksnake==0.1.6
 mistune==2.0.4
 mmh3==4.0.0
-msgpack==1.0.4
+msgpack==1.0.7
 oauthlib==3.1.0
 openai==1.3.5
 packaging==21.3
@@ -86,7 +86,7 @@ progressbar2==3.41.0
 prompt-toolkit==3.0.41
 proto-plus==1.23.0
 protobuf==4.21.6
-psycopg2-binary==2.9.7
+psycopg2-binary==2.9.9
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
 pycountry==17.5.14
