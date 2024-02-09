@@ -47,6 +47,7 @@ from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
 from sentry.grouping.ingest import (
+    check_for_group_creation_load_shed,
     find_existing_grouphash,
     find_existing_grouphash_new,
     get_hash_values,
@@ -1645,14 +1646,7 @@ def _save_aggregate_new(
     existing_grouphash = find_existing_grouphash_new(grouphashes)
 
     if existing_grouphash is None:
-        if killswitch_matches_context(
-            "store.load-shed-group-creation-projects",
-            {
-                "project_id": project.id,
-                "platform": event.platform,
-            },
-        ):
-            raise HashDiscarded("Load shedding group creation", reason="load_shed")
+        check_for_group_creation_load_shed(project, event)
 
         with sentry_sdk.start_span(
             op="event_manager.create_group_transaction"

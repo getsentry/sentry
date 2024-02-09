@@ -25,6 +25,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.result import CalculatedHashes
+from sentry.killswitches import killswitch_matches_context
 from sentry.locks import locks
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
@@ -427,3 +428,17 @@ def record_new_group_metrics(event: Event):
                 "frame_mix": frame_mix,
             },
         )
+
+
+def check_for_group_creation_load_shed(project: Project, event: Event):
+    """
+    Raise a `HashDiscarded` error if the load-shed killswitch is enabled
+    """
+    if killswitch_matches_context(
+        "store.load-shed-group-creation-projects",
+        {
+            "project_id": project.id,
+            "platform": event.platform,
+        },
+    ):
+        raise HashDiscarded("Load shedding group creation", reason="load_shed")
