@@ -481,6 +481,7 @@ export type CommonGroupAnalyticsData = {
   issue_level?: string;
   issue_status?: string;
   issue_substatus?: string | null;
+  priority?: string;
 };
 
 export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {
@@ -507,6 +508,7 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     num_participants: group?.participants?.length ?? 0,
     num_viewers: group?.seenBy?.filter(user => user.id !== activeUser?.id).length ?? 0,
     group_num_user_feedback: group?.userReportCount ?? 0,
+    priority: group?.priority,
   };
 }
 

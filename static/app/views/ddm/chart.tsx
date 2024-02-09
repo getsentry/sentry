@@ -146,7 +146,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
         ...focusAreaBrush.options,
         forwardedRef: mergeRefs([forwardedRef, chartRef]),
         series: seriesToShow,
-        renderer: seriesToShow.length > 20 ? ('canvas' as const) : ('svg' as const),
+        devicePixelRatio: 2,
+        renderer: 'canvas' as const,
         isGroupedByDate: true,
         colors: seriesToShow.map(s => s.color),
         grid: {top: 5, bottom: 0, left: 0, right: 0},
@@ -159,6 +160,8 @@ export const MetricChart = forwardRef<ReactEchartsRef, ChartProps>(
             if (!isChartHovered(chartRef?.current)) {
               return '';
             }
+
+            // Hovering a single correlated sample datapoint
             if (params.seriesType === 'scatter') {
               return getFormatter(samples.formatters)(params, asyncTicket);
             }
@@ -296,6 +299,9 @@ function transformToScatterSeries({
   });
 }
 
+const EXTRAPOLATED_AREA_STRIPE_IMG =
+  'image://data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAABkCAYAAAC/zKGXAAAAMUlEQVR4Ae3KoREAIAwEsMKgrMeYj8BzyIpEZyTZda16mPVJFEVRFEVRFEVRFMWO8QB4uATKpuU51gAAAABJRU5ErkJggg==';
+
 const createFogOfWarBarSeries = (series: Series, fogBucketCnt = 0) => ({
   ...series,
   silent: true,
@@ -305,7 +311,13 @@ const createFogOfWarBarSeries = (series: Series, fogBucketCnt = 0) => ({
     value: index < series.data.length - fogBucketCnt ? 0 : data.value,
   })),
   itemStyle: {
-    opacity: 0.5,
+    opacity: 1,
+    decal: {
+      symbol: EXTRAPOLATED_AREA_STRIPE_IMG,
+      dashArrayX: [6, 0],
+      dashArrayY: [6, 0],
+      rotation: Math.PI / 4,
+    },
   },
 });
 
@@ -315,7 +327,7 @@ const createFogOfWarLineSeries = (series: Series, fogBucketCnt = 0) => ({
   // We include the last non-fog of war bucket so that the line is connected
   data: series.data.slice(-fogBucketCnt - 1),
   lineStyle: {
-    type: 'dashed',
+    type: 'dotted',
   },
 });
 
@@ -326,7 +338,7 @@ const createFogOfWarAreaSeries = (series: Series, fogBucketCnt = 0) => ({
   // We include the last non-fog of war bucket so that the line is connected
   data: series.data.slice(-fogBucketCnt - 1),
   lineStyle: {
-    type: 'dashed',
+    type: 'dotted',
     color: Color(series.color).lighten(0.3).string(),
   },
 });

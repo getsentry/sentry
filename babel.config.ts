@@ -15,7 +15,7 @@ const config: TransformOptions = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.35.1',
+        corejs: '3.27',
       },
     ],
     '@babel/preset-typescript',

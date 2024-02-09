@@ -232,7 +232,7 @@ export function MetricWidgetChartContainer({
       environments,
       datetime,
     },
-    {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
+    {intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'dashboard'}
   );
 
   const chartRef = useRef<ReactEchartsRef>(null);
@@ -242,10 +242,9 @@ export function MetricWidgetChartContainer({
       ? getChartTimeseries(timeseriesData, {
           getChartPalette: createChartPalette,
           mri,
-          groupBy,
         })
       : [];
-  }, [timeseriesData, mri, groupBy]);
+  }, [timeseriesData, mri]);
 
   if (isError) {
     const errorMessage =

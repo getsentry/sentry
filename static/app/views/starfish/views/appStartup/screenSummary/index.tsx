@@ -23,13 +23,8 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {EventSamples} from 'sentry/views/starfish/views/appStartup/screenSummary/eventSamples';
-import {SpanOperationTable} from 'sentry/views/starfish/views/appStartup/screenSummary/spanOperationTable';
+import {SamplesTables} from 'sentry/views/starfish/views/appStartup/screenSummary/samples';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {
-  MobileCursors,
-  MobileSortKeys,
-} from 'sentry/views/starfish/views/screens/constants';
 import {MetricsRibbon} from 'sentry/views/starfish/views/screens/screenLoadSpans/metricsRibbon';
 import {ScreenLoadSpanSamples} from 'sentry/views/starfish/views/screens/screenLoadSpans/samples';
 
@@ -73,7 +68,7 @@ function ScreenSummary() {
   const crumbs: Crumb[] = [
     {
       to: startupModule,
-      label: t('App Startup'),
+      label: t('App Starts'),
       preservePageFilters: true,
     },
     {
@@ -194,36 +189,9 @@ function ScreenSummary() {
               <ErrorBoundary mini>
                 <AppStartWidgets additionalFilters={[`transaction:${transactionName}`]} />
               </ErrorBoundary>
-              <EventSamplesContainer>
-                <ErrorBoundary mini>
-                  <div>
-                    <EventSamples
-                      cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                      sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                      release={primaryRelease}
-                      transaction={transactionName}
-                      showDeviceClassSelector
-                    />
-                  </div>
-                </ErrorBoundary>
-                <ErrorBoundary mini>
-                  <div>
-                    <EventSamples
-                      cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                      sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                      release={secondaryRelease}
-                      transaction={transactionName}
-                    />
-                  </div>
-                </ErrorBoundary>
-              </EventSamplesContainer>
-              <ErrorBoundary mini>
-                <SpanOperationTable
-                  transaction={transactionName}
-                  primaryRelease={primaryRelease}
-                  secondaryRelease={secondaryRelease}
-                />
-              </ErrorBoundary>
+              <SamplesContainer>
+                <SamplesTables transactionName={transactionName} />
+              </SamplesContainer>
               {spanGroup && spanOp && (
                 <ScreenLoadSpanSamples
                   groupId={spanGroup}
@@ -265,9 +233,6 @@ const Container = styled('div')`
   }
 `;
 
-const EventSamplesContainer = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+const SamplesContainer = styled('div')`
   margin-top: ${space(2)};
-  gap: ${space(2)};
 `;

@@ -13,7 +13,11 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {getMetricsApiRequestQuery, getSeriesName, groupByOp} from 'sentry/utils/metrics';
+import {
+  getMetricsApiRequestQuery,
+  getMetricsSeriesName,
+  groupByOp,
+} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
   formatMRIField,
@@ -352,9 +356,7 @@ export function transformMetricsResponseToSeries(
   data.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {
       results.push({
-        seriesName:
-          queryAlias ||
-          getSeriesName(group, data.groups.length === 1, widgetQuery.columns),
+        seriesName: queryAlias || getMetricsSeriesName(group),
         data: data.intervals.map((interval, index) => ({
           name: interval,
           value: group.series[field][index] ?? 0,
@@ -399,7 +401,7 @@ function getMetricRequest(
     pageFilters,
     {
       limit: limit || undefined,
-      fidelity: displayType === DisplayType.BAR ? 'low' : 'high',
+      intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
     }
   );
 

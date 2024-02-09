@@ -766,6 +766,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert data["order"] == 0
 
 
+@region_silo_test
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest
 ):
@@ -1469,3 +1470,220 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             [{"count": 5.0}],
             [{"count": 10.0}],
         ]
+
+    def _setup_orderby_tests(self, query):
+        count_spec = OnDemandMetricSpec(
+            field="count()",
+            groupbys=["networkId"],
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+        p95_spec = OnDemandMetricSpec(
+            field="p95(transaction.duration)",
+            groupbys=["networkId"],
+            query=query,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+
+        for hour in range(0, 5):
+            self.store_on_demand_metric(
+                1,
+                spec=count_spec,
+                additional_tags={"networkId": "1234"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                100,
+                spec=p95_spec,
+                additional_tags={"networkId": "1234"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                200,
+                spec=p95_spec,
+                additional_tags={"networkId": "5678"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            # Store twice as many 5678 so orderby puts it later
+            self.store_on_demand_metric(
+                2,
+                spec=count_spec,
+                additional_tags={"networkId": "5678"},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+
+    def test_order_by_aggregate_top_events_desc(self):
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        self._setup_orderby_tests(query)
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "field": ["networkId", "count()"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": "-count()",
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        data1 = response.data["5678"]
+        assert data1["order"] == 0
+        assert data1["data"][0][1][0]["count"] == 10
+        data2 = response.data["1234"]
+        assert data2["order"] == 1
+        assert data2["data"][0][1][0]["count"] == 5
+        for datum in response.data.values():
+            assert datum["meta"] == {
+                "dataset": "metricsEnhanced",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "units": {},
+            }
+
+    def test_order_by_aggregate_top_events_asc(self):
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        self._setup_orderby_tests(query)
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "field": ["networkId", "count()"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": "count()",
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        data1 = response.data["1234"]
+        assert data1["order"] == 0
+        assert data1["data"][0][1][0]["count"] == 5
+        data2 = response.data["5678"]
+        assert data2["order"] == 1
+        assert data2["data"][0][1][0]["count"] == 10
+        for datum in response.data.values():
+            assert datum["meta"] == {
+                "dataset": "metricsEnhanced",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "units": {},
+            }
+
+    def test_order_by_aggregate_top_events_graph_different_aggregate(self):
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        self._setup_orderby_tests(query)
+        response = self.do_request(
+            data={
+                "dataset": "metricsEnhanced",
+                "field": ["networkId", "count()"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": "count()",
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": "p95(transaction.duration)",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        data1 = response.data["1234"]
+        assert data1["order"] == 0
+        assert data1["data"][0][1][0]["count"] == 100
+        data2 = response.data["5678"]
+        assert data2["order"] == 1
+        assert data2["data"][0][1][0]["count"] == 200
+        for datum in response.data.values():
+            assert datum["meta"] == {
+                "dataset": "metricsEnhanced",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": True,
+                "tips": {},
+                "units": {},
+            }
+
+    def test_cannot_order_by_tag(self):
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        self._setup_orderby_tests(query)
+        response = self.do_request(
+            data={
+                "dataset": "metrics",
+                "field": ["networkId", "count()"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": "-networkId",
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": "count()",
+            },
+        )
+
+        assert response.status_code == 400, response.content
+
+    def test_order_by_two_aggregates(self):
+        url = "https://sentry.io"
+        query = f'http.url:{url}/*/foo/bar/* http.referer:"{url}/*/bar/*" event.type:transaction'
+        self._setup_orderby_tests(query)
+        response = self.do_request(
+            data={
+                "dataset": "metrics",
+                "field": ["networkId", "count()", "p95(transaction.duration)"],
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "onDemandType": "dynamic_query",
+                "orderby": ["count()", "p95(transaction.duration)"],
+                "interval": "1d",
+                "partial": 1,
+                "query": query,
+                "referrer": "api.dashboards.widget.bar-chart",
+                "project": self.project.id,
+                "topEvents": 2,
+                "useOnDemandMetrics": "true",
+                "yAxis": "p95(transaction.duration)",
+            },
+        )
+
+        assert response.status_code == 400, response.content

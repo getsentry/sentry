@@ -19,12 +19,13 @@ import type {MetricsApiResponse, MRI, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {
   getDefaultMetricDisplayType,
-  getSeriesName,
+  getMetricsSeriesName,
   stringifyMetricWidget,
 } from 'sentry/utils/metrics';
 import {metricDisplayTypeOptions} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {
+  FocusedMetricsSeries,
   MetricCorrelation,
   MetricWidgetQueryParams,
 } from 'sentry/utils/metrics/types';
@@ -37,6 +38,7 @@ import type {FocusAreaProps} from 'sentry/views/ddm/context';
 import {createChartPalette} from 'sentry/views/ddm/metricsChartPalette';
 import {QuerySymbol} from 'sentry/views/ddm/querySymbol';
 import {SummaryTable} from 'sentry/views/ddm/summaryTable';
+import {getQueryWithFocusedSeries} from 'sentry/views/ddm/utils';
 
 import {DDM_CHART_GROUP, MIN_WIDGET_WIDTH} from './constants';
 
@@ -62,12 +64,6 @@ export type Sample = {
   spanId: string;
   transactionId: string;
   transactionSpanId: string;
-};
-
-const constructQueryString = (queryObject: Record<string, string>) => {
-  return Object.entries(queryObject)
-    .map(([key, value]) => `${key}:"${value}"`)
-    .join(' ');
 };
 
 export const MetricWidget = memo(
@@ -130,11 +126,14 @@ export const MetricWidget = memo(
       onChange(index, {displayType: value});
     };
 
+    const queryWithFocusedSeries = useMemo(
+      () => getQueryWithFocusedSeries(widget),
+      [widget]
+    );
+
     const samplesQuery = useMetricSamples(metricsQuery.mri, {
       ...focusArea?.selection?.range,
-      query: widget?.focusedSeries?.groupBy
-        ? `${widget.query} ${constructQueryString(widget.focusedSeries.groupBy)}`.trim()
-        : widget?.query,
+      query: queryWithFocusedSeries,
     });
 
     const samples = useMemo(() => {
@@ -256,7 +255,7 @@ const MetricWidgetBody = memo(
         environments,
         datetime,
       },
-      {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
+      {intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'ddm'}
     );
 
     const chartRef = useRef<ReactEchartsRef>(null);
@@ -272,33 +271,68 @@ const MetricWidgetBody = memo(
       });
     }, []);
 
-    const toggleSeriesVisibility = useCallback(
-      (series: MetricWidgetQueryParams['focusedSeries']) => {
-        setHoveredSeries('');
-        onChange?.({
-          focusedSeries:
-            focusedSeries?.seriesName === series?.seriesName ? undefined : series,
-        });
-      },
-      [focusedSeries, onChange, setHoveredSeries]
-    );
-
     const chartSeries = useMemo(() => {
       return timeseriesData
         ? getChartTimeseries(timeseriesData, {
             getChartPalette,
             mri,
-            focusedSeries: focusedSeries?.seriesName,
-            groupBy: metricsQuery.groupBy,
+            focusedSeries:
+              focusedSeries && new Set(focusedSeries?.map(s => s.seriesName)),
           })
         : [];
-    }, [
-      timeseriesData,
-      getChartPalette,
-      mri,
-      focusedSeries?.seriesName,
-      metricsQuery.groupBy,
-    ]);
+    }, [timeseriesData, getChartPalette, mri, focusedSeries]);
+
+    const toggleSeriesVisibility = useCallback(
+      (series: FocusedMetricsSeries) => {
+        setHoveredSeries('');
+
+        // The focused series array is not populated yet, so we can add all series except the one that was de-selected
+        if (!focusedSeries || focusedSeries.length === 0) {
+          onChange?.({
+            focusedSeries: chartSeries
+              .filter(s => s.seriesName !== series.seriesName)
+              .map(s => ({
+                seriesName: s.seriesName,
+                groupBy: s.groupBy,
+              })),
+          });
+          return;
+        }
+
+        const filteredSeries = focusedSeries.filter(
+          s => s.seriesName !== series.seriesName
+        );
+
+        if (filteredSeries.length === focusedSeries.length) {
+          // The series was not focused before so we can add it
+          filteredSeries.push(series);
+        }
+
+        onChange?.({
+          focusedSeries: filteredSeries,
+        });
+      },
+      [chartSeries, focusedSeries, onChange, setHoveredSeries]
+    );
+
+    const setSeriesVisibility = useCallback(
+      (series: FocusedMetricsSeries) => {
+        setHoveredSeries('');
+        if (
+          focusedSeries?.length === 1 &&
+          focusedSeries[0].seriesName === series.seriesName
+        ) {
+          onChange?.({
+            focusedSeries: [],
+          });
+          return;
+        }
+        onChange?.({
+          focusedSeries: [series],
+        });
+      },
+      [focusedSeries, onChange, setHoveredSeries]
+    );
 
     const handleSortChange = useCallback(
       newSort => {
@@ -352,8 +386,9 @@ const MetricWidgetBody = memo(
             onSortChange={handleSortChange}
             sort={sort}
             operation={metricsQuery.op}
-            onRowClick={toggleSeriesVisibility}
-            setHoveredSeries={focusedSeries ? undefined : setHoveredSeries}
+            onRowClick={setSeriesVisibility}
+            onColorDotClick={toggleSeriesVisibility}
+            setHoveredSeries={setHoveredSeries}
           />
         )}
       </StyledMetricWidgetBody>
@@ -367,12 +402,10 @@ export function getChartTimeseries(
     getChartPalette,
     mri,
     focusedSeries,
-    groupBy,
   }: {
     getChartPalette: (seriesNames: string[]) => Record<string, string>;
     mri: MRI;
-    focusedSeries?: string;
-    groupBy?: string[];
+    focusedSeries?: Set<string>;
   }
 ) {
   // this assumes that all series have the same unit
@@ -382,7 +415,7 @@ export function getChartTimeseries(
   const series = data.groups.map(g => {
     return {
       values: Object.values(g.series)[0],
-      name: getSeriesName(g, data.groups.length === 1, groupBy),
+      name: getMetricsSeriesName(g),
       groupBy: g.by,
       transaction: g.by.transaction,
       release: g.by.release,
@@ -396,7 +429,7 @@ export function getChartTimeseries(
     groupBy: item.groupBy,
     unit,
     color: chartPalette[item.name],
-    hidden: focusedSeries && focusedSeries !== item.name,
+    hidden: focusedSeries && focusedSeries.size > 0 && !focusedSeries.has(item.name),
     data: item.values.map((value, index) => ({
       name: moment(data.intervals[index]).valueOf(),
       value,

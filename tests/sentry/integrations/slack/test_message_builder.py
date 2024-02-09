@@ -11,6 +11,7 @@ from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
@@ -294,14 +295,16 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             group=group,
         )
         test_message["actions"] = [
-            action
-            if action["text"] != "Ignore"
-            else {
-                "name": "status",
-                "text": "Archive",
-                "type": "button",
-                "value": "ignored:until_escalating",
-            }
+            (
+                action
+                if action["text"] != "Ignore"
+                else {
+                    "name": "status",
+                    "text": "Archive",
+                    "type": "button",
+                    "value": "ignored:until_escalating",
+                }
+            )
             for action in test_message["actions"]
         ]
         assert SlackIssuesMessageBuilder(group).build() == test_message
@@ -859,6 +862,12 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
+    @with_feature("organizations:slack-block-kit")
+    def test_block_kit_truncates_long_query(self):
+        text = "a" * 5000
+        block = BlockSlackMessageBuilder().get_rich_text_preformatted_block(text)
+        assert block["elements"][0]["elements"][0]["text"] == "a" * 997 + "..."
+
     def test_build_performance_issue_color_no_event_passed(self):
         """This test doesn't pass an event to the SlackIssuesMessageBuilder to mimic what
         could happen in that case (it is optional). It also creates a performance group that won't
@@ -948,8 +957,8 @@ class BuildGroupAttachmentReplaysTest(TestCase):
             blocks = SlackIssuesMessageBuilder(event.group, event.for_group(event.group)).build()
         assert isinstance(blocks, dict)
         assert (
-            f"\n\n<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
-            in blocks["blocks"][1]["elements"][0]["elements"][0]["text"]
+            f"<http://testserver/organizations/baz/issues/{event.group.id}/replays/?referrer=slack|View Replays>"
+            in blocks["blocks"][4]["elements"][0]["text"]
         )
 
 

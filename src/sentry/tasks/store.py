@@ -391,7 +391,7 @@ def do_process_event(
     # We are fairly confident, however, that this should run *before*
     # re-normalization as it is hard to find sensitive data in partially
     # trimmed strings.
-    if has_changed and options.get("processing.can-use-scrubbers"):
+    if has_changed:
         with sentry_sdk.start_span(op="task.store.datascrubbers.scrub"):
             with metrics.timer(
                 "tasks.store.datascrubbers.scrub", tags={"from_symbolicate": from_symbolicate}
@@ -536,6 +536,7 @@ def process_event_from_reprocessing(
     )
 
 
+@sentry_sdk.tracing.trace
 def delete_raw_event(project_id: int, event_id: str | None, allow_hint_clear: bool = False) -> None:
     set_current_event_project(project_id)
 
@@ -770,9 +771,9 @@ def _do_save_event(
                     time() - start_time,
                     instance=data["platform"],
                     tags={
-                        "is_reprocessing2": "true"
-                        if reprocessing2.is_reprocessed_event(data)
-                        else "false",
+                        "is_reprocessing2": (
+                            "true" if reprocessing2.is_reprocessed_event(data) else "false"
+                        ),
                     },
                 )
 
