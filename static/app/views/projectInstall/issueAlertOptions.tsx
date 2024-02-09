@@ -237,9 +237,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
       actions: [
         {
           ...ISSUE_ALERT_DEFAULT_ACTION,
-          ...(this.props.organization.features.includes('issue-alert-fallback-targeting')
-            ? {fallthroughType: 'ActiveMembers'}
-            : {}),
+          ...{fallthroughType: 'ActiveMembers'},
         },
       ],
       actionMatch: 'all',
