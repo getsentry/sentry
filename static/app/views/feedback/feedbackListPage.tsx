@@ -9,7 +9,6 @@ import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewBanner';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
-import OldFeedbackButton from 'sentry/components/feedback/oldFeedbackButton';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
 import useHaveSelectedProjectsSetupFeedback, {
   useHaveSelectedProjectsSetupNewFeedback,
@@ -53,9 +52,6 @@ export default function FeedbackListPage({}: Props) {
                 />
               </Layout.Title>
             </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <OldFeedbackButton />
-            </Layout.HeaderActions>
           </Layout.Header>
           <PageFiltersContainer>
             <ErrorBoundary>
