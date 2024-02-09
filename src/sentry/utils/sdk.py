@@ -447,9 +447,10 @@ def configure_sdk():
 
     # turn on minimetrics
     sdk_options.setdefault("_experiments", {}).update(
-        # enable_metrics is True by default, but in 1.40.3 we turn metrics off
-        # automatically if we detect we're running on uWSGI due to
-        # https://github.com/getsentry/sentry-python/issues/2699
+        # enable_metrics is True by default since SDK version 1.40.0,
+        # but in 1.40.3 we turn metrics off automatically if we detect
+        # we're running in uWSGI due to
+        # https://github.com/getsentry/sentry-python/issues/2699.
         # force_enable_metrics overrides this behavior.
         # Once we've fixed the issue with uWSGI, we can get rid of the
         # force_enable_metrics setting here altogether.
