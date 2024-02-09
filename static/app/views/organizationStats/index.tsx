@@ -35,6 +35,7 @@ import type {
   PageFilters,
   Project,
 } from 'sentry/types';
+import {hasDDMFeature} from 'sentry/utils/metrics/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -258,12 +259,15 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       return null;
     }
 
-    const hasReplay = organization.features.includes('session-replay');
-    const options = hasReplay
-      ? CHART_OPTIONS_DATACATEGORY
-      : CHART_OPTIONS_DATACATEGORY.filter(
-          opt => opt.value !== DATA_CATEGORY_INFO.replay.plural
-        );
+    const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
+      if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
+        return organization.features.includes('session-replay');
+      }
+      if (opt.value === DATA_CATEGORY_INFO.metric_bucket.plural) {
+        return hasDDMFeature(organization);
+      }
+      return true;
+    });
 
     return (
       <PageControl>
@@ -313,12 +317,15 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     const {start, end, period, utc} = this.dataDatetime;
 
-    const hasReplay = organization.features.includes('session-replay');
-    const options = hasReplay
-      ? CHART_OPTIONS_DATACATEGORY
-      : CHART_OPTIONS_DATACATEGORY.filter(
-          opt => opt.value !== DATA_CATEGORY_INFO.replay.plural
-        );
+    const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
+      if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
+        return organization.features.includes('session-replay');
+      }
+      if (opt.value === DATA_CATEGORY_INFO.metric_bucket.plural) {
+        return hasDDMFeature(organization);
+      }
+      return true;
+    });
 
     return (
       <SelectorGrid>
