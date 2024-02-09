@@ -21,8 +21,15 @@ export default function Stories({location}: Props) {
 
   return (
     <Layout>
-      <div style={{gridArea: 'aside'}}>
-        <StyledInput
+      <div
+        style={{
+          gridArea: 'aside',
+          display: 'flex',
+          gap: `${space(2)}`,
+          flexDirection: 'column',
+        }}
+      >
+        <Input
           placeholder="Search files by name"
           onChange={e => setSearchTerm(e.target.value.toLowerCase())}
         />
@@ -91,6 +98,3 @@ const Main = styled(VerticalScroll)`
 
   position: relative;
 `;
-
-const StyledInput = styled(Input)`
-  margin-bottom: ${space(2)};`;
