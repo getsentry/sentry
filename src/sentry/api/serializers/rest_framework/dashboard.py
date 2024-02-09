@@ -139,7 +139,6 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     orderby = serializers.CharField(required=False, allow_blank=True)
 
     on_demand_extraction = DashboardWidgetQueryOnDemandSerializer(many=False, required=False)
-    on_demand_extraction_enabled = serializers.BooleanField(required=False)
 
     required_for_create = {"fields", "conditions"}
 
@@ -294,6 +293,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         query_errors = []
         all_columns = set()
         has_query_error = False
+        self.has_warnings = False
+        self.query_warnings = {"queries": [], "fields": {}}
         max_cardinality_allowed = options.get("on_demand.max_widget_cardinality.on_query_count")
         current_widget_specs = None
         if data.get("queries"):
@@ -314,33 +315,30 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 else:
                     query_errors.append({})
 
-                if query.get("on_demand_extraction_enabled", False):
-                    if query.get("columns"):
-                        all_columns = all_columns.union(query.get("columns"))
-                    # If this query wants ondemand check if we'll go over spec
-                    organization = self.context["organization"]
-                    widget_query = DashboardWidgetQuery(
-                        fields=query["fields"],
-                        aggregates=query.get("aggregates"),
-                        columns=query.get("columns"),
-                        field_aliases=query.get("field_aliases"),
-                        conditions=query["conditions"],
-                        name=query.get("name", ""),
-                        orderby=query.get("orderby", ""),
-                    )
-                    # Get widget specs if we haven't yet
-                    if current_widget_specs is None:
-                        current_widget_specs = get_current_widget_specs(organization)
-                    widget_specs = _get_widget_on_demand_specs(widget_query, organization)
-                    if len(widget_specs) == 0:
-                        # In the case the query errors, we should still disbale
-                        self.query_warnings["queries"].append("disabled:query-error")
-                        self.has_warnings = True
-                    elif widget_exceeds_max_specs(widget_specs, current_widget_specs, organization):
-                        self.query_warnings["queries"].append("disabled:spec-limit")
-                        self.has_warnings = True
-                    else:
-                        self.query_warnings["queries"].append(None)
+                if query.get("columns"):
+                    all_columns = all_columns.union(query.get("columns"))
+                # If this query wants ondemand check if we'll go over spec
+                organization = self.context["organization"]
+                widget_query = DashboardWidgetQuery(
+                    fields=query["fields"],
+                    aggregates=query.get("aggregates"),
+                    columns=query.get("columns"),
+                    field_aliases=query.get("field_aliases"),
+                    conditions=query["conditions"],
+                    name=query.get("name", ""),
+                    orderby=query.get("orderby", ""),
+                )
+                # Get widget specs if we haven't yet
+                if current_widget_specs is None:
+                    current_widget_specs = get_current_widget_specs(organization)
+                widget_specs = _get_widget_on_demand_specs(widget_query, organization)
+                if len(widget_specs) == 0:
+                    # In the case the query errors, we should still disbale
+                    self.query_warnings["queries"].append("disabled:query-error")
+                    self.has_warnings = True
+                elif widget_exceeds_max_specs(widget_specs, current_widget_specs, organization):
+                    self.query_warnings["queries"].append("disabled:spec-limit")
+                    self.has_warnings = True
                 else:
                     self.query_warnings["queries"].append(None)
         if has_query_error:
