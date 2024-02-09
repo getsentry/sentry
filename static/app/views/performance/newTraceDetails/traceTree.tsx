@@ -18,7 +18,6 @@ import {
 } from './guards';
 
 /**
- * Read this before proceeding:
  *
  * This file implements the tree data structure that is used to represent a trace. We do
  * this both for performance reasons as well as flexibility. The requirement for a tree
@@ -39,6 +38,46 @@ import {
  *
  * An alternative, but not recommended approach is to call build() on the tree after each mutation,
  * which will iterate over all of the children and build a fresh list reference.
+ *
+ * In most cases, the initial tree is a list of transactions containing other transactions. Each transaction can
+ * then be expanded into a list of spans which can also in some cases be expanded.
+ *
+ *  - trace                                          - trace
+ *   |- parent transaction     --> when expanding     |- parent transaction
+ *    |- child transaction                             |- span
+ *                                                      |- span                     this used to be a transaction,
+ *                                                     |- child transaction span <- but is now be a list of spans
+ *                                                     |- span                      belonging to the transaction
+ *                                                                                  this results in child txns to be lost,
+ *                                                                                  which is a confusing user experience
+ *
+ * The tree supports autogrouping of spans vertically or as siblings. When that happens, a autogrouped node of either a vertical or
+ * sibling type is inserted as an intermediary node. In the vertical case, the autogrouped node
+ * holds the reference to the head and tail of the autogrouped sequence. In the sibling case, the autogrouped node
+ * holds a reference to the children that are part of the autogrouped sequence. When expanding and collapsing these nodes,
+ * the tree perform a reference swap to either point to the head (when expanded) or tail (when collapsed) of the autogrouped sequence.
+ *
+ * In vertical grouping case, the following happens:
+ *
+ * - root                                              - root
+ *  - trace                                             - trace
+ *  |- transaction                                       |- transaction
+ *   |- span 1   <-|  these become autogrouped             |- autogrouped (head=span1, tail=span3, children points to children of tail)
+ *    |- span 2    |- as they are inserted into             |- other span (parent points to autogrouped node)
+ *     |- span 3 <-|  the tree.
+ *      |- other span
+ *
+ * When the autogrouped node is expanded the UI needs to show the entire collapsed chain, so we swap the tail children to point
+ * back to the tail, and have autogrouped node point to it's head as the children.
+ *
+ * - root                                                             - root
+ *  - trace                                                            - trace
+ *  |- transaction                                                     |- transaction
+ *   |- autogrouped (head=span1, tail=span3) <- when expanding          |- autogrouped (head=span1, tail=span3, children points to head)
+ *    | other span (paren points to autogrouped)                         |- span 1 (head)
+ *                                                                        |- span 2
+ *                                                                         |- span 3 (tail)
+ *                                                                          |- other span (children of tail, parent points to tail)
  *
  * Notes and improvements:
  * - collecting children should be O(n), it is currently O(n^2) as we are missing a proper queue implementation
@@ -549,6 +588,9 @@ export class TraceTree {
     return list;
   }
 
+  /**
+   * Prints the tree in a human readable format, useful for debugging and testing
+   */
   print() {
     const print = this.list
       .map(t => {
@@ -620,6 +662,18 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     }
   }
 
+  get isOrphaned() {
+    return this.parent?.value && 'orphan_errors' in this.parent.value;
+  }
+
+  get isLastChild() {
+    return this.parent?.children[this.parent.children.length - 1] === this;
+  }
+
+  /**
+   * Return a lazily calculated depth of the node in the tree.
+   * Root node has a value of -1 as it is abstract.
+   */
   get depth(): number {
     if (typeof this._depth === 'number') {
       return this._depth;
@@ -641,10 +695,10 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     return this._depth;
   }
 
-  set depth(depth: number) {
-    this._depth = depth;
-  }
-
+  /**
+   * Returns the depth levels at which the row should draw vertical connectors
+   * negative values mean connector points to an orphaned node
+   */
   get connectors(): number[] {
     if (this._connectors !== undefined) {
       return this._connectors!;
@@ -682,6 +736,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     return this._connectors;
   }
 
+  /**
+   * Returns the children that the node currently points to.
+   * The logic here is a consequence of the tree design, where we want to be able to store
+   * both transaction and span nodes in the same tree. This results in an annoying API where
+   * we either store span children separately or transaction children separately. A better design
+   * would have been to create an invisible meta node that always points to the correct children.
+   */
   get children(): TraceTreeNode<TraceTree.NodeValue>[] {
     // if node is not a autogrouped node, return children
     if (isAutogroupedNode(this)) {
@@ -706,14 +767,12 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
     return this._spanChildren;
   }
 
-  get isOrphaned() {
-    return this.parent?.value && 'orphan_errors' in this.parent.value;
-  }
-
-  get isLastChild() {
-    return this.parent?.children[this.parent.children.length - 1] === this;
-  }
-
+  /**
+   * Invalidate the visual data used to render the tree, forcing it
+   * to be recalculated on the next render. This is useful when for example
+   * the tree is expanded or collapsed, or when the tree is mutated and
+   * the visual data is no longer valid as the indentation changes
+   */
   invalidate(root?: TraceTreeNode<TraceTree.NodeValue>) {
     this._connectors = undefined;
     this._depth = undefined;
