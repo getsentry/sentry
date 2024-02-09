@@ -31,7 +31,7 @@ import type {
  * An alternative, but not recommended approach is to call build() on the tree after each mutation,
  * which will iterate over all of the children and build a fresh list reference.
  *
- * Notes:
+ * Notes and improvements:
  * - collecting children should be O(n), it is currently O(n^2) as we are missing a proper queue implementation
  * - the notion of expanded and zoomed is confusing, they stand for the same idea from a UI pov
  * - there is an annoying thing wrt span and transaction nodes where we either store data on _children or _spanChildren
@@ -39,6 +39,8 @@ import type {
  *   annoying API. A better design would have been to create an invisible meta node that just points to the correct children
  * - connector generation should live in the UI layer, not in the tree. Same with depth calculation. It is more convenient
  *   to calculate this when rendering the tree, as we can only calculate it only for the visible nodes and avoid an extra tree pass
+ * - instead of storing span children separately, we should have meta tree nodes that handle pointing to the correct children
+ *
  */
 
 export declare namespace TraceTree {
