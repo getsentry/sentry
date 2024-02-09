@@ -3,7 +3,7 @@ import type {InjectedRouter} from 'react-router';
 import moment from 'moment';
 import * as qs from 'query-string';
 
-import type {DateTimeObject, Fidelity} from 'sentry/components/charts/utils';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {
   getDiffInMinutes,
   GranularityLadder,
@@ -26,6 +26,7 @@ import type {
   MetricsApiRequestMetric,
   MetricsApiRequestQuery,
   MetricsApiRequestQueryOptions,
+  MetricsDataIntervalLadder,
   MetricsGroup,
   MetricsOperation,
   MRI,
@@ -108,11 +109,11 @@ export function getDdmUrl(
 export function getMetricsApiRequestQuery(
   {field, query, groupBy, orderBy}: MetricsApiRequestMetric,
   {projects, environments, datetime}: PageFilters,
-  {fidelity, ...overrides}: Partial<MetricsApiRequestQueryOptions> = {}
+  {intervalLadder, ...overrides}: Partial<MetricsApiRequestQueryOptions> = {}
 ): MetricsApiRequestQuery {
   const {mri: mri} = parseField(field) ?? {};
   const useCase = getUseCaseFromMRI(mri) ?? 'custom';
-  const interval = getDDMInterval(datetime, useCase, fidelity);
+  const interval = getDDMInterval(datetime, useCase, intervalLadder);
 
   const hasGroupBy = groupBy && groupBy.length > 0;
 
@@ -136,44 +137,49 @@ function sanitizeQuery(query?: string) {
   return query?.trim();
 }
 
-const ddmHighFidelityLadder = new GranularityLadder([
-  [SIXTY_DAYS, '1d'],
-  [THIRTY_DAYS, '2h'],
-  [TWO_WEEKS, '1h'],
-  [ONE_WEEK, '30m'],
-  [TWENTY_FOUR_HOURS, '5m'],
-  [ONE_HOUR, '1m'],
-  [0, '5m'],
-]);
-
-const ddmLowFidelityLadder = new GranularityLadder([
-  [SIXTY_DAYS, '1d'],
-  [THIRTY_DAYS, '12h'],
-  [TWO_WEEKS, '4h'],
-  [ONE_WEEK, '2h'],
-  [TWENTY_FOUR_HOURS, '1h'],
-  [SIX_HOURS, '30m'],
-  [ONE_HOUR, '5m'],
-  [0, '1m'],
-]);
+const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
+  ddm: new GranularityLadder([
+    [SIXTY_DAYS, '1d'],
+    [THIRTY_DAYS, '2h'],
+    [TWO_WEEKS, '1h'],
+    [ONE_WEEK, '30m'],
+    [TWENTY_FOUR_HOURS, '5m'],
+    [ONE_HOUR, '1m'],
+    [0, '5m'],
+  ]),
+  bar: new GranularityLadder([
+    [SIXTY_DAYS, '1d'],
+    [THIRTY_DAYS, '12h'],
+    [TWO_WEEKS, '4h'],
+    [ONE_WEEK, '2h'],
+    [TWENTY_FOUR_HOURS, '1h'],
+    [SIX_HOURS, '30m'],
+    [ONE_HOUR, '5m'],
+    [0, '1m'],
+  ]),
+  dashboard: new GranularityLadder([
+    [SIXTY_DAYS, '1d'],
+    [THIRTY_DAYS, '1h'],
+    [TWO_WEEKS, '30m'],
+    [ONE_WEEK, '30m'],
+    [TWENTY_FOUR_HOURS, '5m'],
+    [0, '5m'],
+  ]),
+};
 
 // Wraps getInterval since other users of this function, and other metric use cases do not have support for 10s granularity
 export function getDDMInterval(
   datetimeObj: DateTimeObject,
   useCase: UseCase,
-  fidelity: Fidelity = 'high'
+  ladder: MetricsDataIntervalLadder = 'ddm'
 ) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && fidelity === 'high') {
+  if (diffInMinutes <= ONE_HOUR && useCase === 'custom' && ladder === 'ddm') {
     return '10s';
   }
 
-  if (fidelity === 'low') {
-    return ddmLowFidelityLadder.getInterval(diffInMinutes);
-  }
-
-  return ddmHighFidelityLadder.getInterval(diffInMinutes);
+  return intervalLadders[ladder].getInterval(diffInMinutes);
 }
 
 export function getDateTimeParams({start, end, period}: PageFilters['datetime']) {

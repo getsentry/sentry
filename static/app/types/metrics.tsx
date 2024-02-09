@@ -43,9 +43,11 @@ export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
   statsPeriod?: string;
 };
 
-export type MetricsApiRequestQueryOptions = Partial<MetricsApiRequestQuery> & {
-  fidelity?: 'high' | 'low';
-};
+export type MetricsDataIntervalLadder = 'ddm' | 'bar' | 'dashboard';
+
+export interface MetricsApiRequestQueryOptions extends Partial<MetricsApiRequestQuery> {
+  intervalLadder?: MetricsDataIntervalLadder;
+}
 
 export type MetricsApiResponse = {
   end: string;
