@@ -323,7 +323,6 @@ def detect_transaction_trends(
 
     projects = get_detector_enabled_projects(
         project_ids,
-        feature_name="organizations:performance-statistical-detectors-ema",
         project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
     )
 
@@ -372,7 +371,6 @@ def _detect_transaction_change_points(
         project.id: project
         for project in get_detector_enabled_projects(
             [project_id for project_id, _ in transactions],
-            feature_name="organizations:performance-statistical-detectors-breakpoint",
         )
     }
 
@@ -412,7 +410,6 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
 
     projects = get_detector_enabled_projects(
         project_ids,
-        feature_name="organizations:profiling-statistical-detectors-ema",
     )
 
     trends = FunctionRegressionDetector.detect_trends(projects, start)
@@ -460,7 +457,6 @@ def _detect_function_change_points(
         project.id: project
         for project in get_detector_enabled_projects(
             [project_id for project_id, _ in functions_list],
-            feature_name="organizations:profiling-statistical-detectors-breakpoint",
         )
     }
 
