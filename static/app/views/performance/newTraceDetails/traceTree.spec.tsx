@@ -17,7 +17,7 @@ import {
 } from './guards';
 import {
   ParentAutogroupNode,
-  SiblingAutogroupNode,
+  type SiblingAutogroupNode,
   TraceTree,
   TraceTreeNode,
 } from './traceTree';
@@ -111,14 +111,13 @@ function assertParentAutogroupedNode(
   }
 }
 
-// eslint-disable-next-line
-function _assertSiblingAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): asserts node is ParentAutogroupNode {
-  if (!(node instanceof SiblingAutogroupNode)) {
-    throw new Error('node is not a parent node');
-  }
-}
+// function _assertSiblingAutogroupedNode(
+//   node: TraceTreeNode<TraceTree.NodeValue>
+// ): asserts node is ParentAutogroupNode {
+//   if (!(node instanceof SiblingAutogroupNode)) {
+//     throw new Error('node is not a parent node');
+//   }
+// }
 
 describe('TraceTree', () => {
   beforeEach(() => {
