@@ -61,9 +61,10 @@ export function TraceTimelineEvents({event, width}: TraceTimelineEventsProps) {
             column - 1,
             durationMs / totalColumns
           );
+          const hasCurrentEvent = colEvents.some(e => e.id === event.id);
           return (
             <EventColumn
-              key={column}
+              key={`${column}-${hasCurrentEvent ? 'current-event' : 'regular'}`}
               // Add 1 to the column to account for the padding
               style={{gridColumn: Math.floor(column) + 1, width: columnSize}}
             >
@@ -156,7 +157,10 @@ function NodeGroup({
         {Array.from(eventsByColumn.entries()).map(([column, groupEvents]) => {
           const isCurrentNode = groupEvents.some(e => e.id === currentEventId);
           return (
-            <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
+            <EventColumn
+              key={`${column}-currrent-event`}
+              style={{gridColumn: Math.floor(column)}}
+            >
               {isCurrentNode && (
                 <CurrentNodeContainer aria-label={t('Current Event')}>
                   <CurrentNodeRing />
