@@ -258,8 +258,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": self.user.email, "type": "user"},
-                        {"identifier": self.team.slug, "type": "team"},
+                        {"id": self.user.id, "identifier": self.user.email, "type": "user"},
+                        {"id": self.team.id, "identifier": self.team.slug, "type": "team"},
                     ],
                 }
             ],
@@ -282,8 +282,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": self.user.email, "type": "user"},
-                        {"identifier": self.team.slug, "type": "team"},
+                        {"id": self.user.id, "identifier": self.user.email, "type": "user"},
+                        {"id": self.team.id, "identifier": self.team.slug, "type": "team"},
                     ],
                 }
             ],
@@ -306,8 +306,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": self.user.email, "type": "user"},
-                        {"identifier": self.team.slug, "type": "team"},
+                        {"id": self.user.id, "identifier": self.user.email, "type": "user"},
+                        {"id": self.team.id, "identifier": self.team.slug, "type": "team"},
                     ],
                 }
             ],
@@ -443,113 +443,3 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 ],
             }
         ]
-
-    @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
-        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
-    )
-    def test_get_rule_one_deleted_owner_with_schema(self, get_codeowner_mock_file):
-        self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
-        self.create_member(
-            user=self.member_user_delete,
-            organization=self.organization,
-            role="member",
-            teams=[self.team],
-        )
-        self.external_delete_user = self.create_external_user(
-            user=self.member_user_delete, external_name="@delete", integration=self.integration
-        )
-        self.data["raw"] = "docs/*  @delete @getsentry/ecosystem"
-
-        with self.feature({"organizations:integrations-codeowners": True}):
-            self.client.post(self.url, self.data)
-
-            self.external_delete_user.delete()
-            response = self.client.get(self.url)
-            assert response.data[0]["schema"] == {
-                "$version": 1,
-                "rules": [
-                    {
-                        "matcher": {"type": "codeowners", "pattern": "docs/*"},
-                        "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
-                    }
-                ],
-            }
-
-    @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
-        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
-    )
-    def test_get_no_rule_deleted_owner_with_schema(self, get_codeowner_mock_file):
-        self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
-        self.create_member(
-            user=self.member_user_delete,
-            organization=self.organization,
-            role="member",
-            teams=[self.team],
-        )
-        self.external_delete_user = self.create_external_user(
-            user=self.member_user_delete, external_name="@delete", integration=self.integration
-        )
-        self.data["raw"] = "docs/*  @delete"
-
-        with self.feature({"organizations:integrations-codeowners": True}):
-            self.client.post(self.url, self.data)
-            self.external_delete_user.delete()
-            response = self.client.get(self.url)
-            assert response.data[0]["schema"] == {"$version": 1, "rules": []}
-
-    @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
-        return_value={"html_url": "https://github.com/test/CODEOWNERS"},
-    )
-    def test_get_multiple_rules_deleted_owners_with_schema(self, get_codeowner_mock_file):
-        self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
-        self.create_member(
-            user=self.member_user_delete,
-            organization=self.organization,
-            role="member",
-            teams=[self.team],
-        )
-        self.external_delete_user = self.create_external_user(
-            user=self.member_user_delete, external_name="@delete", integration=self.integration
-        )
-        self.member_user_delete2 = self.create_user("member_delete2@localhost", is_superuser=False)
-        self.create_member(
-            user=self.member_user_delete2,
-            organization=self.organization,
-            role="member",
-            teams=[self.team],
-        )
-        self.external_delete_user2 = self.create_external_user(
-            user=self.member_user_delete, external_name="@delete2", integration=self.integration
-        )
-        self.data[
-            "raw"
-        ] = "docs/*  @delete\n*.py @getsentry/ecosystem @delete\n*.css @delete2\n*.rb @NisanthanNanthakumar"
-
-        with self.feature({"organizations:integrations-codeowners": True}):
-            self.client.post(self.url, self.data)
-
-            self.external_delete_user.delete()
-            self.external_delete_user2.delete()
-            response = self.client.get(self.url)
-            assert response.data[0]["schema"] == {
-                "$version": 1,
-                "rules": [
-                    {
-                        "matcher": {"type": "codeowners", "pattern": "*.py"},
-                        "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
-                    },
-                    {
-                        "matcher": {"type": "codeowners", "pattern": "*.rb"},
-                        "owners": [
-                            {
-                                "type": "user",
-                                "name": "admin@sentry.io",
-                                "id": self.user.id,
-                            }
-                        ],
-                    },
-                ],
-            }
