@@ -32,6 +32,8 @@ interface TraceProps {
 export function Trace(props: TraceProps) {
   const api = useApi();
   const organization = useOrganization();
+  const virtualizedListRef = useRef<List>(null);
+
   const traceTree = useMemo(() => {
     if (!props.trace) {
       return TraceTree.Empty();
@@ -88,6 +90,7 @@ export function Trace(props: TraceProps) {
       <AutoSizer>
         {({width, height}) => (
           <List
+            ref={virtualizedListRef}
             rowHeight={24}
             height={height}
             width={width}
