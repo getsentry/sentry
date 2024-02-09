@@ -102,6 +102,45 @@ describe('IssueListActions', function () {
           })
         );
       });
+
+      it('bulk sets priority', async function () {
+        const apiMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
+
+        render(<WrappedComponent queryCount={1500} />, {
+          organization: OrganizationFixture({features: ['issue-priority-ui']}),
+        });
+
+        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+        await userEvent.hover(
+          screen.getByRole('menuitemradio', {name: 'Set Priority to...'})
+        );
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+        expect(
+          within(screen.getByRole('dialog')).getByText(
+            'Are you sure you want to reprioritize to high the first 1,000 issues that match the search?'
+          )
+        ).toBeInTheDocument();
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Bulk reprioritize issues'})
+        );
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              project: [1],
+            },
+            data: {priority: 'high'},
+          })
+        );
+      });
     });
 
     describe('Total results less than bulk limit', function () {
@@ -178,6 +217,35 @@ describe('IssueListActions', function () {
         );
       });
     });
+  });
+
+  it('can set priority', async function () {
+    const apiMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'PUT',
+    });
+    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+
+    render(<WrappedComponent {...defaultProps} />, {
+      organization: OrganizationFixture({features: ['issue-priority-ui']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+    await userEvent.hover(
+      screen.getByRole('menuitemradio', {name: 'Set Priority to...'})
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+    expect(apiMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          id: ['1'],
+          project: [1],
+        },
+        data: {priority: 'high'},
+      })
+    );
   });
 
   it('can archive an issue until escalating', async () => {

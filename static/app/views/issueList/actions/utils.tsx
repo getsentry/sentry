@@ -19,6 +19,7 @@ export enum ConfirmAction {
   UNBOOKMARK = 'unbookmark',
   MERGE = 'merge',
   DELETE = 'delete',
+  SET_PRIORITY = 'reprioritize',
 }
 
 function getBulkConfirmMessage(action: string, queryCount: number) {

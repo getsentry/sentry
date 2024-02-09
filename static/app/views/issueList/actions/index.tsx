@@ -322,6 +322,7 @@ function shouldConfirm(
     case ConfirmAction.RESOLVE:
     case ConfirmAction.UNRESOLVE:
     case ConfirmAction.ARCHIVE:
+    case ConfirmAction.SET_PRIORITY:
     case ConfirmAction.UNBOOKMARK: {
       return pageSelected && selectedIdsSet.size > 1;
     }
