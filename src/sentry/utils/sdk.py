@@ -221,6 +221,14 @@ def traces_sampler(sampling_context):
 
 
 def before_send_transaction(event, _):
+    # Discard generic redirects.
+    # This condition can be removed once https://github.com/getsentry/team-sdks/issues/48 is fixed.
+    if (
+        event.get("tags", {}).get("http.status_code") == "301"
+        and event.get("transaction_info", {}).get("source") == "url"
+    ):
+        return None
+
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])
     event["tags"]["spans_over_limit"] = num_of_spans >= 1000
@@ -474,7 +482,7 @@ def configure_sdk():
             ThreadingIntegration(propagate_hub=True),
             OpenAiIntegration(capture_prompts=True),
         ],
-        spotlight=settings.IS_DEV,
+        spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,
     )
 

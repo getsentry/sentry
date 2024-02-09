@@ -90,6 +90,8 @@ _env_cache: dict[str, object] = {}
 
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
+NO_SPOTLIGHT = os.environ.get("NO_SPOTLIGHT", False)
+
 IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
@@ -1647,6 +1649,8 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:metrics-api-new-metrics-layer": False,
     # Enables the ability to block metrics.
     "organizations:metrics-blocking": False,
+    # Enables the new samples list experience
+    "organizations:metrics-samples-list": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1746,12 +1750,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-slow-db-issue": False,
     # Enable histogram view in span details
     "organizations:performance-span-histogram-view": False,
-    # Enable performance statistical detectors breakpoint detection
-    "organizations:performance-statistical-detectors-breakpoint": False,
-    # Enable performance statistical detectors ema detection
-    "organizations:performance-statistical-detectors-ema": False,
-    # Enable performance statistical detectors breakpoint lifecycles
-    "organizations:performance-statistical-detectors-lifecycles": False,
     # Enable trace details page with embedded spans
     "organizations:performance-trace-details": False,
     # Enable FE/BE for tracing without performance
@@ -1772,30 +1770,16 @@ SENTRY_FEATURES: dict[str, bool | None] = {
     "organizations:performance-vitals-inp": False,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable profiling battery usage chart
-    "organizations:profiling-battery-usage-chart": False,
     # Enabled for those orgs who participated in the profiling Beta program
     "organizations:profiling-beta": False,
     # Enables production profiling in sentry browser application
     "organizations:profiling-browser": False,
-    # Enable profiling CPU chart
-    "organizations:profiling-cpu-chart": False,
-    # Enables differential flamegraph in profiling
-    "organizations:profiling-differential-flamegraph": False,
     # Enables separate differential flamegraph page
     "organizations:profiling-differential-flamegraph-page": False,
     # Enable global suspect functions in profiling
     "organizations:profiling-global-suspect-functions": False,
-    # Enable profiling Memory chart
-    "organizations:profiling-memory-chart": False,
-    # Enable profiling statistical detectors breakpoint detection
-    "organizations:profiling-statistical-detectors-breakpoint": False,
-    # Enable profiling statistical detectors ema detection
-    "organizations:profiling-statistical-detectors-ema": False,
     # Enable profiling summary redesign view
     "organizations:profiling-summary-redesign": False,
-    # Enable ui frames in flamecharts
-    "organizations:profiling-ui-frames": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
     # Enable profiling view

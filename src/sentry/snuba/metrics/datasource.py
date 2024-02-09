@@ -947,12 +947,14 @@ def get_series(
 
         # This logic is in place because we don't want to put the project_id in the select, as it would require
         # a DerivedOp, therefore
-        orderby_fields = []
-        for select_field in metrics_query.select:
-            for orderby in metrics_query.orderby:
-                if select_field == orderby.field:
-                    orderby_fields.append(select_field)
-        metrics_query = replace(metrics_query, select=orderby_fields)
+        # Because ondemand queries skip validation this next block will result in no fields in the select
+        if not metrics_query.skip_orderby_validation:
+            orderby_fields = []
+            for select_field in metrics_query.select:
+                for orderby in metrics_query.orderby:
+                    if select_field == orderby.field:
+                        orderby_fields.append(select_field)
+            metrics_query = replace(metrics_query, select=orderby_fields)
 
         snuba_queries, _ = SnubaQueryBuilder(
             projects, metrics_query, use_case_id
