@@ -1648,12 +1648,10 @@ def _save_aggregate_new(
     if existing_grouphash is None:
         check_for_group_creation_load_shed(project, event)
 
-        with sentry_sdk.start_span(
-            op="event_manager.create_group_transaction"
-        ) as span, metrics.timer(
-            "event_manager.create_group_transaction"
-        ) as metrics_timer_tags, transaction.atomic(
-            router.db_for_write(GroupHash)
+        with (
+            sentry_sdk.start_span(op="event_manager.create_group_transaction") as span,
+            metrics.timer("event_manager.create_group_transaction") as metrics_timer_tags,
+            transaction.atomic(router.db_for_write(GroupHash)),
         ):
             span.set_tag("create_group_transaction.outcome", "no_group")
             metrics_timer_tags["create_group_transaction.outcome"] = "no_group"
