@@ -52,6 +52,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
     def setUp(self):
         super().setUp()
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
         self.transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -3087,6 +3088,55 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert data[0]["transaction"] == "foo_transaction"
         assert meta["dataset"] == "metricsEnhanced"
+
+    def test_user_misery_big_number(self):
+        self.create_environment(self.project, name="production")
+        # This is a non-standard threshold, thus, we can't use MEP to fetch it
+        field = "user_misery(3000)"
+        environment = "production"
+        query = ""
+        for hour in range(0, 2):
+            self.store_transaction_metric(
+                (hour + 1) * 5,
+                metric="measurements.datacenter_memory",
+                internal_metric="e:transactions/user_misery@ratio",
+                entity="metrics_distributions",
+                tags={"satisfaction": "frustrated", "environment": environment},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_transaction_metric(
+                (hour + 1) * 5,
+                metric="measurements.datacenter_memory",
+                internal_metric="e:transactions/user_misery@ratio",
+                entity="metrics_distributions",
+                tags={"environment": environment},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+        resp = self.do_request(
+            {
+                "field": [field],
+                "project": self.project.id,
+                "query": query,
+                "environment": environment,
+                "dataset": "metricsEnhanced",
+            },
+        )
+        assert resp.data == {
+            # XXX: This should not be 0
+            "data": [{field: 0.0}],
+            "meta": {
+                "fields": {field: "number"},
+                "units": {field: None},
+                # XXX: This should be True
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                # XXX: Follow these tips
+                "tips": {"columns": None, "query": None},
+                # XXX: Follow this
+                "datasetReason": "Cannot query misery with a threshold parameter on the metrics dataset",
+                "dataset": "metricsEnhanced",
+            },
+        }
 
     def test_on_demand_with_mep(self):
         # Store faketag as an OnDemandMetricSpec, which will put faketag into the metrics indexer
