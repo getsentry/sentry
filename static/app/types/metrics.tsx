@@ -31,7 +31,7 @@ export type MetricsApiRequestMetric = {
   query?: string;
 };
 
-export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
+export interface MetricsApiRequestQuery extends MetricsApiRequestMetric {
   interval: string;
   end?: DateString;
   environment?: string[];
@@ -41,7 +41,7 @@ export type MetricsApiRequestQuery = MetricsApiRequestMetric & {
   project?: number[];
   start?: DateString;
   statsPeriod?: string;
-};
+}
 
 export type MetricsDataIntervalLadder = 'ddm' | 'bar' | 'dashboard';
 
