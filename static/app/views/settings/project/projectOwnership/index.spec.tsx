@@ -71,7 +71,7 @@ describe('Project Ownership', () => {
         {organization: OrganizationFixture({access: ['project:read']})}
       );
 
-      expect(screen.queryByRole('button', {name: 'Edit'})).toBeEnabled();
+      expect(screen.queryByRole('button', {name: 'Edit Rules'})).toBeEnabled();
       expect(screen.getByTestId('project-permission-alert')).toBeInTheDocument();
       // eslint-disable-next-line jest-dom/prefer-in-document
       expect(screen.getAllByTestId('project-permission-alert')).toHaveLength(1);

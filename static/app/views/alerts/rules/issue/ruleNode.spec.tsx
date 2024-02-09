@@ -244,7 +244,7 @@ describe('RuleNode', () => {
     renderRuleNode(formNode(label), {targetType: 'IssueOwners'});
 
     expect(screen.getByText('Send a notification to')).toBeInTheDocument();
-    await selectEvent.select(screen.getByText('Issue Owners'), 'Team');
+    await selectEvent.select(screen.getByText('Suggested Assignees'), 'Team');
     expect(onPropertyChange).toHaveBeenCalledTimes(2);
     expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetType', 'Team');
     expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetIdentifier', '');
@@ -253,11 +253,7 @@ describe('RuleNode', () => {
   it('renders mail action field with suggested assignees', async () => {
     const fieldName = 'exampleMailActionField';
     const label = `Send a notification to {${fieldName}}`;
-    const organizationWithFeat = {
-      ...organization,
-      features: ['streamline-targeting-context'],
-    };
-    renderRuleNode(formNode(label), {targetType: 'IssueOwners'}, organizationWithFeat);
+    renderRuleNode(formNode(label), {targetType: 'IssueOwners'}, organization);
 
     expect(screen.getByText('Send a notification to')).toBeInTheDocument();
     await selectEvent.select(screen.getByText('Suggested Assignees'), 'Team');
