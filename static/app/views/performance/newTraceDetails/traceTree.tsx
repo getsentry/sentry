@@ -88,7 +88,6 @@ import {
  * - connector generation should live in the UI layer, not in the tree. Same with depth calculation. It is more convenient
  *   to calculate this when rendering the tree, as we can only calculate it only for the visible nodes and avoid an extra tree pass
  * - instead of storing span children separately, we should have meta tree nodes that handle pointing to the correct children
- *
  */
 
 export declare namespace TraceTree {
@@ -171,6 +170,7 @@ function maybeInsertMissingInstrumentationSpan(
 
   parent.spanChildren.push(missingInstrumentationSpan);
 }
+
 export class TraceTree {
   root: TraceTreeNode<null> = TraceTreeNode.Root();
   private _spanPromises: Map<TraceTreeNode<TraceTree.NodeValue>, Promise<Event>> =
@@ -300,8 +300,6 @@ export class TraceTree {
     return this._list;
   }
 
-  // Span chain grouping is when multiple spans with the same op are nested as direct and only children
-  // @TODO Abdk: simplify the chaining logic
   static AutogroupDirectChildrenSpanNodes(
     root: TraceTreeNode<TraceTree.NodeValue>
   ): void {
@@ -370,8 +368,6 @@ export class TraceTree {
   }
 
   static AutogroupSiblingSpanNodes(root: TraceTreeNode<TraceTree.NodeValue>): void {
-    // Span sibling grouping is when min 5 consecutive spans without children have matching op and description
-    // Span chain grouping is when multiple spans with the same op are nested as direct and only children
     const queue = [root];
 
     while (queue.length > 0) {
@@ -795,18 +791,23 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
       return 0;
     }
 
+    const queue = new FifoQueue<TraceTreeNode<TraceTree.NodeValue>>();
+    for (const child of this.children) {
+      queue.enqueue(child);
+    }
+
     let count = 0;
-    const queue = [...this.children];
-
-    while (queue.length > 0) {
+    let node = queue.dequeu();
+    while (node) {
       count++;
-      const next = queue.pop()!;
 
-      if (next.expanded || isParentAutogroupedNode(next)) {
-        for (let i = 0; i < next.children.length; i++) {
-          queue.push(next.children[i]);
+      if (node.expanded || isParentAutogroupedNode(node)) {
+        for (let i = 0; i < node.children.length; i++) {
+          queue.enqueue(node.children[i]);
         }
       }
+
+      node = queue.dequeu();
     }
 
     return count;
@@ -817,24 +818,26 @@ export class TraceTreeNode<T extends TraceTree.NodeValue> {
       return [];
     }
 
-    // @TODO: should be a proper FIFO queue as shift is O(n)
-    const visibleChildren: TraceTreeNode<TraceTree.NodeValue>[] = [];
-
-    function visit(node) {
-      visibleChildren.push(node);
-
-      if (node.expanded || isParentAutogroupedNode(node)) {
-        for (let i = 0; i < node.children.length; i++) {
-          visit(node.children[i]);
-        }
-      }
-    }
+    const queue = new FifoQueue<TraceTreeNode<TraceTree.NodeValue>>();
 
     for (const child of this.children) {
-      visit(child);
+      queue.enqueue(child);
     }
 
-    return visibleChildren;
+    const children: TraceTreeNode<TraceTree.NodeValue>[] = [];
+    let node = queue.dequeu();
+
+    while (node) {
+      children.push(node);
+      if (node.expanded || isParentAutogroupedNode(node)) {
+        for (let i = 0; i < node.children.length; i++) {
+          queue.enqueue(node.children[i]);
+        }
+      }
+      node = queue.dequeu();
+    }
+
+    return children;
   }
 
   static Root() {
@@ -880,5 +883,46 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
     metadata: TraceTree.Metadata
   ) {
     super(parent, node, metadata);
+  }
+}
+
+interface Node<T> {
+  next: Node<T> | null;
+  value: T;
+}
+
+class FifoQueue<T> {
+  private head: Node<T> | null = null;
+  private tail: Node<T> | null = null;
+
+  enqueue(value: T) {
+    const node: Node<T> = {
+      next: null,
+      value,
+    };
+
+    if (this.tail) {
+      this.tail.next = node;
+    }
+    this.tail = node;
+
+    if (!this.head) {
+      this.head = node;
+    }
+  }
+
+  dequeu(): T | undefined {
+    if (!this.head) {
+      return undefined;
+    }
+
+    const value = this.head.value;
+    this.head = this.head.next;
+
+    if (!this.head) {
+      this.tail = null;
+    }
+
+    return value;
   }
 }
