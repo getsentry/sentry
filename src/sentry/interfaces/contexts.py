@@ -218,9 +218,11 @@ class Contexts(Interface):
 
     @classmethod
     def normalize_context(cls, alias, data):
-        ctx_type = data.get("type", alias)
-        ctx_cls = context_types.get(ctx_type, DefaultContextType)
-        return ctx_cls(alias, data)
+    if not isinstance(data, dict) or 'type' not in data:
+        return DefaultContextType(alias, {})
+    ctx_type = data.get("type", alias)
+    ctx_cls = context_types.get(ctx_type, DefaultContextType)
+    return ctx_cls(alias, data)
 
     def iter_contexts(self):
         return self._data.values()
