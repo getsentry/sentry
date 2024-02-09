@@ -35,7 +35,7 @@ def test_store_and_get():
                 "hosts": {0: {"db": 0}},
             },
             "old": {
-                "hosts": {0: {"db": 0}},
+                "hosts": {0: {"db": 1}},
             },
         }
     }
@@ -92,7 +92,7 @@ def test_delete():
                 "hosts": {0: {"db": 0}},
             },
             "old": {
-                "hosts": {0: {"db": 0}},
+                "hosts": {0: {"db": 1}},
             },
         }
     }
