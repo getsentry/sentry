@@ -10,7 +10,9 @@ import type {
 
 import {
   isAutogroupedNode,
+  isMissingInstrumentationNode,
   isParentAutogroupedNode,
+  isSiblingAutogroupedNode,
   isSpanNode,
   isTransactionNode,
 } from './guards';
@@ -545,6 +547,39 @@ export class TraceTree {
     }
 
     return list;
+  }
+
+  print() {
+    const print = this.list
+      .map(t => {
+        const padding = ' '.repeat(t.depth);
+
+        if (isAutogroupedNode(t)) {
+          if (isParentAutogroupedNode(t)) {
+            return padding + 'parent autogroup';
+          }
+          if (isSiblingAutogroupedNode(t)) {
+            return padding + 'sibling autogroup';
+          }
+
+          return padding + 'autogroup';
+        }
+        if (isSpanNode(t)) {
+          return padding + t.value?.op ?? 'unknown span op';
+        }
+        if (isTransactionNode(t)) {
+          return padding + t.value.transaction ?? 'unknown transaction';
+        }
+        if (isMissingInstrumentationNode(t)) {
+          return padding + 'missing_instrumentation';
+        }
+        throw new Error('Not implemented');
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    // eslint-disable-next-line no-console
+    console.log(print);
   }
 
   build() {

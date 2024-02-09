@@ -111,6 +111,7 @@ function assertParentAutogroupedNode(
   }
 }
 
+// eslint-disable-next-line
 function _assertSiblingAutogroupedNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): asserts node is ParentAutogroupNode {
@@ -1075,24 +1076,3 @@ describe('TraceTree', () => {
     });
   });
 });
-
-// eslint-disable-next-line
-function printTree(tree) {
-  const log = tree.list
-    .map(t => {
-      return (
-        ' '.repeat(t.depth) +
-        ((t.value?.autogrouped_by?.op && 'autogroup') ||
-          t.value.transaction ||
-          t.value.op ||
-          'root') +
-        ' at: ' +
-        t.value.start_timestamp
-      );
-    })
-    .filter(Boolean)
-    .join('\n');
-
-  // eslint-disable-next-line
-  console.log(log);
-}
