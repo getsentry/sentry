@@ -49,7 +49,7 @@ REFERRER = "replays.query.query_replay_clicks_dataset"
 
 class ReplayClickResponseData(TypedDict):
     node_id: int
-    timestamp: str
+    timestamp: datetime.datetime
 
 
 class ReplayClickResponse(TypedDict):
