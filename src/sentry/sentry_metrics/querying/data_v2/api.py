@@ -23,6 +23,11 @@ def run_metrics_queries_plan(
     environments: Sequence[Environment],
     referrer: str,
 ):
+    # For now, if the query plan is empty, we return an empty dictionary. In the future, we might want to default
+    # to a better data type.
+    if metrics_queries_plan.is_empty():
+        return {}
+
     # We build the basic query that contains the metadata which will be shared across all queries.
     base_query = MetricsQuery(
         start=start,
@@ -45,11 +50,7 @@ def run_metrics_queries_plan(
         query = base_query.set_query(query_expression).set_rollup(Rollup(interval=interval))
         executor.schedule(query=query, order=query_order, limit=query_limit)
 
-    with metrics.timer(
-        key="ddm.metrics_api.metrics_queries_plan_execution_time",
-        # TODO: add tags to describe the type of query (e.g., formula, with order by, with group by).
-        tags={},
-    ):
+    with metrics.timer(key="ddm.metrics_api.metrics_queries_plan.execution_time"):
         # Iterating over each result.
         results = executor.execute()
 

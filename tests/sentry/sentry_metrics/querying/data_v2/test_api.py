@@ -189,6 +189,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["by"] == {}
         assert data[0][0]["series"] == [0.0, pytest.approx(5.8), 3.8]
         assert data[0][0]["totals"] == 5.5
+        # We want to test that the `Array(x)` is stripped away from the `type` of the aggregate.
+        meta = results["meta"]
+        assert len(meta) == 1
+        assert meta[0][0] == {"name": "aggregate_value", "type": "Float64"}
 
     def test_query_with_valid_percentiles(self) -> None:
         # We only want to check if these percentiles return results.
@@ -254,6 +258,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[2]["by"] == {"platform": "windows", "transaction": "/world"}
         assert first_query[2]["series"] == [0.0, 5.0, 4.0]
         assert first_query[2]["totals"] == 9.0
+        # We want to test that the `group_bys` are shown in the meta.
+        meta = results["meta"]
+        assert len(meta) == 1
+        first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
+        assert first_meta[0] == {
+            "group_bys": ["platform", "transaction"],
+            "limit": None,
+            "order": None,
+        }
 
     def test_query_with_group_by_on_null_tag(self) -> None:
         for value, transaction, time in (
@@ -536,7 +549,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             .declare_query("query_1", query_1)
             .declare_query("query_2", query_2)
             .apply_formula("$query_1", QueryOrder.ASC, 2)
-            .apply_formula("$query_2", QueryOrder.ASC, 2)
+            .apply_formula("$query_2", QueryOrder.DESC, 2)
         )
 
         results = run_metrics_queries_plan(
@@ -561,12 +574,19 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[1]["totals"] == 3.0
         second_query = sorted(data[1], key=lambda value: value["by"]["platform"])
         assert len(second_query) == 2
-        assert second_query[0]["by"] == {"platform": "android"}
-        assert second_query[0]["series"] == [0.0, 1.0, 2.0]
-        assert second_query[0]["totals"] == 2.0
+        assert second_query[0]["by"] == {"platform": "ios"}
+        assert second_query[0]["series"] == [0.0, 6.0, 3.0]
+        assert second_query[0]["totals"] == 6.0
         assert second_query[1]["by"] == {"platform": "windows"}
         assert second_query[1]["series"] == [0.0, 5.0, 4.0]
         assert second_query[1]["totals"] == 5.0
+        # We want to test that the correct order and limit are in the meta.
+        meta = results["meta"]
+        assert len(meta) == 2
+        first_meta = sorted(meta[0], key=lambda value: value.get("name", ""))
+        assert first_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "asc"}
+        second_meta = sorted(meta[1], key=lambda value: value.get("name", ""))
+        assert second_meta[0] == {"group_bys": ["platform"], "limit": 2, "order": "desc"}
 
     def test_query_with_custom_set(self):
         mri = "s:custom/User.Click.2@none"

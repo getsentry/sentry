@@ -41,17 +41,18 @@ class GroupValue:
 
 @dataclass
 class QueryMeta:
-    name: str
-    type: str
+    meta: dict[str, Any]
 
-    def __post_init__(self):
-        self._transform_meta_type()
+    def __init__(self, **kwargs):
+        self.meta = kwargs
+        self._transform_meta()
 
-    def _transform_meta_type(self):
+    def _transform_meta(self):
         # Since we don't support the array aggregate value, and we return the first element, we just return the type of
         # the values of the array.
-        if self.type.startswith("Array("):
-            self.type = self.type[6 : len(self.type) - 1]
+        if type := self.meta.get("type"):
+            if type.startswith("Array("):
+                self.meta["type"] = type[6 : len(type) - 1]
 
 
 def _build_intervals(start: datetime, end: datetime, interval: int) -> Sequence[datetime]:
@@ -159,11 +160,15 @@ class QueryTransformer:
 
             query_meta = []
 
-            # TODO: figure out if we need additional metadata.
             for meta_item in query_result.meta:
                 meta_name = meta_item["name"]
                 meta_type = meta_item["type"]
                 query_meta.append(QueryMeta(name=meta_name, type=meta_type))
+
+            # We add additional metadata from the query themselves to make the API more transparent.
+            query_meta.append(
+                QueryMeta(group_bys=group_bys, order=query_result.order, limit=query_result.limit)
+            )
 
             queries_groups.append(query_groups)
             queries_meta.append(query_meta)
@@ -208,9 +213,7 @@ class QueryTransformer:
         # We build the translated meta given the intermediate meta.
         translated_queries_meta = []
         for query_meta in queries_meta:
-            translated_queries_meta.append(
-                [{"name": meta.name, "type": meta.type} for meta in query_meta]
-            )
+            translated_queries_meta.append([meta.meta for meta in query_meta])
 
         return {
             "intervals": intervals,

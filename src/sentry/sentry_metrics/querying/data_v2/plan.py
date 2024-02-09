@@ -57,12 +57,18 @@ class MetricsQueriesPlan:
         self._formulas: list[FormulaDefinition] = []
 
     def declare_query(self, name: str, mql: str) -> "MetricsQueriesPlan":
+        """
+        Declares a query with a name and the mql definition.
+        """
         self._queries[name] = mql
         return self
 
     def apply_formula(
         self, mql: str, order: QueryOrder | None = None, limit: int | None = None
     ) -> "MetricsQueriesPlan":
+        """
+        Applies an mql formula on the queries that were previously declared.
+        """
         self._formulas.append(FormulaDefinition(mql=mql, order=order, limit=limit))
         return self
 
@@ -78,3 +84,9 @@ class MetricsQueriesPlan:
         fragile, we might want to switch to parsing the actual input and mutating the AST.
         """
         return list(map(lambda formula: formula.replace_variables(self._queries), self._formulas))
+
+    def is_empty(self) -> bool:
+        """
+        A query plan is defined to be empty is no formulas have been applied on it.
+        """
+        return not self._formulas

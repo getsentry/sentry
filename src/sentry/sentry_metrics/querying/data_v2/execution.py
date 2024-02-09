@@ -312,6 +312,26 @@ class QueryResult:
         return []
 
     @property
+    def order(self) -> str | None:
+        if self.series_executable_query and self.series_executable_query.order is not None:
+            return self.series_executable_query.order.value
+
+        if self.totals_executable_query and self.totals_executable_query.order is not None:
+            return self.totals_executable_query.order.value
+
+        return None
+
+    @property
+    def limit(self) -> int | None:
+        if self.series_executable_query:
+            return self.series_executable_query.limit
+
+        if self.totals_executable_query:
+            return self.totals_executable_query.limit
+
+        return None
+
+    @property
     def length(self) -> int:
         # We try to see how many series results we got, since that is the query which is likely to surpass the limit.
         if "series" in self.result:
@@ -511,8 +531,9 @@ class QueryExecutor:
         """
         results = []
         for query in self._scheduled_queries:
-            query_result = self._execute(executable_query=query)
-            results.append(query_result.align_series_to_totals())
+            with metrics.timer(key="ddm.metrics_api.metrics_query.execution_time"):
+                query_result = self._execute(executable_query=query)
+                results.append(query_result.align_series_to_totals())
 
         return results
 
