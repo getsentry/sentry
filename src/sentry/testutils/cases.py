@@ -120,7 +120,7 @@ from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseC
 from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
-from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
