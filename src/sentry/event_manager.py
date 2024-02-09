@@ -48,6 +48,7 @@ from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, get_grouping_config_dict_for_project
 from sentry.grouping.ingest import (
     add_group_id_to_grouphashes,
+    check_for_category_mismatch,
     check_for_group_creation_load_shed,
     find_existing_grouphash,
     find_existing_grouphash_new,
@@ -1695,14 +1696,8 @@ def _save_aggregate_new(
                 return GroupInfo(group, is_new, is_regression)
 
     group = Group.objects.get(id=existing_grouphash.group_id)
-    if group.issue_category != GroupCategory.ERROR:
-        logger.info(
-            "event_manager.category_mismatch",
-            extra={
-                "issue_category": group.issue_category,
-                "event_type": "error",
-            },
-        )
+
+    if check_for_category_mismatch(group):
         return None
 
     is_new = False

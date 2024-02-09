@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 import random
 import time
 from collections.abc import MutableMapping, Sequence
@@ -25,6 +26,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.grouping.result import CalculatedHashes
+from sentry.issues.grouptype import GroupCategory
 from sentry.killswitches import killswitch_matches_context
 from sentry.locks import locks
 from sentry.models.group import Group
@@ -38,6 +40,8 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
+
+logger = logging.getLogger("sentry.events")
 
 Job = MutableMapping[str, Any]
 
@@ -458,3 +462,20 @@ def add_group_id_to_grouphashes(
     GroupHash.objects.filter(id__in=new_grouphash_ids).exclude(
         state=GroupHash.State.LOCKED_IN_MIGRATION
     ).update(group=group)
+
+
+def check_for_category_mismatch(group: Group) -> bool:
+    """
+    Make sure an error event hasn't hashed to a value assigned to a non-error-type group
+    """
+    if group.issue_category != GroupCategory.ERROR:
+        logger.info(
+            "event_manager.category_mismatch",
+            extra={
+                "issue_category": group.issue_category,
+                "event_type": "error",
+            },
+        )
+        return True
+
+    return False
