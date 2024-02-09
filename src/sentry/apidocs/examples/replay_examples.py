@@ -108,3 +108,81 @@ class ReplayExamples:
             response_only=True,
         )
     ]
+
+    GET_REPLAY_SEGMENTS = [
+        OpenApiExample(
+            "Retrieve a collection of replay segments",
+            value=[
+                [
+                    {
+                        "type": 5,
+                        "timestamp": 1658770772.902,
+                        "data": {
+                            "tag": "performanceSpan",
+                            "payload": {
+                                "op": "memory",
+                                "description": "",
+                                "startTimestamp": 1658770772.902,
+                                "endTimestamp": 1658770772.902,
+                                "data": {
+                                    "memory": {
+                                        "jsHeapSizeLimit": 4294705152,
+                                        "totalJSHeapSize": 10204109,
+                                        "usedJSHeapSize": 9131621,
+                                    }
+                                },
+                            },
+                        },
+                    }
+                ],
+                [
+                    {
+                        "type": 5,
+                        "timestamp": 1665063926.125,
+                        "data": {
+                            "tag": "performanceSpan",
+                            "payload": {
+                                "op": "navigation.navigate",
+                                "description": "https://sentry.io",
+                                "startTimestamp": 1665063926.125,
+                                "endTimestamp": 1665063926.833,
+                                "data": {"size": 9538, "duration": 710},
+                            },
+                        },
+                    }
+                ],
+            ],
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    GET_REPLAY_SEGMENT = [
+        OpenApiExample(
+            "Retrieve a replay segment",
+            value=[
+                {
+                    "type": 5,
+                    "timestamp": 1658770772.902,
+                    "data": {
+                        "tag": "performanceSpan",
+                        "payload": {
+                            "op": "memory",
+                            "description": "",
+                            "startTimestamp": 1658770772.902,
+                            "endTimestamp": 1658770772.902,
+                            "data": {
+                                "memory": {
+                                    "jsHeapSizeLimit": 4294705152,
+                                    "totalJSHeapSize": 10204109,
+                                    "usedJSHeapSize": 9131621,
+                                }
+                            },
+                        },
+                    },
+                }
+            ],
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
