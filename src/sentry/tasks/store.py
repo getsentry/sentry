@@ -1,4 +1,5 @@
 import logging
+import random
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -294,6 +295,25 @@ def retry_process_event(process_task_name: str, task_kwargs: dict[str, Any], **k
     process_task.delay(**task_kwargs)
 
 
+def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
+    if killswitch_matches_context(
+        "store.load-shed-process-event-projects",
+        {
+            "project_id": project_id,
+            "event_id": event_id,
+            "platform": platform,
+        },
+    ):
+        return True
+
+    process_project_rollout = options.get("store.load-shed-process-event-projects-gradual")
+    rollout_rate = process_project_rollout.get(project_id)
+    if not rollout_rate:
+        return False
+
+    return random.random() < rollout_rate
+
+
 def do_process_event(
     cache_key: str,
     start_time: int | None,
@@ -338,14 +358,7 @@ def do_process_event(
             data=data,
         )
 
-    if killswitch_matches_context(
-        "store.load-shed-process-event-projects",
-        {
-            "project_id": project_id,
-            "event_id": event_id,
-            "platform": data.get("platform") or "null",
-        },
-    ):
+    if is_process_disabled(project_id, event_id, data.get("platform") or "null"):
         return _continue_to_save_event()
 
     with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
