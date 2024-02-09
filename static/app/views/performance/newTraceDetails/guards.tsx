@@ -1,6 +1,6 @@
 import {
   ParentAutogroupNode,
-  SiblingAutogroupNode,
+  type SiblingAutogroupNode,
   type TraceTree,
   type TraceTreeNode,
 } from './traceTree';
@@ -18,7 +18,7 @@ export function isMissingInstrumentationNode(
 export function isSpanNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.Span> {
-  return !!(node.value && !('transaction' in node.value) && 'span_id' in node.value);
+  return !!(node.value && ('description' in node.value || 'span_id' in node.value));
 }
 
 export function isTransactionNode(
@@ -31,12 +31,6 @@ export function isParentAutogroupedNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is ParentAutogroupNode {
   return node instanceof ParentAutogroupNode;
-}
-
-export function isSiblingAutogroupedNode(
-  node: TraceTreeNode<TraceTree.NodeValue>
-): node is SiblingAutogroupNode {
-  return node instanceof SiblingAutogroupNode;
 }
 
 export function isAutogroupedNode(

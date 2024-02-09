@@ -15,14 +15,14 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {isMissingInstrumentationNode, isSpanNode, isTraceErrorNode} from './traceTree';
 import {
   isAutogroupedNode,
+  isMissingInstrumentationNode,
+  isSpanNode,
+  isTraceErrorNode,
   isTransactionNode,
-  ParentAutogroupNode,
-  TraceTree,
-  type TraceTreeNode,
-} from './traceTree';
+} from './guards';
+import {ParentAutogroupNode, TraceTree, type TraceTreeNode} from './traceTree';
 
 interface TraceProps {
   trace: TraceSplitResults<TraceFullDetailed> | null;
