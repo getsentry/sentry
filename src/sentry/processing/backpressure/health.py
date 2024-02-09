@@ -44,7 +44,7 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
         logger.error(
             "Invalid state: `backpressure.checking.enabled` is `True`, but "
             "`backpressure.monitoring.enabled` "
-            "is `False`. If you meant to disable backpressure checking, set "
+            "is `False`.\n\nIf you meant to disable backpressure checking, set "
             "`backpressure.checking.enabled` to `False`. Otherwise set "
             "`backpressure.monitoring.enabled` to `True` or the backpressure "
             "system will not work correctly."
