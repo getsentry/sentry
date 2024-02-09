@@ -120,7 +120,7 @@ from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseC
 from sentry.silo import SiloMode, SingleProcessSiloModeState
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
-from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
+from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
@@ -2016,52 +2016,12 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         self.login_as(user=self.user)
         self._index_metric_strings()
 
-    def do_request(self, data: dict[str, Any]) -> Response:
-        """Set up self.features and self.url in the inheriting classes."""
-        with self.feature(self.features):
+    def do_request(self, data: dict[str, Any], features: dict[str, str] = None) -> Response:
+        """Set up self.features and self.url in the inheriting classes.
+        You can pass your own features if you do not want to use the default used by the subclass.
+        """
+        with self.feature(self.features if features is None else features):
             return self.client.get(self.url, data=data, format="json")
-
-    def _on_demand_query_check(
-        self,
-        params: dict[str, Any],
-        groupbys: list[str] | None = None,
-        expected_on_demand_query: bool | None = True,
-        expected_dataset: str | None = "metricsEnhanced",
-    ) -> Response:
-        """Do a request to the events endpoint with metrics enhanced and on-demand enabled."""
-        if params.get("field"):
-            for field in params.get("field"):
-                spec = OnDemandMetricSpec(
-                    field=field,
-                    query=params["query"],
-                    environment=params.get("environment"),
-                    groupbys=groupbys,
-                    spec_type=MetricSpecType.DYNAMIC_QUERY,
-                )
-        elif params.get("yAxis"):
-            spec = OnDemandMetricSpec(
-                field=params["yAxis"],
-                query=params["query"],
-                environment=params.get("environment"),
-                groupbys=groupbys,
-                spec_type=MetricSpecType.DYNAMIC_QUERY,
-            )
-        else:
-            raise ValueError("Either field or yAxis must be present in the params")
-        # Expected parameters for this helper function
-        params["dataset"] = "metricsEnhanced"
-        params["useOnDemandMetrics"] = "true"
-        params["onDemandType"] = "dynamic_query"
-
-        self.store_on_demand_metric(1, spec=spec)
-        response = self.do_request(params)
-
-        assert response.status_code == 200, response.content
-        meta = response.data["meta"]
-        assert meta.get("isMetricsExtractedData", False) is expected_on_demand_query
-        assert meta["dataset"] == expected_dataset
-
-        return response
 
     def _index_metric_strings(self):
         strings = [
