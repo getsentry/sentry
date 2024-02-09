@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
@@ -11,7 +11,6 @@ from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegr
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
-from .client import OpsgenieClient
 
 
 def build_incident_attachment(
@@ -63,6 +62,8 @@ def send_incident_alert_notification(
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:
+    from sentry.integrations.opsgenie.integration import OpsgenieIntegration
+
     integration, org_integration = integration_service.get_organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
     )
@@ -76,15 +77,11 @@ def send_incident_alert_notification(
         logger.info("Opsgenie team removed, but the rule is still active.")
         return False
 
-    integration_key = team["integration_key"]
-
-    # TODO(hybridcloud) Use integration.get_keyring_client instead.
-    client = OpsgenieClient(
-        integration=integration,
-        integration_key=integration_key,
-        org_integration_id=incident.organization_id,
-        keyid=team["id"],
+    install = cast(
+        "OpsgenieIntegration",
+        integration.get_installation(organization_id=org_integration.organization_id),
     )
+    client = install.get_keyring_client(keyid=team["id"])
     attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
     try:
         resp = client.send_notification(attachment)
