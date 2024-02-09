@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from datetime import timedelta
 from typing import Any
 from unittest import mock
@@ -759,7 +757,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert data["order"] == 0
 
     def test_user_misery_chart(self):
-        # 3000 is not a default threshold, thus, TBD
+        # 3000 is not a default threshold, thus, we can't use MEP to fetch it
         field = "user_misery(3000)"
         query = ""
         environment = "production"
@@ -802,8 +800,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert resp.data["meta"] == {
             "fields": {"time": "date", "user_misery_3000": "number"},
             "units": {"time": None, "user_misery_3000": None},
-            "isMetricsData": True,
-            "isMetricsExtractedData": True,
+            "isMetricsData": False,
+            "isMetricsExtractedData": False,
             "tips": {},
             "datasetReason": "unchanged",
             "dataset": "metricsEnhanced",

@@ -1,5 +1,4 @@
-from __future__ import annotations
-
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
@@ -3134,6 +3133,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
     def setUp(self) -> None:
         super().setUp()
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
         self.url = reverse(self.viewname, kwargs={"organization_slug": self.organization.slug})
         self.features = {"organizations:on-demand-metrics-extraction-widgets": True}
 
@@ -3198,20 +3199,47 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
             },
         }
 
-    def test_on_demand_big_number_user_misery(self):
-        resp = self._on_demand_query_check(
+    def test_on_demand_user_misery_big_number(self):
+        self.create_environment(self.project, name="production")
+        # This is a non-standard threshold, thus, we can't use MEP to fetch it
+        field = "user_misery(3000)"
+        environment = "production"
+        query = ""
+        spec = OnDemandMetricSpec(
+            field=field,
+            query=query,
+            environment=environment,
+            spec_type=MetricSpecType.DYNAMIC_QUERY,
+        )
+        for hour in range(0, 2):
+            self.store_on_demand_metric(
+                (hour + 1) * 5,
+                spec=spec,
+                additional_tags={"satisfaction": "frustrated", "environment": environment},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+            self.store_on_demand_metric(
+                (hour + 1) * 5,
+                spec=spec,
+                additional_tags={"environment": environment},
+                timestamp=self.day_ago + timedelta(hours=hour),
+            )
+        resp = self.do_request(
             {
-                "field": ["user_misery(300)"],
+                "field": [field],
                 "project": self.project.id,
-                "query": "",
-                "environment": "prod",
+                "query": query,
+                "environment": environment,
+                "dataset": "metricsEnhanced",
+                "useOnDemandMetrics": "true",
+                "onDemandType": "dynamic_query",
             },
         )
         assert resp.data == {
-            "data": [{"user_misery(300)": 0.05}],
+            "data": [{field: 0.06586638830897704}],
             "meta": {
-                "fields": {"user_misery(300)": "number"},
-                "units": {"user_misery(300)": None},
+                "fields": {field: "number"},
+                "units": {field: None},
                 "isMetricsData": True,
                 "isMetricsExtractedData": True,
                 "tips": {},
