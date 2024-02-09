@@ -14,7 +14,10 @@ import {space} from 'sentry/styles/space';
 import type {MRI, Organization, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {stringifyMetricWidget} from 'sentry/utils/metrics';
-import type {MetricWidgetQueryParams} from 'sentry/utils/metrics/types';
+import {
+  MetricDisplayType,
+  type MetricWidgetQueryParams,
+} from 'sentry/utils/metrics/types';
 import {useMetricsDataZoom} from 'sentry/utils/metrics/useMetricsData';
 import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
 import type {AugmentedEChartDataZoomHandler} from 'sentry/views/dashboards/widgetCard/chart';
@@ -229,7 +232,7 @@ export function MetricWidgetChartContainer({
       environments,
       datetime,
     },
-    {intervalLadder: 'dashboard'}
+    {intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'dashboard'}
   );
 
   const chartRef = useRef<ReactEchartsRef>(null);

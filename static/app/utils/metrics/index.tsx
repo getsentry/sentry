@@ -145,7 +145,7 @@ const intervalLadders: Record<MetricsDataIntervalLadder, GranularityLadder> = {
     [ONE_WEEK, '30m'],
     [TWENTY_FOUR_HOURS, '5m'],
     [ONE_HOUR, '1m'],
-    [0, '5m'],
+    [0, '1m'],
   ]),
   bar: new GranularityLadder([
     [SIXTY_DAYS, '1d'],
