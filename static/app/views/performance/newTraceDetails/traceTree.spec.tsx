@@ -9,7 +9,16 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 
-import {TraceTree, TraceTreeNode} from './traceTree';
+import {
+  isAutogroupedNode,
+  isMissingInstrumentationNode,
+  isSpanNode,
+  isTransactionNode,
+  ParentAutogroupNode,
+  SiblingAutogroupNode,
+  TraceTree,
+  TraceTreeNode,
+} from './traceTree';
 
 function makeTrace(
   overrides: Partial<TraceSplitResults<TraceFullDetailed>>
@@ -58,6 +67,54 @@ function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): E
     entries: [{type: EntryType.SPANS, data: spans}],
     ...overrides,
   } as Event;
+}
+
+function assertSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is TraceTreeNode<TraceTree.Span> {
+  if (!isSpanNode(node)) {
+    throw new Error('node is not a span');
+  }
+}
+
+function assertTransactionNode(
+  node: TraceTreeNode<TraceTree.NodeValue> | null
+): asserts node is TraceTreeNode<TraceTree.Transaction> {
+  if (!node || !isTransactionNode(node)) {
+    throw new Error('node is not a transaction');
+  }
+}
+
+function assertMissingInstrumentationNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is TraceTreeNode<TraceTree.MissingInstrumentationSpan> {
+  if (!isMissingInstrumentationNode(node)) {
+    throw new Error('node is not a missing instrumentation node');
+  }
+}
+
+function assertAutogroupedNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is ParentAutogroupNode | SiblingAutogroupNode {
+  if (!isAutogroupedNode(node)) {
+    throw new Error('node is not a autogrouped node');
+  }
+}
+
+function assertParentAutogroupedNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is ParentAutogroupNode {
+  if (!(node instanceof ParentAutogroupNode)) {
+    throw new Error('node is not a parent autogrouped node');
+  }
+}
+
+function _assertSiblingAutogroupedNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): asserts node is ParentAutogroupNode {
+  if (!(node instanceof SiblingAutogroupNode)) {
+    throw new Error('node is not a parent node');
+  }
 }
 
 describe('TraceTree', () => {
@@ -115,17 +172,19 @@ describe('TraceTree', () => {
       makeRawSpan({start_timestamp: 3, op: '4', parent_span_id: '1'}),
     ]);
 
-    // @ts-expect-error ignore type guard
+    if (!isSpanNode(node.children[0])) {
+      throw new Error('Child needs to be a span');
+    }
     expect(node.children[0].value.span_id).toBe('1');
-    // @ts-expect-error ignore type guard
     expect(node.children[0].value.start_timestamp).toBe(0);
     expect(node.children.length).toBe(1);
 
-    // @ts-expect-error ignore type guard
+    assertSpanNode(node.children[0].children[0]);
+    assertSpanNode(node.children[0].children[0].children[0]);
+    assertSpanNode(node.children[0].children[1]);
+
     expect(node.children[0].children[0].value.start_timestamp).toBe(1);
-    // @ts-expect-error ignore type guard
     expect(node.children[0].children[0].children[0].value.start_timestamp).toBe(2);
-    // @ts-expect-error ignore type guard
     expect(node.children[0].children[1].value.start_timestamp).toBe(3);
   });
 
@@ -149,12 +208,13 @@ describe('TraceTree', () => {
       }),
     ]);
 
+    assertSpanNode(node.children[0]);
+    assertMissingInstrumentationNode(node.children[1]);
+    assertSpanNode(node.children[2]);
+
     expect(node.children.length).toBe(3);
-    // @ts-expect-error ignore type guard
     expect(node.children[0].value.op).toBe('span 1');
-    // @ts-expect-error ignore type guard
     expect(node.children[1].value.type).toBe('missing_instrumentation');
-    // @ts-expect-error ignore type guard
     expect(node.children[2].value.op).toBe('span 2');
   });
 
@@ -205,11 +265,13 @@ describe('TraceTree', () => {
     expect(request).toHaveBeenCalled();
 
     expect(tree.list.length).toBe(6);
-    // @ts-expect-error ignore type guard
+
+    assertTransactionNode(tree.list[1]);
+    assertSpanNode(tree.list[2]);
+    assertSpanNode(tree.list[3]);
+
     expect(tree.list[1].value.start_timestamp).toBe(0);
-    // @ts-expect-error ignore type guard
     expect(tree.list[2].value.start_timestamp).toBe(1);
-    // @ts-expect-error ignore type guard
     expect(tree.list[3].value.start_timestamp).toBe(2);
   });
 
@@ -544,7 +606,7 @@ describe('TraceTree', () => {
         expect(node.children).toHaveLength(1);
       });
       // Assert that the children have been updated
-      // @ts-expect-error dont care about type guards
+      assertTransactionNode(node.children[0].parent);
       expect(node.children[0].parent.value.transaction).toBe('txn');
       expect(node.children[0].depth).toBe(node.depth + 1);
     });
@@ -568,7 +630,7 @@ describe('TraceTree', () => {
       });
 
       await waitFor(() => {
-        // @ts-expect-error
+        assertSpanNode(tree.list[1].children[0]);
         expect(tree.list[1].children[0].value.description).toBe('span1');
       });
 
@@ -605,7 +667,7 @@ describe('TraceTree', () => {
         organization: OrganizationFixture(),
       });
       await waitFor(() => {
-        // @ts-expect-error
+        assertSpanNode(tree.list[1].children[0]);
         expect(tree.list[1].children[0].value.description).toBe('span1');
       });
       // Zoom out
@@ -622,8 +684,8 @@ describe('TraceTree', () => {
         organization: OrganizationFixture(),
       });
       await waitFor(() => {
-        // @ts-expect-error
-        expect(tree.list[1].children[0]?.value?.description).toBe('span1');
+        assertSpanNode(tree.list[1].children[0]);
+        expect(tree.list[1].children[0].value?.description).toBe('span1');
       });
     });
     it('zooms in and out preserving siblings', async () => {
@@ -940,10 +1002,12 @@ describe('TraceTree', () => {
         expect(tree.list.length).toBe(4);
       });
 
-      // @ts-expect-error
-      expect(tree.list[tree.list.length - 1].value.autogrouped_by).toBeTruthy();
-      expect(tree.list[tree.list.length - 1].children.length).toBe(5);
-      tree.expand(tree.list[tree.list.length - 1], true);
+      const autogroupedNode = tree.list[tree.list.length - 1];
+
+      assertAutogroupedNode(autogroupedNode);
+      expect(autogroupedNode.value.autogrouped_by).toBeTruthy();
+      expect(autogroupedNode.children.length).toBe(5);
+      tree.expand(autogroupedNode, true);
       expect(tree.list.length).toBe(9);
     });
 
@@ -990,14 +1054,11 @@ describe('TraceTree', () => {
       });
 
       const autogroupedNode = tree.list[tree.list.length - 3];
-      // @ts-expect-error dont care about type guards
+      assertParentAutogroupedNode(autogroupedNode);
       expect('autogrouped_by' in autogroupedNode?.value).toBeTruthy();
-      // @ts-expect-error dont care about type guards
-      expect(autogroupedNode?.groupCount).toBe(4);
+      expect(autogroupedNode.groupCount).toBe(4);
 
-      // @ts-expect-error dont care about type guards
       expect(autogroupedNode.head.value.span_id).toBe('2');
-      // @ts-expect-error dont care about type guards
       expect(autogroupedNode.tail.value.span_id).toBe('5');
 
       // Expand autogrouped node
