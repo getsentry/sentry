@@ -183,7 +183,7 @@ describe('getMetricsApiRequestQuery', () => {
       environments: ['production'],
       datetime: {start: '2023-01-01', end: '2023-01-02', period: null, utc: true},
     };
-    const overrides: MetricsApiRequestQueryOptions = {fidelity: 'high'};
+    const overrides: MetricsApiRequestQueryOptions = {intervalLadder: 'ddm'};
 
     const result = getMetricsApiRequestQuery(metric, filters, overrides);
 
@@ -219,7 +219,7 @@ describe('getDDMInterval', () => {
     };
     const useCase = 'custom';
 
-    const result = getDDMInterval(dateTimeObj, useCase, 'high');
+    const result = getDDMInterval(dateTimeObj, useCase);
 
     expect(result).toBe('10s');
   });

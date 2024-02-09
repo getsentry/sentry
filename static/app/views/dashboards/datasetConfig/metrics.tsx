@@ -401,7 +401,7 @@ function getMetricRequest(
     pageFilters,
     {
       limit: limit || undefined,
-      fidelity: displayType === DisplayType.BAR ? 'low' : 'high',
+      intervalLadder: displayType === DisplayType.BAR ? 'bar' : 'dashboard',
     }
   );
 

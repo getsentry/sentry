@@ -255,7 +255,7 @@ const MetricWidgetBody = memo(
         environments,
         datetime,
       },
-      {fidelity: displayType === MetricDisplayType.BAR ? 'low' : 'high'}
+      {intervalLadder: displayType === MetricDisplayType.BAR ? 'bar' : 'ddm'}
     );
 
     const chartRef = useRef<ReactEchartsRef>(null);
