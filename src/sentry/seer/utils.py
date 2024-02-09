@@ -53,6 +53,7 @@ class SimilarIssuesEmbeddingsRequestNotRequired(TypedDict, total=False):
 
 class SimilarIssuesEmbeddingsRequest(SimilarIssuesEmbeddingsRequestNotRequired):
     group_id: int
+    project_id: int
     stacktrace: str
     message: str
 
