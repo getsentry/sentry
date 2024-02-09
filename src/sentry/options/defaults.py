@@ -816,6 +816,14 @@ register(
     "store.load-shed-process-event-projects", type=Any, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 register(
+    "store.load-shed-process-event-projects-gradual",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Applies load shedding per project gradually. 1.0 means full load shedding
+# 0.0 or no config means no load shedding.
+register(
     "store.load-shed-symbolicate-event-projects",
     type=Any,
     default=[],
