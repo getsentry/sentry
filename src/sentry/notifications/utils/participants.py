@@ -352,9 +352,11 @@ def determine_eligible_recipients(
         metrics.incr(
             "features.owners.send_to",
             tags={
-                "outcome": outcome
-                if outcome == "match" or fallthrough_choice is None
-                else fallthrough_choice.value,
+                "outcome": (
+                    outcome
+                    if outcome == "match" or fallthrough_choice is None
+                    else fallthrough_choice.value
+                ),
                 "hasSuspectCommitters": str(bool(suspect_commit_users)),
             },
         )
@@ -407,13 +409,6 @@ def get_send_to(
 def get_fallthrough_recipients(
     project: Project, fallthrough_choice: FallthroughChoiceType | None
 ) -> Iterable[RpcUser]:
-    if not features.has(
-        "organizations:issue-alert-fallback-targeting",
-        project.organization,
-        actor=None,
-    ):
-        return []
-
     if not fallthrough_choice:
         logger.warning("Missing fallthrough type in project: %s", project)
         return []
