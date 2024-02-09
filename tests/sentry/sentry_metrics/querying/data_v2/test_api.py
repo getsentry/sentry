@@ -5,8 +5,13 @@ from django.utils import timezone as django_timezone
 
 from sentry.sentry_metrics.querying.data_v2 import run_metrics_queries_plan
 from sentry.sentry_metrics.querying.data_v2.api import MetricsQueriesPlan
-from sentry.sentry_metrics.querying.errors import MetricsQueryExecutionError
+from sentry.sentry_metrics.querying.data_v2.plan import QueryOrder
+from sentry.sentry_metrics.querying.errors import (
+    InvalidMetricsQueryError,
+    MetricsQueryExecutionError,
+)
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.visibility import block_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -519,3 +524,223 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert second_query[2]["by"] == {"platform": "windows"}
         assert second_query[2]["series"] == [0.0, 5.0, 4.0]
         assert second_query[2]["totals"] == 5.0
+
+    def test_query_with_multiple_aggregations_and_single_group_by_and_order_by_with_limit(
+        self,
+    ) -> None:
+        query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
+        query_2 = self.mql("max", TransactionMRI.DURATION.value, group_by="platform")
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1", QueryOrder.ASC, 2)
+            .apply_formula("$query_2", QueryOrder.ASC, 2)
+        )
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 2
+        first_query = sorted(data[0], key=lambda value: value["by"]["platform"])
+        assert len(first_query) == 2
+        assert first_query[0]["by"] == {"platform": "android"}
+        assert first_query[0]["series"] == [0.0, 1.0, 2.0]
+        assert first_query[0]["totals"] == 1.0
+        assert first_query[1]["by"] == {"platform": "ios"}
+        assert first_query[1]["series"] == [0.0, 6.0, 3.0]
+        assert first_query[1]["totals"] == 3.0
+        second_query = sorted(data[1], key=lambda value: value["by"]["platform"])
+        assert len(second_query) == 2
+        assert second_query[0]["by"] == {"platform": "android"}
+        assert second_query[0]["series"] == [0.0, 1.0, 2.0]
+        assert second_query[0]["totals"] == 2.0
+        assert second_query[1]["by"] == {"platform": "windows"}
+        assert second_query[1]["series"] == [0.0, 5.0, 4.0]
+        assert second_query[1]["totals"] == 5.0
+
+    def test_query_with_invalid_syntax(
+        self,
+    ) -> None:
+        query_1 = self.mql(
+            "min",
+            TransactionMRI.DURATION.value,
+            "transaction:/api/0/organizations/{organization_slug}/",
+        )
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+
+        with pytest.raises(InvalidMetricsQueryError):
+            run_metrics_queries_plan(
+                metrics_queries_plan=plan,
+                start=self.now() - timedelta(minutes=30),
+                end=self.now() + timedelta(hours=1, minutes=30),
+                interval=3600,
+                organization=self.project.organization,
+                projects=[self.project],
+                environments=[],
+                referrer="metrics.data.api",
+            )
+
+    def test_query_with_custom_set(self):
+        mri = "s:custom/User.Click.2@none"
+        for user in ("marco", "marco", "john"):
+            self.store_metric(
+                self.project.organization.id,
+                self.project.id,
+                "set",
+                mri,
+                {},
+                self.ts(self.now()),
+                user,
+                UseCaseID.CUSTOM,
+            )
+
+        query_1 = self.mql("count_unique", mri)
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[self.project],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [0, 2, 0]
+        assert data[0][0]["totals"] == 2
+
+    def test_query_with_one_metric_blocked_for_one_project(self):
+        mri = "d:custom/page_load@millisecond"
+
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        block_metric(mri, [project_1])
+
+        for project, value in ((project_1, 10.0), (project_2, 15.0)):
+            self.store_metric(
+                self.project.organization.id,
+                project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        query_1 = self.mql("sum", mri)
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[project_1, project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert data[0][0]["by"] == {}
+        assert data[0][0]["series"] == [0.0, 15.0, 0.0]
+        assert data[0][0]["totals"] == 15.0
+
+    def test_query_with_one_metric_blocked_for_all_projects(self):
+        mri = "d:custom/page_load@millisecond"
+
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        block_metric(mri, [project_1, project_2])
+
+        for project, value in ((project_1, 10.0), (project_2, 15.0)):
+            self.store_metric(
+                self.project.organization.id,
+                project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                value,
+                UseCaseID.CUSTOM,
+            )
+
+        query_1 = self.mql("sum", mri)
+        plan = MetricsQueriesPlan().declare_query("query_1", query_1).apply_formula("$query_1")
+
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[project_1, project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 1
+        assert len(data[0]) == 0
+
+    def test_query_with_two_metrics_and_one_blocked_for_a_project(self):
+        mri_1 = "d:custom/page_load@millisecond"
+        mri_2 = "d:custom/app_load@millisecond"
+
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        block_metric(mri_1, [project_1, project_2])
+
+        for project, mri in ((project_1, mri_1), (project_2, mri_2)):
+            self.store_metric(
+                self.project.organization.id,
+                project.id,
+                "distribution",
+                mri,
+                {},
+                self.ts(self.now()),
+                10.0,
+                UseCaseID.CUSTOM,
+            )
+
+        query_1 = self.mql("sum", mri_1)
+        query_2 = self.mql("sum", mri_2)
+        plan = (
+            MetricsQueriesPlan()
+            .declare_query("query_1", query_1)
+            .declare_query("query_2", query_2)
+            .apply_formula("$query_1")
+            .apply_formula("$query_2")
+        )
+        results = run_metrics_queries_plan(
+            metrics_queries_plan=plan,
+            start=self.now() - timedelta(minutes=30),
+            end=self.now() + timedelta(hours=1, minutes=30),
+            interval=3600,
+            organization=self.project.organization,
+            projects=[project_1, project_2],
+            environments=[],
+            referrer="metrics.data.api",
+        )
+        data = results["data"]
+        assert len(data) == 2
+        assert len(data[0]) == 0
+        assert data[1][0]["by"] == {}
+        assert data[1][0]["series"] == [0.0, 10.0, 0.0]
+        assert data[1][0]["totals"] == 10.0
