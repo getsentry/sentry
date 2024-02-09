@@ -35,7 +35,7 @@ seer_connection_pool = connection_from_url(
     timeout=settings.ANOMALY_DETECTION_TIMEOUT,
 )
 
-seer_connection_pool_similar = connection_from_url(
+seer_staging_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL,
     retries=Retry(
         total=5,
@@ -82,7 +82,7 @@ def get_similar_issues_embeddings(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> SimilarIssuesEmbeddingsResponse:
     """Call /v0/issues/similar-issues endpoint from timeseries-analysis-service."""
-    response = seer_connection_pool_similar.urlopen(
+    response = seer_staging_connection_pool.urlopen(
         "POST",
         "/v0/issues/similar-issues",
         body=json.dumps(similar_issues_request),
