@@ -14,6 +14,8 @@ import {
   isMissingInstrumentationNode,
   isSpanNode,
   isTransactionNode,
+} from './guards';
+import {
   ParentAutogroupNode,
   SiblingAutogroupNode,
   TraceTree,
