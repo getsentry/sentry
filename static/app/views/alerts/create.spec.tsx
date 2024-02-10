@@ -458,7 +458,7 @@ describe('ProjectAlertsCreate', function () {
 
         // Add a new action
         await selectEvent.select(screen.getByText('Add action...'), [
-          'Issue Owners, Team, or Member',
+          'Suggested Assignees, Team, or Member',
         ]);
 
         // Update action interval
@@ -663,7 +663,7 @@ describe('ProjectAlertsCreate', function () {
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
     await selectEvent.select(screen.getByText('Add action...'), [
-      'Issue Owners, Team, or Member',
+      'Suggested Assignees, Team, or Member',
     ]);
 
     expect(
@@ -703,7 +703,7 @@ describe('ProjectAlertsCreate', function () {
     ).not.toBeInTheDocument();
 
     await selectEvent.select(screen.getByText('Add action...'), [
-      'Issue Owners, Team, or Member',
+      'Suggested Assignees, Team, or Member',
     ]);
 
     expect(

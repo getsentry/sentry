@@ -104,6 +104,10 @@ register(
 )
 register("redis.options", type=Dict, flags=FLAG_NOSTORE)
 
+# See eventstore.processing.multiredis
+register("eventstore.processing.rollout", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("eventstore.processing.readold", type=Bool, default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Processing worker caches
 register(
     "dsym.cache-path",
@@ -789,6 +793,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "issues.similarity-embeddings.projects-allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # ## sentry.killswitches
 #
@@ -798,6 +808,9 @@ register("store.load-shed-pipeline-projects", type=Any, default=[])
 register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
 register("store.load-shed-save-event-projects", type=Any, default=[])
 register("store.load-shed-process-event-projects", type=Any, default=[])
+register("store.load-shed-process-event-projects-gradual", type=Dict, default={})
+# Applies load shedding per project gradually. 1.0 means full load shedding
+# 0.0 or no config means no load shedding.
 register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 
 register(
