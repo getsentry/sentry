@@ -65,6 +65,22 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
         queryset = Deploy.objects.filter(organization_id=organization.id, release=release)
 
+        # TODO add filter by project.
+        releases = ReleaseProjectEnvironment.objects.select_related("release").filter(
+            release__organization_id=organization.id,
+            release__version=version,
+        )
+
+        project_id = request.GET.get("project", None)
+        if project_id:
+            releases.filter(project_id=project_id)
+
+        logger.info("DEBUG PROJECT_ID: %s", project_id)
+        logger.info("DEBUG VERSION: %s", version)
+
+        logger.info("DEBUG RELEASES %s", releases)
+        logger.info("DEBUG DEPLOYS %s", queryset)
+
         return self.paginate(
             request=request,
             queryset=queryset,
