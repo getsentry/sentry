@@ -808,7 +808,12 @@ register("store.load-shed-pipeline-projects", type=Any, default=[])
 register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
 register("store.load-shed-save-event-projects", type=Any, default=[])
 register("store.load-shed-process-event-projects", type=Any, default=[])
-register("store.load-shed-process-event-projects-gradual", type=Dict, default={})
+register(
+    "store.load-shed-process-event-projects-gradual",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Applies load shedding per project gradually. 1.0 means full load shedding
 # 0.0 or no config means no load shedding.
 register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
