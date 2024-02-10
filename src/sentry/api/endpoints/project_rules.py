@@ -104,26 +104,28 @@ class DuplicateRuleEvaluator:
         Default function that checks if the key exists in both rules for comparison, and compares the values.
         """
         match_results = MatcherResult()
-        match_results.has_key = (
-            key_to_check in existing_rule.data and key_to_check in self._rule_data
-        )
+
+        existing_rule_key_data = existing_rule.data.get(key_to_check)
+        current_rule_key_data = self._rule_data.get(key_to_check)
+        if existing_rule_key_data and current_rule_key_data:
+            match_results.has_key = True
 
         if match_results.has_key:
-            match_results.key_matches = (
-                existing_rule.data[key_to_check] == self._rule_data[key_to_check]
-            )
+            match_results.key_matches = existing_rule_key_data == current_rule_key_data
         return match_results
 
     def _environment_matcher(self, existing_rule: Rule, key_to_check: str) -> MatcherResult:
         """
         Special function that checks if the environments are the same.
         """
+
         # Do the default check to see if both rules have the same environment key, and if they do, use the result.
         if (
             base_result := self._default_matcher(existing_rule, key_to_check)
         ) and base_result.has_key:
             return base_result
 
+        # Otherwise, we need to do the special checking for keys
         match_results = MatcherResult()
         if self._rule:
             if existing_rule.environment_id and self._rule.environment_id:
@@ -142,16 +144,15 @@ class DuplicateRuleEvaluator:
                 # but it is obviously not the same anymore
                 match_results.has_key = True
         else:
-            if existing_rule.environment_id and self._rule_data.get(key_to_check):
+            current_rule_key_data = self._rule_data.get(key_to_check)
+            if existing_rule.environment_id and current_rule_key_data:
                 match_results.has_key = True
-                match_results.key_matches = existing_rule.environment_id == self._rule_data.get(
-                    key_to_check
-                )
+                match_results.key_matches = existing_rule.environment_id == current_rule_key_data
             elif (
                 existing_rule.environment_id
-                and not self._rule_data.get(key_to_check)
+                and not current_rule_key_data
                 or not existing_rule.environment_id
-                and self._rule_data.get(key_to_check)
+                and current_rule_key_data
             ):
                 match_results.has_key = True
 
@@ -160,20 +161,18 @@ class DuplicateRuleEvaluator:
     def _actions_matcher(self, existing_rule: Rule, key_to_check: str) -> MatcherResult:
         """
         Special function that checks if the actions are the same against a rule.
-
-        TODO(Yash): Understand this logic more. Currently it respects the original logic that was implemented, and is simply
-        moved over to this method.
         """
         match_results = MatcherResult()
-        if key_to_check not in existing_rule.data and key_to_check not in self._rule_data:
+
+        existing_actions = existing_rule.data.get(key_to_check)
+        current_actions = self._rule_data.get(key_to_check)
+        if not existing_actions and not current_actions:
             return match_results
 
         # At this point, either both have the key, or one of the rules has the key, so this has to be true
         match_results.has_key = True
         # Only compare if both have the key
-        if key_to_check in existing_rule.data and key_to_check in self._rule_data:
-            existing_actions = existing_rule.data[key_to_check]
-            current_actions = self._rule_data[key_to_check]
+        if existing_actions and current_actions:
             match_results.key_matches = self._compare_lists_of_dicts(
                 keys_to_ignore=["uuid"], list1=existing_actions, list2=current_actions
             )
@@ -195,18 +194,40 @@ class DuplicateRuleEvaluator:
 
         for i, left in enumerate(list1):
             right = list2[i]
-            clean_left = {k: v for k, v in left.items() if k not in keys_to_ignore}
-            clean_right = {k: v for k, v in right.items() if k not in keys_to_ignore}
-            if clean_left != clean_right:
+            raw_left = {k: v for k, v in left.items() if k not in keys_to_ignore}
+            raw_right = {k: v for k, v in right.items() if k not in keys_to_ignore}
+
+            # TODO (Yash): This code commented below is the corrected logic which accounts for bad key values.
+            # clean_left = cls._get_clean_actions_dict(raw_left)
+            # clean_right = cls._get_clean_actions_dict(raw_right)
+            # if clean_left != clean_right:
+            #     return False
+            """
+            This is a bug in the current logic.
+            When comparing DB values to serialized values, the values that are `None` are not properly converted to
+            empty strings.
+            This means we end up incorrectly evaluating the actions aren't the same, when they actually are.
+            """
+            if raw_left != raw_right:
                 return False
 
         return True
+
+    @classmethod
+    def _get_clean_actions_dict(cls, actions_dict: dict[any, any]) -> dict[any, any]:
+        """
+        Returns a dictionary where None is substituted with empty string to help compare DB values vs serialized values
+        """
+        cleaned_dict = {}
+        for k, v in actions_dict.items():
+            cleaned_dict[k] = "" if v is None else v
+
+        return cleaned_dict
 
     def find_duplicate(self) -> Rule | None:
         """
         Determines whether specified rule already exists, and if it does, returns it.
         """
-
         existing_rules = Rule.objects.exclude(id=self._rule_id).filter(
             project__id=self._project_id, status=ObjectStatus.ACTIVE
         )
@@ -223,7 +244,7 @@ class DuplicateRuleEvaluator:
                     if results.key_matches:
                         keys_matched += 1
 
-            if keys_checked == keys_matched:
+            if keys_checked > 0 and keys_checked == keys_matched:
                 return existing_rule
 
         return None
